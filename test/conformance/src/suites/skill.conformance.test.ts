@@ -21,6 +21,7 @@
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { Code, ConnectError } from "@connectrpc/connect";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
@@ -79,8 +80,9 @@ describe("Skill conformance — push & identity", () => {
     expect(pushed.metadata?.org).toBe(org);
     expect(pushed.status?.versionHash, "push computes a SHA-256 content hash").toMatch(/^[a-f0-9]{64}$/);
     expect(pushed.status?.artifactStorageKey, "push records a content-addressable storage key").not.toBe("");
-    // A pushed skill is private until explicitly made public.
-    expect(pushed.metadata?.visibility, "visibility defaults to private").toBe(ApiResourceVisibility.visibility_private);
+    // Skill is a blueprint kind, so a pushed skill defaults to org visibility
+    // (defaults_to_org_visibility); public is an explicit opt-in via updateVisibility.
+    expect(pushed.metadata?.visibility, "visibility defaults to org (blueprint default)").toBe(ApiResourceVisibility.visibility_org);
   });
 
   it("get round-trips the pushed skill (ignoring server-set fields)", async () => {
@@ -314,6 +316,13 @@ describe("Skill conformance — getByReference resolution", () => {
       "getByReference unknown slug",
     );
   });
+
+  it("getByReference rejects a kind that does not match the service", () =>
+    expectGrpcCode(
+      () => clients.skillQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.agent }),
+      Code.InvalidArgument,
+      "getByReference kind mismatch",
+    ));
 });
 
 describe("Skill conformance — artifact download (getArtifact)", () => {
@@ -457,10 +466,10 @@ describe("Skill conformance — listVersions", () => {
 });
 
 describe("Skill conformance — updateVisibility", () => {
-  it("flips a private skill to public", async () => {
+  it("changes an org-default skill to public", async () => {
     const { org } = await target.provisionTenancy();
     const pushed = await pushSkill(org, makeSkillArtifact({ name: uniqueName("skill") }));
-    expect(pushed.metadata?.visibility).toBe(ApiResourceVisibility.visibility_private);
+    expect(pushed.metadata?.visibility).toBe(ApiResourceVisibility.visibility_org);
 
     const updated = await clients.skillCommand.updateVisibility({
       resourceId: pushed.metadata!.id,

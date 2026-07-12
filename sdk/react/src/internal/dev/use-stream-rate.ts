@@ -1,6 +1,5 @@
 import { useRef } from "react";
-
-const DEV = process.env.NODE_ENV !== "production";
+import { isPerfLoggingEnabled } from "./enabled.js";
 
 /** Rolling window size for interval statistics. */
 const WINDOW_SIZE = 30;
@@ -42,12 +41,13 @@ const NOOP_TRACKER: StreamRateTracker = {
  * loop (not during render), so it uses a ref-backed mutable object
  * rather than React state.
  *
- * In production the hook returns a no-op tracker.
+ * Returns a no-op tracker unless perf logging is explicitly enabled
+ * (see {@link isPerfLoggingEnabled}) — off by default in every environment.
  */
 export function useStreamRate(): StreamRateTracker {
   const stateRef = useRef<StreamRateState | null>(null);
 
-  if (!DEV) return NOOP_TRACKER;
+  if (!isPerfLoggingEnabled()) return NOOP_TRACKER;
 
   if (!stateRef.current) {
     stateRef.current = {

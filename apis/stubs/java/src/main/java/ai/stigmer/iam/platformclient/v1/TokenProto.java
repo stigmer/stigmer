@@ -36,6 +36,16 @@ public final class TokenProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_iam_platformclient_v1_MintUserTokenResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_platformclient_v1_MintGuestTokenRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_platformclient_v1_MintGuestTokenRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_iam_platformclient_v1_MintGuestTokenResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_iam_platformclient_v1_MintGuestTokenResponse_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -57,16 +67,36 @@ public final class TokenProto extends com.google.protobuf.GeneratedFile {
       "\006org_id\030\006 \001(\tR\005orgId\"x\n\025MintUserTokenRes" +
       "ponse\022!\n\014access_token\030\001 \001(\tR\013accessToken" +
       "\022\035\n\ntoken_type\030\002 \001(\tR\ttokenType\022\035\n\nexpir" +
-      "es_in\030\003 \001(\005R\texpiresIn2\250\001\n\035PlatformClien" +
-      "tTokenController\022\206\001\n\rmintUserToken\0226.ai." +
-      "stigmer.iam.platformclient.v1.MintUserTo" +
-      "kenRequest\0327.ai.stigmer.iam.platformclie" +
-      "nt.v1.MintUserTokenResponse\"\004\310\270\030\001B\261\001B\nTo" +
-      "kenProtoP\001\242\002\004ASIP\252\002 Ai.Stigmer.Iam.Platf" +
-      "ormclient.V1\312\002 Ai\\Stigmer\\Iam\\Platformcl" +
-      "ient\\V1\342\002,Ai\\Stigmer\\Iam\\Platformclient\\" +
-      "V1\\GPBMetadata\352\002$Ai::Stigmer::Iam::Platf" +
-      "ormclient::V1b\006proto3"
+      "es_in\030\003 \001(\005R\texpiresIn\"\373\003\n\025MintGuestToke" +
+      "nRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022\033\n\004s" +
+      "lug\030\002 \001(\tB\007\272H\004r\002\020\001R\004slug\022&\n\017guest_cookie" +
+      "_id\030\003 \001(\tR\rguestCookieId\022\330\002\n\014embed_origi" +
+      "n\030\004 \001(\tB\264\002\272H\260\002\272\001\254\002\n\023embed_origin.format\022" +
+      "wembed_origin must be empty, \"null\", or " +
+      "an exact web origin like https://example" +
+      ".com (no path, query, or trailing slash)" +
+      "\032\233\001this == \'\' || this == \'null\' || this." +
+      "matches(\'^https?://[A-Za-z0-9]([A-Za-z0-" +
+      "9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z" +
+      "0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$\')R\013" +
+      "embedOrigin\022\'\n\nlink_token\030\005 \001(\tB\010\272H\005r\003\030\200" +
+      "\001R\tlinkToken\"\241\001\n\026MintGuestTokenResponse\022" +
+      "!\n\014access_token\030\001 \001(\tR\013accessToken\022\035\n\nto" +
+      "ken_type\030\002 \001(\tR\ttokenType\022\035\n\nexpires_in\030" +
+      "\003 \001(\005R\texpiresIn\022&\n\017guest_cookie_id\030\004 \001(" +
+      "\tR\rguestCookieId2\264\002\n\035PlatformClientToken" +
+      "Controller\022\206\001\n\rmintUserToken\0226.ai.stigme" +
+      "r.iam.platformclient.v1.MintUserTokenReq" +
+      "uest\0327.ai.stigmer.iam.platformclient.v1." +
+      "MintUserTokenResponse\"\004\310\270\030\001\022\211\001\n\016mintGues" +
+      "tToken\0227.ai.stigmer.iam.platformclient.v" +
+      "1.MintGuestTokenRequest\0328.ai.stigmer.iam" +
+      ".platformclient.v1.MintGuestTokenRespons" +
+      "e\"\004\310\270\030\001B\261\001B\nTokenProtoP\001\242\002\004ASIP\252\002 Ai.Sti" +
+      "gmer.Iam.Platformclient.V1\312\002 Ai\\Stigmer\\" +
+      "Iam\\Platformclient\\V1\342\002,Ai\\Stigmer\\Iam\\P" +
+      "latformclient\\V1\\GPBMetadata\352\002$Ai::Stigm" +
+      "er::Iam::Platformclient::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -86,6 +116,18 @@ public final class TokenProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_iam_platformclient_v1_MintUserTokenResponse_descriptor,
         new java.lang.String[] { "AccessToken", "TokenType", "ExpiresIn", });
+    internal_static_ai_stigmer_iam_platformclient_v1_MintGuestTokenRequest_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_iam_platformclient_v1_MintGuestTokenRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_platformclient_v1_MintGuestTokenRequest_descriptor,
+        new java.lang.String[] { "Org", "Slug", "GuestCookieId", "EmbedOrigin", "LinkToken", });
+    internal_static_ai_stigmer_iam_platformclient_v1_MintGuestTokenResponse_descriptor =
+      getDescriptor().getMessageType(3);
+    internal_static_ai_stigmer_iam_platformclient_v1_MintGuestTokenResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_iam_platformclient_v1_MintGuestTokenResponse_descriptor,
+        new java.lang.String[] { "AccessToken", "TokenType", "ExpiresIn", "GuestCookieId", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

@@ -19,9 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SessionQueryController_Get_FullMethodName         = "/ai.stigmer.agentic.session.v1.SessionQueryController/get"
-	SessionQueryController_List_FullMethodName        = "/ai.stigmer.agentic.session.v1.SessionQueryController/list"
-	SessionQueryController_ListByAgent_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionQueryController/listByAgent"
+	SessionQueryController_Get_FullMethodName                 = "/ai.stigmer.agentic.session.v1.SessionQueryController/get"
+	SessionQueryController_List_FullMethodName                = "/ai.stigmer.agentic.session.v1.SessionQueryController/list"
+	SessionQueryController_ListByAgentInstance_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionQueryController/listByAgentInstance"
 )
 
 // SessionQueryControllerClient is the client API for SessionQueryController service.
@@ -37,11 +37,12 @@ type SessionQueryControllerClient interface {
 	// @internal
 	// Authorization is handled in-handler via FGA-filtered queries.
 	List(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*SessionList, error)
-	// List all sessions for a specific agent.
+	// List all sessions for a specific agent instance.
 	//
 	// @internal
-	// Authorization is handled in-handler via FGA-filtered queries.
-	ListByAgent(ctx context.Context, in *ListSessionsByAgentRequest, opts ...grpc.CallOption) (*SessionList, error)
+	// Authorization is handled in handler via FGA query for authorized
+	// session_ids, then filtered by agent_instance_id.
+	ListByAgentInstance(ctx context.Context, in *ListSessionsByAgentInstanceRequest, opts ...grpc.CallOption) (*SessionList, error)
 }
 
 type sessionQueryControllerClient struct {
@@ -72,10 +73,10 @@ func (c *sessionQueryControllerClient) List(ctx context.Context, in *ListSession
 	return out, nil
 }
 
-func (c *sessionQueryControllerClient) ListByAgent(ctx context.Context, in *ListSessionsByAgentRequest, opts ...grpc.CallOption) (*SessionList, error) {
+func (c *sessionQueryControllerClient) ListByAgentInstance(ctx context.Context, in *ListSessionsByAgentInstanceRequest, opts ...grpc.CallOption) (*SessionList, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SessionList)
-	err := c.cc.Invoke(ctx, SessionQueryController_ListByAgent_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, SessionQueryController_ListByAgentInstance_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -95,11 +96,12 @@ type SessionQueryControllerServer interface {
 	// @internal
 	// Authorization is handled in-handler via FGA-filtered queries.
 	List(context.Context, *ListSessionsRequest) (*SessionList, error)
-	// List all sessions for a specific agent.
+	// List all sessions for a specific agent instance.
 	//
 	// @internal
-	// Authorization is handled in-handler via FGA-filtered queries.
-	ListByAgent(context.Context, *ListSessionsByAgentRequest) (*SessionList, error)
+	// Authorization is handled in handler via FGA query for authorized
+	// session_ids, then filtered by agent_instance_id.
+	ListByAgentInstance(context.Context, *ListSessionsByAgentInstanceRequest) (*SessionList, error)
 }
 
 // UnimplementedSessionQueryControllerServer should be embedded to have
@@ -115,8 +117,8 @@ func (UnimplementedSessionQueryControllerServer) Get(context.Context, *SessionId
 func (UnimplementedSessionQueryControllerServer) List(context.Context, *ListSessionsRequest) (*SessionList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
-func (UnimplementedSessionQueryControllerServer) ListByAgent(context.Context, *ListSessionsByAgentRequest) (*SessionList, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListByAgent not implemented")
+func (UnimplementedSessionQueryControllerServer) ListByAgentInstance(context.Context, *ListSessionsByAgentInstanceRequest) (*SessionList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListByAgentInstance not implemented")
 }
 func (UnimplementedSessionQueryControllerServer) testEmbeddedByValue() {}
 
@@ -174,20 +176,20 @@ func _SessionQueryController_List_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _SessionQueryController_ListByAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListSessionsByAgentRequest)
+func _SessionQueryController_ListByAgentInstance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSessionsByAgentInstanceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SessionQueryControllerServer).ListByAgent(ctx, in)
+		return srv.(SessionQueryControllerServer).ListByAgentInstance(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: SessionQueryController_ListByAgent_FullMethodName,
+		FullMethod: SessionQueryController_ListByAgentInstance_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SessionQueryControllerServer).ListByAgent(ctx, req.(*ListSessionsByAgentRequest))
+		return srv.(SessionQueryControllerServer).ListByAgentInstance(ctx, req.(*ListSessionsByAgentInstanceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -208,8 +210,8 @@ var SessionQueryController_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _SessionQueryController_List_Handler,
 		},
 		{
-			MethodName: "listByAgent",
-			Handler:    _SessionQueryController_ListByAgent_Handler,
+			MethodName: "listByAgentInstance",
+			Handler:    _SessionQueryController_ListByAgentInstance_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

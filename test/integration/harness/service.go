@@ -384,6 +384,12 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		fmt.Sprintf("OBSERVABILITY_ENABLED=%t", cfg.OTLPEndpoint != ""),
 		"STIGMER_BILLING_RECONCILIATION_ENABLED=false",
 		"STIGMER_BILLING_RESERVATION_EXPIRY_ENABLED=false",
+
+		// Shared-agent launch gate: lower the per-session turn limit so the
+		// integration test can trip it without 30 real execution creates.
+		// Other limits keep production defaults (tests use fresh cookies, so
+		// per-guest buckets never collide across tests).
+		"STIGMER_SHARING_MAX_TURNS_PER_SESSION=5",
 		"STIGMER_RUNNER_LAUNCHER_TYPE=noop",
 
 		fmt.Sprintf("STIGMER_ACTIVITY_ROUTING=%s", activityRouting(cfg)),

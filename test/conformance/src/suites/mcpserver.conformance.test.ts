@@ -11,8 +11,8 @@
 // McpServer *domain* — the first-class resource and its gRPC controllers.
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { Code } from "@connectrpc/connect";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { expectCodeOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -142,6 +142,13 @@ describe("McpServer conformance — CRUD & identity", () => {
     );
   });
 
+  it("getByReference rejects a kind that does not match the service", () =>
+    expectGrpcCode(
+      () => clients.mcpServerQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.agent }),
+      Code.InvalidArgument,
+      "getByReference kind mismatch",
+    ));
+
   it("derives a slug from the name", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createMcpServer(org, "My MCP Server #1 (Test)");
@@ -216,10 +223,9 @@ describe("McpServer conformance — negative paths", () => {
     const name = uniqueName("dup");
     await createMcpServer(org, name);
 
-    await expectCodeOrDeviation(
-      target.name,
-      "create.duplicate.code",
+    await expectGrpcCode(
       () => clients.mcpServerCommand.create(makeMcpServer({ org, name })),
+      Code.AlreadyExists,
       "duplicate create",
     );
   });
@@ -228,9 +234,7 @@ describe("McpServer conformance — negative paths", () => {
     const { org } = await target.provisionTenancy();
     // Spec is valid so Layer 1 passes; the empty name is what must be rejected
     // (slug resolution has nothing to derive from).
-    await expectCodeOrDeviation(
-      target.name,
-      "create.missing-name.code",
+    await expectGrpcCode(
       () =>
         clients.mcpServerCommand.create({
           apiVersion: MCPSERVER_API_VERSION,
@@ -238,6 +242,7 @@ describe("McpServer conformance — negative paths", () => {
           metadata: { org },
           spec: makeMcpServerSpec(),
         }),
+      Code.InvalidArgument,
       "create without name",
     );
   });

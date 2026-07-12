@@ -17,7 +17,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { create } from "@bufbuild/protobuf";
+import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
   AgentMessageSchema,
   ToolCallSchema,
@@ -236,6 +236,133 @@ describe("runTurnBoundary", () => {
     expect(result.deniedToolCallCount).toBe(1);
     expect(result.capturedChangeCount).toBe(0);
     expect(shellCall.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+  });
+
+  // ── Issue #205: unattributed hook blocks and the kind split ────────────────
+
+  /** A FAILED tool call carrying Cursor's generic hook-block error text. */
+  function hookBlockedCall(id: string, name: string, args: JsonObject) {
+    return create(ToolCallSchema, {
+      id,
+      name,
+      status: ToolCallStatus.TOOL_CALL_FAILED,
+      error: "Command blocked by a hook.",
+      args,
+    });
+  }
+
+  /** Append one entry to this turn's denial ledger. */
+  async function appendLedgerEntry(entry: Record<string, unknown>): Promise<void> {
+    await writeFile(denialLedgerPath(hitlDir), JSON.stringify(entry) + "\n", { flag: "a" });
+  }
+
+  it("reports a foreign hook block on a non-pausing turn (the #205 silent-complete shape)", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+    });
+
+    // A foreign .cursor/hooks.json hook denied the write: Cursor stamped its
+    // generic error, our ledger stayed empty, the tree is untouched. Before
+    // this fix the boundary reported a clean non-waiting turn and the run
+    // completed silently with the work undone.
+    const blocked = hookBlockedCall("tc-foreign", "edit", { path: "notes.md" });
+    status.messages.push(
+      create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [blocked] }),
+    );
+
+    const result = await runTurnBoundary(
+      boundaryOpts(status, baseline, { foreignGatingHooks: ["./team-policy.sh"] }),
+    );
+
+    expect(result.waiting).toBe(false);
+    expect(result.unattributedHookBlocks).toEqual([
+      { toolCallId: "tc-foreign", toolName: "edit", error: "Command blocked by a hook." },
+    ]);
+    // The row itself is untouched — no gate was manufactured for a block no
+    // approval can lift; the caller fails the execution instead.
+    expect(blocked.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+  });
+
+  it("attributes a secret hard-block (kind:'secret'): no pause, no false foreign-hook report", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+    });
+
+    const secretRow = hookBlockedCall("tc-secret", "edit", { path: ".env" });
+    status.messages.push(
+      create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [secretRow] }),
+    );
+    await writeFile(
+      denialLedgerPath(hitlDir),
+      JSON.stringify({
+        toolName: "Write", token: toolCallIdentityToken(secretRow), kind: "secret",
+      }) + "\n",
+      "utf-8",
+    );
+
+    const result = await runTurnBoundary(boundaryOpts(status, baseline));
+
+    // Not a pause (the agent was told to move on), not a foreign block (our
+    // own kinded entry attributes it), and never a WAITING_APPROVAL overlay.
+    expect(result.waiting).toBe(false);
+    expect(result.deniedToolCallCount).toBe(0);
+    expect(result.unattributedHookBlocks).toEqual([]);
+    expect(secretRow.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+  });
+
+  it("mixed turn: pauses on our anchor while still reporting the foreign block", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+    });
+
+    const ourGated = create(ToolCallSchema, {
+      id: "tc-ours", name: "shell",
+      status: ToolCallStatus.TOOL_CALL_RUNNING,
+      args: { command: "rm -rf build" },
+    });
+    const foreign = hookBlockedCall("tc-theirs", "shell", { command: "terraform apply" });
+    status.messages.push(
+      create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [ourGated, foreign] }),
+    );
+    await appendLedgerEntry({ toolName: "shell", token: toolCallIdentityToken(ourGated), kind: "approval" });
+
+    const result = await runTurnBoundary(boundaryOpts(status, baseline));
+
+    // The pause wins (a pausing turn is never silent); the foreign block is
+    // still surfaced so the caller can log it next to the approval.
+    expect(result.waiting).toBe(true);
+    expect(ourGated.status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(result.unattributedHookBlocks.map((b) => b.toolCallId)).toEqual(["tc-theirs"]);
+  });
+
+  it("excludes a kinded (secret) deny from the flowed-edit stamp (full-ledger deniedTokens)", async () => {
+    const status = newStatus();
+    const baseline = await captureBaselineToLedger({
+      status, gitRoot: repo, executionId: EXEC_ID, changeSetId: CHANGE_SET_ID,
+    });
+
+    // One edit genuinely flowed (tree changed + streamed row); one secret-like
+    // write was hard-blocked (FAILED row + kind:"secret" entry, tree untouched).
+    await write("notes.md", "original notes\nplus a real edit\n");
+    status.messages.push(streamedEdit("tc-flowed", "notes.md", "original notes\nplus a real edit\n"));
+    const secretRow = hookBlockedCall("tc-secret", "edit", { path: ".env" });
+    status.messages.push(
+      create(AgentMessageSchema, { type: MessageType.MESSAGE_AI, toolCalls: [secretRow] }),
+    );
+    await appendLedgerEntry({ toolName: "Write", token: toolCallIdentityToken(secretRow), kind: "secret" });
+
+    const result = await runTurnBoundary(boundaryOpts(status, baseline));
+
+    // The flowed edit is captured + stamped; the secret-blocked row is NOT
+    // stamped into a change set that does not contain its file — every ledger
+    // kind means "this action did not execute", so the stamp uses the FULL set.
+    expect(result.waiting).toBe(true);
+    expect(result.capturedChangeCount).toBe(1);
+    expect(status.messages[0].toolCalls[0].fileChangeSetId).toBe(CHANGE_SET_ID);
+    expect(secretRow.fileChangeSetId).toBe("");
   });
 
   it("waits for the denial-stop cancel to settle before reading the ledger", async () => {

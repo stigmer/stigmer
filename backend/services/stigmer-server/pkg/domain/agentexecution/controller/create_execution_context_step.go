@@ -26,17 +26,27 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
 )
 
-// createExecutionContextStep builds and persists an ExecutionContext with a fully-merged
-// environment for the agent execution.
+// executionContextBuilder builds and persists an ExecutionContext with a
+// fully-merged environment for an agent execution: it resolves the agent
+// instance, merges environment layers, applies the declared-key filter and the
+// injection passes (workspace-provisioning keys, personal-environment
+// fallback, MCP OAuth tokens), and persists the result.
+//
+// Shared by the create pipeline (createExecutionContextStep) and the recover
+// pipeline (recreateExecutionContextStep): recovery must rebuild the EC
+// because the failed run's workflow cleanup deleted it, and re-resolving from
+// the CURRENT agent/instance/environment configuration is the desired
+// semantics ("fix the API key, then recover").
 //
 // Resolution chain:
-//   - Path A (agent_id provided): DefaultInstanceIDKey in pipeline context -> agentInstanceClient.Get -> agentClient.Get
-//   - Path B (session_id provided): sessionClient.Get -> Session.agent_instance_id -> agentInstanceClient.Get -> agentClient.Get
+//   - Path A (preResolvedInstanceID provided): agentInstanceClient.Get -> agentClient.Get
+//   - Path B (session_id on the execution): sessionClient.Get -> Session.agent_instance_id -> agentInstanceClient.Get -> agentClient.Get
 //
 // Merge priority (lowest to highest):
 //  1. AgentInstance.environment_refs resolved via environmentClient (in order)
-//  2. AgentExecution.spec.runtime_env (execution-time overrides)
-type createExecutionContextStep struct {
+//  2. AgentExecution.spec.runtime_env (execution-time overrides; empty on
+//     recover — consumed into the original EC and cleared before persist)
+type executionContextBuilder struct {
 	agentClient         *agent.Client
 	agentInstanceClient *agentinstance.Client
 	sessionClient       *session.Client
@@ -47,8 +57,8 @@ type createExecutionContextStep struct {
 	managedEnvService   *oauth.ManagedEnvironmentService
 }
 
-func (c *AgentExecutionController) newCreateExecutionContextStep() *createExecutionContextStep {
-	return &createExecutionContextStep{
+func (c *AgentExecutionController) newExecutionContextBuilder() *executionContextBuilder {
+	return &executionContextBuilder{
 		agentClient:         c.agentClient,
 		agentInstanceClient: c.agentInstanceClient,
 		sessionClient:       c.sessionClient,
@@ -60,12 +70,66 @@ func (c *AgentExecutionController) newCreateExecutionContextStep() *createExecut
 	}
 }
 
+// createExecutionContextStep runs the shared executionContextBuilder for the
+// create pipeline, then clears the consumed runtime_env from the execution —
+// a create-only concern (the recover pipeline has no runtime_env to clear).
+type createExecutionContextStep struct {
+	builder *executionContextBuilder
+}
+
+func (c *AgentExecutionController) newCreateExecutionContextStep() *createExecutionContextStep {
+	return &createExecutionContextStep{builder: c.newExecutionContextBuilder()}
+}
+
 func (s *createExecutionContextStep) Name() string {
 	return "CreateExecutionContext"
 }
 
 func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecution]) error {
 	execution := ctx.NewState()
+	executionID := execution.GetMetadata().GetId()
+
+	// Path A: the instance resolved by createDefaultInstanceIfNeededStep, when
+	// the request came in by agent_id. Empty for session-first requests, which
+	// the builder resolves via the session (Path B).
+	preResolvedInstanceID := ""
+	if val := ctx.Get(DefaultInstanceIDKey); val != nil {
+		if instanceID, ok := val.(string); ok {
+			preResolvedInstanceID = instanceID
+		}
+	}
+
+	if err := s.builder.buildAndPersist(ctx.Context(), execution, preResolvedInstanceID); err != nil {
+		return err
+	}
+
+	// Clear runtime_env from the execution now that it has been consumed.
+	// runtime_env is a transient creation-time input; its contents are now
+	// materialized in the ExecutionContext. Clearing it ensures secrets never
+	// appear in the persisted execution or in Temporal workflow history.
+	if execution.GetSpec() != nil && len(execution.GetSpec().GetRuntimeEnv()) > 0 {
+		log.Debug().
+			Str("execution_id", executionID).
+			Int("cleared_entries", len(execution.GetSpec().GetRuntimeEnv())).
+			Msg("Clearing runtime_env from execution (consumed into ExecutionContext)")
+
+		execution.Spec.RuntimeEnv = nil
+		ctx.SetNewState(execution)
+	}
+
+	return nil
+}
+
+// buildAndPersist resolves the environment for execution and persists a fresh
+// ExecutionContext. preResolvedInstanceID short-circuits instance resolution
+// when the caller already knows it; pass "" to resolve via the execution's
+// session_id (the only path recover needs — a persisted execution always
+// carries one).
+func (b *executionContextBuilder) buildAndPersist(
+	ctx context.Context,
+	execution *agentexecutionv1.AgentExecution,
+	preResolvedInstanceID string,
+) error {
 	executionID := execution.GetMetadata().GetId()
 	executionOrg := execution.GetMetadata().GetOrg()
 
@@ -74,7 +138,7 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 		Msg("Creating execution context with merged environment")
 
 	// 1. Resolve agent_instance_id
-	agentInstanceID, err := s.resolveAgentInstanceID(ctx)
+	agentInstanceID, err := b.resolveAgentInstanceID(ctx, execution, preResolvedInstanceID)
 	if err != nil {
 		return fmt.Errorf("resolve agent instance: %w", err)
 	}
@@ -85,7 +149,7 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 		Msg("Resolved agent instance ID")
 
 	// 2. Load AgentInstance to get environment_refs and agent_id
-	instance, err := s.agentInstanceClient.Get(ctx.Context(), agentInstanceID)
+	instance, err := b.agentInstanceClient.Get(ctx, agentInstanceID)
 	if err != nil {
 		return fmt.Errorf("load agent instance %s: %w", agentInstanceID, err)
 	}
@@ -93,13 +157,13 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 	agentID := instance.GetSpec().GetAgentId()
 
 	// 3. Load Agent to get env declarations
-	agentResource, err := s.agentClient.Get(ctx.Context(), &agentv1.AgentId{Value: agentID})
+	agentResource, err := b.agentClient.Get(ctx, &agentv1.AgentId{Value: agentID})
 	if err != nil {
 		return fmt.Errorf("load agent %s: %w", agentID, err)
 	}
 
 	// 4. Resolve environments from instance environment_refs
-	environments, err := s.resolveEnvironments(ctx, instance.GetSpec().GetEnvironmentRefs())
+	environments, err := b.resolveEnvironments(ctx, instance.GetSpec().GetEnvironmentRefs())
 	if err != nil {
 		return err
 	}
@@ -136,7 +200,7 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 	var sess *sessionv1.Session
 	if sessionID != "" {
 		var sessErr error
-		sess, sessErr = s.sessionClient.Get(ctx.Context(), sessionID)
+		sess, sessErr = b.sessionClient.Get(ctx, sessionID)
 		if sessErr != nil {
 			log.Warn().Err(sessErr).
 				Str("execution_id", executionID).
@@ -144,7 +208,7 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 		} else {
 			filtered = injectWorkspaceProvisioningKeys(filtered, merged, sess, executionID)
 			filtered = injectFromPersonalEnvironment(
-				ctx.Context(), filtered, sess, executionOrg, executionID, s.environmentClient,
+				ctx, filtered, sess, executionOrg, executionID, b.environmentClient,
 			)
 		}
 	}
@@ -158,8 +222,8 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 	// (added at runtime, not declared on the agent) also get their OAuth
 	// tokens injected.
 	mergedMcpUsages := mergeAgentAndSessionMcpUsages(agentResource, sess)
-	filtered, oauthErr := s.injectMcpOAuthFromManagedEnvironment(
-		ctx.Context(), filtered, mergedMcpUsages, executionOrg, executionID,
+	filtered, oauthErr := b.injectMcpOAuthFromManagedEnvironment(
+		ctx, filtered, mergedMcpUsages, executionOrg, executionID,
 	)
 	if oauthErr != nil {
 		return grpclib.FailedPreconditionError("%v", oauthErr)
@@ -198,7 +262,7 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 		},
 	}
 
-	created, err := s.executionCtxClient.Create(ctx.Context(), ec)
+	created, err := b.executionCtxClient.Create(ctx, ec)
 	if err != nil {
 		return fmt.Errorf("create execution context for %s: %w", executionID, err)
 	}
@@ -209,41 +273,28 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 		Int("data_entries", len(filtered)).
 		Msg("Successfully created execution context")
 
-	// 8. Clear runtime_env from the execution now that it has been consumed.
-	// runtime_env is a transient creation-time input; its contents are now
-	// materialized in the ExecutionContext. Clearing it ensures secrets never
-	// appear in the persisted execution or in Temporal workflow history.
-	if execution.GetSpec() != nil && len(execution.GetSpec().GetRuntimeEnv()) > 0 {
-		log.Debug().
-			Str("execution_id", executionID).
-			Int("cleared_entries", len(execution.GetSpec().GetRuntimeEnv())).
-			Msg("Clearing runtime_env from execution (consumed into ExecutionContext)")
-
-		execution.Spec.RuntimeEnv = nil
-		ctx.SetNewState(execution)
-	}
-
 	return nil
 }
 
-// resolveAgentInstanceID determines the agent_instance_id from pipeline context or by
-// looking up the session.
-func (s *createExecutionContextStep) resolveAgentInstanceID(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecution]) (string, error) {
-	// Path A: DefaultInstanceIDKey set by createDefaultInstanceIfNeededStep
-	if val := ctx.Get(DefaultInstanceIDKey); val != nil {
-		if instanceID, ok := val.(string); ok && instanceID != "" {
-			return instanceID, nil
-		}
+// resolveAgentInstanceID determines the agent_instance_id from the caller's
+// pre-resolved value or by looking up the execution's session.
+func (b *executionContextBuilder) resolveAgentInstanceID(
+	ctx context.Context,
+	execution *agentexecutionv1.AgentExecution,
+	preResolvedInstanceID string,
+) (string, error) {
+	// Path A: instance already resolved by the caller.
+	if preResolvedInstanceID != "" {
+		return preResolvedInstanceID, nil
 	}
 
 	// Path B: look up session to get agent_instance_id
-	execution := ctx.NewState()
 	sessionID := execution.GetSpec().GetSessionId()
 	if sessionID == "" {
-		return "", fmt.Errorf("neither default_instance_id in context nor session_id on execution")
+		return "", fmt.Errorf("neither a pre-resolved instance id nor session_id on execution")
 	}
 
-	sess, err := s.sessionClient.Get(ctx.Context(), sessionID)
+	sess, err := b.sessionClient.Get(ctx, sessionID)
 	if err != nil {
 		return "", fmt.Errorf("load session %s: %w", sessionID, err)
 	}
@@ -359,14 +410,14 @@ func mergeAgentAndSessionMcpUsages(
 // Token refresh failures are fatal — an expired token that cannot be refreshed
 // must prevent execution rather than letting the agent run with a stale token
 // that will fail with an opaque 401 from the MCP server.
-func (s *createExecutionContextStep) injectMcpOAuthFromManagedEnvironment(
+func (b *executionContextBuilder) injectMcpOAuthFromManagedEnvironment(
 	ctx context.Context,
 	filtered map[string]*executioncontextv1.ExecutionValue,
 	mcpServerUsages []*agentv1.McpServerUsage,
 	executionOrg string,
 	executionID string,
 ) (map[string]*executioncontextv1.ExecutionValue, error) {
-	if s.oauthGrantStore == nil || s.managedEnvService == nil || s.store == nil {
+	if b.oauthGrantStore == nil || b.managedEnvService == nil || b.store == nil {
 		return filtered, nil
 	}
 
@@ -391,7 +442,7 @@ func (s *createExecutionContextStep) injectMcpOAuthFromManagedEnvironment(
 		}
 
 		mcpServer, found, err := steps.FindResourceBySlug[*mcpserverv1.McpServer](
-			ctx, s.store, apiresourcekind.ApiResourceKind_mcp_server, slug, serverOrg,
+			ctx, b.store, apiresourcekind.ApiResourceKind_mcp_server, slug, serverOrg,
 		)
 		if err != nil || !found || mcpServer.GetSpec().GetAuth() == nil {
 			continue
@@ -399,7 +450,7 @@ func (s *createExecutionContextStep) injectMcpOAuthFromManagedEnvironment(
 
 		mcpServerID := mcpServer.GetMetadata().GetId()
 
-		grant, err := s.oauthGrantStore.Find(ctx, "", mcpServerID, serverOrg)
+		grant, err := b.oauthGrantStore.Find(ctx, "", mcpServerID, serverOrg)
 		if err != nil || grant == nil {
 			continue
 		}
@@ -424,21 +475,21 @@ func (s *createExecutionContextStep) injectMcpOAuthFromManagedEnvironment(
 
 		// Inline pre-flight refresh if expired. Refresh failures are fatal —
 		// an expired token must not be silently injected into the execution.
-		refreshResult, refreshErr := inlineRefreshIfExpired(ctx, grant, s.managedEnvService, managedEnvID)
+		refreshResult, refreshErr := inlineRefreshIfExpired(ctx, grant, b.managedEnvService, managedEnvID)
 		if refreshErr != nil {
 			return nil, fmt.Errorf(
 				"OAuth token refresh failed for MCP server '%s': %w", mcpServerID, refreshErr)
 		}
 		if refreshResult != nil && refreshResult.Refreshed {
 			grant.AccessTokenExpiresAt = refreshResult.NewExpiresAt
-			if upsertErr := s.oauthGrantStore.Upsert(ctx, grant); upsertErr != nil {
+			if upsertErr := b.oauthGrantStore.Upsert(ctx, grant); upsertErr != nil {
 				log.Warn().Err(upsertErr).
 					Str("mcp_server_id", mcpServerID).
 					Msg("Failed to update OAuth grant after inline refresh (non-fatal)")
 			}
 		}
 
-		tokenValue, err := s.managedEnvService.ReadSecretValue(ctx, managedEnvID, oauthKey)
+		tokenValue, err := b.managedEnvService.ReadSecretValue(ctx, managedEnvID, oauthKey)
 		if err != nil || tokenValue == "" {
 			log.Warn().Err(err).
 				Str("mcp_server_id", mcpServerID).
@@ -635,8 +686,8 @@ func injectFromPersonalEnvironment(
 }
 
 // resolveEnvironments fetches each referenced Environment resource in order.
-func (s *createExecutionContextStep) resolveEnvironments(
-	ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecution],
+func (b *executionContextBuilder) resolveEnvironments(
+	ctx context.Context,
 	refs []*apiresource.ApiResourceReference,
 ) ([]*environmentv1.Environment, error) {
 	if len(refs) == 0 {
@@ -645,7 +696,7 @@ func (s *createExecutionContextStep) resolveEnvironments(
 
 	environments := make([]*environmentv1.Environment, 0, len(refs))
 	for _, ref := range refs {
-		env, err := s.environmentClient.GetByReference(ctx.Context(), ref)
+		env, err := b.environmentClient.GetByReference(ctx, ref)
 		if err != nil {
 			return nil, fmt.Errorf("resolve environment ref (org=%s, slug=%s): %w",
 				ref.GetOrg(), ref.GetSlug(), err)

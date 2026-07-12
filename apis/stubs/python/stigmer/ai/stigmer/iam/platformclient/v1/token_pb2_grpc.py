@@ -17,6 +17,10 @@ class PlatformClientTokenControllerStub(object):
     The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
     chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
     that checks the Stigmer-issued signature and resolves the identity account.
+
+    mintGuestToken is the credential-free exception: no client_id/client_secret.
+    It mints a guest-scoped JWT for anonymous visitors of a shared agent's
+    hosted page, gated on spec.sharing.enabled.
     """
 
     def __init__(self, channel):
@@ -29,6 +33,11 @@ class PlatformClientTokenControllerStub(object):
                 '/ai.stigmer.iam.platformclient.v1.PlatformClientTokenController/mintUserToken',
                 request_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_token__pb2.MintUserTokenRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_token__pb2.MintUserTokenResponse.FromString,
+                _registered_method=True)
+        self.mintGuestToken = channel.unary_unary(
+                '/ai.stigmer.iam.platformclient.v1.PlatformClientTokenController/mintGuestToken',
+                request_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_token__pb2.MintGuestTokenRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_token__pb2.MintGuestTokenResponse.FromString,
                 _registered_method=True)
 
 
@@ -44,6 +53,10 @@ class PlatformClientTokenControllerServicer(object):
     The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
     chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
     that checks the Stigmer-issued signature and resolves the identity account.
+
+    mintGuestToken is the credential-free exception: no client_id/client_secret.
+    It mints a guest-scoped JWT for anonymous visitors of a shared agent's
+    hosted page, gated on spec.sharing.enabled.
     """
 
     def mintUserToken(self, request, context):
@@ -78,6 +91,21 @@ class PlatformClientTokenControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def mintGuestToken(self, request, context):
+        """Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
+
+        Resolves org+slug to a shared agent, provisions the org's system-managed
+        PlatformClient and guest identity account lazily, and returns a short-lived
+        Stigmer-signed JWT scoped to that org.
+
+        @internal
+        Public — no Bearer token. No PlatformClient credentials. The handler gates
+        on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_PlatformClientTokenControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -85,6 +113,11 @@ def add_PlatformClientTokenControllerServicer_to_server(servicer, server):
                     servicer.mintUserToken,
                     request_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_token__pb2.MintUserTokenRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_token__pb2.MintUserTokenResponse.SerializeToString,
+            ),
+            'mintGuestToken': grpc.unary_unary_rpc_method_handler(
+                    servicer.mintGuestToken,
+                    request_deserializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_token__pb2.MintGuestTokenRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_token__pb2.MintGuestTokenResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -106,6 +139,10 @@ class PlatformClientTokenController(object):
     The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
     chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
     that checks the Stigmer-issued signature and resolves the identity account.
+
+    mintGuestToken is the credential-free exception: no client_id/client_secret.
+    It mints a guest-scoped JWT for anonymous visitors of a shared agent's
+    hosted page, gated on spec.sharing.enabled.
     """
 
     @staticmethod
@@ -125,6 +162,33 @@ class PlatformClientTokenController(object):
             '/ai.stigmer.iam.platformclient.v1.PlatformClientTokenController/mintUserToken',
             ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_token__pb2.MintUserTokenRequest.SerializeToString,
             ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_token__pb2.MintUserTokenResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def mintGuestToken(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.iam.platformclient.v1.PlatformClientTokenController/mintGuestToken',
+            ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_token__pb2.MintGuestTokenRequest.SerializeToString,
+            ai_dot_stigmer_dot_iam_dot_platformclient_dot_v1_dot_token__pb2.MintGuestTokenResponse.FromString,
             options,
             channel_credentials,
             insecure,

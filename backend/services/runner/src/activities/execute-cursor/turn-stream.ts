@@ -33,7 +33,7 @@ import {
   type StallWatchdog,
 } from "../../shared/stall-watchdog.js";
 import { shouldPersistStreamingStatus } from "./persist-decision.js";
-import { readDenialLedger } from "./approval-state.js";
+import { approvalDenials, readDenialLedger } from "./approval-state.js";
 import {
   captureFileChangeProgress,
   type ProgressCaptureState,
@@ -305,7 +305,11 @@ export async function consumeCursorTurnStream(
       // anchor's own row is always present for the turn-boundary gate overlay.
       if (!state.firstDenialDetected && hitlDir && (state.denialLedgerDirty || event.type === "tool_call")) {
         state.denialLedgerDirty = false;
-        const denials = await readDenialLedger(hitlDir);
+        // APPROVAL-kind denials only: a secret hard-block or fail-closed deny
+        // also lands in the (kinded) ledger for attribution, but must never
+        // stop the run — the agent is told to continue past those, and there
+        // is no approval the user could meaningfully grant.
+        const denials = approvalDenials(await readDenialLedger(hitlDir));
         if (denials.length > 0) {
           state.firstDenialDetected = true;
           console.log(

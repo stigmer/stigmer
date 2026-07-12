@@ -118,7 +118,6 @@ func TestFGAModel_PlatformOperatorPermissions(t *testing.T) {
 		"can_impersonate",
 		"can_bootstrap_iam",
 		"can_manage_identity_accounts",
-		"can_delete_session",
 		"can_update_usage",
 		"can_execute_billing_ops",
 		"can_grant_access",
@@ -270,12 +269,16 @@ func TestFGAModel_SessionPersonalResource(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// Owner can view and edit their session
+	// Owner can view, edit, and delete their session (owner-delete: see the
+	// 2026-07-08-owner-session-delete FGA changelog entry in stigmer-cloud)
 	t.Run("owner_can_view", func(t *testing.T) {
 		assert.True(t, fgaCheck(t, fga, owner, "can_view", session))
 	})
 	t.Run("owner_can_edit", func(t *testing.T) {
 		assert.True(t, fgaCheck(t, fga, owner, "can_edit", session))
+	})
+	t.Run("owner_can_delete", func(t *testing.T) {
+		assert.True(t, fgaCheck(t, fga, owner, "can_delete", session))
 	})
 
 	// Another org member cannot view (personal resource, no admin inheritance)
@@ -283,7 +286,8 @@ func TestFGAModel_SessionPersonalResource(t *testing.T) {
 		assert.False(t, fgaCheck(t, fga, member, "can_view", session))
 	})
 
-	// After explicit viewer grant, the member can view
+	// After explicit viewer grant, the member can view — but management
+	// stays with the owner.
 	err = fga.WriteTuples(ctx, []harness.RelationshipTuple{
 		{User: member, Relation: "viewer", Object: session},
 	})
@@ -294,6 +298,9 @@ func TestFGAModel_SessionPersonalResource(t *testing.T) {
 	})
 	t.Run("member_still_cannot_edit", func(t *testing.T) {
 		assert.False(t, fgaCheck(t, fga, member, "can_edit", session))
+	})
+	t.Run("member_still_cannot_delete", func(t *testing.T) {
+		assert.False(t, fgaCheck(t, fga, member, "can_delete", session))
 	})
 }
 

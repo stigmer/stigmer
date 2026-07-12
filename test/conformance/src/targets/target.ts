@@ -17,6 +17,12 @@ export interface CapabilityFlags {
   multiTenant: boolean;
   // OrganizationQuery.getByExternalOrgId is implemented. False for local OSS.
   externalOrgLookup: boolean;
+  // OrganizationQuery.find enumerates every organization. True for local OSS,
+  // which is single-tenant and returns them all. False for cloud, where
+  // enumerating every tenant's org is not a tenant capability — cloud leaves
+  // find unrouted and answers Unimplemented; tenants use findMyOrganizations
+  // (proto documents find as platform-admin/administrative use only).
+  organizationEnumeration: boolean;
   // The dedicated WorkflowCommandController.tagVersion mutation RPC is
   // implemented. False for local OSS, which has no handler (it answers
   // Unimplemented) — version tags are instead set at apply time via
@@ -50,8 +56,10 @@ export interface CapabilityFlags {
   workflowChildApprovalForwarding: boolean;
 }
 
-// Tenancy scope a test operates within. Locally this is just a unique org slug;
-// in cloud it will carry the provisioned org plus its auth context.
+// Tenancy scope a test operates within. Locally this is just a unique org slug
+// (the org never exists as a resource); on cloud the target creates the org so
+// authorization has something to grant against, but the shape is identical —
+// suites stay agnostic to which kind of scope they received.
 export interface TenancyContext {
   org: string;
 }
@@ -80,4 +88,11 @@ export interface TargetProfile {
   // only on execution targets; absent on CRUD/cloud targets. Suites obtain it via
   // requireMcpFixture() and register an McpServer pointing at its url().
   mcpFixture?(): McpToolFixture;
+
+  // Clients authenticated as a fresh identity with no grants on any tenancy
+  // provisioned so far — the "outsider" for cross-tenant isolation assertions
+  // (membership-filtered lists, denied reads). Present only on multi-tenant
+  // targets, where distinct identities exist; local targets have a single
+  // implicit caller, so isolation is untestable there by construction.
+  provisionIdentity?(): Promise<ConformanceClients>;
 }

@@ -77,35 +77,35 @@ public final class SessionQueryControllerGrpc {
     return getListMethod;
   }
 
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest,
-      ai.stigmer.agentic.session.v1.SessionList> getListByAgentMethod;
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest,
+      ai.stigmer.agentic.session.v1.SessionList> getListByAgentInstanceMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "listByAgent",
-      requestType = ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.class,
+      fullMethodName = SERVICE_NAME + '/' + "listByAgentInstance",
+      requestType = ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest.class,
       responseType = ai.stigmer.agentic.session.v1.SessionList.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest,
-      ai.stigmer.agentic.session.v1.SessionList> getListByAgentMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest, ai.stigmer.agentic.session.v1.SessionList> getListByAgentMethod;
-    if ((getListByAgentMethod = SessionQueryControllerGrpc.getListByAgentMethod) == null) {
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest,
+      ai.stigmer.agentic.session.v1.SessionList> getListByAgentInstanceMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest, ai.stigmer.agentic.session.v1.SessionList> getListByAgentInstanceMethod;
+    if ((getListByAgentInstanceMethod = SessionQueryControllerGrpc.getListByAgentInstanceMethod) == null) {
       synchronized (SessionQueryControllerGrpc.class) {
-        if ((getListByAgentMethod = SessionQueryControllerGrpc.getListByAgentMethod) == null) {
-          SessionQueryControllerGrpc.getListByAgentMethod = getListByAgentMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest, ai.stigmer.agentic.session.v1.SessionList>newBuilder()
+        if ((getListByAgentInstanceMethod = SessionQueryControllerGrpc.getListByAgentInstanceMethod) == null) {
+          SessionQueryControllerGrpc.getListByAgentInstanceMethod = getListByAgentInstanceMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest, ai.stigmer.agentic.session.v1.SessionList>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByAgent"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByAgentInstance"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.getDefaultInstance()))
+                  ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.session.v1.SessionList.getDefaultInstance()))
-              .setSchemaDescriptor(new SessionQueryControllerMethodDescriptorSupplier("listByAgent"))
+              .setSchemaDescriptor(new SessionQueryControllerMethodDescriptorSupplier("listByAgentInstance"))
               .build();
         }
       }
     }
-    return getListByAgentMethod;
+    return getListByAgentInstanceMethod;
   }
 
   /**
@@ -198,14 +198,15 @@ public final class SessionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all sessions for a specific agent.
+     * List all sessions for a specific agent instance.
      * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries.
+     * Authorization is handled in handler via FGA query for authorized
+     * session_ids, then filtered by agent_instance_id.
      * </pre>
      */
-    default void listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request,
+    default void listByAgentInstance(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionList> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByAgentMethod(), responseObserver);
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByAgentInstanceMethod(), responseObserver);
     }
   }
 
@@ -268,15 +269,16 @@ public final class SessionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all sessions for a specific agent.
+     * List all sessions for a specific agent instance.
      * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries.
+     * Authorization is handled in handler via FGA query for authorized
+     * session_ids, then filtered by agent_instance_id.
      * </pre>
      */
-    public void listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request,
+    public void listByAgentInstance(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionList> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getListByAgentMethod(), getCallOptions()), request, responseObserver);
+          getChannel().newCall(getListByAgentInstanceMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -323,14 +325,15 @@ public final class SessionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all sessions for a specific agent.
+     * List all sessions for a specific agent instance.
      * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries.
+     * Authorization is handled in handler via FGA query for authorized
+     * session_ids, then filtered by agent_instance_id.
      * </pre>
      */
-    public ai.stigmer.agentic.session.v1.SessionList listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.session.v1.SessionList listByAgentInstance(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getListByAgentMethod(), getCallOptions(), request);
+          getChannel(), getListByAgentInstanceMethod(), getCallOptions(), request);
     }
   }
 
@@ -377,14 +380,15 @@ public final class SessionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all sessions for a specific agent.
+     * List all sessions for a specific agent instance.
      * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries.
+     * Authorization is handled in handler via FGA query for authorized
+     * session_ids, then filtered by agent_instance_id.
      * </pre>
      */
-    public ai.stigmer.agentic.session.v1.SessionList listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request) {
+    public ai.stigmer.agentic.session.v1.SessionList listByAgentInstance(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getListByAgentMethod(), getCallOptions(), request);
+          getChannel(), getListByAgentInstanceMethod(), getCallOptions(), request);
     }
   }
 
@@ -433,21 +437,22 @@ public final class SessionQueryControllerGrpc {
 
     /**
      * <pre>
-     * List all sessions for a specific agent.
+     * List all sessions for a specific agent instance.
      * &#64;internal
-     * Authorization is handled in-handler via FGA-filtered queries.
+     * Authorization is handled in handler via FGA query for authorized
+     * session_ids, then filtered by agent_instance_id.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.SessionList> listByAgent(
-        ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request) {
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.SessionList> listByAgentInstance(
+        ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getListByAgentMethod(), getCallOptions()), request);
+          getChannel().newCall(getListByAgentInstanceMethod(), getCallOptions()), request);
     }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_LIST = 1;
-  private static final int METHODID_LIST_BY_AGENT = 2;
+  private static final int METHODID_LIST_BY_AGENT_INSTANCE = 2;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -474,8 +479,8 @@ public final class SessionQueryControllerGrpc {
           serviceImpl.list((ai.stigmer.agentic.session.v1.ListSessionsRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionList>) responseObserver);
           break;
-        case METHODID_LIST_BY_AGENT:
-          serviceImpl.listByAgent((ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest) request,
+        case METHODID_LIST_BY_AGENT_INSTANCE:
+          serviceImpl.listByAgentInstance((ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionList>) responseObserver);
           break;
         default:
@@ -511,12 +516,12 @@ public final class SessionQueryControllerGrpc {
               ai.stigmer.agentic.session.v1.SessionList>(
                 service, METHODID_LIST)))
         .addMethod(
-          getListByAgentMethod(),
+          getListByAgentInstanceMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
-              ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest,
+              ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest,
               ai.stigmer.agentic.session.v1.SessionList>(
-                service, METHODID_LIST_BY_AGENT)))
+                service, METHODID_LIST_BY_AGENT_INSTANCE)))
         .build();
   }
 
@@ -567,7 +572,7 @@ public final class SessionQueryControllerGrpc {
               .setSchemaDescriptor(new SessionQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getListMethod())
-              .addMethod(getListByAgentMethod())
+              .addMethod(getListByAgentInstanceMethod())
               .build();
         }
       }

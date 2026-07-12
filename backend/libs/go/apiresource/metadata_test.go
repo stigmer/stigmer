@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
@@ -176,6 +177,42 @@ func TestGetKindName(t *testing.T) {
 			}
 			if got != tt.expected {
 				t.Errorf("GetKindName() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestDefaultVisibilityFor(t *testing.T) {
+	tests := []struct {
+		name     string
+		kind     apiresourcekind.ApiResourceKind
+		expected apiresourcepb.ApiResourceVisibility
+	}{
+		{
+			name:     "skill blueprint defaults to org",
+			kind:     apiresourcekind.ApiResourceKind_skill,
+			expected: apiresourcepb.ApiResourceVisibility_visibility_org,
+		},
+		{
+			name:     "workflow blueprint defaults to org",
+			kind:     apiresourcekind.ApiResourceKind_workflow,
+			expected: apiresourcepb.ApiResourceVisibility_visibility_org,
+		},
+		{
+			name:     "session (no visibility config) defaults to private",
+			kind:     apiresourcekind.ApiResourceKind_session,
+			expected: apiresourcepb.ApiResourceVisibility_visibility_private,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := DefaultVisibilityFor(tt.kind)
+			if err != nil {
+				t.Fatalf("DefaultVisibilityFor(%v) unexpected error: %v", tt.kind, err)
+			}
+			if got != tt.expected {
+				t.Errorf("DefaultVisibilityFor(%v) = %v, want %v", tt.kind, got, tt.expected)
 			}
 		})
 	}

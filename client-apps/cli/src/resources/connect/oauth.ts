@@ -16,11 +16,8 @@ import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/
 import { GetOAuthGrantStatusInputSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import type { BackendType } from "../../config/config.js";
+import { resolveConsoleURL } from "../../config/index.js";
 import { UsageError } from "../../errors/index.js";
-import { WEB_CONSOLE_PORT } from "../../local/constants.js";
-
-/** Well-known URL for the Stigmer Cloud web console. */
-export const DEFAULT_CLOUD_CONSOLE_URL = "https://app.stigmer.ai";
 
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 5 * 60 * 1000;
@@ -107,19 +104,6 @@ export async function checkOAuthGrant(client: Stigmer, mcpServerId: string, org:
     create(GetOAuthGrantStatusInputSchema, { resourceId: mcpServerId, org }),
   );
   return status.connected;
-}
-
-/**
- * Resolve the web console URL:
- *   1. `STIGMER_CONSOLE_URL` (explicit override)
- *   2. local backend → `http://localhost:{WEB_CONSOLE_PORT}`
- *   3. cloud backend → {@link DEFAULT_CLOUD_CONSOLE_URL}
- */
-export function resolveConsoleURL(backendType: BackendType, env: NodeJS.ProcessEnv = process.env): string {
-  const override = env.STIGMER_CONSOLE_URL;
-  if (override !== undefined && override !== "") return override;
-  if (backendType === "local") return `http://localhost:${WEB_CONSOLE_PORT}`;
-  return DEFAULT_CLOUD_CONSOLE_URL;
 }
 
 // Probe the local web console with a short-timeout GET. Any HTTP response (even

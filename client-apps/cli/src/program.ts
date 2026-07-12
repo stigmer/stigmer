@@ -31,6 +31,7 @@ import { registerRun } from "./commands/run.js";
 import { registerSearch } from "./commands/search.js";
 import { registerSeedpack } from "./commands/seedpack.js";
 import { registerSetup } from "./commands/setup.js";
+import { registerShare } from "./commands/share.js";
 import { registerStatus } from "./commands/status.js";
 import { registerTag } from "./commands/tag.js";
 import { registerUp } from "./commands/up.js";
@@ -76,6 +77,7 @@ export function buildProgram(): Command {
   registerValidate(program);
   registerDelete(program);
   registerTag(program);
+  registerShare(program);
   registerDiff(program);
   registerUsage(program);
   registerPush(program);

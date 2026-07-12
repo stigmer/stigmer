@@ -39,6 +39,14 @@ describe("PlaintextRenderer", () => {
     expect(status).toContain("✗ shell: exploded");
   });
 
+  it("renders an interrupted tool with the neutral glyph, not a checkmark (issue #207)", () => {
+    const { status } = render([
+      { kind: "toolInterrupted", toolCallId: "t1", subAgentId: "", toolCall: toolInfo({ name: "shell", status: "interrupted" }) },
+    ]);
+    expect(status).toContain("⊘ shell (interrupted)");
+    expect(status).not.toContain("✓");
+  });
+
   it("notes the auto-skip for approvals and resolves to SKIP", () => {
     const r = new PlaintextRenderer({ data: { write: () => {} }, status: { write: () => {} } });
     const action = r.resolveApproval({

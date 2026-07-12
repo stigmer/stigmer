@@ -59,11 +59,15 @@ Agent agent = client.agents().get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`get`](#get) | Get a single agent by ID. |
 | [`getByReference`](#getbyreference) | Get an agent by its organization-scoped reference (org/slug). |
 | [`getDefault`](#getdefault) | Get the platform default agent. |
+| [`getSharedProfile`](#getsharedprofile) | Get the public profile of a shared agent by its org/slug reference. |
+| [`getSharedProfileForMember`](#getsharedprofileformember) | Get the profile of a shared agent as a signed-in organization member. |
 | [`apply`](#apply) | Create or update an agent. |
 | [`create`](#create) | Create an agent. |
 | [`update`](#update) | Update an existing agent. |
+| [`updateSharing`](#updatesharing) | Update the sharing configuration of an existing agent. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing agent. |
 | [`delete`](#delete) | Delete an agent. |
+| [`rotateShareLink`](#rotatesharelink) | Rotate the share-link token of an existing agent. |
 
 ### get
 
@@ -194,6 +198,112 @@ Agent agent = client.agents().getDefault(GetDefaultAgentRequest.builder()
 
 **Returns**: [`Agent`](#agent)
 
+### getSharedProfile
+
+Get the public profile of a shared agent by its org/slug reference.
+
+This is the resolution path for the hosted chat page: anonymous visitors (no Stigmer account, no token) resolve a shared link to the trimmed SharedAgentProfile — never the full Agent, whose spec carries the system prompt, environment declarations, and MCP wiring.
+
+Returns NOT_FOUND when the agent does not exist, is not shared (spec.sharing.enabled is false/unset), is shared with the org audience (spec.sharing.audience is org — anonymous callers must not be able to distinguish an org-internal share from a nonexistent agent; use getSharedProfileForMember instead), or the share link is locked and link_token does not match the agent's current status.share_link_token. The cases are deliberately indistinguishable so an unshared, revoked, or rotated agent URL leaks nothing — unlike getByReference, which returns PERMISSION_DENIED for an existing but unauthorized agent. Returns INVALID_ARGUMENT when org is empty: org+slug is the shared URL's identity, and cross-org slug matching on a public endpoint would enable enumeration.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const sharedAgentProfile = await stigmer.agent.getSharedProfile({
+  org: "...",
+  slug: "...",
+  linkToken: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+sharedAgentProfile, err := client.Agent.GetSharedProfile(ctx, &stigmer.GetSharedProfileRequest{
+  Org:       "...",
+  Slug:      "...",
+  LinkToken: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+shared_agent_profile = client.agents.get_shared_profile(GetSharedProfileRequest(
+    org="...",
+    slug="...",
+    link_token="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SharedAgentProfile sharedAgentProfile = client.agents().getSharedProfile(GetSharedProfileRequest.builder()
+    .org("...")
+    .slug("...")
+    .linkToken("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetSharedProfileRequest`](#getsharedprofilerequest)
+
+**Returns**: [`SharedAgentProfile`](#sharedagentprofile)
+
+### getSharedProfileForMember
+
+Get the profile of a shared agent as a signed-in organization member.
+
+This is the resolution path for the hosted chat page when an agent is shared with the org audience (spec.sharing.audience is org): the public getSharedProfile deliberately returns NOT_FOUND for such agents, so a signed-in member resolves the same trimmed SharedAgentProfile through this authenticated RPC instead. Also resolves public-audience shares, so an authenticated caller can use one resolution path for any share.
+
+Returns NOT_FOUND when the agent does not exist, is not shared, the caller is not a member of the owning organization, or the share is a public-audience share locked with a link token (this tokenless path must not reveal a killed link's profile) — the cases are deliberately indistinguishable so a share URL leaks nothing to non-members. Returns INVALID_ARGUMENT when org is empty.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const sharedAgentProfile = await stigmer.agent.getSharedProfileForMember({
+  org: "...",
+  kind: "...",
+  slug: "...",
+  version: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+sharedAgentProfile, err := client.Agent.GetSharedProfileForMember(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+shared_agent_profile = client.agents.get_shared_profile_for_member(ApiResourceReference(
+    org="...",
+    kind="...",
+    slug="...",
+    version="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SharedAgentProfile sharedAgentProfile = client.agents().getSharedProfileForMember(ApiResourceReference.builder()
+    .org("...")
+    .kind("...")
+    .slug("...")
+    .version("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ResourceRef`](#resourceref)
+
+**Returns**: [`SharedAgentProfile`](#sharedagentprofile)
+
 ### apply
 
 Create or update an agent.
@@ -213,6 +323,7 @@ const agent = await stigmer.agent.apply({
   skillRefs: [],
   subAgents: [],
   env: {},
+  sharing: {},
 });
 ```
 </Tab>
@@ -230,6 +341,7 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
   SkillRefs:       []stigmer.ResourceRef{},
   SubAgents:       []stigmer.SubAgentInput{},
   Env:             map[string]string{},
+  Sharing:         &stigmer.AgentSharingInput{},
 })
 ```
 </Tab>
@@ -247,6 +359,7 @@ agent = client.agents.apply(AgentInput(
     skill_refs=[],
     sub_agents=[],
     env={},
+    sharing=None,
 ))
 ```
 </Tab>
@@ -264,6 +377,7 @@ Agent agent = client.agents().apply(AgentInput.builder()
     .skillRefs(List.of())
     .subAgents(List.of())
     .env(Map.of())
+    .sharing(null)
     .build());
 ```
 </Tab>
@@ -292,6 +406,7 @@ const agent = await stigmer.agent.create({
   skillRefs: [],
   subAgents: [],
   env: {},
+  sharing: {},
 });
 ```
 </Tab>
@@ -309,6 +424,7 @@ agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
   SkillRefs:       []stigmer.ResourceRef{},
   SubAgents:       []stigmer.SubAgentInput{},
   Env:             map[string]string{},
+  Sharing:         &stigmer.AgentSharingInput{},
 })
 ```
 </Tab>
@@ -326,6 +442,7 @@ agent = client.agents.create(AgentInput(
     skill_refs=[],
     sub_agents=[],
     env={},
+    sharing=None,
 ))
 ```
 </Tab>
@@ -343,6 +460,7 @@ Agent agent = client.agents().create(AgentInput.builder()
     .skillRefs(List.of())
     .subAgents(List.of())
     .env(Map.of())
+    .sharing(null)
     .build());
 ```
 </Tab>
@@ -371,6 +489,7 @@ const agent = await stigmer.agent.update({
   skillRefs: [],
   subAgents: [],
   env: {},
+  sharing: {},
 });
 ```
 </Tab>
@@ -388,6 +507,7 @@ agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
   SkillRefs:       []stigmer.ResourceRef{},
   SubAgents:       []stigmer.SubAgentInput{},
   Env:             map[string]string{},
+  Sharing:         &stigmer.AgentSharingInput{},
 })
 ```
 </Tab>
@@ -405,6 +525,7 @@ agent = client.agents.update(AgentInput(
     skill_refs=[],
     sub_agents=[],
     env={},
+    sharing=None,
 ))
 ```
 </Tab>
@@ -422,12 +543,60 @@ Agent agent = client.agents().update(AgentInput.builder()
     .skillRefs(List.of())
     .subAgents(List.of())
     .env(Map.of())
+    .sharing(null)
     .build());
 ```
 </Tab>
 </SDKTabs>
 
 **Parameters**: [`AgentInput`](#agentinput)
+
+**Returns**: [`Agent`](#agent)
+
+### updateSharing
+
+Update the sharing configuration of an existing agent.
+
+This is a targeted spec update — it only modifies spec.sharing, leaving the rest of the spec, metadata, and status untouched. Use this to enable or revoke anyone-with-link access to the agent's hosted chat without sending the entire agent resource (avoiding read-modify-write races).
+
+Sharing is a distinct consent from visibility: updateVisibility governs who can read the blueprint (marketplace), updateSharing governs who can chat with the runtime. Conversations over a shared link bill the owning organization's credits.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const agent = await stigmer.agent.updateSharing({
+  resourceId: "...",
+  sharing: {},
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.UpdateSharing(ctx, &stigmer.UpdateAgentSharingInput{
+  ResourceId: "...",
+  Sharing:    &stigmer.AgentSharingInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+agent = client.agents.update_sharing(UpdateAgentSharingInput(
+    resource_id="...",
+    sharing=None,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Agent agent = client.agents().updateSharing(UpdateAgentSharingInput.builder()
+    .resourceId("...")
+    .sharing(null)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`UpdateAgentSharingInput`](#updateagentsharinginput)
 
 **Returns**: [`Agent`](#agent)
 
@@ -511,6 +680,49 @@ Agent agent = client.agents().delete(id);
 
 **Returns**: [`Agent`](#agent)
 
+### rotateShareLink
+
+Rotate the share-link token of an existing agent.
+
+Generates a fresh server-side token for the agent's hosted chat link. The share URL becomes `/chat/&lt;org&gt;/&lt;slug&gt;?k=&lt;token&gt;` and the previous link (tokened or plain) stops working immediately — including for visitors mid-conversation. Use this to kill a leaked or over-shared public link without disabling sharing or renaming the agent.
+
+The token lives in status.share_link_token, so manifest applies never reset it. Rotation affects public-audience shares only; org-audience access is governed by live org membership instead.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const agent = await stigmer.agent.rotateShareLink({
+  resourceId: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.RotateShareLink(ctx, &stigmer.RotateShareLinkInput{
+  ResourceId: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+agent = client.agents.rotate_share_link(RotateShareLinkInput(
+    resource_id="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Agent agent = client.agents().rotateShareLink(RotateShareLinkInput.builder()
+    .resourceId("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`RotateShareLinkInput`](#rotatesharelinkinput)
+
+**Returns**: [`Agent`](#agent)
+
 ## Types
 
 ### AgentInput
@@ -530,6 +742,7 @@ Input for creating or updating an Agent.
     skillRefs: { type: "ResourceRef[]", description: "Skill resources providing additional knowledge to the agent.", typeDescriptionLink: "#resourceref" },
     subAgents: { type: "SubAgentInput[]", description: "Sub-agents that can be delegated to.", typeDescriptionLink: "#subagentinput" },
     env: { type: "Record<string, EnvVarDeclarationInput>", description: "Environment variable declarations for this agent.", typeDescriptionLink: "#envvardeclarationinput" },
+    sharing: { type: "AgentSharingInput", description: "Sharing configuration for the agent's hosted chat experience.", typeDescriptionLink: "#agentsharinginput" },
   }}
 />
 
@@ -608,6 +821,31 @@ EnvVarDeclaration declares an environment variable required (or optionally accep
   }}
 />
 
+### AgentSharingInput
+
+AgentSharing controls access to an agent's hosted chat experience — anyone with the link (public audience) or org members only (org audience).
+
+<TypeTable
+  type={{
+    enabled: { type: "boolean", description: "Whether hosted-chat access for the configured audience is enabled." },
+    allowedOrigins: { type: "string[]", description: "Origins permitted to embed this agent's chat widget." },
+    messages: { type: "AgentSharingMessagesInput", description: "Owner-customizable copy shown to visitors when a launch-gate limit refuses their message.", typeDescriptionLink: "#agentsharingmessagesinput" },
+    audience: { type: "AgentSharingAudience", description: "Who can chat with the shared agent.", typeDescriptionLink: "#agentsharingaudience" },
+  }}
+/>
+
+### AgentSharingMessagesInput
+
+AgentSharingMessages holds owner-customizable visitor-facing copy for shared-agent limit refusals.
+
+<TypeTable
+  type={{
+    rateLimited: { type: "string", description: "Shown when a visitor or the org exceeds the message rate limit." },
+    unavailable: { type: "string", description: "Shown when the org's credits are exhausted (sharing fails closed)." },
+    conversationEnded: { type: "string", description: "Shown when a conversation hits its turn limit or inactivity timeout." },
+  }}
+/>
+
 ### UpdateVisibilityInput
 
 Input for updating the visibility of any API resource.
@@ -619,6 +857,27 @@ Input for updating the visibility of any API resource.
   }}
 />
 
+### UpdateAgentSharingInput
+
+Input for updating the sharing configuration of an agent.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "ID of the agent whose sharing configuration is being updated.", required: true },
+    sharing: { type: "AgentSharingInput", description: "The new sharing configuration for the agent.", typeDescriptionLink: "#agentsharinginput", required: true },
+  }}
+/>
+
+### RotateShareLinkInput
+
+Input for rotating an agent's share-link token.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "ID of the agent whose share link is being rotated.", required: true },
+  }}
+/>
+
 ### GetDefaultAgentRequest
 
 GetDefaultAgentRequest is the input for retrieving the platform default agent.
@@ -626,6 +885,33 @@ GetDefaultAgentRequest is the input for retrieving the platform default agent.
 <TypeTable
   type={{
     org: { type: "string", description: "Organization slug for authorization scoping." },
+  }}
+/>
+
+### GetSharedProfileRequest
+
+Input for resolving a shared agent's public profile.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization slug from the share URL." },
+    slug: { type: "string", description: "Agent slug from the share URL." },
+    linkToken: { type: "string", description: "Link token from the share URL's `?k=` parameter." },
+  }}
+/>
+
+### SharedAgentProfile
+
+SharedAgentProfile is the public projection of a shared agent.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the shared agent." },
+    slug: { type: "string", description: "Slug of the shared agent (unique within the org)." },
+    name: { type: "string", description: "Human-readable agent name for the chat page header." },
+    description: { type: "string", description: "Human-readable description for the chat page header." },
+    iconUrl: { type: "string", description: "Icon URL for the chat page header." },
+    defaultInstanceId: { type: "string", description: "ID of the agent's default instance, used by the hosted chat page to create sessions." },
   }}
 />
 
@@ -651,6 +937,16 @@ AgentStatus contains system-managed state for an agent.
   type={{
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
     defaultInstanceId: { type: "string", description: "ID of the default agent instance." },
+    shareLinkToken: { type: "string", description: "Rotatable token protecting the agent's public share link." },
   }}
 />
+
+### AgentSharingAudience
+
+AgentSharingAudience selects who can chat with a shared agent over its hosted link.
+
+| Value | Description |
+|-------|-------------|
+| `agent_sharing_audience_public` | Anyone with the link can chat — no Stigmer account required. |
+| `agent_sharing_audience_org` | Only signed-in members of the owning organization can chat. |
 

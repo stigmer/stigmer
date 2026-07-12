@@ -12,6 +12,8 @@ import (
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // contextWithWorkflowExecutionKind creates a context with the workflow execution resource kind injected
@@ -94,12 +96,45 @@ func createTestWorkflow(t *testing.T, store store.Store) *workflowv1.Workflow {
 	return workflow
 }
 
+// seedTestExecution persists a WorkflowExecution directly into the store, bypassing
+// the Create pipeline. Create now requires a connected workflow engine (see
+// ensureEngineAvailableStep), so Get/Update/Delete tests seed the execution they
+// operate on rather than driving it through Create — keeping those operations
+// under test in isolation from engine availability.
+func seedTestExecution(t *testing.T, store store.Store, instanceID, id, name string) *workflowexecutionv1.WorkflowExecution {
+	execution := &workflowexecutionv1.WorkflowExecution{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "WorkflowExecution",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   id,
+			Name: name,
+			Slug: id,
+			Org:  "test-org",
+		},
+		Spec: &workflowexecutionv1.WorkflowExecutionSpec{
+			WorkflowInstanceId: instanceID,
+			TriggerMessage:     "Test trigger message",
+		},
+		Status: &workflowexecutionv1.WorkflowExecutionStatus{
+			Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_PENDING,
+		},
+	}
+
+	if err := store.SaveResource(contextWithWorkflowExecutionKind(), apiresourcekind.ApiResourceKind_workflow_execution, id, execution); err != nil {
+		t.Fatalf("failed to seed workflow execution: %v", err)
+	}
+
+	return execution
+}
+
 func TestWorkflowExecutionController_Create(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
 
-	t.Run("successful creation with workflow_instance_id", func(t *testing.T) {
-		// Create test workflow and instance
+	t.Run("engine unavailable - rejects with Unavailable and leaves no trace", func(t *testing.T) {
+		// The test controller is constructed without a workflow creator, so the
+		// engine-availability guard rejects the create before any state is persisted.
+		// This is the F7 regression guard: no silent success, no zombie PENDING record.
 		workflow := createTestWorkflow(t, store)
 		instance := createTestWorkflowInstance(t, store, workflow.Metadata.Id)
 
@@ -107,7 +142,7 @@ func TestWorkflowExecutionController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowExecution",
 			Metadata: &apiresource.ApiResourceMetadata{
-				Name: "Test Execution",
+				Name: "Engine Unavailable Execution",
 				Org:  "test-org",
 			},
 			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
@@ -116,58 +151,28 @@ func TestWorkflowExecutionController_Create(t *testing.T) {
 			},
 		}
 
-		created, err := controller.Create(contextWithWorkflowExecutionKind(), execution)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
+		_, err := controller.Create(contextWithWorkflowExecutionKind(), execution)
+		if err == nil {
+			t.Fatal("Expected Create to fail when the workflow engine is unavailable")
+		}
+		if code := status.Code(err); code != codes.Unavailable {
+			t.Errorf("Expected gRPC code Unavailable, got %v (err: %v)", code, err)
 		}
 
-		// Verify defaults set by pipeline
-		if created.Metadata.Id == "" {
-			t.Error("Expected ID to be set")
+		// Zero trace: no execution record should have been persisted.
+		executions, listErr := store.ListResources(contextWithWorkflowExecutionKind(), apiresourcekind.ApiResourceKind_workflow_execution)
+		if listErr != nil {
+			t.Fatalf("failed to list executions: %v", listErr)
 		}
-
-		if created.Metadata.Slug == "" {
-			t.Error("Expected slug to be set")
-		}
-
-		if created.Metadata.Slug != "test-execution" {
-			t.Errorf("Expected slug 'test-execution', got '%s'", created.Metadata.Slug)
-		}
-
-		if created.Kind != "WorkflowExecution" {
-			t.Errorf("Expected kind 'WorkflowExecution', got '%s'", created.Kind)
-		}
-
-		if created.ApiVersion != "agentic.stigmer.ai/v1" {
-			t.Errorf("Expected api_version 'agentic.stigmer.ai/v1', got '%s'", created.ApiVersion)
-		}
-
-		// Verify workflow_instance_id is preserved
-		if created.Spec.WorkflowInstanceId != instance.Metadata.Id {
-			t.Errorf("Expected workflow_instance_id '%s', got '%s'", instance.Metadata.Id, created.Spec.WorkflowInstanceId)
-		}
-
-		// Verify trigger_message is preserved
-		if created.Spec.TriggerMessage != "Test trigger message" {
-			t.Errorf("Expected trigger_message 'Test trigger message', got '%s'", created.Spec.TriggerMessage)
-		}
-
-		// Verify initial phase is PENDING
-		if created.Status == nil {
-			t.Error("Expected status to be set")
-		} else if created.Status.Phase != workflowexecutionv1.ExecutionPhase_EXECUTION_PENDING {
-			t.Errorf("Expected phase EXECUTION_PENDING, got %v", created.Status.Phase)
+		if len(executions) != 0 {
+			t.Errorf("Expected zero persisted executions after a rejected create, got %d", len(executions))
 		}
 	})
 
-	// NOTE: Test for workflow_id auto-instance creation is skipped because it requires
-	// a properly configured in-process gRPC connection for the workflow instance client.
-	// This test would need to set up the full gRPC server infrastructure.
-	// The auto-instance creation logic is tested indirectly through integration tests.
-
-	// t.Run("successful creation with workflow_id", func(t *testing.T) {
-	// 	// This test requires a full gRPC setup with workflow instance service
-	// })
+	// NOTE: The happy path (a create that actually starts a workflow and returns
+	// PENDING) requires a connected Temporal engine and is asserted by the
+	// conformance suite (local-go-execution target), consistent with the
+	// AgentExecution controller test's stance at the unit layer.
 
 	t.Run("validation error - missing workflow_id and workflow_instance_id", func(t *testing.T) {
 		execution := &workflowexecutionv1.WorkflowExecution{
@@ -188,7 +193,12 @@ func TestWorkflowExecutionController_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("validation error - non-existent workflow_id", func(t *testing.T) {
+	t.Run("engine unavailable takes precedence over workflow lookup", func(t *testing.T) {
+		// The engine guard sits before the workflow-existence lookup, so during an
+		// engine outage an otherwise-processable request fails fast with Unavailable
+		// rather than doing lookups (and without persisting anything). When the engine
+		// is up, a non-existent workflow_id surfaces NotFound - asserted at the
+		// integration layer, which this unit test cannot reach (guard fires first).
 		execution := &workflowexecutionv1.WorkflowExecution{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowExecution",
@@ -203,8 +213,8 @@ func TestWorkflowExecutionController_Create(t *testing.T) {
 		}
 
 		_, err := controller.Create(contextWithWorkflowExecutionKind(), execution)
-		if err == nil {
-			t.Error("Expected error when workflow_id does not exist")
+		if code := status.Code(err); code != codes.Unavailable {
+			t.Errorf("Expected gRPC code Unavailable, got %v (err: %v)", code, err)
 		}
 	})
 
@@ -247,28 +257,11 @@ func TestWorkflowExecutionController_Get(t *testing.T) {
 	defer store.Close()
 
 	t.Run("successful get", func(t *testing.T) {
-		// Create test workflow and instance
+		// Create test workflow and instance, then seed the execution directly
+		// (Create requires a connected engine; this test exercises Get in isolation).
 		workflow := createTestWorkflow(t, store)
 		instance := createTestWorkflowInstance(t, store, workflow.Metadata.Id)
-
-		// Create execution first
-		execution := &workflowexecutionv1.WorkflowExecution{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "WorkflowExecution",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name: "Get Test Execution",
-				Org:  "test-org",
-			},
-			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
-				WorkflowInstanceId: instance.Metadata.Id,
-				TriggerMessage:     "Test trigger message",
-			},
-		}
-
-		created, err := controller.Create(contextWithWorkflowExecutionKind(), execution)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
+		created := seedTestExecution(t, store, instance.Metadata.Id, "wex-get-test", "Get Test Execution")
 
 		// Get the execution
 		retrieved, err := controller.Get(contextWithWorkflowExecutionKind(), &workflowexecutionv1.WorkflowExecutionId{Value: created.Metadata.Id})
@@ -309,28 +302,11 @@ func TestWorkflowExecutionController_Update(t *testing.T) {
 	defer store.Close()
 
 	t.Run("successful update", func(t *testing.T) {
-		// Create test workflow and instance
+		// Create test workflow and instance, then seed the execution directly
+		// (Create requires a connected engine; this test exercises Update in isolation).
 		workflow := createTestWorkflow(t, store)
 		instance := createTestWorkflowInstance(t, store, workflow.Metadata.Id)
-
-		// Create execution first
-		execution := &workflowexecutionv1.WorkflowExecution{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "WorkflowExecution",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name: "Update Test Execution",
-				Org:  "test-org",
-			},
-			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
-				WorkflowInstanceId: instance.Metadata.Id,
-				TriggerMessage:     "Original trigger message",
-			},
-		}
-
-		created, err := controller.Create(contextWithWorkflowExecutionKind(), execution)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
+		created := seedTestExecution(t, store, instance.Metadata.Id, "wex-update-test", "Update Test Execution")
 
 		// Update the execution
 		created.Spec.TriggerMessage = "Updated trigger message"
@@ -380,28 +356,11 @@ func TestWorkflowExecutionController_Delete(t *testing.T) {
 	defer store.Close()
 
 	t.Run("successful deletion", func(t *testing.T) {
-		// Create test workflow and instance
+		// Create test workflow and instance, then seed the execution directly
+		// (Create requires a connected engine; this test exercises Delete in isolation).
 		workflow := createTestWorkflow(t, store)
 		instance := createTestWorkflowInstance(t, store, workflow.Metadata.Id)
-
-		// Create execution first
-		execution := &workflowexecutionv1.WorkflowExecution{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "WorkflowExecution",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name: "Delete Test Execution",
-				Org:  "test-org",
-			},
-			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
-				WorkflowInstanceId: instance.Metadata.Id,
-				TriggerMessage:     "Test trigger message",
-			},
-		}
-
-		created, err := controller.Create(contextWithWorkflowExecutionKind(), execution)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
-		}
+		created := seedTestExecution(t, store, instance.Metadata.Id, "wex-delete-test", "Delete Test Execution")
 
 		// Delete the execution
 		deleted, err := controller.Delete(contextWithWorkflowExecutionKind(), &apiresource.ApiResourceId{Value: created.Metadata.Id})
@@ -435,27 +394,14 @@ func TestWorkflowExecutionController_Delete(t *testing.T) {
 	})
 
 	t.Run("verify deleted execution returns correct data", func(t *testing.T) {
-		// Create test workflow and instance
+		// Create test workflow and instance, then seed the execution directly
+		// (Create requires a connected engine; this test exercises Delete in isolation).
 		workflow := createTestWorkflow(t, store)
 		instance := createTestWorkflowInstance(t, store, workflow.Metadata.Id)
-
-		// Create execution with specific data
-		execution := &workflowexecutionv1.WorkflowExecution{
-			ApiVersion: "agentic.stigmer.ai/v1",
-			Kind:       "WorkflowExecution",
-			Metadata: &apiresource.ApiResourceMetadata{
-				Name: "Delete Verify Execution",
-				Org:  "test-org",
-			},
-			Spec: &workflowexecutionv1.WorkflowExecutionSpec{
-				WorkflowInstanceId: instance.Metadata.Id,
-				TriggerMessage:     "Verify deletion data",
-			},
-		}
-
-		created, err := controller.Create(contextWithWorkflowExecutionKind(), execution)
-		if err != nil {
-			t.Fatalf("Create failed: %v", err)
+		created := seedTestExecution(t, store, instance.Metadata.Id, "wex-delete-verify", "Delete Verify Execution")
+		created.Spec.TriggerMessage = "Verify deletion data"
+		if err := store.SaveResource(contextWithWorkflowExecutionKind(), apiresourcekind.ApiResourceKind_workflow_execution, created.Metadata.Id, created); err != nil {
+			t.Fatalf("failed to seed execution: %v", err)
 		}
 
 		// Delete and verify returned data

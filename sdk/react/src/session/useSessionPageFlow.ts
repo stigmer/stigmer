@@ -18,6 +18,7 @@ import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-e
 import { useAgentRefFromSession } from "./useAgentRefFromSession.js";
 import { usePersistedModel, type UsePersistedModelReturn } from "./usePersistedModel.js";
 import { specMcpUsagesToInput, specSkillRefsToInput } from "./session-spec-converters.js";
+import type { SessionAudience } from "./audience.js";
 
 /**
  * Well-known Daytona sandbox workspace root. Used as the SDK safety-net
@@ -43,6 +44,18 @@ export interface UseSessionPageFlowOptions {
    * {@link RuntimeEnvProvider}.
    */
   readonly getRuntimeEnv?: RuntimeEnvProvider;
+  /**
+   * Who this flow serves. `"guest"` adapts the orchestration to the
+   * guest principal's permission model: the session→agent derivation
+   * (`agentInstance.get` → `agent.get`) and the org default-agent
+   * lookup — reads a guest token cannot make — are skipped. Follow-ups
+   * then carry no agent override and simply continue on the session's
+   * bound instance, which is exactly right for a shared-agent page.
+   * See {@link SessionAudience}.
+   *
+   * @default "integrator"
+   */
+  readonly audience?: SessionAudience;
 }
 
 /** Return value of {@link useSessionPageFlow}. */
@@ -226,6 +239,7 @@ export function useSessionPageFlow(
   options: UseSessionPageFlowOptions,
 ): UseSessionPageFlowReturn {
   const { sessionId, org, getRuntimeEnv } = options;
+  const isGuest = options.audience === "guest";
 
   const stigmer = useStigmer();
   const conv = useSessionConversation(sessionId, org);
@@ -291,9 +305,17 @@ export function useSessionPageFlow(
   // Agent — derive from session, allow mid-session changes
   // -------------------------------------------------------------------------
 
+  // Guests skip agent derivation entirely (`null` = the hooks' stable
+  // no-op): the reads are FGA-denied for a guest token, and a guest
+  // never overrides the session's agent — `resolution` stays null, so
+  // follow-ups continue on the bound instance without an override.
   const sessionInstanceId = conv.session?.spec?.agentInstanceId ?? null;
-  const { agentRef: derivedAgentRef } = useAgentRefFromSession(sessionInstanceId);
-  const { agent: defaultAgent, isLoading: isDefaultAgentLoading } = useDefaultAgent(org);
+  const { agentRef: derivedAgentRef } = useAgentRefFromSession(
+    isGuest ? null : sessionInstanceId,
+  );
+  const { agent: defaultAgent, isLoading: isDefaultAgentLoading } = useDefaultAgent(
+    isGuest ? null : org,
+  );
 
   const [agentRef, setAgentRef] = useState<ResourceRef | null>(null);
   const [resolution, setResolution] = useState<AgentResolution | null>(null);

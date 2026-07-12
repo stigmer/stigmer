@@ -479,14 +479,13 @@ func TestGateResolvedWhenAllToolCallsDecided(t *testing.T) {
 	)
 
 	pendingRemaining := len(exec.Status.PendingApprovals)
-	isReject := false
 	allDecided := pendingRemaining == 0
 
 	if !allDecided {
 		t.Fatalf("expected allDecided=true when all tool calls approved, got pending=%d", pendingRemaining)
 	}
 
-	shouldSignal := isReject || allDecided
+	shouldSignal := allDecided
 	if !shouldSignal {
 		t.Error("gate should be resolved (all decided) — signal expected")
 	}
@@ -513,11 +512,9 @@ func TestGateNotResolvedWhenApprovalsPending(t *testing.T) {
 	)
 
 	pendingRemaining := len(exec.Status.PendingApprovals)
-	action := agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE
-	isReject := action == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT
 	allDecided := pendingRemaining == 0
 
-	shouldSignal := isReject || allDecided
+	shouldSignal := allDecided
 	if shouldSignal {
 		t.Errorf("gate should NOT be resolved (1 still pending) — no signal expected, but pending=%d", pendingRemaining)
 	}
@@ -527,9 +524,14 @@ func TestGateNotResolvedWhenApprovalsPending(t *testing.T) {
 	}
 }
 
-// TestGateResolvedOnRejectEvenWithPending verifies that a REJECT action
-// triggers immediate gate resolution regardless of remaining pending approvals.
-func TestGateResolvedOnRejectEvenWithPending(t *testing.T) {
+// TestGateNotResolvedOnRejectWithCoPendingSibling verifies that a REJECT of one
+// tool call does NOT resolve the gate while a co-pending sibling is still
+// undecided. REJECT denies a single tool and continues the run (it does not fail
+// the execution — see APPROVAL_ACTION_REJECT), so it resolves exactly one gate
+// like SKIP; the sibling keeps the gate open until it too is decided. A
+// single-gate reject still resumes because pending_approvals then drops to zero.
+// (issue #197)
+func TestGateNotResolvedOnRejectWithCoPendingSibling(t *testing.T) {
 	tc1 := makeApprovalToolCall("call_001", "delete_file")
 	tc2 := makeApprovalToolCall("call_002", "write_file")
 	exec := makeExecutionWithMessages(
@@ -548,17 +550,15 @@ func TestGateResolvedOnRejectEvenWithPending(t *testing.T) {
 	)
 
 	pendingRemaining := len(exec.Status.PendingApprovals)
-	action := agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT
-	isReject := action == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT
 	allDecided := pendingRemaining == 0
 
 	if pendingRemaining != 1 {
 		t.Fatalf("precondition: expected 1 pending approval remaining, got %d", pendingRemaining)
 	}
 
-	shouldSignal := isReject || allDecided
-	if !shouldSignal {
-		t.Error("gate should be resolved on REJECT — signal expected even with pending approvals")
+	shouldSignal := allDecided
+	if shouldSignal {
+		t.Error("gate should NOT be resolved on REJECT while a co-pending sibling is undecided")
 	}
 }
 
@@ -672,13 +672,13 @@ func TestGateResolutionDuringInProgress(t *testing.T) {
 			t.Fatalf("expected allDecided=true during IN_PROGRESS, got pending=%d", pendingRemaining)
 		}
 
-		shouldSignal := false || allDecided // isReject=false
+		shouldSignal := allDecided
 		if !shouldSignal {
 			t.Error("gate should resolve during IN_PROGRESS when all tool calls decided")
 		}
 	})
 
-	t.Run("reject during streaming", func(t *testing.T) {
+	t.Run("reject with a co-pending sibling does not resolve during streaming", func(t *testing.T) {
 		// Reset: fresh execution with undecided tool calls.
 		tc3 := makeApprovalToolCall("call_s3", "dangerous_op")
 		tc4 := makeApprovalToolCall("call_s4", "safe_op")
@@ -699,16 +699,17 @@ func TestGateResolutionDuringInProgress(t *testing.T) {
 		)
 
 		pendingRemaining := len(execReject.Status.PendingApprovals)
-		isReject := true
 		allDecided := pendingRemaining == 0
 
 		if pendingRemaining != 1 {
 			t.Fatalf("precondition: expected 1 pending remaining, got %d", pendingRemaining)
 		}
 
-		shouldSignal := isReject || allDecided
-		if !shouldSignal {
-			t.Error("REJECT during IN_PROGRESS should resolve the gate — signal expected")
+		// REJECT resolves one gate like SKIP; the co-pending sibling keeps the
+		// gate open (issue #197), so no signal fires until it too is decided.
+		shouldSignal := allDecided
+		if shouldSignal {
+			t.Error("REJECT with a co-pending sibling should NOT resolve the gate during IN_PROGRESS")
 		}
 	})
 }

@@ -13,6 +13,26 @@ export {
 // Configuration
 export { type StigmerConfig, type TokenProvider } from "./config.js";
 
+// Guest auth (shared-agent pages and embeds; browser-safe, credential-free)
+export {
+  createGuestAuth,
+  GuestAuth,
+  type GuestAuthConfig,
+  type GuestIdStorage,
+} from "./guest-auth.js";
+
+// Agent sharing (hosted link + embed snippet; framework-free)
+export {
+  MAX_ALLOWED_ORIGINS,
+  LINK_TOKEN_PARAM,
+  validateOrigin,
+  chatPath,
+  buildChatUrl,
+  appendLinkToken,
+  buildEmbedLoaderUrl,
+  buildEmbedSnippet,
+} from "./sharing.js";
+
 // Error handling
 export {
   StigmerError,

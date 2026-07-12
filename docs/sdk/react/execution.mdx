@@ -1902,11 +1902,15 @@ const conv = useSessionConversation(sessionId, org);
 
 ### WriteBackCard
 
-Renders a single workspace write-back outcome as a compact card.
+Renders a single workspace write-back outcome as a dense, VS Code
+Source-Control-style row group: a header (workspace name + quiet phase
+caption), a pull-request row that opens the PR on the remote, a branch row
+with a hover-revealed copy control, and an aggregate change-stat line.
 
-Shows the workspace entry name, branch, diff summary, phase
-indicator, and a "View PR" link when the pull request was
-successfully created.
+Row geometry, hover, and focus treatment match [`ArtifactRow`](#artifactrow), so the
+session panel's Changes and Artifacts facets read as one surface. The PR
+link and the copy control are SIBLING interactive elements, never nested
+(axe `nested-interactive`, WCAG 4.1.2).
 
 Error rendering follows the record's phase honestly (DD-006):
 a FAILED record's error is destructive (the work did not reach the
@@ -1914,8 +1918,12 @@ remote), while a PUSHED record carrying an error renders it as a
 degraded notice — the branch is live and its info stays usable; only
 the PR step failed.
 
+The stat line is parsed from the record's `git diff --stat` summary and
+rendered through the shared [`DiffSummary`](/docs/sdk/react/version-history#diffsummary) component; unparseable
+text degrades to the raw trailing line rather than showing wrong numbers.
+
 Themed via standard semantic tokens — no hardcoded colors, no
-Console dependencies. Embedders can theme this card through
+Console dependencies. Embedders can theme this component through
 their Tailwind/CSS configuration.
 
 **Props** — `WriteBackCardProps`
@@ -2264,6 +2272,19 @@ coexist with an open review, so it never pre-selects anything there).
 ```tsx
 function deriveEffectiveVerdicts(set: FileChangeSet): ReadonlyMap<string, FileDecisionAction>
 ```
+
+
+### DiffStatSummary
+
+Aggregate change statistics parsed from a `git diff --stat` summary line.
+
+<TypeTable
+  type={{
+    deletions: { type: "number", description: "Total deleted lines across all files.", required: true },
+    filesChanged: { type: "number", description: "Number of files with changes.", required: true },
+    insertions: { type: "number", description: "Total inserted lines across all files.", required: true },
+  }}
+/>
 
 
 ### displayFileChangeSets
@@ -2915,6 +2936,31 @@ Props for [`MessageEntry`](#messageentry).
     onEdit: { type: "() => void", description: "When provided on a `MESSAGE_HUMAN` entry, a hover-revealed \"Edit\" button appears on the bubble. Clicking it invokes this callback — the session chat uses it to stop the in-flight turn and pre-fill the composer with this message for editing. Ignored for non-human messages." },
   }}
 />
+
+
+### parseDiffStatSummary
+
+Parses the trailing summary line of a `git diff --stat` output into
+structured counts.
+
+`WorkspaceWriteBack.diff_summary` stores the raw `--stat` text (see the
+runner's `WriteBackCoordinator.updateStatus`). The per-file lines above the
+summary are NOT parseable honestly — git truncates long paths — but the
+trailing "N files changed, M insertions(+), K deletions(-)" line is stable
+and locale-independent, so it is the one part safe to structure.
+
+Returns `null` when the text has no recognizable summary line (empty
+string, or a format drift), letting callers fall back to rendering the raw
+text rather than showing wrong numbers.
+
+```tsx
+function parseDiffStatSummary(diffSummary: string): DiffStatSummary | null
+```
+
+```tsx
+parseDiffStatSummary(" notes.md | 55 +++\n 1 file changed, 55 insertions(+)");
+// { filesChanged: 1, insertions: 55, deletions: 0 }
+```
 
 
 ### parseMcpResult
@@ -3635,6 +3681,17 @@ Optional per-kind overrides for label, summary, disclosure, and run-grouping.
 />
 
 
+### trailingDiffStatLine
+
+The last non-empty line of a `diff --stat` text — the summary line when the
+text is well-formed, and the honest single-line fallback to display when
+[`parseDiffStatSummary`](#parsediffstatsummary) cannot structure it. `null` for blank input.
+
+```tsx
+function trailingDiffStatLine(diffSummary: string): string | null
+```
+
+
 ### UseAgentExecutionActionsOptions
 
 Options for [`useAgentExecutionActions`](#useagentexecutionactions).
@@ -3683,4 +3740,24 @@ Options for [`useArtifactInspection`](#useartifactinspection).
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is successfully applied or a skill package pushed. The consumer uses it for post-apply behavior (toast, navigate to Library)." },
   }}
 />
+
+
+### writeBackDisplayName
+
+Resolves the human-facing name for a write-back's header.
+
+A write-back names its workspace entry, but single-entry sessions can
+legitimately write back under an EMPTY `workspace_entry_name` — the runner's
+`WriteBackCoordinator.resolveEntry` convention, mirrored by
+`useWorkspaceReadRefs`. (The Console derives entry names from the git URL,
+so this mostly surfaces for CLI/SDK-created sessions.) Rather than render a
+blank title, fall back through what the record can still prove:
+
+1. `workspace_entry_name` — the configured name, when present.
+2. `owner/repo` parsed from `pull_request_url` — the repository identity.
+3. `"Workspace"` — the honest generic label when neither exists.
+
+```tsx
+function writeBackDisplayName(writeBack: WorkspaceWriteBack): string
+```
 

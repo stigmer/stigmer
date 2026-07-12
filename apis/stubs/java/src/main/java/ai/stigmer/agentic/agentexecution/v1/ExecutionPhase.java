@@ -140,8 +140,12 @@ public enum ExecutionPhase
    *
    * This is NOT a terminal state - execution resumes after approval decision:
    * - APPROVE: Tool executes, phase returns to EXECUTION_IN_PROGRESS
-   * - SKIP: Tool returns skip message, phase returns to EXECUTION_IN_PROGRESS
-   * - REJECT: Execution fails, phase transitions to EXECUTION_FAILED
+   * - SKIP: Tool returns a neutral "skipped" message, phase returns to EXECUTION_IN_PROGRESS
+   * - REJECT: Tool is denied and the user's objection is fed back to the model;
+   * the tool does NOT execute and phase returns to EXECUTION_IN_PROGRESS. REJECT
+   * denies a single tool call, it does NOT fail the run — the model adapts and
+   * the execution continues to EXECUTION_COMPLETED. To stop the whole execution,
+   * use Cancel (EXECUTION_CANCELLED) or Terminate (EXECUTION_TERMINATED).
    *
    * UI should show distinct treatment for this phase (e.g., approval dialog).
    * </pre>
@@ -290,8 +294,12 @@ public enum ExecutionPhase
    *
    * This is NOT a terminal state - execution resumes after approval decision:
    * - APPROVE: Tool executes, phase returns to EXECUTION_IN_PROGRESS
-   * - SKIP: Tool returns skip message, phase returns to EXECUTION_IN_PROGRESS
-   * - REJECT: Execution fails, phase transitions to EXECUTION_FAILED
+   * - SKIP: Tool returns a neutral "skipped" message, phase returns to EXECUTION_IN_PROGRESS
+   * - REJECT: Tool is denied and the user's objection is fed back to the model;
+   * the tool does NOT execute and phase returns to EXECUTION_IN_PROGRESS. REJECT
+   * denies a single tool call, it does NOT fail the run — the model adapts and
+   * the execution continues to EXECUTION_COMPLETED. To stop the whole execution,
+   * use Cancel (EXECUTION_CANCELLED) or Terminate (EXECUTION_TERMINATED).
    *
    * UI should show distinct treatment for this phase (e.g., approval dialog).
    * </pre>

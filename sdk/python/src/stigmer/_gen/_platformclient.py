@@ -79,6 +79,12 @@ class PlatformClientClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def mint_guest_token(self, input: token_pb2.MintGuestTokenRequest) -> token_pb2.MintGuestTokenResponse:
+        try:
+            return self._token.mintGuestToken(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class PlatformClientInput:

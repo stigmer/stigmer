@@ -20,12 +20,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	EnvironmentCommandController_Apply_FullMethodName           = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/apply"
-	EnvironmentCommandController_Create_FullMethodName          = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/create"
-	EnvironmentCommandController_Update_FullMethodName          = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/update"
-	EnvironmentCommandController_Delete_FullMethodName          = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/delete"
-	EnvironmentCommandController_UpdateVariables_FullMethodName = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/updateVariables"
-	EnvironmentCommandController_RemoveVariables_FullMethodName = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/removeVariables"
+	EnvironmentCommandController_Apply_FullMethodName            = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/apply"
+	EnvironmentCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/create"
+	EnvironmentCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/update"
+	EnvironmentCommandController_UpdateVisibility_FullMethodName = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/updateVisibility"
+	EnvironmentCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/delete"
+	EnvironmentCommandController_UpdateVariables_FullMethodName  = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/updateVariables"
+	EnvironmentCommandController_RemoveVariables_FullMethodName  = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/removeVariables"
 )
 
 // EnvironmentCommandControllerClient is the client API for EnvironmentCommandController service.
@@ -55,6 +56,25 @@ type EnvironmentCommandControllerClient interface {
 	// @internal
 	// Authorization: requires can_edit permission on the environment resource.
 	Update(ctx context.Context, in *Environment, opts ...grpc.CallOption) (*Environment, error)
+	// Update the visibility of an existing environment.
+	//
+	// Only modifies metadata.visibility, leaving spec, status, and other
+	// metadata fields untouched. Environments support two levels: private
+	// (the default) and org. Setting org shares the environment with the
+	// owning organization: members can view it with secret values redacted,
+	// and any execution in the organization may use its values at runtime.
+	// Secret values are revealed only to the environment's creator, at
+	// every visibility level.
+	//
+	// @internal
+	// Authorization: requires can_edit permission on the environment resource.
+	// public/platform levels are rejected via the kind's VisibilityConfig
+	// (supports_org only) — secret values must never be resolvable across the
+	// org boundary. Personal (stigmer.ai/personal) and OAuth-managed
+	// (stigmer.ai/managed) environments reject visibility changes entirely:
+	// sharing a personal credential bag or per-user OAuth tokens must be
+	// impossible, not merely discouraged.
+	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Environment, error)
 	// Delete an environment.
 	//
 	// @internal
@@ -107,6 +127,16 @@ func (c *environmentCommandControllerClient) Update(ctx context.Context, in *Env
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Environment)
 	err := c.cc.Invoke(ctx, EnvironmentCommandController_Update_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *environmentCommandControllerClient) UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Environment, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Environment)
+	err := c.cc.Invoke(ctx, EnvironmentCommandController_UpdateVisibility_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +200,25 @@ type EnvironmentCommandControllerServer interface {
 	// @internal
 	// Authorization: requires can_edit permission on the environment resource.
 	Update(context.Context, *Environment) (*Environment, error)
+	// Update the visibility of an existing environment.
+	//
+	// Only modifies metadata.visibility, leaving spec, status, and other
+	// metadata fields untouched. Environments support two levels: private
+	// (the default) and org. Setting org shares the environment with the
+	// owning organization: members can view it with secret values redacted,
+	// and any execution in the organization may use its values at runtime.
+	// Secret values are revealed only to the environment's creator, at
+	// every visibility level.
+	//
+	// @internal
+	// Authorization: requires can_edit permission on the environment resource.
+	// public/platform levels are rejected via the kind's VisibilityConfig
+	// (supports_org only) — secret values must never be resolvable across the
+	// org boundary. Personal (stigmer.ai/personal) and OAuth-managed
+	// (stigmer.ai/managed) environments reject visibility changes entirely:
+	// sharing a personal credential bag or per-user OAuth tokens must be
+	// impossible, not merely discouraged.
+	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Environment, error)
 	// Delete an environment.
 	//
 	// @internal
@@ -205,6 +254,9 @@ func (UnimplementedEnvironmentCommandControllerServer) Create(context.Context, *
 }
 func (UnimplementedEnvironmentCommandControllerServer) Update(context.Context, *Environment) (*Environment, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+}
+func (UnimplementedEnvironmentCommandControllerServer) UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Environment, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateVisibility not implemented")
 }
 func (UnimplementedEnvironmentCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*Environment, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -289,6 +341,24 @@ func _EnvironmentCommandController_Update_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EnvironmentCommandController_UpdateVisibility_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(apiresource.UpdateVisibilityInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EnvironmentCommandControllerServer).UpdateVisibility(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EnvironmentCommandController_UpdateVisibility_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EnvironmentCommandControllerServer).UpdateVisibility(ctx, req.(*apiresource.UpdateVisibilityInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _EnvironmentCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(apiresource.ApiResourceDeleteInput)
 	if err := dec(in); err != nil {
@@ -361,6 +431,10 @@ var EnvironmentCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "update",
 			Handler:    _EnvironmentCommandController_Update_Handler,
+		},
+		{
+			MethodName: "updateVisibility",
+			Handler:    _EnvironmentCommandController_UpdateVisibility_Handler,
 		},
 		{
 			MethodName: "delete",

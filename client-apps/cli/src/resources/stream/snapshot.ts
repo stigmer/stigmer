@@ -159,7 +159,11 @@ function emitOtherMessage(out: StreamEvent[], msg: AgentMessage): void {
 function emitToolByStatus(out: StreamEvent[], tc: ToolCall): void {
   const status = mapToolCallStatus(tc.status);
   const toolCall = convertToolCall(tc);
-  if (isTerminalToolStatus(status)) {
+  if (status === "interrupted") {
+    // Terminal but never "completed": replaying a platform-interrupted call as
+    // either a checkmark or a live running block would lie (issue #207).
+    out.push({ kind: "toolInterrupted", toolCallId: tc.id, toolCall, subAgentId: "" });
+  } else if (isTerminalToolStatus(status)) {
     out.push({ kind: "toolCompleted", toolCallId: tc.id, toolCall, subAgentId: "" });
   } else if (status === "waiting_approval") {
     out.push({ kind: "toolWaitingApproval", toolCallId: tc.id, toolCall, subAgentId: "" });

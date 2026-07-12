@@ -192,20 +192,46 @@ func TestAgentExecution_HITL_Reject(t *testing.T) {
 
 			waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 
-			exec, _ := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+			exec, waiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
 				session.GetMetadata().GetId(),
 				"Call the echo tool with input 'test-reject'. You must use the tool.",
 				2*time.Minute,
 				harness.WithAutoApproveAll(false))
 
+			harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+			harness.AssertPendingApprovals(t, waiting, 1)
+			approval := waiting.GetStatus().GetPendingApprovals()[0]
+
+			// REJECT denies the tool and the agent continues to completion (issue
+			// #197): it does NOT fail the run. The tool is not executed; the runner
+			// feeds the objection back to the model and terminalizes the call.
 			result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
 				exec.GetMetadata().GetId(),
 				agentexecv1.ApprovalAction_APPROVAL_ACTION_REJECT,
 				agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
 				3*time.Minute,
 			)
-			require.NoError(t, err, "execution should complete after reject (tool skipped, agent continues)")
+			require.NoError(t, err, "execution should complete after reject (tool denied, agent continues)")
 			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+
+			// The append-only stream carries the REJECTED decision event authored by
+			// SubmitApproval — the audit record that distinguishes a reject from a skip.
+			finalStream := result.GetStatus().GetApprovalEventStream()
+			require.True(t,
+				hitlStreamHasEvent(finalStream, approval.GetToolCallId(),
+					agentexecv1.ApprovalEventType_APPROVAL_EVENT_TYPE_REJECTED),
+				"persisted stream must carry the REJECTED decision event after reject")
+
+			// The rejected tool call is terminalized (never left stuck at
+			// WAITING_APPROVAL) and preserves the REJECT decision for audit. This is
+			// stable across resume because it is derived from the recorded
+			// approval_action, not from the resumed stream's (unstable) run_id.
+			rejected := harness.FindToolCall(result, "echo")
+			require.NotNil(t, rejected, "the rejected echo tool call must be persisted")
+			require.Equal(t, agentexecv1.ToolCallStatus_TOOL_CALL_SKIPPED, rejected.GetStatus(),
+				"rejected tool call resolves to SKIPPED, not WAITING")
+			require.Equal(t, agentexecv1.ApprovalAction_APPROVAL_ACTION_REJECT, rejected.GetApprovalAction(),
+				"the REJECT decision is preserved on the tool call")
 		})
 	}
 }

@@ -1,13 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { Command } from "@langchain/langgraph";
-import { resolveResumeInput, reconcileToolCallStatuses } from "../hitl.js";
+import { resolveResumeInput, reconcileNonExecutingDecisions } from "../hitl.js";
 import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { create } from "@bufbuild/protobuf";
 import {
   AgentMessageSchema,
   ToolCallSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { AgentExecutionStatusSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -78,7 +77,6 @@ describe("resolveResumeInput", () => {
     const result = resolveResumeInput(execution, state, "hello");
 
     expect(result.isResumeFromApproval).toBe(false);
-    expect(result.hasRejection).toBe(false);
     expect(result.graphInput).toEqual({
       messages: [{ role: "user", content: "hello" }],
     });
@@ -105,11 +103,10 @@ describe("resolveResumeInput", () => {
     const result = resolveResumeInput(execution, state, "hello");
 
     expect(result.isResumeFromApproval).toBe(true);
-    expect(result.hasRejection).toBe(false);
     expect(result.graphInput).toBeInstanceOf(Command);
   });
 
-  it("detects rejection when a decision is REJECT", () => {
+  it("builds a resume Command for a REJECT decision (denies the tool, does not fail the run)", () => {
     const execution = makeExecution([{
       id: "call-1",
       status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
@@ -120,9 +117,12 @@ describe("resolveResumeInput", () => {
 
     const result = resolveResumeInput(execution, state, "hello");
 
+    // REJECT resumes the gate like any other decision — the gate returns a
+    // denial ToolMessage and the run continues. There is no execution-level
+    // "rejection" flag any more; the terminal tool status is set by
+    // reconcileNonExecutingDecisions.
     expect(result.isResumeFromApproval).toBe(true);
-    expect(result.hasRejection).toBe(true);
-    expect(result.rejectionReason).toContain("Rejected by user");
+    expect(result.graphInput).toBeInstanceOf(Command);
   });
 
   it("handles multiple interrupts with mixed decisions", () => {
@@ -147,7 +147,6 @@ describe("resolveResumeInput", () => {
     const result = resolveResumeInput(execution, state, "hello");
 
     expect(result.isResumeFromApproval).toBe(true);
-    expect(result.hasRejection).toBe(false);
   });
 
   it("skips already-resumed interrupts", () => {
@@ -167,56 +166,75 @@ describe("resolveResumeInput", () => {
   });
 });
 
-describe("reconcileToolCallStatuses", () => {
-  it("updates APPROVE to RUNNING", () => {
-    const tc = create(ToolCallSchema, {
-      id: "call-1",
-      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+describe("reconcileNonExecutingDecisions", () => {
+  function statusWith(
+    toolCalls: Array<{ id: string; status: ToolCallStatus; approvalAction: ApprovalAction }>,
+  ) {
+    return create(AgentExecutionStatusSchema, {
+      messages: [
+        create(AgentMessageSchema, {
+          toolCalls: toolCalls.map(tc =>
+            create(ToolCallSchema, {
+              id: tc.id,
+              name: "test_tool",
+              status: tc.status,
+              approvalAction: tc.approvalAction,
+            }),
+          ),
+        }),
+      ],
     });
-    const toolCalls = new Map<string, ToolCall>([["call-1", tc]]);
-    const decisions = new Map([
-      ["call-1", { action: ApprovalAction.APPROVE, comment: "" }],
-    ]);
+  }
 
-    reconcileToolCallStatuses(toolCalls, decisions);
-    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_RUNNING);
-  });
-
-  it("updates SKIP to SKIPPED", () => {
-    const tc = create(ToolCallSchema, {
-      id: "call-2",
+  it("terminalizes a REJECT decision to SKIPPED with a reason (does not FAIL)", () => {
+    const status = statusWith([{
+      id: "call-reject",
       status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-    });
-    const toolCalls = new Map<string, ToolCall>([["call-2", tc]]);
-    const decisions = new Map([
-      ["call-2", { action: ApprovalAction.SKIP, comment: "" }],
-    ]);
+      approvalAction: ApprovalAction.REJECT,
+    }]);
 
-    reconcileToolCallStatuses(toolCalls, decisions);
+    reconcileNonExecutingDecisions(status);
+
+    const tc = status.messages[0].toolCalls[0];
     expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(tc.error).toContain("Rejected by user");
+    // The REJECT decision is preserved so the audit trail stays honest.
+    expect(tc.approvalAction).toBe(ApprovalAction.REJECT);
   });
 
-  it("updates REJECT to FAILED with error message", () => {
-    const tc = create(ToolCallSchema, {
-      id: "call-3",
+  it("terminalizes a SKIP decision to SKIPPED (fixes the stuck-WAITING for skip too)", () => {
+    const status = statusWith([{
+      id: "call-skip",
       status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-    });
-    const toolCalls = new Map<string, ToolCall>([["call-3", tc]]);
-    const decisions = new Map([
-      ["call-3", { action: ApprovalAction.REJECT, comment: "too risky" }],
-    ]);
+      approvalAction: ApprovalAction.SKIP,
+    }]);
 
-    reconcileToolCallStatuses(toolCalls, decisions);
-    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
-    expect(tc.error).toContain("too risky");
+    reconcileNonExecutingDecisions(status);
+
+    expect(status.messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
   });
 
-  it("ignores tool calls not in the map", () => {
-    const toolCalls = new Map<string, ToolCall>();
-    const decisions = new Map([
-      ["call-missing", { action: ApprovalAction.APPROVE, comment: "" }],
+  it("leaves APPROVE / APPROVE_ALL untouched (the tool executes)", () => {
+    const status = statusWith([
+      { id: "call-approve", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, approvalAction: ApprovalAction.APPROVE },
+      { id: "call-approve-all", status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL, approvalAction: ApprovalAction.APPROVE_ALL },
     ]);
 
-    expect(() => reconcileToolCallStatuses(toolCalls, decisions)).not.toThrow();
+    reconcileNonExecutingDecisions(status);
+
+    // Still WAITING — real tool events (not this reconciler) terminalize them.
+    expect(status.messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+    expect(status.messages[0].toolCalls[1].status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+  });
+
+  it("is a no-op when there are no decided tool calls", () => {
+    const status = statusWith([{
+      id: "call-pending",
+      status: ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+      approvalAction: ApprovalAction.UNSPECIFIED,
+    }]);
+
+    expect(() => reconcileNonExecutingDecisions(status)).not.toThrow();
+    expect(status.messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
   });
 });

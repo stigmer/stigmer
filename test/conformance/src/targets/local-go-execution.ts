@@ -35,6 +35,7 @@ export class LocalGoExecutionTarget implements TargetProfile {
   readonly capabilities: CapabilityFlags = {
     multiTenant: false,
     externalOrgLookup: false,
+    organizationEnumeration: true,
     versionTagging: false,
     secretRedaction: false,
     // The engine runs here, but the child-approval signal sender is cloud-only,

@@ -11,6 +11,8 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestCheckDuplicateStep_NoDuplicate(t *testing.T) {
@@ -71,6 +73,47 @@ func TestCheckDuplicateStep_DuplicateExists(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("Expected duplicate error, got success")
+	}
+}
+
+// A duplicate slug must return a typed AlreadyExists status, not a plain error
+// (which the pipeline would surface as Unknown). Complements
+// TestCheckDuplicateStep_DuplicateExists, which only checks err!=nil.
+func TestCheckDuplicateStep_DuplicateReturnsAlreadyExistsCode(t *testing.T) {
+	store := setupTestStore(t)
+	defer store.Close()
+
+	existing := &agentv1.Agent{
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   "agent-existing",
+			Slug: "test-agent",
+			Name: "Existing Agent",
+			Org:  "default",
+		},
+		Kind:       "Agent",
+		ApiVersion: "ai.stigmer.agentic.agent/v1",
+	}
+	store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_agent, existing.Metadata.Id, existing)
+
+	newAgent := &agentv1.Agent{
+		Metadata: &apiresource.ApiResourceMetadata{
+			Slug: "test-agent",
+			Name: "New Agent",
+			Org:  "default",
+		},
+	}
+
+	step := NewCheckDuplicateStep[*agentv1.Agent](store)
+	ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), newAgent)
+	ctx.SetNewState(newAgent)
+
+	err := step.Execute(ctx)
+
+	if err == nil {
+		t.Fatal("expected duplicate error")
+	}
+	if status.Code(err) != codes.AlreadyExists {
+		t.Errorf("expected AlreadyExists, got %s", status.Code(err))
 	}
 }
 

@@ -11,6 +11,62 @@ import {
   type ErrorCategory,
 } from "../errors";
 
+/**
+ * Guest launch-gate refusal contract (shared-agent abuse controls).
+ *
+ * The cloud backend resolves owner-customizable refusal copy server-side and
+ * carries it in the gRPC status description; the SDK must surface that copy
+ * VERBATIM through getUserMessage — no client-side mapping exists by design.
+ * These tests pin the two halves of that contract:
+ *
+ * 1. RESOURCE_EXHAUSTED / FAILED_PRECONDITION descriptions pass through
+ *    getUserMessage untouched.
+ * 2. The platform-default copy (mirrors GuestLimitReason in the cloud
+ *    backend) never collides with the sanitizer's rewrite patterns.
+ */
+describe("guest launch-gate refusal copy passthrough", () => {
+  // Mirrors GuestLimitReason default copy in the cloud stigmer-service.
+  // If those strings change, update here — this guardrail exists to catch a
+  // default that a sanitizer pattern would silently rewrite.
+  const platformDefaultCopy = [
+    "You\u2019re sending messages too quickly. Please wait a moment before sending another.",
+    "This agent is currently unavailable. Please check back later.",
+    "This conversation has ended. Please start a new conversation to continue.",
+    "This agent can\u2019t be embedded on this site.",
+  ];
+
+  const refusalCodes: Array<[string, Code]> = [
+    ["ResourceExhausted (rate limit)", Code.ResourceExhausted],
+    ["FailedPrecondition (fail-closed / bounds)", Code.FailedPrecondition],
+    ["PermissionDenied (embed origin)", Code.PermissionDenied],
+  ];
+
+  it.each(refusalCodes)(
+    "surfaces a %s status description verbatim",
+    (_label, code) => {
+      for (const copy of platformDefaultCopy) {
+        expect(getUserMessage(new ConnectError(copy, code))).toBe(copy);
+      }
+    },
+  );
+
+  it("surfaces owner-customized copy verbatim", () => {
+    const ownerCopy = "Whoa, slow down! Try again in a minute or two.";
+    expect(
+      getUserMessage(new ConnectError(ownerCopy, Code.ResourceExhausted)),
+    ).toBe(ownerCopy);
+  });
+
+  it("classifies rate-limit refusals as retryable and bounds refusals as not", () => {
+    expect(
+      isRetryableError(new ConnectError("copy", Code.ResourceExhausted)),
+    ).toBe(true);
+    expect(
+      isRetryableError(new ConnectError("copy", Code.FailedPrecondition)),
+    ).toBe(false);
+  });
+});
+
 describe("classifyError", () => {
   const stigmerMappings: Array<[string, ErrorCategory]> = [
     ["unauthenticated", "auth"],

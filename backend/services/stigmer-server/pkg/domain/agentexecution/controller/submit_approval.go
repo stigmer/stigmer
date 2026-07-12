@@ -38,7 +38,11 @@ const (
 //
 //   - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
 //   - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
-//   - REJECT: Execution fails with rejection error, phase becomes FAILED
+//   - REJECT: Tool is denied and the user's objection is fed back to the model;
+//     the tool does NOT execute and the execution CONTINUES to IN_PROGRESS. REJECT
+//     denies a single tool call — it does not fail the run (use Cancel/Terminate
+//     for that). The tool call resolves to TOOL_CALL_SKIPPED with
+//     approval_action=REJECT recorded.
 //   - APPROVE_ALL: Like APPROVE for the clicked tool, and also auto-approves the
 //     co-pending tool calls of the SAME lease class (the clicked tool's built-in
 //     category, or its MCP server — see approval.DeriveLeaseScope). Co-pending
@@ -66,10 +70,11 @@ const (
 // ## Temporal Integration
 //
 // After persisting the resolved state, the handler sends an approvalGateResolved
-// signal to the running Temporal workflow ONLY when the gate has fully resolved:
-//   - REJECT action: signal immediately (Python auto-skips remaining tool calls)
-//   - All decided: signal when pending_approvals becomes empty
-//   - Otherwise: no signal — the workflow continues waiting
+// signal to the running Temporal workflow ONLY when the gate has fully resolved,
+// i.e. when pending_approvals becomes empty (every gated tool decided) and no
+// file-review change set is awaiting a decision. REJECT is not special: like SKIP
+// and APPROVE it resolves a single gate, so a co-pending sibling keeps the gate
+// open until it too is decided.
 //
 // The workflow waits for exactly one approvalGateResolved signal per approval
 // cycle, then re-invokes Python. Python reads the approval decisions from the
@@ -387,12 +392,13 @@ func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agent
 // signalWorkflowStep conditionally sends an approvalGateResolved signal to the
 // running Temporal workflow when the approval gate has fully resolved.
 //
-// The signal is sent when either:
-//   - The submitted action is REJECT (immediate resume — Python auto-skips remaining)
-//   - All pending tool calls have received decisions (pending_approvals is empty)
+// The signal is sent when all pending tool calls have received decisions
+// (pending_approvals is empty) and no file-review change set is awaiting a
+// decision. REJECT resolves one gate like SKIP/APPROVE — it is not a fast-path
+// that resumes while siblings are still undecided.
 //
-// If neither condition is met, no signal is sent — the workflow continues waiting
-// for the remaining approvals.
+// If the gate is not fully resolved, no signal is sent — the workflow continues
+// waiting for the remaining decisions.
 //
 // If the workflow is no longer running (WorkflowNotFound), this step reconciles
 // the execution status in the database to FAILED.
@@ -427,14 +433,19 @@ func (s *signalWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecutio
 	pendingRemaining := len(execution.GetStatus().GetPendingApprovals())
 	awaitingReview := filereview.CountAwaitingReview(execution.GetStatus().GetFileChangeSets())
 
-	isReject := action == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT
-
 	// The HITL gate is unified: a turn resumes only when BOTH sub-gates clear.
-	// The approval sub-gate clears on REJECT (Python auto-skips the rest) or when
-	// no approvals remain; the file-review sub-gate clears when no change set is
-	// awaiting a human decision. Clearing the last approval while file review is
-	// still pending must NOT resume the turn.
-	approvalSubGateClear := isReject || pendingRemaining == 0
+	// The approval sub-gate clears when no approval remains undecided; the
+	// file-review sub-gate clears when no change set is awaiting a human decision.
+	// Clearing the last approval while file review is still pending must NOT
+	// resume the turn.
+	//
+	// REJECT is NOT special here. It denies a single tool call and continues the
+	// run (the runner feeds the objection back to the model — it does not fail the
+	// execution; see APPROVAL_ACTION_REJECT in enum.proto), so it resolves exactly
+	// one gate, just like SKIP. A co-pending sibling therefore stays gated until it
+	// too is decided. A single-gate reject still resumes immediately because
+	// pending_approvals then drops to zero.
+	approvalSubGateClear := pendingRemaining == 0
 	fileReviewClear := awaitingReview == 0
 
 	if !(approvalSubGateClear && fileReviewClear) {
@@ -449,9 +460,6 @@ func (s *signalWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecutio
 	}
 
 	reason := "all approvals decided and no file review pending"
-	if isReject {
-		reason = "REJECT triggers immediate resume"
-	}
 
 	log.Info().
 		Str("execution_id", executionID).
@@ -523,6 +531,12 @@ func (s *signalWorkflowStep) reconcileStaleExecution(ctx context.Context, execut
 		Type:    agentexecutionv1.MessageType_MESSAGE_SYSTEM,
 		Content: "The workflow backing this execution is no longer running. This can happen due to infrastructure issues or manual termination. The execution has been marked as failed.",
 	})
+
+	// The messages were preserved verbatim, so the gated call that brought the
+	// user here — plus any other in-flight call — is still non-terminal. This
+	// write terminalizes the execution, so settle them (issue #207): the dead
+	// workflow will never deliver their terminal events or decisions.
+	settleInterruptedToolCalls(reconciledExecution.Status, time.Now().Format(time.RFC3339))
 
 	// Whole-resource save is intentional here (exempt from the atomic UpdateStatus
 	// path): this writes a TERMINAL (FAILED) state because the backing workflow is

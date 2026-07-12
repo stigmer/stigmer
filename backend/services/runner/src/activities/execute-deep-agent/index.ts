@@ -47,7 +47,7 @@ import { StatusBuilder } from "./status-builder.js";
 import { InlinePublisher } from "./inline-publisher.js";
 import { WriteBackCoordinator } from "../../shared/workspace/writeback-coordinator.js";
 import { processPostStream } from "./post-stream.js";
-import { resolveResumeInput, type GraphStateSnapshot } from "./hitl.js";
+import { resolveResumeInput, reconcileNonExecutingDecisions, type GraphStateSnapshot } from "./hitl.js";
 import { captureApprovalArtifacts } from "./approval-file-change.js";
 import {
   applyCaptureDecisions,
@@ -85,6 +85,7 @@ export function createDeepAgentActivities(config: Config) {
     endpoint: config.stigmerBackendEndpoint,
     token: config.stigmerToken,
     tokenRef: config.stigmerTokenRef,
+    runnerTokenRef: config.stigmerRunnerTokenRef,
   });
 
   const streamingConfig = loadStreamingConfig();
@@ -150,23 +151,6 @@ export function createDeepAgentActivities(config: Config) {
           graphState,
           setup.execution.spec!.message,
         );
-
-        if (resume.hasRejection) {
-          const failedStatus = create(AgentExecutionStatusSchema, {
-            phase: ExecutionPhase.EXECUTION_FAILED,
-            error: `Execution rejected: ${resume.rejectionReason}`,
-            completedAt: utcTimestamp(),
-            messages: [
-              create(AgentMessageSchema, {
-                type: MessageType.MESSAGE_SYSTEM,
-                content: `Execution rejected by user: ${resume.rejectionReason}`,
-                timestamp: utcTimestamp(),
-              }),
-            ],
-          });
-          await persistStatus(client, executionId, failedStatus, { offload: statusOffload });
-          return slimStatus(failedStatus);
-        }
 
         const effectiveInput = resume.isResumeFromApproval
           ? resume.graphInput
@@ -313,11 +297,13 @@ export function createDeepAgentActivities(config: Config) {
               // Complete now and push only the approved tree — NO model re-run.
               //
               // The discriminator is the PERSISTED transcript, not the live graph
-              // checkpoint: the memory checkpointer (OSS local / desktop) recreates
-              // the checkpoint empty each invocation, so a graphState-based check
-              // would wrongly fire for a mixed turn. A mixed turn leaves
-              // WAITING_APPROVAL tool rows in the transcript; a pure file-review
-              // turn leaves none.
+              // checkpoint: it must behave identically across checkpointer
+              // backends, but the live checkpoint does not — the memory backend
+              // (opt-in, tests) recreates it empty each invocation while the
+              // durable backends (sqlite local / http cloud) preserve it, so a
+              // graphState-based check would diverge and could wrongly fire for a
+              // mixed turn. A mixed turn leaves WAITING_APPROVAL tool rows in the
+              // transcript; a pure file-review turn leaves none.
               initialStatus.phase = ExecutionPhase.EXECUTION_COMPLETED;
               initialStatus.completedAt = utcTimestamp();
               if (writebackCoordinator) {
@@ -468,6 +454,16 @@ export function createDeepAgentActivities(config: Config) {
           initialStatus.messages,
           initialStatus.subAgentExecutions,
         );
+
+        // Terminalize any tool call the user SKIPPED or REJECTED at the gate.
+        // These decisions never run the tool, so the resumed stream leaves the
+        // seeded WAITING_APPROVAL row untouched (the gate returns a ToolMessage
+        // with no on_tool_start on http; the memory replay never re-drives the
+        // gate). Folding the recorded decision into a terminal status here makes
+        // reject/skip resolve identically on both checkpointers — see
+        // reconcileNonExecutingDecisions. Runs before the WAITING-detection and
+        // completion persists below so the terminal status is what is persisted.
+        reconcileNonExecutingDecisions(initialStatus);
 
         // Turn boundary (capture mode): capture the candidate change set from the
         // git diff and author CANDIDATE_CAPTURED, then stamp the flowed file-edit
@@ -917,10 +913,11 @@ async function processCaptureWriteback(
  *
  * The decision is therefore driven solely by whether the server already holds
  * committed history for this execution — NOT by the live graph checkpoint, which
- * the two checkpointers leave in different states for the same continuation:
- *   - durable (http): the checkpoint survives, the graph resumes via
- *     Command(resume), and streamEvents re-emits only post-checkpoint events;
- *   - memory (the OSS local / desktop default): the checkpoint is recreated
+ * the checkpointer backends leave in different states for the same continuation:
+ *   - durable (sqlite, the OSS local / desktop default; and http in cloud): the
+ *     checkpoint survives, the graph resumes via Command(resume), and
+ *     streamEvents re-emits only post-checkpoint events;
+ *   - memory (ephemeral, opt-in — used by tests): the checkpoint is recreated
  *     empty every invocation, so the graph REPLAYS from scratch and the blind
  *     FIFO turns advance one gate at a time.
  * Keying on the live checkpoint skipped seeding on that memory-replay path, so a
@@ -957,6 +954,18 @@ async function cleanup(setup: SetupResult | null): Promise<void> {
       await setup.mcpConnection.client.close();
     } catch (err) {
       console.warn("[ExecuteDeepAgent] MCP connection cleanup failed:", err);
+    }
+  }
+
+  // Close the checkpointer's backing resources. Only the durable sqlite saver
+  // holds an OS handle (an open DB file); memory/http savers have no close(),
+  // so this is duck-typed and best-effort.
+  const closable = setup.checkpointer as { close?: () => void } | undefined;
+  if (closable && typeof closable.close === "function") {
+    try {
+      closable.close();
+    } catch (err) {
+      console.warn("[ExecuteDeepAgent] Checkpointer cleanup failed:", err);
     }
   }
 

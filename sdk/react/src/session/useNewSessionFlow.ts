@@ -17,6 +17,7 @@ import type { ExecutionTargetOption } from "./execution-target.js";
 import { useExecutionTarget } from "../execution-target-context.js";
 import { useRunnerAdapter } from "../runner-adapter.js";
 import { resolveExecutionRuntimeEnv, type RuntimeEnvProvider } from "./runtime-env.js";
+import type { SessionAudience } from "./audience.js";
 
 const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
 
@@ -80,6 +81,17 @@ export interface UseNewSessionFlowOptions {
    * @default DEFAULT_HARNESS ("native")
    */
   readonly defaultHarness?: HarnessOption;
+  /**
+   * Who this flow serves. `"guest"` adapts the orchestration to the
+   * guest principal's permission model: the org default-agent lookup
+   * (which a guest token cannot read) is skipped, and submission
+   * requires an explicit agent resolution instead of falling back to
+   * the org's default agent — a shared-agent page must never run
+   * anything but the pinned shared agent. See {@link SessionAudience}.
+   *
+   * @default "integrator"
+   */
+  readonly audience?: SessionAudience;
 }
 
 /** Return value of {@link useNewSessionFlow}. */
@@ -184,6 +196,7 @@ export function useNewSessionFlow(
   options: UseNewSessionFlowOptions,
 ): UseNewSessionFlowReturn {
   const { org, onSessionCreated, onError, getRuntimeEnv, defaultHarness } = options;
+  const isGuest = options.audience === "guest";
   const contextTarget = useExecutionTarget();
   const executionTarget = options.executionTarget ?? contextTarget;
   const adapter = useRunnerAdapter();
@@ -200,12 +213,15 @@ export function useNewSessionFlow(
   const { getModel, isLoading: isModelsLoading } = useModelRegistry({ harness });
   const { create: createSession } = useCreateSession();
   const { create: createExecution } = useCreateAgentExecution();
+  // Guests cannot read the org default agent (and must never run it) —
+  // `null` puts the hook in its stable no-op mode, and the submit path
+  // below fails closed instead of falling back.
   const {
     agent: defaultAgent,
     isLoading: isDefaultAgentLoading,
     error: defaultAgentError,
     waitForResolution: waitForDefaultAgent,
-  } = useDefaultAgent(org);
+  } = useDefaultAgent(isGuest ? null : org);
   const workspace = useWorkspaceEntries();
   const sessionVariables = useSessionVariables();
 
@@ -315,6 +331,14 @@ export function useNewSessionFlow(
               agentRef,
             }));
           }
+        } else if (isGuest) {
+          // Fail closed: a guest session is only ever created against the
+          // pinned shared agent's resolution. Reaching here means the pin
+          // has not been applied yet (or was cleared) — never substitute
+          // the org default agent for an anonymous visitor.
+          throw new Error(
+            "This agent is still loading. Please try again in a moment.",
+          );
         } else {
           let resolvedInstanceId = defaultAgent?.status?.defaultInstanceId;
           if (!resolvedInstanceId) {
@@ -375,6 +399,7 @@ export function useNewSessionFlow(
     [
       isSubmitting,
       org,
+      isGuest,
       harness,
       executionTarget,
       adapter,

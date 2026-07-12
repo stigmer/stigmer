@@ -13,6 +13,8 @@ import (
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -107,17 +109,13 @@ func TestValidateSpec_InvalidTaskKind(t *testing.T) {
 
 	result, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
 
-	// The RPC may return an error for severely malformed input, or it may
-	// return a result with INVALID state. Both are acceptable behaviors.
-	if err != nil {
-		t.Logf("validateSpec returned error for invalid task kind (acceptable): %v", err)
-		return
-	}
-
-	assert.NotEqual(t, serverless.ValidationState_VALID, result.GetState(),
-		"workflow with invalid task kind should not be VALID")
-
-	t.Logf("validateSpec result: state=%s, errors=%v", result.GetState().String(), result.GetErrors())
+	// An unknown task kind is a user-fixable structural error: validateSpec must
+	// return a structured INVALID result, never a gRPC error.
+	require.NoError(t, err, "validateSpec must not throw for an unknown task kind")
+	require.NotNil(t, result)
+	assert.Equal(t, serverless.ValidationState_INVALID, result.GetState(),
+		"workflow with invalid task kind should be INVALID")
+	assert.NotEmpty(t, result.GetErrors(), "invalid task kind should produce structured errors")
 }
 
 func TestValidateSpec_MissingDocument(t *testing.T) {
@@ -142,16 +140,19 @@ func TestValidateSpec_MissingDocument(t *testing.T) {
 		},
 	}
 
-	result, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
-	if err != nil {
-		t.Logf("validateSpec returned error for missing document (acceptable): %v", err)
-		return
-	}
+	_, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
 
-	assert.NotEqual(t, serverless.ValidationState_VALID, result.GetState(),
-		"workflow with missing document should not be VALID")
-
-	t.Logf("validateSpec result: state=%s, errors=%v", result.GetState().String(), result.GetErrors())
+	// A missing required field (document) is a Layer-1 proto violation. The
+	// conformance contract (both editions) rejects Layer-1 with InvalidArgument
+	// at the boundary; only Layer-2 domain checks come back as a structured
+	// result. See test/conformance workflow suite ("rejects Layer-1 proto
+	// violations with InvalidArgument").
+	require.Error(t, err, "validateSpec must reject a Layer-1 violation with a gRPC error")
+	st, ok := status.FromError(err)
+	require.True(t, ok, "error should be a gRPC status")
+	assert.Equal(t, codes.InvalidArgument, st.Code(),
+		"Layer-1 violation should map to InvalidArgument, got: %v", err)
+	assert.Contains(t, st.Message(), "document", "missing document should be named in the error")
 }
 
 func TestValidateSpec_EmptySpec(t *testing.T) {
@@ -172,15 +173,16 @@ func TestValidateSpec_EmptySpec(t *testing.T) {
 		Spec: &workflowv1.WorkflowSpec{},
 	}
 
-	result, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
-	if err != nil {
-		// Graceful error for empty spec is acceptable — no panic.
-		t.Logf("validateSpec returned error for empty spec (acceptable, no panic): %v", err)
-		return
-	}
+	_, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
 
-	assert.NotEqual(t, serverless.ValidationState_VALID, result.GetState(),
-		"empty workflow spec should not be VALID")
-
-	t.Logf("validateSpec result: state=%s, errors=%v", result.GetState().String(), result.GetErrors())
+	// An empty spec fails Layer-1 required-field constraints (document, tasks).
+	// Per the conformance contract, Layer-1 violations are rejected with
+	// InvalidArgument at the boundary rather than folded into the result.
+	require.Error(t, err, "validateSpec must reject an empty spec with a gRPC error")
+	st, ok := status.FromError(err)
+	require.True(t, ok, "error should be a gRPC status")
+	assert.Equal(t, codes.InvalidArgument, st.Code(),
+		"Layer-1 violations should map to InvalidArgument, got: %v", err)
+	assert.Contains(t, st.Message(), "document", "missing document should be named in the error")
+	assert.Contains(t, st.Message(), "tasks", "empty tasks should be named in the error")
 }

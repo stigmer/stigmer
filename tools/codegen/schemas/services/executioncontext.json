@@ -45,7 +45,7 @@
           "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContextId",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Get an ExecutionContext by ID.\n\n @internal\n Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution."
+          "description": "Get an ExecutionContext by ID.\n\n @internal\n Handler-level auth (cloud): direct FGA can_view on the execution_context resource.\n Secret values are redacted on cloud."
         },
         {
           "name": "GetByReference",
@@ -53,7 +53,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Get an ExecutionContext by reference (slug-based lookup).\n\n @internal\n Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution."
+          "description": "Get an ExecutionContext by reference (slug-based lookup).\n\n @internal\n Handler-level auth (cloud): direct FGA can_view on the execution_context resource.\n Secret values are redacted on cloud."
         },
         {
           "name": "GetByExecutionId",
@@ -61,7 +61,7 @@
           "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Get the ExecutionContext for a given execution ID.\n\n @internal\n Primary lookup method used by runners to retrieve the merged environment\n variables during workflow/agent execution. The returned context contains\n decrypted secrets for runner consumption.\n Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution."
+          "description": "Get the ExecutionContext for a given execution ID.\n\n @internal\n Primary lookup method used by runners to retrieve the merged environment\n variables during workflow/agent execution and MCP discovery.\n Handler-level auth (cloud): direct FGA can_view on the execution_context resource.\n\n Secret handling (cloud): the decrypt path is gated by caller credential\n class, not by FGA — runners authenticate as the user who owns the\n execution, so permissions cannot tell them apart. Callers presenting a\n platform-minted runner token (token_type of sandbox, workflow_sandbox,\n connect_sandbox, or embedded_runner) receive decrypted secret values;\n every other caller (user JWT, SDK, console) receives the same redaction\n as get/getByReference."
         }
       ]
     }
@@ -225,7 +225,7 @@
         {
           "name": "organization",
           "number": 30,
-          "description": "Top-level tenant that owns and manages resources."
+          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
         },
         {
           "name": "platform",

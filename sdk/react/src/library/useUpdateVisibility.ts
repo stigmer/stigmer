@@ -14,7 +14,8 @@ export type VisibilityResourceKind =
   | "mcpServer"
   | "workflow"
   | "agentInstance"
-  | "workflowInstance";
+  | "workflowInstance"
+  | "environment";
 
 /** Return value of {@link useUpdateVisibility}. */
 export interface UseUpdateVisibilityReturn {
@@ -35,8 +36,10 @@ export interface UseUpdateVisibilityReturn {
  * Behavior hook that updates the visibility of a resource.
  *
  * Supports blueprints (Agent, Workflow, Skill, MCP Server) with the
- * full private/org/public/platform spectrum, and instances
- * (AgentInstance, WorkflowInstance) with private/org/public.
+ * full private/org/public/platform spectrum, instances
+ * (AgentInstance, WorkflowInstance) with private/org/public, and
+ * environments with private/org (secret values never leave the org
+ * boundary, so broader levels are rejected by the backend).
  *
  * Wraps the generated `stigmer.{kind}.updateVisibility()` SDK method
  * with loading and error state management. The hook is stateless with
@@ -98,6 +101,9 @@ export function useUpdateVisibility(
             break;
           case "workflowInstance":
             await stigmer.workflowInstance.updateVisibility(input);
+            break;
+          case "environment":
+            await stigmer.environment.updateVisibility(input);
             break;
         }
       } catch (err) {

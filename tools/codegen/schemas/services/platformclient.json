@@ -85,6 +85,14 @@
           "outputType": "MintUserTokenResponse",
           "outputFullType": "ai.stigmer.iam.platformclient.v1.MintUserTokenResponse",
           "description": "Mint a user-scoped JWT for browser-based access to Stigmer resources.\n\n The platform builder's backend calls this RPC with its PlatformClient\n credentials (client_id + client_secret) and the end user's identity.\n Stigmer validates the credentials, optionally JIT-provisions the user's\n identity account, and returns a Stigmer-signed JWT.\n\n The returned JWT can be used by the React SDK (via StigmerProvider's\n getAccessToken callback) to authenticate API calls from the browser.\n\n Authentication flow:\n 1. Validate client_id + client_secret against stored hash\n 2. Resolve or JIT-provision the identity account for user_id\n 3. If auto_grant_on_org is enabled, grant the configured role\n 4. Sign a JWT with Stigmer's private key containing the user's identity\n\n Error scenarios:\n - UNAUTHENTICATED: Invalid client_id or client_secret\n - NOT_FOUND: user_id does not exist and auto_provision_accounts is false\n - FAILED_PRECONDITION: PlatformClient secret has expired\n - PERMISSION_DENIED: Origin not in allowed_origins (when configured)\n\n @internal\n This RPC is public — no Bearer token is required. The caller authenticates\n by providing client_id + client_secret in the request body. The handler\n validates these credentials as business logic, not via the auth interceptor."
+        },
+        {
+          "name": "MintGuestToken",
+          "inputType": "MintGuestTokenRequest",
+          "inputFullType": "ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest",
+          "outputType": "MintGuestTokenResponse",
+          "outputFullType": "ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse",
+          "description": "Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.\n\n Resolves org+slug to a shared agent, provisions the org's system-managed\n PlatformClient and guest identity account lazily, and returns a short-lived\n Stigmer-signed JWT scoped to that org.\n\n @internal\n Public — no Bearer token. No PlatformClient credentials. The handler gates\n on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing)."
         }
       ]
     }
@@ -363,6 +371,121 @@
           "required": false
         }
       ]
+    },
+    {
+      "name": "MintGuestTokenRequest",
+      "description": "MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.",
+      "protoType": "ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest",
+      "protoFile": "apis/ai/stigmer/iam/platformclient/v1/token.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug from the share URL (required).",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent slug from the share URL (required).",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "GuestCookieId",
+          "jsonName": "guestCookieId",
+          "protoField": "guest_cookie_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Per-browser visitor cookie id from a prior mint (optional).\n\n When empty, the server generates a high-entropy id and returns it so the\n hosted page can persist it in an httpOnly cookie. When supplied, it must\n be the value previously returned by this RPC for the same visitor.",
+          "required": false
+        },
+        {
+          "name": "EmbedOrigin",
+          "jsonName": "embedOrigin",
+          "protoField": "embed_origin",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Web origin of the page embedding the shared agent (optional).\n\n Set by the hosted chat page when it runs inside an iframe (the embedding\n page's origin, e.g. \"https://docs.example.com\") and by direct SDK embeds\n (their own page origin). Leave empty on the unframed hosted page. The\n literal value \"null\" reports a framed page whose parent origin could not\n be determined (opaque origin).\n\n @internal\n Validated at mint against the agent's spec.sharing.allowed_origins:\n empty list admits any origin; a non-empty list refuses PERMISSION_DENIED\n for unlisted origins and for \"null\". An empty field always passes (the\n anyone-with-link hosted page). The validated value is stamped into the\n guest JWT as the embed_origin claim and re-validated against the live\n list by the guest create-time gate. Self-reported by design: the widget\n code inside the iframe derives it from browser-authentic sources the\n embedder cannot alter; non-browser callers gain nothing by omitting it\n since the hosted link is anyone-with-link (decision 001) — rate limits\n and the billing gate remain the API guards.",
+          "required": false
+        },
+        {
+          "name": "LinkToken",
+          "jsonName": "linkToken",
+          "protoField": "link_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Link token from the share URL's `?k=` parameter (optional).\n\n Required when the agent's share link has been locked with\n rotateShareLink; ignored for plain share links.\n\n @internal\n Validated at mint against the agent's live status.share_link_token\n (mismatch or absence answers the same NOT_FOUND as an unshared agent,\n so a killed link is indistinguishable from a nonexistent one). The\n validated value is stamped into the guest JWT as the link_token claim\n and re-validated against the live value by the guest create-time gate\n on every session/execution create — rotation therefore revokes live\n guest tokens on their next message, exactly like disabling sharing.",
+          "required": false,
+          "validation": {
+            "maxLength": 128
+          }
+        }
+      ]
+    },
+    {
+      "name": "MintGuestTokenResponse",
+      "description": "MintGuestTokenResponse contains the guest JWT and the visitor cookie id.",
+      "protoType": "ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse",
+      "protoFile": "apis/ai/stigmer/iam/platformclient/v1/token.proto",
+      "fields": [
+        {
+          "name": "AccessToken",
+          "jsonName": "accessToken",
+          "protoField": "access_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Stigmer-signed JWT for authenticating shared-agent chat API calls.",
+          "required": false
+        },
+        {
+          "name": "TokenType",
+          "jsonName": "tokenType",
+          "protoField": "token_type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token type. Always \"Bearer\".",
+          "required": false
+        },
+        {
+          "name": "ExpiresIn",
+          "jsonName": "expiresIn",
+          "protoField": "expires_in",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Token lifetime in seconds from the time of issuance.",
+          "required": false
+        },
+        {
+          "name": "GuestCookieId",
+          "jsonName": "guestCookieId",
+          "protoField": "guest_cookie_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Visitor cookie id to persist client-side (httpOnly cookie in item 3).\n\n Echoes guest_cookie_id from the request when provided; otherwise a newly\n generated high-entropy value.",
+          "required": false
+        }
+      ]
     }
   ],
   "enumTypes": [
@@ -414,7 +537,7 @@
         {
           "name": "organization",
           "number": 30,
-          "description": "Top-level tenant that owns and manages resources."
+          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
         },
         {
           "name": "platform",

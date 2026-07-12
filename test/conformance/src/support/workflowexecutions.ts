@@ -14,6 +14,7 @@ import {
   WorkflowTaskStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import type { ConformanceClients } from "../harness/clients";
+import { type ExecutionValueInit, makeExecutionValues } from "./executioncontexts";
 import { type PollCoreOptions, pollUntil } from "./execution-poll";
 
 export const WORKFLOW_EXECUTION_API_VERSION = "agentic.stigmer.ai/v1";
@@ -22,9 +23,18 @@ export const WORKFLOW_EXECUTION_KIND = "WorkflowExecution";
 export interface WorkflowExecutionOptions {
   org: string;
   name: string;
-  // The wfl_ id returned by Workflow.create; the server resolves its default instance.
-  workflowId: string;
+  // The wfl_ id returned by Workflow.create; the server resolves its default
+  // instance. Provide this OR workflowInstanceId (the create handler requires
+  // one of the two).
+  workflowId?: string;
+  // The wfi_ id of an explicit WorkflowInstance. When set, the server uses this
+  // instance's environment_refs for the env merge instead of auto-resolving the
+  // workflow's default instance (create.go skips default-instance creation).
+  workflowInstanceId?: string;
   triggerMessage?: string;
+  // Execution-scoped env overrides (spec.runtime_env) — the highest-precedence
+  // layer of the env merge, materialized into the ExecutionContext at create.
+  runtimeEnv?: Record<string, ExecutionValueInit>;
 }
 
 // A complete, valid WorkflowExecution create request. execution_target is left
@@ -37,8 +47,10 @@ export function makeWorkflowExecution(
     kind: WORKFLOW_EXECUTION_KIND,
     metadata: { name: opts.name, org: opts.org },
     spec: {
-      workflowId: opts.workflowId,
+      ...(opts.workflowId !== undefined ? { workflowId: opts.workflowId } : {}),
+      ...(opts.workflowInstanceId !== undefined ? { workflowInstanceId: opts.workflowInstanceId } : {}),
       ...(opts.triggerMessage !== undefined ? { triggerMessage: opts.triggerMessage } : {}),
+      ...(opts.runtimeEnv !== undefined ? { runtimeEnv: makeExecutionValues(opts.runtimeEnv) } : {}),
     },
   };
 }

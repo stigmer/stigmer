@@ -8,6 +8,7 @@ import { useSsoProvider } from "../identity-provider/useSsoProvider.js";
 import { VisibilityBadge, VisibilitySelector } from "./VisibilitySelector.js";
 import {
   blueprintVisibilityLevels,
+  environmentVisibilityLevels,
   INSTANCE_VISIBILITY_LEVELS,
 } from "./visibilityLevels.js";
 import {
@@ -28,6 +29,7 @@ const FGA_KIND: Record<VisibilityResourceKind, string> = {
   mcpServer: "mcp_server",
   agentInstance: "agent_instance",
   workflowInstance: "workflow_instance",
+  environment: "environment",
 };
 
 const INSTANCE_KINDS: ReadonlySet<VisibilityResourceKind> = new Set([
@@ -79,6 +81,9 @@ export interface ResourceVisibilityControlProps {
  *   set collapses to Private / Public.
  * - Instances: Private / Organization / Public — platform is excluded by
  *   design to preserve tenant isolation.
+ * - Environments: Private / Organization only — secret values never leave
+ *   the org boundary. In `local` mode there are no levels to choose (the
+ *   OSS backend is single-user), so the control degrades to a badge.
  *
  * The backend remains the enforcer (`ValidateVisibilityStep` rejects
  * platform without an IdP); the gate here only prevents offering an option
@@ -96,18 +101,23 @@ export function ResourceVisibilityControl({
   const deploymentMode = useDeploymentMode();
 
   const isInstance = INSTANCE_KINDS.has(kind);
+  const isEnvironment = kind === "environment";
   // The IdP lookup only matters for blueprints in cloud mode; passing null
   // makes the hook a stable no-op everywhere else.
   const idpLookupOrg =
-    !isInstance && deploymentMode === "cloud" ? (org ?? null) : null;
+    !isInstance && !isEnvironment && deploymentMode === "cloud"
+      ? (org ?? null)
+      : null;
   const { ssoProvider } = useSsoProvider(idpLookupOrg);
 
-  const options = isInstance
-    ? INSTANCE_VISIBILITY_LEVELS
-    : blueprintVisibilityLevels({
-        deploymentMode,
-        hasIdentityProvider: ssoProvider !== null,
-      });
+  const options = isEnvironment
+    ? environmentVisibilityLevels(deploymentMode)
+    : isInstance
+      ? INSTANCE_VISIBILITY_LEVELS
+      : blueprintVisibilityLevels({
+          deploymentMode,
+          hasIdentityProvider: ssoProvider !== null,
+        });
 
   const handleChange = useCallback(
     async (next: ApiResourceVisibility) => {
@@ -124,6 +134,12 @@ export function ResourceVisibilityControl({
   );
 
   const badge = <VisibilityBadge visibility={visibility} className={className} />;
+
+  // Fewer than two levels means there is nothing to choose (e.g. an
+  // environment in local mode) — stay legible with the read-only badge.
+  if (options.length < 2) {
+    return badge;
+  }
 
   return (
     <PermissionGate

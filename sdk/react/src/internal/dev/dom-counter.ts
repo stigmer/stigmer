@@ -1,6 +1,5 @@
 import { type RefObject, useEffect, useRef } from "react";
-
-const DEV = process.env.NODE_ENV !== "production";
+import { isPerfLoggingEnabled } from "./enabled.js";
 
 /** Log the node count every Nth trigger. */
 const LOG_EVERY = 10;
@@ -23,7 +22,7 @@ export function useDomNodeCount(
   const triggerCountRef = useRef(0);
 
   useEffect(() => {
-    if (!DEV) return;
+    if (!isPerfLoggingEnabled()) return;
 
     triggerCountRef.current += 1;
     if (triggerCountRef.current % LOG_EVERY !== 0) return;

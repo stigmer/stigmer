@@ -39,6 +39,11 @@ func (e *EnvironmentClient) Update(ctx context.Context, input *EnvironmentInput)
 	return resp, wrapErr(err)
 }
 
+func (e *EnvironmentClient) UpdateVisibility(ctx context.Context, input *apiresource.UpdateVisibilityInput) (*environmentv1.Environment, error) {
+	resp, err := e.command.UpdateVisibility(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (e *EnvironmentClient) Delete(ctx context.Context, input *DeleteResourceInput) (*environmentv1.Environment, error) {
 	resp, err := e.command.Delete(ctx, &apiresource.ApiResourceDeleteInput{
 		ResourceId:     input.ResourceID,

@@ -22,23 +22,32 @@ func createTestExecutionWithPhaseUnique(t *testing.T, controller *WorkflowExecut
 	// Create a unique name for the execution
 	uniqueName := fmt.Sprintf("Test Execution %s %d", suffix, time.Now().UnixNano())
 
-	// Create the execution via the controller using workflow_instance_id
-	execution := &workflowexecutionv1.WorkflowExecution{
+	// Seed the execution directly into the store. Create now requires a connected
+	// workflow engine (see ensureEngineAvailableStep), so these lifecycle tests seed
+	// the execution they operate on rather than driving it through Create. The fields
+	// mirror what a successful Create would persist (id, slug, resolved workflow_id,
+	// PENDING phase); phase transitions below still go through UpdateStatus.
+	executionID := fmt.Sprintf("wex-test-%s-%d", suffix, time.Now().UnixNano())
+	created := &workflowexecutionv1.WorkflowExecution{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "WorkflowExecution",
 		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   executionID,
 			Name: uniqueName,
+			Slug: executionID,
 			Org:  "test-org",
 		},
 		Spec: &workflowexecutionv1.WorkflowExecutionSpec{
 			WorkflowInstanceId: instance.Metadata.Id,
+			WorkflowId:         workflow.Metadata.Id,
 			TriggerMessage:     "Test trigger",
 		},
+		Status: &workflowexecutionv1.WorkflowExecutionStatus{
+			Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_PENDING,
+		},
 	}
-
-	created, err := controller.Create(contextWithWorkflowExecutionKind(), execution)
-	if err != nil {
-		t.Fatalf("Failed to create test execution: %v", err)
+	if err := s.SaveResource(contextWithWorkflowExecutionKind(), apiresourcekind.ApiResourceKind_workflow_execution, executionID, created); err != nil {
+		t.Fatalf("Failed to seed test execution: %v", err)
 	}
 
 	// Update the phase via UpdateStatus if needed (Update only handles spec changes)

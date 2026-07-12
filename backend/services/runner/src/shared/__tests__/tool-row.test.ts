@@ -11,6 +11,7 @@ import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/a
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
+  collectSettledToolCallIds,
   collectSubAgentToolCallIds,
   hideToolCallRow,
   isToolCallRowHidden,
@@ -352,5 +353,39 @@ describe("collectSubAgentToolCallIds", () => {
       ],
     });
     expect([...collectSubAgentToolCallIds([sa]).values()].sort()).toEqual(["tc-a", "tc-b"]);
+  });
+});
+
+describe("collectSettledToolCallIds", () => {
+  function msgWith(id: string, status: ToolCallStatus) {
+    return create(AgentMessageSchema, {
+      type: 1, // MESSAGE_AI
+      toolCalls: [create(ToolCallSchema, { id, name: "Shell", status })],
+    });
+  }
+
+  it("collects every terminal status and skips every live one", () => {
+    const ids = collectSettledToolCallIds([
+      msgWith("tc-completed", ToolCallStatus.TOOL_CALL_COMPLETED),
+      msgWith("tc-failed", ToolCallStatus.TOOL_CALL_FAILED),
+      msgWith("tc-skipped", ToolCallStatus.TOOL_CALL_SKIPPED),
+      msgWith("tc-pending", ToolCallStatus.TOOL_CALL_PENDING),
+      msgWith("tc-running", ToolCallStatus.TOOL_CALL_RUNNING),
+      msgWith("tc-gated", ToolCallStatus.TOOL_CALL_WAITING_APPROVAL),
+    ]);
+    expect([...ids].sort()).toEqual(["tc-completed", "tc-failed", "tc-skipped"]);
+  });
+
+  it("treats a server-settled INTERRUPTED row as settled (recovery provenance scoping)", () => {
+    // A FAILED-then-recovered execution seeds INTERRUPTED rows from the prior
+    // invocation. For turn-boundary provenance those are PRIOR-turn history —
+    // scoping them as this-turn would mis-attribute a dead call to the
+    // resuming turn's change set. (The Cursor monotonic guard makes the
+    // opposite call for the same status so a replayed event can still advance
+    // the row; see isTerminalToolStatus in message-translator.ts.)
+    const ids = collectSettledToolCallIds([
+      msgWith("tc-interrupted", ToolCallStatus.TOOL_CALL_INTERRUPTED),
+    ]);
+    expect(ids.has("tc-interrupted")).toBe(true);
   });
 });

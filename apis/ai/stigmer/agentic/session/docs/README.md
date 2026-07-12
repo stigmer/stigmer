@@ -57,7 +57,7 @@ All types in this package are defined in `ai/stigmer/agentic/session/v1/`:
 | `spec.proto` | `SessionSpec` — `agent_instance_id`, `subject`, `thread_id`, `sandbox_id`, `metadata`, `workspace_source` |
 | `workspace.proto` | `WorkspaceSource`, `GitRepoSource`, `LocalPathSource` |
 | `command.proto` | `SessionCommandController` — apply, create, update, delete |
-| `query.proto` | `SessionQueryController` — get, list, listByAgent |
+| `query.proto` | `SessionQueryController` — get, list, listByAgentInstance |
 | `io.proto` | Input/output messages for all RPCs |
 
 ## Further Reading

@@ -15,10 +15,14 @@ describe("useKeyStability", () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    // Perf logging is opt-in (off by default). Enable it via the browser
+    // runtime flag so these behavioral assertions exercise the warning path.
+    (globalThis as { __STIGMER_PERF__?: boolean }).__STIGMER_PERF__ = true;
     warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
   });
 
   afterEach(() => {
+    delete (globalThis as { __STIGMER_PERF__?: boolean }).__STIGMER_PERF__;
     warnSpy.mockRestore();
   });
 

@@ -33,6 +33,7 @@ export function createHydrateWorkflowActivities(config: Config) {
     endpoint: config.stigmerBackendEndpoint,
     token: config.stigmerToken,
     tokenRef: config.stigmerTokenRef,
+    runnerTokenRef: config.stigmerRunnerTokenRef,
   });
 
   return {
@@ -264,9 +265,16 @@ async function fetchAndFlattenEnv(
   client: StigmerClient,
   executionId: string,
 ): Promise<Record<string, unknown>> {
+  // A desktop runner exchanges its bootstrap credential for a token scoped to
+  // this workflow execution, so cloud's decrypt gate binds the read (#156).
+  // No-op for cloud sandbox and OSS runners.
+  const scopedToken = await client.acquireScopedRunnerToken({
+    workflowExecutionId: executionId,
+  });
+
   let execCtx;
   try {
-    execCtx = await client.getExecutionContextByExecutionId(executionId);
+    execCtx = await client.getExecutionContextByExecutionId(executionId, scopedToken);
   } catch (err: unknown) {
     // ConnectError uses numeric Code.NotFound (5); match the pattern
     // from execute-cursor/env-resolver.ts.

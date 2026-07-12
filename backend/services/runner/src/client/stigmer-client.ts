@@ -48,7 +48,8 @@ import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/work
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
-import { PlatformQueryController } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { PlatformQueryController, GetRunnerScopedTokenInputSchema } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { isEmbeddedRunnerToken } from "./token-claims.js";
 import { assertCreateRequirements, assertReferenceRequirements } from "./server-contracts.js";
 
 /**
@@ -70,6 +71,28 @@ export interface RunnerBootstrapConfig {
 }
 
 /**
+ * A runner token scoped to one unit of dispatched work (issue #156).
+ *
+ * Minted on demand by the control plane when the runner exchanges its
+ * bootstrap credential at task start; presented for the ExecutionContext
+ * fetch of exactly that execution. Absent when the server does not mint
+ * (OSS, or no signing key) — the runner keeps its existing credential.
+ */
+export interface RunnerScopedToken {
+  token: string;
+  /** Lifetime in seconds from issuance; absent/0 when the server omitted it. */
+  expiresInSeconds?: number;
+}
+
+/**
+ * Names the unit of dispatched work a scoped runner token should serve.
+ * Exactly one id must be set — mirrors the proto oneof.
+ */
+export type RunnerScopedTokenScope =
+  | { agentExecutionId: string }
+  | { workflowExecutionId: string };
+
+/**
  * A shared mutable token reference. When provided, the interceptor
  * reads from this on every request, enabling token updates to
  * propagate to all clients sharing the same ref.
@@ -82,6 +105,13 @@ export interface StigmerClientOptions {
   endpoint: string;
   token: string | null;
   tokenRef?: TokenRef;
+  /**
+   * Optional runner credential (a server-minted token with a runner-class
+   * `token_type` claim). When populated, ExecutionContext reads authenticate
+   * with this instead of the control-plane token — see the interceptor in the
+   * constructor for why the credential differs per service.
+   */
+  runnerTokenRef?: TokenRef;
 }
 
 export class StigmerClient {
@@ -106,15 +136,49 @@ export class StigmerClient {
   private readonly platformQuery: Client<typeof PlatformQueryController>;
 
   private readonly tokenRef: TokenRef | null;
+  private readonly runnerTokenRef: TokenRef | null;
 
   constructor(options: StigmerClientOptions) {
     this.currentToken = options.token;
     this.tokenRef = options.tokenRef ?? null;
+    this.runnerTokenRef = options.runnerTokenRef ?? null;
     this.transport = createGrpcTransport({
       baseUrl: options.endpoint,
       interceptors: [
+        // Credential selection lives here — one tested decision point — rather
+        // than at call sites. Precedence:
+        //
+        // 1. An explicit per-call credential (an authorization header set via
+        //    CallOptions) always wins. The scoped-token flow (issue #156)
+        //    authenticates each ExecutionContext read with a token minted for
+        //    that specific execution; concurrent sessions in one runner process
+        //    make a shared mutable ref unusable for this — session A's read
+        //    must never go out with session B's token.
+        //
+        // 2. The runner credential (runnerTokenRef) authenticates the services
+        //    that require a runner-class token_type claim: ExecutionContext
+        //    reads carry decrypted secrets on cloud, and the server gates that
+        //    decrypt on runner class + scope (stigmer-cloud#152/#155); the
+        //    scoped-token exchange itself requires the embedded_runner
+        //    bootstrap credential (a desktop runner's control-plane token is
+        //    the user's own Auth0 token, which the server correctly treats as
+        //    a browsing user).
+        //
+        // 3. Everything else uses the control-plane token. Falls through
+        //    unchanged when no runner token exists (OSS/local, where the
+        //    server enforces no auth).
         (next) => async (req) => {
-          const token = this.tokenRef?.current ?? this.currentToken;
+          if (req.header.has("authorization")) {
+            return next(req);
+          }
+          const usesRunnerCredential =
+            req.service.typeName === ExecutionContextQueryController.typeName ||
+            (req.service.typeName === PlatformQueryController.typeName &&
+              req.method.name === PlatformQueryController.method.getRunnerScopedToken.name);
+          const token =
+            (usesRunnerCredential ? this.runnerTokenRef?.current : null)
+            ?? this.tokenRef?.current
+            ?? this.currentToken;
           if (token) {
             req.header.set("authorization", `Bearer ${token}`);
           }
@@ -180,10 +244,95 @@ export class StigmerClient {
     return this.executionCommand.updateStatus(input);
   }
 
-  async getExecutionContextByExecutionId(executionId: string): Promise<ExecutionContext> {
+  /**
+   * Fetch the ExecutionContext for an execution.
+   *
+   * When a scoped runner token is supplied (issue #156), the read
+   * authenticates with it per-call instead of the process-wide credential:
+   * on cloud the decrypt gate releases secrets only to a runner token whose
+   * scope binds it to this very execution, and one desktop runner process
+   * serves many sessions concurrently, so the credential cannot live in a
+   * shared ref.
+   */
+  async getExecutionContextByExecutionId(
+    executionId: string,
+    scopedToken?: string,
+  ): Promise<ExecutionContext> {
     return this.executionContextQuery.getByExecutionId(
       create(ExecutionContextExecutionIdInputSchema, { executionId }),
+      scopedToken
+        ? { headers: { authorization: `Bearer ${scopedToken}` } }
+        : undefined,
     );
+  }
+
+  /**
+   * Exchange this runner's bootstrap credential for a token scoped to one
+   * unit of dispatched work (issue #156).
+   *
+   * The call authenticates with the runner credential (see the interceptor);
+   * the server verifies it is an embedded_runner token and that its identity
+   * can view the named execution, then mints the same session/execution-scoped
+   * sandbox token a cloud sandbox runner receives at provisioning. Returns
+   * undefined when the server does not mint (OSS, or no signing key) —
+   * presence-based, like the bootstrap token fields.
+   */
+  async getRunnerScopedToken(
+    scope: RunnerScopedTokenScope,
+  ): Promise<RunnerScopedToken | undefined> {
+    const input = create(GetRunnerScopedTokenInputSchema,
+      "agentExecutionId" in scope
+        ? { scope: { case: "agentExecutionId", value: scope.agentExecutionId } }
+        : { scope: { case: "workflowExecutionId", value: scope.workflowExecutionId } });
+    const res = await this.platformQuery.getRunnerScopedToken(input);
+    if (!res.runnerScopedToken) {
+      return undefined;
+    }
+    return {
+      token: res.runnerScopedToken,
+      expiresInSeconds: res.expiresInSeconds || undefined,
+    };
+  }
+
+  /**
+   * Acquire a scoped runner token for an ExecutionContext read, if this
+   * runner's credential situation calls for one.
+   *
+   * The gate is the credential itself: only an unscoped embedded_runner
+   * bootstrap token needs exchanging. A cloud sandbox runner's credential is
+   * already scoped (skip — the exchange would rightly refuse it), and an
+   * OSS/local runner holds no runner-class credential at all (skip — the
+   * server neither mints nor redacts).
+   *
+   * Failure falls back rather than failing the execution: returning undefined
+   * makes the read authenticate with the bootstrap credential, which remains
+   * decrypt-eligible until issue #156 item 3 removes it — at that point this
+   * fallback stops yielding secrets and executions surface the warning below.
+   */
+  async acquireScopedRunnerToken(
+    scope: RunnerScopedTokenScope,
+  ): Promise<string | undefined> {
+    if (!isEmbeddedRunnerToken(this.runnerTokenRef?.current)) {
+      return undefined;
+    }
+    try {
+      const scoped = await this.getRunnerScopedToken(scope);
+      if (!scoped) {
+        console.warn(
+          "[stigmer-client] Server minted no scoped runner token; " +
+          "falling back to the bootstrap credential for the ExecutionContext read",
+        );
+        return undefined;
+      }
+      return scoped.token;
+    } catch (err) {
+      console.warn(
+        "[stigmer-client] Scoped runner token exchange failed; " +
+        "falling back to the bootstrap credential for the ExecutionContext read: " +
+        `${err instanceof Error ? err.message : err}`,
+      );
+      return undefined;
+    }
   }
 
   async getSession(sessionId: string): Promise<Session> {

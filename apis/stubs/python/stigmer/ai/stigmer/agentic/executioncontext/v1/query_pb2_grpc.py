@@ -11,14 +11,15 @@ class ExecutionContextQueryControllerStub(object):
     """ExecutionContextQueryController handles read operations for ExecutionContext resources.
 
     @internal
-    Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
-    ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-    FGA model. Authorization is derived from the parent execution:
-    - All read operations check can_view on parent agent_execution or workflow_execution
+    Authorization: All RPCs use is_skip_authorization with handler-level auth.
+    In cloud, the handler performs a direct FGA check: can_view on
+    execution_context:<metadata.id>, against the owner tuple written at creation
+    time by the create pipeline. OSS enforces no authorization.
 
-    The handler loads the ExecutionContext, extracts the execution_id from spec,
-    and verifies the caller has permission on whichever parent type matches.
-    This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
+    Secret handling: values with is_secret=true are returned in plaintext on OSS
+    (single-user local, no encryption). On cloud they are redacted for user-class
+    callers on every read RPC; only getByExecutionId can return decrypted values,
+    and only to runner-class credentials (see that RPC's comment).
     """
 
     def __init__(self, channel):
@@ -48,21 +49,23 @@ class ExecutionContextQueryControllerServicer(object):
     """ExecutionContextQueryController handles read operations for ExecutionContext resources.
 
     @internal
-    Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
-    ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-    FGA model. Authorization is derived from the parent execution:
-    - All read operations check can_view on parent agent_execution or workflow_execution
+    Authorization: All RPCs use is_skip_authorization with handler-level auth.
+    In cloud, the handler performs a direct FGA check: can_view on
+    execution_context:<metadata.id>, against the owner tuple written at creation
+    time by the create pipeline. OSS enforces no authorization.
 
-    The handler loads the ExecutionContext, extracts the execution_id from spec,
-    and verifies the caller has permission on whichever parent type matches.
-    This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
+    Secret handling: values with is_secret=true are returned in plaintext on OSS
+    (single-user local, no encryption). On cloud they are redacted for user-class
+    callers on every read RPC; only getByExecutionId can return decrypted values,
+    and only to runner-class credentials (see that RPC's comment).
     """
 
     def get(self, request, context):
         """Get an ExecutionContext by ID.
 
         @internal
-        Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+        Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+        Secret values are redacted on cloud.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -72,7 +75,8 @@ class ExecutionContextQueryControllerServicer(object):
         """Get an ExecutionContext by reference (slug-based lookup).
 
         @internal
-        Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+        Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+        Secret values are redacted on cloud.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -83,9 +87,16 @@ class ExecutionContextQueryControllerServicer(object):
 
         @internal
         Primary lookup method used by runners to retrieve the merged environment
-        variables during workflow/agent execution. The returned context contains
-        decrypted secrets for runner consumption.
-        Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+        variables during workflow/agent execution and MCP discovery.
+        Handler-level auth (cloud): direct FGA can_view on the execution_context resource.
+
+        Secret handling (cloud): the decrypt path is gated by caller credential
+        class, not by FGA — runners authenticate as the user who owns the
+        execution, so permissions cannot tell them apart. Callers presenting a
+        platform-minted runner token (token_type of sandbox, workflow_sandbox,
+        connect_sandbox, or embedded_runner) receive decrypted secret values;
+        every other caller (user JWT, SDK, console) receives the same redaction
+        as get/getByReference.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -121,14 +132,15 @@ class ExecutionContextQueryController(object):
     """ExecutionContextQueryController handles read operations for ExecutionContext resources.
 
     @internal
-    Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
-    ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-    FGA model. Authorization is derived from the parent execution:
-    - All read operations check can_view on parent agent_execution or workflow_execution
+    Authorization: All RPCs use is_skip_authorization with handler-level auth.
+    In cloud, the handler performs a direct FGA check: can_view on
+    execution_context:<metadata.id>, against the owner tuple written at creation
+    time by the create pipeline. OSS enforces no authorization.
 
-    The handler loads the ExecutionContext, extracts the execution_id from spec,
-    and verifies the caller has permission on whichever parent type matches.
-    This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
+    Secret handling: values with is_secret=true are returned in plaintext on OSS
+    (single-user local, no encryption). On cloud they are redacted for user-class
+    callers on every read RPC; only getByExecutionId can return decrypted values,
+    and only to runner-class credentials (see that RPC's comment).
     """
 
     @staticmethod

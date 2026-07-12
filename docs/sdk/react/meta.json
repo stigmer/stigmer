@@ -37,6 +37,8 @@
     "platform-client",
     "user",
     "activity",
-    "file-reference"
+    "file-reference",
+    "sharing",
+    "switch"
   ]
 }

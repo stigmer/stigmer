@@ -216,6 +216,65 @@ describe("buildMergedConfig", () => {
   });
 });
 
+// ── Issue #205: foreign gating hook reporting ────────────────────────────────
+// The merge PRESERVES the user's own hooks (correct — never clobber their
+// config), but Cursor runs every configured hook and a deny from any of them
+// blocks the runner's tools without writing our denial ledger. buildMergedConfig
+// therefore reports the foreign commands left on the GATING events so the
+// runner can log the exposure and name the culprit when the turn boundary
+// detects an unattributed hook block.
+describe("buildMergedConfig — foreign gating hook reporting (issue #205)", () => {
+  const bothEvents = [
+    { event: "preToolUse", scriptPath: "/abs/hitl/stigmer-approval.sh" },
+    { event: "beforeMCPExecution", scriptPath: "/abs/hitl/stigmer-approval.sh" },
+  ];
+
+  it("reports no foreign hooks when no hooks.json exists", () => {
+    expect(buildMergedConfig(null, bothEvents).foreignGatingHooks).toEqual([]);
+  });
+
+  it("reports user commands on the gating events, ignoring non-gating events", () => {
+    const original = JSON.stringify({
+      version: 1,
+      hooks: {
+        preToolUse: [{ command: "./gate-writes.sh", failClosed: true }],
+        beforeMCPExecution: [{ command: "./gate-mcp.sh" }],
+        // postToolUse cannot deny a tool — it must not be reported.
+        postToolUse: [{ command: "./audit.sh" }],
+      },
+    });
+    const { foreignGatingHooks } = buildMergedConfig(original, bothEvents);
+    expect(foreignGatingHooks).toEqual(["./gate-writes.sh", "./gate-mcp.sh"]);
+  });
+
+  it("excludes Stigmer's own entries (current and legacy) from the report", () => {
+    const original = JSON.stringify({
+      version: 1,
+      hooks: {
+        preToolUse: [
+          { command: "/home/u/.stigmer/sessions/ses-1/hitl/stigmer-approval.sh" },
+          { command: ".cursor/hooks/stigmer-approval.sh" }, // pre-#173 legacy
+          { command: "./user.sh" },
+        ],
+      },
+    });
+    const { foreignGatingHooks } = buildMergedConfig(original, bothEvents);
+    expect(foreignGatingHooks).toEqual(["./user.sh"]);
+  });
+
+  it("ignores malformed entries without a string command", () => {
+    const original = JSON.stringify({
+      version: 1,
+      hooks: { preToolUse: [{ command: 42 }, { timeout: 5 }, null, "bare-string"] },
+    });
+    expect(buildMergedConfig(original, bothEvents).foreignGatingHooks).toEqual([]);
+  });
+
+  it("reports nothing for an unparseable hooks.json (replaced for the turn, so it cannot run)", () => {
+    expect(buildMergedConfig("{ not json", bothEvents).foreignGatingHooks).toEqual([]);
+  });
+});
+
 describe("installHitlGate / removeHitlGate", () => {
   const approvalState = buildApprovalState(new Map(), false, new Set());
 
@@ -288,6 +347,42 @@ describe("installHitlGate / removeHitlGate", () => {
     // The repo is clean: no hooks.json, no hook scripts, no ledger.
     expect(existsSync(join(workspaceRoot, ".cursor", "hooks.json"))).toBe(false);
     expect(existsSync(join(workspaceRoot, ".cursor", "hooks"))).toBe(false);
+  });
+
+  it("surfaces the preserved foreign gating hooks on the install handle", async () => {
+    const { workspaceRoot, hitlDir } = dirs();
+    const cursorDir = join(workspaceRoot, ".cursor");
+    mkdirSync(cursorDir, { recursive: true });
+    writeFileSync(
+      join(cursorDir, "hooks.json"),
+      JSON.stringify({
+        version: 1,
+        hooks: {
+          preToolUse: [{ command: "./gate-writes.sh", failClosed: true }],
+          postToolUse: [{ command: "./audit.sh" }],
+        },
+      }),
+      "utf-8",
+    );
+
+    const handle = await installHitlGate({
+      workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
+    });
+    // The user's gating hook is preserved in the merged config AND reported on
+    // the handle (both registered events read the same preToolUse array here,
+    // so the report carries the one foreign command once per gating event it
+    // could fire on — preToolUse only, since beforeMCPExecution was absent).
+    expect(handle.foreignGatingHooks).toEqual(["./gate-writes.sh"]);
+    await removeHitlGate(handle);
+  });
+
+  it("reports no foreign hooks for a pristine workspace", async () => {
+    const { workspaceRoot, hitlDir } = dirs();
+    const handle = await installHitlGate({
+      workspaceRoot, hitlDir, approvalState, runnerPid: process.pid,
+    });
+    expect(handle.foreignGatingHooks).toEqual([]);
+    await removeHitlGate(handle);
   });
 
   it("restores a pre-existing user hooks.json byte-for-byte after teardown", async () => {

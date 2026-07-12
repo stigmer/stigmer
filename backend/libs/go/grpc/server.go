@@ -15,10 +15,19 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 )
+
+// healthCheckMethodPrefix is the gRPC method-name prefix for the standard
+// health service (grpc.health.v1.Health/Check and /Watch). Health probes are
+// high-frequency infrastructure traffic, so successful calls are logged at
+// debug rather than info to keep the default log readable for supervisors that
+// poll readiness continuously.
+const healthCheckMethodPrefix = "/grpc.health.v1.Health/"
 
 // Server wraps a gRPC server with lifecycle management and in-process support
 type Server struct {
@@ -28,6 +37,7 @@ type Server struct {
 	port             int
 	inProcessEnabled bool
 	bufListener      *bufconn.Listener
+	healthServer     *health.Server
 }
 
 // ServerOption configures a Server
@@ -104,9 +114,22 @@ func NewServer(opts ...ServerOption) *Server {
 		}),
 	)
 
+	// Register the standard gRPC health service (grpc.health.v1.Health) so any
+	// supervisor (systemd, Docker healthchecks, desktop process managers) can
+	// gate readiness on "answering RPCs" rather than merely "port bound". The
+	// overall server status (empty service name "") starts as NOT_SERVING and
+	// is flipped to SERVING once the owning service has finished wiring — see
+	// SetHealthServing. It is registered on the same *grpc.Server as every
+	// other service, so it is reachable over native gRPC, gRPC-Web, and the
+	// in-process bufconn transport alike.
+	healthServer := health.NewServer()
+	healthpb.RegisterHealthServer(grpcServer, healthServer)
+	healthServer.SetServingStatus("", healthpb.HealthCheckResponse_NOT_SERVING)
+
 	s := &Server{
 		grpcServer:       grpcServer,
 		inProcessEnabled: options.enableInProcess,
+		healthServer:     healthServer,
 	}
 
 	// Create bufconn listener for in-process connections if enabled
@@ -116,6 +139,21 @@ func NewServer(opts ...ServerOption) *Server {
 	}
 
 	return s
+}
+
+// SetHealthServing marks the overall server as SERVING on the standard gRPC
+// health service. Call this once the owning service has finished wiring its
+// controllers and dependencies, immediately before it starts accepting network
+// traffic — that is the point at which the server can actually answer RPCs.
+func (s *Server) SetHealthServing() {
+	s.healthServer.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)
+}
+
+// SetHealthNotServing marks the overall server as NOT_SERVING on the standard
+// gRPC health service. Stop calls this first so a polling supervisor observes
+// the server draining before its connections are torn down.
+func (s *Server) SetHealthNotServing() {
+	s.healthServer.SetServingStatus("", healthpb.HealthCheckResponse_NOT_SERVING)
 }
 
 // GRPCServer returns the underlying gRPC server for service registration
@@ -209,6 +247,11 @@ func IsGRPCRequest(r *http.Request) bool {
 func (s *Server) Stop() {
 	log.Info().Msg("Stopping gRPC server")
 
+	// Flip health to NOT_SERVING before tearing anything down so a supervisor
+	// polling grpc.health.v1.Health/Check sees the server draining while
+	// in-flight RPCs are still allowed to finish via GracefulStop below.
+	s.SetHealthNotServing()
+
 	if s.httpServer != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -275,13 +318,26 @@ func loggingUnaryInterceptor(
 			Str("error", st.Message()).
 			Msg(logMsg)
 	} else {
-		log.Info().
+		// Health probes are high-frequency infrastructure traffic; log their
+		// successes at debug so a supervisor polling readiness does not flood
+		// the default info log.
+		successEvent := log.Info()
+		if isHealthCheckMethod(info.FullMethod) {
+			successEvent = log.Debug()
+		}
+		successEvent.
 			Str("method", info.FullMethod).
 			Dur("duration_ms", duration).
 			Msg("gRPC call succeeded")
 	}
 
 	return resp, err
+}
+
+// isHealthCheckMethod reports whether the full gRPC method belongs to the
+// standard health service (grpc.health.v1.Health/Check and /Watch).
+func isHealthCheckMethod(fullMethod string) bool {
+	return strings.HasPrefix(fullMethod, healthCheckMethodPrefix)
 }
 
 // loggingStreamInterceptor logs all stream RPC calls
@@ -327,7 +383,13 @@ func loggingStreamInterceptor(
 			Str("error", st.Message()).
 			Msg(logMsg)
 	} else {
-		log.Info().
+		// Health Watch is a long-lived probe stream; log its completion at
+		// debug for the same reason as unary health checks.
+		successEvent := log.Info()
+		if isHealthCheckMethod(info.FullMethod) {
+			successEvent = log.Debug()
+		}
+		successEvent.
 			Str("method", info.FullMethod).
 			Dur("duration_ms", duration).
 			Msg("gRPC stream call succeeded")

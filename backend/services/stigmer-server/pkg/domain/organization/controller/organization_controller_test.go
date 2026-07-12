@@ -8,6 +8,7 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	organizationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -56,12 +57,17 @@ func TestOrganizationController_Create(t *testing.T) {
 			t.Fatalf("Create failed: %v", err)
 		}
 
-		if created.Metadata.Id == "" {
-			t.Error("Expected ID to be set")
-		}
-
 		if created.Metadata.Slug != "acme" {
 			t.Errorf("Expected slug 'acme', got '%s'", created.Metadata.Slug)
+		}
+
+		// Organization is the one resource whose id equals its slug (not a
+		// minted org_<ulid>). See CopySlugToIdStep.
+		if created.Metadata.Id != created.Metadata.Slug {
+			t.Errorf("Expected id to equal slug '%s', got id '%s'", created.Metadata.Slug, created.Metadata.Id)
+		}
+		if created.Metadata.Id != "acme" {
+			t.Errorf("Expected id 'acme', got '%s'", created.Metadata.Id)
 		}
 
 		if created.Kind != "Organization" {
@@ -343,12 +349,13 @@ func TestOrganizationController_Apply(t *testing.T) {
 			t.Fatalf("Apply failed: %v", err)
 		}
 
-		if applied.Metadata.Id == "" {
-			t.Error("Expected ID to be set")
-		}
-
 		if applied.Metadata.Slug != "apply-new" {
 			t.Errorf("Expected slug 'apply-new', got '%s'", applied.Metadata.Slug)
+		}
+
+		// Apply delegates to Create, so the id == slug exception applies here too.
+		if applied.Metadata.Id != "apply-new" {
+			t.Errorf("Expected id 'apply-new' (== slug), got '%s'", applied.Metadata.Id)
 		}
 	})
 
@@ -507,6 +514,117 @@ func TestOrganizationController_FindMyOrganizations(t *testing.T) {
 
 		if len(result.Entries) != 2 {
 			t.Errorf("Expected 2 organizations, got %d", len(result.Entries))
+		}
+	})
+}
+
+// TestOrganizationController_IdEqualsSlug locks in the Organization-specific
+// contract: id == slug on create, and that invariant survives an update/rename.
+func TestOrganizationController_IdEqualsSlug(t *testing.T) {
+	controller, store := setupTestController(t)
+	defer store.Close()
+
+	created, err := controller.Create(contextWithOrganizationKind(), createTestOrganization("Contract Org", "contract-org"))
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+	if created.Metadata.Id != "contract-org" || created.Metadata.Id != created.Metadata.Slug {
+		t.Fatalf("expected id == slug == 'contract-org', got id=%q slug=%q", created.Metadata.Id, created.Metadata.Slug)
+	}
+
+	// Renaming changes the display name but must preserve the immutable id/slug,
+	// so id continues to equal slug.
+	created.Metadata.Name = "Renamed Org"
+	updated, err := controller.Update(contextWithOrganizationKind(), created)
+	if err != nil {
+		t.Fatalf("Update failed: %v", err)
+	}
+	if updated.Metadata.Id != "contract-org" || updated.Metadata.Slug != "contract-org" {
+		t.Errorf("expected id and slug preserved as 'contract-org', got id=%q slug=%q", updated.Metadata.Id, updated.Metadata.Slug)
+	}
+	if updated.Metadata.Name != "Renamed Org" {
+		t.Errorf("expected name 'Renamed Org', got %q", updated.Metadata.Name)
+	}
+}
+
+// TestOrganizationController_Create_GlobalSlugUniqueness proves that org slug
+// uniqueness is GLOBAL, not org-scoped. Because org ids are slugs and the store
+// persists by id with upsert semantics, an org-scoped duplicate check would let
+// a second org with the same slug (but a different metadata.org) silently
+// overwrite the first. The bespoke by-id CheckDuplicate step prevents that.
+func TestOrganizationController_Create_GlobalSlugUniqueness(t *testing.T) {
+	controller, store := setupTestController(t)
+	defer store.Close()
+
+	mk := func(org string) *organizationv1.Organization {
+		return &organizationv1.Organization{
+			ApiVersion: "tenancy.stigmer.ai/v1",
+			Kind:       "Organization",
+			Metadata:   &apiresource.ApiResourceMetadata{Name: "Collide Org", Slug: "collide", Org: org},
+			Spec:       &organizationv1.OrganizationSpec{ManagementMode: organizationv1.ManagementMode_self_managed},
+		}
+	}
+
+	first, err := controller.Create(contextWithOrganizationKind(), mk("org-a"))
+	if err != nil {
+		t.Fatalf("first Create failed: %v", err)
+	}
+	if first.Metadata.Id != "collide" {
+		t.Fatalf("expected id 'collide', got %q", first.Metadata.Id)
+	}
+
+	// Same slug, DIFFERENT metadata.org: must still be rejected as a duplicate.
+	if _, err := controller.Create(contextWithOrganizationKind(), mk("org-b")); err == nil {
+		t.Fatal("expected duplicate rejection for the same slug across differing metadata.org")
+	}
+
+	// The first organization must remain intact — no silent overwrite.
+	got, err := controller.Get(contextWithOrganizationKind(), &organizationv1.OrganizationId{Value: "collide"})
+	if err != nil {
+		t.Fatalf("Get after duplicate attempt failed: %v", err)
+	}
+	if got.Metadata.Org != "org-a" {
+		t.Errorf("first org was overwritten: expected metadata.org 'org-a', got %q", got.Metadata.Org)
+	}
+}
+
+// TestCopySlugToIdStep exercises the id == slug override step directly.
+func TestCopySlugToIdStep(t *testing.T) {
+	step := newCopySlugToIdStep()
+	if step.Name() != "CopySlugToId" {
+		t.Errorf("expected Name()='CopySlugToId', got %q", step.Name())
+	}
+
+	t.Run("overwrites id with slug", func(t *testing.T) {
+		org := &organizationv1.Organization{
+			Metadata: &apiresource.ApiResourceMetadata{Slug: "acme", Id: "org_should_be_overwritten"},
+		}
+		ctx := pipeline.NewRequestContext(contextWithOrganizationKind(), org)
+		ctx.SetNewState(org)
+
+		if err := step.Execute(ctx); err != nil {
+			t.Fatalf("Execute failed: %v", err)
+		}
+		if org.Metadata.Id != "acme" {
+			t.Errorf("expected id 'acme', got %q", org.Metadata.Id)
+		}
+
+		// Idempotent: running again when id already equals slug is a no-op.
+		if err := step.Execute(ctx); err != nil {
+			t.Fatalf("second Execute failed: %v", err)
+		}
+		if org.Metadata.Id != "acme" {
+			t.Errorf("expected id to remain 'acme', got %q", org.Metadata.Id)
+		}
+	})
+
+	t.Run("empty slug is a pipeline-ordering error", func(t *testing.T) {
+		org := &organizationv1.Organization{Metadata: &apiresource.ApiResourceMetadata{}}
+		ctx := pipeline.NewRequestContext(contextWithOrganizationKind(), org)
+		ctx.SetNewState(org)
+
+		if err := step.Execute(ctx); err == nil {
+			t.Error("expected error when slug is empty")
 		}
 	})
 }

@@ -470,9 +470,14 @@ func (s *PopulateSkillFieldsStep) Execute(ctx *pipeline.RequestContext[*skillv1.
 	skill.Spec.Name = extractResult.Name
 	skill.Spec.Description = extractResult.Description
 
-	// 3. Default visibility to private when unspecified (per proto contract)
+	// 3. Default visibility when unspecified, derived from the kind's proto config
+	// so OSS and Cloud agree by construction (skill is a blueprint -> visibility_org).
 	if skill.Metadata.Visibility == apiresourcepb.ApiResourceVisibility_api_resource_visibility_unspecified {
-		skill.Metadata.Visibility = apiresourcepb.ApiResourceVisibility_visibility_private
+		visibility, err := apiresourcelib.DefaultVisibilityFor(apiresourcekind.ApiResourceKind_skill)
+		if err != nil {
+			return err
+		}
+		skill.Metadata.Visibility = visibility
 	}
 
 	// 4. Set git provenance metadata for traceability (if available)

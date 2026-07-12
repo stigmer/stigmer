@@ -30,7 +30,7 @@ session/
 ├── get.go                        # Get by ID handler + pipeline
 ├── get_by_reference.go           # Get by slug handler + pipeline
 ├── list.go                       # List all sessions handler + pipeline
-├── list_by_agent.go              # List by agent instance handler + pipeline
+├── list_by_agent_instance.go     # List by agent instance handler + pipeline
 ├── steps/                        # Session-specific pipeline steps
 │   └── filter_by_agent_instance.go
 └── README.md                     # This file
@@ -133,13 +133,16 @@ updatedSession, err := controller.Update(ctx, session)
 
 ### Delete
 
-Deletes a session by ID.
+Deletes a session by ID, cascading to its agent executions.
 
 **Pipeline:**
 1. ValidateProto - Validate SessionId
 2. ExtractResourceId - Extract ID from wrapper
 3. LoadExistingForDelete - Load session before deletion
-4. DeleteResource - Delete from database
+4. RejectDeleteWithActiveExecutions - FAILED_PRECONDITION while any execution in the session is still active
+5. CascadeDeleteAgentExecutions - Delete child executions (children before parent, so a mid-failure retry converges)
+6. DeleteResource - Delete from database
+7. DeleteSearchIndex - Remove from search index
 
 **Example:**
 ```go
@@ -149,7 +152,8 @@ deletedSession, err := controller.Delete(ctx, &sessionv1.SessionId{Value: "sessi
 **Key Points:**
 - Returns the deleted session (gRPC convention)
 - No IAM policy cleanup (no IAM in OSS)
-- No cascade deletion of child resources (no child resources for sessions)
+- Cascade-deletes the session's agent executions; billing/usage records are unaffected (immutable, denormalized)
+- Rejected while an execution is PENDING / IN_PROGRESS / WAITING_FOR_APPROVAL / PAUSED — cancel it or wait first
 
 ### Apply (Create or Update)
 
@@ -241,19 +245,19 @@ sessionList, err := controller.List(ctx, &sessionv1.ListSessionsRequest{})
 - No pagination (returns all sessions)
 - Production multi-tenant would filter by IAM permissions
 
-### ListByAgent
+### ListByAgentInstance
 
 Lists sessions for a specific agent instance.
 
 **Pipeline:**
-1. ValidateProto - Validate ListSessionsByAgentRequest
+1. ValidateProto - Validate ListSessionsByAgentInstanceRequest
 2. FilterByAgentInstance - Filter by agent_instance_id (custom step)
 3. BuildListResponse - Build SessionList response
 
 **Example:**
 ```go
-sessionList, err := controller.ListByAgent(ctx, &sessionv1.ListSessionsByAgentRequest{
-    AgentId: "agent-instance-123",
+sessionList, err := controller.ListByAgentInstance(ctx, &sessionv1.ListSessionsByAgentInstanceRequest{
+    AgentInstanceId: "agent-instance-123",
 })
 ```
 
@@ -269,10 +273,10 @@ sessionList, err := controller.ListByAgent(ctx, &sessionv1.ListSessionsByAgentRe
 
 **Location:** `steps/filter_by_agent_instance.go`
 
-**Purpose:** Filter sessions by agent_instance_id for ListByAgent operation.
+**Purpose:** Filter sessions by agent_instance_id for ListByAgentInstance operation.
 
 **Logic:**
-1. Extract agent_id from request
+1. Extract agent_instance_id from request
 2. List all sessions from database
 3. Filter where spec.agent_instance_id matches
 4. Store filtered list in context

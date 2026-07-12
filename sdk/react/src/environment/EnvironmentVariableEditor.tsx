@@ -12,6 +12,7 @@ import { getUserMessage, type EnvVarInput } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
+import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { useUpdateEnvironmentVariables } from "./useUpdateEnvironmentVariables.js";
 import { useRemoveEnvironmentVariables } from "./useRemoveEnvironmentVariables.js";
 import { useRevealSecretValue } from "./useRevealSecretValue.js";
@@ -438,24 +439,33 @@ function VariableRow({
           !readOnly && (
             <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
               {variable.isSecret && (
-                <ActionButton
-                  onClick={toggleReveal}
-                  disabled={isRevealing}
-                  label={
-                    revealedValue !== null
-                      ? `Hide ${variable.key}`
-                      : `Reveal ${variable.key}`
-                  }
-                  variant="muted"
+                /* Secret reveal is creator-only (can_read_secrets) at every
+                   visibility level — org sharing never widens it. Hide the
+                   affordance for everyone else instead of offering a button
+                   that is guaranteed to fail (error prevention). */
+                <PermissionGate
+                  resource={{ kind: "environment", id: environmentId }}
+                  relation="can_read_secrets"
                 >
-                  {isRevealing ? (
-                    <SpinnerIcon />
-                  ) : revealedValue !== null ? (
-                    <EyeOffIcon />
-                  ) : (
-                    <EyeIcon />
-                  )}
-                </ActionButton>
+                  <ActionButton
+                    onClick={toggleReveal}
+                    disabled={isRevealing}
+                    label={
+                      revealedValue !== null
+                        ? `Hide ${variable.key}`
+                        : `Reveal ${variable.key}`
+                    }
+                    variant="muted"
+                  >
+                    {isRevealing ? (
+                      <SpinnerIcon />
+                    ) : revealedValue !== null ? (
+                      <EyeOffIcon />
+                    ) : (
+                      <EyeIcon />
+                    )}
+                  </ActionButton>
+                </PermissionGate>
               )}
               <ActionButton
                 onClick={startEdit}

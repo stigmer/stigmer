@@ -98,20 +98,20 @@ Status is system-managed and must never be set by users.
 
 ## Authorization Model
 
-All ExecutionContext operations require **platform-level operator** permission. This ensures that only internal Stigmer services (the execution engine and runners) can create, read, update, or delete ExecutionContexts. End users and external callers cannot access ExecutionContext values directly.
+ExecutionContexts are owner-scoped: the create pipeline writes an FGA owner tuple for the caller's identity, and reads check `can_view` on the ExecutionContext resource itself (owner-only). Secret access is gated one level deeper, by **caller credential class** — because runners authenticate *as the user who owns the execution*, no permission can tell a runner apart from the user, so the decrypt path keys off the `token_type` claim on platform-minted JWTs instead. OSS enforces no authorization (single-user local).
 
-| Operation | Permission Required | Notes |
+| Operation | Authorization (cloud) | Notes |
 |---|---|---|
-| `apply` | `operator` on `platform/stigmer` | Create or update — determined at request time based on existence. |
-| `create` | `operator` on `platform/stigmer` | Typically called by the execution engine when a new execution starts. |
-| `delete` | `operator` on `platform/stigmer` | Called by the execution engine when execution completes or is cancelled. |
-| `get` | `operator` on `platform/stigmer` | Retrieves an ExecutionContext by its resource ID. |
-| `getByReference` | `operator` on `platform/stigmer` | Resolves an ExecutionContext by `ApiResourceReference`. |
-| `getByExecutionId` | `operator` on `platform/stigmer` | Primary runner lookup — fetches the ExecutionContext for a given `AgentExecution` or `WorkflowExecution` ID, returning decrypted secrets for runner consumption. |
+| `apply` | delegates to `create` | Create-or-fail — applying over an existing slug returns `AlreadyExists`. |
+| `create` | owner tuple written for the caller | Called by the execution engine within the execution create pipeline. |
+| `delete` | execution-engine internal | Called when execution completes or is cancelled. |
+| `get` | `can_view` on the ExecutionContext | Secret values redacted. |
+| `getByReference` | `can_view` on the ExecutionContext | Secret values redacted. |
+| `getByExecutionId` | `can_view` on the ExecutionContext | Primary runner lookup. Secret values decrypted **only** for runner-class credentials (`token_type` of `sandbox`, `workflow_sandbox`, `connect_sandbox`, or `embedded_runner`); redacted for every other caller, same as `get`. |
 
-### Why Operator-Only?
+### Why Credential Class, Not a Permission?
 
-ExecutionContexts contain **decrypted secrets** that runners need to execute agent and workflow logic. Restricting all operations to the operator permission tier prevents any user-facing API from inadvertently returning plaintext secret values. Persistent `Environment` resources redact secrets on `get`; ExecutionContexts take the stronger position of blocking access entirely from non-operator callers.
+ExecutionContexts contain the **merged secrets** a runner needs at execution time, but the runner presents the execution owner's identity (sandbox tokens carry the user as `sub`). Any FGA permission granted so the runner can decrypt would equally be held by the user's own token — so the server distinguishes callers by *what kind of credential* they present, not *who* they are. User-facing reads (console, SDK, API) therefore always see redacted values, matching the `Environment` redaction contract, while platform-minted runner credentials receive usable plaintext.
 
 ---
 

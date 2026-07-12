@@ -3,12 +3,15 @@ import { resolveEnvironment } from "../environment.js";
 
 function createMockClient(execContext: any) {
   return {
+    // No scoped token — the OSS/local shape (no runner credential to exchange).
+    acquireScopedRunnerToken: vi.fn().mockResolvedValue(undefined),
     getExecutionContextByExecutionId: vi.fn().mockResolvedValue(execContext),
   } as any;
 }
 
 function createNotFoundClient() {
   return {
+    acquireScopedRunnerToken: vi.fn().mockResolvedValue(undefined),
     getExecutionContextByExecutionId: vi.fn().mockRejectedValue(
       Object.assign(new Error("not found"), { code: 5 }),
     ),
@@ -81,6 +84,7 @@ describe("resolveEnvironment", () => {
 
   it("propagates non-NOT_FOUND errors", async () => {
     const client = {
+      acquireScopedRunnerToken: vi.fn().mockResolvedValue(undefined),
       getExecutionContextByExecutionId: vi.fn().mockRejectedValue(
         new Error("connection refused"),
       ),
@@ -92,6 +96,7 @@ describe("resolveEnvironment", () => {
 
   it("handles NOT_FOUND with lowercase code", async () => {
     const client = {
+      acquireScopedRunnerToken: vi.fn().mockResolvedValue(undefined),
       getExecutionContextByExecutionId: vi.fn().mockRejectedValue(
         Object.assign(new Error("not found"), { code: "not_found" }),
       ),

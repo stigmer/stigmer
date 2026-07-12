@@ -62,6 +62,16 @@ describe("envelope", () => {
 });
 
 describe("tool events", () => {
+  it("emits tool_interrupted as its own wire type (issue #207)", () => {
+    const { data } = render([
+      { kind: "toolInterrupted", toolCallId: "t1", subAgentId: "", toolCall: toolInfo({ id: "t1", name: "shell", status: "interrupted" }) },
+    ]);
+    expect(data.lines()[0]).toMatchObject({
+      type: "tool_interrupted",
+      payload: { tool_call_id: "t1", tool_name: "shell", status: "interrupted" },
+    });
+  });
+
   it("emits tool_running with only the meaningful fields", () => {
     const { data } = render([
       { kind: "toolRunning", toolCallId: "t1", subAgentId: "", toolCall: toolInfo({ id: "t1", result: "out", durationMs: 42 }) },

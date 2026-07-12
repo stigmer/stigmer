@@ -46,6 +46,16 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigOutput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenOutput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenOutput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -70,19 +80,30 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
       "\tR\021runnerAccessToken\022\035\n\ntoken_type\030\004 \001(\t" +
       "R\ttokenType\022Q\n&runner_access_token_expir" +
       "es_in_seconds\030\005 \001(\005R!runnerAccessTokenEx" +
-      "piresInSeconds*C\n\rServerEdition\022\036\n\032serve" +
-      "r_edition_unspecified\020\000\022\007\n\003oss\020\001\022\t\n\005clou" +
-      "d\020\0022\233\002\n\027PlatformQueryController\022n\n\rgetSe" +
-      "rverInfo\022*.ai.stigmer.platform.v1.GetSer" +
-      "verInfoInput\032+.ai.stigmer.platform.v1.Ge" +
-      "tServerInfoOutput\"\004\310\270\030\001\022\217\001\n\030getRunnerBoo" +
-      "tstrapConfig\0225.ai.stigmer.platform.v1.Ge" +
-      "tRunnerBootstrapConfigInput\0326.ai.stigmer" +
-      ".platform.v1.GetRunnerBootstrapConfigOut" +
-      "put\"\004\320\270\030\001B\214\001B\017ServerInfoProtoP\001\242\002\003ASP\252\002\026" +
-      "Ai.Stigmer.Platform.V1\312\002\026Ai\\Stigmer\\Plat" +
-      "form\\V1\342\002\"Ai\\Stigmer\\Platform\\V1\\GPBMeta" +
-      "data\352\002\031Ai::Stigmer::Platform::V1b\006proto3"
+      "piresInSeconds\"\221\001\n\031GetRunnerScopedTokenI" +
+      "nput\022.\n\022agent_execution_id\030\001 \001(\tH\000R\020agen" +
+      "tExecutionId\0224\n\025workflow_execution_id\030\002 " +
+      "\001(\tH\000R\023workflowExecutionIdB\016\n\005scope\022\005\272H\002" +
+      "\010\001\"\231\001\n\032GetRunnerScopedTokenOutput\022.\n\023run" +
+      "ner_scoped_token\030\001 \001(\tR\021runnerScopedToke" +
+      "n\022\035\n\ntoken_type\030\002 \001(\tR\ttokenType\022,\n\022expi" +
+      "res_in_seconds\030\003 \001(\005R\020expiresInSeconds*C" +
+      "\n\rServerEdition\022\036\n\032server_edition_unspec" +
+      "ified\020\000\022\007\n\003oss\020\001\022\t\n\005cloud\020\0022\241\003\n\027Platform" +
+      "QueryController\022n\n\rgetServerInfo\022*.ai.st" +
+      "igmer.platform.v1.GetServerInfoInput\032+.a" +
+      "i.stigmer.platform.v1.GetServerInfoOutpu" +
+      "t\"\004\310\270\030\001\022\217\001\n\030getRunnerBootstrapConfig\0225.a" +
+      "i.stigmer.platform.v1.GetRunnerBootstrap" +
+      "ConfigInput\0326.ai.stigmer.platform.v1.Get" +
+      "RunnerBootstrapConfigOutput\"\004\320\270\030\001\022\203\001\n\024ge" +
+      "tRunnerScopedToken\0221.ai.stigmer.platform" +
+      ".v1.GetRunnerScopedTokenInput\0322.ai.stigm" +
+      "er.platform.v1.GetRunnerScopedTokenOutpu" +
+      "t\"\004\320\270\030\001B\214\001B\017ServerInfoProtoP\001\242\002\003ASP\252\002\026Ai" +
+      ".Stigmer.Platform.V1\312\002\026Ai\\Stigmer\\Platfo" +
+      "rm\\V1\342\002\"Ai\\Stigmer\\Platform\\V1\\GPBMetada" +
+      "ta\352\002\031Ai::Stigmer::Platform::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -114,6 +135,18 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_platform_v1_GetRunnerBootstrapConfigOutput_descriptor,
         new java.lang.String[] { "TemporalAddress", "TemporalNamespace", "RunnerAccessToken", "TokenType", "RunnerAccessTokenExpiresInSeconds", });
+    internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenInput_descriptor =
+      getDescriptor().getMessageType(4);
+    internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenInput_descriptor,
+        new java.lang.String[] { "AgentExecutionId", "WorkflowExecutionId", "Scope", });
+    internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenOutput_descriptor =
+      getDescriptor().getMessageType(5);
+    internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenOutput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenOutput_descriptor,
+        new java.lang.String[] { "RunnerScopedToken", "TokenType", "ExpiresInSeconds", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.rpc.MethodOptionsProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
@@ -122,6 +155,7 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isPublic);
     registry.add(ai.stigmer.commons.rpc.MethodOptionsProto.isSkipAuthorization);
     registry.add(build.buf.validate.ValidateProto.field);
+    registry.add(build.buf.validate.ValidateProto.oneof);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

@@ -23,9 +23,16 @@ export async function resolveExecutionEnv(
   client: StigmerClient,
   executionId: string,
 ): Promise<EnvResult> {
+  // A desktop runner exchanges its bootstrap credential for a token scoped to
+  // this execution's session, so cloud's decrypt gate binds the read (#156).
+  // No-op for cloud sandbox and OSS runners.
+  const scopedToken = await client.acquireScopedRunnerToken({
+    agentExecutionId: executionId,
+  });
+
   let execCtx;
   try {
-    execCtx = await client.getExecutionContextByExecutionId(executionId);
+    execCtx = await client.getExecutionContextByExecutionId(executionId, scopedToken);
   } catch (err) {
     const code = (err as { code?: number })?.code;
     // NOT_FOUND (5) is expected for executions without env vars

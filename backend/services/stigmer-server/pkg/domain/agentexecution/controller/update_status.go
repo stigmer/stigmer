@@ -3,6 +3,7 @@ package agentexecution
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
@@ -236,9 +237,26 @@ func applyUpdateStatusMerge(
 		existingSubAgents,
 	)
 
-	// Update phase (if provided)
+	// Update phase (if provided) — latched once terminal. A terminal phase is
+	// final by contract (enum.proto: "execution will not change phases again"),
+	// but a runner activity can outlive its workflow's termination (Temporal
+	// surfaces termination to an activity only via heartbeat failure), so a
+	// straggler streaming persist can arrive carrying IN_PROGRESS after
+	// Terminate already wrote TERMINATED. Without the latch that persist
+	// resurrects the phase — and the execution is then stuck live forever,
+	// because the workflow that would re-terminalize it is gone. Recover is the
+	// one sanctioned un-terminalizer and runs through its own lifecycle step
+	// (UpdateExecutionPhaseAndPersistStep), never this merge.
 	if requestStatus.Phase != agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED {
-		status.Phase = requestStatus.Phase
+		if isTerminalExecutionPhase(existingPhase) && requestStatus.Phase != existingPhase {
+			log.Warn().
+				Str("execution_id", input.ExecutionId).
+				Str("stored_phase", existingPhase.String()).
+				Str("ignored_phase", requestStatus.Phase.String()).
+				Msg("Ignored phase change on a terminal execution; terminal phases are final (Recover is the sanctioned un-terminalizer)")
+		} else {
+			status.Phase = requestStatus.Phase
+		}
 	}
 
 	// Update error (if provided)
@@ -264,6 +282,29 @@ func applyUpdateStatusMerge(
 		status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL ||
 		status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_PENDING {
 		status.CompletedAt = ""
+	}
+
+	// Terminal invariant (issue #207): a terminal execution carries zero
+	// non-terminal tool calls. Settling here — at the single merge chokepoint —
+	// covers every updateStatus writer (both harnesses' terminal persists, the
+	// workflow's failure/cancellation fallbacks) without any of them having to
+	// remember it, and composes with the phase latch above into a self-healing
+	// pair: a straggler persist that reintroduces RUNNING rows cannot move the
+	// terminal phase, so its rows are re-settled in the same merge. Runs before
+	// EnsureApprovalRequests so a gated call on a dead execution never seeds a
+	// REQUESTED approval event.
+	if isTerminalExecutionPhase(status.Phase) {
+		settledAt := status.GetCompletedAt()
+		if settledAt == "" {
+			settledAt = time.Now().Format(time.RFC3339)
+		}
+		if settled := settleInterruptedToolCalls(status, settledAt); settled > 0 {
+			log.Info().
+				Str("execution_id", input.ExecutionId).
+				Str("phase", status.Phase.String()).
+				Int("settled_tool_calls", settled).
+				Msg("Settled in-flight tool calls to TOOL_CALL_INTERRUPTED on terminal execution")
+		}
 	}
 
 	// Author REQUESTED events for any tool call now in the approval gate

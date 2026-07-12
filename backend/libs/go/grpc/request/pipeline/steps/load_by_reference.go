@@ -85,6 +85,12 @@ func (s *LoadByReferenceStep[T]) Execute(ctx *pipeline.RequestContext[*apiresour
 		)
 	}
 
+	// Org-scoped kinds require an org: their slug is unique only within an org,
+	// so an empty-org reference is under-specified (see RequireOrgForReference).
+	if err := RequireOrgForReference(kind, ref.Org); err != nil {
+		return err
+	}
+
 	// Find resource by slug
 	// Note: This is not efficient for large datasets (lists all and filters),
 	// but acceptable for local/OSS usage. Production systems should use indexed queries.

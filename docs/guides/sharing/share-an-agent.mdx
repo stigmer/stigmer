@@ -1,0 +1,201 @@
+---
+title: Share an Agent
+description:
+  Turn an Agent into a hosted chat page — for anyone with the link or just your
+  organization — and embed it on your own site.
+---
+
+Sharing gives your Agent a hosted chat link. You choose who can use it: anyone
+with the link (no Stigmer account needed), or only signed-in members of your
+Organization. This guide shows you how to turn sharing on, pick the audience,
+send the link, and embed the chat on your own website.
+
+<Callout type="warn">
+  Public links can be forwarded and indexed by search engines. Only share Agents
+  publicly when their knowledge is safe to show to anyone on the internet — for
+  internal knowledge, use the **Org members** audience.
+</Callout>
+
+<DemoShareAgentDialog />
+
+## Turn on sharing
+
+1. Open your Agent in the web console under **Library → Agents**.
+2. Open the actions menu (⋯) and choose **Share**.
+3. Turn on the sharing switch.
+
+The dialog shows the chat link as soon as sharing is on. The link has the form:
+
+```
+https://app.stigmer.ai/chat/<org>/<agent>
+```
+
+Click **Copy** to copy the link, or **Open** to try it yourself.
+
+## Choose who can chat
+
+Below the sharing switch, pick the audience:
+
+- **Public link** — anyone who opens the link can chat, with no account. This is
+  the default, and the right choice for support bots, product assistants, and
+  demos.
+- **Org members** — only signed-in members of your Organization can chat. Anyone
+  else — including someone the link was forwarded to — sees the same "not found"
+  page as for an Agent that never existed.
+
+The **Org members** audience is built for internal knowledge Agents. Stigmer
+checks membership on every message, so when someone leaves your Organization,
+their access ends with their membership — there is no lingering link to hunt
+down. The link itself is safe to forward: it shows nothing to non-members.
+
+When a member opens an org-members-only link without being signed in, the page
+offers **Sign in if you have access**. After signing in, they land back on the
+chat.
+
+<Callout type="warn">
+  If you manage the Agent with YAML manifests, keep `audience: org` in the
+  `sharing` block of every apply. Applies replace the sharing settings as a
+  whole, and a missing audience means public — an apply that omits it turns an
+  org-members-only share back into a public one.
+</Callout>
+
+Embedding is available for the public audience only: embeds serve anonymous
+visitors, and an org-members-only Agent requires a signed-in member.
+
+## Who pays for shared chats
+
+Conversations over the shared link use your Organization's credits — for
+visitors on a public link and for members on an org-members-only one. The dialog
+shows your current balance next to the sharing toggle, so you always know what
+is at stake before you share.
+
+Stigmer protects your balance automatically:
+
+- Visitors are rate limited, per visitor and across your whole Organization.
+- Each conversation has a turn limit and an inactivity timeout.
+- If your Organization runs out of credits, shared chats stop — they never
+  overdraw your balance.
+
+## Customize visitor messages
+
+When a visitor hits a limit, Stigmer shows a short explanation. You can replace
+the default wording in the **Link** tab under **Customize visitor messages**.
+There are three messages:
+
+| Message                | Shown when                                    |
+| ---------------------- | --------------------------------------------- |
+| **Rate limited**       | A visitor sends messages faster than allowed  |
+| **Unavailable**        | The Agent is temporarily unavailable          |
+| **Conversation ended** | A conversation reaches its turn or time limit |
+
+Leave a message empty to keep the platform default.
+
+## Embed the chat on your site
+
+The **Embed** tab gives you a two-line snippet you can paste into any web page:
+
+```html
+<script src="https://app.stigmer.ai/embed.js" async></script>
+<stigmer-agent org="acme" agent="support-agent"></stigmer-agent>
+```
+
+Under **Allowed embed origins**, list the websites that may embed your Agent
+(for example `https://acme.com`). An empty list allows any site; adding origins
+restricts embedding to those sites. See
+[Embed an Agent](/docs/guides/sharing/embed-an-agent) for sizing, theming, and
+how origin restrictions behave.
+
+## Share an Agent that uses tools
+
+If your Agent uses MCP servers, its tools need credentials — API keys stored in
+an Environment. By default an Environment is private: only you can use it, so a
+visitor's chat can't start the tools. To fix that, share the Environment with
+your Organization:
+
+1. Open **Settings → Environments**.
+2. Find the Environment your Agent uses and set its visibility to
+   **Organization**.
+
+Sharing an Environment with your Organization means:
+
+- Agents and Workflows run in your Organization — including visitor chats on
+  shared Agents and Agents your teammates run — can use its values.
+- Members can see the variable names, but secret values stay hidden. Nobody but
+  you can reveal a secret value.
+- Set it back to **Private** at any time. The next visitor message stops using
+  the credentials.
+
+The Share dialog warns you when your Agent uses tools whose Environment is still
+private. Your personal Environment and OAuth-connected credentials can't be
+shared — create a dedicated Environment with only the credentials the Agent
+needs.
+
+## Reset a public link
+
+A public link sometimes travels further than you meant it to — a forwarded
+email, a message pasted into the wrong channel, a page a search engine picked
+up. **Reset link** in the **Link** tab kills the current link and gives you a
+new one, without turning sharing off or renaming the Agent.
+
+After a reset, the link carries a secret key:
+
+```
+https://app.stigmer.ai/chat/<org>/<agent>?k=<key>
+```
+
+- The old link — including the plain one without a key — stops working
+  immediately. Visitors in the middle of a conversation are cut off on their
+  next message.
+- A dead link shows the same "not found" page as an Agent that never existed.
+- Reset again at any time to issue a fresh key and kill the previous one.
+- The embed snippet changes too: re-copy it from the **Embed** tab after a reset
+  so your website keeps working.
+
+Stigmer stores the key on the server side, outside your Agent's spec — applying
+a YAML manifest never removes or changes it. Resetting is only offered for
+public links; an org-members-only share needs no reset, because access ends with
+membership.
+
+<Callout>
+  A reset link is still a public link: anyone who has the new URL can chat.
+  Reset cuts off the audience the old link reached; it does not add
+  authentication. For that, switch the audience to **Org members**.
+</Callout>
+
+## Turn off sharing
+
+Turn the toggle off to revoke the link. The public page stops working
+immediately — visitors see the same "not found" page as for an Agent that never
+existed.
+
+## Share from the CLI
+
+You can also toggle sharing from the terminal:
+
+```bash
+# Share publicly and print the chat link + embed snippet
+stigmer share agent acme-corp/support-agent
+
+# Share with your organization's members only
+stigmer share agent acme-corp/internal-helper --audience org
+
+# Reset the public link (the old link stops working immediately)
+stigmer share agent acme-corp/support-agent --reset-link
+
+# Revoke the link
+stigmer share agent acme-corp/support-agent --off
+```
+
+The CLI changes only what you ask it to — your allowed origins, visitor
+messages, and audience stay as you set them here. A plain toggle never turns an
+org-members-only share back into a public one. Visitor chat is served by Stigmer
+Cloud, so a link from a local backend won't serve visitors. See the
+[`stigmer share` reference](/docs/cli/commands/share) for all flags.
+
+## Go further with the SDK
+
+The **Developer** tab shows the path beyond the hosted page: create a platform
+client and mint tokens for your own users with the Stigmer SDK. That gives you
+your own authentication, branding, and UI on the same Agent runtime. See the
+[platform client guide](/docs/guides/authentication/platform-client/overview) to
+get started.

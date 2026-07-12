@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "**/dist/**",
     "next-env.d.ts",
+    // Build artifact copied from @stigmer/embed by scripts/copy-embed-loader.ts.
+    "public/embed.js",
   ]),
   {
     files: ["**/*.ts", "**/*.tsx", "**/*.mts"],

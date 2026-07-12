@@ -124,6 +124,23 @@ The `is_secret` flag matters:
 Mark anything sensitive — API keys, passwords, tokens, credentials — as a
 secret. Stigmer handles the masking and redaction automatically.
 
+## Private and shared Environments
+
+An Environment is **private** by default: only you can use it, and only you can
+reveal its secret values. On Stigmer Cloud, you can share an Environment with
+your Organization by setting its visibility to **Organization**:
+
+- Agents and Workflows run in your Organization can use its values at runtime.
+  This includes runs by your teammates and visitor chats on
+  [shared Agents](/docs/guides/sharing/share-an-agent).
+- Members can see the Environment and its variable names, but secret values stay
+  masked. Revealing a secret value remains yours alone, at every visibility
+  level.
+- Setting it back to **Private** takes effect on the next run.
+
+Environments never go beyond the Organization — there is no public or platform
+visibility for secrets.
+
 ## What's next
 
 Environments organize secrets and configuration. But how are resources

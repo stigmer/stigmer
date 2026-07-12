@@ -74,6 +74,11 @@ func (p *PlatformClientClient) MintUserToken(ctx context.Context, input *platfor
 	return resp, wrapErr(err)
 }
 
+func (p *PlatformClientClient) MintGuestToken(ctx context.Context, input *platformclientv1.MintGuestTokenRequest) (*platformclientv1.MintGuestTokenResponse, error) {
+	resp, err := p.token.MintGuestToken(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // PlatformClientInput holds the fields for creating/updating a PlatformClient.
 type PlatformClientInput struct {
 	Name                  string

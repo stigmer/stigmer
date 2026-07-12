@@ -36,10 +36,10 @@ message ListSessionsRequest {
   repeated string tags = 3;
 }
 
-// ListSessionsByAgentRequest lists all sessions for a specific agent.
-message ListSessionsByAgentRequest {
-  // Agent ID to filter by.
-  string agent_id = 1 [(buf.validate.field).required = true];
+// ListSessionsByAgentInstanceRequest lists all sessions for a specific agent instance.
+message ListSessionsByAgentInstanceRequest {
+  // Agent instance ID to filter by.
+  string agent_instance_id = 1 [(buf.validate.field).required = true];
 
   // Maximum number of sessions to return per page.
   int32 page_size = 2;

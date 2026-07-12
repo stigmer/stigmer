@@ -33,6 +33,11 @@ class PlatformQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerBootstrapConfigInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerBootstrapConfigOutput.FromString,
                 _registered_method=True)
+        self.getRunnerScopedToken = channel.unary_unary(
+                '/ai.stigmer.platform.v1.PlatformQueryController/getRunnerScopedToken',
+                request_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerScopedTokenInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerScopedTokenOutput.FromString,
+                _registered_method=True)
 
 
 class PlatformQueryControllerServicer(object):
@@ -88,6 +93,42 @@ class PlatformQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getRunnerScopedToken(self, request, context):
+        """Exchanges an embedded runner's bootstrap credential for a token scoped to
+        one unit of dispatched work.
+
+        The bootstrap token from getRunnerBootstrapConfig identifies a runner but
+        is minted before any execution exists, so it carries no session or
+        execution scope. Secrets are only released to runner credentials bound to
+        the exact work they serve. At task start the runner presents its bootstrap
+        token and names the execution it was dispatched; the control plane verifies
+        the caller and returns a short-lived token scoped to that work, which the
+        runner then uses for its ExecutionContext fetch. This makes a desktop
+        runner indistinguishable, at the secret-release gate, from a
+        server-provisioned sandbox runner.
+
+        The token fields are empty when the server cannot mint (OSS, or no signing
+        key configured) — the runner falls back to its existing credential.
+
+        @internal
+        Cloud mints via SandboxTokenService: an agent_execution_id yields a
+        token_type=sandbox token carrying the execution's parent session_id (one
+        session sandbox serves multi-turn executions); a workflow_execution_id
+        yields token_type=workflow_sandbox carrying that id. Both are then bound by
+        RunnerScopeVerifier on the getByExecutionId decrypt path exactly like
+        cloud-sandbox-injected tokens (stigmer-cloud#155/#156).
+
+        is_skip_authorization because the FGA target is derived from the input
+        oneof, which the declarative interceptor cannot express — the handler
+        enforces authorization itself (same pattern as getRunnerBootstrapConfig):
+        the caller must present a runner-class token_type=embedded_runner
+        credential AND pass the same can_view check getByExecutionId performs on
+        the named execution.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_PlatformQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -100,6 +141,11 @@ def add_PlatformQueryControllerServicer_to_server(servicer, server):
                     servicer.getRunnerBootstrapConfig,
                     request_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerBootstrapConfigInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerBootstrapConfigOutput.SerializeToString,
+            ),
+            'getRunnerScopedToken': grpc.unary_unary_rpc_method_handler(
+                    servicer.getRunnerScopedToken,
+                    request_deserializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerScopedTokenInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerScopedTokenOutput.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -165,6 +211,33 @@ class PlatformQueryController(object):
             '/ai.stigmer.platform.v1.PlatformQueryController/getRunnerBootstrapConfig',
             ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerBootstrapConfigInput.SerializeToString,
             ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerBootstrapConfigOutput.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getRunnerScopedToken(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.platform.v1.PlatformQueryController/getRunnerScopedToken',
+            ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerScopedTokenInput.SerializeToString,
+            ai_dot_stigmer_dot_platform_dot_v1_dot_server__info__pb2.GetRunnerScopedTokenOutput.FromString,
             options,
             channel_credentials,
             insecure,

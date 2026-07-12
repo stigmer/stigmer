@@ -1,8 +1,7 @@
 "use client";
 
 import { Profiler, type ProfilerOnRenderCallback, type ReactNode } from "react";
-
-const DEV = process.env.NODE_ENV !== "production";
+import { isPerfLoggingEnabled } from "./enabled.js";
 
 /** Log every Nth commit to avoid console flood during streaming. */
 const LOG_EVERY = 10;
@@ -31,9 +30,9 @@ const onRender: ProfilerOnRenderCallback = (
  * In dev mode, logs commit-level timing (`actualDuration`,
  * `baseDuration`, mount vs update phase) with sampled output.
  *
- * In production, React strips Profiler callbacks automatically, and
- * our dev gate ensures this component renders children with zero
- * overhead regardless.
+ * Off by default in every environment (and always in production) — enable via
+ * {@link isPerfLoggingEnabled}'s opt-in flags. When disabled, children render
+ * with zero Profiler overhead.
  */
 export function DevProfiler({
   id,
@@ -42,7 +41,7 @@ export function DevProfiler({
   readonly id: string;
   readonly children: ReactNode;
 }) {
-  if (!DEV) return children;
+  if (!isPerfLoggingEnabled()) return children;
 
   return (
     <Profiler id={id} onRender={onRender}>

@@ -26,11 +26,13 @@ var File_ai_stigmer_agentic_environment_v1_command_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_environment_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/environment/v1/command.proto\x12!ai.stigmer.agentic.environment.v1\x1a+ai/stigmer/agentic/environment/v1/api.proto\x1a*ai/stigmer/agentic/environment/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xc1\b\n" +
+	"/ai/stigmer/agentic/environment/v1/command.proto\x12!ai.stigmer.agentic.environment.v1\x1a+ai/stigmer/agentic/environment/v1/api.proto\x1a*ai/stigmer/agentic/environment/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x83\n" +
+	"\n" +
 	"\x1cEnvironmentCommandController\x12g\n" +
 	"\x05apply\x12..ai.stigmer.agentic.environment.v1.Environment\x1a..ai.stigmer.agentic.environment.v1.Environment\x12\xb9\x01\n" +
 	"\x06create\x12..ai.stigmer.agentic.environment.v1.Environment\x1a..ai.stigmer.agentic.environment.v1.Environment\"O¸\x18K\b\f\x10\x1e\"\fmetadata.org*7unauthorized to create environment in this organization\x12\xa3\x01\n" +
-	"\x06update\x12..ai.stigmer.agentic.environment.v1.Environment\x1a..ai.stigmer.agentic.environment.v1.Environment\"9¸\x185\b\x02\x105\"\vmetadata.id*\"unauthorized to update environment\x12\xab\x01\n" +
+	"\x06update\x12..ai.stigmer.agentic.environment.v1.Environment\x1a..ai.stigmer.agentic.environment.v1.Environment\"9¸\x185\b\x02\x105\"\vmetadata.id*\"unauthorized to update environment\x12\xbf\x01\n" +
+	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a..ai.stigmer.agentic.environment.v1.Environment\"D¸\x18@\b\x02\x105\"\vresource_id*-unauthorized to update environment visibility\x12\xab\x01\n" +
 	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a..ai.stigmer.agentic.environment.v1.Environment\"9¸\x185\b\x02\x105\"\vresource_id*\"unauthorized to delete environment\x12\xcf\x01\n" +
 	"\x0fupdateVariables\x12D.ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest\x1a..ai.stigmer.agentic.environment.v1.Environment\"F¸\x18B\b\x02\x105\"\x0eenvironment_id*,unauthorized to update environment variables\x12\xcf\x01\n" +
 	"\x0fremoveVariables\x12D.ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest\x1a..ai.stigmer.agentic.environment.v1.Environment\"F¸\x18B\b\x02\x105\"\x0eenvironment_id*,unauthorized to remove environment variables\x1a\x04\xa0\xff+5B\xb7\x02\n" +
@@ -38,25 +40,28 @@ const file_ai_stigmer_agentic_environment_v1_command_proto_rawDesc = "" +
 
 var file_ai_stigmer_agentic_environment_v1_command_proto_goTypes = []any{
 	(*Environment)(nil),                        // 0: ai.stigmer.agentic.environment.v1.Environment
-	(*apiresource.ApiResourceDeleteInput)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceDeleteInput
-	(*UpdateEnvironmentVariablesRequest)(nil),  // 2: ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest
-	(*RemoveEnvironmentVariablesRequest)(nil),  // 3: ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest
+	(*apiresource.UpdateVisibilityInput)(nil),  // 1: ai.stigmer.commons.apiresource.UpdateVisibilityInput
+	(*apiresource.ApiResourceDeleteInput)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceDeleteInput
+	(*UpdateEnvironmentVariablesRequest)(nil),  // 3: ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest
+	(*RemoveEnvironmentVariablesRequest)(nil),  // 4: ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest
 }
 var file_ai_stigmer_agentic_environment_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.apply:input_type -> ai.stigmer.agentic.environment.v1.Environment
 	0, // 1: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.create:input_type -> ai.stigmer.agentic.environment.v1.Environment
 	0, // 2: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.update:input_type -> ai.stigmer.agentic.environment.v1.Environment
-	1, // 3: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceDeleteInput
-	2, // 4: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.updateVariables:input_type -> ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest
-	3, // 5: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.removeVariables:input_type -> ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest
-	0, // 6: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.apply:output_type -> ai.stigmer.agentic.environment.v1.Environment
-	0, // 7: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.create:output_type -> ai.stigmer.agentic.environment.v1.Environment
-	0, // 8: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.update:output_type -> ai.stigmer.agentic.environment.v1.Environment
-	0, // 9: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.delete:output_type -> ai.stigmer.agentic.environment.v1.Environment
-	0, // 10: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.updateVariables:output_type -> ai.stigmer.agentic.environment.v1.Environment
-	0, // 11: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.removeVariables:output_type -> ai.stigmer.agentic.environment.v1.Environment
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
+	1, // 3: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.updateVisibility:input_type -> ai.stigmer.commons.apiresource.UpdateVisibilityInput
+	2, // 4: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.delete:input_type -> ai.stigmer.commons.apiresource.ApiResourceDeleteInput
+	3, // 5: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.updateVariables:input_type -> ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest
+	4, // 6: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.removeVariables:input_type -> ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest
+	0, // 7: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.apply:output_type -> ai.stigmer.agentic.environment.v1.Environment
+	0, // 8: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.create:output_type -> ai.stigmer.agentic.environment.v1.Environment
+	0, // 9: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.update:output_type -> ai.stigmer.agentic.environment.v1.Environment
+	0, // 10: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.updateVisibility:output_type -> ai.stigmer.agentic.environment.v1.Environment
+	0, // 11: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.delete:output_type -> ai.stigmer.agentic.environment.v1.Environment
+	0, // 12: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.updateVariables:output_type -> ai.stigmer.agentic.environment.v1.Environment
+	0, // 13: ai.stigmer.agentic.environment.v1.EnvironmentCommandController.removeVariables:output_type -> ai.stigmer.agentic.environment.v1.Environment
+	7, // [7:14] is the sub-list for method output_type
+	0, // [0:7] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

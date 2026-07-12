@@ -86,8 +86,11 @@ func (c *WorkflowExecutionController) SetEnvironmentAndExecutionContextClients(
 }
 
 // SetWorkflowCreator sets the Temporal workflow creator dependency
-// This is used when the controller is created before the Temporal client is initialized
-// If nil, workflows will not be started (graceful degradation)
+// This is used when the controller is created before the Temporal client is initialized.
+// While nil (the startup window before Temporal first connects, or after a failed
+// initial connection), Create rejects new executions with Unavailable via
+// ensureEngineAvailableStep rather than persisting executions that could never run.
+// TemporalManager re-injects the creator once Temporal connects.
 func (c *WorkflowExecutionController) SetWorkflowCreator(creator *workflows.InvokeWorkflowExecutionWorkflowCreator) {
 	c.workflowCreator = creator
 }

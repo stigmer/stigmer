@@ -97,21 +97,26 @@ func NewMyCustomStep[T proto.Message](config *MyConfig) *MyCustomStep[T] {
 
 ### Validation Steps
 
-Verify that data meets certain criteria before proceeding:
+Verify that data meets certain criteria before proceeding. Return a **typed
+gRPC status error** for any client-reachable condition — never a bare
+`fmt.Errorf`, which the transport would surface as `codes.Unknown`. See the
+[Error contract](#error-contract) below.
 
 ```go
 func (s *CheckDuplicateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
     name := extractName(ctx.Input())
-    
+
     exists, err := s.store.Exists(name)
     if err != nil {
-        return fmt.Errorf("failed to check for duplicates: %w", err)
+        // Infrastructure failure the caller cannot act on -> Internal.
+        return grpclib.InternalError(err, "failed to check for duplicates")
     }
-    
+
     if exists {
-        return fmt.Errorf("resource with name %s already exists", name)
+        // Client-facing contract condition -> AlreadyExists.
+        return grpclib.AlreadyExistsError("Resource", name)
     }
-    
+
     return nil
 }
 ```
@@ -144,15 +149,16 @@ Add additional data to the context for later steps:
 ```go
 func (s *LoadOrgStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
     orgId := extractOrgId(ctx.Input())
-    
-    org, err := s.orgStore.Get(orgId)
+
+    org, err := s.orgStore.Get(ctx.Context(), orgId)
     if err != nil {
-        return fmt.Errorf("failed to load organization: %w", err)
+        // A missing referenced org is a client-facing condition -> NotFound.
+        return grpclib.NotFoundError("Organization", orgId)
     }
-    
+
     // Store in context for later steps
     ctx.Set("organization", org)
-    
+
     return nil
 }
 ```
@@ -165,13 +171,18 @@ Save data to storage (typically the last step):
 func (s *PersistStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
     resource := ctx.NewState()
     if resource == nil {
-        return fmt.Errorf("no resource to persist")
+        // Invariant violation: an earlier step must have produced state. This
+        // is a server bug, not bad input. A bare fmt.Errorf is acceptable here
+        // ONLY because PipelineError maps un-statused errors to Internal (never
+        // Unknown) -- see the Error contract. Prefer grpclib.InternalError for
+        // an explicit code.
+        return grpclib.InternalError(errors.New("no resource to persist"), "persist")
     }
-    
-    if err := s.store.Save(resource); err != nil {
-        return fmt.Errorf("failed to persist resource: %w", err)
+
+    if err := s.store.SaveResource(ctx.Context(), kind, id, resource); err != nil {
+        return grpclib.InternalError(err, "failed to persist resource")
     }
-    
+
     return nil
 }
 ```
@@ -181,11 +192,38 @@ func (s *PersistStep[T]) Execute(ctx *pipeline.RequestContext[T]) error {
 1. **Single Responsibility** - Each step should do one thing well
 2. **Idempotent** - Steps should be safe to retry
 3. **Clear Names** - Use descriptive names that explain what the step does
-4. **Proper Errors** - Return clear, actionable error messages
+4. **Typed Errors** - Return a typed gRPC status error (see [Error contract](#error-contract)) for every client-reachable condition, never a bare `fmt.Errorf`
 5. **Minimal Side Effects** - Avoid side effects outside of persistence steps
 6. **Context Usage** - Use context.Set() to share data between steps
 7. **Fail Fast** - Return errors immediately on failure
 8. **Logging** - The pipeline framework handles logging, steps don't need to log
+
+## Error contract
+
+A step's return value becomes the RPC's gRPC status. The rule is simple and
+non-negotiable:
+
+- **Client-reachable conditions must return a typed status error** via the
+  `grpclib` helpers, so the caller (CLI, web, SDK) gets an actionable code:
+  - `grpclib.AlreadyExistsError` for duplicates -> `codes.AlreadyExists`
+  - `grpclib.InvalidArgumentError` for bad input -> `codes.InvalidArgument`
+  - `grpclib.NotFoundError` for a missing referenced resource -> `codes.NotFound`
+  - `grpclib.FailedPreconditionError` for a violated precondition -> `codes.FailedPrecondition`
+  - `grpclib.InternalError` for infrastructure/IO failures -> `codes.Internal`
+- **A bare `fmt.Errorf` is acceptable only for should-never-happen invariants**
+  (e.g. "resource metadata is nil", "…must run first"). These are server bugs,
+  not client input.
+
+Why this matters: the pipeline wraps every step error in `PipelineError`, which
+implements `GRPCStatus()`. It **preserves** any typed status a step returns and
+**maps un-statused errors to `codes.Internal`** — so a bare error can never leak
+to the client as `codes.Unknown` (gRPC's "an error escaped without a status"
+sentinel). Prefer an explicit `grpclib.InternalError` over relying on this
+fallback; the fallback exists as defense in depth, not as license to skip typing.
+
+This was the root cause of a real, broad contract bug: a shared step returning
+`fmt.Errorf("...already exists")` surfaced as `Unknown` instead of
+`AlreadyExists` across every domain's create path. Do not reintroduce it.
 
 ## Testing Steps
 
@@ -252,18 +290,18 @@ pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
 - Convert to lowercase
 - Replace spaces with hyphens
 - Remove special characters (keep only alphanumeric and hyphens)
+- Replace dots (namespace separators) with hyphens
 - Collapse multiple consecutive hyphens into one
 - Trim leading and trailing hyphens
-- Limit to 63 characters (Kubernetes DNS label limit)
+- **No length truncation** — the full slug is preserved to avoid silent collisions where two different names truncate to the same slug (matches the cloud Java generator)
 
 **Examples:**
 - "My Cool Agent" → "my-cool-agent"
-- "Agent@123!" → "agent123"
-- "Test___Agent" → "test-agent"
+- "platform.planton-architecture" → "platform-planton-architecture"
 
 **Behavior:**
 - Idempotent: If `metadata.slug` is already set, the step is a no-op
-- Requires `metadata.name` to be set
+- Requires `metadata.name` to be set; an empty name returns `InvalidArgument`
 
 ---
 
@@ -274,7 +312,7 @@ Verifies that no resource with the same slug exists in the same scope.
 **Usage:**
 
 ```go
-checkDupStep := steps.NewCheckDuplicateStep[*agentv1.Agent](store, "Agent")
+checkDupStep := steps.NewCheckDuplicateStep[*agentv1.Agent](store)
 
 pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
     AddStep(checkDupStep).
@@ -286,88 +324,52 @@ pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
 - **Platform-scoped resources**: Checks globally (when `metadata.org` is empty)
 
 **Error Handling:**
-- Returns `ALREADY_EXISTS` error if duplicate found
-- Error message includes the existing resource ID
+- Returns a typed `codes.AlreadyExists` error if a duplicate is found (message includes the existing resource's slug, org, and id)
 
 **Dependencies:**
-- Requires `badger.Store` instance
-- Should run after `ResolveSlugStep` to ensure slug is set
+- Requires a `store.Store` instance
+- Should run after `ResolveSlugStep` to ensure the slug is set
+- `api_resource_kind` is auto-extracted from the request context by the apiresource interceptor — it is not a constructor argument
 
 ---
 
-### SetAuditFieldsStep
+### BuildNewStateStep
 
-Sets audit fields for tracking resource creation and updates.
+Builds the new state for a resource during creation: clears the system-managed
+`status`, generates `metadata.id`, and sets the audit fields. (This consolidates
+what were previously separate `SetDefaults` and `SetAuditFields` steps.)
 
 **Usage:**
 
 ```go
-// For create operations
-auditStep := steps.NewSetAuditFieldsStep[*agentv1.Agent]()
-
-// For update operations
-auditStep := steps.NewSetAuditFieldsStepForUpdate[*agentv1.Agent]()
+buildStep := steps.NewBuildNewStateStep[*agentv1.Agent]()
 
 pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
-    AddStep(auditStep).
-    Build()
-```
-
-**Fields Set (Create):**
-- `metadata.created_at`: Current timestamp
-- `metadata.updated_at`: Current timestamp (same as created_at)
-- `metadata.version`: 1
-
-**Fields Set (Update):**
-- `metadata.updated_at`: Current timestamp (updated)
-- `metadata.version`: Incremented by 1
-- `metadata.created_at`: Unchanged
-
-**Behavior:**
-- Idempotent for create operations: Won't override existing values
-- Always updates for update operations
-
----
-
-### SetDefaultsStep
-
-Sets default values for resource fields, primarily the resource ID.
-
-**Usage:**
-
-```go
-defaultsStep := steps.NewSetDefaultsStep[*agentv1.Agent]("agent")
-
-pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
-    AddStep(defaultsStep).
+    AddStep(buildStep).
     Build()
 ```
 
 **Fields Set:**
-- `metadata.id`: Generated from prefix + Unix nanosecond timestamp
-  - Format: `{prefix}-{timestamp}`
-  - Example: `agent-1705678901234567890`
-
-**Note:** `kind` and `api_version` should be set by the controller before entering the pipeline, as they are resource-specific and cannot be set generically without proto reflection.
+- Clears `status` (status is system-managed, not client-modifiable)
+- `metadata.id`: generated from the kind's prefix + a ULID
+  - Format: `{prefix}_{ulid}`
+  - Example: `agt_01arz3ndektsv4rrffq69g5fav`
+- Audit fields in `status.audit`: `created_by` / `created_at` / `updated_by` / `updated_at` and `event = created`
 
 **Behavior:**
-- Idempotent: If `metadata.id` is already set, it will not be overwritten
-
-**ID Uniqueness:**
-- Uses Unix nanoseconds for uniqueness
-- Safe for concurrent creation within same millisecond
-- Prefix is always lowercase
+- Idempotent for `metadata.id`: if it is already set, it is not overwritten
+- `api_resource_kind` (for the id prefix) is auto-extracted from the request context
 
 ---
 
 ### PersistStep
 
-Saves the resource to the BadgerDB database.
+Saves the resource to the store (SQLite in OSS).
 
 **Usage:**
 
 ```go
-persistStep := steps.NewPersistStep[*agentv1.Agent](store, "Agent")
+persistStep := steps.NewPersistStep[*agentv1.Agent](store)
 
 pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
     AddStep(persistStep).
@@ -375,16 +377,15 @@ pipeline := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
 ```
 
 **Requirements:**
-- `metadata.id` must be set (typically by `SetDefaultsStep`)
+- `metadata.id` must be set (typically by `BuildNewStateStep`)
 - Resource should be fully populated with all required fields
 
 **Dependencies:**
-- Requires `badger.Store` instance
-- Uses the resource kind for storage organization
+- Requires a `store.Store` instance
+- Uses the resource kind (from the request context) for storage organization
 
 **Error Handling:**
-- Returns detailed error if save fails
-- Wraps underlying store errors with context
+- Returns `codes.Internal` if the save fails (an infrastructure failure the caller cannot act on)
 
 **Behavior:**
 - Works for both create and update operations
@@ -401,57 +402,57 @@ package controllers
 
 import (
     "context"
-    "github.com/stigmer/stigmer/backend/libs/go/telemetry"
-    "github.com/stigmer/stigmer/backend/libs/go/pipeline"
-    "github.com/stigmer/stigmer/backend/libs/go/pipeline/steps"
-    agentv1 "github.com/stigmer/stigmer/internal/gen/ai/stigmer/agentic/agent/v1"
+
+    "github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+    "github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+    agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 )
 
 func (c *AgentController) Create(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
-    // Set kind and apiVersion before pipeline
+    // Set kind and apiVersion before the pipeline
     agent.Kind = "Agent"
-    agent.ApiVersion = "ai.stigmer.agentic.agent/v1"
+    agent.ApiVersion = "agentic.stigmer.ai/v1"
 
-    // Build pipeline
+    // Build pipeline. api_resource_kind is auto-extracted from the request
+    // context by the apiresource interceptor, so steps take only the store.
     p := pipeline.NewPipeline[*agentv1.Agent]("agent-create").
-        WithTracer(telemetry.NewNoOpTracer()).
+        AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).
         AddStep(steps.NewResolveSlugStep[*agentv1.Agent]()).
-        AddStep(steps.NewCheckDuplicateStep(c.store, "Agent")).
-        AddStep(steps.NewSetDefaultsStep[*agentv1.Agent]("agent")).
-        AddStep(steps.NewSetAuditFieldsStep[*agentv1.Agent]()).
-        AddStep(steps.NewPersistStep(c.store, "Agent")).
+        AddStep(steps.NewCheckDuplicateStep[*agentv1.Agent](c.store)).
+        AddStep(steps.NewBuildNewStateStep[*agentv1.Agent]()).
+        AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).
         Build()
 
     // Execute pipeline
-    pipelineCtx := p.NewRequestContext(ctx, agent)
-    if err := p.Execute(pipelineCtx); err != nil {
+    reqCtx := pipeline.NewRequestContext(ctx, agent)
+    if err := p.Execute(reqCtx); err != nil {
         return nil, err
     }
 
-    return pipelineCtx.NewState(), nil
+    return reqCtx.NewState(), nil
 }
 ```
 
 ## Update Pipeline Example
 
-For update operations, use a different set of steps:
+For update operations, use a different set of steps (no slug resolution, no
+duplicate check, no ID generation; load the existing resource and merge):
 
 ```go
 func (c *AgentController) Update(ctx context.Context, agent *agentv1.Agent) (*agentv1.Agent, error) {
-    // Build update pipeline (no slug resolution, no duplicate check, no ID generation)
     p := pipeline.NewPipeline[*agentv1.Agent]("agent-update").
-        WithTracer(telemetry.NewNoOpTracer()).
-        AddStep(steps.NewSetAuditFieldsStepForUpdate[*agentv1.Agent]()).
-        AddStep(steps.NewPersistStep(c.store, "Agent")).
+        AddStep(steps.NewValidateProtoStep[*agentv1.Agent]()).
+        AddStep(steps.NewLoadExistingStep[*agentv1.Agent](c.store)).
+        AddStep(steps.NewBuildUpdateStateStep[*agentv1.Agent]()).
+        AddStep(steps.NewPersistStep[*agentv1.Agent](c.store)).
         Build()
 
-    // Execute pipeline
-    pipelineCtx := p.NewRequestContext(ctx, agent)
-    if err := p.Execute(pipelineCtx); err != nil {
+    reqCtx := pipeline.NewRequestContext(ctx, agent)
+    if err := p.Execute(reqCtx); err != nil {
         return nil, err
     }
 
-    return pipelineCtx.NewState(), nil
+    return reqCtx.NewState(), nil
 }
 ```
 

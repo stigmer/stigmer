@@ -249,6 +249,75 @@ describe("NewSessionViewer — audience wiring", () => {
       expect.objectContaining({ getRuntimeEnv, defaultHarness: "cursor" }),
     );
   });
+
+  it("guest: pure chat — every picker hidden, attachments and workspace off", () => {
+    render(
+      <NewSessionViewer
+        org="acme"
+        onSessionCreated={vi.fn()}
+        audience="guest"
+        initialAgentRef={AGENT_REF}
+        initialInstanceId="inst_1"
+      />,
+    );
+
+    const props = lastComposerProps();
+    expect(props.lockAgent).toBe(true);
+    expect(props.onMcpServerUsagesChange).toBeUndefined();
+    expect(props.onSkillRefsChange).toBeUndefined();
+    expect(props.sessionVariables).toBeUndefined();
+    // Guest-only restrictions on top of the endUser curation.
+    expect(props.showHarnessSelector).toBe(false);
+    expect(props.showInteractionModePicker).toBe(false);
+    expect(props.showModelSelector).toBe(false);
+    expect(props.enableAttachments).toBe(false);
+    expect(props.enableGitHub).toBe(false);
+    expect(props.workspace).toBeUndefined();
+    // The session panel's only toggle is absent for guests.
+    expect(screen.queryByRole("button", { name: "Show panel" })).toBeNull();
+  });
+
+  it("guest: agent binding bypasses the composer's picker machinery", () => {
+    render(
+      <NewSessionViewer
+        org="acme"
+        onSessionCreated={vi.fn()}
+        audience="guest"
+        initialAgentRef={AGENT_REF}
+        initialInstanceId="inst_1"
+      />,
+    );
+
+    // The composer's agent machinery is fully unwired (no picker, no
+    // resolution flow — those perform org reads a guest token cannot make)…
+    const props = lastComposerProps();
+    expect(props.onAgentRefChange).toBeUndefined();
+    expect(props.onAgentResolutionChange).toBeUndefined();
+    expect(props.initialAgentRef).toBeUndefined();
+    expect(props.initialInstanceId).toBeUndefined();
+    // …and the launcher pins the flow to the shared instance directly.
+    expect(stubNewSessionFlow.setAgentRef).toHaveBeenCalledWith(AGENT_REF);
+    expect(stubNewSessionFlow.setResolution).toHaveBeenCalledWith({
+      mode: "saved",
+      instanceId: "inst_1",
+    });
+  });
+
+  it("guest: forwards the audience to the flow", () => {
+    render(
+      <NewSessionViewer
+        org="acme"
+        onSessionCreated={vi.fn()}
+        audience="guest"
+        initialAgentRef={AGENT_REF}
+        initialInstanceId="inst_1"
+      />,
+    );
+
+    expect(mockUseNewSessionFlow).toHaveBeenCalledWith(
+      expect.objectContaining({ audience: "guest" }),
+    );
+  });
 });
 
 describe("SessionViewer — audience wiring", () => {
@@ -274,6 +343,36 @@ describe("SessionViewer — audience wiring", () => {
     // End-user controls survive the curation.
     expect(props.showInteractionModePicker).toBe(true);
     expect(openedConfigFacet().mutations).toBeUndefined();
+  });
+
+  it("guest: pure chat — every picker hidden, attachments and workspace off", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" audience="guest" />);
+
+    const props = lastComposerProps();
+    expect(props.lockAgent).toBe(true);
+    expect(props.onMcpServerUsagesChange).toBeUndefined();
+    expect(props.onSkillRefsChange).toBeUndefined();
+    expect(props.sessionVariables).toBeUndefined();
+    // Guest-only restrictions on top of the endUser curation.
+    expect(props.showInteractionModePicker).toBe(false);
+    expect(props.showModelSelector).toBe(false);
+    expect(props.enableAttachments).toBe(false);
+    expect(props.enableGitHub).toBe(false);
+    expect(props.workspace).toBeUndefined();
+    // Agent machinery is fully unwired — the session's agent is bound
+    // server-side and its resolution reads are FGA-denied for guests.
+    expect(props.onAgentRefChange).toBeUndefined();
+    expect(props.onAgentResolutionChange).toBeUndefined();
+    // The session panel's only toggle is absent for guests.
+    expect(screen.queryByRole("button", { name: "Show panel" })).toBeNull();
+  });
+
+  it("guest: forwards the audience to the flow", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" audience="guest" />);
+
+    expect(mockUseSessionPageFlow).toHaveBeenCalledWith(
+      expect.objectContaining({ audience: "guest" }),
+    );
   });
 
   it("forwards getRuntimeEnv to the flow", () => {

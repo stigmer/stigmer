@@ -12,6 +12,8 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//backend/libs/go/telemetry",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//proto",
     ],
 )
@@ -26,6 +28,8 @@ go_test(
     embed = [":pipeline"],
     deps = [
         "//backend/libs/go/telemetry",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//types/known/emptypb",
     ],
 )

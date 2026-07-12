@@ -36,20 +36,23 @@ const (
 // Create creates a new agent execution using the pipeline framework
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
-// 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
-// 2. ResolveDefaultAgent - If no session_id or agent_id, resolve platform default agent
-// 3. ValidateSessionOrAgent - Ensure session_id OR agent_id is provided
-// 4. ResolveSlug - Generate slug from metadata.name
-// 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
-// 6. NormalizeReferences - Resolve cross-references (slugs to IDs)
-// 7. CreateDefaultInstanceIfNeeded - Create default agent instance if missing
-// 8. CreateSessionIfNeeded - Create session if session_id not provided (uses caller's org)
-// 9. SetInitialPhase - Set execution phase to PENDING
-// 10. CreateExecutionContext - Merge environment into execution context
-// 11. ProcessAttachments - Validate pre-uploaded attachments
-// 12. Persist - Save execution to repository
-// 13. IndexSearch - Update search index
-// 14. StartWorkflow - Start Temporal workflow (if Temporal is available)
+//  1. ValidateFieldConstraints - Validate proto field constraints using buf validate
+//  2. ResolveDefaultAgent - If no session_id or agent_id, resolve platform default agent
+//  3. EnsureSessionOrAgentResolved - Post-condition guard: a session or agent
+//     reference must be resolved by this point (see step doc for why this is an
+//     invariant, not input validation)
+//  4. ResolveSlug - Generate slug from metadata.name
+//  5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+//  6. NormalizeReferences - Resolve cross-references (slugs to IDs)
+//  7. EnsureEngineAvailable - Fail fast with Unavailable if the agent execution engine is not connected (before the first side effect)
+//  8. CreateDefaultInstanceIfNeeded - Create default agent instance if missing
+//  9. CreateSessionIfNeeded - Create session if session_id not provided (uses caller's org)
+//  10. SetInitialPhase - Set execution phase to PENDING
+//  11. CreateExecutionContext - Merge environment into execution context
+//  12. ProcessAttachments - Validate pre-uploaded attachments
+//  13. Persist - Save execution to repository
+//  14. IndexSearch - Update search index
+//  15. StartWorkflow - Start Temporal workflow
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
@@ -74,18 +77,19 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 	return pipeline.NewPipeline[*agentexecutionv1.AgentExecution]("agent-execution-create").
 		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).                                            // 1. Validate field constraints
 		AddStep(newResolveDefaultAgentStep(c.store)).                                                                       // 2. Resolve platform default agent if needed
-		AddStep(newValidateSessionOrAgentStep()).                                                                           // 3. Validate session_id OR agent_id
+		AddStep(newEnsureSessionOrAgentResolvedStep()).                                                                     // 3. Guard: session or agent reference resolved
 		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).                                              // 4. Resolve slug
 		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).                                            // 5. Build new state
 		AddStep(steps.NewNormalizeReferencesStep[*agentexecutionv1.AgentExecution]()).                                      // 6. Normalize cross-references
-		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)).                       // 7. Create default instance if needed
-		AddStep(newCreateSessionIfNeededStep(c.sessionClient)).                                                             // 8. Create session if needed
-		AddStep(newSetInitialPhaseStep()).                                                                                  // 9. Set phase to PENDING
-		AddStep(c.newCreateExecutionContextStep()).                                                                         // 10. Create ExecutionContext with merged environment
-		AddStep(c.newProcessAttachmentsStep()).                                                                             // 11. Process attachments
-		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                                           // 12. Persist execution
-		AddStep(steps.NewIndexSearchStep[*agentexecutionv1.AgentExecution](c.store, &extractor.AgentExecutionExtractor{})). // 13. Update search index
-		AddStep(c.newStartWorkflowStep()).                                                                                  // 14. Start Temporal workflow
+		AddStep(c.newEnsureEngineAvailableStep()).                                                                          // 7. Fail fast if the agent execution engine is unavailable (before the first side effect)
+		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)).                       // 8. Create default instance if needed
+		AddStep(newCreateSessionIfNeededStep(c.sessionClient)).                                                             // 9. Create session if needed
+		AddStep(newSetInitialPhaseStep()).                                                                                  // 10. Set phase to PENDING
+		AddStep(c.newCreateExecutionContextStep()).                                                                         // 11. Create ExecutionContext with merged environment
+		AddStep(c.newProcessAttachmentsStep()).                                                                             // 12. Process attachments
+		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                                           // 13. Persist execution
+		AddStep(steps.NewIndexSearchStep[*agentexecutionv1.AgentExecution](c.store, &extractor.AgentExecutionExtractor{})). // 14. Update search index
+		AddStep(c.newStartWorkflowStep()).                                                                                  // 15. Start Temporal workflow
 		Build()
 }
 
@@ -96,9 +100,15 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 // resolveDefaultAgentStep resolves the platform's public default agent when
 // neither session_id nor agent_id is provided on the execution request.
 //
+// Contract: "neither session_id nor agent_id" is a VALID request shape — it is
+// the session-first UX where a user starts a conversation without choosing an
+// agent (see AgentExecutionSpec proto docs for the three-tier resolution). It is
+// not an input error. When the platform has a default agent, this step resolves
+// it; when it does not, the request cannot be served and this step returns
+// NotFound (the same code the Agent.GetDefault RPC returns for this condition).
+//
 // The default agent is a platform-level concept: an agent in the stigmer org
-// labeled stigmer.ai/default-agent: "true" with visibility_public. This enables
-// the session-first UX where users start a conversation without choosing an agent.
+// labeled stigmer.ai/default-agent: "true" with visibility_public.
 //
 // If session_id or agent_id is already provided, this step is a no-op.
 type resolveDefaultAgentStep struct {
@@ -133,10 +143,14 @@ func (s *resolveDefaultAgentStep) Execute(ctx *pipeline.RequestContext[*agentexe
 	)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to find platform default agent")
+		// Caller-actionable message: the create caller can fix this by supplying
+		// a reference. This intentionally differs from the Agent.GetDefault RPC's
+		// message (see agent/controller/get_default.go), whose caller is asking
+		// specifically for the default agent and cannot supply session_id/agent_id.
 		return grpclib.WrapError(
 			fmt.Errorf("no default agent available on this platform: %w", err),
 			codes.NotFound,
-			"No default agent available. Ensure an agent with label stigmer.ai/default-agent=true and visibility_public exists",
+			"No default agent is configured on this platform. Provide session_id or agent_id explicitly, or seed an agent labeled stigmer.ai/default-agent=true with visibility_public",
 		)
 	}
 
@@ -170,40 +184,54 @@ func (s *resolveDefaultAgentStep) Execute(ctx *pipeline.RequestContext[*agentexe
 	return nil
 }
 
-// validateSessionOrAgentStep validates that at least one of session_id or agent_id is provided
-type validateSessionOrAgentStep struct{}
+// ensureSessionOrAgentResolvedStep asserts the post-condition that a session or
+// agent reference has been resolved by the time the pipeline reaches this point.
+//
+// This is an invariant guard, NOT input validation. "Neither session_id nor
+// agent_id" is a valid request shape (session-first UX); ResolveDefaultAgent
+// runs first and guarantees one of two outcomes: it resolves a reference onto
+// newState, or it returns an error (NotFound / FailedPrecondition) that
+// short-circuits the pipeline before this step runs. Reaching this step with
+// neither set is therefore a server-side programming error (e.g. a future step
+// reordering that moves resolution after this guard), not bad client input —
+// hence Internal, not InvalidArgument. This mirrors the invariant-guard idiom in
+// the shared pipeline steps (steps/slug.go, steps/duplicate.go).
+//
+// Note the deliberate divergence from WorkflowExecution's validateWorkflowOrInstanceStep,
+// which correctly returns InvalidArgument: WorkflowExecution has no "resolve
+// default workflow" step, so workflow_id/workflow_instance_id is genuinely
+// required and its check is reachable. Do not "harmonize" the two — the
+// difference reflects a real semantic difference (issue #196).
+type ensureSessionOrAgentResolvedStep struct{}
 
-func newValidateSessionOrAgentStep() *validateSessionOrAgentStep {
-	return &validateSessionOrAgentStep{}
+func newEnsureSessionOrAgentResolvedStep() *ensureSessionOrAgentResolvedStep {
+	return &ensureSessionOrAgentResolvedStep{}
 }
 
-func (s *validateSessionOrAgentStep) Name() string {
-	return "ValidateSessionOrAgent"
+func (s *ensureSessionOrAgentResolvedStep) Name() string {
+	return "EnsureSessionOrAgentResolved"
 }
 
-func (s *validateSessionOrAgentStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecution]) error {
+func (s *ensureSessionOrAgentResolvedStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecution]) error {
 	execution := ctx.NewState()
 	sessionID := execution.GetSpec().GetSessionId()
 	agentID := execution.GetSpec().GetAgentId()
 
-	log.Debug().
-		Str("session_id", sessionID).
-		Str("agent_id", agentID).
-		Msg("Validating session_id or agent_id")
-
-	// At least one must be provided
 	hasSessionID := sessionID != ""
 	hasAgentID := agentID != ""
 
 	if !hasSessionID && !hasAgentID {
-		log.Warn().Msg("Neither session_id nor agent_id provided")
-		return grpclib.InvalidArgumentError("either session_id or agent_id must be provided")
+		log.Error().Msg("Invariant violated: neither session_id nor agent_id resolved after ResolveDefaultAgent")
+		return grpclib.InternalError(
+			fmt.Errorf("neither session_id nor agent_id set after ResolveDefaultAgent"),
+			"execution target not resolved",
+		)
 	}
 
 	log.Debug().
 		Bool("has_session_id", hasSessionID).
 		Bool("has_agent_id", hasAgentID).
-		Msg("Validation successful")
+		Msg("Session or agent reference resolved")
 
 	return nil
 }
@@ -507,11 +535,51 @@ func (s *setInitialPhaseStep) Execute(ctx *pipeline.RequestContext[*agentexecuti
 	return nil
 }
 
+// engineUnavailableMessage is the user-facing message returned when a create is
+// rejected because the execution engine (Temporal) is not connected. Kept
+// identical across AgentExecution and WorkflowExecution so both domains present
+// one symmetric create-boundary contract.
+const engineUnavailableMessage = "The execution engine is temporarily unavailable. Please try again shortly."
+
+// ensureEngineAvailableStep rejects the create fast - before any persistence or
+// side effect - when the Temporal workflow engine is not connected.
+//
+// workflowCreator is nil only during the startup window before the server's
+// first Temporal connection; TemporalManager re-injects it on connect. Failing
+// here with Unavailable (instead of persisting a PENDING execution that would
+// never run) keeps the contract symmetric with WorkflowExecution: a create
+// against an unavailable engine leaves no trace and tells the caller to retry.
+//
+// Placed after input validation but before the first side-effecting step, so a
+// malformed request still gets InvalidArgument first and a down engine orphans
+// nothing (no default instance, no auto-created session, no ExecutionContext,
+// no execution record).
+type ensureEngineAvailableStep struct {
+	workflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
+}
+
+func (c *AgentExecutionController) newEnsureEngineAvailableStep() *ensureEngineAvailableStep {
+	return &ensureEngineAvailableStep{workflowCreator: c.workflowCreator}
+}
+
+func (s *ensureEngineAvailableStep) Name() string {
+	return "EnsureEngineAvailable"
+}
+
+func (s *ensureEngineAvailableStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecution]) error {
+	if s.workflowCreator == nil {
+		log.Warn().Msg("Agent execution engine unavailable - rejecting create before any state is persisted")
+		return grpclib.UnavailableError(engineUnavailableMessage)
+	}
+	return nil
+}
+
 // startWorkflowStep starts the Temporal workflow for the execution.
 //
-// This step is executed after the execution is persisted to the database.
-// If no Temporal client is available (workflowCreator is nil), the step logs a warning
-// and continues gracefully - the execution remains in PENDING phase.
+// This step runs after the execution is persisted. Engine availability was
+// already guaranteed by ensureEngineAvailableStep, so workflowCreator is
+// non-nil here; a failure at this point is a live/transient Temporal error,
+// which marks the execution FAILED (recoverable via Recover).
 //
 // This matches the Java AgentExecutionCreateHandler.StartWorkflowStep.
 type startWorkflowStep struct {
@@ -535,19 +603,6 @@ func (s *startWorkflowStep) Name() string {
 func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecution]) error {
 	execution := ctx.NewState()
 	executionID := execution.GetMetadata().GetId()
-
-	// FAIL FAST: If Temporal is not available, reject the request immediately
-	// This is better than creating a "zombie" execution that will never process
-	if s.workflowCreator == nil {
-		log.Error().
-			Str("execution_id", executionID).
-			Msg("Temporal workflow engine is unavailable - cannot create execution")
-		return grpclib.WrapError(
-			fmt.Errorf("temporal workflow engine is currently unavailable"),
-			codes.Unavailable,
-			"Temporal workflow engine is unavailable. Please try again later",
-		)
-	}
 
 	// Log callback token if present (for async activity completion pattern)
 	// See: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md

@@ -186,7 +186,7 @@ spec:
 
 ## Runner Lookup Pattern
 
-Runners retrieve the ExecutionContext for their execution using `getByExecutionId`. This is the only operation that returns **decrypted** secret values.
+Runners retrieve the ExecutionContext for their execution using `getByExecutionId`. This is the only operation that can return **decrypted** secret values — and on cloud it does so only when the caller presents a platform-minted runner credential (`token_type` of `sandbox`, `workflow_sandbox`, `connect_sandbox`, or `embedded_runner`); user-class callers receive redacted values, same as `get`.
 
 ```
 # Pseudo-code: what the agent runner does at startup

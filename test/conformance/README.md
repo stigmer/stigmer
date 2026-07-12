@@ -6,7 +6,7 @@ implement the API:
 
 - the OSS Go `stigmer-server` (today),
 - the TypeScript server rewrite (as it lands),
-- the Java cloud `stigmer-service` (as an external target, later).
+- the Java cloud `stigmer-service` (the `cloud` target — Class A today).
 
 The contract — not any one implementation — is the product. This suite is what
 keeps the implementations honest and makes agentic dual-maintenance safe:
@@ -56,9 +56,9 @@ Covered against the `local-go` target:
   contract (re-submitting `***REDACTED***` for an existing secret on `update`
   preserves the stored value, and using it for a non-existent secret is rejected);
   incremental variable management (`updateVariables` merge, `removeVariables`); and
-  `list` filtering. Negatives include the shared duplicate/missing-name deviations
-  plus the proper-code contrast that a duplicate **personal** environment returns
-  a real `AlreadyExists`.
+  `list` filtering. Negatives include the shared duplicate/missing-name contract
+  checks plus the proper-code contrast that a duplicate **personal** environment
+  returns a real `AlreadyExists`.
 - **ExecutionContext** — the execution-scoped, flat resource the engine creates per
   run. Coverage: CRUD & identity (`ectx_` id, slug derivation); resolution by id,
   by reference, and by parent **`getByExecutionId`**; the distinctive **`apply` is
@@ -74,9 +74,8 @@ Covered against the `local-go` target:
   semantic is applied at execution dispatch, not at create — while an explicit
   `harness`/`execution_target` round-trips); the field-level **`updateSubject`**
   contract (only `spec.subject` changes, every other field is preserved); the
-  queries `list` and **`listByAgent`** (note: the filter matches
-  `spec.agent_instance_id`, so the value passed for the proto's `agent_id` field is
-  an agent *instance* id — Finding F6); and spec-first negatives. Session has **no
+  queries `list` and **`listByAgentInstance`** (filters `spec.agent_instance_id`
+  by the request's `agent_instance_id`); and spec-first negatives. Session has **no
   Temporal involvement**, so the lifecycle-bound behaviors it only gates — the
   `harness_state_id` sentinel and the `harness`/`execution_target` immutability it
   enables once an execution has run, plus the runtime merge of session-level
@@ -129,6 +128,40 @@ source and fails fast with an install hint if the CLI is missing. The default
 target is `local-go-execution`; the same suites will later run against the
 `cloud` target via `CONFORMANCE_TARGET`.
 
+### Cloud target (Class A vs the Java `stigmer-service`)
+
+The `cloud` run drives the same Class A suites against the Stigmer Cloud Java
+service, hermetically:
+
+```bash
+npm run test:cloud -w @stigmer/conformance   # or: make test-conformance-cloud
+```
+
+Its `globalSetup` (`global-setup-cloud.ts`) boots the environment **once per
+run** — a Go launcher (`test/integration/cmd/conformance-cloudenv`, reusing the
+integration harness) starts Testcontainers MongoDB/Redis/MinIO/OpenFGA, a
+Temporal dev server, and the service fat JAR in test security mode with **real
+OpenFGA authorization** — then bootstraps a real identity (PlatformClient ->
+`mintUserToken`) and publishes endpoint + token to workers via env vars
+(`STIGMER_CONFORMANCE_CLOUD_*`). The `CloudTarget` itself is **connect-only**:
+point those env vars at any pre-provisioned endpoint and the globalSetup boot
+is skipped entirely.
+
+Requirements: Docker, `go`, the `fga` CLI (`brew install openfga/tap/fga`), the
+`temporal` CLI, and the service JAR — `STIGMER_SERVICE_JAR`, or built in the
+sibling `stigmer-cloud` checkout with
+`./bazelw build //backend/services/stigmer-service:stigmer_service_fatjar`.
+Files run serially (they share one multi-tenant service), and
+`mcp.conformance.test.ts` is excluded (it tests the `@stigmer/mcp-server`
+bridge against the OSS Go server specifically, not a target). Tenancy is real
+here: `provisionTenancy()` creates an organization through the production RPC
+(the primary user becomes owner; a zero-balance billing account is provisioned
+automatically), unlike the local targets where an org is just a unique slug.
+CI: `.github/workflows/ci.conformance-cloud.yaml` builds the JAR from
+`stigmer-cloud@main` and runs this nightly — the cron is what catches
+cloud-side drift, since path triggers in this repo cannot see stigmer-cloud
+merges.
+
 ## Design
 
 ### Raw stubs, not the SDK
@@ -151,12 +184,13 @@ the test quietly asserting the wrong behavior. `expectCodeOrDeviation(...)`:
 - **fails** if a deviating target starts returning the contract code — that
   signals the bug is fixed and the entry should be deleted.
 
-So the registry can never hide a regression or bless a bug permanently. Current
-entries (all `local-go`): duplicate-create and missing-name/missing-spec return
-`Unknown` instead of `AlreadyExists` / `InvalidArgument` (the Go pipeline wraps
-plain errors and loses the gRPC status), and `getVersion` with a malformed hash
-returns `NotFound` instead of `InvalidArgument` (the handler skips protovalidate,
-so the proto's `version_hash` pattern is never enforced).
+So the registry can never hide a regression or bless a bug permanently. There
+are currently no tracked deviations: every target returns the contract code.
+The previous `local-go` entries — duplicate-create / missing-name / missing-spec
+returning `Unknown`, and `getVersion` with a malformed hash returning `NotFound`
+— were resolved (stigmer/stigmer#192) by enforcing protovalidate at the gRPC
+transport boundary and by making the affected pipeline steps return typed gRPC
+status errors, and their registry entries were removed.
 
 `parity.ts` compares resources while ignoring server-owned, non-deterministic
 fields (`metadata.id`, `metadata.version`, `status`). `errors.ts` asserts gRPC
@@ -170,9 +204,10 @@ which optional behaviors exist. `CapabilityFlags` gate behaviors that
 legitimately differ across editions rather than forking the tests — e.g.
 `externalOrgLookup` is `false` locally (so `getByExternalOrgId` is expected to
 be `Unimplemented`), `multiTenant` is `false` (so list RPCs return everything,
-with no IAM filtering), `versionTagging` is `false` (the dedicated
-`tagVersion` RPC has no OSS handler, so it is expected to be `Unimplemented`;
-version tags are set at apply time via `metadata.version.tag` instead), and
+with no IAM filtering), `versionTagging` is `true` (the dedicated `tagVersion`
+RPC is implemented in both editions; assigning a tag moves it to name exactly
+one version, and apply-time `metadata.version.tag` flows through the same
+single-holder primitive), and
 `secretRedaction` is `false` (single-user OSS returns secret values in plaintext
 on bulk reads, whereas cloud redacts them; the `is_secret` flag and the
 `getSecretValue` reveal endpoint are edition-agnostic), and
@@ -216,9 +251,12 @@ per DD-006 an execution **domain** enters the suite whole on this same harness.
 two hermetic fixtures: `set_vars` (sub-second, for create/complete/query/terminal
 cases) and `wait` (a durable Temporal timer, for acting on a genuinely *running*
 execution — IN_PROGRESS, cancel, terminate, pause/resume). It asserts the
-**engine-present** contract; the F7/F8 create-boundary (zombie PENDING when the
-engine is absent) is a known Go deficiency, only reachable with Temporal down, so
-it is documented rather than asserted — see the project's
+**engine-present** contract; the engine-unavailable create-boundary (issue #195,
+formerly the F7/F8 asymmetry) is now one symmetric contract across both execution
+domains — a create while the engine is down fails fast with Unavailable and
+persists nothing — and is only reachable with Temporal down, so it is covered by
+the Go controller unit tests (and the Java guard unit tests) rather than asserted
+here — see
 `design-decisions/008-workflowexecution-domain-engine-present-contract.md`. Class
 B files run serially (`fileParallelism: false`) so multiple suites don't boot
 multiple Temporal+runner stacks at once.
@@ -317,7 +355,8 @@ T04 TS rewrite (not the retiring Go server) and should surface the child gate by
 src/
   harness/          go-build, ports, server-process, grpc-ready, clients, fixtures, global-setup
                     + execution: temporal, runner-build, runner-process, mock-llm, mcp-server, global-setup-execution
-  targets/          target (interface + capabilities), local-go, local-go-execution, cloud (stub), index
+                    + cloud: cloud-env, global-setup-cloud
+  targets/          target (interface + capabilities), local-go, local-go-execution, cloud, index
   contract/         errors, deviations, parity
   support/          naming, workflows (set_vars + wait + human_input + agent_call), execution-poll, workflowexecutions, agentexecutions,
                     agents, mcpservers, skills, environments, executioncontexts, sessions

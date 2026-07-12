@@ -31,3 +31,29 @@ class MintUserTokenResponse(_message.Message):
     token_type: str
     expires_in: int
     def __init__(self, access_token: _Optional[str] = ..., token_type: _Optional[str] = ..., expires_in: _Optional[int] = ...) -> None: ...
+
+class MintGuestTokenRequest(_message.Message):
+    __slots__ = ("org", "slug", "guest_cookie_id", "embed_origin", "link_token")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    SLUG_FIELD_NUMBER: _ClassVar[int]
+    GUEST_COOKIE_ID_FIELD_NUMBER: _ClassVar[int]
+    EMBED_ORIGIN_FIELD_NUMBER: _ClassVar[int]
+    LINK_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    slug: str
+    guest_cookie_id: str
+    embed_origin: str
+    link_token: str
+    def __init__(self, org: _Optional[str] = ..., slug: _Optional[str] = ..., guest_cookie_id: _Optional[str] = ..., embed_origin: _Optional[str] = ..., link_token: _Optional[str] = ...) -> None: ...
+
+class MintGuestTokenResponse(_message.Message):
+    __slots__ = ("access_token", "token_type", "expires_in", "guest_cookie_id")
+    ACCESS_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    TOKEN_TYPE_FIELD_NUMBER: _ClassVar[int]
+    EXPIRES_IN_FIELD_NUMBER: _ClassVar[int]
+    GUEST_COOKIE_ID_FIELD_NUMBER: _ClassVar[int]
+    access_token: str
+    token_type: str
+    expires_in: int
+    guest_cookie_id: str
+    def __init__(self, access_token: _Optional[str] = ..., token_type: _Optional[str] = ..., expires_in: _Optional[int] = ..., guest_cookie_id: _Optional[str] = ...) -> None: ...

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import type { ResourceRef } from "@stigmer/sdk";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
@@ -83,7 +83,17 @@ export interface NewSessionViewerProps {
    * server, skill, and session-variable pickers — for product-embedded
    * chat where the agent is configured upstream by the platform. The
    * model selector, interaction mode, harness selector, attachments,
-   * and workspace picker remain. See {@link SessionAudience}.
+   * and workspace picker remain.
+   *
+   * `"guest"` (anonymous visitor with a guest token) is pure chat: it
+   * additionally hides the model/harness/mode pickers, attachments,
+   * the workspace picker, and the session panel, binds the session to
+   * `initialAgentRef` + `initialInstanceId` without any picker
+   * machinery, and skips the org-level reads a guest principal cannot
+   * make. Requires both `initialAgentRef` and `initialInstanceId` —
+   * a guest launcher never falls back to the org default agent.
+   *
+   * See {@link SessionAudience}.
    *
    * @default "integrator"
    */
@@ -198,9 +208,26 @@ export function NewSessionViewer({
     onError,
     getRuntimeEnv,
     defaultHarness,
+    audience,
   });
   const [interactionMode, setInteractionMode] = useState<InteractionModeOption>("agent");
-  const isEndUser = audience === "endUser";
+  const isGuest = audience === "guest";
+  // Both curated audiences (endUser, guest) lock the agent and hide the
+  // integrator pickers; guest adds its own restrictions below.
+  const isCurated = audience !== "integrator";
+
+  // Guest agent binding is host configuration, not a picker interaction:
+  // the composer's agent machinery (picker, env-collection, personal
+  // environments — all org reads a guest token cannot make) stays fully
+  // unwired, and the launcher pins the flow to the shared agent's
+  // instance directly. Without the pin, submission fails closed in
+  // useNewSessionFlow rather than falling back to the org default agent.
+  const { setAgentRef, setResolution } = flow;
+  useEffect(() => {
+    if (!isGuest || !initialAgentRef || !initialInstanceId) return;
+    setAgentRef(initialAgentRef);
+    setResolution({ mode: "saved", instanceId: initialInstanceId });
+  }, [isGuest, initialAgentRef, initialInstanceId, setAgentRef, setResolution]);
 
   // The unified-panel controller (shared with SessionViewer, DD-016). The
   // launcher has no execution yet, so the FSM inputs are static. It has no
@@ -259,9 +286,9 @@ export function NewSessionViewer({
       harness: flow.harness,
       executionTarget: undefined,
       modelId: flow.modelId,
-      // End users see the configuration but cannot strip it — the Setup
-      // tab renders read-only without mutation callbacks (DD-011).
-      mutations: isEndUser
+      // Curated audiences see the configuration but cannot strip it — the
+      // Setup tab renders read-only without mutation callbacks (DD-011).
+      mutations: isCurated
         ? undefined
         : {
             onRemoveAgent: flow.agentRef ? handleRemoveAgent : undefined,
@@ -272,7 +299,7 @@ export function NewSessionViewer({
     [
       flow.agentRef, flow.mcpServerUsages, flow.skillRefs,
       flow.sessionVariables, flow.harness, flow.modelId,
-      isEndUser, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
+      isCurated, handleRemoveAgent, handleRemoveMcp, handleRemoveSkill,
     ],
   );
 
@@ -312,29 +339,33 @@ export function NewSessionViewer({
           onSubmit={flow.submit}
           isSubmitting={flow.isSubmitting}
           org={org}
-          workspace={flow.workspace}
-          gitHubConnection={enableGitHub ? gitHubConnection : undefined}
-          enableGitHub={enableGitHub}
-          enableLocal={enableLocal}
+          workspace={isGuest ? undefined : flow.workspace}
+          gitHubConnection={enableGitHub && !isGuest ? gitHubConnection : undefined}
+          enableGitHub={enableGitHub && !isGuest}
+          enableLocal={enableLocal && !isGuest}
           onBrowseLocalFolder={onBrowseLocalFolder}
           agentRef={flow.agentRef}
-          onAgentRefChange={flow.setAgentRef}
-          onAgentResolutionChange={flow.setResolution}
-          initialAgentRef={initialAgentRef}
-          initialInstanceId={initialInstanceId}
-          initialAttachments={initialAttachments}
-          lockAgent={isEndUser && initialAgentRef != null}
-          mcpServerUsages={isEndUser ? undefined : flow.mcpServerUsages}
-          onMcpServerUsagesChange={isEndUser ? undefined : flow.setMcpServerUsages}
-          skillRefs={isEndUser ? undefined : flow.skillRefs}
-          onSkillRefsChange={isEndUser ? undefined : flow.setSkillRefs}
-          sessionVariables={isEndUser ? undefined : flow.sessionVariables}
-          showHarnessSelector
+          // Guests get no agent machinery at all — the binding is applied
+          // by the launcher's pin effect above, not by picker resolution.
+          onAgentRefChange={isGuest ? undefined : flow.setAgentRef}
+          onAgentResolutionChange={isGuest ? undefined : flow.setResolution}
+          initialAgentRef={isGuest ? undefined : initialAgentRef}
+          initialInstanceId={isGuest ? undefined : initialInstanceId}
+          initialAttachments={isGuest ? undefined : initialAttachments}
+          lockAgent={isCurated && initialAgentRef != null}
+          mcpServerUsages={isCurated ? undefined : flow.mcpServerUsages}
+          onMcpServerUsagesChange={isCurated ? undefined : flow.setMcpServerUsages}
+          skillRefs={isCurated ? undefined : flow.skillRefs}
+          onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
+          sessionVariables={isCurated ? undefined : flow.sessionVariables}
+          showHarnessSelector={!isGuest}
           harness={flow.harness}
           onHarnessChange={flow.setHarness}
           interactionMode={interactionMode}
           onInteractionModeChange={setInteractionMode}
-          showInteractionModePicker
+          showInteractionModePicker={!isGuest}
+          showModelSelector={!isGuest}
+          enableAttachments={!isGuest}
           defaultModelId={flow.modelId}
           onModelChange={flow.setModelId}
           placeholder={placeholder}
@@ -360,13 +391,18 @@ export function NewSessionViewer({
           reads as instability and, worse, unmounts the open panel's only
           collapse control when the last context item is removed. Always-on is
           the predictable, discoverable shape; opening homes on the Config
-          facet, which carries useful defaults (harness/model) pre-session. */}
-      <div className="absolute top-2 right-6 z-10">
-        <SessionPanelChip
-          isOpen={panel.isOpen}
-          onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
-        />
-      </div>
+          facet, which carries useful defaults (harness/model) pre-session.
+          Guests are the exception: the panel exposes configuration a visitor
+          has no business with, so the chip (the panel's only toggle) is
+          simply absent and the panel can never open. */}
+      {!isGuest && (
+        <div className="absolute top-2 right-6 z-10">
+          <SessionPanelChip
+            isOpen={panel.isOpen}
+            onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
+          />
+        </div>
+      )}
 
       {/* Same unified-panel layout as SessionViewer (DD-016): collapsed by
           default (composer fills the row); opening makes the composer the

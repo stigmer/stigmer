@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.SessionId",
           "outputType": "Session",
           "outputFullType": "ai.stigmer.agentic.session.v1.Session",
-          "description": "Delete a session.\n\n @internal\n Restricted to platform operators to preserve the billing and audit trail.\n Regular users (including session owners) cannot delete sessions."
+          "description": "Delete a session.\n\n Deletion cascades to the session's agent executions. Billing usage\n records are immutable and unaffected — they carry their own copies of\n the session and execution identifiers.\n\n Fails with FAILED_PRECONDITION while any agent execution in the\n session is still active (pending, in progress, waiting for approval,\n or paused); cancel it or wait for it to finish first.\n\n @internal\n Requires can_delete on the session (owner-only — sessions are personal\n resources, so org admins have no implicit delete access)."
         }
       ]
     },
@@ -72,12 +72,12 @@
           "description": "List all sessions with pagination and optional filtering.\n\n @internal\n Authorization is handled in-handler via FGA-filtered queries."
         },
         {
-          "name": "ListByAgent",
-          "inputType": "ListSessionsByAgentRequest",
-          "inputFullType": "ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest",
+          "name": "ListByAgentInstance",
+          "inputType": "ListSessionsByAgentInstanceRequest",
+          "inputFullType": "ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest",
           "outputType": "SessionList",
           "outputFullType": "ai.stigmer.agentic.session.v1.SessionList",
-          "description": "List all sessions for a specific agent.\n\n @internal\n Authorization is handled in-handler via FGA-filtered queries."
+          "description": "List all sessions for a specific agent instance.\n\n @internal\n Authorization is handled in handler via FGA query for authorized\n session_ids, then filtered by agent_instance_id."
         }
       ]
     }
@@ -188,19 +188,19 @@
       ]
     },
     {
-      "name": "ListSessionsByAgentRequest",
-      "description": "ListSessionsByAgentRequest lists all sessions for a specific agent.",
-      "protoType": "ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest",
+      "name": "ListSessionsByAgentInstanceRequest",
+      "description": "ListSessionsByAgentInstanceRequest lists all sessions for a specific agent instance.",
+      "protoType": "ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest",
       "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
       "fields": [
         {
-          "name": "AgentId",
-          "jsonName": "agentId",
-          "protoField": "agent_id",
+          "name": "AgentInstanceId",
+          "jsonName": "agentInstanceId",
+          "protoField": "agent_instance_id",
           "type": {
             "kind": "string"
           },
-          "description": "Agent ID to filter by.",
+          "description": "Agent instance ID to filter by.",
           "required": true,
           "validation": {
             "required": true
@@ -368,7 +368,7 @@
         {
           "name": "organization",
           "number": 30,
-          "description": "Top-level tenant that owns and manages resources."
+          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
         },
         {
           "name": "platform",

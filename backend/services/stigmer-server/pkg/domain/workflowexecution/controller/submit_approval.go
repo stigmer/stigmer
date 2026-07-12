@@ -48,7 +48,9 @@ const (
 //
 //   - APPROVE: Tool executes with the provided arguments
 //   - SKIP: Tool execution is skipped, agent continues with skip message
-//   - REJECT: Agent execution fails with rejection error
+//   - REJECT: Tool is denied and the child agent continues (the objection is fed
+//     back to the model); REJECT denies a single tool, it does not fail the child
+//     agent or the workflow task
 //
 // ## Error Cases
 //

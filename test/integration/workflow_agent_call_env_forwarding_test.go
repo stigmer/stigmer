@@ -410,8 +410,14 @@ func TestWorkflowAgentCall_EnvVarsForwardedWithMcpServerRef(t *testing.T) {
 
 	if val, ok := ctxData["TEST_MCP_CONN_URL"]; ok {
 		assert.True(t, val.GetIsSecret(), "TEST_MCP_CONN_URL should be marked as secret")
-		assert.Equal(t, "postgresql://test:test@localhost:5432/mcp-test", val.GetValue(),
-			"TEST_MCP_CONN_URL value should match what was provided in workflow runtime_env")
+		// getByExecutionId decrypts secrets only for the runner credential class
+		// (stigmer-cloud eff89ac7f); a plain client sees the redaction marker.
+		// A non-empty marker proves the value was forwarded and stored; the
+		// plaintext must never surface on this read path.
+		assert.Equal(t, "***REDACTED***", val.GetValue(),
+			"secret value should be redacted for non-runner callers")
+		assert.NotContains(t, val.GetValue(), "localhost:5432/mcp-test",
+			"plaintext secret must never leak through a non-runner read")
 	}
 
 	t.Logf("PASS: child ExecutionContext contains MCP-derived env var TEST_MCP_CONN_URL")

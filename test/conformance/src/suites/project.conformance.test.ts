@@ -9,7 +9,6 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ProjectSchema } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/api_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { expectCodeOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -151,14 +150,22 @@ describe("Project conformance", () => {
     expect(fetched.metadata?.id).toBe(created.metadata?.id);
   });
 
-  it("getByReference with empty org returns the slug match", async () => {
+  it("getByReference without an org is rejected (org-scoped slug is per-org-unique)", async () => {
     const { org } = await target.provisionTenancy();
-    // A unique slug guarantees a single global match for the empty-org lookup.
+    // A real match exists, yet an empty-org reference must still be rejected:
+    // Project is org-scoped, so its slug is unique only within an org and a
+    // bare-slug reference is under-specified. Resolving it globally would cross
+    // tenant boundaries, so both editions reject it with InvalidArgument (rather
+    // than silently resolving an arbitrary match). See the proto reference
+    // contract: stored references are absolute; empty org is a write-time
+    // relative form, never a read-time global search.
     const created = await createProject(org, uniqueName("solo"));
 
-    const fetched = await clients.projectQuery.getByReference({ slug: created.metadata!.slug });
-
-    expect(fetched.metadata?.id).toBe(created.metadata?.id);
+    await expectGrpcCode(
+      () => clients.projectQuery.getByReference({ slug: created.metadata!.slug }),
+      Code.InvalidArgument,
+      "getByReference without org",
+    );
   });
 
   it("getByReference rejects a kind that does not match the service", () =>
@@ -200,9 +207,7 @@ describe("Project conformance", () => {
     const name = uniqueName("dup");
     await createProject(org, name);
 
-    await expectCodeOrDeviation(
-      target.name,
-      "create.duplicate.code",
+    await expectGrpcCode(
       () =>
         clients.projectCommand.create({
           apiVersion: API_VERSION,
@@ -210,6 +215,7 @@ describe("Project conformance", () => {
           metadata: { name, org },
           spec: { description: "second" },
         }),
+      Code.AlreadyExists,
       "duplicate create",
     );
   });
@@ -218,10 +224,9 @@ describe("Project conformance", () => {
     const { org } = await target.provisionTenancy();
     // Spec is present so validation passes; the empty name is what must be
     // rejected (slug resolution has nothing to derive from).
-    await expectCodeOrDeviation(
-      target.name,
-      "create.missing-name.code",
+    await expectGrpcCode(
       () => clients.projectCommand.create({ apiVersion: API_VERSION, kind: KIND, metadata: { org }, spec: { description: "x" } }),
+      Code.InvalidArgument,
       "create without name",
     );
   });

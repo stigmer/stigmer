@@ -34,7 +34,7 @@ import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { isGitWorkTree, isPathCapturable } from "../../shared/filereview/git-substrate.js";
 import { deriveCaptureMode } from "../../shared/filereview/capture.js";
 import { resolveWorkspacePath } from "../../shared/file-change.js";
-import { ensurePlatformDir } from "../../shared/workspace/platform-dir.js";
+import { ensurePlatformDir, ensureCheckpointDbPath } from "../../shared/workspace/platform-dir.js";
 import { resolveSessionWorkspaceRoot } from "../../shared/workspace/session-root.js";
 import { buildWorkspaceFileTree } from "../../shared/workspace/file-tree.js";
 import { reportSetupProgress } from "../../shared/status.js";
@@ -75,6 +75,12 @@ import { transformAndCompileSubagents } from "./subagent-transformer.js";
 
 export interface SetupResult {
   readonly agentGraph: AgentGraph;
+  /**
+   * The checkpoint saver backing agentGraph. Retained so the activity can close
+   * it in cleanup — the durable sqlite saver holds an open file handle. Backends
+   * without a handle (memory/http) are duck-typed for an optional close().
+   */
+  readonly checkpointer: BaseCheckpointSaver;
   readonly langgraphConfig: Record<string, unknown>;
   readonly langgraphInput: Record<string, unknown>;
   readonly execution: AgentExecution;
@@ -191,11 +197,17 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     const modelName = execution.spec!.executionConfig?.modelName
       || await getDefaultModel();
 
-    // Step 4: Create checkpointer
+    // Step 4: Create checkpointer. The durable local (sqlite) backend keys its
+    // file per session — a session has exactly one thread (`thread-{sessionId}`),
+    // so checkpoint lifetime tracks session lifetime. The saver is closed in the
+    // activity cleanup (see index.ts), alongside the MCP connection.
     const checkpointer = await createCheckpointer({
       type: config.checkpointerType,
       proxyEndpoint: config.checkpointerProxyEndpoint ?? undefined,
       authToken: config.stigmerToken ?? undefined,
+      sqlitePath: config.checkpointerType === "sqlite"
+        ? await ensureCheckpointDbPath(sessionId)
+        : undefined,
     });
 
     // Step 5: Resolve environment
@@ -595,6 +607,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
 
     return {
       agentGraph,
+      checkpointer,
       langgraphConfig,
       langgraphInput,
       execution,

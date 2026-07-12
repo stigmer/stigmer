@@ -41,6 +41,22 @@
           "description": "Update the visibility of an existing agent.\n\n This is a targeted metadata update — it only modifies metadata.visibility,\n leaving spec, status, and other metadata fields untouched. Use this to\n make an agent publicly accessible or to revoke public access without\n sending the entire agent resource (avoiding read-modify-write races).\n\n @internal\n Authorization: Requires can_edit permission on the agent resource."
         },
         {
+          "name": "UpdateSharing",
+          "inputType": "UpdateAgentSharingInput",
+          "inputFullType": "ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput",
+          "outputType": "Agent",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
+          "description": "Update the sharing configuration of an existing agent.\n\n This is a targeted spec update — it only modifies spec.sharing, leaving\n the rest of the spec, metadata, and status untouched. Use this to enable\n or revoke anyone-with-link access to the agent's hosted chat without\n sending the entire agent resource (avoiding read-modify-write races).\n\n Sharing is a distinct consent from visibility: updateVisibility governs\n who can read the blueprint (marketplace), updateSharing governs who can\n chat with the runtime. Conversations over a shared link bill the owning\n organization's credits.\n\n @internal\n Authorization: Requires can_edit permission on the agent resource —\n the same bar as updateVisibility, since both broaden access.\n No FGA tuples are written on share; enforcement is app-level in the\n getSharedProfile handler (see AgentSharing in spec.proto)."
+        },
+        {
+          "name": "RotateShareLink",
+          "inputType": "RotateShareLinkInput",
+          "inputFullType": "ai.stigmer.agentic.agent.v1.RotateShareLinkInput",
+          "outputType": "Agent",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
+          "description": "Rotate the share-link token of an existing agent.\n\n Generates a fresh server-side token for the agent's hosted chat link.\n The share URL becomes `/chat/\u003corg\u003e/\u003cslug\u003e?k=\u003ctoken\u003e` and the previous\n link (tokened or plain) stops working immediately — including for\n visitors mid-conversation. Use this to kill a leaked or over-shared\n public link without disabling sharing or renaming the agent.\n\n The token lives in status.share_link_token, so manifest applies never\n reset it. Rotation affects public-audience shares only; org-audience\n access is governed by live org membership instead.\n\n @internal\n Authorization: requires can_edit on the agent — the same bar as\n updateSharing, since both control shared-link access. The handler is\n the sole writer of status.share_link_token (server-generated entropy;\n clients never supply the token)."
+        },
+        {
           "name": "Delete",
           "inputType": "AgentId",
           "inputFullType": "ai.stigmer.agentic.agent.v1.AgentId",
@@ -78,6 +94,22 @@
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
           "description": "Get the platform default agent.\n\n Returns the default agent for the platform, including\n status.default_instance_id for creating a session. Use this\n to start a conversation without selecting an agent first.\n\n Returns NOT_FOUND if no default agent is configured.\n\n @internal\n Resolves the agent labeled stigmer.ai/default-agent: \"true\" with\n visibility_public. Custom authorization in handler."
+        },
+        {
+          "name": "GetSharedProfile",
+          "inputType": "GetSharedProfileRequest",
+          "inputFullType": "ai.stigmer.agentic.agent.v1.GetSharedProfileRequest",
+          "outputType": "SharedAgentProfile",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.SharedAgentProfile",
+          "description": "Get the public profile of a shared agent by its org/slug reference.\n\n This is the resolution path for the hosted chat page: anonymous\n visitors (no Stigmer account, no token) resolve a shared link to the\n trimmed SharedAgentProfile — never the full Agent, whose spec carries\n the system prompt, environment declarations, and MCP wiring.\n\n Returns NOT_FOUND when the agent does not exist, is not shared\n (spec.sharing.enabled is false/unset), is shared with the org\n audience (spec.sharing.audience is org — anonymous callers must not be\n able to distinguish an org-internal share from a nonexistent agent; use\n getSharedProfileForMember instead), or the share link is locked and\n link_token does not match the agent's current\n status.share_link_token. The cases are deliberately\n indistinguishable so an unshared, revoked, or rotated agent URL leaks\n nothing — unlike getByReference, which returns PERMISSION_DENIED for\n an existing but unauthorized agent. Returns INVALID_ARGUMENT when org\n is empty: org+slug is the shared URL's identity, and cross-org slug\n matching on a public endpoint would enable enumeration.\n\n @internal\n Public by design (no authentication): enforcement is the app-level\n sharing gate in the handler, not FGA — see AgentSharing in spec.proto\n for why sharing writes no visibility tuples."
+        },
+        {
+          "name": "GetSharedProfileForMember",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "SharedAgentProfile",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.SharedAgentProfile",
+          "description": "Get the profile of a shared agent as a signed-in organization member.\n\n This is the resolution path for the hosted chat page when an agent is\n shared with the org audience (spec.sharing.audience is org): the public\n getSharedProfile deliberately returns NOT_FOUND for such agents, so a\n signed-in member resolves the same trimmed SharedAgentProfile through\n this authenticated RPC instead. Also resolves public-audience shares,\n so an authenticated caller can use one resolution path for any share.\n\n Returns NOT_FOUND when the agent does not exist, is not shared, the\n caller is not a member of the owning organization, or the share is a\n public-audience share locked with a link token (this tokenless path\n must not reveal a killed link's profile) — the cases are deliberately\n indistinguishable so a share URL leaks nothing to non-members.\n Returns INVALID_ARGUMENT when org is empty.\n\n @internal\n Custom authorization in handler — requires authentication (not\n is_public), then an app-level organization#member FGA check for org\n shares. No standard resource_kind/permission config: the sharing gate\n is app-level by design (see AgentSharing in spec.proto), and membership\n is checked live on every call so revoked members lose access\n immediately."
         }
       ]
     }
@@ -119,6 +151,62 @@
           },
           "description": "The new visibility setting for the resource.\n Must not be unspecified (0). Valid values depend on resource kind —\n see the VisibilityConfig in the kind's kind_meta.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateAgentSharingInput",
+      "description": "Input for updating the sharing configuration of an agent.\n\n Used by the updateSharing RPC for a targeted update — it only modifies\n spec.sharing, leaving the rest of the spec, metadata, and status\n untouched. Use this to enable or revoke anyone-with-link chat access\n without sending the entire agent resource (avoiding read-modify-write\n races), mirroring the UpdateVisibilityInput pattern.",
+      "protoType": "ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent whose sharing configuration is being updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Sharing",
+          "jsonName": "sharing",
+          "protoField": "sharing",
+          "type": {
+            "kind": "message",
+            "messageType": "AgentSharing"
+          },
+          "description": "The new sharing configuration for the agent.\n Must be present; to disable sharing, send sharing with enabled=false\n rather than omitting the field.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "RotateShareLinkInput",
+      "description": "Input for rotating an agent's share-link token.\n\n Used by the rotateShareLink RPC. The server generates the new token —\n callers never supply one — and the previous link stops working the\n moment the rotation persists.",
+      "protoType": "ai.stigmer.agentic.agent.v1.RotateShareLinkInput",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent whose share link is being rotated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
         }
       ]
     },
@@ -229,6 +317,115 @@
           }
         }
       ]
+    },
+    {
+      "name": "GetSharedProfileRequest",
+      "description": "Input for resolving a shared agent's public profile.\n\n Identifies the shared agent by the org and slug from the hosted chat\n URL, plus the link token when the share URL carries one.\n\n @internal\n Replaces the generic ApiResourceReference on getSharedProfile so the\n anonymous resolution path can carry the link token. org emptiness is\n validated in the handler (INVALID_ARGUMENT) rather than the proto to\n keep the existing error contract.",
+      "protoType": "ai.stigmer.agentic.agent.v1.GetSharedProfileRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug from the share URL.",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent slug from the share URL.",
+          "required": false
+        },
+        {
+          "name": "LinkToken",
+          "jsonName": "linkToken",
+          "protoField": "link_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Link token from the share URL's `?k=` parameter.\n\n Required (and validated) only when the agent's share link has been\n locked with rotateShareLink; ignored for plain share links.",
+          "required": false,
+          "validation": {
+            "maxLength": 128
+          }
+        }
+      ]
+    },
+    {
+      "name": "SharedAgentProfile",
+      "description": "SharedAgentProfile is the public projection of a shared agent.\n\n Returned by the getSharedProfile RPC to anonymous visitors of the hosted\n chat page. It is deliberately trimmed: the full Agent resource carries the\n system prompt (spec.instructions), environment declarations, and MCP\n server wiring — none of which may leak to anyone-with-link callers. The\n profile carries only what the hosted chat page needs to render a header\n and start a session.",
+      "protoType": "ai.stigmer.agentic.agent.v1.SharedAgentProfile",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the shared agent.",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Slug of the shared agent (unique within the org).\n Together with org, this is the identity in the hosted chat URL.",
+          "required": false
+        },
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable agent name for the chat page header.",
+          "required": false
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable description for the chat page header.",
+          "required": false
+        },
+        {
+          "name": "IconUrl",
+          "jsonName": "iconUrl",
+          "protoField": "icon_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Icon URL for the chat page header.",
+          "required": false
+        },
+        {
+          "name": "DefaultInstanceId",
+          "jsonName": "defaultInstanceId",
+          "protoField": "default_instance_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent's default instance, used by the hosted chat page to\n create sessions. This is an identifier, not a capability — session\n creation still requires an authorized token.",
+          "required": false
+        }
+      ]
     }
   ],
   "enumTypes": [
@@ -307,7 +504,7 @@
         {
           "name": "organization",
           "number": 30,
-          "description": "Top-level tenant that owns and manages resources."
+          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
         },
         {
           "name": "platform",
@@ -380,6 +577,23 @@
           "description": "Aggregate root grouping related resources for lifecycle management."
         }
       ]
+    },
+    {
+      "name": "AgentSharingAudience",
+      "description": "AgentSharingAudience selects who can chat with a shared agent over its\n hosted link.\n\n Unspecified is treated as public for backward compatibility: every share\n created before the audience field existed is an anyone-with-link share.",
+      "protoType": "ai.stigmer.agentic.agent.v1.AgentSharingAudience",
+      "values": [
+        {
+          "name": "agent_sharing_audience_public",
+          "number": 1,
+          "description": "Anyone with the link can chat — no Stigmer account required.\n Visitors are anonymous guests; suitable only for knowledge that is\n safe to expose to the entire internet."
+        },
+        {
+          "name": "agent_sharing_audience_org",
+          "number": 2,
+          "description": "Only signed-in members of the owning organization can chat.\n Membership is checked on every conversation turn, so access ends the\n moment a member leaves the organization. The right mode for\n org-internal knowledge agents."
+        }
+      ]
     }
   ],
   "resourceDescription": "Agent defines an AI assistant's identity, tools, skills, and delegation model.\n\n @internal\n Uses Graphton configuration for state management.",
@@ -408,6 +622,16 @@
           "kind": "string"
         },
         "description": "ID of the default agent instance.\n Every agent has exactly one default instance that uses all agent defaults\n and requires no additional configuration. Created automatically when the\n agent is created.",
+        "required": false
+      },
+      {
+        "name": "ShareLinkToken",
+        "jsonName": "shareLinkToken",
+        "protoField": "share_link_token",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Rotatable token protecting the agent's public share link.\n\n Empty means the hosted chat link is the plain `/chat/\u003corg\u003e/\u003cslug\u003e` —\n the behavior of every share created before this field existed. When\n set, the link only resolves with the matching `?k=\u003ctoken\u003e` query\n parameter; the rotateShareLink RPC generates a fresh value, killing\n the old link immediately. Applies to public-audience shares only\n (org-audience access is governed by live membership instead).\n\n @internal\n Server-generated (rotateShareLink is the sole writer) and deliberately\n in status, not spec.sharing: status survives every apply/update\n verbatim in both editions, so a routine manifest apply can never wipe\n the token and silently fail open to the guessable URL. Enforced with\n the allowed_origins pattern — validated at guest mint, stamped into\n the guest JWT, and re-validated against this live value on every\n session/execution create, so rotation revokes live guest tokens on\n their next message. Not a security boundary: rate limits and the org\n credit cap remain the abuse controls; this is a traffic lever for\n over-shared links.",
         "required": false
       }
     ]

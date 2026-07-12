@@ -42,7 +42,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "t/v1/io.proto\032\'ai/stigmer/commons/apires" +
       "ource/io.proto\0328ai/stigmer/commons/apire" +
       "source/rpc_service_options.proto\032+ai/sti" +
-      "gmer/commons/rpc/method_options.proto2\301\010" +
+      "gmer/commons/rpc/method_options.proto2\203\n" +
       "\n\034EnvironmentCommandController\022g\n\005apply\022" +
       "..ai.stigmer.agentic.environment.v1.Envi" +
       "ronment\032..ai.stigmer.agentic.environment" +
@@ -55,27 +55,31 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ronment.v1.Environment\032..ai.stigmer.agen" +
       "tic.environment.v1.Environment\"9\302\270\0305\010\002\0205" +
       "\"\013metadata.id*\"unauthorized to update en" +
-      "vironment\022\253\001\n\006delete\0226.ai.stigmer.common" +
-      "s.apiresource.ApiResourceDeleteInput\032..a" +
-      "i.stigmer.agentic.environment.v1.Environ" +
-      "ment\"9\302\270\0305\010\002\0205\"\013resource_id*\"unauthorize" +
-      "d to delete environment\022\317\001\n\017updateVariab" +
-      "les\022D.ai.stigmer.agentic.environment.v1." +
-      "UpdateEnvironmentVariablesRequest\032..ai.s" +
-      "tigmer.agentic.environment.v1.Environmen" +
-      "t\"F\302\270\030B\010\002\0205\"\016environment_id*,unauthorize" +
-      "d to update environment variables\022\317\001\n\017re" +
-      "moveVariables\022D.ai.stigmer.agentic.envir" +
-      "onment.v1.RemoveEnvironmentVariablesRequ" +
-      "est\032..ai.stigmer.agentic.environment.v1." +
-      "Environment\"F\302\270\030B\010\002\0205\"\016environment_id*,u" +
-      "nauthorized to remove environment variab" +
-      "les\032\004\240\377+5B\267\001B\014CommandProtoP\001\242\002\004ASAE\252\002!Ai" +
-      ".Stigmer.Agentic.Environment.V1\312\002!Ai\\Sti" +
-      "gmer\\Agentic\\Environment\\V1\342\002-Ai\\Stigmer" +
-      "\\Agentic\\Environment\\V1\\GPBMetadata\352\002%Ai" +
-      "::Stigmer::Agentic::Environment::V1b\006pro" +
-      "to3"
+      "vironment\022\277\001\n\020updateVisibility\0225.ai.stig" +
+      "mer.commons.apiresource.UpdateVisibility" +
+      "Input\032..ai.stigmer.agentic.environment.v" +
+      "1.Environment\"D\302\270\030@\010\002\0205\"\013resource_id*-un" +
+      "authorized to update environment visibil" +
+      "ity\022\253\001\n\006delete\0226.ai.stigmer.commons.apir" +
+      "esource.ApiResourceDeleteInput\032..ai.stig" +
+      "mer.agentic.environment.v1.Environment\"9" +
+      "\302\270\0305\010\002\0205\"\013resource_id*\"unauthorized to d" +
+      "elete environment\022\317\001\n\017updateVariables\022D." +
+      "ai.stigmer.agentic.environment.v1.Update" +
+      "EnvironmentVariablesRequest\032..ai.stigmer" +
+      ".agentic.environment.v1.Environment\"F\302\270\030" +
+      "B\010\002\0205\"\016environment_id*,unauthorized to u" +
+      "pdate environment variables\022\317\001\n\017removeVa" +
+      "riables\022D.ai.stigmer.agentic.environment" +
+      ".v1.RemoveEnvironmentVariablesRequest\032.." +
+      "ai.stigmer.agentic.environment.v1.Enviro" +
+      "nment\"F\302\270\030B\010\002\0205\"\016environment_id*,unautho" +
+      "rized to remove environment variables\032\004\240" +
+      "\377+5B\267\001B\014CommandProtoP\001\242\002\004ASAE\252\002!Ai.Stigm" +
+      "er.Agentic.Environment.V1\312\002!Ai\\Stigmer\\A" +
+      "gentic\\Environment\\V1\342\002-Ai\\Stigmer\\Agent" +
+      "ic\\Environment\\V1\\GPBMetadata\352\002%Ai::Stig" +
+      "mer::Agentic::Environment::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

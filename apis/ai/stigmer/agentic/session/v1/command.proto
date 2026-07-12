@@ -55,13 +55,21 @@ service SessionCommandController {
 
   // Delete a session.
   //
+  // Deletion cascades to the session's agent executions. Billing usage
+  // records are immutable and unaffected — they carry their own copies of
+  // the session and execution identifiers.
+  //
+  // Fails with FAILED_PRECONDITION while any agent execution in the
+  // session is still active (pending, in progress, waiting for approval,
+  // or paused); cancel it or wait for it to finish first.
+  //
   // @internal
-  // Restricted to platform operators to preserve the billing and audit trail.
-  // Regular users (including session owners) cannot delete sessions.
+  // Requires can_delete on the session (owner-only — sessions are personal
+  // resources, so org admins have no implicit delete access).
   rpc delete(SessionId) returns (Session) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
-    option (ai.stigmer.commons.rpc.config).permission = can_delete_session;
-    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete session — operator access required";
+    option (ai.stigmer.commons.rpc.config).resource_kind = session;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete session";
   }
 }

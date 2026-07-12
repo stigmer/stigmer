@@ -197,6 +197,198 @@ func (x *MintUserTokenResponse) GetExpiresIn() int32 {
 	return 0
 }
 
+// MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.
+type MintGuestTokenRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization slug from the share URL (required).
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// Agent slug from the share URL (required).
+	Slug string `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
+	// Per-browser visitor cookie id from a prior mint (optional).
+	//
+	// When empty, the server generates a high-entropy id and returns it so the
+	// hosted page can persist it in an httpOnly cookie. When supplied, it must
+	// be the value previously returned by this RPC for the same visitor.
+	GuestCookieId string `protobuf:"bytes,3,opt,name=guest_cookie_id,json=guestCookieId,proto3" json:"guest_cookie_id,omitempty"`
+	// Web origin of the page embedding the shared agent (optional).
+	//
+	// Set by the hosted chat page when it runs inside an iframe (the embedding
+	// page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
+	// (their own page origin). Leave empty on the unframed hosted page. The
+	// literal value "null" reports a framed page whose parent origin could not
+	// be determined (opaque origin).
+	//
+	// @internal
+	// Validated at mint against the agent's spec.sharing.allowed_origins:
+	// empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
+	// for unlisted origins and for "null". An empty field always passes (the
+	// anyone-with-link hosted page). The validated value is stamped into the
+	// guest JWT as the embed_origin claim and re-validated against the live
+	// list by the guest create-time gate. Self-reported by design: the widget
+	// code inside the iframe derives it from browser-authentic sources the
+	// embedder cannot alter; non-browser callers gain nothing by omitting it
+	// since the hosted link is anyone-with-link (decision 001) — rate limits
+	// and the billing gate remain the API guards.
+	EmbedOrigin string `protobuf:"bytes,4,opt,name=embed_origin,json=embedOrigin,proto3" json:"embed_origin,omitempty"`
+	// Link token from the share URL's `?k=` parameter (optional).
+	//
+	// Required when the agent's share link has been locked with
+	// rotateShareLink; ignored for plain share links.
+	//
+	// @internal
+	// Validated at mint against the agent's live status.share_link_token
+	// (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+	// so a killed link is indistinguishable from a nonexistent one). The
+	// validated value is stamped into the guest JWT as the link_token claim
+	// and re-validated against the live value by the guest create-time gate
+	// on every session/execution create — rotation therefore revokes live
+	// guest tokens on their next message, exactly like disabling sharing.
+	LinkToken     string `protobuf:"bytes,5,opt,name=link_token,json=linkToken,proto3" json:"link_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MintGuestTokenRequest) Reset() {
+	*x = MintGuestTokenRequest{}
+	mi := &file_ai_stigmer_iam_platformclient_v1_token_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MintGuestTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MintGuestTokenRequest) ProtoMessage() {}
+
+func (x *MintGuestTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_platformclient_v1_token_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MintGuestTokenRequest.ProtoReflect.Descriptor instead.
+func (*MintGuestTokenRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_platformclient_v1_token_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *MintGuestTokenRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *MintGuestTokenRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *MintGuestTokenRequest) GetGuestCookieId() string {
+	if x != nil {
+		return x.GuestCookieId
+	}
+	return ""
+}
+
+func (x *MintGuestTokenRequest) GetEmbedOrigin() string {
+	if x != nil {
+		return x.EmbedOrigin
+	}
+	return ""
+}
+
+func (x *MintGuestTokenRequest) GetLinkToken() string {
+	if x != nil {
+		return x.LinkToken
+	}
+	return ""
+}
+
+// MintGuestTokenResponse contains the guest JWT and the visitor cookie id.
+type MintGuestTokenResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Stigmer-signed JWT for authenticating shared-agent chat API calls.
+	AccessToken string `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	// Token type. Always "Bearer".
+	TokenType string `protobuf:"bytes,2,opt,name=token_type,json=tokenType,proto3" json:"token_type,omitempty"`
+	// Token lifetime in seconds from the time of issuance.
+	ExpiresIn int32 `protobuf:"varint,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
+	// Visitor cookie id to persist client-side (httpOnly cookie in item 3).
+	//
+	// Echoes guest_cookie_id from the request when provided; otherwise a newly
+	// generated high-entropy value.
+	GuestCookieId string `protobuf:"bytes,4,opt,name=guest_cookie_id,json=guestCookieId,proto3" json:"guest_cookie_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MintGuestTokenResponse) Reset() {
+	*x = MintGuestTokenResponse{}
+	mi := &file_ai_stigmer_iam_platformclient_v1_token_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MintGuestTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MintGuestTokenResponse) ProtoMessage() {}
+
+func (x *MintGuestTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_iam_platformclient_v1_token_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MintGuestTokenResponse.ProtoReflect.Descriptor instead.
+func (*MintGuestTokenResponse) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_iam_platformclient_v1_token_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *MintGuestTokenResponse) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *MintGuestTokenResponse) GetTokenType() string {
+	if x != nil {
+		return x.TokenType
+	}
+	return ""
+}
+
+func (x *MintGuestTokenResponse) GetExpiresIn() int32 {
+	if x != nil {
+		return x.ExpiresIn
+	}
+	return 0
+}
+
+func (x *MintGuestTokenResponse) GetGuestCookieId() string {
+	if x != nil {
+		return x.GuestCookieId
+	}
+	return ""
+}
+
 var File_ai_stigmer_iam_platformclient_v1_token_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_platformclient_v1_token_proto_rawDesc = "" +
@@ -215,9 +407,25 @@ const file_ai_stigmer_iam_platformclient_v1_token_proto_rawDesc = "" +
 	"\n" +
 	"token_type\x18\x02 \x01(\tR\ttokenType\x12\x1d\n" +
 	"\n" +
-	"expires_in\x18\x03 \x01(\x05R\texpiresIn2\xa8\x01\n" +
+	"expires_in\x18\x03 \x01(\x05R\texpiresIn\"\xfb\x03\n" +
+	"\x15MintGuestTokenRequest\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\x1b\n" +
+	"\x04slug\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04slug\x12&\n" +
+	"\x0fguest_cookie_id\x18\x03 \x01(\tR\rguestCookieId\x12\xd8\x02\n" +
+	"\fembed_origin\x18\x04 \x01(\tB\xb4\x02\xbaH\xb0\x02\xba\x01\xac\x02\n" +
+	"\x13embed_origin.format\x12wembed_origin must be empty, \"null\", or an exact web origin like https://example.com (no path, query, or trailing slash)\x1a\x9b\x01this == '' || this == 'null' || this.matches('^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$')R\vembedOrigin\x12'\n" +
+	"\n" +
+	"link_token\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\tlinkToken\"\xa1\x01\n" +
+	"\x16MintGuestTokenResponse\x12!\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12\x1d\n" +
+	"\n" +
+	"token_type\x18\x02 \x01(\tR\ttokenType\x12\x1d\n" +
+	"\n" +
+	"expires_in\x18\x03 \x01(\x05R\texpiresIn\x12&\n" +
+	"\x0fguest_cookie_id\x18\x04 \x01(\tR\rguestCookieId2\xb4\x02\n" +
 	"\x1dPlatformClientTokenController\x12\x86\x01\n" +
-	"\rmintUserToken\x126.ai.stigmer.iam.platformclient.v1.MintUserTokenRequest\x1a7.ai.stigmer.iam.platformclient.v1.MintUserTokenResponse\"\x04ȸ\x18\x01B\xb2\x02\n" +
+	"\rmintUserToken\x126.ai.stigmer.iam.platformclient.v1.MintUserTokenRequest\x1a7.ai.stigmer.iam.platformclient.v1.MintUserTokenResponse\"\x04ȸ\x18\x01\x12\x89\x01\n" +
+	"\x0emintGuestToken\x127.ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest\x1a8.ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse\"\x04ȸ\x18\x01B\xb2\x02\n" +
 	"$com.ai.stigmer.iam.platformclient.v1B\n" +
 	"TokenProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
 
@@ -233,16 +441,20 @@ func file_ai_stigmer_iam_platformclient_v1_token_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_iam_platformclient_v1_token_proto_rawDescData
 }
 
-var file_ai_stigmer_iam_platformclient_v1_token_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_iam_platformclient_v1_token_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_iam_platformclient_v1_token_proto_goTypes = []any{
-	(*MintUserTokenRequest)(nil),  // 0: ai.stigmer.iam.platformclient.v1.MintUserTokenRequest
-	(*MintUserTokenResponse)(nil), // 1: ai.stigmer.iam.platformclient.v1.MintUserTokenResponse
+	(*MintUserTokenRequest)(nil),   // 0: ai.stigmer.iam.platformclient.v1.MintUserTokenRequest
+	(*MintUserTokenResponse)(nil),  // 1: ai.stigmer.iam.platformclient.v1.MintUserTokenResponse
+	(*MintGuestTokenRequest)(nil),  // 2: ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest
+	(*MintGuestTokenResponse)(nil), // 3: ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse
 }
 var file_ai_stigmer_iam_platformclient_v1_token_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.iam.platformclient.v1.PlatformClientTokenController.mintUserToken:input_type -> ai.stigmer.iam.platformclient.v1.MintUserTokenRequest
-	1, // 1: ai.stigmer.iam.platformclient.v1.PlatformClientTokenController.mintUserToken:output_type -> ai.stigmer.iam.platformclient.v1.MintUserTokenResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: ai.stigmer.iam.platformclient.v1.PlatformClientTokenController.mintGuestToken:input_type -> ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest
+	1, // 2: ai.stigmer.iam.platformclient.v1.PlatformClientTokenController.mintUserToken:output_type -> ai.stigmer.iam.platformclient.v1.MintUserTokenResponse
+	3, // 3: ai.stigmer.iam.platformclient.v1.PlatformClientTokenController.mintGuestToken:output_type -> ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -259,7 +471,7 @@ func file_ai_stigmer_iam_platformclient_v1_token_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_iam_platformclient_v1_token_proto_rawDesc), len(file_ai_stigmer_iam_platformclient_v1_token_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

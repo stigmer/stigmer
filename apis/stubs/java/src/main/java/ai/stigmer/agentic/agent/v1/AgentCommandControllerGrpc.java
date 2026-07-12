@@ -139,6 +139,68 @@ public final class AgentCommandControllerGrpc {
     return getUpdateVisibilityMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput,
+      ai.stigmer.agentic.agent.v1.Agent> getUpdateSharingMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateSharing",
+      requestType = ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput.class,
+      responseType = ai.stigmer.agentic.agent.v1.Agent.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput,
+      ai.stigmer.agentic.agent.v1.Agent> getUpdateSharingMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput, ai.stigmer.agentic.agent.v1.Agent> getUpdateSharingMethod;
+    if ((getUpdateSharingMethod = AgentCommandControllerGrpc.getUpdateSharingMethod) == null) {
+      synchronized (AgentCommandControllerGrpc.class) {
+        if ((getUpdateSharingMethod = AgentCommandControllerGrpc.getUpdateSharingMethod) == null) {
+          AgentCommandControllerGrpc.getUpdateSharingMethod = getUpdateSharingMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput, ai.stigmer.agentic.agent.v1.Agent>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateSharing"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.Agent.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentCommandControllerMethodDescriptorSupplier("updateSharing"))
+              .build();
+        }
+      }
+    }
+    return getUpdateSharingMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.RotateShareLinkInput,
+      ai.stigmer.agentic.agent.v1.Agent> getRotateShareLinkMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "rotateShareLink",
+      requestType = ai.stigmer.agentic.agent.v1.RotateShareLinkInput.class,
+      responseType = ai.stigmer.agentic.agent.v1.Agent.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.RotateShareLinkInput,
+      ai.stigmer.agentic.agent.v1.Agent> getRotateShareLinkMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.RotateShareLinkInput, ai.stigmer.agentic.agent.v1.Agent> getRotateShareLinkMethod;
+    if ((getRotateShareLinkMethod = AgentCommandControllerGrpc.getRotateShareLinkMethod) == null) {
+      synchronized (AgentCommandControllerGrpc.class) {
+        if ((getRotateShareLinkMethod = AgentCommandControllerGrpc.getRotateShareLinkMethod) == null) {
+          AgentCommandControllerGrpc.getRotateShareLinkMethod = getRotateShareLinkMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agent.v1.RotateShareLinkInput, ai.stigmer.agentic.agent.v1.Agent>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "rotateShareLink"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.RotateShareLinkInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.Agent.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentCommandControllerMethodDescriptorSupplier("rotateShareLink"))
+              .build();
+        }
+      }
+    }
+    return getRotateShareLinkMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.AgentId,
       ai.stigmer.agentic.agent.v1.Agent> getDeleteMethod;
 
@@ -291,6 +353,52 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the sharing configuration of an existing agent.
+     * This is a targeted spec update — it only modifies spec.sharing, leaving
+     * the rest of the spec, metadata, and status untouched. Use this to enable
+     * or revoke anyone-with-link access to the agent's hosted chat without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     * Sharing is a distinct consent from visibility: updateVisibility governs
+     * who can read the blueprint (marketplace), updateSharing governs who can
+     * chat with the runtime. Conversations over a shared link bill the owning
+     * organization's credits.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the agent resource —
+     * the same bar as updateVisibility, since both broaden access.
+     * No FGA tuples are written on share; enforcement is app-level in the
+     * getSharedProfile handler (see AgentSharing in spec.proto).
+     * </pre>
+     */
+    default void updateSharing(ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateSharingMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Rotate the share-link token of an existing agent.
+     * Generates a fresh server-side token for the agent's hosted chat link.
+     * The share URL becomes `/chat/&lt;org&gt;/&lt;slug&gt;?k=&lt;token&gt;` and the previous
+     * link (tokened or plain) stops working immediately — including for
+     * visitors mid-conversation. Use this to kill a leaked or over-shared
+     * public link without disabling sharing or renaming the agent.
+     * The token lives in status.share_link_token, so manifest applies never
+     * reset it. Rotation affects public-audience shares only; org-audience
+     * access is governed by live org membership instead.
+     * &#64;internal
+     * Authorization: requires can_edit on the agent — the same bar as
+     * updateSharing, since both control shared-link access. The handler is
+     * the sole writer of status.share_link_token (server-generated entropy;
+     * clients never supply the token).
+     * </pre>
+     */
+    default void rotateShareLink(ai.stigmer.agentic.agent.v1.RotateShareLinkInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRotateShareLinkMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete an agent.
      * </pre>
      */
@@ -392,6 +500,54 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the sharing configuration of an existing agent.
+     * This is a targeted spec update — it only modifies spec.sharing, leaving
+     * the rest of the spec, metadata, and status untouched. Use this to enable
+     * or revoke anyone-with-link access to the agent's hosted chat without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     * Sharing is a distinct consent from visibility: updateVisibility governs
+     * who can read the blueprint (marketplace), updateSharing governs who can
+     * chat with the runtime. Conversations over a shared link bill the owning
+     * organization's credits.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the agent resource —
+     * the same bar as updateVisibility, since both broaden access.
+     * No FGA tuples are written on share; enforcement is app-level in the
+     * getSharedProfile handler (see AgentSharing in spec.proto).
+     * </pre>
+     */
+    public void updateSharing(ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateSharingMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Rotate the share-link token of an existing agent.
+     * Generates a fresh server-side token for the agent's hosted chat link.
+     * The share URL becomes `/chat/&lt;org&gt;/&lt;slug&gt;?k=&lt;token&gt;` and the previous
+     * link (tokened or plain) stops working immediately — including for
+     * visitors mid-conversation. Use this to kill a leaked or over-shared
+     * public link without disabling sharing or renaming the agent.
+     * The token lives in status.share_link_token, so manifest applies never
+     * reset it. Rotation affects public-audience shares only; org-audience
+     * access is governed by live org membership instead.
+     * &#64;internal
+     * Authorization: requires can_edit on the agent — the same bar as
+     * updateSharing, since both control shared-link access. The handler is
+     * the sole writer of status.share_link_token (server-generated entropy;
+     * clients never supply the token).
+     * </pre>
+     */
+    public void rotateShareLink(ai.stigmer.agentic.agent.v1.RotateShareLinkInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getRotateShareLinkMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete an agent.
      * </pre>
      */
@@ -476,6 +632,52 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the sharing configuration of an existing agent.
+     * This is a targeted spec update — it only modifies spec.sharing, leaving
+     * the rest of the spec, metadata, and status untouched. Use this to enable
+     * or revoke anyone-with-link access to the agent's hosted chat without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     * Sharing is a distinct consent from visibility: updateVisibility governs
+     * who can read the blueprint (marketplace), updateSharing governs who can
+     * chat with the runtime. Conversations over a shared link bill the owning
+     * organization's credits.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the agent resource —
+     * the same bar as updateVisibility, since both broaden access.
+     * No FGA tuples are written on share; enforcement is app-level in the
+     * getSharedProfile handler (see AgentSharing in spec.proto).
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.Agent updateSharing(ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateSharingMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Rotate the share-link token of an existing agent.
+     * Generates a fresh server-side token for the agent's hosted chat link.
+     * The share URL becomes `/chat/&lt;org&gt;/&lt;slug&gt;?k=&lt;token&gt;` and the previous
+     * link (tokened or plain) stops working immediately — including for
+     * visitors mid-conversation. Use this to kill a leaked or over-shared
+     * public link without disabling sharing or renaming the agent.
+     * The token lives in status.share_link_token, so manifest applies never
+     * reset it. Rotation affects public-audience shares only; org-audience
+     * access is governed by live org membership instead.
+     * &#64;internal
+     * Authorization: requires can_edit on the agent — the same bar as
+     * updateSharing, since both control shared-link access. The handler is
+     * the sole writer of status.share_link_token (server-generated entropy;
+     * clients never supply the token).
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.Agent rotateShareLink(ai.stigmer.agentic.agent.v1.RotateShareLinkInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getRotateShareLinkMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete an agent.
      * </pre>
      */
@@ -555,6 +757,52 @@ public final class AgentCommandControllerGrpc {
     public ai.stigmer.agentic.agent.v1.Agent updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Update the sharing configuration of an existing agent.
+     * This is a targeted spec update — it only modifies spec.sharing, leaving
+     * the rest of the spec, metadata, and status untouched. Use this to enable
+     * or revoke anyone-with-link access to the agent's hosted chat without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     * Sharing is a distinct consent from visibility: updateVisibility governs
+     * who can read the blueprint (marketplace), updateSharing governs who can
+     * chat with the runtime. Conversations over a shared link bill the owning
+     * organization's credits.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the agent resource —
+     * the same bar as updateVisibility, since both broaden access.
+     * No FGA tuples are written on share; enforcement is app-level in the
+     * getSharedProfile handler (see AgentSharing in spec.proto).
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.Agent updateSharing(ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateSharingMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Rotate the share-link token of an existing agent.
+     * Generates a fresh server-side token for the agent's hosted chat link.
+     * The share URL becomes `/chat/&lt;org&gt;/&lt;slug&gt;?k=&lt;token&gt;` and the previous
+     * link (tokened or plain) stops working immediately — including for
+     * visitors mid-conversation. Use this to kill a leaked or over-shared
+     * public link without disabling sharing or renaming the agent.
+     * The token lives in status.share_link_token, so manifest applies never
+     * reset it. Rotation affects public-audience shares only; org-audience
+     * access is governed by live org membership instead.
+     * &#64;internal
+     * Authorization: requires can_edit on the agent — the same bar as
+     * updateSharing, since both control shared-link access. The handler is
+     * the sole writer of status.share_link_token (server-generated entropy;
+     * clients never supply the token).
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.Agent rotateShareLink(ai.stigmer.agentic.agent.v1.RotateShareLinkInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getRotateShareLinkMethod(), getCallOptions(), request);
     }
 
     /**
@@ -646,6 +894,54 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the sharing configuration of an existing agent.
+     * This is a targeted spec update — it only modifies spec.sharing, leaving
+     * the rest of the spec, metadata, and status untouched. Use this to enable
+     * or revoke anyone-with-link access to the agent's hosted chat without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     * Sharing is a distinct consent from visibility: updateVisibility governs
+     * who can read the blueprint (marketplace), updateSharing governs who can
+     * chat with the runtime. Conversations over a shared link bill the owning
+     * organization's credits.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the agent resource —
+     * the same bar as updateVisibility, since both broaden access.
+     * No FGA tuples are written on share; enforcement is app-level in the
+     * getSharedProfile handler (see AgentSharing in spec.proto).
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> updateSharing(
+        ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateSharingMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Rotate the share-link token of an existing agent.
+     * Generates a fresh server-side token for the agent's hosted chat link.
+     * The share URL becomes `/chat/&lt;org&gt;/&lt;slug&gt;?k=&lt;token&gt;` and the previous
+     * link (tokened or plain) stops working immediately — including for
+     * visitors mid-conversation. Use this to kill a leaked or over-shared
+     * public link without disabling sharing or renaming the agent.
+     * The token lives in status.share_link_token, so manifest applies never
+     * reset it. Rotation affects public-audience shares only; org-audience
+     * access is governed by live org membership instead.
+     * &#64;internal
+     * Authorization: requires can_edit on the agent — the same bar as
+     * updateSharing, since both control shared-link access. The handler is
+     * the sole writer of status.share_link_token (server-generated entropy;
+     * clients never supply the token).
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> rotateShareLink(
+        ai.stigmer.agentic.agent.v1.RotateShareLinkInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getRotateShareLinkMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete an agent.
      * </pre>
      */
@@ -660,7 +956,9 @@ public final class AgentCommandControllerGrpc {
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_UPDATE_VISIBILITY = 3;
-  private static final int METHODID_DELETE = 4;
+  private static final int METHODID_UPDATE_SHARING = 4;
+  private static final int METHODID_ROTATE_SHARE_LINK = 5;
+  private static final int METHODID_DELETE = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -693,6 +991,14 @@ public final class AgentCommandControllerGrpc {
           break;
         case METHODID_UPDATE_VISIBILITY:
           serviceImpl.updateVisibility((ai.stigmer.commons.apiresource.UpdateVisibilityInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
+          break;
+        case METHODID_UPDATE_SHARING:
+          serviceImpl.updateSharing((ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
+          break;
+        case METHODID_ROTATE_SHARE_LINK:
+          serviceImpl.rotateShareLink((ai.stigmer.agentic.agent.v1.RotateShareLinkInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -745,6 +1051,20 @@ public final class AgentCommandControllerGrpc {
               ai.stigmer.commons.apiresource.UpdateVisibilityInput,
               ai.stigmer.agentic.agent.v1.Agent>(
                 service, METHODID_UPDATE_VISIBILITY)))
+        .addMethod(
+          getUpdateSharingMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agent.v1.UpdateAgentSharingInput,
+              ai.stigmer.agentic.agent.v1.Agent>(
+                service, METHODID_UPDATE_SHARING)))
+        .addMethod(
+          getRotateShareLinkMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agent.v1.RotateShareLinkInput,
+              ai.stigmer.agentic.agent.v1.Agent>(
+                service, METHODID_ROTATE_SHARE_LINK)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -804,6 +1124,8 @@ public final class AgentCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getUpdateVisibilityMethod())
+              .addMethod(getUpdateSharingMethod())
+              .addMethod(getRotateShareLinkMethod())
               .addMethod(getDeleteMethod())
               .build();
         }

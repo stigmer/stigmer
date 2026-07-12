@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIlsKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkoKE0xpc3RTZXNzaW9uc1JlcXVlc3QSEQoJcGFnZV9zaXplGAEgASgFEhIKCnBhZ2VfdG9rZW4YAiABKAkSDAoEdGFncxgDIAMoCSJdChpMaXN0U2Vzc2lvbnNCeUFnZW50UmVxdWVzdBIYCghhZ2VudF9pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIkIKG1VwZGF0ZVNlc3Npb25TdWJqZWN0UmVxdWVzdBISCgJpZBgBIAEoCUIGukgDyAEBEg8KB3N1YmplY3QYAiABKAliBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_api, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIlsKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkoKE0xpc3RTZXNzaW9uc1JlcXVlc3QSEQoJcGFnZV9zaXplGAEgASgFEhIKCnBhZ2VfdG9rZW4YAiABKAkSDAoEdGFncxgDIAMoCSJuCiJMaXN0U2Vzc2lvbnNCeUFnZW50SW5zdGFuY2VSZXF1ZXN0EiEKEWFnZW50X2luc3RhbmNlX2lkGAEgASgJQga6SAPIAQESEQoJcGFnZV9zaXplGAIgASgFEhIKCnBhZ2VfdG9rZW4YAyABKAkiQgobVXBkYXRlU2Vzc2lvblN1YmplY3RSZXF1ZXN0EhIKAmlkGAEgASgJQga6SAPIAQESDwoHc3ViamVjdBgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_session_v1_api, file_buf_validate_validate]);
 
 /**
  * SessionId wraps a session identifier.
@@ -117,17 +117,17 @@ export const ListSessionsRequestSchema: GenMessage<ListSessionsRequest> = /*@__P
   messageDesc(file_ai_stigmer_agentic_session_v1_io, 3);
 
 /**
- * ListSessionsByAgentRequest lists all sessions for a specific agent.
+ * ListSessionsByAgentInstanceRequest lists all sessions for a specific agent instance.
  *
- * @generated from message ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest
+ * @generated from message ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest
  */
-export type ListSessionsByAgentRequest = Message<"ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest"> & {
+export type ListSessionsByAgentInstanceRequest = Message<"ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest"> & {
   /**
-   * Agent ID to filter by.
+   * Agent instance ID to filter by.
    *
-   * @generated from field: string agent_id = 1;
+   * @generated from field: string agent_instance_id = 1;
    */
-  agentId: string;
+  agentInstanceId: string;
 
   /**
    * Maximum number of sessions to return per page.
@@ -145,10 +145,10 @@ export type ListSessionsByAgentRequest = Message<"ai.stigmer.agentic.session.v1.
 };
 
 /**
- * Describes the message ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.
- * Use `create(ListSessionsByAgentRequestSchema)` to create a new message.
+ * Describes the message ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest.
+ * Use `create(ListSessionsByAgentInstanceRequestSchema)` to create a new message.
  */
-export const ListSessionsByAgentRequestSchema: GenMessage<ListSessionsByAgentRequest> = /*@__PURE__*/
+export const ListSessionsByAgentInstanceRequestSchema: GenMessage<ListSessionsByAgentInstanceRequest> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_session_v1_io, 4);
 
 /**

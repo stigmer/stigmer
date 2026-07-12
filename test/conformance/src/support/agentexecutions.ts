@@ -17,6 +17,7 @@ import type { ConformanceClients } from "../harness/clients";
 import type { McpToolFixture } from "../harness/mcp-server";
 import type { MockLlmProxy } from "../harness/mock-llm";
 import type { TargetProfile } from "../targets/target";
+import { type ExecutionValueInit, makeExecutionValues } from "./executioncontexts";
 import { type PollCoreOptions, pollUntil } from "./execution-poll";
 
 export const AGENT_EXECUTION_API_VERSION = "agentic.stigmer.ai/v1";
@@ -35,6 +36,9 @@ export interface AgentExecutionOptions {
   // gates apply; true = the run never pauses for approval. The top of the
   // approval-policy chain.
   autoApproveAll?: boolean;
+  // Execution-scoped env overrides (spec.runtime_env) — the highest-precedence
+  // layer of the env merge, materialized into the ExecutionContext at create.
+  runtimeEnv?: Record<string, ExecutionValueInit>;
 }
 
 // A complete, valid AgentExecution create request. execution_config is left unset
@@ -50,6 +54,7 @@ export function makeAgentExecution(opts: AgentExecutionOptions): MessageInitShap
       ...(opts.sessionId !== undefined ? { sessionId: opts.sessionId } : {}),
       message: opts.message ?? "Say hello.",
       ...(opts.autoApproveAll !== undefined ? { autoApproveAll: opts.autoApproveAll } : {}),
+      ...(opts.runtimeEnv !== undefined ? { runtimeEnv: makeExecutionValues(opts.runtimeEnv) } : {}),
     },
   };
 }

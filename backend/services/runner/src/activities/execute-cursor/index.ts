@@ -125,6 +125,7 @@ export function createCursorActivities(config: Config) {
     endpoint: config.stigmerBackendEndpoint,
     token: config.stigmerToken,
     tokenRef: config.stigmerTokenRef,
+    runnerTokenRef: config.stigmerRunnerTokenRef,
   });
 
   return {
@@ -714,6 +715,19 @@ async function executeCursorInner(
       await removeHitlGate(hitlGate);
       await removeStigmerSymlink(primaryWorkspaceDir);
     };
+    // Issue #205 diagnosability: the merge preserved the user's own hooks on
+    // the gating events, and Cursor runs every configured hook — so any of
+    // these can deny this turn's tools without writing our denial ledger. Log
+    // the exposure up front; the turn boundary uses the same list to name the
+    // likely culprit if it detects an unattributed hook block.
+    if (hitlGate.foreignGatingHooks.length > 0) {
+      console.warn(
+        `ExecuteCursor: workspace hooks.json carries ${hitlGate.foreignGatingHooks.length} ` +
+        `foreign gating hook(s) [${hitlGate.foreignGatingHooks.join(", ")}] — a deny from ` +
+        `any of them blocks the runner's tools outside Stigmer's approval flow ` +
+        `(execution=${executionId})`,
+      );
+    }
     // Arm the denial watcher as soon as the gate exists. The per-turn ledger
     // reset may flip the flag once before the run starts; the loop's read then
     // sees an empty ledger and clears it — harmless by construction.
@@ -1198,6 +1212,7 @@ async function executeCursorInner(
         artifactStorage,
         mergedPolicies,
         denialCancelSettled: denialSettled,
+        foreignGatingHooks: hitlGate.foreignGatingHooks,
       });
     // Pauses for review exactly like the native harness: the boundary mutated
     // the transcript in place; we flip the phase, persist, and RETURN to the
@@ -1208,6 +1223,41 @@ async function executeCursorInner(
       console.log(
         `ExecuteCursor returning WAITING_FOR_APPROVAL: ${boundary.deniedToolCallCount} gated tool(s), ` +
         `${boundary.capturedChangeCount} file card(s) pending`,
+      );
+      return slimStatus(status);
+    };
+
+    // Issue #205: a tool was blocked by a hook Stigmer does not own (the merge
+    // preserves the user's own gating hooks, and Cursor runs every one), so no
+    // approval can unblock it — an approval grants a token only OUR hook reads,
+    // and the foreign hook would deny the re-attempt forever. Completing would
+    // be the silent-failure shape the issue describes; instead fail with a
+    // diagnosable reason naming the blocked tools and the likely culprit.
+    // Shared by the primary turn and both recovery retries.
+    const enterUnattributedHookBlockFailure = async (boundary: TurnBoundaryResult) => {
+      const blockedTools = [...new Set(boundary.unattributedHookBlocks.map((b) => b.toolName))]
+        .join(", ");
+      const culprit = hitlGate.foreignGatingHooks.length > 0
+        ? ` The workspace's .cursor/hooks.json registers hook(s) outside Stigmer's control ` +
+          `[${hitlGate.foreignGatingHooks.join(", ")}], which most likely denied it.`
+        : "";
+      status.phase = ExecutionPhase.EXECUTION_FAILED;
+      status.error =
+        `A Cursor hook outside Stigmer's approval gate blocked tool(s): ${blockedTools}.` +
+        culprit +
+        ` Stigmer cannot request approval on a foreign hook's behalf — remove or adjust ` +
+        `the hook in .cursor/hooks.json and retry.`;
+      status.completedAt = utcTimestamp();
+      status.messages.push(create(AgentMessageSchema, {
+        type: MessageType.MESSAGE_SYSTEM,
+        content: `Execution failed: ${status.error}`,
+        timestamp: utcTimestamp(),
+      }));
+      await persist(status);
+      try { resolution.agent.close(); } catch { /* best effort */ }
+      console.error(
+        `ExecuteCursor failed (unattributed hook block): execution=${executionId}, ` +
+        `tools=[${blockedTools}], foreignHooks=[${hitlGate.foreignGatingHooks.join(", ")}]`,
       );
       return slimStatus(status);
     };
@@ -1285,7 +1335,12 @@ async function executeCursorInner(
       turnState.firstDenialDetected ? turnState.denialCancelSettled : undefined,
     );
     if (boundary.waiting) {
+      // A pausing turn is never silent, so an unattributed block alongside our
+      // own gate only warns (logged by the boundary) — the pause wins.
       return enterApprovalPause(boundary);
+    }
+    if (boundary.unattributedHookBlocks.length > 0) {
+      return enterUnattributedHookBlockFailure(boundary);
     }
 
     // Phase 13: Map final result
@@ -1407,6 +1462,9 @@ async function executeCursorInner(
             );
             return enterApprovalPause(retryBoundary);
           }
+          if (retryBoundary && retryBoundary.unattributedHookBlocks.length > 0) {
+            return enterUnattributedHookBlockFailure(retryBoundary);
+          }
 
           if (retryResult.status === "finished") {
             status.phase = ExecutionPhase.EXECUTION_COMPLETED;
@@ -1487,6 +1545,9 @@ async function executeCursorInner(
               `ExecuteCursor transport-timeout recovery paused for review: execution=${executionId}`,
             );
             return enterApprovalPause(retryBoundary);
+          }
+          if (retryBoundary && retryBoundary.unattributedHookBlocks.length > 0) {
+            return enterUnattributedHookBlockFailure(retryBoundary);
           }
 
           if (retryResult.status === "finished") {

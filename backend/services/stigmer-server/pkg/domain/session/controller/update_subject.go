@@ -2,7 +2,7 @@ package session
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/rs/zerolog/log"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -10,6 +10,8 @@ import (
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	commonspb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
 
@@ -24,15 +26,21 @@ func (c *SessionController) UpdateSubject(
 	ctx context.Context,
 	req *sessionv1.UpdateSessionSubjectRequest,
 ) (*sessionv1.Session, error) {
+	// Field validation is guaranteed at the transport boundary by the
+	// protovalidate interceptor; this guard covers the direct-Go-call path
+	// (unit tests) with the same InvalidArgument contract.
 	if req.GetId() == "" {
-		return nil, fmt.Errorf("session id is required")
+		return nil, grpclib.InvalidArgumentError("id is required")
 	}
 
 	kind := apiresourcekind.ApiResourceKind_session
 
 	session := &sessionv1.Session{}
 	if err := c.store.GetResource(ctx, kind, req.GetId(), session); err != nil {
-		return nil, fmt.Errorf("load session %s: %w", req.GetId(), err)
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, grpclib.NotFoundError("session", req.GetId())
+		}
+		return nil, grpclib.InternalError(err, "failed to load session")
 	}
 
 	if session.Spec == nil {
@@ -43,7 +51,7 @@ func (c *SessionController) UpdateSubject(
 	updateSpecAuditTimestamp(session)
 
 	if err := c.store.SaveResource(ctx, kind, req.GetId(), session); err != nil {
-		return nil, fmt.Errorf("persist session %s: %w", req.GetId(), err)
+		return nil, grpclib.InternalError(err, "failed to persist session")
 	}
 
 	indexSessionSearch(ctx, c, kind, session)

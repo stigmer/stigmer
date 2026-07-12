@@ -45,14 +45,16 @@ export function ChangesTab({
   const { writeBacks, hasWriteBacks } = useSessionWriteBacks(executions);
 
   if (hasWriteBacks) {
+    // Dense row groups matching the Artifacts facet's list — gap separates
+    // entries only in multi-repo sessions (single-entry lists stay seamless).
     return (
-      <div role="list" className="space-y-2">
+      <ul role="list" className="flex flex-col gap-3">
         {writeBacks.map((entry) => (
-          <div key={entry.writeBack.workspaceEntryName} role="listitem">
+          <li key={entry.writeBack.workspaceEntryName}>
             <WriteBackCard writeBack={entry.writeBack} />
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     );
   }
 

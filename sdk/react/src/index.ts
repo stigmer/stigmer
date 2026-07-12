@@ -323,6 +323,9 @@ export {
   execIdFromStorageKey,
   useWorkspaceWriteBacks,
   WriteBackCard,
+  parseDiffStatSummary,
+  trailingDiffStatLine,
+  writeBackDisplayName,
   FileChangesView,
   FileChangeDiff,
   EmptyChangeNotice,
@@ -419,6 +422,7 @@ export type {
   UseFileChangeContentReturn,
   UseWorkspaceWriteBacksReturn,
   WriteBackCardProps,
+  DiffStatSummary,
   FileChangesViewProps,
   FileChangeDiffProps,
   EmptyChangeNoticeProps,
@@ -980,6 +984,32 @@ export type {
   InvitationRedemptionProps,
 } from "./invitation/index.js";
 
+// Sharing — shared-agent public profile, the anonymous-visitor chat organism,
+// and the owner-side Share experience (dialog, kebab hook, sharing mutation).
+export {
+  useSharedAgentProfile,
+  SharedAgentChat,
+  sharingAudienceFromProto,
+  useUpdateAgentSharing,
+  useRotateShareLink,
+  ShareAgentDialog,
+  useShareAgent,
+  validateOrigin,
+  MAX_ALLOWED_ORIGINS,
+} from "./sharing/index.js";
+export type {
+  UseSharedAgentProfileOptions,
+  UseSharedAgentProfileReturn,
+  SharedAgentChatProps,
+  AgentSharingDraft,
+  SharingAudience,
+  UseUpdateAgentSharingReturn,
+  UseRotateShareLinkReturn,
+  ShareAgentDialogProps,
+  UseShareAgentArgs,
+  UseShareAgentReturn,
+} from "./sharing/index.js";
+
 // Error — structured error display with classification, retry, and contextual guidance
 export { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "./error/index.js";
 export type { ErrorMessageProps, SecretFlowErrorGuideProps } from "./error/index.js";
@@ -1135,6 +1165,10 @@ export type {
 // Tabs — accessible tabbed panel primitive
 export { Tabs } from "./tabs/index.js";
 export type { TabsProps, TabItem } from "./tabs/index.js";
+
+// Switch — accessible on/off toggle primitive (WAI-ARIA Switch pattern)
+export { Switch } from "./switch/index.js";
+export type { SwitchProps } from "./switch/index.js";
 
 // Resource Detail — headless hooks, action bar, and composed shell for resource detail pages
 export {

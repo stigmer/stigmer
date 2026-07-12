@@ -73,7 +73,7 @@ export interface Config {
   readonly maxConcurrentActivities: number;
   readonly idleTimeoutSeconds: number | null;
   readonly cloudModeEnabled: boolean;
-  readonly checkpointerType: "memory" | "http";
+  readonly checkpointerType: "memory" | "http" | "sqlite";
   readonly checkpointerProxyEndpoint: string | null;
   readonly primaryModel: string;
   /**
@@ -97,6 +97,14 @@ export interface Config {
   readonly workspaceLockTimeoutMs: number;
   /** Shared mutable token reference for dynamic token updates (manager mode). */
   readonly stigmerTokenRef?: { current: string | null };
+  /**
+   * Shared mutable reference to the runner credential (manager mode): the
+   * server-minted runner token once adopted, tracking the control-plane token
+   * in lockstep before that. StigmerClient authenticates ExecutionContext
+   * reads with it so the server's runner-class decrypt gate recognizes a
+   * desktop runner (see stigmer-client.ts).
+   */
+  readonly stigmerRunnerTokenRef?: { current: string | null };
 }
 
 export function loadConfig(): Config {
@@ -146,8 +154,13 @@ export function loadConfig(): Config {
   const idleTimeoutRaw = process.env.STIGMER_IDLE_TIMEOUT_SECONDS;
   const idleTimeoutSeconds = idleTimeoutRaw ? parseInt(idleTimeoutRaw, 10) : null;
 
-  const checkpointerType = (process.env.STIGMER_CHECKPOINTER_TYPE as "memory" | "http" | undefined)
-    ?? (mode === "cloud" ? "http" : "memory");
+  // Local/OSS default is the durable SQLite saver so HITL/pause/transient-recovery
+  // resume across ExecuteDeepAgent invocations (stigmer/stigmer#204); cloud stays
+  // on the proxy-backed http saver. STIGMER_CHECKPOINTER_TYPE overrides explicitly
+  // (e.g. "memory" for ephemeral test runs).
+  const checkpointerType =
+    (process.env.STIGMER_CHECKPOINTER_TYPE as "memory" | "http" | "sqlite" | undefined)
+    ?? (mode === "cloud" ? "http" : "sqlite");
   const checkpointerProxyEndpoint = process.env.STIGMER_CHECKPOINTER_PROXY_ENDPOINT
     ?? proxyEndpoint;
 

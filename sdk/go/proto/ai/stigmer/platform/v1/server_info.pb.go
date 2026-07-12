@@ -312,6 +312,174 @@ func (x *GetRunnerBootstrapConfigOutput) GetRunnerAccessTokenExpiresInSeconds() 
 	return 0
 }
 
+// Names the unit of dispatched work a runner wants a scoped token for.
+type GetRunnerScopedTokenInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The dispatched work the token will serve. The runner names only the id it
+	// was dispatched; the server derives the token's scope from the resource
+	// itself (an agent execution scopes to its parent session).
+	//
+	// Types that are valid to be assigned to Scope:
+	//
+	//	*GetRunnerScopedTokenInput_AgentExecutionId
+	//	*GetRunnerScopedTokenInput_WorkflowExecutionId
+	Scope         isGetRunnerScopedTokenInput_Scope `protobuf_oneof:"scope"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRunnerScopedTokenInput) Reset() {
+	*x = GetRunnerScopedTokenInput{}
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRunnerScopedTokenInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRunnerScopedTokenInput) ProtoMessage() {}
+
+func (x *GetRunnerScopedTokenInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRunnerScopedTokenInput.ProtoReflect.Descriptor instead.
+func (*GetRunnerScopedTokenInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetRunnerScopedTokenInput) GetScope() isGetRunnerScopedTokenInput_Scope {
+	if x != nil {
+		return x.Scope
+	}
+	return nil
+}
+
+func (x *GetRunnerScopedTokenInput) GetAgentExecutionId() string {
+	if x != nil {
+		if x, ok := x.Scope.(*GetRunnerScopedTokenInput_AgentExecutionId); ok {
+			return x.AgentExecutionId
+		}
+	}
+	return ""
+}
+
+func (x *GetRunnerScopedTokenInput) GetWorkflowExecutionId() string {
+	if x != nil {
+		if x, ok := x.Scope.(*GetRunnerScopedTokenInput_WorkflowExecutionId); ok {
+			return x.WorkflowExecutionId
+		}
+	}
+	return ""
+}
+
+type isGetRunnerScopedTokenInput_Scope interface {
+	isGetRunnerScopedTokenInput_Scope()
+}
+
+type GetRunnerScopedTokenInput_AgentExecutionId struct {
+	// AgentExecution id — yields a token scoped to the execution's parent
+	// session, valid for every ExecutionContext in that session (multi-turn).
+	AgentExecutionId string `protobuf:"bytes,1,opt,name=agent_execution_id,json=agentExecutionId,proto3,oneof"`
+}
+
+type GetRunnerScopedTokenInput_WorkflowExecutionId struct {
+	// WorkflowExecution id — yields a token scoped to exactly that workflow
+	// execution's ExecutionContext.
+	WorkflowExecutionId string `protobuf:"bytes,2,opt,name=workflow_execution_id,json=workflowExecutionId,proto3,oneof"`
+}
+
+func (*GetRunnerScopedTokenInput_AgentExecutionId) isGetRunnerScopedTokenInput_Scope() {}
+
+func (*GetRunnerScopedTokenInput_WorkflowExecutionId) isGetRunnerScopedTokenInput_Scope() {}
+
+// A runner token scoped to one unit of work, or empty when the server cannot
+// mint one.
+//
+// Mirrors the token fields of GetRunnerBootstrapConfigOutput: presence-based —
+// an empty token means "not minted" (OSS, or no signing key), and the runner
+// keeps using its existing credential.
+type GetRunnerScopedTokenOutput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Stigmer-signed token scoped to the requested work. The runner presents it
+	// for ExecutionContext reads in place of its unscoped bootstrap token.
+	//
+	// @internal
+	// iss=stigmer, sub=caller identity account, token_type=sandbox (with
+	// session_id claim) or workflow_sandbox (with workflow_execution_id claim),
+	// minted by the same SandboxTokenService that provisions cloud sandboxes.
+	RunnerScopedToken string `protobuf:"bytes,1,opt,name=runner_scoped_token,json=runnerScopedToken,proto3" json:"runner_scoped_token,omitempty"`
+	// Token type for runner_scoped_token. "Bearer" when a token is present,
+	// empty otherwise.
+	TokenType string `protobuf:"bytes,2,opt,name=token_type,json=tokenType,proto3" json:"token_type,omitempty"`
+	// Lifetime of runner_scoped_token in seconds from issuance. 0 when no token
+	// is present.
+	ExpiresInSeconds int32 `protobuf:"varint,3,opt,name=expires_in_seconds,json=expiresInSeconds,proto3" json:"expires_in_seconds,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *GetRunnerScopedTokenOutput) Reset() {
+	*x = GetRunnerScopedTokenOutput{}
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRunnerScopedTokenOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRunnerScopedTokenOutput) ProtoMessage() {}
+
+func (x *GetRunnerScopedTokenOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRunnerScopedTokenOutput.ProtoReflect.Descriptor instead.
+func (*GetRunnerScopedTokenOutput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetRunnerScopedTokenOutput) GetRunnerScopedToken() string {
+	if x != nil {
+		return x.RunnerScopedToken
+	}
+	return ""
+}
+
+func (x *GetRunnerScopedTokenOutput) GetTokenType() string {
+	if x != nil {
+		return x.TokenType
+	}
+	return ""
+}
+
+func (x *GetRunnerScopedTokenOutput) GetExpiresInSeconds() int32 {
+	if x != nil {
+		return x.ExpiresInSeconds
+	}
+	return 0
+}
+
 var File_ai_stigmer_platform_v1_server_info_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
@@ -328,14 +496,24 @@ const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\x13runner_access_token\x18\x03 \x01(\tR\x11runnerAccessToken\x12\x1d\n" +
 	"\n" +
 	"token_type\x18\x04 \x01(\tR\ttokenType\x12Q\n" +
-	"&runner_access_token_expires_in_seconds\x18\x05 \x01(\x05R!runnerAccessTokenExpiresInSeconds*C\n" +
+	"&runner_access_token_expires_in_seconds\x18\x05 \x01(\x05R!runnerAccessTokenExpiresInSeconds\"\x91\x01\n" +
+	"\x19GetRunnerScopedTokenInput\x12.\n" +
+	"\x12agent_execution_id\x18\x01 \x01(\tH\x00R\x10agentExecutionId\x124\n" +
+	"\x15workflow_execution_id\x18\x02 \x01(\tH\x00R\x13workflowExecutionIdB\x0e\n" +
+	"\x05scope\x12\x05\xbaH\x02\b\x01\"\x99\x01\n" +
+	"\x1aGetRunnerScopedTokenOutput\x12.\n" +
+	"\x13runner_scoped_token\x18\x01 \x01(\tR\x11runnerScopedToken\x12\x1d\n" +
+	"\n" +
+	"token_type\x18\x02 \x01(\tR\ttokenType\x12,\n" +
+	"\x12expires_in_seconds\x18\x03 \x01(\x05R\x10expiresInSeconds*C\n" +
 	"\rServerEdition\x12\x1e\n" +
 	"\x1aserver_edition_unspecified\x10\x00\x12\a\n" +
 	"\x03oss\x10\x01\x12\t\n" +
-	"\x05cloud\x10\x022\x9b\x02\n" +
+	"\x05cloud\x10\x022\xa1\x03\n" +
 	"\x17PlatformQueryController\x12n\n" +
 	"\rgetServerInfo\x12*.ai.stigmer.platform.v1.GetServerInfoInput\x1a+.ai.stigmer.platform.v1.GetServerInfoOutput\"\x04ȸ\x18\x01\x12\x8f\x01\n" +
-	"\x18getRunnerBootstrapConfig\x125.ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput\x1a6.ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput\"\x04и\x18\x01B\xf3\x01\n" +
+	"\x18getRunnerBootstrapConfig\x125.ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput\x1a6.ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput\"\x04и\x18\x01\x12\x83\x01\n" +
+	"\x14getRunnerScopedToken\x121.ai.stigmer.platform.v1.GetRunnerScopedTokenInput\x1a2.ai.stigmer.platform.v1.GetRunnerScopedTokenOutput\"\x04и\x18\x01B\xf3\x01\n" +
 	"\x1acom.ai.stigmer.platform.v1B\x0fServerInfoProtoP\x01ZIgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/platform/v1;platformv1\xa2\x02\x03ASP\xaa\x02\x16Ai.Stigmer.Platform.V1\xca\x02\x16Ai\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Platform::V1b\x06proto3"
 
 var (
@@ -351,22 +529,26 @@ func file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_platform_v1_server_info_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_platform_v1_server_info_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ai_stigmer_platform_v1_server_info_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_platform_v1_server_info_proto_goTypes = []any{
 	(ServerEdition)(0),                     // 0: ai.stigmer.platform.v1.ServerEdition
 	(*GetServerInfoInput)(nil),             // 1: ai.stigmer.platform.v1.GetServerInfoInput
 	(*GetServerInfoOutput)(nil),            // 2: ai.stigmer.platform.v1.GetServerInfoOutput
 	(*GetRunnerBootstrapConfigInput)(nil),  // 3: ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
 	(*GetRunnerBootstrapConfigOutput)(nil), // 4: ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
+	(*GetRunnerScopedTokenInput)(nil),      // 5: ai.stigmer.platform.v1.GetRunnerScopedTokenInput
+	(*GetRunnerScopedTokenOutput)(nil),     // 6: ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
 }
 var file_ai_stigmer_platform_v1_server_info_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.platform.v1.GetServerInfoOutput.edition:type_name -> ai.stigmer.platform.v1.ServerEdition
 	1, // 1: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:input_type -> ai.stigmer.platform.v1.GetServerInfoInput
 	3, // 2: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:input_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
-	2, // 3: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:output_type -> ai.stigmer.platform.v1.GetServerInfoOutput
-	4, // 4: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:output_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
+	5, // 3: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:input_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenInput
+	2, // 4: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:output_type -> ai.stigmer.platform.v1.GetServerInfoOutput
+	4, // 5: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:output_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
+	6, // 6: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:output_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
+	4, // [4:7] is the sub-list for method output_type
+	1, // [1:4] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -377,13 +559,17 @@ func file_ai_stigmer_platform_v1_server_info_proto_init() {
 	if File_ai_stigmer_platform_v1_server_info_proto != nil {
 		return
 	}
+	file_ai_stigmer_platform_v1_server_info_proto_msgTypes[4].OneofWrappers = []any{
+		(*GetRunnerScopedTokenInput_AgentExecutionId)(nil),
+		(*GetRunnerScopedTokenInput_WorkflowExecutionId)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_platform_v1_server_info_proto_rawDesc), len(file_ai_stigmer_platform_v1_server_info_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

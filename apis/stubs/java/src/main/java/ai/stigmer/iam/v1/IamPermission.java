@@ -166,12 +166,15 @@ public enum IamPermission
   can_create_runner(25),
   /**
    * <pre>
-   * Platform-level permission to delete sessions.
-   * Session deletion is restricted to operators to preserve billing audit trail.
+   * Deprecated: session deletion is authorized via can_delete on the
+   * session itself (owner-only). This platform-level permission is no
+   * longer referenced by any RPC or FGA relation; the value is retained
+   * because enum value removal is a breaking change.
    * </pre>
    *
-   * <code>can_delete_session = 26;</code>
+   * <code>can_delete_session = 26 [deprecated = true];</code>
    */
+  @java.lang.Deprecated
   can_delete_session(26),
   /**
    * <pre>
@@ -348,13 +351,15 @@ public enum IamPermission
   public static final int can_create_runner_VALUE = 25;
   /**
    * <pre>
-   * Platform-level permission to delete sessions.
-   * Session deletion is restricted to operators to preserve billing audit trail.
+   * Deprecated: session deletion is authorized via can_delete on the
+   * session itself (owner-only). This platform-level permission is no
+   * longer referenced by any RPC or FGA relation; the value is retained
+   * because enum value removal is a breaking change.
    * </pre>
    *
-   * <code>can_delete_session = 26;</code>
+   * <code>can_delete_session = 26 [deprecated = true];</code>
    */
-  public static final int can_delete_session_VALUE = 26;
+  @java.lang.Deprecated public static final int can_delete_session_VALUE = 26;
   /**
    * <pre>
    * Billing permissions (org-scoped).

@@ -187,6 +187,10 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * System-generated unique identifier.
+   *
+   * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
+   * exception is Organization: its id equals its slug (the globally unique
+   * tenancy root is addressed by slug, not a minted id).
    * </pre>
    *
    * <code>string id = 3 [json_name = "id"];</code>
@@ -208,6 +212,10 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * System-generated unique identifier.
+   *
+   * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
+   * exception is Organization: its id equals its slug (the globally unique
+   * tenancy root is addressed by slug, not a minted id).
    * </pre>
    *
    * <code>string id = 3 [json_name = "id"];</code>
@@ -288,7 +296,8 @@ private static final long serialVersionUID = 0L;
    * Visibility controls who can access this resource.
    * - PRIVATE: Only members of the owning organization can access.
    * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-   * Default: PRIVATE for new resources.
+   * Default: config-driven per kind — blueprint kinds (marked
+   * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -302,7 +311,8 @@ private static final long serialVersionUID = 0L;
    * Visibility controls who can access this resource.
    * - PRIVATE: Only members of the owning organization can access.
    * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-   * Default: PRIVATE for new resources.
+   * Default: config-driven per kind — blueprint kinds (marked
+   * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1392,6 +1402,10 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * System-generated unique identifier.
+     *
+     * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
+     * exception is Organization: its id equals its slug (the globally unique
+     * tenancy root is addressed by slug, not a minted id).
      * </pre>
      *
      * <code>string id = 3 [json_name = "id"];</code>
@@ -1412,6 +1426,10 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * System-generated unique identifier.
+     *
+     * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
+     * exception is Organization: its id equals its slug (the globally unique
+     * tenancy root is addressed by slug, not a minted id).
      * </pre>
      *
      * <code>string id = 3 [json_name = "id"];</code>
@@ -1433,6 +1451,10 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * System-generated unique identifier.
+     *
+     * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
+     * exception is Organization: its id equals its slug (the globally unique
+     * tenancy root is addressed by slug, not a minted id).
      * </pre>
      *
      * <code>string id = 3 [json_name = "id"];</code>
@@ -1450,6 +1472,10 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * System-generated unique identifier.
+     *
+     * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
+     * exception is Organization: its id equals its slug (the globally unique
+     * tenancy root is addressed by slug, not a minted id).
      * </pre>
      *
      * <code>string id = 3 [json_name = "id"];</code>
@@ -1464,6 +1490,10 @@ java.lang.String defaultValue) {
     /**
      * <pre>
      * System-generated unique identifier.
+     *
+     * For every kind this is a generated, prefixed id (e.g. agt_&lt;ulid&gt;). The one
+     * exception is Organization: its id equals its slug (the globally unique
+     * tenancy root is addressed by slug, not a minted id).
      * </pre>
      *
      * <code>string id = 3 [json_name = "id"];</code>
@@ -1593,7 +1623,8 @@ java.lang.String defaultValue) {
      * Visibility controls who can access this resource.
      * - PRIVATE: Only members of the owning organization can access.
      * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-     * Default: PRIVATE for new resources.
+     * Default: config-driven per kind — blueprint kinds (marked
+     * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1607,7 +1638,8 @@ java.lang.String defaultValue) {
      * Visibility controls who can access this resource.
      * - PRIVATE: Only members of the owning organization can access.
      * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-     * Default: PRIVATE for new resources.
+     * Default: config-driven per kind — blueprint kinds (marked
+     * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1626,7 +1658,8 @@ java.lang.String defaultValue) {
      * Visibility controls who can access this resource.
      * - PRIVATE: Only members of the owning organization can access.
      * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-     * Default: PRIVATE for new resources.
+     * Default: config-driven per kind — blueprint kinds (marked
+     * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1642,7 +1675,8 @@ java.lang.String defaultValue) {
      * Visibility controls who can access this resource.
      * - PRIVATE: Only members of the owning organization can access.
      * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-     * Default: PRIVATE for new resources.
+     * Default: config-driven per kind — blueprint kinds (marked
+     * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>
@@ -1661,7 +1695,8 @@ java.lang.String defaultValue) {
      * Visibility controls who can access this resource.
      * - PRIVATE: Only members of the owning organization can access.
      * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-     * Default: PRIVATE for new resources.
+     * Default: config-driven per kind — blueprint kinds (marked
+     * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5 [json_name = "visibility", (.buf.validate.field) = { ... }</code>

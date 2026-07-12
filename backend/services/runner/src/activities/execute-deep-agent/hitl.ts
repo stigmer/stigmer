@@ -14,18 +14,20 @@
  */
 
 import { Command } from "@langchain/langgraph";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   ApprovalAction,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 
 // APPROVE_ALL resumes the interrupted tool exactly like APPROVE. Its
 // "auto-approve the rest of the run" effect is realized in setup.ts (the
 // approval gate is disabled for the whole execution once any APPROVE_ALL
 // decision exists), not here — this map only resolves the currently
-// interrupted tool calls.
+// interrupted tool calls. REJECT resumes the gate too (the gate returns a
+// denial ToolMessage that the model reads); it denies a single tool, it does
+// NOT fail the run — see reconcileNonExecutingDecisions for the terminal status.
 const ACTION_MAP: ReadonlyMap<ApprovalAction, string> = new Map([
   [ApprovalAction.APPROVE, "approve"],
   [ApprovalAction.APPROVE_ALL, "approve"],
@@ -36,8 +38,6 @@ const ACTION_MAP: ReadonlyMap<ApprovalAction, string> = new Map([
 export interface ResumeResult {
   readonly graphInput: Command | Record<string, unknown>;
   readonly isResumeFromApproval: boolean;
-  readonly hasRejection: boolean;
-  readonly rejectionReason: string;
 }
 
 export interface GraphStateSnapshot {
@@ -87,8 +87,6 @@ export function resolveResumeInput(
     return {
       graphInput: { messages: [{ role: "user", content: userMessage }] },
       isResumeFromApproval: false,
-      hasRejection: false,
-      rejectionReason: "",
     };
   }
 
@@ -97,14 +95,10 @@ export function resolveResumeInput(
     return {
       graphInput: { messages: [{ role: "user", content: userMessage }] },
       isResumeFromApproval: false,
-      hasRejection: false,
-      rejectionReason: "",
     };
   }
 
   const resumeDict: Record<string, { action: string; comment?: string }> = {};
-  let hasRejection = false;
-  let rejectionReason = "";
 
   for (const intr of pendingInterrupts) {
     const toolCallId = intr.toolCallId;
@@ -118,32 +112,22 @@ export function resolveResumeInput(
       action: actionStr,
       ...(decision.comment ? { comment: decision.comment } : {}),
     };
-
-    if (decision.action === ApprovalAction.REJECT) {
-      hasRejection = true;
-      rejectionReason = decision.comment || "Rejected by user";
-    }
   }
 
   if (Object.keys(resumeDict).length === 0) {
     return {
       graphInput: { messages: [{ role: "user", content: userMessage }] },
       isResumeFromApproval: false,
-      hasRejection: false,
-      rejectionReason: "",
     };
   }
 
   console.log(
-    `[hitl] Building resume for ${Object.keys(resumeDict).length} interrupt(s), ` +
-    `rejection=${hasRejection}`,
+    `[hitl] Building resume for ${Object.keys(resumeDict).length} interrupt(s)`,
   );
 
   return {
     graphInput: new Command({ resume: resumeDict }),
     isResumeFromApproval: true,
-    hasRejection,
-    rejectionReason,
   };
 }
 
@@ -207,31 +191,45 @@ function extractApprovalDecisions(
 }
 
 /**
- * Reconcile tool call statuses after resume decisions are applied.
+ * Terminalize tool calls whose approval decision is non-executing — SKIP or
+ * REJECT — so a denied or skipped call is never left stuck at WAITING_APPROVAL.
  *
- * Updates the StatusBuilder's tool call entries to reflect the approval
- * outcomes: APPROVE → RUNNING, SKIP → SKIPPED, REJECT → FAILED.
+ * This is the single, authoritative, checkpointer-independent reconciliation of
+ * the two decisions that never run the tool: their outcome is fully determined
+ * by the recorded decision (ToolCall.approval_action), not by any graph event.
+ * APPROVE / APPROVE_ALL are intentionally NOT handled here — the tool actually
+ * executes, and real tool events (v3 tool_started → tool_finished) terminalize
+ * it in place.
+ *
+ * Why a decision-derived reconciler rather than the resumed stream: on the
+ * durable path (sqlite local / http cloud) the gate returns a denial/skip
+ * ToolMessage WITHOUT an on_tool_start/on_tool_end pair, and on the memory path
+ * the graph replays without ever re-driving the gate — so in both cases the
+ * seeded WAITING_APPROVAL row is never flipped by the stream and would persist
+ * on a COMPLETED execution. Folding the recorded decision into a terminal status
+ * makes every checkpointer backend behave identically by construction.
+ *
+ * REJECT and SKIP share TOOL_CALL_SKIPPED as the terminal status (the tool did
+ * not run); they stay distinguishable by ToolCall.approval_action and by the
+ * append-only approval-event stream (REJECTED vs SKIPPED). Idempotent: a row
+ * already resolved carries the same decision and re-resolves identically.
  */
-export function reconcileToolCallStatuses(
-  toolCalls: ReadonlyMap<string, ToolCall>,
-  decisions: ReadonlyMap<string, ApprovalDecisionEntry>,
-): void {
-  for (const [toolCallId, decision] of decisions) {
-    const tc = toolCalls.get(toolCallId);
-    if (!tc) continue;
-
-    switch (decision.action) {
-      case ApprovalAction.APPROVE:
-      case ApprovalAction.APPROVE_ALL:
-        tc.status = ToolCallStatus.TOOL_CALL_RUNNING;
-        break;
-      case ApprovalAction.SKIP:
-        tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
-        break;
-      case ApprovalAction.REJECT:
-        tc.status = ToolCallStatus.TOOL_CALL_FAILED;
-        tc.error = `Rejected by user: ${decision.comment || "no reason given"}`;
-        break;
+export function reconcileNonExecutingDecisions(status: AgentExecutionStatus): void {
+  const apply = (messages: readonly AgentMessage[]): void => {
+    for (const msg of messages) {
+      for (const tc of msg.toolCalls) {
+        if (tc.approvalAction === ApprovalAction.SKIP) {
+          tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
+        } else if (tc.approvalAction === ApprovalAction.REJECT) {
+          tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
+          if (!tc.error) tc.error = "Rejected by user";
+        }
+      }
     }
+  };
+
+  apply(status.messages);
+  for (const subAgent of status.subAgentExecutions) {
+    apply(subAgent.messages);
   }
 }

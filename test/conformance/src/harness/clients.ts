@@ -4,12 +4,14 @@
 // The suite drives the server through the raw generated @stigmer/protos
 // controllers (no SDK) so it tests the proto contract directly, independent of
 // any client convenience layer that could drift from it.
-import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { createClient, type Client, type Interceptor, type Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
+import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
@@ -24,6 +26,8 @@ import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/wo
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
 import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
 import { WorkflowExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/query_pb";
+import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/command_pb";
+import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
 import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 import { ProjectCommandController } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/command_pb";
@@ -38,8 +42,12 @@ export interface ConformanceClients {
   workflowQuery: Client<typeof WorkflowQueryController>;
   workflowExecutionCommand: Client<typeof WorkflowExecutionCommandController>;
   workflowExecutionQuery: Client<typeof WorkflowExecutionQueryController>;
+  workflowInstanceCommand: Client<typeof WorkflowInstanceCommandController>;
+  workflowInstanceQuery: Client<typeof WorkflowInstanceQueryController>;
   agentExecutionCommand: Client<typeof AgentExecutionCommandController>;
   agentExecutionQuery: Client<typeof AgentExecutionQueryController>;
+  agentInstanceCommand: Client<typeof AgentInstanceCommandController>;
+  agentInstanceQuery: Client<typeof AgentInstanceQueryController>;
   agentCommand: Client<typeof AgentCommandController>;
   agentQuery: Client<typeof AgentQueryController>;
   environmentCommand: Client<typeof EnvironmentCommandController>;
@@ -54,11 +62,26 @@ export interface ConformanceClients {
   skillQuery: Client<typeof SkillQueryController>;
 }
 
-export function createTransport(baseUrl: string): Transport {
-  // Plain gRPC over h2c: createGrpcTransport always speaks HTTP/2, matching the
-  // OSS server, which serves native gRPC on a single insecure port (no auth in
-  // local mode).
-  return createGrpcTransport({ baseUrl });
+export interface TransportOptions {
+  // Attached as `authorization: Bearer <token>` on every RPC. Used by the
+  // cloud target, whose service authenticates callers; local targets run
+  // without auth and omit it.
+  bearerToken?: string;
+}
+
+export function createTransport(baseUrl: string, options: TransportOptions = {}): Transport {
+  // Plain gRPC over h2c: createGrpcTransport always speaks HTTP/2, matching
+  // both backends — the OSS server and the hermetic cloud service each serve
+  // native gRPC on a single insecure local port.
+  const interceptors: Interceptor[] = [];
+  if (options.bearerToken !== undefined) {
+    const authorization = `Bearer ${options.bearerToken}`;
+    interceptors.push((next) => (req) => {
+      req.header.set("authorization", authorization);
+      return next(req);
+    });
+  }
+  return createGrpcTransport({ baseUrl, interceptors });
 }
 
 export function makeClients(transport: Transport): ConformanceClients {
@@ -71,8 +94,12 @@ export function makeClients(transport: Transport): ConformanceClients {
     workflowQuery: createClient(WorkflowQueryController, transport),
     workflowExecutionCommand: createClient(WorkflowExecutionCommandController, transport),
     workflowExecutionQuery: createClient(WorkflowExecutionQueryController, transport),
+    workflowInstanceCommand: createClient(WorkflowInstanceCommandController, transport),
+    workflowInstanceQuery: createClient(WorkflowInstanceQueryController, transport),
     agentExecutionCommand: createClient(AgentExecutionCommandController, transport),
     agentExecutionQuery: createClient(AgentExecutionQueryController, transport),
+    agentInstanceCommand: createClient(AgentInstanceCommandController, transport),
+    agentInstanceQuery: createClient(AgentInstanceQueryController, transport),
     agentCommand: createClient(AgentCommandController, transport),
     agentQuery: createClient(AgentQueryController, transport),
     environmentCommand: createClient(EnvironmentCommandController, transport),

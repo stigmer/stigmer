@@ -92,23 +92,20 @@ func TestValidateSpec_CrossRefTypoSuggestion(t *testing.T) {
 	}
 
 	result, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
-	if err != nil {
-		t.Logf("validateSpec returned error for cross-ref typo (acceptable): %v", err)
-		return
-	}
 
-	t.Logf("validateSpec result: state=%s, errors=%v, warnings=%v",
-		result.GetState().String(), result.GetErrors(), result.GetWarnings())
-
-	allMessages := strings.Join(append(result.GetErrors(), result.GetWarnings()...), " ")
-	if strings.Contains(strings.ToLower(allMessages), "did you mean") ||
-		strings.Contains(strings.ToLower(allMessages), "handlecritical") {
-		t.Logf("cross-ref typo: 'did you mean?' suggestion found in validation output")
-	} else if result.GetState() != serverless.ValidationState_VALID {
-		t.Logf("cross-ref typo: validation caught the invalid reference (no explicit suggestion)")
-	} else {
-		t.Logf("cross-ref typo: validation returned VALID — cross-ref check may not be active at this level")
-	}
+	// #189 contract: validateSpec never throws for a user-fixable spec and always
+	// returns a structured verdict. With #219 closed, the Java service backing
+	// this harness now detects switch cases[].then cross-references at parity with
+	// the Go validator, so we assert the strict INVALID + "did you mean?" outcome
+	// here (the Go-side equivalent lives in TestValidateSpec_Layer2CrossRefTypo).
+	require.NoError(t, err, "validateSpec must not throw for a cross-ref typo")
+	require.NotNil(t, result, "validateSpec must return a structured result")
+	assert.Equal(t, serverless.ValidationState_INVALID, result.GetState(),
+		"a dangling switch cases[].then must be INVALID")
+	joined := strings.Join(result.GetErrors(), " ")
+	assert.Contains(t, joined, "handleCriticl", "error should name the dangling target")
+	assert.Contains(t, joined, "did you mean", "error should offer a Levenshtein suggestion")
+	assert.Contains(t, joined, "handleCritical", "suggestion should point at the intended task")
 }
 
 // TestValidateSpec_BudgetWithoutCostTasks verifies that ValidateSpec produces
@@ -159,29 +156,18 @@ func TestValidateSpec_BudgetWithoutCostTasks(t *testing.T) {
 	}
 
 	result, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
-	if err != nil {
-		t.Logf("validateSpec returned error (acceptable): %v", err)
-		return
-	}
 
-	t.Logf("validateSpec result: state=%s, warnings=%v",
-		result.GetState().String(), result.GetWarnings())
+	require.NoError(t, err, "validateSpec must not throw for a valid workflow with warnings")
+	require.NotNil(t, result)
+	// A budget with no cost-bearing tasks is a warning, not an error, so the
+	// workflow stays VALID.
+	assert.Equal(t, serverless.ValidationState_VALID, result.GetState(),
+		"budget-without-cost-tasks is a warning, so the workflow remains VALID")
 
-	warnings := result.GetWarnings()
-	hasWarning := false
-	for _, w := range warnings {
-		if strings.Contains(strings.ToLower(w), "budget") ||
-			strings.Contains(strings.ToLower(w), "cost") {
-			hasWarning = true
-			break
-		}
-	}
-
-	if hasWarning {
-		t.Logf("budget without cost tasks: warning correctly generated")
-	} else {
-		t.Logf("budget without cost tasks: no explicit warning — validation may not surface budget warnings at RPC level")
-	}
+	joined := strings.ToLower(strings.Join(result.GetWarnings(), " "))
+	assert.True(t,
+		strings.Contains(joined, "budget") || strings.Contains(joined, "cost"),
+		"expected a budget/cost warning, got warnings=%v", result.GetWarnings())
 }
 
 // TestValidateSpec_HumanInputCrossRef verifies that ValidateSpec detects
@@ -246,21 +232,16 @@ func TestValidateSpec_HumanInputCrossRef(t *testing.T) {
 	}
 
 	result, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
-	if err != nil {
-		t.Logf("validateSpec returned error for invalid outcome.then (acceptable): %v", err)
-		return
-	}
 
-	t.Logf("validateSpec result: state=%s, errors=%v, warnings=%v",
-		result.GetState().String(), result.GetErrors(), result.GetWarnings())
-
-	allMessages := strings.Join(append(result.GetErrors(), result.GetWarnings()...), " ")
-	if strings.Contains(strings.ToLower(allMessages), "nonexistenttask") ||
-		strings.Contains(strings.ToLower(allMessages), "reference") {
-		t.Logf("human_input cross-ref: invalid outcome.then reference detected")
-	} else {
-		t.Logf("human_input cross-ref: documenting validation behavior for invalid outcome.then")
-	}
+	// #189 contract: no throw, structured result. With #219 closed, the Java
+	// service now detects human_input outcomes[].then cross-references at parity
+	// with the Go validator, so we assert the strict INVALID outcome here.
+	require.NoError(t, err, "validateSpec must not throw for an invalid outcome.then")
+	require.NotNil(t, result, "validateSpec must return a structured result")
+	assert.Equal(t, serverless.ValidationState_INVALID, result.GetState(),
+		"a dangling human_input outcomes[].then must be INVALID")
+	assert.Contains(t, strings.Join(result.GetErrors(), " "), "nonExistentTask",
+		"error should name the dangling outcome target")
 }
 
 // TestValidateSpec_EvalTaskAccepted verifies that ValidateSpec accepts the
@@ -326,16 +307,10 @@ func TestValidateSpec_EvalTaskAccepted(t *testing.T) {
 	}
 
 	result, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
-	if err != nil {
-		t.Logf("validateSpec error for eval task: %v", err)
-		t.Logf("eval task may not be fully integrated into validation pipeline")
-		return
-	}
 
+	require.NoError(t, err, "validateSpec must not throw for a valid eval task")
+	require.NotNil(t, result)
 	assert.Equal(t, serverless.ValidationState_VALID, result.GetState(),
 		"eval task should be accepted by ValidateSpec")
 	assert.Empty(t, result.GetErrors(), "eval task should have no validation errors")
-
-	t.Logf("validateSpec eval accepted: state=%s, yaml_length=%d",
-		result.GetState().String(), len(result.GetYaml()))
 }

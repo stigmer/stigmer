@@ -33,12 +33,13 @@ const (
 // 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
 // 2. ResolveSlug - Generate slug from metadata.name
 // 3. ValidateWorkflowOrInstance - Ensure workflow_id OR workflow_instance_id is provided
-// 4. CreateDefaultInstanceIfNeeded - Auto-create default instance if workflow_id is used
-// 5. CheckDuplicate - Verify no duplicate exists
-// 6. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
-// 7. SetInitialPhase - Set execution phase to PENDING
-// 8. Persist - Save execution to repository
-// 9. StartWorkflow - Start Temporal workflow (if Temporal is available)
+// 4. EnsureEngineAvailable - Fail fast with Unavailable if the workflow engine is not connected (before any side effect)
+// 5. CreateDefaultInstanceIfNeeded - Auto-create default instance if workflow_id is used
+// 6. CheckDuplicate - Verify no duplicate exists
+// 7. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
+// 8. SetInitialPhase - Set execution phase to PENDING
+// 9. Persist - Save execution to repository
+// 10. StartWorkflow - Start Temporal workflow
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
@@ -71,17 +72,18 @@ func (c *WorkflowExecutionController) buildCreatePipeline() *pipeline.Pipeline[*
 		AddStep(steps.NewValidateProtoStep[*workflowexecutionv1.WorkflowExecution]()).                                               // 1. Validate field constraints
 		AddStep(steps.NewResolveSlugStep[*workflowexecutionv1.WorkflowExecution]()).                                                 // 2. Resolve slug
 		AddStep(newValidateWorkflowOrInstanceStep()).                                                                                // 3. Validate workflow_id OR workflow_instance_id
-		AddStep(newCreateDefaultInstanceIfNeededStep(c.workflowInstanceClient, c.store)).                                            // 4. Create default instance if needed
-		AddStep(steps.NewCheckDuplicateStep[*workflowexecutionv1.WorkflowExecution](c.store)).                                       // 5. Check duplicate
-		AddStep(steps.NewBuildNewStateStep[*workflowexecutionv1.WorkflowExecution]()).                                               // 6. Build new state
-		AddStep(steps.NewNormalizeReferencesStep[*workflowexecutionv1.WorkflowExecution]()).                                         // 7. Normalize cross-references
-		AddStep(newSetInitialPhaseStep()).                                                                                           // 8. Set phase to PENDING
-		AddStep(newNormalizeWorkflowRefStep(c.store)).                                                                               // 9. Ensure spec.workflow_id is populated from the instance
-		AddStep(newPinWorkflowVersionStep(c.store)).                                                                                 // 10. Pin workflow version hash on execution
-		AddStep(c.newCreateExecutionContextStep()).                                                                                  // 11. Create ExecutionContext with merged environment
-		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).                                              // 12. Persist execution
-		AddStep(steps.NewIndexSearchStep[*workflowexecutionv1.WorkflowExecution](c.store, &extractor.WorkflowExecutionExtractor{})). // 13. Update search index
-		AddStep(c.newStartWorkflowStep()).                                                                                           // 14. Start Temporal workflow
+		AddStep(c.newEnsureEngineAvailableStep()).                                                                                   // 4. Fail fast if the workflow engine is unavailable (before any side effect)
+		AddStep(newCreateDefaultInstanceIfNeededStep(c.workflowInstanceClient, c.store)).                                            // 5. Create default instance if needed
+		AddStep(steps.NewCheckDuplicateStep[*workflowexecutionv1.WorkflowExecution](c.store)).                                       // 6. Check duplicate
+		AddStep(steps.NewBuildNewStateStep[*workflowexecutionv1.WorkflowExecution]()).                                               // 7. Build new state
+		AddStep(steps.NewNormalizeReferencesStep[*workflowexecutionv1.WorkflowExecution]()).                                         // 8. Normalize cross-references
+		AddStep(newSetInitialPhaseStep()).                                                                                           // 9. Set phase to PENDING
+		AddStep(newNormalizeWorkflowRefStep(c.store)).                                                                               // 10. Ensure spec.workflow_id is populated from the instance
+		AddStep(newPinWorkflowVersionStep(c.store)).                                                                                 // 11. Pin workflow version hash on execution
+		AddStep(c.newCreateExecutionContextStep()).                                                                                  // 12. Create ExecutionContext with merged environment
+		AddStep(steps.NewPersistStep[*workflowexecutionv1.WorkflowExecution](c.store)).                                              // 13. Persist execution
+		AddStep(steps.NewIndexSearchStep[*workflowexecutionv1.WorkflowExecution](c.store, &extractor.WorkflowExecutionExtractor{})). // 14. Update search index
+		AddStep(c.newStartWorkflowStep()).                                                                                           // 15. Start Temporal workflow
 		Build()
 }
 
@@ -91,8 +93,9 @@ func (c *WorkflowExecutionController) buildCreatePipeline() *pipeline.Pipeline[*
 
 // validateWorkflowOrInstanceStep validates that at least one of workflow_id or workflow_instance_id is provided.
 //
-// Matches the pattern from Java AgentExecutionCreateHandler (session_id or agent_id) and
-// WorkflowExecutionCreateHandler (workflow_id or workflow_instance_id).
+// Matches WorkflowExecutionCreateHandler (workflow_id or workflow_instance_id).
+// AgentExecution differs: it has a ResolveDefaultAgent step, so its guard is an
+// invariant (Internal), not reachable InvalidArgument validation (issue #196).
 type validateWorkflowOrInstanceStep struct{}
 
 func newValidateWorkflowOrInstanceStep() *validateWorkflowOrInstanceStep {
@@ -410,11 +413,50 @@ func (s *setInitialPhaseStep) Execute(ctx *pipeline.RequestContext[*workflowexec
 	return nil
 }
 
+// engineUnavailableMessage is the user-facing message returned when a create is
+// rejected because the execution engine (Temporal) is not connected. Kept
+// identical across AgentExecution and WorkflowExecution so both domains present
+// one symmetric create-boundary contract.
+const engineUnavailableMessage = "The execution engine is temporarily unavailable. Please try again shortly."
+
+// ensureEngineAvailableStep rejects the create fast - before any persistence or
+// side effect - when the Temporal workflow engine is not connected.
+//
+// workflowCreator is nil only during the startup window before the server's
+// first Temporal connection; TemporalManager re-injects it on connect. Failing
+// here with Unavailable (instead of persisting a PENDING execution that would
+// never run) keeps the contract symmetric with AgentExecution: a create against
+// an unavailable engine leaves no trace and tells the caller to retry.
+//
+// Placed after input validation but before the first side-effecting step, so a
+// malformed request still gets InvalidArgument first and a down engine orphans
+// nothing (no default instance, no ExecutionContext, no execution record).
+type ensureEngineAvailableStep struct {
+	workflowCreator *workflows.InvokeWorkflowExecutionWorkflowCreator
+}
+
+func (c *WorkflowExecutionController) newEnsureEngineAvailableStep() *ensureEngineAvailableStep {
+	return &ensureEngineAvailableStep{workflowCreator: c.workflowCreator}
+}
+
+func (s *ensureEngineAvailableStep) Name() string {
+	return "EnsureEngineAvailable"
+}
+
+func (s *ensureEngineAvailableStep) Execute(ctx *pipeline.RequestContext[*workflowexecutionv1.WorkflowExecution]) error {
+	if s.workflowCreator == nil {
+		log.Warn().Msg("Workflow engine unavailable - rejecting create before any state is persisted")
+		return grpclib.UnavailableError(engineUnavailableMessage)
+	}
+	return nil
+}
+
 // startWorkflowStep starts the Temporal workflow for the execution.
 //
-// This step is executed after the execution is persisted to the database.
-// If no Temporal client is available (workflowCreator is nil), the step logs a warning
-// and continues gracefully - the execution remains in PENDING phase.
+// This step runs after the execution is persisted. Engine availability was
+// already guaranteed by ensureEngineAvailableStep, so workflowCreator is
+// non-nil here; a failure at this point is a live/transient Temporal error,
+// which marks the execution FAILED (recoverable via Recover).
 //
 // This matches the Java WorkflowExecutionCreateHandler.StartWorkflowStep.
 type startWorkflowStep struct {
@@ -438,14 +480,6 @@ func (s *startWorkflowStep) Name() string {
 func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*workflowexecutionv1.WorkflowExecution]) error {
 	execution := ctx.NewState()
 	executionID := execution.GetMetadata().GetId()
-
-	// Check if Temporal client is available
-	if s.workflowCreator == nil {
-		log.Warn().
-			Str("execution_id", executionID).
-			Msg("Workflow creator not available - execution will remain in PENDING (Temporal not connected)")
-		return nil
-	}
 
 	log.Debug().
 		Str("execution_id", executionID).

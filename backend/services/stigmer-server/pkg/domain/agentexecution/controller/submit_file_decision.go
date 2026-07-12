@@ -394,6 +394,11 @@ func (s *signalFileDecisionWorkflowStep) reconcileStaleExecution(ctx context.Con
 		Content: "The workflow backing this execution is no longer running. This can happen due to infrastructure issues or manual termination. The execution has been marked as failed.",
 	})
 
+	// The messages were preserved verbatim, so any in-flight tool call is still
+	// non-terminal. This write terminalizes the execution, so settle them
+	// (issue #207): the dead workflow will never deliver their terminal events.
+	settleInterruptedToolCalls(reconciledExecution.Status, time.Now().Format(time.RFC3339))
+
 	if err := s.store.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent_execution, executionID, reconciledExecution); err != nil {
 		log.Error().Err(err).Str("execution_id", executionID).
 			Msg("Failed to reconcile stale execution status - execution will remain in WAITING_FOR_APPROVAL until next attempt")

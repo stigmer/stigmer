@@ -45,10 +45,12 @@ export interface CursorHookHarness {
   /** Run the hook against a single hook-input payload and report its decision. */
   decide(input: object): { permission: string; raw: string };
   /**
-   * The denial ledger entries the hook has appended this turn. `input` is the
-   * base64(JSON(tool_input)) the hook captures (decode + JSON.parse to inspect).
+   * The denial ledger entries the hook has appended this turn. `kind` is the
+   * attribution taxonomy (approval/secret/capture-error/fail-closed); `input`
+   * is the base64(JSON(tool_input)) the hook captures on APPROVAL-kind entries
+   * only (decode + JSON.parse to inspect).
    */
-  ledger(): Array<{ toolName: string; token: string; input?: string }>;
+  ledger(): Array<{ toolName: string; token: string; kind?: string; input?: string }>;
   /** Truncate the denial ledger (a fresh turn). */
   resetLedger(): void;
   /**

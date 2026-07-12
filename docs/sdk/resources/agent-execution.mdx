@@ -70,7 +70,7 @@ AgentExecution agentExecution = client.agentExecutions().get("aex_01j5q3k7m8r2s4
 | [`resume`](#resume) | Resume a paused agent execution. | |
 | [`cancel`](#cancel) | Cancel a running agent execution gracefully. | |
 | [`terminate`](#terminate) | Terminate an agent execution immediately. | |
-| [`recover`](#recover) | Recover a failed agent execution from the last checkpoint. | |
+| [`recover`](#recover) | Recover a failed agent execution. | |
 | [`submitApproval`](#submitapproval) | Submit an approval decision for a pending tool call. | |
 | [`submitFileDecision`](#submitfiledecision) | Submit a keep/discard decision on a file change set (or a single file). | |
 | [`uploadAttachment`](#uploadattachment) | Upload a file attachment for use in an agent execution. | |
@@ -1049,9 +1049,9 @@ AgentExecution agentExecution = client.agentExecutions().terminate(TerminateAgen
 
 ### recover
 
-Recover a failed agent execution from the last checkpoint.
+Recover a failed agent execution.
 
-Resumes execution from the last checkpoint. Completed work is preserved - successful tool calls are NOT re-executed.
+Retries the failed run. Completed work is preserved - successful tool calls are NOT re-executed.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -2299,7 +2299,7 @@ ApprovalAction represents the user's decision on an approval request.
 |-------|-------------|
 | `APPROVAL_ACTION_APPROVE` | Execute the tool normally. |
 | `APPROVAL_ACTION_SKIP` | Skip tool execution, continue without it. |
-| `APPROVAL_ACTION_REJECT` | Reject tool execution, fail the entire execution. |
+| `APPROVAL_ACTION_REJECT` | Deny this tool call and continue the execution. |
 | `APPROVAL_ACTION_APPROVE_ALL` | Approve this tool call AND grant a run-lifetime lease that auto-approves every subsequent tool call of the SAME class for the rest of this execution ("approve all of this kind, don't ask again"). |
 
 ### FileDecisionScope
@@ -2563,6 +2563,7 @@ ToolCallStatus defines the status of a tool call.
 | `TOOL_CALL_FAILED` | Tool execution failed with an error. |
 | `TOOL_CALL_WAITING_APPROVAL` | Blocked on user approval (HITL Phase 1). |
 | `TOOL_CALL_SKIPPED` | User skipped this tool (HITL Phase 1). |
+| `TOOL_CALL_INTERRUPTED` | The execution terminalized before this tool call finished (issue #207). |
 
 ### ToolCallStreamingSource
 

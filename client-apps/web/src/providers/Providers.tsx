@@ -27,6 +27,20 @@ import { loadRuntimeConfig } from "@/config/runtime-config";
  */
 const PUBLIC_ROUTES = ["/login", "/invite/"] as const;
 
+/**
+ * Routes rendered with AuthProvider but WITHOUT AuthGuard — auth is
+ * optional: `useAuth()` works, `login()` can be triggered on demand, an
+ * existing OIDC session is picked up (and auto-renewed for streaming),
+ * but nothing forces anonymous visitors to sign in.
+ *
+ * The hosted chat page lives here: public shares serve anonymous guests
+ * with zero login, while org-members-only shares offer "sign in if you
+ * have access" and then chat with the member's own live token. Pages own
+ * their StigmerProvider (guest or member client) — the authenticated
+ * chain's transport/org gates stay out of the way.
+ */
+const AUTH_OPTIONAL_ROUTES = ["/chat/"] as const;
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -86,9 +100,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
 function ProvidersInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isPublic = PUBLIC_ROUTES.some((r) => pathname.startsWith(r));
+  const isAuthOptional = AUTH_OPTIONAL_ROUTES.some((r) =>
+    pathname.startsWith(r),
+  );
 
   if (isPublic) {
     return <>{children}</>;
+  }
+
+  if (isAuthOptional) {
+    return <AuthProvider>{children}</AuthProvider>;
   }
 
   return (

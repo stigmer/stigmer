@@ -11,11 +11,12 @@
 // key, or storage.
 //
 // Deliberately out of scope here (each needs machinery this slice doesn't build):
-// - The F7/F8 create-boundary (create silently succeeds with a zombie PENDING
-//   when the engine is absent, vs. AgentExecution's fail-fast Unavailable). That
-//   path is only reachable with Temporal DOWN — which this target never does and
-//   the CRUD target doesn't host execution domains. It is a known Go deficiency
-//   recorded in DD-008, not asserted (we don't bless a bug as contract).
+// - The engine-unavailable create-boundary. Both execution domains now share one
+//   contract (issue #195, formerly the F7/F8 asymmetry): a create while the engine
+//   is down fails fast with Unavailable and persists nothing — no zombie/orphaned
+//   PENDING. That path is only reachable with Temporal DOWN, which this target
+//   never does, so it is covered by the Go controller unit tests (and the Java
+//   guard unit tests) rather than asserted here.
 // - submitApproval / submitWorkflowTaskApproval (need an approval-bearing
 //   human_input workflow) and sendSignal's happy path (needs a `listen` task)
 //   and recover's happy path (needs a FAILED execution) — their precondition
@@ -26,7 +27,6 @@ import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/work
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { expectCodeOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -425,10 +425,9 @@ describe("WorkflowExecution conformance — create negative paths", () => {
     const name = uniqueName("dup");
     await createExecution(org, workflowId, name);
 
-    await expectCodeOrDeviation(
-      target.name,
-      "create.duplicate.code",
+    await expectGrpcCode(
       () => clients.workflowExecutionCommand.create(makeWorkflowExecution({ org, name, workflowId })),
+      Code.AlreadyExists,
       "duplicate create",
     );
   });
@@ -437,10 +436,8 @@ describe("WorkflowExecution conformance — create negative paths", () => {
     const { org } = await target.provisionTenancy();
     const workflowId = await provisionWorkflow(org);
     // workflow_id is valid so resolution proceeds to ResolveSlugStep, which is
-    // what rejects the empty name (as a plain error -> Unknown on local-go).
-    await expectCodeOrDeviation(
-      target.name,
-      "create.missing-name.code",
+    // what rejects the empty name with a typed InvalidArgument on every target.
+    await expectGrpcCode(
       () =>
         clients.workflowExecutionCommand.create({
           apiVersion: WORKFLOW_EXECUTION_API_VERSION,
@@ -448,6 +445,7 @@ describe("WorkflowExecution conformance — create negative paths", () => {
           metadata: { org },
           spec: { workflowId },
         }),
+      Code.InvalidArgument,
       "create without name",
     );
   });

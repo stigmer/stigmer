@@ -5,7 +5,7 @@
 // Drives SessionCommandController + SessionQueryController through the raw proto
 // stubs and asserts the contract: CRUD round-trips, apply create/update branching,
 // immutable identity fields, the configuration fields (harness / execution_target),
-// the field-level updateSubject contract, list / listByAgent queries, slug
+// the field-level updateSubject contract, list / listByAgentInstance queries, slug
 // semantics, and spec-first negative paths.
 //
 // Session has NO Temporal involvement — it only persists conversation
@@ -21,7 +21,6 @@ import { SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api
 import { ExecutionTarget, Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { expectCodeOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -147,9 +146,11 @@ describe("Session conformance — CRUD & identity", () => {
     );
     const { id } = created.metadata!;
 
-    // delete is open in OSS (no auth step); the proto's operator-only restriction
-    // is a cloud-only concern. We assert the edition-agnostic part: the resource
-    // is returned and is gone afterward.
+    // The session owner deletes their own session (in cloud this is the
+    // can_delete FGA check on the session; OSS has no auth step). Deletion
+    // cascades to the session's agent executions — covered by edition-specific
+    // tests since a conformance run cannot deterministically create a
+    // terminal execution.
     const deleted = await clients.sessionCommand.delete({ value: id });
     expect(deleted.metadata?.id).toBe(id);
 
@@ -243,6 +244,22 @@ describe("Session conformance — subject", () => {
 
     expect(updated.spec?.subject).toBe("");
   });
+
+  it("updateSubject rejects an empty id with InvalidArgument", () =>
+    // id declares required=true; the transport-boundary protovalidate interceptor
+    // enforces it before the handler runs (previously Unknown on local-go).
+    expectGrpcCode(
+      () => clients.sessionCommand.updateSubject({ id: "", subject: "anything" }),
+      Code.InvalidArgument,
+      "updateSubject empty id",
+    ));
+
+  it("updateSubject on a missing session returns NotFound", () =>
+    expectGrpcCode(
+      () => clients.sessionCommand.updateSubject({ id: "ses_doesnotexist", subject: "anything" }),
+      Code.NotFound,
+      "updateSubject missing session",
+    ));
 });
 
 describe("Session conformance — queries", () => {
@@ -259,7 +276,7 @@ describe("Session conformance — queries", () => {
     expect(ids).toContain(b.metadata?.id);
   });
 
-  it("listByAgent returns only the sessions for the given agent instance", async () => {
+  it("listByAgentInstance returns only the sessions for the given agent instance", async () => {
     const { org } = await target.provisionTenancy();
     const instanceOne = await provisionAgentInstance(org);
     const instanceTwo = await provisionAgentInstance(org);
@@ -267,25 +284,23 @@ describe("Session conformance — queries", () => {
     const forOne = await createSession(org, uniqueName("session"), instanceOne);
     await createSession(org, uniqueName("session"), instanceTwo);
 
-    // Finding F6: despite the field being named agent_id, the OSS filter matches
-    // spec.agent_instance_id, so the value passed must be an agent INSTANCE id.
-    const listed = await clients.sessionQuery.listByAgent({ agentId: instanceOne });
+    const listed = await clients.sessionQuery.listByAgentInstance({ agentInstanceId: instanceOne });
     const ids = listed.entries.map((s) => s.metadata?.id);
 
     expect(ids).toContain(forOne.metadata?.id);
     expect(ids).toHaveLength(1);
   });
 
-  it("listByAgent returns an empty list for an unknown agent instance", async () => {
-    const listed = await clients.sessionQuery.listByAgent({ agentId: "ain_doesnotexist" });
+  it("listByAgentInstance returns an empty list for an unknown agent instance", async () => {
+    const listed = await clients.sessionQuery.listByAgentInstance({ agentInstanceId: "ain_doesnotexist" });
     expect(listed.entries).toHaveLength(0);
   });
 
-  it("listByAgent rejects an empty agent_id with InvalidArgument", () =>
+  it("listByAgentInstance rejects an empty agent_instance_id with InvalidArgument", () =>
     expectGrpcCode(
-      () => clients.sessionQuery.listByAgent({ agentId: "" }),
+      () => clients.sessionQuery.listByAgentInstance({ agentInstanceId: "" }),
       Code.InvalidArgument,
-      "listByAgent empty agent_id",
+      "listByAgentInstance empty agent_instance_id",
     ));
 });
 
@@ -361,12 +376,11 @@ describe("Session conformance — negative paths", () => {
     const name = uniqueName("dup");
     await createSession(org, name, agentInstanceId);
 
-    // create's duplicate check is the shared CheckDuplicateStep whose plain error
-    // degrades to Unknown on local-go — the same recorded deviation as elsewhere.
-    await expectCodeOrDeviation(
-      target.name,
-      "create.duplicate.code",
+    // create's duplicate check is the shared CheckDuplicateStep, which returns a
+    // typed AlreadyExists on every target.
+    await expectGrpcCode(
       () => clients.sessionCommand.create(makeSession({ org, name, agentInstanceId })),
+      Code.AlreadyExists,
       "duplicate create",
     );
   });
@@ -377,9 +391,7 @@ describe("Session conformance — negative paths", () => {
     // agent_instance_id is set so default-agent resolution is skipped and the spec
     // is valid; the empty name is what must be rejected (slug resolution has
     // nothing to derive from).
-    await expectCodeOrDeviation(
-      target.name,
-      "create.missing-name.code",
+    await expectGrpcCode(
       () =>
         clients.sessionCommand.create({
           apiVersion: SESSION_API_VERSION,
@@ -387,6 +399,7 @@ describe("Session conformance — negative paths", () => {
           metadata: { org },
           spec: makeSessionSpec({ agentInstanceId }),
         }),
+      Code.InvalidArgument,
       "create without name",
     );
   });

@@ -118,18 +118,22 @@ class WorkflowCommandControllerServicer(object):
     def validateSpec(self, request, context):
         """Validate a workflow spec without persisting it.
 
-        Runs the same two-layer validation pipeline used by create/update:
-        Layer 1: Proto field constraints (buf validate / protovalidate)
-        Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)
+        Runs the same two validation layers as create/update, but never throws for a
+        user-fixable spec problem: it always returns a structured
+        ServerlessWorkflowValidation the caller can render field-by-field.
+        Layer 1: proto field constraints (buf validate / protovalidate)
+        Layer 2: in-process structural validation (proto → CNCF YAML plus
+        structural, cross-reference, model, and budget checks)
 
-        Returns ServerlessWorkflowValidation with:
-        - VALID: Workflow structure passed all checks
-        - INVALID: User error (bad structure, missing fields, unknown task kinds)
-        - FAILED: System error (Temporal unavailable, converter crash)
+        Result states:
+        - VALID: workflow structure passed all checks
+        - INVALID: user error (bad structure, missing fields, unknown task kinds)
+        - FAILED: internal validation fault (reserved; not a user error)
 
-        This RPC does NOT persist, authorize, or create instances. It is a
-        pure validation endpoint suitable for iterative authoring workflows
-        where the caller needs fast feedback before committing.
+        gRPC errors are limited to input that cannot be validated at all (a missing
+        workflow or spec) and to genuine internal faults. This RPC does NOT persist,
+        authorize, or create instances. It is a pure validation endpoint suitable for
+        iterative authoring where the caller needs fast feedback before committing.
 
         @internal
         Authorization: Uses the same permission as create — caller must have

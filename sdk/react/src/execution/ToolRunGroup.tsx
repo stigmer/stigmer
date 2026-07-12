@@ -202,6 +202,10 @@ function deriveAggregateStatus(toolCalls: readonly ToolCall[]): AggregateStatus 
         break;
       case ToolCallStatus.TOOL_CALL_COMPLETED:
       case ToolCallStatus.TOOL_CALL_SKIPPED:
+      // INTERRUPTED is terminal (platform-settled when the execution
+      // terminalized mid-call, issue #207): the chip must settle, not pin to
+      // "pending" forever.
+      case ToolCallStatus.TOOL_CALL_INTERRUPTED:
         break;
       default:
         allTerminal = false;

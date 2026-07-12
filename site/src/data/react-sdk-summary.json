@@ -211,11 +211,25 @@
       "components": 9
     },
     {
+      "slug": "sharing",
+      "title": "sharing",
+      "description": "",
+      "hooks": 4,
+      "components": 2
+    },
+    {
       "slug": "skill",
       "title": "Skill",
       "description": "Hooks and components for knowledge attachments, search, picker, and detail views.",
       "hooks": 10,
       "components": 5
+    },
+    {
+      "slug": "switch",
+      "title": "switch",
+      "description": "",
+      "hooks": 0,
+      "components": 1
     },
     {
       "slug": "usage",

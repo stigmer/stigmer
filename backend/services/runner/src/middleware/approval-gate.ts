@@ -288,9 +288,16 @@ export function createApprovalGateMiddleware(
       }
 
       if (action === "reject") {
-        const comment = response.comment ?? "rejected by user";
+        // REJECT denies THIS tool call and continues the run (it does not
+        // terminate the execution — see APPROVAL_ACTION_REJECT in enum.proto).
+        // Feed the user's objection back so the model adapts rather than
+        // retrying. Distinct from SKIP only by the strength of the signal.
+        const comment = response.comment ?? "";
+        const rejectMessage = comment
+          ? `Tool '${toolName}' was rejected by the user: ${comment}. Do not retry it; proceed by taking their objection into account.`
+          : `Tool '${toolName}' was rejected by the user. Do not retry it; proceed by taking their objection into account.`;
         return new ToolMessage({
-          content: `Tool '${toolName}' was rejected: ${comment}. Execution will be terminated.`,
+          content: rejectMessage,
           tool_call_id: toolCall.id,
           name: toolName,
         });

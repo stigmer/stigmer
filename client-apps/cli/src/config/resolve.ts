@@ -3,10 +3,21 @@
 // precedence keeps every call site consistent (mirrors the Go CLI's Resolve*).
 
 import { CliExitError, ExitCode } from "../errors/index.js";
-import { type Config, isCloudMode } from "./config.js";
+import { WEB_CONSOLE_PORT } from "../local/constants.js";
+import { type BackendType, type Config, isCloudMode } from "./config.js";
 
 const DEFAULT_CLOUD_ENDPOINT = "api.stigmer.ai:443";
 const DEFAULT_LOCAL_ENDPOINT = "localhost:7234";
+
+/** Well-known URL for the Stigmer Cloud web console. */
+export const DEFAULT_CLOUD_CONSOLE_URL = "https://app.stigmer.ai";
+
+// Local mode is single-tenant: the seedpack bootstraps resources into the
+// "stigmer" org (see client-apps/cli/src/local/seedpack/apply.ts DEFAULT_ORG).
+// Org-scoped getByReference now requires an org, so bare-slug `get`/`run`/`apply`
+// in local mode fall back to this default when nothing else is configured. Cloud
+// mode has no implicit org — the caller must select one (flag/env/context/login).
+const DEFAULT_LOCAL_ORG = "stigmer";
 
 /**
  * Resolve the server endpoint.
@@ -52,10 +63,38 @@ export function resolveOrganization(config: Config, flagOrg?: string): string {
   if (env !== undefined && env !== "") {
     return env;
   }
-  return resolveContextOrganization(config);
+  const context = resolveContextOrganization(config);
+  if (context !== "") {
+    return context;
+  }
+  // Nothing configured: local mode falls back to its single-tenant default org
+  // so bare-slug operations resolve without ceremony; cloud stays empty (the
+  // caller must select an org, e.g. apply raises a clear "organization not set").
+  return isCloudMode(config) ? "" : DEFAULT_LOCAL_ORG;
 }
 
-/** The configured organization, with the legacy cloud.org_id fallback. */
+/**
+ * Resolve the web console URL:
+ *   1. `STIGMER_CONSOLE_URL` (explicit override)
+ *   2. local backend → `http://localhost:{WEB_CONSOLE_PORT}`
+ *   3. cloud backend → {@link DEFAULT_CLOUD_CONSOLE_URL}
+ *
+ * The console origin is also the app origin that serves the hosted chat
+ * page (`/chat/<org>/<slug>`) and the embed loader (`/embed.js`), so
+ * share-link builders use this same resolver.
+ */
+export function resolveConsoleURL(backendType: BackendType, env: NodeJS.ProcessEnv = process.env): string {
+  const override = env.STIGMER_CONSOLE_URL;
+  if (override !== undefined && override !== "") return override;
+  if (backendType === "local") return `http://localhost:${WEB_CONSOLE_PORT}`;
+  return DEFAULT_CLOUD_CONSOLE_URL;
+}
+
+/**
+ * The configured organization, with the legacy cloud.org_id fallback. Reports
+ * only what is explicitly set (no implicit local default) so config/context
+ * display can faithfully show "(not set)".
+ */
 export function resolveContextOrganization(config: Config): string {
   if (config.context?.organization !== undefined && config.context.organization !== "") {
     return config.context.organization;

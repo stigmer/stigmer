@@ -29,6 +29,7 @@ import (
 	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
+	protovalidateinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/protovalidate"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
@@ -194,11 +195,17 @@ func Run() error {
 			Msg("Created agent execution workflow creator")
 	}
 
-	// Create gRPC server with apiresource interceptor and in-process support
-	// The interceptor automatically extracts api_resource_kind from proto service descriptors
-	// and injects it into the request context for use by pipeline steps
-	// In-process support enables internal service calls through full gRPC stack (with interceptors)
+	// Create gRPC server with in-process support and the shared interceptor chain.
+	//
+	// protovalidate runs first so proto field constraints are enforced at the
+	// transport boundary for every RPC (unary and streaming) before any handler
+	// executes — handlers therefore must not re-implement proto field validation.
+	// apiresource then extracts api_resource_kind from proto service descriptors
+	// and injects it into the request context for use by pipeline steps.
+	// In-process support routes internal service calls through this same chain.
 	server := grpclib.NewServer(
+		grpclib.WithUnaryInterceptor(protovalidateinterceptor.UnaryServerInterceptor()),
+		grpclib.WithStreamInterceptor(protovalidateinterceptor.StreamServerInterceptor()),
 		grpclib.WithUnaryInterceptor(apiresourceinterceptor.UnaryServerInterceptor()),
 		grpclib.WithInProcess(), // Enable in-process gRPC for internal calls
 	)
@@ -527,6 +534,13 @@ func Run() error {
 	agentExecutionController.SetOAuthDependencies(oauthGrantStore, managedEnvService)
 
 	log.Info().Msg("Injected dependencies into controllers")
+
+	// Controllers are now fully wired, so the server can answer RPCs. Flip the
+	// standard gRPC health service to SERVING before the network listener opens
+	// (below), giving supervisors a readiness signal that means "answering RPCs"
+	// rather than merely "port bound". Stop() flips it back to NOT_SERVING.
+	server.SetHealthServing()
+	log.Info().Msg("gRPC health status set to SERVING")
 
 	// ============================================================================
 	// Start Temporal health monitor (after all controllers are ready)

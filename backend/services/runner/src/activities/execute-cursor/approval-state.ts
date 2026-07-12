@@ -56,14 +56,24 @@
  *
  * Denial ledger (hook → runner):
  * The state file is the runner's INPUT to the hook. Its symmetric OUTPUT is the
- * denial ledger (denials.jsonl): when the hook denies a tool, it appends
- * the call's identity token to this file. The runner reads the ledger after the
- * run to learn which tool calls were gated — the hook is the only component that
- * actually makes the per-call allow/deny decision, so its ledger is the
- * authoritative "what was denied this turn" signal (the cursor analog of the
- * native harness's LangGraph interrupts). The token uses the SAME identity space
- * as approvedGrantTokens, so a denial token approved this turn becomes a grant
- * token next turn.
+ * denial ledger (denials.jsonl): EVERY deny the hook issues appends the call's
+ * identity token to this file, tagged with a `kind` (see {@link DenialKind}) —
+ * so the ledger is the complete, authoritative record of what THIS hook blocked
+ * this turn (the cursor analog of the native harness's LangGraph interrupts).
+ * The kinds split by consumer semantics:
+ *
+ * - Only APPROVAL-kind entries pause the run (the first-denial stop and
+ *   reconcileDeniedToolCalls filter to them via {@link approvalDenials}); a
+ *   secret hard-block or a fail-closed deny must never surface an approval the
+ *   user cannot meaningfully grant.
+ * - The FULL ledger (all kinds) means "these actions did NOT execute": it feeds
+ *   capture stamping and DD-28 provenance, and it is the ATTRIBUTION set for
+ *   issue #205 — a hook-blocked tool call with NO ledger entry of any kind was
+ *   blocked by a FOREIGN hook (or a failed ledger append), an invariant
+ *   violation the turn boundary surfaces instead of completing silently.
+ *
+ * The token uses the SAME identity space as approvedGrantTokens, so a denial
+ * token approved this turn becomes a grant token next turn.
  */
 
 import { watch } from "node:fs";
@@ -434,10 +444,38 @@ export async function writeApprovalStateFile(
 const DENIAL_LEDGER_FILE = "denials.jsonl";
 
 /**
+ * The attribution taxonomy of a hook denial (mirrored byte-for-byte by the
+ * generated bash script — see hook-script.ts record_denial):
+ *
+ * - `approval`      — the normal gate: the runner surfaces it as a
+ *                     WAITING_APPROVAL pause. The ONLY kind that pauses.
+ * - `secret`        — DD-26 secret hard-block: intentional, non-pausing (the
+ *                     agent was told to move on), recorded content-free.
+ * - `capture-error` — CAS staging failed; the write stayed on the deny-gate.
+ *                     Content-free (the staging error means secret
+ *                     classification may never have run).
+ * - `fail-closed`   — the approval state file was missing, so everything gated
+ *                     denied. A turn-level "the gate itself was broken" fact.
+ *
+ * An unknown kind string is preserved as-is: it is treated as non-pausing (an
+ * unknown deny must never manufacture an approval) but still attributes the
+ * blocked call to our own hook.
+ */
+export type DenialKind = "approval" | "secret" | "capture-error" | "fail-closed";
+
+/** The one kind that pauses the run for user approval. */
+export const APPROVAL_DENIAL_KIND: DenialKind = "approval";
+
+/**
  * One denial recorded by the preToolUse hook. `token` is the call's identity in
  * the same space as grantToken() (base64 of `toolName \n salientArg`), used to
  * correlate the denial back to the streamed tool call. `toolName` is carried raw
  * for human-readable debugging of the ledger file.
+ *
+ * `kind` is the attribution taxonomy entry (see {@link DenialKind}). Optional
+ * for tolerance: an entry written without one (the pre-kind ledger format, or a
+ * hand-built test fixture) is an approval-kind denial — see
+ * {@link denialKindOf}.
  *
  * `input` is the authoritative pre-execution tool arguments the hook captured
  * from the Cursor `tool_input` payload (decoded from the ledger's base64 form).
@@ -446,13 +484,31 @@ const DENIAL_LEDGER_FILE = "denials.jsonl";
  * proposed change is in hand before the tool runs. The runner overlays it onto
  * the gated tool call so the approval card can show the proposed content/diff
  * before the user approves. Absent when the hook ran its grep fallback (the Node
- * binary was unavailable), in which case the gate degrades to stream-recovered
- * args exactly as before.
+ * binary was unavailable) — the gate then degrades to stream-recovered args —
+ * and ALWAYS absent for non-approval kinds (DD-26: only an approval-kind entry
+ * may carry proposed content).
  */
 export interface DeniedLedgerEntry {
   toolName: string;
   token: string;
+  kind?: string;
   input?: Record<string, unknown>;
+}
+
+/** The effective kind of a ledger entry (absent → approval, the pre-kind format). */
+export function denialKindOf(entry: DeniedLedgerEntry): string {
+  return entry.kind || APPROVAL_DENIAL_KIND;
+}
+
+/**
+ * The entries that pause the run for user approval — the ONLY kind
+ * reconcileDeniedToolCalls may turn into WAITING_APPROVAL gates and the only
+ * kind the first-denial stop may cancel the run for. Every other consumer
+ * (capture stamping, DD-28 provenance, foreign-hook attribution) wants the FULL
+ * ledger: all kinds mean "this action did not execute".
+ */
+export function approvalDenials(entries: readonly DeniedLedgerEntry[]): DeniedLedgerEntry[] {
+  return entries.filter((e) => denialKindOf(e) === APPROVAL_DENIAL_KIND);
 }
 
 /**
@@ -540,11 +596,19 @@ export async function readDenialLedger(
     const trimmed = line.trim();
     if (!trimmed) continue;
     try {
-      const obj = JSON.parse(trimmed) as { toolName?: unknown; token?: unknown; input?: unknown };
+      const obj = JSON.parse(trimmed) as {
+        toolName?: unknown;
+        token?: unknown;
+        kind?: unknown;
+        input?: unknown;
+      };
       if (typeof obj.token === "string" && obj.token) {
         entries.push({
           toolName: typeof obj.toolName === "string" ? obj.toolName : "",
           token: obj.token,
+          // A garbled/missing kind degrades to undefined → approval (the
+          // pre-kind format); see denialKindOf.
+          kind: typeof obj.kind === "string" && obj.kind ? obj.kind : undefined,
           input: decodeLedgerInput(obj.input),
         });
       }

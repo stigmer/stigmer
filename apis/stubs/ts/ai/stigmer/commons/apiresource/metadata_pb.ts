@@ -45,6 +45,10 @@ export type ApiResourceMetadata = Message<"ai.stigmer.commons.apiresource.ApiRes
   /**
    * System-generated unique identifier.
    *
+   * For every kind this is a generated, prefixed id (e.g. agt_<ulid>). The one
+   * exception is Organization: its id equals its slug (the globally unique
+   * tenancy root is addressed by slug, not a minted id).
+   *
    * @generated from field: string id = 3;
    */
   id: string;
@@ -63,7 +67,8 @@ export type ApiResourceMetadata = Message<"ai.stigmer.commons.apiresource.ApiRes
    * Visibility controls who can access this resource.
    * - PRIVATE: Only members of the owning organization can access.
    * - PUBLIC: Anyone can access (read). Write access still requires org membership.
-   * Default: PRIVATE for new resources.
+   * Default: config-driven per kind — blueprint kinds (marked
+   * defaults_to_org_visibility) default to ORG; all other kinds default to PRIVATE.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 5;
    */

@@ -103,6 +103,19 @@ export interface HitlGateHandle {
    * gate is inert between turns.
    */
   gateDir: string;
+  /**
+   * Commands of FOREIGN (non-Stigmer) hooks registered on the gating events
+   * (preToolUse/beforeMCPExecution) in the workspace's pre-existing hooks.json.
+   * The merge deliberately PRESERVES them (they are the user's own config), but
+   * because Cursor runs every configured hook and a deny from ANY of them blocks
+   * the tool, a foreign hook can deny the runner's tools without writing our
+   * denial ledger — the issue #205 silent-failure trigger. Surfaced here so the
+   * runner can log the exposure at install and name the likely culprit when the
+   * turn boundary detects an unattributed hook block. Empty when the workspace
+   * had no hooks.json, only Stigmer entries, or an unparseable file (which is
+   * REPLACED for the turn, so its hooks cannot run against us).
+   */
+  foreignGatingHooks: readonly string[];
 }
 
 /** Absolute path + restore target for a single workspace file the gate manages. */
@@ -334,12 +347,12 @@ async function installWorkspaceHook(
     originalRaw = null;
   }
 
-  const { merged, restoreTo } = buildMergedConfig(originalRaw, registrations);
+  const { merged, restoreTo, foreignGatingHooks } = buildMergedConfig(originalRaw, registrations);
 
   await mkdir(cursorDir, { recursive: true });
   await writeFile(hooksJsonPath, merged, "utf-8");
 
-  return { hooksJsonPath, restoreTo };
+  return { hooksJsonPath, restoreTo, foreignGatingHooks };
 }
 
 /**
@@ -406,21 +419,35 @@ const STANDALONE_CONFIG = (registrations: HookRegistration[]): string =>
 /**
  * Merge our registrations into a hooks object: for each event, drop any stale
  * Stigmer entry, then append our fresh one. Returns the merged hooks object, the
- * cleaned (Stigmer-free) hooks for restore, and whether anything was stripped.
+ * cleaned (Stigmer-free) hooks for restore, whether anything was stripped, and
+ * the FOREIGN commands preserved on the gating events (see
+ * {@link HitlGateHandle.foreignGatingHooks} for why they matter).
  */
 function mergeHooks(
   existingHooks: Record<string, unknown>,
   registrations: HookRegistration[],
-): { hooks: Record<string, unknown>; cleaned: Record<string, unknown>; strippedStale: boolean } {
+): {
+  hooks: Record<string, unknown>;
+  cleaned: Record<string, unknown>;
+  strippedStale: boolean;
+  foreignGatingHooks: string[];
+} {
   const hooks: Record<string, unknown> = { ...existingHooks };
   const cleaned: Record<string, unknown> = { ...existingHooks };
   let strippedStale = false;
+  const foreignGatingHooks: string[] = [];
 
   for (const { event, scriptPath } of registrations) {
     const hadEvent = Array.isArray(existingHooks[event]);
     const existing = hadEvent ? (existingHooks[event] as unknown[]) : [];
     const userEntries = existing.filter((e) => !isStigmerHookEntry(e));
     if (userEntries.length !== existing.length) strippedStale = true;
+    // The user entries surviving on a GATING event are exactly the hooks that
+    // can deny the runner's tools without touching our denial ledger.
+    for (const entry of userEntries) {
+      const command = (entry as { command?: unknown } | null)?.command;
+      if (typeof command === "string" && command) foreignGatingHooks.push(command);
+    }
 
     hooks[event] = [...userEntries, buildHookEntry(scriptPath)];
     // Restore target keeps the event key only if the user originally had it, so
@@ -428,12 +455,12 @@ function mergeHooks(
     if (hadEvent) cleaned[event] = userEntries;
   }
 
-  return { hooks, cleaned, strippedStale };
+  return { hooks, cleaned, strippedStale, foreignGatingHooks };
 }
 
 /**
- * Compute the merged hooks.json to write for this turn and the content to
- * restore afterward.
+ * Compute the merged hooks.json to write for this turn, the content to restore
+ * afterward, and the foreign gating hooks the merge preserved.
  *
  * - No existing file → write our standalone config; restore by deleting (null).
  * - Existing, parseable file → append our entry to each registered event array,
@@ -448,19 +475,19 @@ function mergeHooks(
 export function buildMergedConfig(
   originalRaw: string | null,
   registrations: HookRegistration[],
-): { merged: string; restoreTo: string | null } {
+): { merged: string; restoreTo: string | null; foreignGatingHooks: string[] } {
   if (originalRaw === null) {
-    return { merged: STANDALONE_CONFIG(registrations), restoreTo: null };
+    return { merged: STANDALONE_CONFIG(registrations), restoreTo: null, foreignGatingHooks: [] };
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(originalRaw);
   } catch {
-    return { merged: STANDALONE_CONFIG(registrations), restoreTo: originalRaw };
+    return { merged: STANDALONE_CONFIG(registrations), restoreTo: originalRaw, foreignGatingHooks: [] };
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return { merged: STANDALONE_CONFIG(registrations), restoreTo: originalRaw };
+    return { merged: STANDALONE_CONFIG(registrations), restoreTo: originalRaw, foreignGatingHooks: [] };
   }
 
   const root = parsed as Record<string, unknown>;
@@ -470,13 +497,14 @@ export function buildMergedConfig(
       : {};
   const version = typeof root.version === "number" ? root.version : 1;
 
-  const { hooks: mergedHooks, cleaned, strippedStale } = mergeHooks(hooks, registrations);
+  const { hooks: mergedHooks, cleaned, strippedStale, foreignGatingHooks } =
+    mergeHooks(hooks, registrations);
 
   const merged = JSON.stringify({ ...root, version, hooks: mergedHooks }, null, 2);
 
   // No stale Stigmer entry → restore the user's exact original bytes.
   if (!strippedStale) {
-    return { merged, restoreTo: originalRaw };
+    return { merged, restoreTo: originalRaw, foreignGatingHooks };
   }
 
   // We stripped a stale Stigmer entry, so never restore the original bytes (that
@@ -495,5 +523,5 @@ export function buildMergedConfig(
     ? null
     : JSON.stringify({ ...root, version, hooks: cleaned }, null, 2);
 
-  return { merged, restoreTo };
+  return { merged, restoreTo, foreignGatingHooks };
 }

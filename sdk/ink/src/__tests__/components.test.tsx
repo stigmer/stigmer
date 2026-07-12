@@ -152,6 +152,20 @@ describe("ToolCallItem", () => {
     expect(output).toContain("Permission denied");
   });
 
+  it("renders an interrupted tool with the neutral cut-short glyph (issue #207)", () => {
+    const tc = create(ToolCallSchema);
+    tc.id = "tc-int";
+    tc.name = "execute_command";
+    tc.status = ToolCallStatus.TOOL_CALL_INTERRUPTED;
+
+    const { lastFrame } = render(<ToolCallItem toolCall={tc} />);
+    const output = lastFrame() ?? "";
+    expect(output).toContain("⊘");
+    // Settled: no live "running" hint, no success checkmark.
+    expect(output).not.toContain("running");
+    expect(output).not.toContain("✓");
+  });
+
   it("shows MCP server slug prefix", () => {
     const tc = create(ToolCallSchema);
     tc.id = "tc-4";

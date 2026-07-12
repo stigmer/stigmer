@@ -7,6 +7,8 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestResolveSlugStep_Execute(t *testing.T) {
@@ -148,6 +150,26 @@ func TestResolveSlugStep_EmptyName(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("Expected error for empty name, got success")
+	}
+}
+
+// A missing name is client input error: the step must return a typed
+// InvalidArgument status, not a plain error (which the pipeline would surface as
+// Unknown). Complements TestResolveSlugStep_EmptyName, which only checks err!=nil.
+func TestResolveSlugStep_MissingNameReturnsInvalidArgumentCode(t *testing.T) {
+	agent := &agentv1.Agent{Metadata: &apiresource.ApiResourceMetadata{Name: ""}}
+
+	step := NewResolveSlugStep[*agentv1.Agent]()
+	ctx := pipeline.NewRequestContext(context.Background(), agent)
+	ctx.SetNewState(agent)
+
+	err := step.Execute(ctx)
+
+	if err == nil {
+		t.Fatal("expected error for empty name")
+	}
+	if status.Code(err) != codes.InvalidArgument {
+		t.Errorf("expected InvalidArgument, got %s", status.Code(err))
 	}
 }
 

@@ -9,19 +9,25 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 )
 
-// Recover recovers a failed agent execution from the last checkpoint.
+// Recover recovers a failed agent execution by terminating the previous
+// Temporal workflow and starting a fresh one.
 //
-// This RPC resumes execution from the last LangGraph checkpoint using Temporal's
-// ResetWorkflow API. Completed work is preserved - successful tool calls
-// are NOT re-executed.
+// The fresh workflow re-dispatches the runner activity, which resumes from the
+// session's LangGraph thread checkpoint (deep-agent) / harness_state_id
+// (Cursor) — completed work is preserved by the harness state, not by Temporal
+// history. Temporal's ResetWorkflowExecution is deliberately NOT used: the
+// runner activity returns (does not throw) its FAILED result, so a reset
+// replays the preserved failure instead of re-dispatching (issue #200; see
+// TerminateExistingWorkflowStep).
 //
 // Pipeline Steps:
 // 1. LoadExecutionById - Load execution from database
 // 2. ValidateRecoverable - Check phase is FAILED (or already IN_PROGRESS for idempotency)
-// 3. ResetTemporalWorkflow - Reset to last checkpoint via Temporal
-// 4. UpdateExecutionPhase - Set phase to IN_PROGRESS, clear error and completed_at
-// 5. PersistExecution - Save to database
-// 6. BroadcastExecutionUpdate - Publish to StreamBroker for real-time subscribers
+// 3. TerminateExistingWorkflow - Terminate the previous workflow (NOT_FOUND ok)
+// 4. RecreateExecutionContext - Re-resolve env, create fresh EC (the failed run's cleanup deleted it)
+// 5. StartFreshWorkflow - Start a new Temporal workflow (re-resolved dispatch, parent-coupled coordinates dropped)
+// 6. UpdateExecutionPhaseAndPersist - Set phase to IN_PROGRESS, clear error and completed_at, save
+// 7. BroadcastExecutionUpdate - Publish to StreamBroker for real-time subscribers
 //
 // Idempotency:
 // If recovery already succeeded (execution is now IN_PROGRESS), the call succeeds as a no-op.
@@ -65,12 +71,23 @@ func (c *AgentExecutionController) Recover(
 	return execution.(*agentexecutionv1.AgentExecution), nil
 }
 
-// buildRecoverPipeline constructs the pipeline for recover operations
+// buildRecoverPipeline constructs the pipeline for recover operations.
+//
+// Pipeline order rationale (mirrors WorkflowExecution recover):
+//   - Terminate BEFORE EC recreation (a still-live old workflow's cleanup must
+//     not delete the new EC)
+//   - Recreate EC BEFORE workflow start (the runner's setup needs env)
+//   - Start workflow BEFORE phase update (if start fails, the execution stays
+//     FAILED — recover can simply be retried)
 func (c *AgentExecutionController) buildRecoverPipeline() *pipeline.Pipeline[*agentexecutionv1.RecoverAgentExecutionInput] {
 	return pipeline.NewPipeline[*agentexecutionv1.RecoverAgentExecutionInput]("agentexecution-recover").
 		AddStep(NewLoadExecutionByIdStep[*agentexecutionv1.RecoverAgentExecutionInput](c.store)).
 		AddStep(NewValidateRecoverableStep[*agentexecutionv1.RecoverAgentExecutionInput]()).
-		AddStep(NewResetTemporalWorkflowStep[*agentexecutionv1.RecoverAgentExecutionInput](c.temporalClient, GetTemporalNamespace())).
+		AddStep(NewTerminateExistingWorkflowStep[*agentexecutionv1.RecoverAgentExecutionInput](c.temporalClient)).
+		AddStep(c.newRecreateExecutionContextStep()).
+		AddStep(NewStartFreshWorkflowStep[*agentexecutionv1.RecoverAgentExecutionInput](
+			c.workflowCreator, c.temporalConfig, c.store,
+		)).
 		AddStep(NewUpdateExecutionPhaseAndPersistStep[*agentexecutionv1.RecoverAgentExecutionInput](
 			c.store,
 			agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,

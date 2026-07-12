@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ListSessionsByAgentRequest, ListSessionsRequest, SessionId, SessionList } from "./io_pbjs";
+import { ListSessionsByAgentInstanceRequest, ListSessionsRequest, SessionId, SessionList } from "./io_pbjs";
 import { Session } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -41,16 +41,17 @@ export const SessionQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * List all sessions for a specific agent.
+     * List all sessions for a specific agent instance.
      *
      * @internal
-     * Authorization is handled in-handler via FGA-filtered queries.
+     * Authorization is handled in handler via FGA query for authorized
+     * session_ids, then filtered by agent_instance_id.
      *
-     * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.listByAgent
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.listByAgentInstance
      */
-    listByAgent: {
-      name: "listByAgent",
-      I: ListSessionsByAgentRequest,
+    listByAgentInstance: {
+      name: "listByAgentInstance",
+      I: ListSessionsByAgentInstanceRequest,
       O: SessionList,
       kind: MethodKind.Unary,
     },

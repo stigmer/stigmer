@@ -170,10 +170,12 @@ public interface ServerlessWorkflowValidationOrBuilder extends
 
   /**
    * <pre>
-   * Validation process ID for tracking validation progress.
+   * Optional identifier for tracking a validation run.
    *
    * &#64;internal
-   * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
+   * Legacy field from when validation ran as a separate async process. In-process
+   * validation is synchronous and does not populate this; retained for wire
+   * compatibility.
    * </pre>
    *
    * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>
@@ -182,10 +184,12 @@ public interface ServerlessWorkflowValidationOrBuilder extends
   java.lang.String getValidationWorkflowId();
   /**
    * <pre>
-   * Validation process ID for tracking validation progress.
+   * Optional identifier for tracking a validation run.
    *
    * &#64;internal
-   * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
+   * Legacy field from when validation ran as a separate async process. In-process
+   * validation is synchronous and does not populate this; retained for wire
+   * compatibility.
    * </pre>
    *
    * <code>string validation_workflow_id = 6 [json_name = "validationWorkflowId"];</code>

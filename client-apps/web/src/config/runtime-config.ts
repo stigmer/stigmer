@@ -26,6 +26,15 @@ export interface RuntimeConfig {
   /** Backend API base URL (gRPC-Web endpoint). */
   readonly apiUrl: string;
 
+  /**
+   * Public web app URL used when generating externally shareable links
+   * (e.g. the hosted agent chat page). Empty means "use the browser's
+   * own origin" — correct whenever the app is served at its public URL.
+   * Set it when share links must point somewhere other than where the
+   * console is rendered (e.g. a dedicated chat domain).
+   */
+  readonly appUrl: string;
+
   /** Authentication strategy: `"disabled"` for OSS, `"oidc"` for cloud. */
   readonly authMode: AuthMode;
 
@@ -41,6 +50,7 @@ export interface RuntimeConfig {
 
 const DEFAULTS: RuntimeConfig = {
   apiUrl: "http://localhost:7234",
+  appUrl: "",
   authMode: "disabled",
   oidcIssuer: "",
   oidcClientId: "",
@@ -97,6 +107,7 @@ async function fetchConfigJson(): Promise<RuntimeConfig | null> {
     const json: Record<string, unknown> = await res.json();
     return {
       apiUrl: asString(json.apiUrl, DEFAULTS.apiUrl),
+      appUrl: asString(json.appUrl, DEFAULTS.appUrl),
       authMode: asAuthMode(json.authMode),
       oidcIssuer: asString(json.oidcIssuer, DEFAULTS.oidcIssuer),
       oidcClientId: asString(json.oidcClientId, DEFAULTS.oidcClientId),
@@ -110,6 +121,7 @@ async function fetchConfigJson(): Promise<RuntimeConfig | null> {
 function buildFromEnv(): RuntimeConfig {
   return {
     apiUrl: process.env.NEXT_PUBLIC_API_URL ?? DEFAULTS.apiUrl,
+    appUrl: process.env.NEXT_PUBLIC_APP_URL ?? DEFAULTS.appUrl,
     authMode: asAuthMode(process.env.NEXT_PUBLIC_AUTH_MODE),
     oidcIssuer: process.env.NEXT_PUBLIC_OIDC_ISSUER ?? DEFAULTS.oidcIssuer,
     oidcClientId:

@@ -27,11 +27,12 @@ service SessionQueryController {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 
-  // List all sessions for a specific agent.
+  // List all sessions for a specific agent instance.
   //
   // @internal
-  // Authorization is handled in-handler via FGA-filtered queries.
-  rpc listByAgent(ListSessionsByAgentRequest) returns (SessionList) {
+  // Authorization is handled in handler via FGA query for authorized
+  // session_ids, then filtered by agent_instance_id.
+  rpc listByAgentInstance(ListSessionsByAgentInstanceRequest) returns (SessionList) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
 }

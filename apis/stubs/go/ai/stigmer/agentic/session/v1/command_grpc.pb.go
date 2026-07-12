@@ -57,9 +57,17 @@ type SessionCommandControllerClient interface {
 	UpdateSubject(ctx context.Context, in *UpdateSessionSubjectRequest, opts ...grpc.CallOption) (*Session, error)
 	// Delete a session.
 	//
+	// Deletion cascades to the session's agent executions. Billing usage
+	// records are immutable and unaffected — they carry their own copies of
+	// the session and execution identifiers.
+	//
+	// Fails with FAILED_PRECONDITION while any agent execution in the
+	// session is still active (pending, in progress, waiting for approval,
+	// or paused); cancel it or wait for it to finish first.
+	//
 	// @internal
-	// Restricted to platform operators to preserve the billing and audit trail.
-	// Regular users (including session owners) cannot delete sessions.
+	// Requires can_delete on the session (owner-only — sessions are personal
+	// resources, so org admins have no implicit delete access).
 	Delete(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Session, error)
 }
 
@@ -152,9 +160,17 @@ type SessionCommandControllerServer interface {
 	UpdateSubject(context.Context, *UpdateSessionSubjectRequest) (*Session, error)
 	// Delete a session.
 	//
+	// Deletion cascades to the session's agent executions. Billing usage
+	// records are immutable and unaffected — they carry their own copies of
+	// the session and execution identifiers.
+	//
+	// Fails with FAILED_PRECONDITION while any agent execution in the
+	// session is still active (pending, in progress, waiting for approval,
+	// or paused); cancel it or wait for it to finish first.
+	//
 	// @internal
-	// Restricted to platform operators to preserve the billing and audit trail.
-	// Regular users (including session owners) cannot delete sessions.
+	// Requires can_delete on the session (owner-only — sessions are personal
+	// resources, so org admins have no implicit delete access).
 	Delete(context.Context, *SessionId) (*Session, error)
 }
 

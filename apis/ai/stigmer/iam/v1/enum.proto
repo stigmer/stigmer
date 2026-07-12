@@ -59,9 +59,11 @@ enum IamPermission {
   // Organization-level runner create permission.
   can_create_runner = 25;
 
-  // Platform-level permission to delete sessions.
-  // Session deletion is restricted to operators to preserve billing audit trail.
-  can_delete_session = 26;
+  // Deprecated: session deletion is authorized via can_delete on the
+  // session itself (owner-only). This platform-level permission is no
+  // longer referenced by any RPC or FGA relation; the value is retained
+  // because enum value removal is a breaking change.
+  can_delete_session = 26 [deprecated = true];
 
   // Billing permissions (org-scoped).
   can_view_billing = 27;

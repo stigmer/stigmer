@@ -74,6 +74,28 @@ describe("ToolRunGroup", () => {
     expect(chipExpanded(container)).toBe(false);
   });
 
+  it("treats an interrupted call as terminal: the chip settles instead of pinning to pending", () => {
+    // A platform-settled INTERRUPTED call (issue #207) inside a folded run.
+    // Before the fix an unknown status kept allTerminal=false forever, pinning
+    // the whole chip to a live-looking pending state with a spinner-adjacent
+    // dot; a settled run must render settled.
+    const { container } = render(
+      <ToolRunGroup
+        category="read"
+        toolCalls={[
+          makeRead("r1", "/a.ts", ToolCallStatus.TOOL_CALL_COMPLETED),
+          makeRead("r2", "/b.ts", ToolCallStatus.TOOL_CALL_INTERRUPTED),
+        ]}
+      />,
+    );
+    expect(container.querySelector(".animate-spin")).toBeNull();
+    expect(chipExpanded(container)).toBe(false);
+    // The aggregate resolves to the terminal branch (completed chip in
+    // text-success), not the non-terminal pending fallback (muted dot).
+    expect(container.querySelector(".text-success")).not.toBeNull();
+    expect(screen.getByText("Read 2 files")).toBeTruthy();
+  });
+
   it("auto-opens when a folded call is awaiting approval, so the gate is reachable", () => {
     const gated = makeRead("r2", "/b.ts", ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
     const approval: PendingApproval = create(PendingApprovalSchema, {

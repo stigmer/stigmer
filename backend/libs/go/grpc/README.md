@@ -5,6 +5,7 @@ gRPC server utilities and middleware for Stigmer services.
 ## Features
 
 - **Server Lifecycle Management** - Start, stop, graceful shutdown
+- **Health Service** - Standard `grpc.health.v1.Health` auto-registered, with a staged readiness signal
 - **Request/Response Logging** - Automatic logging of all gRPC calls with duration
 - **Error Handling** - Helper functions for common gRPC error codes
 - **Interceptor Support** - Custom unary and stream interceptors
@@ -54,6 +55,39 @@ server := grpc.NewServer(
 )
 ```
 
+## Health / Readiness
+
+Every server created with `NewServer` automatically registers the standard
+`grpc.health.v1.Health` service on the same `*grpc.Server` as your own
+services, so it is reachable over native gRPC, gRPC-Web, and the in-process
+bufconn transport. Any supervisor (systemd, Docker healthchecks, a desktop
+process manager) can gate readiness on it uniformly.
+
+The overall server status (empty service name `""`) starts as `NOT_SERVING`.
+Flip it to `SERVING` once your controllers and dependencies are fully wired —
+immediately before you start accepting network traffic:
+
+```go
+// ... register services, wire dependencies ...
+server.SetHealthServing() // overall status -> SERVING
+
+// ... start serving ...
+
+server.Stop() // flips the status back to NOT_SERVING before draining
+```
+
+`Stop()` sets the status to `NOT_SERVING` as its first action, so a supervisor
+polling health observes the server draining before its connections are torn
+down. `SetHealthNotServing()` is also exposed for callers that need to signal
+"not ready" outside of shutdown.
+
+Probe it with `grpc_health_probe` or `grpcurl` (default service is `""`):
+
+```bash
+grpc_health_probe -addr=localhost:7234
+grpcurl -plaintext localhost:7234 grpc.health.v1.Health/Check
+```
+
 ## Error Handling
 
 Use the provided error helpers for consistent error codes:
@@ -94,6 +128,11 @@ INFO gRPC call succeeded method=/ai.stigmer.agentic.agent.v1.AgentCommandControl
 ```
 ERROR gRPC call failed method=/ai.stigmer.agentic.agent.v1.AgentCommandController/Create duration_ms=12 code=INVALID_ARGUMENT error="name is required"
 ```
+
+Health-probe calls (`/grpc.health.v1.Health/*`) are high-frequency
+infrastructure traffic, so their successes are logged at `DEBUG` instead of
+`INFO` — a supervisor polling readiness continuously does not flood the default
+log. Errors are still logged at their normal level.
 
 ## Configuration
 

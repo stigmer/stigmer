@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# copied from @stigmer/embed dist by scripts/copy-embed-loader.ts
+/public/embed.js
+
 # production
 /build
 

@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { CliExitError } from "../errors/index.js";
 import type { Config } from "./config.js";
 import {
+  DEFAULT_CLOUD_CONSOLE_URL,
   ensureAuthenticated,
+  resolveConsoleURL,
   resolveContextOrganization,
   resolveEndpoint,
   resolveOrganization,
@@ -76,6 +78,42 @@ describe("resolveOrganization", () => {
 
   it("falls back to legacy cloud org_id", () => {
     expect(resolveContextOrganization(cloudConfig({ org_id: "legacy" }))).toBe("legacy");
+  });
+
+  it("defaults to the seedpack org in local mode when nothing is configured", () => {
+    expect(resolveOrganization({ backend: { type: "local" } })).toBe("stigmer");
+  });
+
+  it("prefers an explicit context org over the local default", () => {
+    const config: Config = { backend: { type: "local" }, context: { organization: "my-local-org" } };
+    expect(resolveOrganization(config)).toBe("my-local-org");
+  });
+
+  it("does not apply the local default in cloud mode (org stays empty)", () => {
+    expect(resolveOrganization({ backend: { type: "cloud" } })).toBe("");
+  });
+
+  it("reports an unset local org as empty via resolveContextOrganization (no implicit default)", () => {
+    // The implicit local default lives only in resolveOrganization (effective
+    // org for operations); the context query must stay faithful so config/context
+    // display can show "(not set)".
+    expect(resolveContextOrganization({ backend: { type: "local" } })).toBe("");
+  });
+});
+
+describe("resolveConsoleURL", () => {
+  it("prefers the STIGMER_CONSOLE_URL override", () => {
+    expect(resolveConsoleURL("cloud", { STIGMER_CONSOLE_URL: "https://console.example" } as NodeJS.ProcessEnv)).toBe(
+      "https://console.example",
+    );
+  });
+
+  it("uses the local web-console port for the local backend", () => {
+    expect(resolveConsoleURL("local", {} as NodeJS.ProcessEnv)).toBe("http://localhost:8234");
+  });
+
+  it("uses the cloud console URL for the cloud backend", () => {
+    expect(resolveConsoleURL("cloud", {} as NodeJS.ProcessEnv)).toBe(DEFAULT_CLOUD_CONSOLE_URL);
   });
 });
 

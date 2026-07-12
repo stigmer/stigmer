@@ -2,8 +2,8 @@
 // @generated from file ai/stigmer/agentic/agent/v1/spec.proto (package ai.stigmer.agentic.agent.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { EnvVarDeclaration } from "../../environment/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_environment_v1_spec } from "../../environment/v1/spec_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIrAFCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEs4BChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKFAbpIgQGSAX4ifLoBeQoWbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI5CgpzdWJfYWdlbnRzGAYgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlN1YkFnZW50EjwKA2VudhgHIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNwZWMuRW52RW50cnkaYAoIRW52RW50cnkSCwoDa2V5GAEgASgJEkMKBXZhbHVlGAIgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4ASLbAgoIU3ViQWdlbnQSFAoEbmFtZRgBIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAIgASgJEh0KDGluc3RydWN0aW9ucxgDIAEoCUIHukgEcgIQChI6CgptY3BfYWNjZXNzGAQgAygLMiYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLk1jcEFjY2VzcxKwAQoKc2tpbGxfcmVmcxgFIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJmukhfkgFcIlq6AVcKD3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEhYKDm1vZGVsX292ZXJyaWRlGAYgASgJItUBCg5NY3BTZXJ2ZXJVc2FnZRJYCg5tY3Bfc2VydmVyX3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIKukgDyAEB4IUsLBIVCg1lbmFibGVkX3Rvb2xzGAIgAygJElIKF3Rvb2xfYXBwcm92YWxfb3ZlcnJpZGVzGAMgAygLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlRvb2xBcHByb3ZhbE92ZXJyaWRlIj4KCU1jcEFjY2VzcxIaCgptY3Bfc2VydmVyGAEgASgJQga6SAPIAQESFQoNZW5hYmxlZF90b29scxgCIAMoCSJeChRUb29sQXBwcm92YWxPdmVycmlkZRIaCgl0b29sX25hbWUYASABKAlCB7pIBHICEAESGQoRcmVxdWlyZXNfYXBwcm92YWwYAiABKAgSDwoHbWVzc2FnZRgDIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvc3BlYy5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxIuwFCglBZ2VudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSEAoIaWNvbl91cmwYAiABKAkSHQoMaW5zdHJ1Y3Rpb25zGAMgASgJQge6SARyAhAKEs4BChFtY3Bfc2VydmVyX3VzYWdlcxgEIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKFAbpIgQGSAX4ifLoBeQoWbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxI5CgpzdWJfYWdlbnRzGAYgAygLMiUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLlN1YkFnZW50EjwKA2VudhgHIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNwZWMuRW52RW50cnkSOgoHc2hhcmluZxgIIAEoCzIpLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNoYXJpbmcaYAoIRW52RW50cnkSCwoDa2V5GAEgASgJEkMKBXZhbHVlGAIgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudlZhckRlY2xhcmF0aW9uOgI4ASLcAwoMQWdlbnRTaGFyaW5nEg8KB2VuYWJsZWQYASABKAgSsAIKD2FsbG93ZWRfb3JpZ2lucxgCIAMoCUKWArpIkgKSAY4CECAiiQK6AYUCChZhbGxvd2VkX29yaWdpbnMuZm9ybWF0Em5hbGxvd2VkX29yaWdpbnMgZW50cmllcyBtdXN0IGJlIGV4YWN0IHdlYiBvcmlnaW5zIGxpa2UgaHR0cHM6Ly9leGFtcGxlLmNvbSAobm8gcGF0aCwgcXVlcnksIG9yIHRyYWlsaW5nIHNsYXNoKRp7dGhpcy5tYXRjaGVzKCdeaHR0cHM/Oi8vW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8oXFwuW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8pKig6WzAtOV17MSw1fSk/JCcpEkMKCG1lc3NhZ2VzGAMgASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50U2hhcmluZ01lc3NhZ2VzEkMKCGF1ZGllbmNlGAQgASgOMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50U2hhcmluZ0F1ZGllbmNlInsKFEFnZW50U2hhcmluZ01lc3NhZ2VzEh4KDHJhdGVfbGltaXRlZBgBIAEoCUIIukgFcgMYrAISHQoLdW5hdmFpbGFibGUYAiABKAlCCLpIBXIDGKwCEiQKEmNvbnZlcnNhdGlvbl9lbmRlZBgDIAEoCUIIukgFcgMYrAIi2wIKCFN1YkFnZW50EhQKBG5hbWUYASABKAlCBrpIA8gBARITCgtkZXNjcmlwdGlvbhgCIAEoCRIdCgxpbnN0cnVjdGlvbnMYAyABKAlCB7pIBHICEAoSOgoKbWNwX2FjY2VzcxgEIAMoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BBY2Nlc3MSsAEKCnNraWxsX3JlZnMYBSADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCZrpIX5IBXCJaugFXCg9za2lsbF9yZWZzLmtpbmQSM3NraWxsX3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1za2lsbBoPdGhpcy5raW5kID09IDQz4IUsKxIWCg5tb2RlbF9vdmVycmlkZRgGIAEoCSLVAQoOTWNwU2VydmVyVXNhZ2USWAoObWNwX3NlcnZlcl9yZWYYASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCCrpIA8gBAeCFLCwSFQoNZW5hYmxlZF90b29scxgCIAMoCRJSChd0b29sX2FwcHJvdmFsX292ZXJyaWRlcxgDIAMoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5Ub29sQXBwcm92YWxPdmVycmlkZSI+CglNY3BBY2Nlc3MSGgoKbWNwX3NlcnZlchgBIAEoCUIGukgDyAEBEhUKDWVuYWJsZWRfdG9vbHMYAiADKAkiXgoUVG9vbEFwcHJvdmFsT3ZlcnJpZGUSGgoJdG9vbF9uYW1lGAEgASgJQge6SARyAhABEhkKEXJlcXVpcmVzX2FwcHJvdmFsGAIgASgIEg8KB21lc3NhZ2UYAyABKAkqgQEKFEFnZW50U2hhcmluZ0F1ZGllbmNlEiYKImFnZW50X3NoYXJpbmdfYXVkaWVuY2VfdW5zcGVjaWZpZWQQABIhCh1hZ2VudF9zaGFyaW5nX2F1ZGllbmNlX3B1YmxpYxABEh4KGmFnZW50X3NoYXJpbmdfYXVkaWVuY2Vfb3JnEAJiBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentSpec defines the configurable properties of an agent.
@@ -80,6 +80,33 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
    * @generated from field: map<string, ai.stigmer.agentic.environment.v1.EnvVarDeclaration> env = 7;
    */
   env: { [key: string]: EnvVarDeclaration };
+
+  /**
+   * Sharing configuration for the agent's hosted chat experience.
+   *
+   * Controls who can chat with the running agent over its hosted link: anyone
+   * with the link (public audience) or signed-in members of the owning
+   * organization (org audience). This is a distinct consent from
+   * metadata.visibility: visibility governs who can READ the agent blueprint
+   * (marketplace), while sharing governs who can CHAT with the agent runtime.
+   * Conversations over a shared link consume the owning organization's
+   * credits, so enabling sharing is an explicit, billing-affecting decision.
+   *
+   * Unset is equivalent to sharing disabled.
+   *
+   * @internal
+   * Declarative spec semantics apply: update/apply replace this field like
+   * any other spec field, so a manifest that omits sharing revokes an active
+   * share (fails closed). Console and CLI toggle it via the targeted
+   * updateSharing RPC instead of a full-resource write. Enforcement is
+   * app-level in the getSharedProfile handler — sharing deliberately writes
+   * NO FGA visibility tuples, because a public wildcard viewer tuple would
+   * expose the full blueprint (instructions included) to any authenticated
+   * account via getByReference, conflating the two consents.
+   *
+   * @generated from field: ai.stigmer.agentic.agent.v1.AgentSharing sharing = 8;
+   */
+  sharing?: AgentSharing;
 };
 
 /**
@@ -88,6 +115,134 @@ export type AgentSpec = Message<"ai.stigmer.agentic.agent.v1.AgentSpec"> & {
  */
 export const AgentSpecSchema: GenMessage<AgentSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 0);
+
+/**
+ * AgentSharing controls access to an agent's hosted chat experience —
+ * anyone with the link (public audience) or org members only (org audience).
+ *
+ * When enabled with the public audience, the agent's trimmed profile becomes
+ * resolvable through the public getSharedProfile RPC and the hosted chat
+ * page can serve visitors without Stigmer accounts. When enabled with the
+ * org audience, only signed-in members of the owning organization can
+ * resolve the profile (getSharedProfileForMember) and chat. When disabled
+ * (or unset), the shared link behaves as if the agent does not exist
+ * (NOT_FOUND).
+ *
+ * This message is intentionally a wrapper so later phases can add fields
+ * (usage caps, expiry) without a breaking change.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.AgentSharing
+ */
+export type AgentSharing = Message<"ai.stigmer.agentic.agent.v1.AgentSharing"> & {
+  /**
+   * Whether hosted-chat access for the configured audience is enabled.
+   *
+   * @generated from field: bool enabled = 1;
+   */
+  enabled: boolean;
+
+  /**
+   * Origins permitted to embed this agent's chat widget.
+   *
+   * Each entry is an exact web origin (scheme://host[:port]) with no path,
+   * for example "https://docs.example.com". An empty list allows embedding
+   * from any site; listing origins restricts embedding to those sites. The
+   * first-party hosted chat page is always exempt.
+   *
+   * @internal
+   * Enforced since T04 against the embed_origin the widget reports at
+   * mintGuestToken time (stamped into the guest JWT as a claim) and
+   * re-validated against this live list by the guest create-time gate
+   * (SharedSessionBlueprintAccess) on every session/execution create — the
+   * same gate that re-checks sharing.enabled, so revocation latency is
+   * identical (immediate). Unframed hosted-page visitors report no origin
+   * and are exempt by construction. Exact origins only — loosening to
+   * wildcards later is a non-breaking change, tightening would not be.
+   *
+   * @generated from field: repeated string allowed_origins = 2;
+   */
+  allowedOrigins: string[];
+
+  /**
+   * Owner-customizable copy shown to visitors when a launch-gate limit
+   * refuses their message. Unset fields fall back to platform defaults.
+   *
+   * @internal
+   * Resolved server-side at the refusal point and carried in the gRPC
+   * status description — deliberately NOT surfaced on SharedAgentProfile
+   * and NOT mapped client-side, so the copy reaches every client (web,
+   * embed, CLI) through the existing error-message path.
+   *
+   * @generated from field: ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3;
+   */
+  messages?: AgentSharingMessages;
+
+  /**
+   * Who can chat with the shared agent. Unspecified means public
+   * (anyone with the link), so pre-existing shares keep their behavior.
+   *
+   * To keep an agent org-only, audience must be present in every apply:
+   * update/apply replace spec.sharing wholesale, so a manifest that sets
+   * enabled without audience resets the share to public.
+   *
+   * @internal
+   * Org audience is enforced cloud-side only (org membership is a
+   * multi-tenant IAM concept): the guest mint and public profile handlers
+   * treat audience=org as NOT_FOUND, and the create-time blueprint gate
+   * admits authenticated org members via an app-level FGA member check
+   * (no visibility tuples written — same posture as the sharing flag).
+   * The OSS single-user server stores and echoes the field.
+   *
+   * @generated from field: ai.stigmer.agentic.agent.v1.AgentSharingAudience audience = 4;
+   */
+  audience: AgentSharingAudience;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.AgentSharing.
+ * Use `create(AgentSharingSchema)` to create a new message.
+ */
+export const AgentSharingSchema: GenMessage<AgentSharing> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 1);
+
+/**
+ * AgentSharingMessages holds owner-customizable visitor-facing copy for
+ * shared-agent limit refusals.
+ *
+ * Empty fields mean "use the platform default". Plain text only; rendered
+ * verbatim in the visitor's chat surface.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.AgentSharingMessages
+ */
+export type AgentSharingMessages = Message<"ai.stigmer.agentic.agent.v1.AgentSharingMessages"> & {
+  /**
+   * Shown when a visitor or the org exceeds the message rate limit.
+   *
+   * @generated from field: string rate_limited = 1;
+   */
+  rateLimited: string;
+
+  /**
+   * Shown when the org's credits are exhausted (sharing fails closed).
+   *
+   * @generated from field: string unavailable = 2;
+   */
+  unavailable: string;
+
+  /**
+   * Shown when a conversation hits its turn limit or inactivity timeout.
+   *
+   * @generated from field: string conversation_ended = 3;
+   */
+  conversationEnded: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.AgentSharingMessages.
+ * Use `create(AgentSharingMessagesSchema)` to create a new message.
+ */
+export const AgentSharingMessagesSchema: GenMessage<AgentSharingMessages> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 2);
 
 /**
  * SubAgent defines a specialized agent that the parent can delegate to.
@@ -154,7 +309,7 @@ export type SubAgent = Message<"ai.stigmer.agentic.agent.v1.SubAgent"> & {
  * Use `create(SubAgentSchema)` to create a new message.
  */
 export const SubAgentSchema: GenMessage<SubAgent> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 1);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 3);
 
 /**
  * McpServerUsage declares that this agent uses a McpServer resource.
@@ -207,7 +362,7 @@ export type McpServerUsage = Message<"ai.stigmer.agentic.agent.v1.McpServerUsage
  * Use `create(McpServerUsageSchema)` to create a new message.
  */
 export const McpServerUsageSchema: GenMessage<McpServerUsage> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 2);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 4);
 
 /**
  * McpAccess grants a sub-agent access to one of the parent's MCP servers.
@@ -243,7 +398,7 @@ export type McpAccess = Message<"ai.stigmer.agentic.agent.v1.McpAccess"> & {
  * Use `create(McpAccessSchema)` to create a new message.
  */
 export const McpAccessSchema: GenMessage<McpAccess> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 3);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 5);
 
 /**
  * ToolApprovalOverride allows per-agent customization of approval requirements.
@@ -297,5 +452,48 @@ export type ToolApprovalOverride = Message<"ai.stigmer.agentic.agent.v1.ToolAppr
  * Use `create(ToolApprovalOverrideSchema)` to create a new message.
  */
 export const ToolApprovalOverrideSchema: GenMessage<ToolApprovalOverride> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 4);
+  messageDesc(file_ai_stigmer_agentic_agent_v1_spec, 6);
+
+/**
+ * AgentSharingAudience selects who can chat with a shared agent over its
+ * hosted link.
+ *
+ * Unspecified is treated as public for backward compatibility: every share
+ * created before the audience field existed is an anyone-with-link share.
+ *
+ * @generated from enum ai.stigmer.agentic.agent.v1.AgentSharingAudience
+ */
+export enum AgentSharingAudience {
+  /**
+   * Treated as public (backward compatibility with pre-audience shares).
+   *
+   * @generated from enum value: agent_sharing_audience_unspecified = 0;
+   */
+  unspecified = 0,
+
+  /**
+   * Anyone with the link can chat — no Stigmer account required.
+   * Visitors are anonymous guests; suitable only for knowledge that is
+   * safe to expose to the entire internet.
+   *
+   * @generated from enum value: agent_sharing_audience_public = 1;
+   */
+  public = 1,
+
+  /**
+   * Only signed-in members of the owning organization can chat.
+   * Membership is checked on every conversation turn, so access ends the
+   * moment a member leaves the organization. The right mode for
+   * org-internal knowledge agents.
+   *
+   * @generated from enum value: agent_sharing_audience_org = 2;
+   */
+  org = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agent.v1.AgentSharingAudience.
+ */
+export const AgentSharingAudienceSchema: GenEnum<AgentSharingAudience> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agent_v1_spec, 0);
 

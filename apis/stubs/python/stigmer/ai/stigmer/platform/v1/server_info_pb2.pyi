@@ -45,3 +45,21 @@ class GetRunnerBootstrapConfigOutput(_message.Message):
     token_type: str
     runner_access_token_expires_in_seconds: int
     def __init__(self, temporal_address: _Optional[str] = ..., temporal_namespace: _Optional[str] = ..., runner_access_token: _Optional[str] = ..., token_type: _Optional[str] = ..., runner_access_token_expires_in_seconds: _Optional[int] = ...) -> None: ...
+
+class GetRunnerScopedTokenInput(_message.Message):
+    __slots__ = ("agent_execution_id", "workflow_execution_id")
+    AGENT_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    WORKFLOW_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    agent_execution_id: str
+    workflow_execution_id: str
+    def __init__(self, agent_execution_id: _Optional[str] = ..., workflow_execution_id: _Optional[str] = ...) -> None: ...
+
+class GetRunnerScopedTokenOutput(_message.Message):
+    __slots__ = ("runner_scoped_token", "token_type", "expires_in_seconds")
+    RUNNER_SCOPED_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    TOKEN_TYPE_FIELD_NUMBER: _ClassVar[int]
+    EXPIRES_IN_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    runner_scoped_token: str
+    token_type: str
+    expires_in_seconds: int
+    def __init__(self, runner_scoped_token: _Optional[str] = ..., token_type: _Optional[str] = ..., expires_in_seconds: _Optional[int] = ...) -> None: ...

@@ -328,7 +328,7 @@
         {
           "name": "organization",
           "number": 30,
-          "description": "Top-level tenant that owns and manages resources."
+          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
         },
         {
           "name": "platform",
@@ -403,5 +403,5 @@
       ]
     }
   ],
-  "resourceDescription": "Organization is the top-level container for all Stigmer resources.\n\n @internal\n Similar to GitHub organizations, all agents, workflows, sessions, and other\n resources are scoped under an organization. This enables multi-tenancy and\n proper resource isolation."
+  "resourceDescription": "Organization is the top-level container for all Stigmer resources.\n\n An Organization's metadata.id equals its metadata.slug: unlike every other\n resource (which is assigned a generated prefixed id), the tenancy root is\n addressed by its slug, which is globally unique.\n\n @internal\n Similar to GitHub organizations, all agents, workflows, sessions, and other\n resources are scoped under an organization. This enables multi-tenancy and\n proper resource isolation. Child resources reference their owning org by slug\n (metadata.org), which is why the org's id is set to its slug rather than a\n minted org_\u003culid\u003e (see OrganizationCommandController create pipeline)."
 }

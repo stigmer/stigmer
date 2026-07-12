@@ -75,6 +75,20 @@ func SeedWorkspaceFile(t *testing.T, dir, relPath, content string) {
 	runGit(t, dir, "commit", "-q", "-m", "seed "+relPath)
 }
 
+// SeedExecutableWorkspaceFile writes relPath under the git workspace dir with
+// the executable bit set (0o755) and commits it. Use it for hook/helper scripts
+// the workspace must carry before a turn starts — e.g. a FOREIGN
+// `.cursor/hooks.json` preToolUse hook script (issue #205), which Cursor spawns
+// directly and therefore must be executable.
+func SeedExecutableWorkspaceFile(t *testing.T, dir, relPath, content string) {
+	t.Helper()
+	abs := filepath.Join(dir, relPath)
+	require.NoError(t, os.MkdirAll(filepath.Dir(abs), 0o755), "mkdir for %s", relPath)
+	require.NoError(t, os.WriteFile(abs, []byte(content), 0o755), "seed executable %s", relPath)
+	runGit(t, dir, "add", "--", relPath)
+	runGit(t, dir, "commit", "-q", "-m", "seed "+relPath)
+}
+
 // SeedGitignorePattern appends a pattern to the tracked .gitignore and commits
 // it, so a matching path is git-IGNORED from the pre-turn baseline onward. Use it
 // to create a NON-secret ignored path (e.g. "cache/") that the CAS substrate — not

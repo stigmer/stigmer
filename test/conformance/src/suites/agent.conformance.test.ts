@@ -8,8 +8,8 @@
 // this slice — the cross-aggregate Agent->McpServer reference invariant.
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { Code } from "@connectrpc/connect";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { expectCodeOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -155,6 +155,13 @@ describe("Agent conformance — CRUD & identity", () => {
     );
   });
 
+  it("getByReference rejects a kind that does not match the service", () =>
+    expectGrpcCode(
+      () => clients.agentQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.project }),
+      Code.InvalidArgument,
+      "getByReference kind mismatch",
+    ));
+
   it("derives a slug from the name", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createAgent(org, "My Agent #1 (Test)");
@@ -202,10 +209,9 @@ describe("Agent conformance — negative paths", () => {
     const name = uniqueName("dup");
     await createAgent(org, name);
 
-    await expectCodeOrDeviation(
-      target.name,
-      "create.duplicate.code",
+    await expectGrpcCode(
       () => clients.agentCommand.create(makeAgent({ org, name })),
+      Code.AlreadyExists,
       "duplicate create",
     );
   });
@@ -214,9 +220,7 @@ describe("Agent conformance — negative paths", () => {
     const { org } = await target.provisionTenancy();
     // Spec is valid so Layer 1 passes; the empty name is what must be rejected
     // (slug resolution has nothing to derive from).
-    await expectCodeOrDeviation(
-      target.name,
-      "create.missing-name.code",
+    await expectGrpcCode(
       () =>
         clients.agentCommand.create({
           apiVersion: AGENT_API_VERSION,
@@ -224,6 +228,7 @@ describe("Agent conformance — negative paths", () => {
           metadata: { org },
           spec: makeAgentSpec(),
         }),
+      Code.InvalidArgument,
       "create without name",
     );
   });

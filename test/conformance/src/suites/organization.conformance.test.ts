@@ -57,10 +57,13 @@ async function countOrganizations(): Promise<number> {
 }
 
 describe("Organization conformance", () => {
-  it("create assigns an org_ id and records a created audit event", async () => {
+  it("create sets id equal to slug and records a created audit event", async () => {
     const created = await createOrg(uniqueName("org"));
 
-    expect(created.metadata?.id, "create should assign a prefixed id").toMatch(/^org_[0-9a-z]+$/);
+    // Organization is the one resource whose id is its slug (the globally unique
+    // tenancy root is addressed by slug, not a minted id). This holds uniformly
+    // across local-go and cloud targets.
+    expect(created.metadata?.id, "org id should equal its slug").toBe(created.metadata?.slug);
     expect(created.status?.audit?.specAudit?.event).toBe("created");
   });
 
@@ -115,7 +118,12 @@ describe("Organization conformance", () => {
     await expectGrpcCode(() => clients.organizationQuery.get({ value: id }), Code.NotFound, "get after delete");
   });
 
-  it("find lists created organizations with correct pagination", async () => {
+  it("find enumerates all organizations with correct pagination when supported", async () => {
+    // find enumerates every organization regardless of caller — a single-tenant
+    // (OSS) capability. Cloud does not expose tenant-facing org enumeration; its
+    // contract is asserted by the Unimplemented case below.
+    if (!target.capabilities.organizationEnumeration) return;
+
     const baseline = await countOrganizations();
     const added = 3;
     for (let i = 0; i < added; i++) {
@@ -131,9 +139,19 @@ describe("Organization conformance", () => {
     expect(firstPage.totalPages).toBe(Math.ceil(total / pageSize));
   });
 
+  it("find is unavailable without org enumeration (Unimplemented)", async () => {
+    if (target.capabilities.organizationEnumeration) return;
+
+    await expectGrpcCode(
+      () => clients.organizationQuery.find({ org: FIND_ORG, pageSize: 100 }),
+      Code.Unimplemented,
+      "find without org enumeration",
+    );
+  });
+
   it("findMyOrganizations returns all organizations when multi-tenancy is off", async () => {
     if (target.capabilities.multiTenant) {
-      // Cloud filters by membership; that behavior is asserted by the cloud target.
+      // Membership filtering is asserted by the multi-tenant test below.
       return;
     }
     await createOrg(uniqueName("myorg"));
@@ -142,6 +160,38 @@ describe("Organization conformance", () => {
     const mine = await clients.organizationQuery.findMyOrganizations({});
 
     expect(mine.entries.length, "local mode applies no IAM filtering").toBe(all.entries.length);
+  });
+
+  it("findMyOrganizations filters by membership and outsiders cannot view the org", async () => {
+    if (!target.capabilities.multiTenant) {
+      // Single-tenant targets have one implicit caller; there is no second
+      // identity to be excluded, so isolation is untestable by construction.
+      return;
+    }
+    if (target.provisionIdentity === undefined) {
+      throw new Error(`target "${target.name}" declares multiTenant but provides no provisionIdentity()`);
+    }
+    const created = await createOrg(uniqueName("myorg"));
+    const id = created.metadata!.id;
+
+    const mine = await clients.organizationQuery.findMyOrganizations({});
+    expect(
+      mine.entries.some((entry) => entry.metadata?.id === id),
+      "the creator (owner) must see the org in findMyOrganizations",
+    ).toBe(true);
+
+    const outsider = await target.provisionIdentity();
+    const theirs = await outsider.organizationQuery.findMyOrganizations({});
+    expect(
+      theirs.entries.some((entry) => entry.metadata?.id === id),
+      "an identity with no grants must not see the org in findMyOrganizations",
+    ).toBe(false);
+
+    await expectGrpcCode(
+      () => outsider.organizationQuery.get({ value: id }),
+      Code.PermissionDenied,
+      "outsider get on a foreign org",
+    );
   });
 
   it("getByExternalOrgId is unavailable locally (Unimplemented)", async () => {
@@ -156,6 +206,28 @@ describe("Organization conformance", () => {
         }),
       Code.Unimplemented,
       "getByExternalOrgId",
+    );
+  });
+
+  it("getByExternalOrgId answers NotFound for an unknown identity provider when implemented", async () => {
+    if (!target.capabilities.externalOrgLookup) {
+      return;
+    }
+    const { org } = await target.provisionTenancy();
+
+    // Minimum-viable contract for the implemented RPC: the lookup pipeline is
+    // reachable (not Unimplemented) and an unknown IdentityProvider reference
+    // is NotFound. The IdP-backed happy path (platform-managed org resolved by
+    // real external coordinates) needs full IdentityProvider provisioning and
+    // is deferred with the rest of the federation surface.
+    await expectGrpcCode(
+      () =>
+        clients.organizationQuery.getByExternalOrgId({
+          externalOrgId: "ext-123",
+          identityProviderRef: { org, slug: "idp-does-not-exist" },
+        }),
+      Code.NotFound,
+      "getByExternalOrgId with unknown identity provider",
     );
   });
 

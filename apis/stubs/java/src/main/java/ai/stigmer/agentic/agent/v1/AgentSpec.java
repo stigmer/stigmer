@@ -74,6 +74,7 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.agent.v1.AgentSpec.class, ai.stigmer.agentic.agent.v1.AgentSpec.Builder.class);
   }
 
+  private int bitField0_;
   public static final int DESCRIPTION_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
   private volatile java.lang.Object description_ = "";
@@ -509,6 +510,104 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     return map.get(key);
   }
 
+  public static final int SHARING_FIELD_NUMBER = 8;
+  private ai.stigmer.agentic.agent.v1.AgentSharing sharing_;
+  /**
+   * <pre>
+   * Sharing configuration for the agent's hosted chat experience.
+   *
+   * Controls who can chat with the running agent over its hosted link: anyone
+   * with the link (public audience) or signed-in members of the owning
+   * organization (org audience). This is a distinct consent from
+   * metadata.visibility: visibility governs who can READ the agent blueprint
+   * (marketplace), while sharing governs who can CHAT with the agent runtime.
+   * Conversations over a shared link consume the owning organization's
+   * credits, so enabling sharing is an explicit, billing-affecting decision.
+   *
+   * Unset is equivalent to sharing disabled.
+   *
+   * &#64;internal
+   * Declarative spec semantics apply: update/apply replace this field like
+   * any other spec field, so a manifest that omits sharing revokes an active
+   * share (fails closed). Console and CLI toggle it via the targeted
+   * updateSharing RPC instead of a full-resource write. Enforcement is
+   * app-level in the getSharedProfile handler — sharing deliberately writes
+   * NO FGA visibility tuples, because a public wildcard viewer tuple would
+   * expose the full blueprint (instructions included) to any authenticated
+   * account via getByReference, conflating the two consents.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agent.v1.AgentSharing sharing = 8 [json_name = "sharing"];</code>
+   * @return Whether the sharing field is set.
+   */
+  @java.lang.Override
+  public boolean hasSharing() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * Sharing configuration for the agent's hosted chat experience.
+   *
+   * Controls who can chat with the running agent over its hosted link: anyone
+   * with the link (public audience) or signed-in members of the owning
+   * organization (org audience). This is a distinct consent from
+   * metadata.visibility: visibility governs who can READ the agent blueprint
+   * (marketplace), while sharing governs who can CHAT with the agent runtime.
+   * Conversations over a shared link consume the owning organization's
+   * credits, so enabling sharing is an explicit, billing-affecting decision.
+   *
+   * Unset is equivalent to sharing disabled.
+   *
+   * &#64;internal
+   * Declarative spec semantics apply: update/apply replace this field like
+   * any other spec field, so a manifest that omits sharing revokes an active
+   * share (fails closed). Console and CLI toggle it via the targeted
+   * updateSharing RPC instead of a full-resource write. Enforcement is
+   * app-level in the getSharedProfile handler — sharing deliberately writes
+   * NO FGA visibility tuples, because a public wildcard viewer tuple would
+   * expose the full blueprint (instructions included) to any authenticated
+   * account via getByReference, conflating the two consents.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agent.v1.AgentSharing sharing = 8 [json_name = "sharing"];</code>
+   * @return The sharing.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.AgentSharing getSharing() {
+    return sharing_ == null ? ai.stigmer.agentic.agent.v1.AgentSharing.getDefaultInstance() : sharing_;
+  }
+  /**
+   * <pre>
+   * Sharing configuration for the agent's hosted chat experience.
+   *
+   * Controls who can chat with the running agent over its hosted link: anyone
+   * with the link (public audience) or signed-in members of the owning
+   * organization (org audience). This is a distinct consent from
+   * metadata.visibility: visibility governs who can READ the agent blueprint
+   * (marketplace), while sharing governs who can CHAT with the agent runtime.
+   * Conversations over a shared link consume the owning organization's
+   * credits, so enabling sharing is an explicit, billing-affecting decision.
+   *
+   * Unset is equivalent to sharing disabled.
+   *
+   * &#64;internal
+   * Declarative spec semantics apply: update/apply replace this field like
+   * any other spec field, so a manifest that omits sharing revokes an active
+   * share (fails closed). Console and CLI toggle it via the targeted
+   * updateSharing RPC instead of a full-resource write. Enforcement is
+   * app-level in the getSharedProfile handler — sharing deliberately writes
+   * NO FGA visibility tuples, because a public wildcard viewer tuple would
+   * expose the full blueprint (instructions included) to any authenticated
+   * account via getByReference, conflating the two consents.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agent.v1.AgentSharing sharing = 8 [json_name = "sharing"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.AgentSharingOrBuilder getSharingOrBuilder() {
+    return sharing_ == null ? ai.stigmer.agentic.agent.v1.AgentSharing.getDefaultInstance() : sharing_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -547,6 +646,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         internalGetEnv(),
         EnvDefaultEntryHolder.defaultEntry,
         7);
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(8, getSharing());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -602,6 +704,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(7, env__);
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(8, getSharing());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -631,6 +737,11 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         .equals(other.getSubAgentsList())) return false;
     if (!internalGetEnv().equals(
         other.internalGetEnv())) return false;
+    if (hasSharing() != other.hasSharing()) return false;
+    if (hasSharing()) {
+      if (!getSharing()
+          .equals(other.getSharing())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -663,6 +774,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     if (!internalGetEnv().getMap().isEmpty()) {
       hash = (37 * hash) + ENV_FIELD_NUMBER;
       hash = (53 * hash) + internalGetEnv().hashCode();
+    }
+    if (hasSharing()) {
+      hash = (37 * hash) + SHARING_FIELD_NUMBER;
+      hash = (53 * hash) + getSharing().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -813,13 +928,22 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
 
     // Construct using ai.stigmer.agentic.agent.v1.AgentSpec.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessage
+              .alwaysUseFieldBuilders) {
+        internalGetMcpServerUsagesFieldBuilder();
+        internalGetSkillRefsFieldBuilder();
+        internalGetSubAgentsFieldBuilder();
+        internalGetSharingFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
@@ -850,6 +974,11 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       }
       bitField0_ = (bitField0_ & ~0x00000020);
       internalGetMutableEnv().clear();
+      sharing_ = null;
+      if (sharingBuilder_ != null) {
+        sharingBuilder_.dispose();
+        sharingBuilder_ = null;
+      }
       return this;
     }
 
@@ -926,6 +1055,14 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       if (((from_bitField0_ & 0x00000040) != 0)) {
         result.env_ = internalGetEnv().build(EnvDefaultEntryHolder.defaultEntry);
       }
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.sharing_ = sharingBuilder_ == null
+            ? sharing_
+            : sharingBuilder_.build();
+        to_bitField0_ |= 0x00000001;
+      }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -1036,6 +1173,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       internalGetMutableEnv().mergeFrom(
           other.internalGetEnv());
       bitField0_ |= 0x00000040;
+      if (other.hasSharing()) {
+        mergeSharing(other.getSharing());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1125,6 +1265,13 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
               bitField0_ |= 0x00000040;
               break;
             } // case 58
+            case 66: {
+              input.readMessage(
+                  internalGetSharingFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2588,6 +2735,343 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         builderMap.put(key, entry);
       }
       return (ai.stigmer.agentic.environment.v1.EnvVarDeclaration.Builder) entry;
+    }
+
+    private ai.stigmer.agentic.agent.v1.AgentSharing sharing_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agent.v1.AgentSharing, ai.stigmer.agentic.agent.v1.AgentSharing.Builder, ai.stigmer.agentic.agent.v1.AgentSharingOrBuilder> sharingBuilder_;
+    /**
+     * <pre>
+     * Sharing configuration for the agent's hosted chat experience.
+     *
+     * Controls who can chat with the running agent over its hosted link: anyone
+     * with the link (public audience) or signed-in members of the owning
+     * organization (org audience). This is a distinct consent from
+     * metadata.visibility: visibility governs who can READ the agent blueprint
+     * (marketplace), while sharing governs who can CHAT with the agent runtime.
+     * Conversations over a shared link consume the owning organization's
+     * credits, so enabling sharing is an explicit, billing-affecting decision.
+     *
+     * Unset is equivalent to sharing disabled.
+     *
+     * &#64;internal
+     * Declarative spec semantics apply: update/apply replace this field like
+     * any other spec field, so a manifest that omits sharing revokes an active
+     * share (fails closed). Console and CLI toggle it via the targeted
+     * updateSharing RPC instead of a full-resource write. Enforcement is
+     * app-level in the getSharedProfile handler — sharing deliberately writes
+     * NO FGA visibility tuples, because a public wildcard viewer tuple would
+     * expose the full blueprint (instructions included) to any authenticated
+     * account via getByReference, conflating the two consents.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharing sharing = 8 [json_name = "sharing"];</code>
+     * @return Whether the sharing field is set.
+     */
+    public boolean hasSharing() {
+      return ((bitField0_ & 0x00000080) != 0);
+    }
+    /**
+     * <pre>
+     * Sharing configuration for the agent's hosted chat experience.
+     *
+     * Controls who can chat with the running agent over its hosted link: anyone
+     * with the link (public audience) or signed-in members of the owning
+     * organization (org audience). This is a distinct consent from
+     * metadata.visibility: visibility governs who can READ the agent blueprint
+     * (marketplace), while sharing governs who can CHAT with the agent runtime.
+     * Conversations over a shared link consume the owning organization's
+     * credits, so enabling sharing is an explicit, billing-affecting decision.
+     *
+     * Unset is equivalent to sharing disabled.
+     *
+     * &#64;internal
+     * Declarative spec semantics apply: update/apply replace this field like
+     * any other spec field, so a manifest that omits sharing revokes an active
+     * share (fails closed). Console and CLI toggle it via the targeted
+     * updateSharing RPC instead of a full-resource write. Enforcement is
+     * app-level in the getSharedProfile handler — sharing deliberately writes
+     * NO FGA visibility tuples, because a public wildcard viewer tuple would
+     * expose the full blueprint (instructions included) to any authenticated
+     * account via getByReference, conflating the two consents.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharing sharing = 8 [json_name = "sharing"];</code>
+     * @return The sharing.
+     */
+    public ai.stigmer.agentic.agent.v1.AgentSharing getSharing() {
+      if (sharingBuilder_ == null) {
+        return sharing_ == null ? ai.stigmer.agentic.agent.v1.AgentSharing.getDefaultInstance() : sharing_;
+      } else {
+        return sharingBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Sharing configuration for the agent's hosted chat experience.
+     *
+     * Controls who can chat with the running agent over its hosted link: anyone
+     * with the link (public audience) or signed-in members of the owning
+     * organization (org audience). This is a distinct consent from
+     * metadata.visibility: visibility governs who can READ the agent blueprint
+     * (marketplace), while sharing governs who can CHAT with the agent runtime.
+     * Conversations over a shared link consume the owning organization's
+     * credits, so enabling sharing is an explicit, billing-affecting decision.
+     *
+     * Unset is equivalent to sharing disabled.
+     *
+     * &#64;internal
+     * Declarative spec semantics apply: update/apply replace this field like
+     * any other spec field, so a manifest that omits sharing revokes an active
+     * share (fails closed). Console and CLI toggle it via the targeted
+     * updateSharing RPC instead of a full-resource write. Enforcement is
+     * app-level in the getSharedProfile handler — sharing deliberately writes
+     * NO FGA visibility tuples, because a public wildcard viewer tuple would
+     * expose the full blueprint (instructions included) to any authenticated
+     * account via getByReference, conflating the two consents.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharing sharing = 8 [json_name = "sharing"];</code>
+     */
+    public Builder setSharing(ai.stigmer.agentic.agent.v1.AgentSharing value) {
+      if (sharingBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        sharing_ = value;
+      } else {
+        sharingBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Sharing configuration for the agent's hosted chat experience.
+     *
+     * Controls who can chat with the running agent over its hosted link: anyone
+     * with the link (public audience) or signed-in members of the owning
+     * organization (org audience). This is a distinct consent from
+     * metadata.visibility: visibility governs who can READ the agent blueprint
+     * (marketplace), while sharing governs who can CHAT with the agent runtime.
+     * Conversations over a shared link consume the owning organization's
+     * credits, so enabling sharing is an explicit, billing-affecting decision.
+     *
+     * Unset is equivalent to sharing disabled.
+     *
+     * &#64;internal
+     * Declarative spec semantics apply: update/apply replace this field like
+     * any other spec field, so a manifest that omits sharing revokes an active
+     * share (fails closed). Console and CLI toggle it via the targeted
+     * updateSharing RPC instead of a full-resource write. Enforcement is
+     * app-level in the getSharedProfile handler — sharing deliberately writes
+     * NO FGA visibility tuples, because a public wildcard viewer tuple would
+     * expose the full blueprint (instructions included) to any authenticated
+     * account via getByReference, conflating the two consents.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharing sharing = 8 [json_name = "sharing"];</code>
+     */
+    public Builder setSharing(
+        ai.stigmer.agentic.agent.v1.AgentSharing.Builder builderForValue) {
+      if (sharingBuilder_ == null) {
+        sharing_ = builderForValue.build();
+      } else {
+        sharingBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Sharing configuration for the agent's hosted chat experience.
+     *
+     * Controls who can chat with the running agent over its hosted link: anyone
+     * with the link (public audience) or signed-in members of the owning
+     * organization (org audience). This is a distinct consent from
+     * metadata.visibility: visibility governs who can READ the agent blueprint
+     * (marketplace), while sharing governs who can CHAT with the agent runtime.
+     * Conversations over a shared link consume the owning organization's
+     * credits, so enabling sharing is an explicit, billing-affecting decision.
+     *
+     * Unset is equivalent to sharing disabled.
+     *
+     * &#64;internal
+     * Declarative spec semantics apply: update/apply replace this field like
+     * any other spec field, so a manifest that omits sharing revokes an active
+     * share (fails closed). Console and CLI toggle it via the targeted
+     * updateSharing RPC instead of a full-resource write. Enforcement is
+     * app-level in the getSharedProfile handler — sharing deliberately writes
+     * NO FGA visibility tuples, because a public wildcard viewer tuple would
+     * expose the full blueprint (instructions included) to any authenticated
+     * account via getByReference, conflating the two consents.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharing sharing = 8 [json_name = "sharing"];</code>
+     */
+    public Builder mergeSharing(ai.stigmer.agentic.agent.v1.AgentSharing value) {
+      if (sharingBuilder_ == null) {
+        if (((bitField0_ & 0x00000080) != 0) &&
+          sharing_ != null &&
+          sharing_ != ai.stigmer.agentic.agent.v1.AgentSharing.getDefaultInstance()) {
+          getSharingBuilder().mergeFrom(value);
+        } else {
+          sharing_ = value;
+        }
+      } else {
+        sharingBuilder_.mergeFrom(value);
+      }
+      if (sharing_ != null) {
+        bitField0_ |= 0x00000080;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Sharing configuration for the agent's hosted chat experience.
+     *
+     * Controls who can chat with the running agent over its hosted link: anyone
+     * with the link (public audience) or signed-in members of the owning
+     * organization (org audience). This is a distinct consent from
+     * metadata.visibility: visibility governs who can READ the agent blueprint
+     * (marketplace), while sharing governs who can CHAT with the agent runtime.
+     * Conversations over a shared link consume the owning organization's
+     * credits, so enabling sharing is an explicit, billing-affecting decision.
+     *
+     * Unset is equivalent to sharing disabled.
+     *
+     * &#64;internal
+     * Declarative spec semantics apply: update/apply replace this field like
+     * any other spec field, so a manifest that omits sharing revokes an active
+     * share (fails closed). Console and CLI toggle it via the targeted
+     * updateSharing RPC instead of a full-resource write. Enforcement is
+     * app-level in the getSharedProfile handler — sharing deliberately writes
+     * NO FGA visibility tuples, because a public wildcard viewer tuple would
+     * expose the full blueprint (instructions included) to any authenticated
+     * account via getByReference, conflating the two consents.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharing sharing = 8 [json_name = "sharing"];</code>
+     */
+    public Builder clearSharing() {
+      bitField0_ = (bitField0_ & ~0x00000080);
+      sharing_ = null;
+      if (sharingBuilder_ != null) {
+        sharingBuilder_.dispose();
+        sharingBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Sharing configuration for the agent's hosted chat experience.
+     *
+     * Controls who can chat with the running agent over its hosted link: anyone
+     * with the link (public audience) or signed-in members of the owning
+     * organization (org audience). This is a distinct consent from
+     * metadata.visibility: visibility governs who can READ the agent blueprint
+     * (marketplace), while sharing governs who can CHAT with the agent runtime.
+     * Conversations over a shared link consume the owning organization's
+     * credits, so enabling sharing is an explicit, billing-affecting decision.
+     *
+     * Unset is equivalent to sharing disabled.
+     *
+     * &#64;internal
+     * Declarative spec semantics apply: update/apply replace this field like
+     * any other spec field, so a manifest that omits sharing revokes an active
+     * share (fails closed). Console and CLI toggle it via the targeted
+     * updateSharing RPC instead of a full-resource write. Enforcement is
+     * app-level in the getSharedProfile handler — sharing deliberately writes
+     * NO FGA visibility tuples, because a public wildcard viewer tuple would
+     * expose the full blueprint (instructions included) to any authenticated
+     * account via getByReference, conflating the two consents.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharing sharing = 8 [json_name = "sharing"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentSharing.Builder getSharingBuilder() {
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return internalGetSharingFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Sharing configuration for the agent's hosted chat experience.
+     *
+     * Controls who can chat with the running agent over its hosted link: anyone
+     * with the link (public audience) or signed-in members of the owning
+     * organization (org audience). This is a distinct consent from
+     * metadata.visibility: visibility governs who can READ the agent blueprint
+     * (marketplace), while sharing governs who can CHAT with the agent runtime.
+     * Conversations over a shared link consume the owning organization's
+     * credits, so enabling sharing is an explicit, billing-affecting decision.
+     *
+     * Unset is equivalent to sharing disabled.
+     *
+     * &#64;internal
+     * Declarative spec semantics apply: update/apply replace this field like
+     * any other spec field, so a manifest that omits sharing revokes an active
+     * share (fails closed). Console and CLI toggle it via the targeted
+     * updateSharing RPC instead of a full-resource write. Enforcement is
+     * app-level in the getSharedProfile handler — sharing deliberately writes
+     * NO FGA visibility tuples, because a public wildcard viewer tuple would
+     * expose the full blueprint (instructions included) to any authenticated
+     * account via getByReference, conflating the two consents.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharing sharing = 8 [json_name = "sharing"];</code>
+     */
+    public ai.stigmer.agentic.agent.v1.AgentSharingOrBuilder getSharingOrBuilder() {
+      if (sharingBuilder_ != null) {
+        return sharingBuilder_.getMessageOrBuilder();
+      } else {
+        return sharing_ == null ?
+            ai.stigmer.agentic.agent.v1.AgentSharing.getDefaultInstance() : sharing_;
+      }
+    }
+    /**
+     * <pre>
+     * Sharing configuration for the agent's hosted chat experience.
+     *
+     * Controls who can chat with the running agent over its hosted link: anyone
+     * with the link (public audience) or signed-in members of the owning
+     * organization (org audience). This is a distinct consent from
+     * metadata.visibility: visibility governs who can READ the agent blueprint
+     * (marketplace), while sharing governs who can CHAT with the agent runtime.
+     * Conversations over a shared link consume the owning organization's
+     * credits, so enabling sharing is an explicit, billing-affecting decision.
+     *
+     * Unset is equivalent to sharing disabled.
+     *
+     * &#64;internal
+     * Declarative spec semantics apply: update/apply replace this field like
+     * any other spec field, so a manifest that omits sharing revokes an active
+     * share (fails closed). Console and CLI toggle it via the targeted
+     * updateSharing RPC instead of a full-resource write. Enforcement is
+     * app-level in the getSharedProfile handler — sharing deliberately writes
+     * NO FGA visibility tuples, because a public wildcard viewer tuple would
+     * expose the full blueprint (instructions included) to any authenticated
+     * account via getByReference, conflating the two consents.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharing sharing = 8 [json_name = "sharing"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agent.v1.AgentSharing, ai.stigmer.agentic.agent.v1.AgentSharing.Builder, ai.stigmer.agentic.agent.v1.AgentSharingOrBuilder> 
+        internalGetSharingFieldBuilder() {
+      if (sharingBuilder_ == null) {
+        sharingBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agent.v1.AgentSharing, ai.stigmer.agentic.agent.v1.AgentSharing.Builder, ai.stigmer.agentic.agent.v1.AgentSharingOrBuilder>(
+                getSharing(),
+                getParentForChildren(),
+                isClean());
+        sharing_ = null;
+      }
+      return sharingBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agent.v1.AgentSpec)

@@ -264,6 +264,50 @@ type Store interface {
 	// Returns: version hash of the latest audit record
 	GetLatestAuditHash(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string) (string, error)
 
+	// SetAuditTag moves a tag to a specific archived version, atomically.
+	//
+	// A tag is a mutable, single-value pointer to an immutable version. This
+	// method enforces the "a tag names exactly one version" invariant: it clears
+	// the tag from whatever version currently holds it and assigns it to the
+	// target version, in a single transaction. It is the ONE primitive through
+	// which a resource's tag is ever (re)assigned — used both by apply-time
+	// tagging and by the dedicated tagVersion RPC — so the two paths can never
+	// diverge into an "append vs. single-holder" split.
+	//
+	// The tag column (not the serialized snapshot blob) is the source of truth
+	// for a version's tag. Snapshots stay immutable; only this column moves.
+	//
+	// Returns ErrAuditNotFound if no audit record exists for versionHash (in
+	// which case the prior holder is left untouched — a missing target never
+	// orphans the tag).
+	//
+	// Parameters:
+	//   - kind: resource kind enum
+	//   - resourceId: ID of the parent resource
+	//   - versionHash: SHA256 hash of the version to receive the tag
+	//   - tag: the (non-empty) tag to assign
+	SetAuditTag(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId, versionHash, tag string) error
+
+	// ListAuditRecords retrieves all archived versions for a resource, newest
+	// first, each carrying its authoritative tag from the tag column (not the
+	// embedded snapshot). Returns an empty slice (not nil) if none exist.
+	//
+	// Prefer this over ListAuditHistory when the caller needs the tag: reading
+	// the column keeps the tag consistent after a tag move, whereas the embedded
+	// snapshot tag is only correct as of archival time.
+	ListAuditRecords(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId string) ([]AuditRecord, error)
+
+	// GetAuditRecordByHash retrieves a single archived version by exact hash,
+	// carrying its authoritative tag from the tag column.
+	// Returns ErrAuditNotFound if no audit record exists with the given hash.
+	GetAuditRecordByHash(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId, versionHash string) (*AuditRecord, error)
+
+	// GetAuditRecordByTag retrieves the archived version currently holding the
+	// given tag (most recent by archived_at, defensively — the single-holder
+	// invariant means at most one row matches).
+	// Returns ErrAuditNotFound if no audit record holds the tag.
+	GetAuditRecordByTag(ctx context.Context, kind apiresourcekind.ApiResourceKind, resourceId, tag string) (*AuditRecord, error)
+
 	// ===========================================================================
 	// Workflow Execution Event Operations
 	// ===========================================================================
@@ -320,6 +364,20 @@ type Store interface {
 	Close() error
 }
 
+// AuditRecord is one archived version, pairing the serialized snapshot with the
+// version's authoritative tag (read from the indexed tag column, not the
+// embedded snapshot). Callers unmarshal Data into the concrete resource proto
+// and overlay Tag onto its version-entry / metadata so reads reflect the current
+// tag even after a tag move.
+type AuditRecord struct {
+	// Data is the marshaled protobuf snapshot of the archived resource.
+	Data []byte
+	// VersionHash is the SHA256 content hash identifying this version.
+	VersionHash string
+	// Tag is the version's current tag from the tag column ("" when untagged).
+	Tag string
+}
+
 // WorkflowExecutionEventRecord is the storage representation of a workflow execution event.
 type WorkflowExecutionEventRecord struct {
 	ExecutionID    string
@@ -351,8 +409,10 @@ type SearchIndexEntry struct {
 	// Used for org-scoped filtering.
 	Org string
 
-	// Visibility is the resource visibility ("visibility_public" or "visibility_private").
-	// Used for filtering public/private resources.
+	// Visibility is the resource visibility level, stored as the enum name
+	// (e.g. "visibility_private", "visibility_org", "visibility_public",
+	// "visibility_platform"). Used by search scope filtering, which only
+	// special-cases "visibility_public"; all other levels are org-scoped.
 	Visibility string
 
 	// CreatedAt is the Unix timestamp (seconds) when the resource was created.

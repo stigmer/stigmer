@@ -15,6 +15,7 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { type EnvVarDeclarationInit, makeEnvDeclarations } from "./environments";
 
 export const AGENT_API_VERSION = "agentic.stigmer.ai/v1";
 export const AGENT_KIND = "Agent";
@@ -48,6 +49,10 @@ export interface AgentSpecOptions {
   // Richer mcp_server_usages, for tests that attach tool_approval_overrides.
   // Combined with mcpServerRefs (which are the simple, override-free form).
   mcpServerUsages?: McpServerUsageOption[];
+  // Blueprint env-var declarations projected into spec.env — the least-privilege
+  // key whitelist the execution engine filters the merged environment against.
+  // Declarations carry no value (that is the instance/runtime job); see envmerge.
+  env?: Record<string, EnvVarDeclarationInit>;
 }
 
 // A valid AgentSpec: instructions satisfy the min_len=10 constraint, and any
@@ -69,6 +74,7 @@ export function makeAgentSpec(opts: AgentSpecOptions = {}): MessageInitShape<typ
     description: opts.description ?? "conformance fixture",
     instructions: opts.instructions ?? "Review code carefully and suggest improvements.",
     mcpServerUsages: [...refUsages, ...richUsages],
+    ...(opts.env !== undefined ? { env: makeEnvDeclarations(opts.env) } : {}),
   };
 }
 
@@ -79,11 +85,11 @@ export interface AgentOptions extends AgentSpecOptions {
 
 // A complete, valid Agent resource ready to hand to create/apply/update.
 export function makeAgent(opts: AgentOptions): MessageInitShape<typeof AgentSchema> {
-  const { org, name, description, instructions, mcpServerRefs, mcpServerUsages } = opts;
+  const { org, name, description, instructions, mcpServerRefs, mcpServerUsages, env } = opts;
   return {
     apiVersion: AGENT_API_VERSION,
     kind: AGENT_KIND,
     metadata: { name, org },
-    spec: makeAgentSpec({ description, instructions, mcpServerRefs, mcpServerUsages }),
+    spec: makeAgentSpec({ description, instructions, mcpServerRefs, mcpServerUsages, env }),
   };
 }

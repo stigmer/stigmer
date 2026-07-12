@@ -41,7 +41,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "i/stigmer/agentic/session/v1/io.proto\0328a" +
       "i/stigmer/commons/apiresource/rpc_servic" +
       "e_options.proto\032+ai/stigmer/commons/rpc/" +
-      "method_options.proto2\214\006\n\030SessionCommandC" +
+      "method_options.proto2\355\005\n\030SessionCommandC" +
       "ontroller\022W\n\005apply\022&.ai.stigmer.agentic." +
       "session.v1.Session\032&.ai.stigmer.agentic." +
       "session.v1.Session\022\245\001\n\006create\022&.ai.stigm" +
@@ -56,16 +56,15 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "mer.agentic.session.v1.UpdateSessionSubj" +
       "ectRequest\032&.ai.stigmer.agentic.session." +
       "v1.Session\"4\302\270\0300\010\002\020*\"\002id*&unauthorized t" +
-      "o update session subject\022\252\001\n\006delete\022(.ai" +
+      "o update session subject\022\213\001\n\006delete\022(.ai" +
       ".stigmer.agentic.session.v1.SessionId\032&." +
-      "ai.stigmer.agentic.session.v1.Session\"N\302" +
-      "\270\030J\010\032\020\037*;unauthorized to delete session " +
-      "\342\200\224 operator access required2\007stigmer\032\004\240" +
-      "\377+*B\247\001B\014CommandProtoP\001\242\002\004ASAS\252\002\035Ai.Stigm" +
-      "er.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agent" +
-      "ic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Sessi" +
-      "on\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic" +
-      "::Session::V1b\006proto3"
+      "ai.stigmer.agentic.session.v1.Session\"/\302" +
+      "\270\030+\010\003\020*\"\005value*\036unauthorized to delete s" +
+      "ession\032\004\240\377+*B\247\001B\014CommandProtoP\001\242\002\004ASAS\252\002" +
+      "\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\Stig" +
+      "mer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Agen" +
+      "tic\\Session\\V1\\GPBMetadata\352\002!Ai::Stigmer" +
+      "::Agentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

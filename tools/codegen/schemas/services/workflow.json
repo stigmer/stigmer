@@ -54,7 +54,7 @@
           "inputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
           "outputType": "ServerlessWorkflowValidation",
           "outputFullType": "ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation",
-          "description": "Validate a workflow spec without persisting it.\n\n Runs the same two-layer validation pipeline used by create/update:\n   Layer 1: Proto field constraints (buf validate / protovalidate)\n   Layer 2: Temporal-based structural validation (Go activity: proto → YAML → Zigflow)\n\n Returns ServerlessWorkflowValidation with:\n   - VALID: Workflow structure passed all checks\n   - INVALID: User error (bad structure, missing fields, unknown task kinds)\n   - FAILED: System error (Temporal unavailable, converter crash)\n\n This RPC does NOT persist, authorize, or create instances. It is a\n pure validation endpoint suitable for iterative authoring workflows\n where the caller needs fast feedback before committing.\n\n @internal\n Authorization: Uses the same permission as create — caller must have\n can_create_workflow in the org. This prevents unauthenticated abuse\n of the validation pipeline while allowing any user who could create\n a workflow to also validate one."
+          "description": "Validate a workflow spec without persisting it.\n\n Runs the same two validation layers as create/update, but never throws for a\n user-fixable spec problem: it always returns a structured\n ServerlessWorkflowValidation the caller can render field-by-field.\n   Layer 1: proto field constraints (buf validate / protovalidate)\n   Layer 2: in-process structural validation (proto → CNCF YAML plus\n            structural, cross-reference, model, and budget checks)\n\n Result states:\n   - VALID: workflow structure passed all checks\n   - INVALID: user error (bad structure, missing fields, unknown task kinds)\n   - FAILED: internal validation fault (reserved; not a user error)\n\n gRPC errors are limited to input that cannot be validated at all (a missing\n workflow or spec) and to genuine internal faults. This RPC does NOT persist,\n authorize, or create instances. It is a pure validation endpoint suitable for\n iterative authoring where the caller needs fast feedback before committing.\n\n @internal\n Authorization: Uses the same permission as create — caller must have\n can_create_workflow in the org. This prevents unauthenticated abuse\n of the validation pipeline while allowing any user who could create\n a workflow to also validate one."
         },
         {
           "name": "TagVersion",
@@ -163,7 +163,7 @@
     },
     {
       "name": "ServerlessWorkflowValidation",
-      "description": "ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.\n\n @internal\n Populated asynchronously after workflow creation via a Temporal workflow\n that validates the workflow structure.",
+      "description": "ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.\n\n @internal\n Produced synchronously by in-process workflow validation: on create/update it\n is persisted onto WorkflowStatus, and it is the direct response of the\n validateSpec RPC.",
       "protoType": "ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation",
       "protoFile": "apis/ai/stigmer/agentic/workflow/v1/serverless/validation.proto",
       "fields": [
@@ -237,7 +237,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Validation process ID for tracking validation progress.\n\n @internal\n Temporal workflow ID. Format: \"validate-workflow-{workflow_id}\".",
+          "description": "Optional identifier for tracking a validation run.\n\n @internal\n Legacy field from when validation ran as a separate async process. In-process\n validation is synchronous and does not populate this; retained for wire\n compatibility.",
           "required": false
         }
       ]
@@ -678,7 +678,7 @@
         {
           "name": "FAILED",
           "number": 4,
-          "description": "Validation process failed due to a system error (not a user error).\n Retry validation or contact support.\n\n @internal\n Examples: Temporal workflow crashed, activity timeout, etc."
+          "description": "Validation process failed due to a system error (not a user error).\n Retry validation or contact support.\n\n @internal\n Reserved for a genuine validator fault (e.g., the converter panics or an\n unexpected internal error prevents validation from completing) — not a\n user-fixable spec problem."
         }
       ]
     },
@@ -730,7 +730,7 @@
         {
           "name": "organization",
           "number": 30,
-          "description": "Top-level tenant that owns and manages resources."
+          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
         },
         {
           "name": "platform",
@@ -1195,7 +1195,7 @@
     },
     {
       "name": "ServerlessWorkflowValidation",
-      "description": "ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.\n\n @internal\n Populated asynchronously after workflow creation via a Temporal workflow\n that validates the workflow structure.",
+      "description": "ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.\n\n @internal\n Produced synchronously by in-process workflow validation: on create/update it\n is persisted onto WorkflowStatus, and it is the direct response of the\n validateSpec RPC.",
       "protoType": "ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation",
       "protoFile": "apis/ai/stigmer/agentic/workflow/v1/serverless/validation.proto",
       "fields": [
@@ -1269,7 +1269,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Validation process ID for tracking validation progress.\n\n @internal\n Temporal workflow ID. Format: \"validate-workflow-{workflow_id}\".",
+          "description": "Optional identifier for tracking a validation run.\n\n @internal\n Legacy field from when validation ran as a separate async process. In-process\n validation is synchronous and does not populate this; retained for wire\n compatibility.",
           "required": false
         }
       ]

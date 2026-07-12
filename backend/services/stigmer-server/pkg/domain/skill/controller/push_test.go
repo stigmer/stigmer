@@ -7,6 +7,7 @@ import (
 	"time"
 
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
+	apiresourcepb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
 	"github.com/stretchr/testify/assert"
@@ -54,6 +55,29 @@ func TestPush_CreateNew_Success(t *testing.T) {
 	err = store.GetResource(contextWithSkillKind(), apiresourcekind.ApiResourceKind_skill, result.Metadata.Id, retrieved)
 	require.NoError(t, err)
 	assert.Equal(t, result.Metadata.Id, retrieved.Metadata.Id)
+}
+
+// TestPush_CreateNew_DefaultsToOrgVisibility verifies that a freshly pushed
+// skill defaults to visibility_org, derived from the skill kind's
+// defaults_to_org_visibility proto config (matching the cloud contract).
+func TestPush_CreateNew_DefaultsToOrgVisibility(t *testing.T) {
+	controller, store := setupTestController(t)
+	defer store.Close()
+
+	content := storage.ValidSkillContent("visibility-default", "# Visibility Default Skill")
+	artifact := storage.CreateTestZip(content)
+	req := &skillv1.PushSkillRequest{
+		Artifact: artifact,
+		Org:      "test-org",
+	}
+
+	result, err := controller.Push(contextWithSkillKind(), req)
+	require.NoError(t, err)
+	assert.Equal(t,
+		apiresourcepb.ApiResourceVisibility_visibility_org,
+		result.Metadata.Visibility,
+		"a pushed skill (blueprint kind) should default to org visibility",
+	)
 }
 
 // TestPush_CreateNew_GeneratesSlug verifies that Push generates

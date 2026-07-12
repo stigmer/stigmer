@@ -49,6 +49,16 @@ func (a *AgentClient) UpdateVisibility(ctx context.Context, input *apiresource.U
 	return resp, wrapErr(err)
 }
 
+func (a *AgentClient) UpdateSharing(ctx context.Context, input *agentv1.UpdateAgentSharingInput) (*agentv1.Agent, error) {
+	resp, err := a.command.UpdateSharing(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (a *AgentClient) RotateShareLink(ctx context.Context, input *agentv1.RotateShareLinkInput) (*agentv1.Agent, error) {
+	resp, err := a.command.RotateShareLink(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (a *AgentClient) Delete(ctx context.Context, id string) (*agentv1.Agent, error) {
 	resp, err := a.command.Delete(ctx, &agentv1.AgentId{Value: id})
 	return resp, wrapErr(err)
@@ -67,6 +77,17 @@ func (a *AgentClient) GetByReference(ctx context.Context, ref ResourceRef) (*age
 
 func (a *AgentClient) GetDefault(ctx context.Context, input *agentv1.GetDefaultAgentRequest) (*agentv1.Agent, error) {
 	resp, err := a.query.GetDefault(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (a *AgentClient) GetSharedProfile(ctx context.Context, input *agentv1.GetSharedProfileRequest) (*agentv1.SharedAgentProfile, error) {
+	resp, err := a.query.GetSharedProfile(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (a *AgentClient) GetSharedProfileForMember(ctx context.Context, ref ResourceRef) (*agentv1.SharedAgentProfile, error) {
+	ref.Kind = apiresourcekind.ApiResourceKind_agent
+	resp, err := a.query.GetSharedProfileForMember(ctx, ref.toProto())
 	return resp, wrapErr(err)
 }
 
@@ -106,6 +127,7 @@ type AgentInput struct {
 	SkillRefs       []ResourceRef
 	SubAgents       []*SubAgentInput
 	Env             map[string]*EnvVarDeclarationInput
+	Sharing         *AgentSharingInput
 }
 
 // McpServerUsageInput is the SDK input type for McpServerUsage.
@@ -145,6 +167,21 @@ type EnvVarDeclarationInput struct {
 	Optional    bool
 }
 
+// AgentSharingInput is the SDK input type for AgentSharing.
+type AgentSharingInput struct {
+	Enabled        bool
+	AllowedOrigins []string
+	Messages       *AgentSharingMessagesInput
+	Audience       agentv1.AgentSharingAudience
+}
+
+// AgentSharingMessagesInput is the SDK input type for AgentSharingMessages.
+type AgentSharingMessagesInput struct {
+	RateLimited       string
+	Unavailable       string
+	ConversationEnded string
+}
+
 func (i *AgentInput) toProto() *agentv1.Agent {
 	resource := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -177,6 +214,9 @@ func (i *AgentInput) toProto() *agentv1.Agent {
 		for k, v := range i.Env {
 			resource.Spec.Env[k] = v.toProto()
 		}
+	}
+	if i.Sharing != nil {
+		resource.Spec.Sharing = i.Sharing.toProto()
 	}
 	return resource
 }
@@ -233,6 +273,25 @@ func (i *EnvVarDeclarationInput) toProto() *environmentv1.EnvVarDeclaration {
 	}
 }
 
+func (i *AgentSharingInput) toProto() *agentv1.AgentSharing {
+	p := &agentv1.AgentSharing{}
+	p.Enabled = i.Enabled
+	p.AllowedOrigins = i.AllowedOrigins
+	if i.Messages != nil {
+		p.Messages = i.Messages.toProto()
+	}
+	p.Audience = i.Audience
+	return p
+}
+
+func (i *AgentSharingMessagesInput) toProto() *agentv1.AgentSharingMessages {
+	return &agentv1.AgentSharingMessages{
+		RateLimited:       i.RateLimited,
+		Unavailable:       i.Unavailable,
+		ConversationEnded: i.ConversationEnded,
+	}
+}
+
 // AgentInputFromProto creates a AgentInput from a proto Agent resource.
 func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 	if p == nil {
@@ -265,6 +324,7 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 				input.Env[k] = envVarDeclarationInputFromProto(v)
 			}
 		}
+		input.Sharing = agentSharingInputFromProto(s.GetSharing())
 	}
 	return input
 }
@@ -329,5 +389,28 @@ func envVarDeclarationInputFromProto(p *environmentv1.EnvVarDeclaration) *EnvVar
 	input.IsSecret = p.GetIsSecret()
 	input.Description = p.GetDescription()
 	input.Optional = p.GetOptional()
+	return input
+}
+
+func agentSharingInputFromProto(p *agentv1.AgentSharing) *AgentSharingInput {
+	if p == nil {
+		return nil
+	}
+	input := &AgentSharingInput{}
+	input.Enabled = p.GetEnabled()
+	input.AllowedOrigins = p.GetAllowedOrigins()
+	input.Messages = agentSharingMessagesInputFromProto(p.GetMessages())
+	input.Audience = p.GetAudience()
+	return input
+}
+
+func agentSharingMessagesInputFromProto(p *agentv1.AgentSharingMessages) *AgentSharingMessagesInput {
+	if p == nil {
+		return nil
+	}
+	input := &AgentSharingMessagesInput{}
+	input.RateLimited = p.GetRateLimited()
+	input.Unavailable = p.GetUnavailable()
+	input.ConversationEnded = p.GetConversationEnded()
 	return input
 }

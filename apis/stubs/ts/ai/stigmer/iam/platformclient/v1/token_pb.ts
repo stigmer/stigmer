@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/iam/platformclient/v1/token.proto.
  */
 export const file_ai_stigmer_iam_platformclient_v1_token: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS90b2tlbi5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEiowEKFE1pbnRVc2VyVG9rZW5SZXF1ZXN0EhoKCWNsaWVudF9pZBgBIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAIgASgJQge6SARyAhABEhgKB3VzZXJfaWQYAyABKAlCB7pIBHICEAESEgoKdXNlcl9lbWFpbBgEIAEoCRIRCgl1c2VyX25hbWUYBSABKAkSDgoGb3JnX2lkGAYgASgJIlUKFU1pbnRVc2VyVG9rZW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFMqgBCh1QbGF0Zm9ybUNsaWVudFRva2VuQ29udHJvbGxlchKGAQoNbWludFVzZXJUb2tlbhI2LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRVc2VyVG9rZW5SZXF1ZXN0GjcuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuTWludFVzZXJUb2tlblJlc3BvbnNlIgTIuBgBYgZwcm90bzM", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CixhaS9zdGlnbWVyL2lhbS9wbGF0Zm9ybWNsaWVudC92MS90b2tlbi5wcm90bxIgYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEiowEKFE1pbnRVc2VyVG9rZW5SZXF1ZXN0EhoKCWNsaWVudF9pZBgBIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAIgASgJQge6SARyAhABEhgKB3VzZXJfaWQYAyABKAlCB7pIBHICEAESEgoKdXNlcl9lbWFpbBgEIAEoCRIRCgl1c2VyX25hbWUYBSABKAkSDgoGb3JnX2lkGAYgASgJIlUKFU1pbnRVc2VyVG9rZW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRISCgpleHBpcmVzX2luGAMgASgFIskDChVNaW50R3Vlc3RUb2tlblJlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABEhUKBHNsdWcYAiABKAlCB7pIBHICEAESFwoPZ3Vlc3RfY29va2llX2lkGAMgASgJEssCCgxlbWJlZF9vcmlnaW4YBCABKAlCtAK6SLACugGsAgoTZW1iZWRfb3JpZ2luLmZvcm1hdBJ3ZW1iZWRfb3JpZ2luIG11c3QgYmUgZW1wdHksICJudWxsIiwgb3IgYW4gZXhhY3Qgd2ViIG9yaWdpbiBsaWtlIGh0dHBzOi8vZXhhbXBsZS5jb20gKG5vIHBhdGgsIHF1ZXJ5LCBvciB0cmFpbGluZyBzbGFzaCkamwF0aGlzID09ICcnIHx8IHRoaXMgPT0gJ251bGwnIHx8IHRoaXMubWF0Y2hlcygnXmh0dHBzPzovL1tBLVphLXowLTldKFtBLVphLXowLTktXSpbQS1aYS16MC05XSk/KFxcLltBLVphLXowLTldKFtBLVphLXowLTktXSpbQS1aYS16MC05XSk/KSooOlswLTldezEsNX0pPyQnKRIcCgpsaW5rX3Rva2VuGAUgASgJQgi6SAVyAxiAASJvChZNaW50R3Vlc3RUb2tlblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRISCgp0b2tlbl90eXBlGAIgASgJEhIKCmV4cGlyZXNfaW4YAyABKAUSFwoPZ3Vlc3RfY29va2llX2lkGAQgASgJMrQCCh1QbGF0Zm9ybUNsaWVudFRva2VuQ29udHJvbGxlchKGAQoNbWludFVzZXJUb2tlbhI2LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRVc2VyVG9rZW5SZXF1ZXN0GjcuYWkuc3RpZ21lci5pYW0ucGxhdGZvcm1jbGllbnQudjEuTWludFVzZXJUb2tlblJlc3BvbnNlIgTIuBgBEokBCg5taW50R3Vlc3RUb2tlbhI3LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRHdWVzdFRva2VuUmVxdWVzdBo4LmFpLnN0aWdtZXIuaWFtLnBsYXRmb3JtY2xpZW50LnYxLk1pbnRHdWVzdFRva2VuUmVzcG9uc2UiBMi4GAFiBnByb3RvMw", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * MintUserTokenRequest contains the credentials and user identity needed
@@ -125,6 +125,134 @@ export const MintUserTokenResponseSchema: GenMessage<MintUserTokenResponse> = /*
   messageDesc(file_ai_stigmer_iam_platformclient_v1_token, 1);
 
 /**
+ * MintGuestTokenRequest identifies a shared agent and optional visitor cookie id.
+ *
+ * @generated from message ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest
+ */
+export type MintGuestTokenRequest = Message<"ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest"> & {
+  /**
+   * Organization slug from the share URL (required).
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * Agent slug from the share URL (required).
+   *
+   * @generated from field: string slug = 2;
+   */
+  slug: string;
+
+  /**
+   * Per-browser visitor cookie id from a prior mint (optional).
+   *
+   * When empty, the server generates a high-entropy id and returns it so the
+   * hosted page can persist it in an httpOnly cookie. When supplied, it must
+   * be the value previously returned by this RPC for the same visitor.
+   *
+   * @generated from field: string guest_cookie_id = 3;
+   */
+  guestCookieId: string;
+
+  /**
+   * Web origin of the page embedding the shared agent (optional).
+   *
+   * Set by the hosted chat page when it runs inside an iframe (the embedding
+   * page's origin, e.g. "https://docs.example.com") and by direct SDK embeds
+   * (their own page origin). Leave empty on the unframed hosted page. The
+   * literal value "null" reports a framed page whose parent origin could not
+   * be determined (opaque origin).
+   *
+   * @internal
+   * Validated at mint against the agent's spec.sharing.allowed_origins:
+   * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
+   * for unlisted origins and for "null". An empty field always passes (the
+   * anyone-with-link hosted page). The validated value is stamped into the
+   * guest JWT as the embed_origin claim and re-validated against the live
+   * list by the guest create-time gate. Self-reported by design: the widget
+   * code inside the iframe derives it from browser-authentic sources the
+   * embedder cannot alter; non-browser callers gain nothing by omitting it
+   * since the hosted link is anyone-with-link (decision 001) — rate limits
+   * and the billing gate remain the API guards.
+   *
+   * @generated from field: string embed_origin = 4;
+   */
+  embedOrigin: string;
+
+  /**
+   * Link token from the share URL's `?k=` parameter (optional).
+   *
+   * Required when the agent's share link has been locked with
+   * rotateShareLink; ignored for plain share links.
+   *
+   * @internal
+   * Validated at mint against the agent's live status.share_link_token
+   * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+   * so a killed link is indistinguishable from a nonexistent one). The
+   * validated value is stamped into the guest JWT as the link_token claim
+   * and re-validated against the live value by the guest create-time gate
+   * on every session/execution create — rotation therefore revokes live
+   * guest tokens on their next message, exactly like disabling sharing.
+   *
+   * @generated from field: string link_token = 5;
+   */
+  linkToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest.
+ * Use `create(MintGuestTokenRequestSchema)` to create a new message.
+ */
+export const MintGuestTokenRequestSchema: GenMessage<MintGuestTokenRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_platformclient_v1_token, 2);
+
+/**
+ * MintGuestTokenResponse contains the guest JWT and the visitor cookie id.
+ *
+ * @generated from message ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse
+ */
+export type MintGuestTokenResponse = Message<"ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse"> & {
+  /**
+   * Stigmer-signed JWT for authenticating shared-agent chat API calls.
+   *
+   * @generated from field: string access_token = 1;
+   */
+  accessToken: string;
+
+  /**
+   * Token type. Always "Bearer".
+   *
+   * @generated from field: string token_type = 2;
+   */
+  tokenType: string;
+
+  /**
+   * Token lifetime in seconds from the time of issuance.
+   *
+   * @generated from field: int32 expires_in = 3;
+   */
+  expiresIn: number;
+
+  /**
+   * Visitor cookie id to persist client-side (httpOnly cookie in item 3).
+   *
+   * Echoes guest_cookie_id from the request when provided; otherwise a newly
+   * generated high-entropy value.
+   *
+   * @generated from field: string guest_cookie_id = 4;
+   */
+  guestCookieId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse.
+ * Use `create(MintGuestTokenResponseSchema)` to create a new message.
+ */
+export const MintGuestTokenResponseSchema: GenMessage<MintGuestTokenResponse> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_iam_platformclient_v1_token, 3);
+
+/**
  * PlatformClientTokenController provides token-minting operations for
  * platform builders embedding Stigmer into their products.
  *
@@ -136,6 +264,10 @@ export const MintUserTokenResponseSchema: GenMessage<MintUserTokenResponse> = /*
  * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
  * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
  * that checks the Stigmer-issued signature and resolves the identity account.
+ *
+ * mintGuestToken is the credential-free exception: no client_id/client_secret.
+ * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
+ * hosted page, gated on spec.sharing.enabled.
  *
  * @generated from service ai.stigmer.iam.platformclient.v1.PlatformClientTokenController
  */
@@ -174,6 +306,24 @@ export const PlatformClientTokenController: GenService<{
     methodKind: "unary";
     input: typeof MintUserTokenRequestSchema;
     output: typeof MintUserTokenResponseSchema;
+  },
+  /**
+   * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
+   *
+   * Resolves org+slug to a shared agent, provisions the org's system-managed
+   * PlatformClient and guest identity account lazily, and returns a short-lived
+   * Stigmer-signed JWT scoped to that org.
+   *
+   * @internal
+   * Public — no Bearer token. No PlatformClient credentials. The handler gates
+   * on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+   *
+   * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientTokenController.mintGuestToken
+   */
+  mintGuestToken: {
+    methodKind: "unary";
+    input: typeof MintGuestTokenRequestSchema;
+    output: typeof MintGuestTokenResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_iam_platformclient_v1_token, 0);

@@ -15,8 +15,9 @@ Creates and triggers a new agent execution.
 
 **Pipeline**:
 1. `ValidateFieldConstraints` - Validate proto field constraints
-2. `ValidateSessionOrAgent` - Ensure session_id OR agent_id is provided
-3. `ResolveSlug` - Generate slug from metadata.name
+2. `ResolveDefaultAgent` - If neither session_id nor agent_id is provided, resolve the platform default agent (session-first UX)
+3. `EnsureSessionOrAgentResolved` - Post-condition guard: a session or agent reference must be resolved by this point
+4. `ResolveSlug` - Generate slug from metadata.name
 4. `BuildNewState` - Generate ID, set audit fields
 5. `CreateDefaultInstanceIfNeeded` - Create default agent instance if missing
 6. `CreateSessionIfNeeded` - Auto-create session if session_id not provided
@@ -107,8 +108,8 @@ Real-time execution updates via gRPC streaming.
 
 ## Custom Pipeline Steps
 
-### ValidateSessionOrAgent
-Ensures at least one of `session_id` or `agent_id` is provided.
+### EnsureSessionOrAgentResolved
+Post-condition guard asserting that a `session_id` or `agent_id` reference has been resolved by this point. "Neither provided" is a valid request shape (session-first UX): `ResolveDefaultAgent` runs first and either resolves a reference or returns an error that short-circuits the pipeline. Reaching this step with neither set is a server-side programming error, so it returns `Internal` (not `InvalidArgument`).
 
 ### CreateDefaultInstanceIfNeeded
 Creates default agent instance if the agent doesn't have one.
@@ -168,7 +169,7 @@ agentexecutionv1.RegisterAgentExecutionQueryControllerServer(server, ctrl)
 
 ```
 1. User sends AgentExecution with agent_id="agent-123", message="Hello"
-2. ValidateSessionOrAgent: ✓ agent_id provided
+2. EnsureSessionOrAgentResolved: ✓ agent_id provided
 3. BuildNewState: Generate execution ID
 4. CreateDefaultInstanceIfNeeded:
    - Load agent-123
@@ -189,7 +190,7 @@ agentexecutionv1.RegisterAgentExecutionQueryControllerServer(server, ctrl)
 
 ```
 1. User sends AgentExecution with session_id="ses-456", message="Hello"
-2. ValidateSessionOrAgent: ✓ session_id provided
+2. EnsureSessionOrAgentResolved: ✓ session_id provided
 3. BuildNewState: Generate execution ID
 4. CreateDefaultInstanceIfNeeded: SKIP (session provided)
 5. CreateSessionIfNeeded: SKIP (session provided)

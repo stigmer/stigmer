@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { MintUserTokenRequest, MintUserTokenResponse } from "./token_pbjs";
+import { MintGuestTokenRequest, MintGuestTokenResponse, MintUserTokenRequest, MintUserTokenResponse } from "./token_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -18,6 +18,10 @@ import { MethodKind } from "@bufbuild/protobuf";
  * The minted JWT is signed by Stigmer's own key pair (not Auth0). The auth
  * chain validates these tokens via a dedicated PlatformClientTokenAuthenticationProvider
  * that checks the Stigmer-issued signature and resolves the identity account.
+ *
+ * mintGuestToken is the credential-free exception: no client_id/client_secret.
+ * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
+ * hosted page, gated on spec.sharing.enabled.
  *
  * @generated from service ai.stigmer.iam.platformclient.v1.PlatformClientTokenController
  */
@@ -58,6 +62,25 @@ export const PlatformClientTokenController = {
       name: "mintUserToken",
       I: MintUserTokenRequest,
       O: MintUserTokenResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
+     *
+     * Resolves org+slug to a shared agent, provisions the org's system-managed
+     * PlatformClient and guest identity account lazily, and returns a short-lived
+     * Stigmer-signed JWT scoped to that org.
+     *
+     * @internal
+     * Public — no Bearer token. No PlatformClient credentials. The handler gates
+     * on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+     *
+     * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientTokenController.mintGuestToken
+     */
+    mintGuestToken: {
+      name: "mintGuestToken",
+      I: MintGuestTokenRequest,
+      O: MintGuestTokenResponse,
       kind: MethodKind.Unary,
     },
   }

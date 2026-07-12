@@ -2,9 +2,13 @@
  * Checkpointer factory — creates the appropriate LangGraph checkpoint
  * saver based on runner configuration.
  *
- * Two backends:
- * - memory: MemorySaver (ephemeral, zero-config) — for OSS / local mode
- * - http: HttpCheckpointSaver (proxy-backed) — for cloud mode
+ * Three backends:
+ * - sqlite: SqliteCheckpointSaver (durable local file) — the OSS / local /
+ *   desktop default. Survives across ExecuteDeepAgent invocations so HITL,
+ *   pause/resume, and transient recovery resume via Command(resume) rather than
+ *   replaying from the original message (stigmer/stigmer#204).
+ * - http: HttpCheckpointSaver (proxy-backed) — for cloud / managed runners.
+ * - memory: MemorySaver (ephemeral, zero-config) — explicit opt-in for tests.
  *
  * The returned saver is used by the deep agent activity (Phase 3).
  * Cursor executions do not use LangGraph checkpointers — they rely on
@@ -15,6 +19,7 @@ import { MemorySaver } from "@langchain/langgraph-checkpoint";
 import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
 import type { CheckpointerConfig } from "./types.js";
 import { HttpCheckpointSaver } from "./http-saver.js";
+import { SqliteCheckpointSaver } from "./sqlite-saver.js";
 
 export class CheckpointerCreationError extends Error {
   readonly checkpointerType: string;
@@ -31,15 +36,27 @@ export class CheckpointerCreationError extends Error {
 /**
  * Create the appropriate checkpoint saver for the given config.
  *
- * Unlike the Python version (which returns an async context manager),
- * the JS MemorySaver and HttpCheckpointSaver do not require async
- * initialization or cleanup. This function is kept async to accommodate
- * future backends that might need setup (e.g. SQLite connection).
+ * This function is async to accommodate backends that need setup. The
+ * SqliteCheckpointSaver opens its file handle in its constructor and creates
+ * the schema lazily on first use; it must be closed by the caller (the deep
+ * agent activity closes it in its cleanup, alongside the MCP connection).
  */
 export async function createCheckpointer(
   config: CheckpointerConfig,
 ): Promise<BaseCheckpointSaver> {
   switch (config.type) {
+    case "sqlite": {
+      if (!config.sqlitePath) {
+        throw new CheckpointerCreationError(
+          "sqlite",
+          "sqlitePath is required for SQLite checkpointer",
+        );
+      }
+      const saver = new SqliteCheckpointSaver(config.sqlitePath);
+      console.log(`Created SqliteCheckpointSaver checkpointer (path=${config.sqlitePath})`);
+      return saver;
+    }
+
     case "memory":
       console.log("Created MemorySaver checkpointer (ephemeral, in-memory)");
       return new MemorySaver();
@@ -66,7 +83,7 @@ export async function createCheckpointer(
       const exhaustive: never = config.type;
       throw new CheckpointerCreationError(
         String(exhaustive),
-        `Unknown checkpointer type. Valid types: memory, http`,
+        `Unknown checkpointer type. Valid types: sqlite, http, memory`,
       );
     }
   }

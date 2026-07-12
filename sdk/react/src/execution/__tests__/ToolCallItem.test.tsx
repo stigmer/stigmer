@@ -117,6 +117,57 @@ describe("ToolCallItem disclosure", () => {
     expect(isExpanded(container)).toBe(false);
   });
 
+  // --- Interrupted rows (issue #207): settled, neutral, never live -----------
+
+  it("renders an interrupted row settled: collapsed, no spinner, neutral slash icon", () => {
+    // A tool call the platform settled to INTERRUPTED when its execution
+    // terminalized mid-call. Before #207 a zombie RUNNING row spun forever and
+    // force-opened; the settled row must read as finished-by-interruption.
+    const { container } = render(
+      <ToolCallItem
+        toolCall={makeToolCall({
+          id: "tc-int",
+          name: "delete_file",
+          args: { path: "/x.ts" },
+          status: ToolCallStatus.TOOL_CALL_INTERRUPTED,
+        })}
+      />,
+    );
+    expect(container.querySelector(".animate-spin")).toBeNull();
+    expect(hasHeaderChevron(container)).toBe(true);
+    expect(isExpanded(container)).toBe(false);
+  });
+
+  it("collapses a force-opened running row the moment it settles to interrupted", () => {
+    // Mirrors the running→completed settle: the server-authored interruption
+    // arrives via a status update and the row must release its auto-open.
+    const { container, rerender } = render(
+      <ToolCallItem
+        toolCall={makeToolCall({
+          id: "tc-int",
+          name: "delete_file",
+          args: { path: "/x.ts" },
+          status: ToolCallStatus.TOOL_CALL_RUNNING,
+        })}
+      />,
+    );
+    expect(isExpanded(container)).toBe(true);
+    expect(container.querySelector(".animate-spin")).not.toBeNull();
+
+    rerender(
+      <ToolCallItem
+        toolCall={makeToolCall({
+          id: "tc-int",
+          name: "delete_file",
+          args: { path: "/x.ts" },
+          status: ToolCallStatus.TOOL_CALL_INTERRUPTED,
+        })}
+      />,
+    );
+    expect(container.querySelector(".animate-spin")).toBeNull();
+    expect(isExpanded(container)).toBe(false);
+  });
+
   // --- Preview categories: no chevron, always-visible body ------------------
 
   it("renders a settled edit as an always-visible diff with no header chevron", () => {

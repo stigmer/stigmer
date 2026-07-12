@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "steps",
@@ -9,6 +9,7 @@ go_library(
         "merge_variables_and_persist.go",
         "preserve_redacted_secrets.go",
         "remove_variable_keys_and_persist.go",
+        "share_restricted.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller/steps",
     visibility = ["//visibility:public"],
@@ -27,5 +28,23 @@ go_library(
         "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//types/known/timestamppb",
+    ],
+)
+
+go_test(
+    name = "steps_test",
+    srcs = ["enforce_personal_uniqueness_test.go"],
+    embed = [":steps"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/environment/v1:environment",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//backend/libs/go/grpc/request/pipeline",
+        "//backend/libs/go/store",
+        "//backend/libs/go/store/sqlite",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
     ],
 )

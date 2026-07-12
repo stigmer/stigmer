@@ -5,33 +5,20 @@
 // conformance suite asserts the *observable* contract (phase lifecycle), not the
 // recovery mechanism.
 //
-// What this file asserts today:
+// Asserted contract (sourced from controller/recover.go + lifecycle_steps.go):
+// - recover of a FAILED execution returns it transitioning back to IN_PROGRESS
+//   with status.error cleared, re-dispatches the runner (a fresh LLM turn is
+//   consumed), and the run can reach COMPLETED when the failure cause is gone.
 // - recover of an already-IN_PROGRESS execution is an idempotent no-op (the
 //   alreadyInTargetState branch): it succeeds and the run stays IN_PROGRESS.
 //
-// What is DEFERRED (documented deficiency, see the Session-13 checkpoint / DD-013):
-// the end-to-end FAILED -> recover -> COMPLETED happy path. Unlike
-// WorkflowExecution.recover (which terminates the old orchestrator and starts a
-// fresh one — clean and deterministic), AgentExecution.recover uses Temporal's
-// ResetWorkflowExecution to "the last WorkflowTaskCompleted". When an agent fails
-// on its first LLM call, the deep-agent activity *returns* a FAILED result (it does
-// not throw) and the workflow then returns an error (invoke_workflow_impl.go), so
-// the failed activity result is baked into history. Resetting to the last completed
-// workflow-task replays that preserved result instead of re-dispatching the
-// activity — so no fresh LLM call is made and the run never progresses. The DB is
-// flipped to IN_PROGRESS but Temporal does nothing further, orphaning the execution
-// in IN_PROGRESS. Proven by a mock-LLM consumed-count probe: after recover the
-// recovery turn is never consumed (consumed=1, remaining=1).
-//
-// Two correctness notes from this investigation:
-// 1. A prerequisite RequestId bug WAS fixed this session: the ResetWorkflowExecution
-//    request omitted the required RequestId, so recover failed with an Internal
-//    "RequestId is not set on request" before it could even attempt the reset. That
-//    fix is correct independent of the deeper orphaning issue.
-// 2. The orphaning is a recovery-mechanism design issue (reset vs. start-fresh),
-//    deferred to a focused follow-up rather than redesigned mid-session. Asserting
-//    the FAILED->IN_PROGRESS flip here would bless a half-behavior (an orphaned run)
-//    as contract, so this file deliberately does not assert it.
+// Mechanism note (issue #200, fixed): AgentExecution.recover terminates the
+// previous Temporal workflow and starts a fresh one — the same strategy
+// WorkflowExecution.recover uses. Temporal ResetWorkflowExecution cannot work
+// here because the runner activity RETURNS its FAILED result (it does not
+// throw), so a reset replays the preserved failure instead of re-dispatching.
+// Continuity of completed work is carried by the session's harness state
+// (LangGraph thread checkpoint / harness_state_id), not by Temporal history.
 //
 // Already covered in the main AgentExecution suite (not re-asserted here):
 // - recover of a non-FAILED terminal execution -> FailedPrecondition.
@@ -82,7 +69,49 @@ async function provisionAgent(org: string): Promise<string> {
   return agent.metadata!.id;
 }
 
-describe("AgentExecution recover", () => {
+describe("AgentExecution recover — happy path", () => {
+  it("recovers a FAILED execution back to IN_PROGRESS with the error cleared, then completes", async () => {
+    const { org } = await target.provisionTenancy();
+    const agentId = await provisionAgent(org);
+
+    // Turn 1: deterministic non-retryable LLM failure (400 is in LangChain's
+    // STATUS_NO_RETRY list — fail-fast, no backoff stall).
+    mock.enqueueError(400);
+    // Turn 2: success after recover re-dispatches the runner activity.
+    mock.enqueue(anthropicText("Recovered successfully."));
+
+    const created = await clients.agentExecutionCommand.create(
+      makeAgentExecution({ org, name: uniqueName("aex-recover-happy"), agentId }),
+    );
+    const executionId = created.metadata!.id;
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: executionId }));
+
+    const failed = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_FAILED);
+    expect(failed.status?.error, "a FAILED execution carries an error message").toBeTruthy();
+    expect(mock.consumed(), "the failure turn should be consumed").toBe(1);
+    expect(mock.remaining(), "the recovery turn should still be queued").toBe(1);
+
+    const recovered = await clients.agentExecutionCommand.recover({ id: executionId });
+    expect(
+      recovered.status?.phase,
+      `recover should move the execution out of FAILED; got ${ExecutionPhase[recovered.status?.phase ?? 0]}`,
+    ).not.toBe(ExecutionPhase.EXECUTION_FAILED);
+
+    const running = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_IN_PROGRESS);
+    expect(running.status?.error, "recover clears the prior failure's error").toBeFalsy();
+
+    const completed = await awaitPhase(clients, executionId, ExecutionPhase.EXECUTION_COMPLETED);
+    expect(completed.status?.error, "a completed run carries no error").toBeFalsy();
+
+    // Proof recovery re-dispatched: the recovery turn was consumed. Before the
+    // fix (issue #200) consumed stayed at 1 and remaining stayed at 1 — the run
+    // was orphaned at IN_PROGRESS with no fresh LLM call.
+    expect(mock.consumed(), "recover must consume the queued success turn").toBe(2);
+    expect(mock.remaining(), "all queued turns should be consumed").toBe(0);
+  });
+});
+
+describe("AgentExecution recover — idempotency", () => {
   it("is an idempotent no-op on an already-IN_PROGRESS execution", async () => {
     const { org } = await target.provisionTenancy();
     const agentId = await provisionAgent(org);

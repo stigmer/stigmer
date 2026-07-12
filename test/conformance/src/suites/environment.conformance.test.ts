@@ -16,13 +16,13 @@
 //     value in BOTH editions by design (cloud gates it behind can_read_secrets),
 //     so its value assertion is NOT gated.
 //
-// Two recorded deviations apply to create (shared with every other domain):
-// duplicate-create and missing-name lose their gRPC status in the pipeline
-// wrapper and surface as Unknown — see contract/deviations.ts.
+// The shared create steps return typed gRPC codes on every target:
+// duplicate-create -> AlreadyExists (CheckDuplicateStep) and missing-name ->
+// InvalidArgument. No deviations are tracked.
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { Code } from "@connectrpc/connect";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { expectCodeOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -164,6 +164,13 @@ describe("Environment conformance — CRUD & identity", () => {
       "getByReference unknown slug",
     );
   });
+
+  it("getByReference rejects a kind that does not match the service", () =>
+    expectGrpcCode(
+      () => clients.environmentQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.agent }),
+      Code.InvalidArgument,
+      "getByReference kind mismatch",
+    ));
 
   it("derives a slug from the name", async () => {
     const { org } = await target.provisionTenancy();
@@ -420,10 +427,9 @@ describe("Environment conformance — negative paths", () => {
     const name = uniqueName("dup");
     await createEnvironment(org, name);
 
-    await expectCodeOrDeviation(
-      target.name,
-      "create.duplicate.code",
+    await expectGrpcCode(
       () => clients.environmentCommand.create(makeEnvironment({ org, name })),
+      Code.AlreadyExists,
       "duplicate create",
     );
   });
@@ -432,9 +438,7 @@ describe("Environment conformance — negative paths", () => {
     const { org } = await target.provisionTenancy();
     // Spec is valid so Layer 1 passes; the empty name is what must be rejected
     // (slug resolution has nothing to derive from).
-    await expectCodeOrDeviation(
-      target.name,
-      "create.missing-name.code",
+    await expectGrpcCode(
       () =>
         clients.environmentCommand.create({
           apiVersion: ENVIRONMENT_API_VERSION,
@@ -442,16 +446,17 @@ describe("Environment conformance — negative paths", () => {
           metadata: { org },
           spec: makeEnvironmentSpec(),
         }),
+      Code.InvalidArgument,
       "create without name",
     );
   });
 
   it("rejects a duplicate personal environment with a real AlreadyExists", async () => {
     const { org } = await target.provisionTenancy();
-    // The personal-environment uniqueness step returns a real gRPC status
-    // (codes.AlreadyExists), unlike the generic slug CheckDuplicateStep whose
-    // plain error degrades to Unknown. This documents that the deviation is a
-    // property of the generic step, not of duplicate detection itself.
+    // The personal-environment uniqueness step returns a real
+    // codes.AlreadyExists — the same code the generic slug CheckDuplicateStep
+    // returns. This documents that both duplicate-detection paths carry a typed
+    // status; they differ only in which step enforces uniqueness.
     const first = await clients.environmentCommand.create({
       apiVersion: ENVIRONMENT_API_VERSION,
       kind: ENVIRONMENT_KIND,
@@ -471,5 +476,29 @@ describe("Environment conformance — negative paths", () => {
       Code.AlreadyExists,
       "duplicate personal environment",
     );
+  });
+
+  it("allows a personal environment in each org (per-org uniqueness)", async () => {
+    // Personal-environment uniqueness is scoped to the org: a personal env in one
+    // org must never block creating one in another. Regression guard for the
+    // cross-tenant leak reported in stigmer/stigmer#193.
+    const a = await target.provisionTenancy();
+    const b = await target.provisionTenancy();
+
+    const makePersonal = (org: string) => ({
+      apiVersion: ENVIRONMENT_API_VERSION,
+      kind: ENVIRONMENT_KIND,
+      metadata: { name: uniqueName("personal"), org, labels: { "stigmer.ai/personal": "true" } },
+      spec: makeEnvironmentSpec(),
+    });
+
+    const inA = await clients.environmentCommand.create(makePersonal(a.org));
+    fixtures.defer(() => clients.environmentCommand.delete({ resourceId: inA.metadata!.id }));
+    const inB = await clients.environmentCommand.create(makePersonal(b.org));
+    fixtures.defer(() => clients.environmentCommand.delete({ resourceId: inB.metadata!.id }));
+
+    expect(inA.metadata?.org).toBe(a.org);
+    expect(inB.metadata?.org).toBe(b.org);
+    expect(inA.metadata?.id).not.toBe(inB.metadata?.id);
   });
 });

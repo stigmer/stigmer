@@ -8,9 +8,9 @@
 //   - There is NO update RPC and NO list RPC. Reads are by id, by reference
 //     (org + slug), or by the parent execution_id (getByExecutionId).
 //   - apply is create-or-FAIL: applying over an existing slug returns a real
-//     AlreadyExists (apply.go), not an update. By contrast, create's duplicate
-//     check is the shared CheckDuplicateStep, whose plain error degrades to
-//     Unknown — the same recorded deviation as every other domain.
+//     AlreadyExists (apply.go), not an update. create's duplicate check is the
+//     shared CheckDuplicateStep, which returns a typed AlreadyExists on every
+//     target — same contract as apply, reached via a different path.
 //
 // envmerge precedence (how spec.data is populated from layered Environments at
 // execution start) is intentionally out of scope: it is only observable after a
@@ -22,8 +22,8 @@
 // secretRedaction); the is_secret flag is edition-agnostic.
 import { ExecutionContextSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/api_pb";
 import { Code } from "@connectrpc/connect";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { expectCodeOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -127,6 +127,13 @@ describe("ExecutionContext conformance — CRUD & identity", () => {
     );
   });
 
+  it("getByReference rejects a kind that does not match the service", () =>
+    expectGrpcCode(
+      () => clients.executionContextQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.agent }),
+      Code.InvalidArgument,
+      "getByReference kind mismatch",
+    ));
+
   it("derives a slug from the name", async () => {
     const { org } = await target.provisionTenancy();
     const created = await createExecutionContext(org, "Exec Ctx #1 (Run)");
@@ -182,7 +189,7 @@ describe("ExecutionContext conformance — apply (create-or-fail)", () => {
     fixtures.defer(() => clients.executionContextCommand.delete({ resourceId: first.metadata!.id }));
 
     // ExecutionContext has no update RPC; apply over an existing slug returns a
-    // real AlreadyExists (apply.go), distinct from create's Unknown deviation.
+    // real AlreadyExists (apply.go) — the same code create returns for a duplicate.
     await expectGrpcCode(
       () => clients.executionContextCommand.apply(makeExecutionContext({ org, name })),
       Code.AlreadyExists,
@@ -210,6 +217,40 @@ describe("ExecutionContext conformance — secrets", () => {
 
     if (target.capabilities.secretRedaction) {
       expect(secretEntry?.value, "redacting targets must not return the plaintext secret").not.toBe(secretValue);
+      return;
+    }
+
+    expect(secretEntry?.value, "OSS returns the secret value in plaintext").toBe(secretValue);
+  });
+
+  it("getByExecutionId under a user token follows the same secret contract as get", async () => {
+    // On cloud, getByExecutionId decrypts only for runner-class credentials
+    // (token_type of sandbox / workflow_sandbox / connect_sandbox /
+    // embedded_runner). The conformance harness authenticates as a user, so it
+    // must see the same redaction as get — this is the stigmer-cloud#152
+    // contract: no read RPC hands plaintext secrets to a user-class caller.
+    // OSS has no redaction, so the value comes back in plaintext.
+    const { org } = await target.provisionTenancy();
+    const secretValue = "runtime-secret-value";
+    const executionId = uniqueName("aex");
+    await createExecutionContext(org, uniqueName("ectx"), {
+      executionId,
+      data: {
+        AWS_SECRET_ACCESS_KEY: { value: secretValue, isSecret: true },
+        AWS_REGION: { value: "us-east-1" },
+      },
+    });
+
+    const fetched = await clients.executionContextQuery.getByExecutionId({ executionId });
+    const secretEntry = fetched.spec?.data?.AWS_SECRET_ACCESS_KEY;
+
+    expect(secretEntry?.isSecret, "is_secret is preserved on read in both editions").toBe(true);
+    expect(fetched.spec?.data?.AWS_REGION?.value, "plaintext values are never redacted").toBe("us-east-1");
+
+    if (target.capabilities.secretRedaction) {
+      expect(secretEntry?.value, "redacting targets must not return the plaintext secret to a user token").not.toBe(
+        secretValue,
+      );
       return;
     }
 
@@ -283,21 +324,18 @@ describe("ExecutionContext conformance — negative paths", () => {
     const name = uniqueName("dup");
     await createExecutionContext(org, name);
 
-    // create's duplicate check is the shared CheckDuplicateStep whose plain error
-    // degrades to Unknown on local-go — the same recorded deviation as elsewhere.
-    await expectCodeOrDeviation(
-      target.name,
-      "create.duplicate.code",
+    // create's duplicate check is the shared CheckDuplicateStep, which returns a
+    // typed AlreadyExists on every target.
+    await expectGrpcCode(
       () => clients.executionContextCommand.create(makeExecutionContext({ org, name })),
+      Code.AlreadyExists,
       "duplicate create",
     );
   });
 
   it("rejects a create with no name (contract: InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
-    await expectCodeOrDeviation(
-      target.name,
-      "create.missing-name.code",
+    await expectGrpcCode(
       () =>
         clients.executionContextCommand.create({
           apiVersion: EXECUTION_CONTEXT_API_VERSION,
@@ -305,6 +343,7 @@ describe("ExecutionContext conformance — negative paths", () => {
           metadata: { org },
           spec: makeExecutionContextSpec(),
         }),
+      Code.InvalidArgument,
       "create without name",
     );
   });

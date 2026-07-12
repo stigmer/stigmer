@@ -655,19 +655,22 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Recover a failed agent execution from the last checkpoint.
-     * Resumes execution from the last checkpoint. Completed work is preserved -
-     * successful tool calls are NOT re-executed.
+     * Recover a failed agent execution.
+     * Retries the failed run. Completed work is preserved - successful tool
+     * calls are NOT re-executed.
      * &#64;internal
-     * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
-     * Uses LangGraph checkpoint for state restoration.
+     * Terminates the previous Temporal workflow (NOT_FOUND tolerated) and starts
+     * a fresh one; continuity comes from the session's harness state (LangGraph
+     * thread checkpoint / harness_state_id), not from Temporal history. A
+     * Temporal reset cannot work here: the runner activity RETURNS its FAILED
+     * result, so a reset replays the preserved failure instead of re-dispatching.
      * ## Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
-     * 2. Uses Temporal ResetWorkflow to resume from last checkpoint
-     * 3. Activity re-invoked with same thread_id
+     * 2. Terminates the previous workflow and recreates the execution environment
+     * 3. Starts a fresh workflow; the activity is re-invoked with the same thread_id
      * 4. LangGraph loads from checkpoint automatically
      * 5. Execution transitions from FAILED to IN_PROGRESS phase
-     * 6. Agent continues from where it failed
+     * 6. Agent retries from where it failed
      * ## Preconditions
      * - Execution must be in EXECUTION_FAILED phase
      * - TERMINATED executions cannot be recovered (incomplete checkpoint)
@@ -1046,19 +1049,22 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Recover a failed agent execution from the last checkpoint.
-     * Resumes execution from the last checkpoint. Completed work is preserved -
-     * successful tool calls are NOT re-executed.
+     * Recover a failed agent execution.
+     * Retries the failed run. Completed work is preserved - successful tool
+     * calls are NOT re-executed.
      * &#64;internal
-     * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
-     * Uses LangGraph checkpoint for state restoration.
+     * Terminates the previous Temporal workflow (NOT_FOUND tolerated) and starts
+     * a fresh one; continuity comes from the session's harness state (LangGraph
+     * thread checkpoint / harness_state_id), not from Temporal history. A
+     * Temporal reset cannot work here: the runner activity RETURNS its FAILED
+     * result, so a reset replays the preserved failure instead of re-dispatching.
      * ## Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
-     * 2. Uses Temporal ResetWorkflow to resume from last checkpoint
-     * 3. Activity re-invoked with same thread_id
+     * 2. Terminates the previous workflow and recreates the execution environment
+     * 3. Starts a fresh workflow; the activity is re-invoked with the same thread_id
      * 4. LangGraph loads from checkpoint automatically
      * 5. Execution transitions from FAILED to IN_PROGRESS phase
-     * 6. Agent continues from where it failed
+     * 6. Agent retries from where it failed
      * ## Preconditions
      * - Execution must be in EXECUTION_FAILED phase
      * - TERMINATED executions cannot be recovered (incomplete checkpoint)
@@ -1418,19 +1424,22 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Recover a failed agent execution from the last checkpoint.
-     * Resumes execution from the last checkpoint. Completed work is preserved -
-     * successful tool calls are NOT re-executed.
+     * Recover a failed agent execution.
+     * Retries the failed run. Completed work is preserved - successful tool
+     * calls are NOT re-executed.
      * &#64;internal
-     * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
-     * Uses LangGraph checkpoint for state restoration.
+     * Terminates the previous Temporal workflow (NOT_FOUND tolerated) and starts
+     * a fresh one; continuity comes from the session's harness state (LangGraph
+     * thread checkpoint / harness_state_id), not from Temporal history. A
+     * Temporal reset cannot work here: the runner activity RETURNS its FAILED
+     * result, so a reset replays the preserved failure instead of re-dispatching.
      * ## Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
-     * 2. Uses Temporal ResetWorkflow to resume from last checkpoint
-     * 3. Activity re-invoked with same thread_id
+     * 2. Terminates the previous workflow and recreates the execution environment
+     * 3. Starts a fresh workflow; the activity is re-invoked with the same thread_id
      * 4. LangGraph loads from checkpoint automatically
      * 5. Execution transitions from FAILED to IN_PROGRESS phase
-     * 6. Agent continues from where it failed
+     * 6. Agent retries from where it failed
      * ## Preconditions
      * - Execution must be in EXECUTION_FAILED phase
      * - TERMINATED executions cannot be recovered (incomplete checkpoint)
@@ -1786,19 +1795,22 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Recover a failed agent execution from the last checkpoint.
-     * Resumes execution from the last checkpoint. Completed work is preserved -
-     * successful tool calls are NOT re-executed.
+     * Recover a failed agent execution.
+     * Retries the failed run. Completed work is preserved - successful tool
+     * calls are NOT re-executed.
      * &#64;internal
-     * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
-     * Uses LangGraph checkpoint for state restoration.
+     * Terminates the previous Temporal workflow (NOT_FOUND tolerated) and starts
+     * a fresh one; continuity comes from the session's harness state (LangGraph
+     * thread checkpoint / harness_state_id), not from Temporal history. A
+     * Temporal reset cannot work here: the runner activity RETURNS its FAILED
+     * result, so a reset replays the preserved failure instead of re-dispatching.
      * ## Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
-     * 2. Uses Temporal ResetWorkflow to resume from last checkpoint
-     * 3. Activity re-invoked with same thread_id
+     * 2. Terminates the previous workflow and recreates the execution environment
+     * 3. Starts a fresh workflow; the activity is re-invoked with the same thread_id
      * 4. LangGraph loads from checkpoint automatically
      * 5. Execution transitions from FAILED to IN_PROGRESS phase
-     * 6. Agent continues from where it failed
+     * 6. Agent retries from where it failed
      * ## Preconditions
      * - Execution must be in EXECUTION_FAILED phase
      * - TERMINATED executions cannot be recovered (incomplete checkpoint)
@@ -2162,19 +2174,22 @@ public final class AgentExecutionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Recover a failed agent execution from the last checkpoint.
-     * Resumes execution from the last checkpoint. Completed work is preserved -
-     * successful tool calls are NOT re-executed.
+     * Recover a failed agent execution.
+     * Retries the failed run. Completed work is preserved - successful tool
+     * calls are NOT re-executed.
      * &#64;internal
-     * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
-     * Uses LangGraph checkpoint for state restoration.
+     * Terminates the previous Temporal workflow (NOT_FOUND tolerated) and starts
+     * a fresh one; continuity comes from the session's harness state (LangGraph
+     * thread checkpoint / harness_state_id), not from Temporal history. A
+     * Temporal reset cannot work here: the runner activity RETURNS its FAILED
+     * result, so a reset replays the preserved failure instead of re-dispatching.
      * ## Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
-     * 2. Uses Temporal ResetWorkflow to resume from last checkpoint
-     * 3. Activity re-invoked with same thread_id
+     * 2. Terminates the previous workflow and recreates the execution environment
+     * 3. Starts a fresh workflow; the activity is re-invoked with the same thread_id
      * 4. LangGraph loads from checkpoint automatically
      * 5. Execution transitions from FAILED to IN_PROGRESS phase
-     * 6. Agent continues from where it failed
+     * 6. Agent retries from where it failed
      * ## Preconditions
      * - Execution must be in EXECUTION_FAILED phase
      * - TERMINATED executions cannot be recovered (incomplete checkpoint)

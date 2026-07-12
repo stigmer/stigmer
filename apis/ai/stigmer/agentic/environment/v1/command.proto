@@ -46,6 +46,31 @@ service EnvironmentCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update environment";
   }
 
+  // Update the visibility of an existing environment.
+  //
+  // Only modifies metadata.visibility, leaving spec, status, and other
+  // metadata fields untouched. Environments support two levels: private
+  // (the default) and org. Setting org shares the environment with the
+  // owning organization: members can view it with secret values redacted,
+  // and any execution in the organization may use its values at runtime.
+  // Secret values are revealed only to the environment's creator, at
+  // every visibility level.
+  //
+  // @internal
+  // Authorization: requires can_edit permission on the environment resource.
+  // public/platform levels are rejected via the kind's VisibilityConfig
+  // (supports_org only) — secret values must never be resolvable across the
+  // org boundary. Personal (stigmer.ai/personal) and OAuth-managed
+  // (stigmer.ai/managed) environments reject visibility changes entirely:
+  // sharing a personal credential bag or per-user OAuth tokens must be
+  // impossible, not merely discouraged.
+  rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (Environment) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = environment;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update environment visibility";
+  }
+
   // Delete an environment.
   //
   // @internal

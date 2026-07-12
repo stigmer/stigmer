@@ -337,17 +337,17 @@ message TerminateAgentExecutionInput {
 
 // RecoverAgentExecutionInput requests recovery of a failed agent execution.
 //
-// Recovery resumes execution from the last LangGraph checkpoint, preserving
-// all completed work. The agent continues from where it failed without
-// re-executing successful steps.
+// Recovery retries the failed run while preserving all completed work. The
+// agent continues from where it failed without re-executing successful steps.
 //
 // ## Behavior
 //
-// - Uses Temporal ResetWorkflow API to resume from last successful point
-// - LangGraph checkpoint is loaded using the preserved thread_id
+// - Terminates the previous Temporal workflow and starts a fresh one
+// - The LangGraph checkpoint is loaded using the preserved thread_id, so
+//   completed work carries over from the session's harness state
 // - Completed tool calls are NOT re-executed
 // - Execution transitions from FAILED back to IN_PROGRESS phase
-// - Agent continues from where it failed
+// - Agent retries from where it failed
 //
 // ## Preconditions
 //

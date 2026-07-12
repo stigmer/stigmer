@@ -5,6 +5,7 @@ package integration
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -2156,4 +2157,236 @@ func hasDiscardSystemMessage(exec *agentexecv1.AgentExecution) bool {
 		}
 	}
 	return false
+}
+
+// =============================================================================
+// Issue #205: foreign .cursor/hooks.json hooks
+// =============================================================================
+//
+// The gate install MERGES into a pre-existing hooks.json, deliberately
+// preserving the user's own hooks. Cursor runs EVERY configured preToolUse /
+// beforeMCPExecution hook and a deny from ANY of them blocks the tool — so a
+// foreign (non-Stigmer) hook can deny the runner's tools without ever touching
+// Stigmer's denial ledger. Before this fix the run then reached
+// EXECUTION_COMPLETED with the work silently undone (no approval card, no
+// error). These tests are the reproduce-first regression net: a foreign deny
+// must surface an explicit, diagnosable EXECUTION_FAILED, and a benign foreign
+// hook must not perturb the normal gate at all. Both require CURSOR_API_KEY.
+
+// foreignDenyMutationsHook is a realistic user/team policy hook: it denies all
+// file-mutation tools and allows everything else. Deliberately NOT
+// Stigmer-shaped (no ledger, no scope guard) and deliberately message-less, so
+// Cursor surfaces its own generic hook-block text — the common foreign shape.
+const foreignDenyMutationsHook = `#!/bin/bash
+# Team policy: no direct file mutations. NOT a Stigmer hook.
+INPUT=$(cat)
+case "$INPUT" in
+  *'"tool_name":"Write"'*|*'"tool_name":"StrReplace"'*|*'"tool_name":"EditNotebook"'*|*'"tool_name":"Delete"'*)
+    echo '{"permission":"deny"}'
+    ;;
+  *)
+    echo '{"permission":"allow"}'
+    ;;
+esac
+`
+
+// foreignAllowAllHook is the benign control: a foreign hook that observes every
+// tool call and allows all of them.
+const foreignAllowAllHook = `#!/bin/bash
+cat > /dev/null
+echo '{"permission":"allow"}'
+`
+
+// seedForeignPreToolUseHook installs a foreign preToolUse hook into the git
+// workspace: an executable script plus a user-authored .cursor/hooks.json
+// registering it by absolute path (with failClosed, mirroring the issue's
+// reproduction). Returns the exact hooks.json bytes (for the byte-for-byte
+// restore assertion) and the script's absolute path (the culprit name the
+// diagnosable failure must carry).
+func seedForeignPreToolUseHook(t *testing.T, gitDir, script string) (hooksJSON, scriptAbs string) {
+	t.Helper()
+	harness.SeedExecutableWorkspaceFile(t, gitDir, ".cursor/foreign-policy.sh", script)
+	scriptAbs = filepath.Join(gitDir, ".cursor", "foreign-policy.sh")
+	hooksJSON = fmt.Sprintf(
+		`{"version":1,"hooks":{"preToolUse":[{"command":%q,"timeout":10,"failClosed":true}]}}`,
+		scriptAbs,
+	)
+	harness.SeedWorkspaceFile(t, gitDir, ".cursor/hooks.json", hooksJSON)
+	return hooksJSON, scriptAbs
+}
+
+// assertForeignHooksJSONRestored polls until the workspace's hooks.json is back
+// to the user's exact original bytes — the gate teardown runs in the activity's
+// finally, momentarily after the terminal phase persists.
+func assertForeignHooksJSONRestored(t *testing.T, gitDir, want string) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		return harness.WorkspaceFileExists(t, gitDir, ".cursor/hooks.json") &&
+			harness.ReadWorkspaceFile(t, gitDir, ".cursor/hooks.json") == want
+	}, 30*time.Second, 500*time.Millisecond,
+		"the user's .cursor/hooks.json must be restored byte-for-byte after the turn "+
+			"(genuine user hooks are preserved, never clobbered)")
+}
+
+// inspectForeignHookDenyGroundTruth reads the raw @cursor/sdk event stream (when
+// CURSOR_EVENT_RECORD_DIR is set) and logs what error text Cursor stamped on the
+// foreign-denied builtin — the empirical check on the detector's text-marker
+// residual (a foreign hook denying with fully custom text would evade the
+// "blocked by a hook" match). Pure diagnostics; never fails the test.
+func inspectForeignHookDenyGroundTruth(t *testing.T, execID string) {
+	t.Helper()
+	dir := os.Getenv("CURSOR_EVENT_RECORD_DIR")
+	if dir == "" {
+		t.Logf("#205 ground truth: CURSOR_EVENT_RECORD_DIR not set — export it to capture "+
+			"the exact error text Cursor stamps on a foreign hook deny (execution=%s)", execID)
+		return
+	}
+	path := filepath.Join(dir, execID+".cursor-events.jsonl")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Logf("#205 ground truth: could not read recorded cursor events at %s: %v", path, err)
+		return
+	}
+	raw := string(data)
+	t.Logf("#205 GROUND TRUTH (foreign builtin deny): stream contains 'blocked by a hook'=%v",
+		strings.Contains(raw, "blocked by a hook"))
+}
+
+// TestCursorHarness_HITL_ForeignHookDeny_FailsDiagnosably is the reproduce-first
+// regression test for issue #205.
+//
+// A user-authored .cursor/hooks.json carries a "deny all file mutations" policy
+// hook. The gate merge preserves it (correct — never clobber user config), the
+// runner's capture-mode gate ALLOWS the tracked write to flow, and the foreign
+// hook denies it: Cursor blocks the tool, Stigmer's denial ledger stays empty,
+// and before this fix the execution reached EXECUTION_COMPLETED with the file
+// silently unwritten. Now the turn boundary detects the unattributed hook block
+// and the execution must FAIL with a clear reason naming the foreign hook —
+// never complete silently, and never pretend an approval could fix it (an
+// approval grants a token only Stigmer's hook reads; the foreign hook would
+// deny the re-attempt forever).
+//
+// Requires CURSOR_API_KEY.
+func TestCursorHarness_HITL_ForeignHookDeny_FailsDiagnosably(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 6*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	gitDir := harness.NewGitWorkspace(t)
+	userHooksJSON, foreignScript := seedForeignPreToolUseHook(t, gitDir, foreignDenyMutationsHook)
+
+	// The instructions keep the shape deterministic: the runner's own
+	// tool-approval rule already tells the model not to retry or work around a
+	// blocked action, and the prompt reinforces it so the turn ends after the
+	// foreign deny instead of drifting into a shell workaround (which Stigmer's
+	// own shell gate would pause on — a different, already-tested shape).
+	agent := createTestAgentForCursor(t, ctx, clients,
+		"test-cursor-foreign-hook-deny",
+		"You are a helpful coding assistant. Create files ONLY with the file editing tool, "+
+			"never with shell commands. If a tool call is blocked or fails, do not retry it and "+
+			"do not try any other way — just report what happened and finish.",
+	)
+	session := createCaptureSession(t, ctx, clients, agent.GetStatus().GetDefaultInstanceId(), gitDir)
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	exec := harness.CreateTestAgentExecution(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"Create a file called foreign-gated.txt containing exactly the text: hello-foreign",
+		harness.WithAutoApproveAll(false),
+	)
+
+	result, err := waiter.WaitForTerminal(ctx, exec.GetMetadata().GetId(), 4*time.Minute)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+	}
+	require.NoError(t, err, "execution should reach a terminal phase")
+	inspectForeignHookDenyGroundTruth(t, exec.GetMetadata().GetId())
+
+	// The invariant this whole fix exists for: a blocked tool must never
+	// silently complete. The pre-fix behavior was EXECUTION_COMPLETED with the
+	// file unwritten and no error.
+	if result.GetStatus().GetPhase() != agentexecv1.ExecutionPhase_EXECUTION_FAILED {
+		harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+	}
+	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_FAILED)
+
+	// The failure is diagnosable: it names the hook surface and the culprit
+	// command, and points the user at the fix.
+	errText := result.GetStatus().GetError()
+	assert.Contains(t, errText, "hook outside Stigmer",
+		"the failure must attribute the block to a non-Stigmer hook, got: %q", errText)
+	assert.Contains(t, errText, ".cursor/hooks.json",
+		"the failure must name the hook surface so the user knows where to look, got: %q", errText)
+	assert.Contains(t, errText, foreignScript,
+		"the failure must name the likely culprit hook command, got: %q", errText)
+
+	// The blocked work was really not done.
+	assert.False(t, harness.WorkspaceFileExists(t, gitDir, "foreign-gated.txt"),
+		"the foreign-denied write must not have landed")
+
+	// And the user's own hook config survives untouched.
+	assertForeignHooksJSONRestored(t, gitDir, userHooksJSON)
+	assert.FileExists(t, foreignScript, "the user's own hook script must survive the turn")
+}
+
+// TestCursorHarness_HITL_ForeignHookAllow_DoesNotPerturbGate is the control for
+// issue #205: a benign foreign hook (observes everything, allows everything)
+// must not perturb the normal review flow — the capture gate still pauses, an
+// approval still applies the change, the run completes, and the user's
+// hooks.json is restored byte-for-byte. This pins that the fix fails ONLY on a
+// genuine foreign deny, not on the mere presence of a foreign hook.
+//
+// Requires CURSOR_API_KEY.
+func TestCursorHarness_HITL_ForeignHookAllow_DoesNotPerturbGate(t *testing.T) {
+	requireCursorCallProviderPrereqs(t)
+
+	ctx, cancel := harness.TestContext(t, 6*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+
+	gitDir := harness.NewGitWorkspace(t)
+	userHooksJSON, _ := seedForeignPreToolUseHook(t, gitDir, foreignAllowAllHook)
+	harness.SeedWorkspaceFile(t, gitDir, "notes.md", "# Notes\n")
+
+	agent := createTestAgentForCursor(t, ctx, clients,
+		"test-cursor-foreign-hook-allow",
+		"You are a helpful coding assistant.",
+	)
+	session := createCaptureSession(t, ctx, clients, agent.GetStatus().GetDefaultInstanceId(), gitDir)
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	exec, waiting := waiter.WaitForApprovalWithRetry(t, ctx, clients,
+		session.GetMetadata().GetId(),
+		"In notes.md, add a line at the end that says exactly: reviewed-by-hitl",
+		3*time.Minute,
+		harness.WithAutoApproveAll(false),
+	)
+	harness.AssertAgentPhase(t, waiting, agentexecv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL)
+	require.True(t, hasCapturedChangeForPath(waiting, "notes.md"),
+		"the normal capture gate must still fire with a benign foreign hook present")
+
+	result, err := waiter.ResolveApprovalsUntilPhase(ctx, clients,
+		exec.GetMetadata().GetId(),
+		agentexecv1.ApprovalAction_APPROVAL_ACTION_APPROVE,
+		agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+		3*time.Minute,
+	)
+	if err != nil {
+		harness.LogExecutionMessages(t, ctx, clients, exec.GetMetadata().GetId())
+	}
+	require.NoError(t, err, "a benign foreign hook must not block completion")
+	harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED)
+	assert.Empty(t, result.GetStatus().GetError(),
+		"a benign foreign hook must not surface any error")
+
+	content := harness.ReadWorkspaceFile(t, gitDir, "notes.md")
+	assert.Contains(t, content, "reviewed-by-hitl", "the approved change must be applied")
+
+	assertForeignHooksJSONRestored(t, gitDir, userHooksJSON)
 }

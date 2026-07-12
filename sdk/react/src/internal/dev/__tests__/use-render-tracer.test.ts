@@ -6,10 +6,14 @@ describe("useRenderTracer", () => {
   let debugSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    // Perf logging is opt-in (off by default). Enable it via the browser
+    // runtime flag so these behavioral assertions exercise the logging path.
+    (globalThis as { __STIGMER_PERF__?: boolean }).__STIGMER_PERF__ = true;
     debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {});
   });
 
   afterEach(() => {
+    delete (globalThis as { __STIGMER_PERF__?: boolean }).__STIGMER_PERF__;
     debugSpy.mockRestore();
   });
 

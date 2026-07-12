@@ -18,8 +18,9 @@ export const file_ai_stigmer_agentic_workflow_v1_serverless_validation: GenFile 
  * ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.
  *
  * @internal
- * Populated asynchronously after workflow creation via a Temporal workflow
- * that validates the workflow structure.
+ * Produced synchronously by in-process workflow validation: on create/update it
+ * is persisted onto WorkflowStatus, and it is the direct response of the
+ * validateSpec RPC.
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation
  */
@@ -65,10 +66,12 @@ export type ServerlessWorkflowValidation = Message<"ai.stigmer.agentic.workflow.
   validatedAt?: Timestamp;
 
   /**
-   * Validation process ID for tracking validation progress.
+   * Optional identifier for tracking a validation run.
    *
    * @internal
-   * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
+   * Legacy field from when validation ran as a separate async process. In-process
+   * validation is synchronous and does not populate this; retained for wire
+   * compatibility.
    *
    * @generated from field: string validation_workflow_id = 6;
    */
@@ -122,7 +125,9 @@ export enum ValidationState {
    * Retry validation or contact support.
    *
    * @internal
-   * Examples: Temporal workflow crashed, activity timeout, etc.
+   * Reserved for a genuine validator fault (e.g., the converter panics or an
+   * unexpected internal error prevents validation from completing) — not a
+   * user-fixable spec problem.
    *
    * @generated from enum value: FAILED = 4;
    */

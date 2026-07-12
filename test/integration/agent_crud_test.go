@@ -86,9 +86,10 @@ func TestAgent_ApplyGetDelete(t *testing.T) {
 	require.Error(t, err, "get after delete should fail")
 	st, ok := status.FromError(err)
 	require.True(t, ok, "error should be a gRPC status")
-	require.True(t,
-		st.Code() == codes.NotFound || st.Code() == codes.PermissionDenied,
-		"expected NOT_FOUND or PERMISSION_DENIED after delete, got %s: %s", st.Code(), st.Message())
+	// A just-deleted id must be NOT_FOUND. Existence is resolved before authorization,
+	// so a missing resource is never masked as PERMISSION_DENIED (stigmer/stigmer#224).
+	require.Equalf(t, codes.NotFound, st.Code(),
+		"expected NOT_FOUND after delete, got %s: %s", st.Code(), st.Message())
 }
 
 func TestAgent_Apply_Upsert_ByOrgAndSlug(t *testing.T) {

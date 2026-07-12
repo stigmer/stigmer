@@ -7,16 +7,16 @@ package ai.stigmer.agentic.session.v1;
 
 /**
  * <pre>
- * ListSessionsByAgentRequest lists all sessions for a specific agent.
+ * ListSessionsByAgentInstanceRequest lists all sessions for a specific agent instance.
  * </pre>
  *
- * Protobuf type {@code ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest}
+ * Protobuf type {@code ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest}
  */
 @com.google.protobuf.Generated
-public final class ListSessionsByAgentRequest extends
+public final class ListSessionsByAgentInstanceRequest extends
     com.google.protobuf.GeneratedMessage implements
-    // @@protoc_insertion_point(message_implements:ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest)
-    ListSessionsByAgentRequestOrBuilder {
+    // @@protoc_insertion_point(message_implements:ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest)
+    ListSessionsByAgentInstanceRequestOrBuilder {
 private static final long serialVersionUID = 0L;
   static {
     com.google.protobuf.RuntimeVersion.validateProtobufGencodeVersion(
@@ -25,76 +25,76 @@ private static final long serialVersionUID = 0L;
       /* minor= */ 34,
       /* patch= */ 0,
       /* suffix= */ "",
-      "ListSessionsByAgentRequest");
+      "ListSessionsByAgentInstanceRequest");
   }
-  // Use ListSessionsByAgentRequest.newBuilder() to construct.
-  private ListSessionsByAgentRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+  // Use ListSessionsByAgentInstanceRequest.newBuilder() to construct.
+  private ListSessionsByAgentInstanceRequest(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
     super(builder);
   }
-  private ListSessionsByAgentRequest() {
-    agentId_ = "";
+  private ListSessionsByAgentInstanceRequest() {
+    agentInstanceId_ = "";
     pageToken_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
       getDescriptor() {
-    return ai.stigmer.agentic.session.v1.IoProto.internal_static_ai_stigmer_agentic_session_v1_ListSessionsByAgentRequest_descriptor;
+    return ai.stigmer.agentic.session.v1.IoProto.internal_static_ai_stigmer_agentic_session_v1_ListSessionsByAgentInstanceRequest_descriptor;
   }
 
   @java.lang.Override
   public com.google.protobuf.Descriptors.Descriptor getDescriptorForType() {
-    return ai.stigmer.agentic.session.v1.IoProto.internal_static_ai_stigmer_agentic_session_v1_ListSessionsByAgentRequest_descriptor;
+    return ai.stigmer.agentic.session.v1.IoProto.internal_static_ai_stigmer_agentic_session_v1_ListSessionsByAgentInstanceRequest_descriptor;
   }
 
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
-    return ai.stigmer.agentic.session.v1.IoProto.internal_static_ai_stigmer_agentic_session_v1_ListSessionsByAgentRequest_fieldAccessorTable
+    return ai.stigmer.agentic.session.v1.IoProto.internal_static_ai_stigmer_agentic_session_v1_ListSessionsByAgentInstanceRequest_fieldAccessorTable
         .ensureFieldAccessorsInitialized(
-            ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.class, ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.Builder.class);
+            ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest.class, ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest.Builder.class);
   }
 
-  public static final int AGENT_ID_FIELD_NUMBER = 1;
+  public static final int AGENT_INSTANCE_ID_FIELD_NUMBER = 1;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object agentId_ = "";
+  private volatile java.lang.Object agentInstanceId_ = "";
   /**
    * <pre>
-   * Agent ID to filter by.
+   * Agent instance ID to filter by.
    * </pre>
    *
-   * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
-   * @return The agentId.
+   * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+   * @return The agentInstanceId.
    */
   @java.lang.Override
-  public java.lang.String getAgentId() {
-    java.lang.Object ref = agentId_;
+  public java.lang.String getAgentInstanceId() {
+    java.lang.Object ref = agentInstanceId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      agentId_ = s;
+      agentInstanceId_ = s;
       return s;
     }
   }
   /**
    * <pre>
-   * Agent ID to filter by.
+   * Agent instance ID to filter by.
    * </pre>
    *
-   * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
-   * @return The bytes for agentId.
+   * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for agentInstanceId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getAgentIdBytes() {
-    java.lang.Object ref = agentId_;
+      getAgentInstanceIdBytes() {
+    java.lang.Object ref = agentInstanceId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      agentId_ = b;
+      agentInstanceId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -177,8 +177,8 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 1, agentId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentInstanceId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 1, agentInstanceId_);
     }
     if (pageSize_ != 0) {
       output.writeInt32(2, pageSize_);
@@ -195,8 +195,8 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, agentId_);
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(agentInstanceId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(1, agentInstanceId_);
     }
     if (pageSize_ != 0) {
       size += com.google.protobuf.CodedOutputStream
@@ -215,13 +215,13 @@ private static final long serialVersionUID = 0L;
     if (obj == this) {
      return true;
     }
-    if (!(obj instanceof ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest)) {
+    if (!(obj instanceof ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest)) {
       return super.equals(obj);
     }
-    ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest other = (ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest) obj;
+    ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest other = (ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest) obj;
 
-    if (!getAgentId()
-        .equals(other.getAgentId())) return false;
+    if (!getAgentInstanceId()
+        .equals(other.getAgentInstanceId())) return false;
     if (getPageSize()
         != other.getPageSize()) return false;
     if (!getPageToken()
@@ -237,8 +237,8 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + AGENT_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getAgentId().hashCode();
+    hash = (37 * hash) + AGENT_INSTANCE_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getAgentInstanceId().hashCode();
     hash = (37 * hash) + PAGE_SIZE_FIELD_NUMBER;
     hash = (53 * hash) + getPageSize();
     hash = (37 * hash) + PAGE_TOKEN_FIELD_NUMBER;
@@ -248,44 +248,44 @@ private static final long serialVersionUID = 0L;
     return hash;
   }
 
-  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest parseFrom(
+  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest parseFrom(
       java.nio.ByteBuffer data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest parseFrom(
+  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest parseFrom(
       java.nio.ByteBuffer data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest parseFrom(
+  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest parseFrom(
       com.google.protobuf.ByteString data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest parseFrom(
+  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest parseFrom(
       com.google.protobuf.ByteString data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest parseFrom(byte[] data)
+  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest parseFrom(byte[] data)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data);
   }
-  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest parseFrom(
+  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest parseFrom(
       byte[] data,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws com.google.protobuf.InvalidProtocolBufferException {
     return PARSER.parseFrom(data, extensionRegistry);
   }
-  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest parseFrom(java.io.InputStream input)
+  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest parseFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseWithIOException(PARSER, input);
   }
-  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest parseFrom(
+  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest parseFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -293,26 +293,26 @@ private static final long serialVersionUID = 0L;
         .parseWithIOException(PARSER, input, extensionRegistry);
   }
 
-  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest parseDelimitedFrom(java.io.InputStream input)
+  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest parseDelimitedFrom(java.io.InputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseDelimitedWithIOException(PARSER, input);
   }
 
-  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest parseDelimitedFrom(
+  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest parseDelimitedFrom(
       java.io.InputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
   }
-  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest parseFrom(
+  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest parseFrom(
       com.google.protobuf.CodedInputStream input)
       throws java.io.IOException {
     return com.google.protobuf.GeneratedMessage
         .parseWithIOException(PARSER, input);
   }
-  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest parseFrom(
+  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest parseFrom(
       com.google.protobuf.CodedInputStream input,
       com.google.protobuf.ExtensionRegistryLite extensionRegistry)
       throws java.io.IOException {
@@ -325,7 +325,7 @@ private static final long serialVersionUID = 0L;
   public static Builder newBuilder() {
     return DEFAULT_INSTANCE.toBuilder();
   }
-  public static Builder newBuilder(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest prototype) {
+  public static Builder newBuilder(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest prototype) {
     return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
   }
   @java.lang.Override
@@ -342,29 +342,29 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ListSessionsByAgentRequest lists all sessions for a specific agent.
+   * ListSessionsByAgentInstanceRequest lists all sessions for a specific agent instance.
    * </pre>
    *
-   * Protobuf type {@code ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest}
+   * Protobuf type {@code ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest}
    */
   public static final class Builder extends
       com.google.protobuf.GeneratedMessage.Builder<Builder> implements
-      // @@protoc_insertion_point(builder_implements:ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest)
-      ai.stigmer.agentic.session.v1.ListSessionsByAgentRequestOrBuilder {
+      // @@protoc_insertion_point(builder_implements:ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest)
+      ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequestOrBuilder {
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return ai.stigmer.agentic.session.v1.IoProto.internal_static_ai_stigmer_agentic_session_v1_ListSessionsByAgentRequest_descriptor;
+      return ai.stigmer.agentic.session.v1.IoProto.internal_static_ai_stigmer_agentic_session_v1_ListSessionsByAgentInstanceRequest_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return ai.stigmer.agentic.session.v1.IoProto.internal_static_ai_stigmer_agentic_session_v1_ListSessionsByAgentRequest_fieldAccessorTable
+      return ai.stigmer.agentic.session.v1.IoProto.internal_static_ai_stigmer_agentic_session_v1_ListSessionsByAgentInstanceRequest_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.class, ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.Builder.class);
+              ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest.class, ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest.Builder.class);
     }
 
-    // Construct using ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.newBuilder()
+    // Construct using ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest.newBuilder()
     private Builder() {
 
     }
@@ -378,7 +378,7 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
-      agentId_ = "";
+      agentInstanceId_ = "";
       pageSize_ = 0;
       pageToken_ = "";
       return this;
@@ -387,17 +387,17 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public com.google.protobuf.Descriptors.Descriptor
         getDescriptorForType() {
-      return ai.stigmer.agentic.session.v1.IoProto.internal_static_ai_stigmer_agentic_session_v1_ListSessionsByAgentRequest_descriptor;
+      return ai.stigmer.agentic.session.v1.IoProto.internal_static_ai_stigmer_agentic_session_v1_ListSessionsByAgentInstanceRequest_descriptor;
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest getDefaultInstanceForType() {
-      return ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.getDefaultInstance();
+    public ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest getDefaultInstanceForType() {
+      return ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest.getDefaultInstance();
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest build() {
-      ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest result = buildPartial();
+    public ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest build() {
+      ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest result = buildPartial();
       if (!result.isInitialized()) {
         throw newUninitializedMessageException(result);
       }
@@ -405,17 +405,17 @@ private static final long serialVersionUID = 0L;
     }
 
     @java.lang.Override
-    public ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest buildPartial() {
-      ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest result = new ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest(this);
+    public ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest buildPartial() {
+      ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest result = new ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest(this);
       if (bitField0_ != 0) { buildPartial0(result); }
       onBuilt();
       return result;
     }
 
-    private void buildPartial0(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest result) {
+    private void buildPartial0(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest result) {
       int from_bitField0_ = bitField0_;
       if (((from_bitField0_ & 0x00000001) != 0)) {
-        result.agentId_ = agentId_;
+        result.agentInstanceId_ = agentInstanceId_;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.pageSize_ = pageSize_;
@@ -427,18 +427,18 @@ private static final long serialVersionUID = 0L;
 
     @java.lang.Override
     public Builder mergeFrom(com.google.protobuf.Message other) {
-      if (other instanceof ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest) {
-        return mergeFrom((ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest)other);
+      if (other instanceof ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest) {
+        return mergeFrom((ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest)other);
       } else {
         super.mergeFrom(other);
         return this;
       }
     }
 
-    public Builder mergeFrom(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest other) {
-      if (other == ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest.getDefaultInstance()) return this;
-      if (!other.getAgentId().isEmpty()) {
-        agentId_ = other.agentId_;
+    public Builder mergeFrom(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest other) {
+      if (other == ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest.getDefaultInstance()) return this;
+      if (!other.getAgentInstanceId().isEmpty()) {
+        agentInstanceId_ = other.agentInstanceId_;
         bitField0_ |= 0x00000001;
         onChanged();
       }
@@ -477,7 +477,7 @@ private static final long serialVersionUID = 0L;
               done = true;
               break;
             case 10: {
-              agentId_ = input.readStringRequireUtf8();
+              agentInstanceId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000001;
               break;
             } // case 10
@@ -508,22 +508,22 @@ private static final long serialVersionUID = 0L;
     }
     private int bitField0_;
 
-    private java.lang.Object agentId_ = "";
+    private java.lang.Object agentInstanceId_ = "";
     /**
      * <pre>
-     * Agent ID to filter by.
+     * Agent instance ID to filter by.
      * </pre>
      *
-     * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
-     * @return The agentId.
+     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+     * @return The agentInstanceId.
      */
-    public java.lang.String getAgentId() {
-      java.lang.Object ref = agentId_;
+    public java.lang.String getAgentInstanceId() {
+      java.lang.Object ref = agentInstanceId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        agentId_ = s;
+        agentInstanceId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
@@ -531,20 +531,20 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent ID to filter by.
+     * Agent instance ID to filter by.
      * </pre>
      *
-     * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
-     * @return The bytes for agentId.
+     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for agentInstanceId.
      */
     public com.google.protobuf.ByteString
-        getAgentIdBytes() {
-      java.lang.Object ref = agentId_;
+        getAgentInstanceIdBytes() {
+      java.lang.Object ref = agentInstanceId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        agentId_ = b;
+        agentInstanceId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
@@ -552,49 +552,49 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent ID to filter by.
+     * Agent instance ID to filter by.
      * </pre>
      *
-     * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
-     * @param value The agentId to set.
+     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+     * @param value The agentInstanceId to set.
      * @return This builder for chaining.
      */
-    public Builder setAgentId(
+    public Builder setAgentInstanceId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      agentId_ = value;
+      agentInstanceId_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Agent ID to filter by.
+     * Agent instance ID to filter by.
      * </pre>
      *
-     * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
+     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
-    public Builder clearAgentId() {
-      agentId_ = getDefaultInstance().getAgentId();
+    public Builder clearAgentInstanceId() {
+      agentInstanceId_ = getDefaultInstance().getAgentInstanceId();
       bitField0_ = (bitField0_ & ~0x00000001);
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Agent ID to filter by.
+     * Agent instance ID to filter by.
      * </pre>
      *
-     * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
-     * @param value The bytes for agentId to set.
+     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for agentInstanceId to set.
      * @return This builder for chaining.
      */
-    public Builder setAgentIdBytes(
+    public Builder setAgentInstanceIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      agentId_ = value;
+      agentInstanceId_ = value;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
@@ -736,23 +736,23 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest)
+    // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest)
   }
 
-  // @@protoc_insertion_point(class_scope:ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest)
-  private static final ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest DEFAULT_INSTANCE;
+  // @@protoc_insertion_point(class_scope:ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest)
+  private static final ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest DEFAULT_INSTANCE;
   static {
-    DEFAULT_INSTANCE = new ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest();
+    DEFAULT_INSTANCE = new ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest();
   }
 
-  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest getDefaultInstance() {
+  public static ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest getDefaultInstance() {
     return DEFAULT_INSTANCE;
   }
 
-  private static final com.google.protobuf.Parser<ListSessionsByAgentRequest>
-      PARSER = new com.google.protobuf.AbstractParser<ListSessionsByAgentRequest>() {
+  private static final com.google.protobuf.Parser<ListSessionsByAgentInstanceRequest>
+      PARSER = new com.google.protobuf.AbstractParser<ListSessionsByAgentInstanceRequest>() {
     @java.lang.Override
-    public ListSessionsByAgentRequest parsePartialFrom(
+    public ListSessionsByAgentInstanceRequest parsePartialFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -771,17 +771,17 @@ private static final long serialVersionUID = 0L;
     }
   };
 
-  public static com.google.protobuf.Parser<ListSessionsByAgentRequest> parser() {
+  public static com.google.protobuf.Parser<ListSessionsByAgentInstanceRequest> parser() {
     return PARSER;
   }
 
   @java.lang.Override
-  public com.google.protobuf.Parser<ListSessionsByAgentRequest> getParserForType() {
+  public com.google.protobuf.Parser<ListSessionsByAgentInstanceRequest> getParserForType() {
     return PARSER;
   }
 
   @java.lang.Override
-  public ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest getDefaultInstanceForType() {
+  public ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest getDefaultInstanceForType() {
     return DEFAULT_INSTANCE;
   }
 

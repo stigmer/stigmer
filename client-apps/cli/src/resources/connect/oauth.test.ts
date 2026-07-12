@@ -3,14 +3,7 @@ import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1
 import type { Stigmer } from "@stigmer/sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { UsageError } from "../../errors/index.js";
-import {
-  browserCommand,
-  DEFAULT_CLOUD_CONSOLE_URL,
-  resolveConsoleURL,
-  runOAuthFlow,
-  waitForOAuthGrant,
-  type OAuthFlowDeps,
-} from "./oauth.js";
+import { browserCommand, runOAuthFlow, waitForOAuthGrant, type OAuthFlowDeps } from "./oauth.js";
 
 const server = create(McpServerSchema, {
   metadata: { id: "mcp_1", slug: "github", name: "GitHub" },
@@ -32,22 +25,6 @@ function fakeClient(connectOnCall: number): { client: Stigmer; calls: () => numb
 }
 
 const noopSleep = async (): Promise<void> => {};
-
-describe("resolveConsoleURL", () => {
-  it("prefers the STIGMER_CONSOLE_URL override", () => {
-    expect(resolveConsoleURL("cloud", { STIGMER_CONSOLE_URL: "https://console.example" } as NodeJS.ProcessEnv)).toBe(
-      "https://console.example",
-    );
-  });
-
-  it("uses the local web-console port for the local backend", () => {
-    expect(resolveConsoleURL("local", {} as NodeJS.ProcessEnv)).toBe("http://localhost:8234");
-  });
-
-  it("uses the cloud console URL for the cloud backend", () => {
-    expect(resolveConsoleURL("cloud", {} as NodeJS.ProcessEnv)).toBe(DEFAULT_CLOUD_CONSOLE_URL);
-  });
-});
 
 describe("browserCommand", () => {
   it("maps each supported platform to its opener", () => {

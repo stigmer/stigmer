@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -1089,6 +1090,113 @@ func TestStore_GetAuditByTag(t *testing.T) {
 	err = s.GetAuditByTag(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, "non-existent-tag", retrieved)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, store.ErrAuditNotFound), "expected ErrAuditNotFound, got: %v", err)
+}
+
+// setupAuditFixture creates a parent resource with three tagless archived
+// versions (hashes v1/v2/v3) and returns the store, context, and resource id.
+func setupAuditFixture(t *testing.T) (*Store, context.Context, string) {
+	t.Helper()
+	tmpDir := t.TempDir()
+	s, err := NewStore(filepath.Join(tmpDir, "test.sqlite"))
+	require.NoError(t, err)
+	t.Cleanup(func() { s.Close() })
+
+	ctx := context.Background()
+	resourceId := "agent-settag-test"
+	agent := &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Metadata:   &apiresource.ApiResourceMetadata{Id: resourceId, Name: "settag-agent"},
+	}
+	require.NoError(t, s.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent))
+
+	for _, hash := range []string{hashOf(1), hashOf(2), hashOf(3)} {
+		require.NoError(t, s.SaveAudit(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, agent, hash, ""))
+	}
+	return s, ctx, resourceId
+}
+
+// hashOf builds a deterministic 64-hex version hash for tests.
+func hashOf(n int) string {
+	return strings.Repeat(string(rune('0'+n)), 64)
+}
+
+func TestStore_SetAuditTag_AssignsTagReadableFromColumn(t *testing.T) {
+	s, ctx, resourceId := setupAuditFixture(t)
+
+	require.NoError(t, s.SetAuditTag(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, hashOf(1), "stable"))
+
+	rec, err := s.GetAuditRecordByHash(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, hashOf(1))
+	require.NoError(t, err)
+	assert.Equal(t, "stable", rec.Tag, "the tag must be readable from the audit column")
+
+	byTag, err := s.GetAuditRecordByTag(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, "stable")
+	require.NoError(t, err)
+	assert.Equal(t, hashOf(1), byTag.VersionHash)
+}
+
+func TestStore_SetAuditTag_MoveClearsPriorHolder(t *testing.T) {
+	s, ctx, resourceId := setupAuditFixture(t)
+
+	require.NoError(t, s.SetAuditTag(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, hashOf(1), "stable"))
+	// Move the same tag to a different version.
+	require.NoError(t, s.SetAuditTag(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, hashOf(2), "stable"))
+
+	// The tag now names exactly one version: the new target.
+	byTag, err := s.GetAuditRecordByTag(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, "stable")
+	require.NoError(t, err)
+	assert.Equal(t, hashOf(2), byTag.VersionHash, "tag must move to the new target")
+
+	// The prior holder no longer carries the tag.
+	prior, err := s.GetAuditRecordByHash(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, hashOf(1))
+	require.NoError(t, err)
+	assert.Equal(t, "", prior.Tag, "prior holder must be cleared (single-holder invariant)")
+}
+
+func TestStore_SetAuditTag_OverwritesDifferentTagOnTarget(t *testing.T) {
+	s, ctx, resourceId := setupAuditFixture(t)
+
+	require.NoError(t, s.SetAuditTag(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, hashOf(1), "old"))
+	require.NoError(t, s.SetAuditTag(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, hashOf(1), "new"))
+
+	rec, err := s.GetAuditRecordByHash(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, hashOf(1))
+	require.NoError(t, err)
+	assert.Equal(t, "new", rec.Tag, "tagging a version replaces its previous tag (git tag -f)")
+
+	_, err = s.GetAuditRecordByTag(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, "old")
+	assert.True(t, errors.Is(err, store.ErrAuditNotFound), "the replaced tag must no longer resolve")
+}
+
+func TestStore_SetAuditTag_UnknownHashNotFoundAndNoSideEffects(t *testing.T) {
+	s, ctx, resourceId := setupAuditFixture(t)
+
+	// Seed a prior holder so we can prove it is untouched on failure.
+	require.NoError(t, s.SetAuditTag(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, hashOf(1), "stable"))
+
+	err := s.SetAuditTag(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, hashOf(9), "stable")
+	assert.True(t, errors.Is(err, store.ErrAuditNotFound), "a missing target hash must be ErrAuditNotFound, got: %v", err)
+
+	// The transaction rolled back: the prior holder still carries the tag.
+	byTag, err := s.GetAuditRecordByTag(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, "stable")
+	require.NoError(t, err)
+	assert.Equal(t, hashOf(1), byTag.VersionHash, "a missing target must not orphan the tag on its prior holder")
+}
+
+func TestStore_ListAuditRecords_CarriesColumnTag(t *testing.T) {
+	s, ctx, resourceId := setupAuditFixture(t)
+
+	require.NoError(t, s.SetAuditTag(ctx, apiresourcekind.ApiResourceKind_agent, resourceId, hashOf(2), "stable"))
+
+	records, err := s.ListAuditRecords(ctx, apiresourcekind.ApiResourceKind_agent, resourceId)
+	require.NoError(t, err)
+	require.Len(t, records, 3)
+
+	tagByHash := make(map[string]string, len(records))
+	for _, rec := range records {
+		tagByHash[rec.VersionHash] = rec.Tag
+	}
+	assert.Equal(t, "stable", tagByHash[hashOf(2)], "tagged version reflects the column tag")
+	assert.Equal(t, "", tagByHash[hashOf(1)], "untagged versions carry no tag")
+	assert.Equal(t, "", tagByHash[hashOf(3)])
 }
 
 func TestStore_ListAuditHistory(t *testing.T) {

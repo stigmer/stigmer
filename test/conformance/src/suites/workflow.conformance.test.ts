@@ -8,10 +8,8 @@
 // (listVersions / getVersion / getByReference resolution by hash and tag) and
 // the validateSpec endpoint.
 //
-// Two deliberate, recorded boundaries for the local-go target (see the project
-// plan's "Findings to file"):
-//   - tagVersion is unimplemented in OSS → capability-gated (versionTagging).
-//     Tag *resolution* is still proven via apply-time metadata.version.tag.
+// One deliberate, recorded boundary remains for the local-go target (see the
+// project plan's "Findings to file"):
 //   - validateSpec discards its structured result on structurally-invalid specs
 //     (returns an error instead of state=INVALID). This session asserts only the
 //     clean contract (VALID result; Layer-1 proto failures → InvalidArgument);
@@ -19,8 +17,8 @@
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/serverless/validation_pb";
 import { Code } from "@connectrpc/connect";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { expectCodeOrDeviation } from "../contract/deviations";
 import { expectGrpcCode } from "../contract/errors";
 import { assertResourceParity } from "../contract/parity";
 import type { ConformanceClients } from "../harness/clients";
@@ -157,15 +155,14 @@ describe("Workflow conformance — CRUD & identity", () => {
 
   it("rejects a workflow without a spec (contract: InvalidArgument)", async () => {
     const { org } = await target.provisionTenancy();
-    await expectCodeOrDeviation(
-      target.name,
-      "workflow.create.missing-spec.code",
+    await expectGrpcCode(
       () =>
         clients.workflowCommand.create({
           apiVersion: WORKFLOW_API_VERSION,
           kind: WORKFLOW_KIND,
           metadata: { name: uniqueName("nospec"), org },
         }),
+      Code.InvalidArgument,
       "create without spec",
     );
   });
@@ -175,10 +172,9 @@ describe("Workflow conformance — CRUD & identity", () => {
     const name = uniqueName("dup");
     await createWorkflow(org, name);
 
-    await expectCodeOrDeviation(
-      target.name,
-      "create.duplicate.code",
+    await expectGrpcCode(
       () => clients.workflowCommand.create(makeWorkflow({ org, name })),
+      Code.AlreadyExists,
       "duplicate create",
     );
   });
@@ -187,9 +183,7 @@ describe("Workflow conformance — CRUD & identity", () => {
     const { org } = await target.provisionTenancy();
     // Spec is valid so Layer 1/2 pass; the empty name is what must be rejected
     // (slug resolution has nothing to derive from).
-    await expectCodeOrDeviation(
-      target.name,
-      "create.missing-name.code",
+    await expectGrpcCode(
       () =>
         clients.workflowCommand.create({
           apiVersion: WORKFLOW_API_VERSION,
@@ -197,6 +191,7 @@ describe("Workflow conformance — CRUD & identity", () => {
           metadata: { org },
           spec: makeWorkflowSpec({ namespace: org }),
         }),
+      Code.InvalidArgument,
       "create without name",
     );
   });
@@ -271,12 +266,11 @@ describe("Workflow conformance — version history", () => {
     const created = await createWorkflow(org, uniqueName("wf"));
     const id = created.metadata!.id;
 
-    // Contract: a hash violating the proto pattern is InvalidArgument. local-go
-    // skips protovalidate in this handler (deviation tracked).
-    await expectCodeOrDeviation(
-      target.name,
-      "workflow.get-version.malformed-hash.code",
+    // Contract: a hash violating the proto pattern is InvalidArgument, enforced
+    // for every target by the transport-boundary protovalidate interceptor.
+    await expectGrpcCode(
       () => clients.workflowQuery.getVersion({ workflowId: id, versionHash: "not-a-valid-hash" }),
+      Code.InvalidArgument,
       "getVersion malformed hash",
     );
     // A well-formed but unknown hash is unambiguously NotFound everywhere.
@@ -316,6 +310,13 @@ describe("Workflow conformance — version history", () => {
       "getByReference unknown slug",
     );
   });
+
+  it("getByReference rejects a kind that does not match the service", () =>
+    expectGrpcCode(
+      () => clients.workflowQuery.getByReference({ org: "acme", slug: "web-search", kind: ApiResourceKind.agent }),
+      Code.InvalidArgument,
+      "getByReference kind mismatch",
+    ));
 });
 
 describe("Workflow conformance — validateSpec", () => {
@@ -356,10 +357,10 @@ describe("Workflow conformance — validateSpec", () => {
 });
 
 describe("Workflow conformance — tagVersion", () => {
-  it("is unavailable locally (Unimplemented) when version tagging is not a capability", async () => {
+  it("is unavailable (Unimplemented) when version tagging is not a capability", async () => {
     if (target.capabilities.versionTagging) {
-      // Cloud implements the dedicated mutation; that behavior is asserted by
-      // the cloud target. Local tag resolution is covered via apply-time tags.
+      // Version tagging is implemented on this target; the positive contract is
+      // asserted below. This gate only covers targets that do not implement it.
       return;
     }
     const { org } = await target.provisionTenancy();
@@ -373,7 +374,82 @@ describe("Workflow conformance — tagVersion", () => {
           tag: "stable",
         }),
       Code.Unimplemented,
-      "tagVersion unimplemented locally",
+      "tagVersion unimplemented",
+    );
+  });
+
+  it("assigns a tag to a version and resolves it through getByReference", async () => {
+    if (!target.capabilities.versionTagging) return;
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("wf");
+
+    const created = await createWorkflow(org, name);
+    const { id, slug } = created.metadata!;
+
+    await clients.workflowCommand.tagVersion({ workflowId: id, versionHash: created.status!.versionHash, tag: "stable" });
+
+    const byTag = await clients.workflowQuery.getByReference({ org, slug, version: "stable" });
+    expect(byTag.status?.versionHash, "the tag must resolve to the version it was assigned to").toBe(
+      created.status?.versionHash,
+    );
+  });
+
+  it("moves a tag to a new version, clearing the prior holder (single-holder)", async () => {
+    if (!target.capabilities.versionTagging) return;
+    const { org } = await target.provisionTenancy();
+    const name = uniqueName("wf");
+
+    const v1 = await applyWorkflow(org, name, { taskVar: "v1" });
+    const v2 = await applyWorkflow(org, name, { taskVar: "v2" }, false);
+    const { id, slug } = v1.metadata!;
+    expect(v2.status?.versionHash).not.toBe(v1.status?.versionHash);
+
+    await clients.workflowCommand.tagVersion({ workflowId: id, versionHash: v1.status!.versionHash, tag: "stable" });
+    // Move the tag to the head.
+    await clients.workflowCommand.tagVersion({ workflowId: id, versionHash: v2.status!.versionHash, tag: "stable" });
+
+    const byTag = await clients.workflowQuery.getByReference({ org, slug, version: "stable" });
+    expect(byTag.status?.versionHash, "the tag must move to the new target").toBe(v2.status?.versionHash);
+
+    // v1 is still addressable by its immutable hash, but no longer by the moved tag.
+    const byHash = await clients.workflowQuery.getByReference({ org, slug, version: v1.status!.versionHash });
+    expect(byHash.status?.versionHash).toBe(v1.status?.versionHash);
+
+    // The moved tag no longer appears on v1 in the version history.
+    const history = await clients.workflowQuery.listVersions({ org, slug });
+    const v1Entry = history.versions.find((entry) => entry.versionHash === v1.status?.versionHash);
+    const v2Entry = history.versions.find((entry) => entry.versionHash === v2.status?.versionHash);
+    expect(v2Entry?.tag, "the head must hold the moved tag").toBe("stable");
+    expect(v1Entry?.tag, "the prior holder must be cleared").toBe("");
+  });
+
+  it("reports a well-formed but unknown version hash as NotFound", async () => {
+    if (!target.capabilities.versionTagging) return;
+    const { org } = await target.provisionTenancy();
+    const created = await createWorkflow(org, uniqueName("wf"));
+
+    await expectGrpcCode(
+      () => clients.workflowCommand.tagVersion({ workflowId: created.metadata!.id, versionHash: "0".repeat(64), tag: "stable" }),
+      Code.NotFound,
+      "tagVersion unknown hash",
+    );
+  });
+
+  it("rejects a malformed hash and an empty tag with InvalidArgument", async () => {
+    if (!target.capabilities.versionTagging) return;
+    const { org } = await target.provisionTenancy();
+    const created = await createWorkflow(org, uniqueName("wf"));
+    const id = created.metadata!.id;
+
+    await expectGrpcCode(
+      () => clients.workflowCommand.tagVersion({ workflowId: id, versionHash: "not-a-valid-hash", tag: "stable" }),
+      Code.InvalidArgument,
+      "tagVersion malformed hash",
+    );
+    await expectGrpcCode(
+      () => clients.workflowCommand.tagVersion({ workflowId: id, versionHash: created.status!.versionHash, tag: "" }),
+      Code.InvalidArgument,
+      "tagVersion empty tag",
     );
   });
 });
