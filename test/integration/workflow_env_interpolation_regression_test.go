@@ -318,11 +318,17 @@ func TestWorkflowEnvInterpolation_RequiredVarProvided_ResolvesCorrectly(t *testi
 	childMessage := childExec.GetSpec().GetMessage()
 	t.Logf("child agent execution message:\n%s", childMessage)
 
-	assert.Contains(t, childMessage, "Connection URL: postgresql://test:test@localhost:5432/analytics",
-		"provided secret ${ $env.DB_CONNECTION_URL } should be interpolated with the actual value")
+	// The secret WAS interpolated (no placeholder remains, execution proceeded),
+	// but reads through a non-runner credential see the redaction marker instead
+	// of the plaintext (stigmer-cloud #143 / eff89ac7f). The runner-credential
+	// path receives the real value at execution time.
+	assert.Contains(t, childMessage, "Connection URL: ***REDACTED***",
+		"provided secret ${ $env.DB_CONNECTION_URL } should be interpolated and redacted on read")
+	assert.NotContains(t, childMessage, "postgresql://test:test@localhost:5432/analytics",
+		"plaintext secret must never surface through a non-runner read")
 
 	assert.Contains(t, childMessage, "Report format: json",
-		"provided ${ $env.REPORT_FORMAT } should be interpolated to 'json'")
+		"provided non-secret ${ $env.REPORT_FORMAT } should be interpolated to 'json' in plaintext")
 
 	assert.NotContains(t, childMessage, "${ $env.",
 		"no raw expression placeholders should remain in the resolved message")

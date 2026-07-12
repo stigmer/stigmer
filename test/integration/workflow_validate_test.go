@@ -4,7 +4,6 @@ package integration
 
 import (
 	"context"
-	"strings"
 	"testing"
 	"time"
 
@@ -14,6 +13,8 @@ import (
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -139,16 +140,19 @@ func TestValidateSpec_MissingDocument(t *testing.T) {
 		},
 	}
 
-	result, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
+	_, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
 
-	// A missing required field (document) is folded into a structured INVALID
-	// result (Layer 1), not thrown as a gRPC error.
-	require.NoError(t, err, "validateSpec must not throw for a missing document")
-	require.NotNil(t, result)
-	assert.Equal(t, serverless.ValidationState_INVALID, result.GetState(),
-		"workflow with missing document should be INVALID")
-	joined := strings.Join(result.GetErrors(), " ")
-	assert.Contains(t, joined, "document", "missing document should be named in the errors")
+	// A missing required field (document) is a Layer-1 proto violation. The
+	// conformance contract (both editions) rejects Layer-1 with InvalidArgument
+	// at the boundary; only Layer-2 domain checks come back as a structured
+	// result. See test/conformance workflow suite ("rejects Layer-1 proto
+	// violations with InvalidArgument").
+	require.Error(t, err, "validateSpec must reject a Layer-1 violation with a gRPC error")
+	st, ok := status.FromError(err)
+	require.True(t, ok, "error should be a gRPC status")
+	assert.Equal(t, codes.InvalidArgument, st.Code(),
+		"Layer-1 violation should map to InvalidArgument, got: %v", err)
+	assert.Contains(t, st.Message(), "document", "missing document should be named in the error")
 }
 
 func TestValidateSpec_EmptySpec(t *testing.T) {
@@ -169,13 +173,16 @@ func TestValidateSpec_EmptySpec(t *testing.T) {
 		Spec: &workflowv1.WorkflowSpec{},
 	}
 
-	result, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
+	_, err := clients.WorkflowCommand.ValidateSpec(ctx, workflow)
 
-	// An empty spec fails Layer-1 required-field constraints (document, tasks)
-	// and comes back as a structured INVALID result rather than a gRPC error.
-	require.NoError(t, err, "validateSpec must not throw for an empty spec")
-	require.NotNil(t, result)
-	assert.Equal(t, serverless.ValidationState_INVALID, result.GetState(),
-		"empty workflow spec should be INVALID")
-	assert.NotEmpty(t, result.GetErrors(), "empty spec should produce structured errors")
+	// An empty spec fails Layer-1 required-field constraints (document, tasks).
+	// Per the conformance contract, Layer-1 violations are rejected with
+	// InvalidArgument at the boundary rather than folded into the result.
+	require.Error(t, err, "validateSpec must reject an empty spec with a gRPC error")
+	st, ok := status.FromError(err)
+	require.True(t, ok, "error should be a gRPC status")
+	assert.Equal(t, codes.InvalidArgument, st.Code(),
+		"Layer-1 violations should map to InvalidArgument, got: %v", err)
+	assert.Contains(t, st.Message(), "document", "missing document should be named in the error")
+	assert.Contains(t, st.Message(), "tasks", "empty tasks should be named in the error")
 }

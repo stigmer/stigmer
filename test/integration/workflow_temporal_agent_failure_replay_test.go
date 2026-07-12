@@ -51,9 +51,11 @@ func TestAgentExecution_FailureReplayDeterminism(t *testing.T) {
 	deployer := harness.NewFixtureDeployer(clients, "aex-replay-det", suiteLogger)
 	defer deployer.Cleanup(ctx)
 
-	// Create an agent with a nonexistent MCP server. This reliably triggers
-	// EXECUTION_FAILED in the agent execution because the runner cannot
-	// resolve the MCP server at runtime.
+	// Create an agent referencing a real McpServer whose stdio binary does not
+	// exist. Apply passes reference validation (both editions reject dangling
+	// refs at apply since stigmer-cloud#146), but the runner cannot start the
+	// server at runtime — reliably triggering EXECUTION_FAILED.
+	brokenMcp := harness.CreateStdioMcpServer(t, ctx, clients, "/nonexistent/replay-det-mcp-binary")
 	agent := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Agent",
@@ -68,7 +70,7 @@ func TestAgentExecution_FailureReplayDeterminism(t *testing.T) {
 				{
 					McpServerRef: &apiresource.ApiResourceReference{
 						Kind: apiresourcekind.ApiResourceKind_mcp_server,
-						Slug: "nonexistent-replay-det-mcp",
+						Slug: brokenMcp.GetMetadata().GetSlug(),
 						Org:  "test-org",
 					},
 				},
@@ -77,7 +79,7 @@ func TestAgentExecution_FailureReplayDeterminism(t *testing.T) {
 	}
 
 	created, err := clients.AgentCommand.Apply(ctx, agent)
-	require.NoError(t, err, "apply agent should succeed even with invalid MCP ref")
+	require.NoError(t, err, "apply agent should succeed for an existing (but unstartable) MCP server")
 	require.NotEmpty(t, created.GetMetadata().GetId())
 	t.Cleanup(func() {
 		cleanCtx, c := context.WithTimeout(context.Background(), 10*time.Second)

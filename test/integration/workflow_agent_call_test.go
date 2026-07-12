@@ -262,9 +262,12 @@ func TestWorkflowAgentCall_ChildFailurePropagates(t *testing.T) {
 	deployer := harness.NewFixtureDeployer(clients, "agent-fail-prop", suiteLogger)
 	defer deployer.Cleanup(ctx)
 
-	// Create an agent with a nonexistent MCP server reference.
-	// The agent execution will start but fail because the MCP server
-	// cannot be resolved at runtime, and the agent requires it to function.
+	// Create an agent referencing a real McpServer whose stdio binary does not
+	// exist. Apply passes reference validation (both editions reject dangling
+	// refs at apply since stigmer-cloud#146), but the agent execution fails at
+	// runtime because the MCP server cannot start — which is the failure this
+	// test needs to see propagate to the parent workflow.
+	brokenMcp := harness.CreateStdioMcpServer(t, ctx, clients, "/nonexistent/fail-prop-mcp-binary")
 	agent := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Agent",
@@ -279,7 +282,7 @@ func TestWorkflowAgentCall_ChildFailurePropagates(t *testing.T) {
 				{
 					McpServerRef: &apiresource.ApiResourceReference{
 						Kind: apiresourcekind.ApiResourceKind_mcp_server,
-						Slug: "nonexistent-mcp-server-xyz",
+						Slug: brokenMcp.GetMetadata().GetSlug(),
 						Org:  "test-org",
 					},
 				},
@@ -288,7 +291,7 @@ func TestWorkflowAgentCall_ChildFailurePropagates(t *testing.T) {
 	}
 
 	created, err := clients.AgentCommand.Apply(ctx, agent)
-	require.NoError(t, err, "apply agent should succeed even with invalid MCP ref")
+	require.NoError(t, err, "apply agent should succeed for an existing (but unstartable) MCP server")
 	require.NotEmpty(t, created.GetMetadata().GetId())
 
 	t.Cleanup(func() {
