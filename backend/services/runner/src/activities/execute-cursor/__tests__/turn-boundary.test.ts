@@ -17,7 +17,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { create } from "@bufbuild/protobuf";
+import { create, type JsonObject } from "@bufbuild/protobuf";
 import {
   AgentMessageSchema,
   ToolCallSchema,
@@ -241,7 +241,7 @@ describe("runTurnBoundary", () => {
   // ── Issue #205: unattributed hook blocks and the kind split ────────────────
 
   /** A FAILED tool call carrying Cursor's generic hook-block error text. */
-  function hookBlockedCall(id: string, name: string, args: Record<string, unknown>) {
+  function hookBlockedCall(id: string, name: string, args: JsonObject) {
     return create(ToolCallSchema, {
       id,
       name,
