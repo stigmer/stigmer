@@ -349,6 +349,11 @@ function isVirtualEntryId(entryId: string): boolean
 ```
 
 
+### MAX_ALLOWED_ORIGINS
+
+Maximum number of allowed origins (proto: `repeated.max_items = 32`).
+
+
 ### OpenEditor
 
 One open editor tab.
@@ -512,6 +517,18 @@ both the provider and consumer hooks import from this file.
 
 The context value is `null` when no provider is mounted. Consumer hooks
 throw in this case to surface wiring mistakes during development.
+
+
+### validateOrigin
+
+Validate a single `allowed_origins` entry.
+
+Returns `null` when valid, or a user-facing message explaining what
+to fix (DD-006: errors state what happened and what to do).
+
+```tsx
+function validateOrigin(value: string): string | null
+```
 
 
 ### virtualEntryId

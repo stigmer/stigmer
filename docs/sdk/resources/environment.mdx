@@ -64,6 +64,7 @@ Environment environment = client.environments().get("env_01j5q3k7m8r2s4tnz2hfp0q
 | [`create`](#create) | Create an environment. |
 | [`update`](#update) | Update an existing environment. |
 | [`updateVariables`](#updatevariables) | Add or update specific variables in an environment. |
+| [`updateVisibility`](#updatevisibility) | Update the visibility of an existing environment. |
 | [`delete`](#delete) | Delete an environment. |
 | [`removeVariables`](#removevariables) | Remove specific variables from an environment by key. |
 
@@ -463,6 +464,51 @@ Environment environment = client.environments().updateVariables(UpdateEnvironmen
 
 **Returns**: [`Environment`](#environment)
 
+### updateVisibility
+
+Update the visibility of an existing environment.
+
+Only modifies metadata.visibility, leaving spec, status, and other metadata fields untouched. Environments support two levels: private (the default) and org. Setting org shares the environment with the owning organization: members can view it with secret values redacted, and any execution in the organization may use its values at runtime. Secret values are revealed only to the environment's creator, at every visibility level.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const environment = await stigmer.environment.updateVisibility({
+  resourceId: "...",
+  visibility: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+environment, err := client.Environment.UpdateVisibility(ctx, &stigmer.UpdateVisibilityInput{
+  ResourceId: "...",
+  Visibility: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+environment = client.environments.update_visibility(UpdateVisibilityInput(
+    resource_id="...",
+    visibility="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+Environment environment = client.environments().updateVisibility(UpdateVisibilityInput.builder()
+    .resourceId("...")
+    .visibility("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`UpdateVisibilityInput`](#updatevisibilityinput)
+
+**Returns**: [`Environment`](#environment)
+
 ### delete
 
 Delete an environment.
@@ -573,6 +619,17 @@ EnvironmentValue represents a single configuration or secret entry.
     value: { type: "string", description: "The configuration or secret string." },
     isSecret: { type: "boolean", description: "Whether this value should be treated as a secret." },
     description: { type: "string", description: "Human-readable description of what this value is used for." },
+  }}
+/>
+
+### UpdateVisibilityInput
+
+Input for updating the visibility of any API resource.
+
+<TypeTable
+  type={{
+    resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
+    visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource.", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcevisibility" },
   }}
 />
 

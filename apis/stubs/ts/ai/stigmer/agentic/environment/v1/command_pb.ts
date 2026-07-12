@@ -8,7 +8,7 @@ import type { EnvironmentSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_environment_v1_api } from "./api_pb.js";
 import type { RemoveEnvironmentVariablesRequestSchema, UpdateEnvironmentVariablesRequestSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_environment_v1_io } from "./io_pb.js";
-import type { ApiResourceDeleteInputSchema } from "../../../commons/apiresource/io_pb.js";
+import type { ApiResourceDeleteInputSchema, UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/environment/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_environment_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvZW52aXJvbm1lbnQvdjEvY29tbWFuZC5wcm90bxIhYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxMsEIChxFbnZpcm9ubWVudENvbW1hbmRDb250cm9sbGVyEmcKBWFwcGx5Ei4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50Gi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50ErkBCgZjcmVhdGUSLi5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnQaLi5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnQiT8K4GEsIDBAeIgxtZXRhZGF0YS5vcmcqN3VuYXV0aG9yaXplZCB0byBjcmVhdGUgZW52aXJvbm1lbnQgaW4gdGhpcyBvcmdhbml6YXRpb24SowEKBnVwZGF0ZRIuLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudBouLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudCI5wrgYNQgCEDUiC21ldGFkYXRhLmlkKiJ1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGVudmlyb25tZW50EqsBCgZkZWxldGUSNi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VEZWxldGVJbnB1dBouLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudCI5wrgYNQgCEDUiC3Jlc291cmNlX2lkKiJ1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIGVudmlyb25tZW50Es8BCg91cGRhdGVWYXJpYWJsZXMSRC5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuVXBkYXRlRW52aXJvbm1lbnRWYXJpYWJsZXNSZXF1ZXN0Gi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50IkbCuBhCCAIQNSIOZW52aXJvbm1lbnRfaWQqLHVuYXV0aG9yaXplZCB0byB1cGRhdGUgZW52aXJvbm1lbnQgdmFyaWFibGVzEs8BCg9yZW1vdmVWYXJpYWJsZXMSRC5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuUmVtb3ZlRW52aXJvbm1lbnRWYXJpYWJsZXNSZXF1ZXN0Gi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50IkbCuBhCCAIQNSIOZW52aXJvbm1lbnRfaWQqLHVuYXV0aG9yaXplZCB0byByZW1vdmUgZW52aXJvbm1lbnQgdmFyaWFibGVzGgSg/ys1YgZwcm90bzM", [file_ai_stigmer_agentic_environment_v1_api, file_ai_stigmer_agentic_environment_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvZW52aXJvbm1lbnQvdjEvY29tbWFuZC5wcm90bxIhYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxMoMKChxFbnZpcm9ubWVudENvbW1hbmRDb250cm9sbGVyEmcKBWFwcGx5Ei4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50Gi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50ErkBCgZjcmVhdGUSLi5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnQaLi5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnQiT8K4GEsIDBAeIgxtZXRhZGF0YS5vcmcqN3VuYXV0aG9yaXplZCB0byBjcmVhdGUgZW52aXJvbm1lbnQgaW4gdGhpcyBvcmdhbml6YXRpb24SowEKBnVwZGF0ZRIuLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudBouLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudCI5wrgYNQgCEDUiC21ldGFkYXRhLmlkKiJ1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGVudmlyb25tZW50Er8BChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBouLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudCJEwrgYQAgCEDUiC3Jlc291cmNlX2lkKi11bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGVudmlyb25tZW50IHZpc2liaWxpdHkSqwEKBmRlbGV0ZRI2LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZURlbGV0ZUlucHV0Gi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50IjnCuBg1CAIQNSILcmVzb3VyY2VfaWQqInVuYXV0aG9yaXplZCB0byBkZWxldGUgZW52aXJvbm1lbnQSzwEKD3VwZGF0ZVZhcmlhYmxlcxJELmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5VcGRhdGVFbnZpcm9ubWVudFZhcmlhYmxlc1JlcXVlc3QaLi5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnQiRsK4GEIIAhA1Ig5lbnZpcm9ubWVudF9pZCosdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBlbnZpcm9ubWVudCB2YXJpYWJsZXMSzwEKD3JlbW92ZVZhcmlhYmxlcxJELmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5SZW1vdmVFbnZpcm9ubWVudFZhcmlhYmxlc1JlcXVlc3QaLi5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnQiRsK4GEIIAhA1Ig5lbnZpcm9ubWVudF9pZCosdW5hdXRob3JpemVkIHRvIHJlbW92ZSBlbnZpcm9ubWVudCB2YXJpYWJsZXMaBKD/KzViBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_api, file_ai_stigmer_agentic_environment_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * EnvironmentCommandController handles write operations for environments.
@@ -68,6 +68,33 @@ export const EnvironmentCommandController: GenService<{
   update: {
     methodKind: "unary";
     input: typeof EnvironmentSchema;
+    output: typeof EnvironmentSchema;
+  },
+  /**
+   * Update the visibility of an existing environment.
+   *
+   * Only modifies metadata.visibility, leaving spec, status, and other
+   * metadata fields untouched. Environments support two levels: private
+   * (the default) and org. Setting org shares the environment with the
+   * owning organization: members can view it with secret values redacted,
+   * and any execution in the organization may use its values at runtime.
+   * Secret values are revealed only to the environment's creator, at
+   * every visibility level.
+   *
+   * @internal
+   * Authorization: requires can_edit permission on the environment resource.
+   * public/platform levels are rejected via the kind's VisibilityConfig
+   * (supports_org only) — secret values must never be resolvable across the
+   * org boundary. Personal (stigmer.ai/personal) and OAuth-managed
+   * (stigmer.ai/managed) environments reject visibility changes entirely:
+   * sharing a personal credential bag or per-user OAuth tokens must be
+   * impossible, not merely discouraged.
+   *
+   * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.updateVisibility
+   */
+  updateVisibility: {
+    methodKind: "unary";
+    input: typeof UpdateVisibilityInputSchema;
     output: typeof EnvironmentSchema;
   },
   /**

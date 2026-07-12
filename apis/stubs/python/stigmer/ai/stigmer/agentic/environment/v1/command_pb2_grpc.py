@@ -32,6 +32,11 @@ class EnvironmentCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.FromString,
                 _registered_method=True)
+        self.updateVisibility = channel.unary_unary(
+                '/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/updateVisibility',
+                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.SerializeToString,
@@ -89,6 +94,30 @@ class EnvironmentCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def updateVisibility(self, request, context):
+        """Update the visibility of an existing environment.
+
+        Only modifies metadata.visibility, leaving spec, status, and other
+        metadata fields untouched. Environments support two levels: private
+        (the default) and org. Setting org shares the environment with the
+        owning organization: members can view it with secret values redacted,
+        and any execution in the organization may use its values at runtime.
+        Secret values are revealed only to the environment's creator, at
+        every visibility level.
+
+        @internal
+        Authorization: requires can_edit permission on the environment resource.
+        public/platform levels are rejected via the kind's VisibilityConfig
+        (supports_org only) — secret values must never be resolvable across the
+        org boundary. Personal (stigmer.ai/personal) and OAuth-managed
+        (stigmer.ai/managed) environments reject visibility changes entirely:
+        sharing a personal credential bag or per-user OAuth tokens must be
+        impossible, not merely discouraged.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def delete(self, request, context):
         """Delete an environment.
 
@@ -138,6 +167,11 @@ def add_EnvironmentCommandControllerServicer_to_server(servicer, server):
             'update': grpc.unary_unary_rpc_method_handler(
                     servicer.update,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.SerializeToString,
+            ),
+            'updateVisibility': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateVisibility,
+                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -237,6 +271,33 @@ class EnvironmentCommandController(object):
             target,
             '/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/update',
             ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def updateVisibility(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/updateVisibility',
+            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.FromString,
             options,
             channel_credentials,

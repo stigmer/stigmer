@@ -5,7 +5,7 @@
 
 import { Environment } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
-import { ApiResourceDeleteInput } from "../../../commons/apiresource/io_pbjs";
+import { ApiResourceDeleteInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pbjs";
 import { RemoveEnvironmentVariablesRequest, UpdateEnvironmentVariablesRequest } from "./io_pbjs";
 
 /**
@@ -61,6 +61,34 @@ export const EnvironmentCommandController = {
     update: {
       name: "update",
       I: Environment,
+      O: Environment,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Update the visibility of an existing environment.
+     *
+     * Only modifies metadata.visibility, leaving spec, status, and other
+     * metadata fields untouched. Environments support two levels: private
+     * (the default) and org. Setting org shares the environment with the
+     * owning organization: members can view it with secret values redacted,
+     * and any execution in the organization may use its values at runtime.
+     * Secret values are revealed only to the environment's creator, at
+     * every visibility level.
+     *
+     * @internal
+     * Authorization: requires can_edit permission on the environment resource.
+     * public/platform levels are rejected via the kind's VisibilityConfig
+     * (supports_org only) — secret values must never be resolvable across the
+     * org boundary. Personal (stigmer.ai/personal) and OAuth-managed
+     * (stigmer.ai/managed) environments reject visibility changes entirely:
+     * sharing a personal credential bag or per-user OAuth tokens must be
+     * impossible, not merely discouraged.
+     *
+     * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.updateVisibility
+     */
+    updateVisibility: {
+      name: "updateVisibility",
+      I: UpdateVisibilityInput,
       O: Environment,
       kind: MethodKind.Unary,
     },

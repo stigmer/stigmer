@@ -9,6 +9,7 @@ go_library(
         "merge_variables_and_persist.go",
         "preserve_redacted_secrets.go",
         "remove_variable_keys_and_persist.go",
+        "share_restricted.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller/steps",
     visibility = ["//visibility:public"],

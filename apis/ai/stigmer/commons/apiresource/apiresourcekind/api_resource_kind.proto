@@ -530,6 +530,14 @@ enum ApiResourceKind {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
       requires_creator_tuple: true
+      // ORG is the ceiling: org visibility shares the environment with the
+      // owning org (members see redacted values; executions in the org may
+      // use the values at runtime). Secret reveal stays creator-only at
+      // every level. public/platform are deliberately absent — secret
+      // values must never be resolvable across the org boundary, and
+      // defaults_to_org_visibility is deliberately absent — sharing a
+      // credential set is an explicit opt-in, never a creation default.
+      visibility: {supports_org: true}
       grantable_roles: [
         owner,
         viewer

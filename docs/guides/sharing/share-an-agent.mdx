@@ -74,6 +74,31 @@ restricts embedding to those sites. See
 [Embed an Agent](/docs/guides/sharing/embed-an-agent) for sizing, theming, and
 how origin restrictions behave.
 
+## Share an Agent that uses tools
+
+If your Agent uses MCP servers, its tools need credentials — API keys stored in
+an Environment. By default an Environment is private: only you can use it, so a
+visitor's chat can't start the tools. To fix that, share the Environment with
+your Organization:
+
+1. Open **Settings → Environments**.
+2. Find the Environment your Agent uses and set its visibility to
+   **Organization**.
+
+Sharing an Environment with your Organization means:
+
+- Agents and Workflows run in your Organization — including visitor chats on
+  shared Agents and Agents your teammates run — can use its values.
+- Members can see the variable names, but secret values stay hidden. Nobody but
+  you can reveal a secret value.
+- Set it back to **Private** at any time. The next visitor message stops using
+  the credentials.
+
+The Share dialog warns you when your Agent uses tools whose Environment is still
+private. Your personal Environment and OAuth-connected credentials can't be
+shared — create a dedicated Environment with only the credentials the Agent
+needs.
+
 ## Turn off sharing
 
 Turn the toggle off to revoke the link. The public page stops working

@@ -45,6 +45,12 @@ class EnvironmentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def update_visibility(self, input: io_pb2.UpdateVisibilityInput) -> api_pb2.Environment:
+        try:
+            return self._command.updateVisibility(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def delete(self, input: DeleteResourceInput) -> api_pb2.Environment:
         try:
             return self._command.delete(input._to_proto())

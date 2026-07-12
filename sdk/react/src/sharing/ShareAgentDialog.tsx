@@ -21,6 +21,7 @@ import {
   useUpdateAgentSharing,
   type AgentSharingDraft,
 } from "./useUpdateAgentSharing.js";
+import { useShareToolReadiness } from "./useShareToolReadiness.js";
 
 /** Maximum length of each visitor message (proto: `string.max_len = 300`). */
 const MAX_MESSAGE_LENGTH = 300;
@@ -245,22 +246,25 @@ function ShareAgentDialogBody({
       </div>
 
       {/* Sharing master switch — governs every tab, so it sits above them. */}
-      <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
-        <div className="min-w-0">
-          <span
-            id="share-enabled-label"
-            className="text-sm font-medium text-foreground"
-          >
-            Anyone with the link can chat
-          </span>
-          <WhoPaysLine org={org} />
+      <div className="border-b border-border px-6 py-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <span
+              id="share-enabled-label"
+              className="text-sm font-medium text-foreground"
+            >
+              Anyone with the link can chat
+            </span>
+            <WhoPaysLine org={org} />
+          </div>
+          <Switch
+            checked={draft.enabled}
+            onCheckedChange={handleToggle}
+            disabled={isPending}
+            aria-labelledby="share-enabled-label"
+          />
         </div>
-        <Switch
-          checked={draft.enabled}
-          onCheckedChange={handleToggle}
-          disabled={isPending}
-          aria-labelledby="share-enabled-label"
-        />
+        <ToolReadinessHint agent={agent} enabled={draft.enabled} />
       </div>
 
       {/* Tabs */}
@@ -313,6 +317,44 @@ function ShareAgentDialogBody({
         </button>
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tool readiness — private credentials block visitors' tool use
+// ---------------------------------------------------------------------------
+
+/**
+ * Pre-flight hint for tool-using agents: visitors' chats can only use
+ * environments shared with the organization. Renders nothing unless the
+ * check finds bound environments that are still private — sharing stays
+ * one toggle; this only catches the misconfiguration at share time
+ * instead of at the visitor's first message.
+ */
+function ToolReadinessHint({
+  agent,
+  enabled,
+}: {
+  readonly agent: Agent;
+  readonly enabled: boolean;
+}) {
+  const readiness = useShareToolReadiness(agent, enabled);
+
+  if (readiness.status !== "blocked") {
+    return null;
+  }
+
+  const envList = readiness.privateEnvironments.join(", ");
+  const plural = readiness.privateEnvironments.length > 1;
+
+  return (
+    <p className="mt-2 text-xs text-warning" role="status">
+      Visitors&apos; chats can&apos;t use this agent&apos;s tools yet: the
+      environment{plural ? "s" : ""} <span className="font-medium">{envList}</span>{" "}
+      {plural ? "are" : "is"} private. Share {plural ? "them" : "it"} with your
+      organization (Settings &rarr; Environments) so visitor and teammate runs
+      can use the credentials. Secret values stay hidden either way.
+    </p>
   );
 }
 

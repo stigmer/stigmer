@@ -273,11 +273,6 @@ that mistake unrepresentable.
 />
 
 
-### MAX_ALLOWED_ORIGINS
-
-Maximum number of allowed origins (proto: `repeated.max_items = 32`).
-
-
 ### UseShareAgentArgs
 
 Arguments for [`useShareAgent`](#useshareagent).
@@ -290,16 +285,4 @@ Arguments for [`useShareAgent`](#useshareagent).
     onSharingChanged: { type: "() => void", description: "Called after any sharing change is persisted. Hosts typically pass the agent data hook's `refetch`." },
   }}
 />
-
-
-### validateOrigin
-
-Validate a single origin entry.
-
-Returns `null` when valid, or a user-facing message explaining what
-to fix (DD-006: errors state what happened and what to do).
-
-```tsx
-function validateOrigin(value: string): string | null
-```
 

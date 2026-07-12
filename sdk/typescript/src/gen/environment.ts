@@ -12,7 +12,7 @@ import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/e
 import { EnvironmentValueSchema, EnvironmentSpecSchema, type EnvironmentValue } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on environment resources. */
@@ -40,6 +40,12 @@ export class EnvironmentClient {
   async update(input: EnvironmentInput): Promise<Environment> {
     try {
       return await this.command.update(buildEnvironmentProto(input));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async updateVisibility(input: UpdateVisibilityInput): Promise<Environment> {
+    try {
+      return await this.command.updateVisibility(input);
     } catch (e) { throw wrapError(e); }
   }
 

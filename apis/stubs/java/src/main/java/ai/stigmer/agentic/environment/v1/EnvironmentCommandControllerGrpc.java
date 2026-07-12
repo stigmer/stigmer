@@ -108,6 +108,37 @@ public final class EnvironmentCommandControllerGrpc {
     return getUpdateMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+      ai.stigmer.agentic.environment.v1.Environment> getUpdateVisibilityMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateVisibility",
+      requestType = ai.stigmer.commons.apiresource.UpdateVisibilityInput.class,
+      responseType = ai.stigmer.agentic.environment.v1.Environment.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+      ai.stigmer.agentic.environment.v1.Environment> getUpdateVisibilityMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput, ai.stigmer.agentic.environment.v1.Environment> getUpdateVisibilityMethod;
+    if ((getUpdateVisibilityMethod = EnvironmentCommandControllerGrpc.getUpdateVisibilityMethod) == null) {
+      synchronized (EnvironmentCommandControllerGrpc.class) {
+        if ((getUpdateVisibilityMethod = EnvironmentCommandControllerGrpc.getUpdateVisibilityMethod) == null) {
+          EnvironmentCommandControllerGrpc.getUpdateVisibilityMethod = getUpdateVisibilityMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.commons.apiresource.UpdateVisibilityInput, ai.stigmer.agentic.environment.v1.Environment>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateVisibility"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.commons.apiresource.UpdateVisibilityInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.environment.v1.Environment.getDefaultInstance()))
+              .setSchemaDescriptor(new EnvironmentCommandControllerMethodDescriptorSupplier("updateVisibility"))
+              .build();
+        }
+      }
+    }
+    return getUpdateVisibilityMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.ApiResourceDeleteInput,
       ai.stigmer.agentic.environment.v1.Environment> getDeleteMethod;
 
@@ -311,6 +342,31 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing environment.
+     * Only modifies metadata.visibility, leaving spec, status, and other
+     * metadata fields untouched. Environments support two levels: private
+     * (the default) and org. Setting org shares the environment with the
+     * owning organization: members can view it with secret values redacted,
+     * and any execution in the organization may use its values at runtime.
+     * Secret values are revealed only to the environment's creator, at
+     * every visibility level.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
+     * public/platform levels are rejected via the kind's VisibilityConfig
+     * (supports_org only) — secret values must never be resolvable across the
+     * org boundary. Personal (stigmer.ai/personal) and OAuth-managed
+     * (stigmer.ai/managed) environments reject visibility changes entirely:
+     * sharing a personal credential bag or per-user OAuth tokens must be
+     * impossible, not merely discouraged.
+     * </pre>
+     */
+    default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.Environment> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateVisibilityMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete an environment.
      * &#64;internal
      * Authorization: requires can_edit permission on the environment resource.
@@ -429,6 +485,32 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing environment.
+     * Only modifies metadata.visibility, leaving spec, status, and other
+     * metadata fields untouched. Environments support two levels: private
+     * (the default) and org. Setting org shares the environment with the
+     * owning organization: members can view it with secret values redacted,
+     * and any execution in the organization may use its values at runtime.
+     * Secret values are revealed only to the environment's creator, at
+     * every visibility level.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
+     * public/platform levels are rejected via the kind's VisibilityConfig
+     * (supports_org only) — secret values must never be resolvable across the
+     * org boundary. Personal (stigmer.ai/personal) and OAuth-managed
+     * (stigmer.ai/managed) environments reject visibility changes entirely:
+     * sharing a personal credential bag or per-user OAuth tokens must be
+     * impossible, not merely discouraged.
+     * </pre>
+     */
+    public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.Environment> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete an environment.
      * &#64;internal
      * Authorization: requires can_edit permission on the environment resource.
@@ -533,6 +615,31 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing environment.
+     * Only modifies metadata.visibility, leaving spec, status, and other
+     * metadata fields untouched. Environments support two levels: private
+     * (the default) and org. Setting org shares the environment with the
+     * owning organization: members can view it with secret values redacted,
+     * and any execution in the organization may use its values at runtime.
+     * Secret values are revealed only to the environment's creator, at
+     * every visibility level.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
+     * public/platform levels are rejected via the kind's VisibilityConfig
+     * (supports_org only) — secret values must never be resolvable across the
+     * org boundary. Personal (stigmer.ai/personal) and OAuth-managed
+     * (stigmer.ai/managed) environments reject visibility changes entirely:
+     * sharing a personal credential bag or per-user OAuth tokens must be
+     * impossible, not merely discouraged.
+     * </pre>
+     */
+    public ai.stigmer.agentic.environment.v1.Environment updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete an environment.
      * &#64;internal
      * Authorization: requires can_edit permission on the environment resource.
@@ -630,6 +737,31 @@ public final class EnvironmentCommandControllerGrpc {
     public ai.stigmer.agentic.environment.v1.Environment update(ai.stigmer.agentic.environment.v1.Environment request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Update the visibility of an existing environment.
+     * Only modifies metadata.visibility, leaving spec, status, and other
+     * metadata fields untouched. Environments support two levels: private
+     * (the default) and org. Setting org shares the environment with the
+     * owning organization: members can view it with secret values redacted,
+     * and any execution in the organization may use its values at runtime.
+     * Secret values are revealed only to the environment's creator, at
+     * every visibility level.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
+     * public/platform levels are rejected via the kind's VisibilityConfig
+     * (supports_org only) — secret values must never be resolvable across the
+     * org boundary. Personal (stigmer.ai/personal) and OAuth-managed
+     * (stigmer.ai/managed) environments reject visibility changes entirely:
+     * sharing a personal credential bag or per-user OAuth tokens must be
+     * impossible, not merely discouraged.
+     * </pre>
+     */
+    public ai.stigmer.agentic.environment.v1.Environment updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
     }
 
     /**
@@ -738,6 +870,32 @@ public final class EnvironmentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing environment.
+     * Only modifies metadata.visibility, leaving spec, status, and other
+     * metadata fields untouched. Environments support two levels: private
+     * (the default) and org. Setting org shares the environment with the
+     * owning organization: members can view it with secret values redacted,
+     * and any execution in the organization may use its values at runtime.
+     * Secret values are revealed only to the environment's creator, at
+     * every visibility level.
+     * &#64;internal
+     * Authorization: requires can_edit permission on the environment resource.
+     * public/platform levels are rejected via the kind's VisibilityConfig
+     * (supports_org only) — secret values must never be resolvable across the
+     * org boundary. Personal (stigmer.ai/personal) and OAuth-managed
+     * (stigmer.ai/managed) environments reject visibility changes entirely:
+     * sharing a personal credential bag or per-user OAuth tokens must be
+     * impossible, not merely discouraged.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.Environment> updateVisibility(
+        ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete an environment.
      * &#64;internal
      * Authorization: requires can_edit permission on the environment resource.
@@ -782,9 +940,10 @@ public final class EnvironmentCommandControllerGrpc {
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
-  private static final int METHODID_DELETE = 3;
-  private static final int METHODID_UPDATE_VARIABLES = 4;
-  private static final int METHODID_REMOVE_VARIABLES = 5;
+  private static final int METHODID_UPDATE_VISIBILITY = 3;
+  private static final int METHODID_DELETE = 4;
+  private static final int METHODID_UPDATE_VARIABLES = 5;
+  private static final int METHODID_REMOVE_VARIABLES = 6;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -813,6 +972,10 @@ public final class EnvironmentCommandControllerGrpc {
           break;
         case METHODID_UPDATE:
           serviceImpl.update((ai.stigmer.agentic.environment.v1.Environment) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.Environment>) responseObserver);
+          break;
+        case METHODID_UPDATE_VISIBILITY:
+          serviceImpl.updateVisibility((ai.stigmer.commons.apiresource.UpdateVisibilityInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.Environment>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -866,6 +1029,13 @@ public final class EnvironmentCommandControllerGrpc {
               ai.stigmer.agentic.environment.v1.Environment,
               ai.stigmer.agentic.environment.v1.Environment>(
                 service, METHODID_UPDATE)))
+        .addMethod(
+          getUpdateVisibilityMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+              ai.stigmer.agentic.environment.v1.Environment>(
+                service, METHODID_UPDATE_VISIBILITY)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -938,6 +1108,7 @@ public final class EnvironmentCommandControllerGrpc {
               .addMethod(getApplyMethod())
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
+              .addMethod(getUpdateVisibilityMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getUpdateVariablesMethod())
               .addMethod(getRemoveVariablesMethod())

@@ -4,8 +4,11 @@ import { useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl.js";
 import { useEnvironmentList } from "./useEnvironmentList.js";
 import { EnvironmentVariableEditor } from "./EnvironmentVariableEditor.js";
+import { isShareRestrictedEnvironment } from "./shareRestriction.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -175,6 +178,7 @@ export function EnvironmentListPanel({
             isExpanded={isExpanded}
             onToggle={() => handleToggle(env)}
             readOnly={readOnly}
+            onVisibilityChanged={refetch}
           />
         );
       })}
@@ -191,17 +195,25 @@ function EnvironmentCard({
   isExpanded,
   onToggle,
   readOnly,
+  onVisibilityChanged,
 }: {
   environment: Environment;
   isExpanded: boolean;
   onToggle: () => void;
   readOnly: boolean;
+  onVisibilityChanged: () => void;
 }) {
   const name =
     environment.metadata?.name || environment.metadata?.slug || "Unnamed";
   const description = environment.spec?.description;
   const variableCount = Object.keys(environment.spec?.data ?? {}).length;
   const environmentId = environment.metadata?.id ?? "";
+
+  // Personal and OAuth-managed environments are never org-shareable
+  // (the backend rejects the transition) — offering the control would
+  // be an error trap, so it is structurally absent for them.
+  const showVisibilityControl =
+    !readOnly && environmentId !== "" && !isShareRestrictedEnvironment(environment);
 
   return (
     <div
@@ -213,30 +225,47 @@ function EnvironmentCard({
           : "border-border-muted hover:border-border",
       )}
     >
-      {/* Header — always visible */}
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={isExpanded}
-        className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
-      >
-        <ChevronIcon expanded={isExpanded} />
+      {/* Header — always visible. The expand toggle and the visibility
+          control are sibling interactive elements (nesting the selector
+          inside the toggle button would be invalid markup). */}
+      <div className="flex w-full items-center gap-3 px-3 py-2.5">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={isExpanded}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          <ChevronIcon expanded={isExpanded} />
 
-        <div className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-foreground">
-            {name}
-          </span>
-          {description && (
-            <span className="block truncate text-xs text-muted-foreground">
-              {description}
+          <div className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium text-foreground">
+              {name}
             </span>
-          )}
-        </div>
+            {description && (
+              <span className="block truncate text-xs text-muted-foreground">
+                {description}
+              </span>
+            )}
+          </div>
+        </button>
+
+        {showVisibilityControl && (
+          <ResourceVisibilityControl
+            kind="environment"
+            resourceId={environmentId}
+            visibility={
+              environment.metadata?.visibility ??
+              ApiResourceVisibility.visibility_private
+            }
+            onChanged={onVisibilityChanged}
+            className="shrink-0"
+          />
+        )}
 
         <span className="shrink-0 text-xs text-muted-foreground">
           {variableCount} {variableCount === 1 ? "variable" : "variables"}
         </span>
-      </button>
+      </div>
 
       {/* Expanded content — variable editor */}
       {isExpanded && environmentId && (

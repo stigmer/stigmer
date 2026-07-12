@@ -13,6 +13,7 @@ import ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest;
 import ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest;
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
+import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -42,6 +43,12 @@ public final class EnvironmentClient {
     public Environment update(EnvironmentInput input) {
         try {
             return command.update(input.toProto());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Environment updateVisibility(UpdateVisibilityInput input) {
+        try {
+            return command.updateVisibility(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

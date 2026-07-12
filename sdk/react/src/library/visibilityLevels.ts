@@ -144,6 +144,42 @@ export const INSTANCE_VISIBILITY_LEVELS: readonly VisibilityLevelOption[] = [
 ];
 
 /**
+ * The levels an environment selector offers, in escalation order:
+ * Private / Organization. Broader levels are structurally absent —
+ * secret values never leave the org boundary (the backend rejects
+ * public/platform via the kind's VisibilityConfig).
+ *
+ * Org sharing on an environment carries credential semantics, so the
+ * copy names both effects: members get redacted view, and executions
+ * in the org (teammate-run agents AND shared-agent visitors) can use
+ * the values at runtime. Secret reveal stays creator-only at every
+ * level.
+ *
+ * In `local` mode (OSS Go backend, single-user) sharing has no
+ * enforcement meaning, so no interactive levels are offered —
+ * {@link ResourceVisibilityControl} degrades to a read-only badge.
+ */
+export function environmentVisibilityLevels(
+  deploymentMode: "cloud" | "local",
+): readonly VisibilityLevelOption[] {
+  if (deploymentMode === "local") {
+    return [PRIVATE_OPTION];
+  }
+  return [
+    {
+      ...PRIVATE_OPTION,
+      description: "Only you can view and use these credentials",
+    },
+    {
+      ...ORG_OPTION,
+      description:
+        "Agents run in your org — including shared-agent visitors — can use these credentials. Members see names only; secret values stay hidden.",
+      confirmPrompt: "Let agents run in your org use these credentials?",
+    },
+  ];
+}
+
+/**
  * Canonical option for a visibility value, independent of any kind's offered
  * list. Used to render the current level even when it is not offerable in
  * the current context (e.g. a platform-shared blueprint whose org no longer

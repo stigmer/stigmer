@@ -140,6 +140,36 @@ func DefaultVisibilityFor(kind apiresourcekind.ApiResourceKind) (apiresourcepb.A
 	return apiresourcepb.ApiResourceVisibility_visibility_private, nil
 }
 
+// SupportsVisibility reports whether a resource of the given kind may be set
+// to the given visibility level, derived from the kind's VisibilityConfig.
+//
+// PRIVATE and UNSPECIFIED are always supported (they mean "no visibility
+// grant"); every other level requires the matching supports_* flag in the
+// kind's proto config. Kinds with no VisibilityConfig are private-only.
+//
+// This mirrors Cloud's VisibilityConfigResolver.supportsVisibility so both
+// editions accept and reject the same levels from the same proto config —
+// e.g. environments allow org but never public/platform (secret values must
+// never be resolvable across the org boundary).
+func SupportsVisibility(kind apiresourcekind.ApiResourceKind, visibility apiresourcepb.ApiResourceVisibility) (bool, error) {
+	meta, err := GetKindMeta(kind)
+	if err != nil {
+		return false, err
+	}
+	cfg := meta.GetAuthorization().GetVisibility()
+	switch visibility {
+	case apiresourcepb.ApiResourceVisibility_visibility_public:
+		return cfg.GetSupportsPublic(), nil
+	case apiresourcepb.ApiResourceVisibility_visibility_org:
+		return cfg.GetSupportsOrg(), nil
+	case apiresourcepb.ApiResourceVisibility_visibility_platform:
+		return cfg.GetSupportsPlatform(), nil
+	default:
+		// PRIVATE / UNSPECIFIED carry no visibility grant — always valid.
+		return true, nil
+	}
+}
+
 // toSnakeCase converts a PascalCase string to snake_case.
 // This is used to map kind names (e.g., "Agent", "AgentInstance") to enum value names.
 //
