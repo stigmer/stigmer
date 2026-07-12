@@ -81,6 +81,12 @@ func (a *AgentClient) GetSharedProfile(ctx context.Context, ref ResourceRef) (*a
 	return resp, wrapErr(err)
 }
 
+func (a *AgentClient) GetSharedProfileForMember(ctx context.Context, ref ResourceRef) (*agentv1.SharedAgentProfile, error) {
+	ref.Kind = apiresourcekind.ApiResourceKind_agent
+	resp, err := a.query.GetSharedProfileForMember(ctx, ref.toProto())
+	return resp, wrapErr(err)
+}
+
 func (a *AgentClient) List(ctx context.Context, params *ListParams) (*ListResult, error) {
 	req := &searchv1.SearchRequest{
 		Kinds:          []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_agent},
@@ -162,6 +168,7 @@ type AgentSharingInput struct {
 	Enabled        bool
 	AllowedOrigins []string
 	Messages       *AgentSharingMessagesInput
+	Audience       agentv1.AgentSharingAudience
 }
 
 // AgentSharingMessagesInput is the SDK input type for AgentSharingMessages.
@@ -269,6 +276,7 @@ func (i *AgentSharingInput) toProto() *agentv1.AgentSharing {
 	if i.Messages != nil {
 		p.Messages = i.Messages.toProto()
 	}
+	p.Audience = i.Audience
 	return p
 }
 
@@ -388,6 +396,7 @@ func agentSharingInputFromProto(p *agentv1.AgentSharing) *AgentSharingInput {
 	input.Enabled = p.GetEnabled()
 	input.AllowedOrigins = p.GetAllowedOrigins()
 	input.Messages = agentSharingMessagesInputFromProto(p.GetMessages())
+	input.Audience = p.GetAudience()
 	return input
 }
 

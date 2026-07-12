@@ -42,7 +42,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "commons/apiresource/io.proto\0328ai/stigmer" +
       "/commons/apiresource/rpc_service_options" +
       ".proto\032+ai/stigmer/commons/rpc/method_op" +
-      "tions.proto2\371\003\n\024AgentQueryController\022{\n\003" +
+      "tions.proto2\204\005\n\024AgentQueryController\022{\n\003" +
       "get\022$.ai.stigmer.agentic.agent.v1.AgentI" +
       "d\032\".ai.stigmer.agentic.agent.v1.Agent\"*\302" +
       "\270\030&\010\001\020(\"\005value*\031unauthorized to get agen" +
@@ -54,12 +54,15 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "tic.agent.v1.Agent\"\004\320\270\030\001\022\177\n\020getSharedPro" +
       "file\0224.ai.stigmer.commons.apiresource.Ap" +
       "iResourceReference\032/.ai.stigmer.agentic." +
-      "agent.v1.SharedAgentProfile\"\004\310\270\030\001\032\004\240\377+(B" +
-      "\235\001B\nQueryProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Age" +
-      "ntic.Agent.V1\312\002\033Ai\\Stigmer\\Agentic\\Agent" +
-      "\\V1\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMet" +
-      "adata\352\002\037Ai::Stigmer::Agentic::Agent::V1b" +
-      "\006proto3"
+      "agent.v1.SharedAgentProfile\"\004\310\270\030\001\022\210\001\n\031ge" +
+      "tSharedProfileForMember\0224.ai.stigmer.com" +
+      "mons.apiresource.ApiResourceReference\032/." +
+      "ai.stigmer.agentic.agent.v1.SharedAgentP" +
+      "rofile\"\004\320\270\030\001\032\004\240\377+(B\235\001B\nQueryProtoP\001\242\002\004AS" +
+      "AA\252\002\033Ai.Stigmer.Agentic.Agent.V1\312\002\033Ai\\St" +
+      "igmer\\Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agen" +
+      "tic\\Agent\\V1\\GPBMetadata\352\002\037Ai::Stigmer::" +
+      "Agentic::Agent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

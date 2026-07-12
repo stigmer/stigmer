@@ -37,6 +37,11 @@ class AgentQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.SharedAgentProfile.FromString,
                 _registered_method=True)
+        self.getSharedProfileForMember = channel.unary_unary(
+                '/ai.stigmer.agentic.agent.v1.AgentQueryController/getSharedProfileForMember',
+                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.SharedAgentProfile.FromString,
+                _registered_method=True)
 
 
 class AgentQueryControllerServicer(object):
@@ -87,11 +92,14 @@ class AgentQueryControllerServicer(object):
         trimmed SharedAgentProfile — never the full Agent, whose spec carries
         the system prompt, environment declarations, and MCP wiring.
 
-        Returns NOT_FOUND when the agent does not exist OR exists but is not
-        shared (spec.sharing.enabled is false/unset). The two cases are
-        deliberately indistinguishable so an unshared agent's URL leaks nothing —
-        unlike getByReference, which returns PERMISSION_DENIED for an existing
-        but unauthorized agent. Returns INVALID_ARGUMENT when org is empty:
+        Returns NOT_FOUND when the agent does not exist, is not shared
+        (spec.sharing.enabled is false/unset), or is shared with the org
+        audience (spec.sharing.audience is org — anonymous callers must not be
+        able to distinguish an org-internal share from a nonexistent agent; use
+        getSharedProfileForMember instead). The cases are deliberately
+        indistinguishable so an unshared agent's URL leaks nothing — unlike
+        getByReference, which returns PERMISSION_DENIED for an existing but
+        unauthorized agent. Returns INVALID_ARGUMENT when org is empty:
         org+slug is the shared URL's identity, and cross-org slug matching on a
         public endpoint would enable enumeration.
 
@@ -99,6 +107,33 @@ class AgentQueryControllerServicer(object):
         Public by design (no authentication): enforcement is the app-level
         sharing gate in the handler, not FGA — see AgentSharing in spec.proto
         for why sharing writes no visibility tuples.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getSharedProfileForMember(self, request, context):
+        """Get the profile of a shared agent as a signed-in organization member.
+
+        This is the resolution path for the hosted chat page when an agent is
+        shared with the org audience (spec.sharing.audience is org): the public
+        getSharedProfile deliberately returns NOT_FOUND for such agents, so a
+        signed-in member resolves the same trimmed SharedAgentProfile through
+        this authenticated RPC instead. Also resolves public-audience shares,
+        so an authenticated caller can use one resolution path for any share.
+
+        Returns NOT_FOUND when the agent does not exist, is not shared, or the
+        caller is not a member of the owning organization — the cases are
+        deliberately indistinguishable so a share URL leaks nothing to
+        non-members. Returns INVALID_ARGUMENT when org is empty.
+
+        @internal
+        Custom authorization in handler — requires authentication (not
+        is_public), then an app-level organization#member FGA check for org
+        shares. No standard resource_kind/permission config: the sharing gate
+        is app-level by design (see AgentSharing in spec.proto), and membership
+        is checked live on every call so revoked members lose access
+        immediately.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -124,6 +159,11 @@ def add_AgentQueryControllerServicer_to_server(servicer, server):
             ),
             'getSharedProfile': grpc.unary_unary_rpc_method_handler(
                     servicer.getSharedProfile,
+                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.SharedAgentProfile.SerializeToString,
+            ),
+            'getSharedProfileForMember': grpc.unary_unary_rpc_method_handler(
+                    servicer.getSharedProfileForMember,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.SharedAgentProfile.SerializeToString,
             ),
@@ -235,6 +275,33 @@ class AgentQueryController(object):
             request,
             target,
             '/ai.stigmer.agentic.agent.v1.AgentQueryController/getSharedProfile',
+            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.SharedAgentProfile.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getSharedProfileForMember(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agent.v1.AgentQueryController/getSharedProfileForMember',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.SharedAgentProfile.FromString,
             options,

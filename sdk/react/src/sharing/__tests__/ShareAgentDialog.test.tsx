@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { UpdateAgentSharingInput } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { AgentSharingAudience } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
@@ -64,6 +65,7 @@ function Providers({
 
 function makeAgent(sharing?: {
   enabled?: boolean;
+  audience?: AgentSharingAudience;
   allowedOrigins?: string[];
   messages?: {
     rateLimited?: string;
@@ -152,6 +154,91 @@ describe("ShareAgentDialog", () => {
     expect(
       screen.getByText(/forwarded and indexed by search engines/),
     ).toBeTruthy();
+  });
+
+  describe("Audience", () => {
+    it("defaults to Public link and switching to Org members commits the full block", async () => {
+      const updateSharing = vi.fn().mockResolvedValue({});
+      render(
+        <Providers client={createMockStigmer({ updateSharing })}>
+          <ShareAgentDialog
+            open
+            onOpenChange={() => {}}
+            agent={makeAgent({
+              enabled: true,
+              allowedOrigins: ["https://example.com"],
+              messages: { rateLimited: "Easy there." },
+            })}
+            buildShareUrl={buildShareUrl}
+          />
+        </Providers>,
+      );
+
+      const publicOption = screen.getByRole("radio", {
+        name: "Public link",
+        hidden: true,
+      });
+      expect(publicOption.getAttribute("aria-checked")).toBe("true");
+
+      fireEvent.click(
+        screen.getByRole("radio", { name: "Org members", hidden: true }),
+      );
+
+      await waitFor(() => expect(updateSharing).toHaveBeenCalledTimes(1));
+      const input = updateSharing.mock.calls[0][0] as UpdateAgentSharingInput;
+      expect(input.sharing?.audience).toBe(AgentSharingAudience.org);
+      // Whole-block replace: the audience switch must not clobber the rest.
+      expect(input.sharing?.enabled).toBe(true);
+      expect(input.sharing?.allowedOrigins).toEqual(["https://example.com"]);
+      expect(input.sharing?.messages?.rateLimited).toBe("Easy there.");
+    });
+
+    it("renders org-audience copy: member link, revocation note, no indexability warning", () => {
+      render(
+        <Providers client={createMockStigmer()}>
+          <ShareAgentDialog
+            open
+            onOpenChange={() => {}}
+            agent={makeAgent({
+              enabled: true,
+              audience: AgentSharingAudience.org,
+            })}
+            buildShareUrl={buildShareUrl}
+          />
+        </Providers>,
+      );
+
+      expect(screen.getByText("Organization members can chat")).toBeTruthy();
+      expect(screen.getByText("Member chat link")).toBeTruthy();
+      expect(
+        screen.getByText(/access is checked on every message/i),
+      ).toBeTruthy();
+      expect(
+        screen.queryByText(/forwarded and indexed by search engines/),
+      ).toBeNull();
+    });
+
+    it("replaces the Embed tab with a public-only explanation for the org audience", () => {
+      render(
+        <Providers client={createMockStigmer()}>
+          <ShareAgentDialog
+            open
+            onOpenChange={() => {}}
+            agent={makeAgent({
+              enabled: true,
+              audience: AgentSharingAudience.org,
+            })}
+            buildShareUrl={buildShareUrl}
+          />
+        </Providers>,
+      );
+
+      fireEvent.click(screen.getByRole("tab", { name: /Embed/, hidden: true }));
+      expect(
+        screen.getByText(/Embedding isn't available for org-members-only sharing/),
+      ).toBeTruthy();
+      expect(screen.queryByText(/<stigmer-agent/)).toBeNull();
+    });
   });
 
   it("enabling sends the complete sharing block and notifies the host", async () => {

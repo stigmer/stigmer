@@ -8,6 +8,16 @@ PORT ?= 3000
 # dependencies produce environment-dependent content hashes)
 deps:
 	YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install
+	@# Self-heal a known hoisting hazard: @stigmer/react needs lowlight@3
+	@# (createLowlight), while react-syntax-highlighter pulls lowlight@1. On an
+	@# incremental install over a stale tree, v1 can win the top-level slot and
+	@# leave v3 unmaterialized, which crashes every /docs demo at import time.
+	@# If the hoisted lowlight is not v3, force one clean reinstall to reconcile.
+	@if ! grep -q '"version": "3' node_modules/lowlight/package.json 2>/dev/null; then \
+		echo "==> Repairing node_modules (hoisting lowlight@3 for @stigmer/react)"; \
+		rm -rf node_modules .yarn/install-state.gz; \
+		YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install; \
+	fi
 
 # Start development server with hot reload
 dev: deps

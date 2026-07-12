@@ -7,17 +7,19 @@ package ai.stigmer.agentic.agent.v1;
 
 /**
  * <pre>
- * AgentSharing controls public, anyone-with-link access to an agent's
- * hosted chat experience.
+ * AgentSharing controls access to an agent's hosted chat experience —
+ * anyone with the link (public audience) or org members only (org audience).
  *
- * When enabled, the agent's trimmed profile becomes resolvable through the
- * public getSharedProfile RPC and the hosted chat page can serve visitors
- * without Stigmer accounts. When disabled (or unset), the shared link
- * behaves as if the agent does not exist (NOT_FOUND).
+ * When enabled with the public audience, the agent's trimmed profile becomes
+ * resolvable through the public getSharedProfile RPC and the hosted chat
+ * page can serve visitors without Stigmer accounts. When enabled with the
+ * org audience, only signed-in members of the owning organization can
+ * resolve the profile (getSharedProfileForMember) and chat. When disabled
+ * (or unset), the shared link behaves as if the agent does not exist
+ * (NOT_FOUND).
  *
- * This message is intentionally a wrapper around a single flag so later
- * phases can add fields (usage caps, org-only mode, expiry) without a
- * breaking change.
+ * This message is intentionally a wrapper so later phases can add fields
+ * (usage caps, expiry) without a breaking change.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.AgentSharing}
@@ -44,6 +46,7 @@ private static final long serialVersionUID = 0L;
   private AgentSharing() {
     allowedOrigins_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
+    audience_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -69,7 +72,7 @@ private static final long serialVersionUID = 0L;
   private boolean enabled_ = false;
   /**
    * <pre>
-   * Whether anyone-with-link access to the hosted chat is enabled.
+   * Whether hosted-chat access for the configured audience is enabled.
    * </pre>
    *
    * <code>bool enabled = 1 [json_name = "enabled"];</code>
@@ -252,6 +255,58 @@ private static final long serialVersionUID = 0L;
     return messages_ == null ? ai.stigmer.agentic.agent.v1.AgentSharingMessages.getDefaultInstance() : messages_;
   }
 
+  public static final int AUDIENCE_FIELD_NUMBER = 4;
+  private int audience_ = 0;
+  /**
+   * <pre>
+   * Who can chat with the shared agent. Unspecified means public
+   * (anyone with the link), so pre-existing shares keep their behavior.
+   *
+   * To keep an agent org-only, audience must be present in every apply:
+   * update/apply replace spec.sharing wholesale, so a manifest that sets
+   * enabled without audience resets the share to public.
+   *
+   * &#64;internal
+   * Org audience is enforced cloud-side only (org membership is a
+   * multi-tenant IAM concept): the guest mint and public profile handlers
+   * treat audience=org as NOT_FOUND, and the create-time blueprint gate
+   * admits authenticated org members via an app-level FGA member check
+   * (no visibility tuples written — same posture as the sharing flag).
+   * The OSS single-user server stores and echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agent.v1.AgentSharingAudience audience = 4 [json_name = "audience"];</code>
+   * @return The enum numeric value on the wire for audience.
+   */
+  @java.lang.Override public int getAudienceValue() {
+    return audience_;
+  }
+  /**
+   * <pre>
+   * Who can chat with the shared agent. Unspecified means public
+   * (anyone with the link), so pre-existing shares keep their behavior.
+   *
+   * To keep an agent org-only, audience must be present in every apply:
+   * update/apply replace spec.sharing wholesale, so a manifest that sets
+   * enabled without audience resets the share to public.
+   *
+   * &#64;internal
+   * Org audience is enforced cloud-side only (org membership is a
+   * multi-tenant IAM concept): the guest mint and public profile handlers
+   * treat audience=org as NOT_FOUND, and the create-time blueprint gate
+   * admits authenticated org members via an app-level FGA member check
+   * (no visibility tuples written — same posture as the sharing flag).
+   * The OSS single-user server stores and echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agent.v1.AgentSharingAudience audience = 4 [json_name = "audience"];</code>
+   * @return The audience.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agent.v1.AgentSharingAudience getAudience() {
+    ai.stigmer.agentic.agent.v1.AgentSharingAudience result = ai.stigmer.agentic.agent.v1.AgentSharingAudience.forNumber(audience_);
+    return result == null ? ai.stigmer.agentic.agent.v1.AgentSharingAudience.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -274,6 +329,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(3, getMessages());
+    }
+    if (audience_ != ai.stigmer.agentic.agent.v1.AgentSharingAudience.agent_sharing_audience_unspecified.getNumber()) {
+      output.writeEnum(4, audience_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -300,6 +358,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(3, getMessages());
     }
+    if (audience_ != ai.stigmer.agentic.agent.v1.AgentSharingAudience.agent_sharing_audience_unspecified.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(4, audience_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -324,6 +386,7 @@ private static final long serialVersionUID = 0L;
       if (!getMessages()
           .equals(other.getMessages())) return false;
     }
+    if (audience_ != other.audience_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -346,6 +409,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + MESSAGES_FIELD_NUMBER;
       hash = (53 * hash) + getMessages().hashCode();
     }
+    hash = (37 * hash) + AUDIENCE_FIELD_NUMBER;
+    hash = (53 * hash) + audience_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -445,17 +510,19 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * AgentSharing controls public, anyone-with-link access to an agent's
-   * hosted chat experience.
+   * AgentSharing controls access to an agent's hosted chat experience —
+   * anyone with the link (public audience) or org members only (org audience).
    *
-   * When enabled, the agent's trimmed profile becomes resolvable through the
-   * public getSharedProfile RPC and the hosted chat page can serve visitors
-   * without Stigmer accounts. When disabled (or unset), the shared link
-   * behaves as if the agent does not exist (NOT_FOUND).
+   * When enabled with the public audience, the agent's trimmed profile becomes
+   * resolvable through the public getSharedProfile RPC and the hosted chat
+   * page can serve visitors without Stigmer accounts. When enabled with the
+   * org audience, only signed-in members of the owning organization can
+   * resolve the profile (getSharedProfileForMember) and chat. When disabled
+   * (or unset), the shared link behaves as if the agent does not exist
+   * (NOT_FOUND).
    *
-   * This message is intentionally a wrapper around a single flag so later
-   * phases can add fields (usage caps, org-only mode, expiry) without a
-   * breaking change.
+   * This message is intentionally a wrapper so later phases can add fields
+   * (usage caps, expiry) without a breaking change.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.AgentSharing}
@@ -505,6 +572,7 @@ private static final long serialVersionUID = 0L;
         messagesBuilder_.dispose();
         messagesBuilder_ = null;
       }
+      audience_ = 0;
       return this;
     }
 
@@ -552,6 +620,9 @@ private static final long serialVersionUID = 0L;
             : messagesBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.audience_ = audience_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -582,6 +653,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasMessages()) {
         mergeMessages(other.getMessages());
+      }
+      if (other.audience_ != 0) {
+        setAudienceValue(other.getAudienceValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -626,6 +700,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
+            case 32: {
+              audience_ = input.readEnum();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 32
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -646,7 +725,7 @@ private static final long serialVersionUID = 0L;
     private boolean enabled_ ;
     /**
      * <pre>
-     * Whether anyone-with-link access to the hosted chat is enabled.
+     * Whether hosted-chat access for the configured audience is enabled.
      * </pre>
      *
      * <code>bool enabled = 1 [json_name = "enabled"];</code>
@@ -658,7 +737,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether anyone-with-link access to the hosted chat is enabled.
+     * Whether hosted-chat access for the configured audience is enabled.
      * </pre>
      *
      * <code>bool enabled = 1 [json_name = "enabled"];</code>
@@ -674,7 +753,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Whether anyone-with-link access to the hosted chat is enabled.
+     * Whether hosted-chat access for the configured audience is enabled.
      * </pre>
      *
      * <code>bool enabled = 1 [json_name = "enabled"];</code>
@@ -1187,6 +1266,143 @@ private static final long serialVersionUID = 0L;
         messages_ = null;
       }
       return messagesBuilder_;
+    }
+
+    private int audience_ = 0;
+    /**
+     * <pre>
+     * Who can chat with the shared agent. Unspecified means public
+     * (anyone with the link), so pre-existing shares keep their behavior.
+     *
+     * To keep an agent org-only, audience must be present in every apply:
+     * update/apply replace spec.sharing wholesale, so a manifest that sets
+     * enabled without audience resets the share to public.
+     *
+     * &#64;internal
+     * Org audience is enforced cloud-side only (org membership is a
+     * multi-tenant IAM concept): the guest mint and public profile handlers
+     * treat audience=org as NOT_FOUND, and the create-time blueprint gate
+     * admits authenticated org members via an app-level FGA member check
+     * (no visibility tuples written — same posture as the sharing flag).
+     * The OSS single-user server stores and echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharingAudience audience = 4 [json_name = "audience"];</code>
+     * @return The enum numeric value on the wire for audience.
+     */
+    @java.lang.Override public int getAudienceValue() {
+      return audience_;
+    }
+    /**
+     * <pre>
+     * Who can chat with the shared agent. Unspecified means public
+     * (anyone with the link), so pre-existing shares keep their behavior.
+     *
+     * To keep an agent org-only, audience must be present in every apply:
+     * update/apply replace spec.sharing wholesale, so a manifest that sets
+     * enabled without audience resets the share to public.
+     *
+     * &#64;internal
+     * Org audience is enforced cloud-side only (org membership is a
+     * multi-tenant IAM concept): the guest mint and public profile handlers
+     * treat audience=org as NOT_FOUND, and the create-time blueprint gate
+     * admits authenticated org members via an app-level FGA member check
+     * (no visibility tuples written — same posture as the sharing flag).
+     * The OSS single-user server stores and echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharingAudience audience = 4 [json_name = "audience"];</code>
+     * @param value The enum numeric value on the wire for audience to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setAudienceValue(int value) {
+      audience_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Who can chat with the shared agent. Unspecified means public
+     * (anyone with the link), so pre-existing shares keep their behavior.
+     *
+     * To keep an agent org-only, audience must be present in every apply:
+     * update/apply replace spec.sharing wholesale, so a manifest that sets
+     * enabled without audience resets the share to public.
+     *
+     * &#64;internal
+     * Org audience is enforced cloud-side only (org membership is a
+     * multi-tenant IAM concept): the guest mint and public profile handlers
+     * treat audience=org as NOT_FOUND, and the create-time blueprint gate
+     * admits authenticated org members via an app-level FGA member check
+     * (no visibility tuples written — same posture as the sharing flag).
+     * The OSS single-user server stores and echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharingAudience audience = 4 [json_name = "audience"];</code>
+     * @return The audience.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agent.v1.AgentSharingAudience getAudience() {
+      ai.stigmer.agentic.agent.v1.AgentSharingAudience result = ai.stigmer.agentic.agent.v1.AgentSharingAudience.forNumber(audience_);
+      return result == null ? ai.stigmer.agentic.agent.v1.AgentSharingAudience.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Who can chat with the shared agent. Unspecified means public
+     * (anyone with the link), so pre-existing shares keep their behavior.
+     *
+     * To keep an agent org-only, audience must be present in every apply:
+     * update/apply replace spec.sharing wholesale, so a manifest that sets
+     * enabled without audience resets the share to public.
+     *
+     * &#64;internal
+     * Org audience is enforced cloud-side only (org membership is a
+     * multi-tenant IAM concept): the guest mint and public profile handlers
+     * treat audience=org as NOT_FOUND, and the create-time blueprint gate
+     * admits authenticated org members via an app-level FGA member check
+     * (no visibility tuples written — same posture as the sharing flag).
+     * The OSS single-user server stores and echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharingAudience audience = 4 [json_name = "audience"];</code>
+     * @param value The audience to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAudience(ai.stigmer.agentic.agent.v1.AgentSharingAudience value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000008;
+      audience_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Who can chat with the shared agent. Unspecified means public
+     * (anyone with the link), so pre-existing shares keep their behavior.
+     *
+     * To keep an agent org-only, audience must be present in every apply:
+     * update/apply replace spec.sharing wholesale, so a manifest that sets
+     * enabled without audience resets the share to public.
+     *
+     * &#64;internal
+     * Org audience is enforced cloud-side only (org membership is a
+     * multi-tenant IAM concept): the guest mint and public profile handlers
+     * treat audience=org as NOT_FOUND, and the create-time blueprint gate
+     * admits authenticated org members via an app-level FGA member check
+     * (no visibility tuples written — same posture as the sharing flag).
+     * The OSS single-user server stores and echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agent.v1.AgentSharingAudience audience = 4 [json_name = "audience"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAudience() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      audience_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agent.v1.AgentSharing)

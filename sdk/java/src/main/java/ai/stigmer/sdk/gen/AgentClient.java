@@ -90,6 +90,12 @@ public final class AgentClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public SharedAgentProfile getSharedProfileForMember(ResourceRef ref) {
+        try {
+            return query.getSharedProfileForMember(ref.toProto().toBuilder().setKind(ApiResourceKind.agent).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
     public ListResult list(ListParams params) {
         try {
             SearchRequest.Builder req = SearchRequest.newBuilder()

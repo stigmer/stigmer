@@ -989,6 +989,7 @@ export type {
 export {
   useSharedAgentProfile,
   SharedAgentChat,
+  sharingAudienceFromProto,
   useUpdateAgentSharing,
   ShareAgentDialog,
   useShareAgent,
@@ -996,9 +997,11 @@ export {
   MAX_ALLOWED_ORIGINS,
 } from "./sharing/index.js";
 export type {
+  UseSharedAgentProfileOptions,
   UseSharedAgentProfileReturn,
   SharedAgentChatProps,
   AgentSharingDraft,
+  SharingAudience,
   UseUpdateAgentSharingReturn,
   ShareAgentDialogProps,
   UseShareAgentArgs,

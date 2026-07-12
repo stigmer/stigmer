@@ -285,6 +285,87 @@ func TestAgentController_GetSharedProfile(t *testing.T) {
 	})
 }
 
+// TestAgentController_UpdateSharing_Audience pins persistence of the T07
+// audience field. The Go edition stores and echoes the audience; org-audience
+// enforcement (membership checks) is cloud-only, so GetSharedProfileForMember
+// resolves like GetSharedProfile here (the one local principal is effectively
+// the organization).
+func TestAgentController_UpdateSharing_Audience(t *testing.T) {
+	controller := newSharingTestController(t)
+
+	t.Run("audience persists and round-trips through update and get", func(t *testing.T) {
+		created := createSharingTestAgent(t, controller, "Audience Round Trip Agent")
+
+		updated, err := controller.UpdateSharing(contextWithAgentKind(), &agentv1.UpdateAgentSharingInput{
+			ResourceId: created.Metadata.Id,
+			Sharing: &agentv1.AgentSharing{
+				Enabled:  true,
+				Audience: agentv1.AgentSharingAudience_agent_sharing_audience_org,
+			},
+		})
+		if err != nil {
+			t.Fatalf("UpdateSharing with org audience failed: %v", err)
+		}
+		if got := updated.GetSpec().GetSharing().GetAudience(); got != agentv1.AgentSharingAudience_agent_sharing_audience_org {
+			t.Errorf("expected org audience on response, got %v", got)
+		}
+
+		fetched, err := controller.Get(contextWithAgentKind(), &agentv1.AgentId{Value: created.Metadata.Id})
+		if err != nil {
+			t.Fatalf("Get failed: %v", err)
+		}
+		if got := fetched.GetSpec().GetSharing().GetAudience(); got != agentv1.AgentSharingAudience_agent_sharing_audience_org {
+			t.Errorf("org audience did not persist, got %v", got)
+		}
+	})
+
+	t.Run("unspecified audience means public and survives a toggle", func(t *testing.T) {
+		created := createSharingTestAgent(t, controller, "Audience Default Agent")
+
+		updated, err := controller.UpdateSharing(contextWithAgentKind(), &agentv1.UpdateAgentSharingInput{
+			ResourceId: created.Metadata.Id,
+			Sharing:    &agentv1.AgentSharing{Enabled: true},
+		})
+		if err != nil {
+			t.Fatalf("UpdateSharing failed: %v", err)
+		}
+		if got := updated.GetSpec().GetSharing().GetAudience(); got != agentv1.AgentSharingAudience_agent_sharing_audience_unspecified {
+			t.Errorf("expected unspecified audience (treated as public), got %v", got)
+		}
+	})
+
+	t.Run("member resolution path resolves shared agents in either audience", func(t *testing.T) {
+		created := createSharingTestAgent(t, controller, "Member Resolution Agent")
+		ref := &apiresource.ApiResourceReference{
+			Org:  created.Metadata.Org,
+			Slug: created.Metadata.Slug,
+		}
+
+		// Unshared: NOT_FOUND through the member path too.
+		if _, err := controller.GetSharedProfileForMember(contextWithAgentKind(), ref); status.Code(err) != codes.NotFound {
+			t.Fatalf("expected NOT_FOUND for unshared agent via member path, got %v", err)
+		}
+
+		if _, err := controller.UpdateSharing(contextWithAgentKind(), &agentv1.UpdateAgentSharingInput{
+			ResourceId: created.Metadata.Id,
+			Sharing: &agentv1.AgentSharing{
+				Enabled:  true,
+				Audience: agentv1.AgentSharingAudience_agent_sharing_audience_org,
+			},
+		}); err != nil {
+			t.Fatalf("UpdateSharing failed: %v", err)
+		}
+
+		profile, err := controller.GetSharedProfileForMember(contextWithAgentKind(), ref)
+		if err != nil {
+			t.Fatalf("GetSharedProfileForMember failed: %v", err)
+		}
+		if profile.GetSlug() != created.Metadata.Slug {
+			t.Errorf("profile slug: expected %q, got %q", created.Metadata.Slug, profile.GetSlug())
+		}
+	})
+}
+
 // TestAgentController_Update_OmittingSharing_Revokes pins the declarative
 // spec semantics in the Go edition: a full update whose spec omits sharing
 // revokes an active share (fails closed). Mirrors the cloud-edition

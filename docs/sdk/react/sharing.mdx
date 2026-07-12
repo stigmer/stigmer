@@ -59,18 +59,22 @@ const share = useShareAgent({
 Data hook that fetches a shared agent's public profile by
 organization and agent slug.
 
-This hook calls the `getSharedProfile` endpoint, which is
+By default this hook calls the `getSharedProfile` endpoint, which is
 **public** — it requires no authentication. The server returns a
 trimmed projection safe for anonymous visitors: name, description,
 icon, and the default instance id needed to start a session
 (an identifier, not a capability — session creation still requires
 an authorized token, e.g. a guest token from `createGuestAuth`).
+With `{ audience: "org" }` it calls the authenticated
+`getSharedProfileForMember` endpoint instead, which resolves
+org-members-only shares for a signed-in member.
 
-**Not-shared handling:** the server answers NOT_FOUND for both
-"this agent does not exist" and "this agent is not shared" — the
-two are indistinguishable by design so a share URL leaks nothing
-once revoked. The hook maps that to `profile === null` without
-raising an error, matching `useAgent`'s not-found convention:
+**Not-shared handling:** the server answers NOT_FOUND for "this
+agent does not exist", "this agent is not shared", and (on the
+member path) "you are not a member of this organization" — all
+indistinguishable by design so a share URL leaks nothing. The hook
+maps that to `profile === null` without raising an error, matching
+`useAgent`'s not-found convention:
 `profile === null && !isLoading && !error` means unavailable.
 
 Pass `null` for either `org` or `slug` to skip fetching (stable
@@ -84,13 +88,14 @@ request.
 **Signature**
 
 ```tsx
-function useSharedAgentProfile(org: string | null, slug: string | null): UseSharedAgentProfileReturn
+function useSharedAgentProfile(org: string | null, slug: string | null, options?: UseSharedAgentProfileOptions): UseSharedAgentProfileReturn
 ```
 
 <TypeTable
   type={{
     org: { type: "string | null", description: "", required: true },
     slug: { type: "string | null", description: "", required: true },
+    options: { type: "UseSharedAgentProfileOptions", description: "" },
   }}
 />
 
@@ -157,6 +162,7 @@ const { updateSharing, isPending } = useUpdateAgentSharing(agent.metadata.id);
 
 await updateSharing({
   enabled: true,
+  audience: "public",
   allowedOrigins: ["https://example.com"],
   messages: { rateLimited: "", unavailable: "", conversationEnded: "" },
 });
@@ -219,11 +225,13 @@ Handles all states: loading, unavailable (the agent does not exist
 or is not shared — indistinguishable by design), transient errors
 (with retry), and the live chat.
 
-**Auth contract:** requires a `StigmerProvider` whose client
-authenticates as a guest of this agent — pair with
-`createGuestAuth({ baseUrl, org, slug })` from `@stigmer/sdk`.
-The profile fetch itself is public; session creation and streaming
-use the guest token the client's provider mints on demand.
+**Auth contract:** requires a `StigmerProvider` whose client can
+chat with this agent. For public shares (the default), pair with
+`createGuestAuth({ baseUrl, org, slug })` from `@stigmer/sdk` —
+the profile fetch is public and sessions use the guest token the
+provider mints on demand. For org-members-only shares, pass
+`sharingAudience="org"` and a client carrying the signed-in
+member's own token; the presentation stays the same pure chat.
 
 **Props** — `SharedAgentChatProps`
 
@@ -234,6 +242,7 @@ use the guest token the client's provider mints on demand.
     onSessionCreated: { type: "(sessionId: string) => void", description: "Called after the visitor's session and first execution are created — e.g. to reflect the session in the host page's URL." },
     org: { type: "string", description: "Organization slug from the share URL.", required: true },
     placeholder: { type: "string", description: "Placeholder for the composer textarea." },
+    sharingAudience: { type: "SharingAudience", description: "Which sharing audience this surface serves. Selects the profile resolution path: `\"public\"` uses the anonymous `getSharedProfile` RPC (pair with `createGuestAuth`); `\"org\"` uses the authenticated `getSharedProfileForMember` RPC and requires a `StigmerProvider` whose client carries a signed-in org member's token. The chat presentation is identical either way.", typeDescriptionLink: "#sharingaudience" },
     showPoweredBy: { type: "boolean", description: "Render the \"Powered by Stigmer\" footer." },
     slug: { type: "string", description: "Agent slug from the share URL.", required: true },
   }}
@@ -261,16 +270,38 @@ A complete sharing configuration to persist.
 Every field is required by design: the `updateSharing` RPC **replaces**
 the agent's whole `spec.sharing` block, so a caller must always supply
 the full configuration. A partial type here would let a toggle change
-silently wipe `allowedOrigins` or `messages` — the required shape makes
-that mistake unrepresentable.
+silently wipe `allowedOrigins`, `messages`, or the `audience` — the
+required shape makes that mistake unrepresentable.
 
 <TypeTable
   type={{
-    allowedOrigins: { type: "readonly string[]", description: "Exact web origins allowed to embed the shared agent (e.g. `https://example.com`). Stored now; enforced by the embed widget's Origin check.", required: true },
-    enabled: { type: "boolean", description: "Whether anyone with the link can chat with this agent.", required: true },
+    allowedOrigins: { type: "readonly string[]", description: "Exact web origins allowed to embed the shared agent (e.g. `https://example.com`). Stored now; enforced by the embed widget's Origin check. Embedding is public-audience only.", required: true },
+    audience: { type: "SharingAudience", description: "Who can chat: anyone with the link, or org members only.", required: true, typeDescriptionLink: "#sharingaudience" },
+    enabled: { type: "boolean", description: "Whether hosted-chat access for the configured audience is enabled.", required: true },
     messages: { type: "{ conversationEnded: string; rateLimited: string; unavailable: string }", description: "Owner-customized visitor refusal copy. Empty strings mean platform defaults.", required: true },
   }}
 />
+
+
+### SharingAudience
+
+Who can chat with a shared agent over its hosted link.
+
+- `"public"` — anyone with the link; visitors are anonymous guests.
+- `"org"` — signed-in members of the owning organization only.
+  Membership is checked on every conversation turn, so access ends the
+  moment a member leaves the org.
+
+
+### sharingAudienceFromProto
+
+Maps a proto `AgentSharingAudience` to the SDK's string union.
+Unspecified means public by contract (pre-audience shares keep their
+anyone-with-link behavior).
+
+```tsx
+function sharingAudienceFromProto(audience: AgentSharingAudience | undefined): SharingAudience
+```
 
 
 ### UseShareAgentArgs
@@ -283,6 +314,17 @@ Arguments for [`useShareAgent`](#useshareagent).
     buildShareUrl: { type: "(org: string, slug: string) => string", description: "Builds the absolute public chat URL for the shared agent. The host application owns URL construction (its configured public origin may differ from the rendering origin — e.g. the desktop app). When omitted, the dialog falls back to the relative `/chat/<org>/<slug>`." },
     label: { type: "string", description: "Menu-item label." },
     onSharingChanged: { type: "() => void", description: "Called after any sharing change is persisted. Hosts typically pass the agent data hook's `refetch`." },
+  }}
+/>
+
+
+### UseSharedAgentProfileOptions
+
+Options for [`useSharedAgentProfile`](#usesharedagentprofile).
+
+<TypeTable
+  type={{
+    audience: { type: "SharingAudience", description: "Which resolution path to use.  - `\"public\"` (default) — the anonymous `getSharedProfile` RPC. An   org-audience share answers NOT_FOUND here by design. - `\"org\"` — the authenticated `getSharedProfileForMember` RPC, which   resolves org-audience shares for signed-in members of the owning   organization (and public shares too). Requires a `StigmerProvider`   whose client carries the member's token.", typeDescriptionLink: "#sharingaudience" },
   }}
 />
 

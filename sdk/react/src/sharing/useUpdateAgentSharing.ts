@@ -5,6 +5,7 @@ import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { UpdateAgentSharingInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import {
+  AgentSharingAudience,
   AgentSharingSchema,
   AgentSharingMessagesSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -12,21 +13,33 @@ import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
 /**
+ * Who can chat with a shared agent over its hosted link.
+ *
+ * - `"public"` — anyone with the link; visitors are anonymous guests.
+ * - `"org"` — signed-in members of the owning organization only.
+ *   Membership is checked on every conversation turn, so access ends the
+ *   moment a member leaves the org.
+ */
+export type SharingAudience = "public" | "org";
+
+/**
  * A complete sharing configuration to persist.
  *
  * Every field is required by design: the `updateSharing` RPC **replaces**
  * the agent's whole `spec.sharing` block, so a caller must always supply
  * the full configuration. A partial type here would let a toggle change
- * silently wipe `allowedOrigins` or `messages` — the required shape makes
- * that mistake unrepresentable.
+ * silently wipe `allowedOrigins`, `messages`, or the `audience` — the
+ * required shape makes that mistake unrepresentable.
  */
 export interface AgentSharingDraft {
-  /** Whether anyone with the link can chat with this agent. */
+  /** Whether hosted-chat access for the configured audience is enabled. */
   readonly enabled: boolean;
+  /** Who can chat: anyone with the link, or org members only. */
+  readonly audience: SharingAudience;
   /**
    * Exact web origins allowed to embed the shared agent
    * (e.g. `https://example.com`). Stored now; enforced by the embed
-   * widget's Origin check.
+   * widget's Origin check. Embedding is public-audience only.
    */
   readonly allowedOrigins: readonly string[];
   /** Owner-customized visitor refusal copy. Empty strings mean platform defaults. */
@@ -38,6 +51,23 @@ export interface AgentSharingDraft {
     /** Shown when a conversation hits its turn limit or inactivity timeout. */
     readonly conversationEnded: string;
   };
+}
+
+/**
+ * Maps a proto {@link AgentSharingAudience} to the SDK's string union.
+ * Unspecified means public by contract (pre-audience shares keep their
+ * anyone-with-link behavior).
+ */
+export function sharingAudienceFromProto(
+  audience: AgentSharingAudience | undefined,
+): SharingAudience {
+  return audience === AgentSharingAudience.org ? "org" : "public";
+}
+
+function sharingAudienceToProto(audience: SharingAudience): AgentSharingAudience {
+  return audience === "org"
+    ? AgentSharingAudience.org
+    : AgentSharingAudience.public;
 }
 
 /** Return value of {@link useUpdateAgentSharing}. */
@@ -71,6 +101,7 @@ export interface UseUpdateAgentSharingReturn {
  *
  * await updateSharing({
  *   enabled: true,
+ *   audience: "public",
  *   allowedOrigins: ["https://example.com"],
  *   messages: { rateLimited: "", unavailable: "", conversationEnded: "" },
  * });
@@ -96,6 +127,7 @@ export function useUpdateAgentSharing(
           resourceId: agentId,
           sharing: create(AgentSharingSchema, {
             enabled: draft.enabled,
+            audience: sharingAudienceToProto(draft.audience),
             allowedOrigins: [...draft.allowedOrigins],
             messages: create(AgentSharingMessagesSchema, {
               rateLimited: draft.messages.rateLimited,

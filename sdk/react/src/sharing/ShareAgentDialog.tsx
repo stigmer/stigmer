@@ -18,8 +18,10 @@ import { useDeploymentMode } from "../deployment-mode.js";
 import { useBillingAccount } from "../billing/useBillingAccount.js";
 import { formatCreditBalance } from "../billing/format.js";
 import {
+  sharingAudienceFromProto,
   useUpdateAgentSharing,
   type AgentSharingDraft,
+  type SharingAudience,
 } from "./useUpdateAgentSharing.js";
 import { useShareToolReadiness } from "./useShareToolReadiness.js";
 
@@ -153,6 +155,7 @@ function draftFromAgent(agent: Agent): AgentSharingDraft {
   const sharing = agent.spec?.sharing;
   return {
     enabled: sharing?.enabled ?? false,
+    audience: sharingAudienceFromProto(sharing?.audience),
     allowedOrigins: sharing?.allowedOrigins ?? [],
     messages: {
       rateLimited: sharing?.messages?.rateLimited ?? "",
@@ -214,6 +217,20 @@ function ShareAgentDialogBody({
     [commit, draft],
   );
 
+  const handleAudienceChange = useCallback(
+    (audience: SharingAudience) => {
+      if (audience === draft.audience) return;
+      void commit(
+        { ...draft, audience },
+        audience === "org"
+          ? "Only organization members can chat now"
+          : "Anyone with the link can chat now",
+      );
+    },
+    [commit, draft],
+  );
+
+  const isOrgAudience = draft.audience === "org";
   const shareUrl = buildShareUrl ? buildShareUrl(org, slug) : chatPath(org, slug);
 
   return (
@@ -253,9 +270,11 @@ function ShareAgentDialogBody({
               id="share-enabled-label"
               className="text-sm font-medium text-foreground"
             >
-              Anyone with the link can chat
+              {isOrgAudience
+                ? "Organization members can chat"
+                : "Anyone with the link can chat"}
             </span>
-            <WhoPaysLine org={org} />
+            <WhoPaysLine org={org} audience={draft.audience} />
           </div>
           <Switch
             checked={draft.enabled}
@@ -264,6 +283,11 @@ function ShareAgentDialogBody({
             aria-labelledby="share-enabled-label"
           />
         </div>
+        <AudienceSelector
+          audience={draft.audience}
+          onChange={handleAudienceChange}
+          disabled={isPending}
+        />
         <ToolReadinessHint agent={agent} enabled={draft.enabled} />
       </div>
 
@@ -279,6 +303,7 @@ function ShareAgentDialogBody({
             {activeTab === "link" && (
               <LinkTab
                 shareUrl={shareUrl}
+                org={org}
                 enabled={draft.enabled}
                 draft={draft}
                 isPending={isPending}
@@ -359,10 +384,75 @@ function ToolReadinessHint({
 }
 
 // ---------------------------------------------------------------------------
+// Audience — who can chat over the hosted link
+// ---------------------------------------------------------------------------
+
+const AUDIENCE_OPTIONS: readonly {
+  readonly value: SharingAudience;
+  readonly label: string;
+}[] = [
+  { value: "public", label: "Public link" },
+  { value: "org", label: "Org members" },
+];
+
+/**
+ * Segmented control choosing between the two sharing audiences. Mutually
+ * exclusive by nature, so a radio group (not toggles); the master switch
+ * above stays the single on/off.
+ */
+function AudienceSelector({
+  audience,
+  onChange,
+  disabled,
+}: {
+  readonly audience: SharingAudience;
+  readonly onChange: (audience: SharingAudience) => void;
+  readonly disabled: boolean;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Who can chat"
+      className="mt-3 inline-flex rounded-md border border-border p-0.5"
+    >
+      {AUDIENCE_OPTIONS.map(({ value, label }) => {
+        const selected = audience === value;
+        return (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(value)}
+            disabled={disabled}
+            className={cn(
+              "rounded px-2.5 py-1 text-xs font-medium",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "disabled:pointer-events-none disabled:opacity-50",
+              selected
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Who pays — cost attribution is always the org in the share URL
 // ---------------------------------------------------------------------------
 
-function WhoPaysLine({ org }: { readonly org: string }) {
+function WhoPaysLine({
+  org,
+  audience,
+}: {
+  readonly org: string;
+  readonly audience: SharingAudience;
+}) {
   const mode = useDeploymentMode();
   // An Organization's id equals its slug (see ApiResourceMetadata.id), so
   // the agent's org reference is directly usable as the billing org id.
@@ -376,7 +466,8 @@ function WhoPaysLine({ org }: { readonly org: string }) {
 
   return (
     <p className="mt-0.5 text-xs text-muted-foreground">
-      Visitors chat on <span className="font-medium">{org}</span>&apos;s credits
+      {audience === "org" ? "Members" : "Visitors"} chat on{" "}
+      <span className="font-medium">{org}</span>&apos;s credits
       {balance !== null && <> ({balance} available)</>}.
     </p>
   );
@@ -388,12 +479,14 @@ function WhoPaysLine({ org }: { readonly org: string }) {
 
 function LinkTab({
   shareUrl,
+  org,
   enabled,
   draft,
   isPending,
   commit,
 }: {
   readonly shareUrl: string;
+  readonly org: string;
   readonly enabled: boolean;
   readonly draft: AgentSharingDraft;
   readonly isPending: boolean;
@@ -402,20 +495,32 @@ function LinkTab({
     successMessage: string,
   ) => Promise<boolean>;
 }) {
+  const isOrgAudience = draft.audience === "org";
+
   return (
     <div className="flex flex-col gap-4">
       <CopyField
-        label="Public chat link"
+        label={isOrgAudience ? "Member chat link" : "Public chat link"}
         value={shareUrl}
         copyLabel="Link"
         disabled={!enabled}
         openHref={enabled ? shareUrl : undefined}
       />
 
-      <p className="text-xs text-warning">
-        Public links can be forwarded and indexed by search engines. Don&apos;t
-        share agents that know internal or confidential information.
-      </p>
+      {isOrgAudience ? (
+        <p className="text-xs text-muted-foreground">
+          Only signed-in members of <span className="font-medium">{org}</span>{" "}
+          can chat. Access is checked on every message, so it ends the moment
+          someone leaves the organization. The link is safe to forward — it
+          shows nothing to anyone else.
+        </p>
+      ) : (
+        <p className="text-xs text-warning">
+          Public links can be forwarded and indexed by search engines.
+          Don&apos;t share agents that know internal or confidential
+          information — or switch the audience to org members.
+        </p>
+      )}
 
       <MessagesEditor draft={draft} isPending={isPending} commit={commit} />
     </div>
@@ -479,6 +584,22 @@ function EmbedTab({
     () => buildEmbedSnippet(appOriginFrom(shareUrl), org, slug),
     [shareUrl, org, slug],
   );
+
+  // Embedding serves anonymous visitors via guest tokens, which an
+  // org-audience share refuses by design — a sign-in flow inside a
+  // third-party iframe is its own project. Say so instead of showing
+  // snippets that would render nothing.
+  if (draft.audience === "org") {
+    return (
+      <p className="text-xs text-muted-foreground" role="status">
+        Embedding isn&apos;t available for org-members-only sharing: embeds
+        serve anonymous visitors, and this agent requires a signed-in
+        organization member. Switch the audience to{" "}
+        <span className="font-medium">Public link</span> to embed it on a
+        site.
+      </p>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">

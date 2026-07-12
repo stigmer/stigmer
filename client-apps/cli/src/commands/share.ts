@@ -9,24 +9,38 @@
 
 import type { Command } from "commander";
 import { ensureAuthenticated, resolveConsoleURL, resolveOrganization } from "../config/index.js";
+import { UsageError } from "../errors/index.js";
 import type { OutputFlags } from "../output/index.js";
+import type { ShareAudience } from "../resources/share.js";
 import { addResultFlags, globalOrg, resultFormat } from "./shared.js";
 
 interface ShareAgentFlags extends OutputFlags {
   off?: boolean;
   open?: boolean;
+  audience?: string;
 }
 
 export function registerShare(program: Command): void {
-  const share = program.command("share").description("share resources with anyone via a hosted link");
+  const share = program.command("share").description("share resources via a hosted link");
 
   const agent = share
     .command("agent <ref>")
-    .description("enable public sharing for an agent and print its chat link and embed snippet")
+    .description("enable sharing for an agent and print its chat link and embed snippet")
     .option("--off", "disable sharing (the link stops working immediately)")
+    .option(
+      "--audience <audience>",
+      "who can chat: 'public' (anyone with the link) or 'org' (signed-in organization members only); omit to keep the current audience",
+    )
     .option("--open", "open the chat link in your browser")
     .action((ref: string, options: ShareAgentFlags, command: Command) => runShareAgent(ref, options, command));
   addResultFlags(agent);
+}
+
+// Validates --audience before any network work; omitted means "preserve".
+function parseAudience(value: string | undefined): ShareAudience | undefined {
+  if (value === undefined) return undefined;
+  if (value === "public" || value === "org") return value;
+  throw new UsageError(`invalid --audience '${value}'\n\nExpected 'public' or 'org'.`);
 }
 
 async function runShareAgent(ref: string, options: ShareAgentFlags, command: Command): Promise<void> {
@@ -45,9 +59,11 @@ async function runShareAgent(ref: string, options: ShareAgentFlags, command: Com
   const backendType = client.config.backend.type;
   const appOrigin = resolveConsoleURL(backendType);
   const enabled = options.off !== true;
+  const audience = parseAudience(options.audience);
 
   const result = await shareAgent(client.stigmer, ref, org, {
     enabled,
+    ...(audience !== undefined ? { audience } : {}),
     appOrigin,
     isLocal: backendType === "local",
   });
@@ -56,7 +72,7 @@ async function runShareAgent(ref: string, options: ShareAgentFlags, command: Com
   if (options.open === true && enabled) {
     // Best-effort: the link is already rendered above, so a launch failure
     // only needs a nudge, never an error exit (mirrors auth login).
-    const url = result.sections.find((s) => s.title === "Public chat link")?.items[0];
+    const url = result.sections.find((s) => s.title.endsWith("chat link"))?.items[0];
     if (url !== undefined) {
       try {
         const { default: open } = await import("open");

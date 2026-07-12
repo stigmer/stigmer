@@ -6,6 +6,7 @@ import { getUserMessage } from "@stigmer/sdk";
 import { NewSessionViewer } from "../session/NewSessionViewer.js";
 import { SessionViewer } from "../session/SessionViewer.js";
 import { useSharedAgentProfile } from "./useSharedAgentProfile.js";
+import type { SharingAudience } from "./useUpdateAgentSharing.js";
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -35,6 +36,17 @@ export interface SharedAgentChatProps {
    * created — e.g. to reflect the session in the host page's URL.
    */
   readonly onSessionCreated?: (sessionId: string) => void;
+  /**
+   * Which sharing audience this surface serves. Selects the profile
+   * resolution path: `"public"` uses the anonymous `getSharedProfile`
+   * RPC (pair with `createGuestAuth`); `"org"` uses the authenticated
+   * `getSharedProfileForMember` RPC and requires a `StigmerProvider`
+   * whose client carries a signed-in org member's token. The chat
+   * presentation is identical either way.
+   *
+   * @default "public"
+   */
+  readonly sharingAudience?: SharingAudience;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -53,11 +65,13 @@ export interface SharedAgentChatProps {
  * or is not shared — indistinguishable by design), transient errors
  * (with retry), and the live chat.
  *
- * **Auth contract:** requires a `StigmerProvider` whose client
- * authenticates as a guest of this agent — pair with
- * `createGuestAuth({ baseUrl, org, slug })` from `@stigmer/sdk`.
- * The profile fetch itself is public; session creation and streaming
- * use the guest token the client's provider mints on demand.
+ * **Auth contract:** requires a `StigmerProvider` whose client can
+ * chat with this agent. For public shares (the default), pair with
+ * `createGuestAuth({ baseUrl, org, slug })` from `@stigmer/sdk` —
+ * the profile fetch is public and sessions use the guest token the
+ * provider mints on demand. For org-members-only shares, pass
+ * `sharingAudience="org"` and a client carrying the signed-in
+ * member's own token; the presentation stays the same pure chat.
  *
  * @example
  * ```tsx
@@ -79,9 +93,12 @@ export function SharedAgentChat({
   placeholder,
   showPoweredBy = true,
   onSessionCreated,
+  sharingAudience = "public",
   className,
 }: SharedAgentChatProps) {
-  const { profile, isLoading, error, refetch } = useSharedAgentProfile(org, slug);
+  const { profile, isLoading, error, refetch } = useSharedAgentProfile(org, slug, {
+    audience: sharingAudience,
+  });
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 

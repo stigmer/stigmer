@@ -51,12 +51,13 @@ message AgentSpec {
 
   // Sharing configuration for the agent's hosted chat experience.
   //
-  // Controls whether anyone with the agent's public link can chat with the
-  // running agent. This is a distinct consent from metadata.visibility:
-  // visibility governs who can READ the agent blueprint (marketplace), while
-  // sharing governs who can CHAT with the agent runtime. Conversations over a
-  // shared link consume the owning organization's credits, so enabling
-  // sharing is an explicit, billing-affecting decision.
+  // Controls who can chat with the running agent over its hosted link: anyone
+  // with the link (public audience) or signed-in members of the owning
+  // organization (org audience). This is a distinct consent from
+  // metadata.visibility: visibility governs who can READ the agent blueprint
+  // (marketplace), while sharing governs who can CHAT with the agent runtime.
+  // Conversations over a shared link consume the owning organization's
+  // credits, so enabling sharing is an explicit, billing-affecting decision.
   //
   // Unset is equivalent to sharing disabled.
   //
@@ -72,19 +73,42 @@ message AgentSpec {
   AgentSharing sharing = 8;
 }
 
-// AgentSharing controls public, anyone-with-link access to an agent's
-// hosted chat experience.
+// AgentSharingAudience selects who can chat with a shared agent over its
+// hosted link.
 //
-// When enabled, the agent's trimmed profile becomes resolvable through the
-// public getSharedProfile RPC and the hosted chat page can serve visitors
-// without Stigmer accounts. When disabled (or unset), the shared link
-// behaves as if the agent does not exist (NOT_FOUND).
+// Unspecified is treated as public for backward compatibility: every share
+// created before the audience field existed is an anyone-with-link share.
+enum AgentSharingAudience {
+  // Treated as public (backward compatibility with pre-audience shares).
+  agent_sharing_audience_unspecified = 0;
+
+  // Anyone with the link can chat — no Stigmer account required.
+  // Visitors are anonymous guests; suitable only for knowledge that is
+  // safe to expose to the entire internet.
+  agent_sharing_audience_public = 1;
+
+  // Only signed-in members of the owning organization can chat.
+  // Membership is checked on every conversation turn, so access ends the
+  // moment a member leaves the organization. The right mode for
+  // org-internal knowledge agents.
+  agent_sharing_audience_org = 2;
+}
+
+// AgentSharing controls access to an agent's hosted chat experience —
+// anyone with the link (public audience) or org members only (org audience).
 //
-// This message is intentionally a wrapper around a single flag so later
-// phases can add fields (usage caps, org-only mode, expiry) without a
-// breaking change.
+// When enabled with the public audience, the agent's trimmed profile becomes
+// resolvable through the public getSharedProfile RPC and the hosted chat
+// page can serve visitors without Stigmer accounts. When enabled with the
+// org audience, only signed-in members of the owning organization can
+// resolve the profile (getSharedProfileForMember) and chat. When disabled
+// (or unset), the shared link behaves as if the agent does not exist
+// (NOT_FOUND).
+//
+// This message is intentionally a wrapper so later phases can add fields
+// (usage caps, expiry) without a breaking change.
 message AgentSharing {
-  // Whether anyone-with-link access to the hosted chat is enabled.
+  // Whether hosted-chat access for the configured audience is enabled.
   bool enabled = 1;
 
   // Origins permitted to embed this agent's chat widget.
@@ -121,6 +145,22 @@ message AgentSharing {
   // and NOT mapped client-side, so the copy reaches every client (web,
   // embed, CLI) through the existing error-message path.
   AgentSharingMessages messages = 3;
+
+  // Who can chat with the shared agent. Unspecified means public
+  // (anyone with the link), so pre-existing shares keep their behavior.
+  //
+  // To keep an agent org-only, audience must be present in every apply:
+  // update/apply replace spec.sharing wholesale, so a manifest that sets
+  // enabled without audience resets the share to public.
+  //
+  // @internal
+  // Org audience is enforced cloud-side only (org membership is a
+  // multi-tenant IAM concept): the guest mint and public profile handlers
+  // treat audience=org as NOT_FOUND, and the create-time blueprint gate
+  // admits authenticated org members via an app-level FGA member check
+  // (no visibility tuples written — same posture as the sharing flag).
+  // The OSS single-user server stores and echoes the field.
+  AgentSharingAudience audience = 4;
 }
 
 // AgentSharingMessages holds owner-customizable visitor-facing copy for

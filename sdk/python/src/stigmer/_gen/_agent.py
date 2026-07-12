@@ -95,6 +95,14 @@ class AgentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_shared_profile_for_member(self, ref: ResourceRef) -> io_pb2.SharedAgentProfile:
+        try:
+            proto = ref._to_proto()
+            proto.kind = api_resource_kind_pb2.agent
+            return self._query.getSharedProfileForMember(proto)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def list(self, params: ListParams) -> ListResult:
         try:
             req = search_io_pb2.SearchRequest(
@@ -278,10 +286,12 @@ class AgentSharingInput:
     enabled: bool = False
     allowed_origins: list[str] = field(default_factory=list)
     messages: AgentSharingMessagesInput | None = None
+    audience: int = 0
 
     def _to_proto(self) -> spec_pb2.AgentSharing:
         msg = spec_pb2.AgentSharing(
             enabled=self.enabled,
+            audience=self.audience,
         )
         if self.allowed_origins:
             msg.allowed_origins.extend(self.allowed_origins)

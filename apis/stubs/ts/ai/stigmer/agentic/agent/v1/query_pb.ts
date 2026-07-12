@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agent/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MTL5AwoUQWdlbnRRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50SWQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiKsK4GCYIARAoIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIE0LgYARJrCgpnZXREZWZhdWx0EjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkdldERlZmF1bHRBZ2VudFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiBNC4GAESfwoQZ2V0U2hhcmVkUHJvZmlsZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRovLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5TaGFyZWRBZ2VudFByb2ZpbGUiBMi4GAEaBKD/KyhiBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MTKEBQoUQWdlbnRRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50SWQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiKsK4GCYIARAoIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIE0LgYARJrCgpnZXREZWZhdWx0EjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkdldERlZmF1bHRBZ2VudFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiBNC4GAESfwoQZ2V0U2hhcmVkUHJvZmlsZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRovLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5TaGFyZWRBZ2VudFByb2ZpbGUiBMi4GAESiAEKGWdldFNoYXJlZFByb2ZpbGVGb3JNZW1iZXISNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuU2hhcmVkQWdlbnRQcm9maWxlIgTQuBgBGgSg/ysoYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentQueryController handles read operations for AI agents.
@@ -78,11 +78,14 @@ export const AgentQueryController: GenService<{
    * trimmed SharedAgentProfile — never the full Agent, whose spec carries
    * the system prompt, environment declarations, and MCP wiring.
    *
-   * Returns NOT_FOUND when the agent does not exist OR exists but is not
-   * shared (spec.sharing.enabled is false/unset). The two cases are
-   * deliberately indistinguishable so an unshared agent's URL leaks nothing —
-   * unlike getByReference, which returns PERMISSION_DENIED for an existing
-   * but unauthorized agent. Returns INVALID_ARGUMENT when org is empty:
+   * Returns NOT_FOUND when the agent does not exist, is not shared
+   * (spec.sharing.enabled is false/unset), or is shared with the org
+   * audience (spec.sharing.audience is org — anonymous callers must not be
+   * able to distinguish an org-internal share from a nonexistent agent; use
+   * getSharedProfileForMember instead). The cases are deliberately
+   * indistinguishable so an unshared agent's URL leaks nothing — unlike
+   * getByReference, which returns PERMISSION_DENIED for an existing but
+   * unauthorized agent. Returns INVALID_ARGUMENT when org is empty:
    * org+slug is the shared URL's identity, and cross-org slug matching on a
    * public endpoint would enable enumeration.
    *
@@ -94,6 +97,36 @@ export const AgentQueryController: GenService<{
    * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getSharedProfile
    */
   getSharedProfile: {
+    methodKind: "unary";
+    input: typeof ApiResourceReferenceSchema;
+    output: typeof SharedAgentProfileSchema;
+  },
+  /**
+   * Get the profile of a shared agent as a signed-in organization member.
+   *
+   * This is the resolution path for the hosted chat page when an agent is
+   * shared with the org audience (spec.sharing.audience is org): the public
+   * getSharedProfile deliberately returns NOT_FOUND for such agents, so a
+   * signed-in member resolves the same trimmed SharedAgentProfile through
+   * this authenticated RPC instead. Also resolves public-audience shares,
+   * so an authenticated caller can use one resolution path for any share.
+   *
+   * Returns NOT_FOUND when the agent does not exist, is not shared, or the
+   * caller is not a member of the owning organization — the cases are
+   * deliberately indistinguishable so a share URL leaks nothing to
+   * non-members. Returns INVALID_ARGUMENT when org is empty.
+   *
+   * @internal
+   * Custom authorization in handler — requires authentication (not
+   * is_public), then an app-level organization#member FGA check for org
+   * shares. No standard resource_kind/permission config: the sharing gate
+   * is app-level by design (see AgentSharing in spec.proto), and membership
+   * is checked live on every call so revoked members lose access
+   * immediately.
+   *
+   * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getSharedProfileForMember
+   */
+  getSharedProfileForMember: {
     methodKind: "unary";
     input: typeof ApiResourceReferenceSchema;
     output: typeof SharedAgentProfileSchema;

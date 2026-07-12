@@ -1,18 +1,19 @@
 ---
 title: Share an Agent
 description:
-  Turn an Agent into a public chat page anyone can use — no account, no setup —
-  and embed it on your own site.
+  Turn an Agent into a hosted chat page — for anyone with the link or just your
+  organization — and embed it on your own site.
 ---
 
-Sharing gives your Agent a public chat link. Anyone who opens the link can chat
-with the Agent right away — they don't need a Stigmer account. This guide shows
-you how to turn sharing on, send the link, and embed the chat on your own
-website.
+Sharing gives your Agent a hosted chat link. You choose who can use it: anyone
+with the link (no Stigmer account needed), or only signed-in members of your
+Organization. This guide shows you how to turn sharing on, pick the audience,
+send the link, and embed the chat on your own website.
 
 <Callout type="warn">
-  Shared links can be forwarded and indexed by search engines. Only share Agents
-  whose knowledge is safe to show to anyone on the internet.
+  Public links can be forwarded and indexed by search engines. Only share Agents
+  publicly when their knowledge is safe to show to anyone on the internet — for
+  internal knowledge, use the **Org members** audience.
 </Callout>
 
 <DemoShareAgentDialog />
@@ -21,10 +22,9 @@ website.
 
 1. Open your Agent in the web console under **Library → Agents**.
 2. Open the actions menu (⋯) and choose **Share**.
-3. Turn on **Anyone with the link can chat**.
+3. Turn on the sharing switch.
 
-The dialog shows the public chat link as soon as sharing is on. The link has the
-form:
+The dialog shows the chat link as soon as sharing is on. The link has the form:
 
 ```
 https://app.stigmer.ai/chat/<org>/<agent>
@@ -32,11 +32,42 @@ https://app.stigmer.ai/chat/<org>/<agent>
 
 Click **Copy** to copy the link, or **Open** to try it yourself.
 
-## Who pays for visitor chats
+## Choose who can chat
 
-Visitor conversations use your Organization's credits. The dialog shows your
-current balance next to the sharing toggle, so you always know what is at stake
-before you share.
+Below the sharing switch, pick the audience:
+
+- **Public link** — anyone who opens the link can chat, with no account. This is
+  the default, and the right choice for support bots, product assistants, and
+  demos.
+- **Org members** — only signed-in members of your Organization can chat. Anyone
+  else — including someone the link was forwarded to — sees the same "not found"
+  page as for an Agent that never existed.
+
+The **Org members** audience is built for internal knowledge Agents. Stigmer
+checks membership on every message, so when someone leaves your Organization,
+their access ends with their membership — there is no lingering link to hunt
+down. The link itself is safe to forward: it shows nothing to non-members.
+
+When a member opens an org-members-only link without being signed in, the page
+offers **Sign in if you have access**. After signing in, they land back on the
+chat.
+
+<Callout type="warn">
+  If you manage the Agent with YAML manifests, keep `audience: org` in the
+  `sharing` block of every apply. Applies replace the sharing settings as a
+  whole, and a missing audience means public — an apply that omits it turns an
+  org-members-only share back into a public one.
+</Callout>
+
+Embedding is available for the public audience only: embeds serve anonymous
+visitors, and an org-members-only Agent requires a signed-in member.
+
+## Who pays for shared chats
+
+Conversations over the shared link use your Organization's credits — for
+visitors on a public link and for members on an org-members-only one. The dialog
+shows your current balance next to the sharing toggle, so you always know what
+is at stake before you share.
 
 Stigmer protects your balance automatically:
 
@@ -110,16 +141,20 @@ existed.
 You can also toggle sharing from the terminal:
 
 ```bash
-# Share and print the chat link + embed snippet
+# Share publicly and print the chat link + embed snippet
 stigmer share agent acme-corp/support-agent
+
+# Share with your organization's members only
+stigmer share agent acme-corp/internal-helper --audience org
 
 # Revoke the link
 stigmer share agent acme-corp/support-agent --off
 ```
 
-The CLI flips only the sharing switch — your allowed origins and visitor
-messages stay as you set them here. Visitor chat is served by Stigmer Cloud, so
-a link from a local backend won't serve visitors. See the
+The CLI changes only what you ask it to — your allowed origins, visitor
+messages, and audience stay as you set them here. A plain toggle never turns an
+org-members-only share back into a public one. Visitor chat is served by Stigmer
+Cloud, so a link from a local backend won't serve visitors. See the
 [`stigmer share` reference](/docs/cli/commands/share) for all flags.
 
 ## Go further with the SDK

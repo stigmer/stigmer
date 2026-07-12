@@ -17,6 +17,7 @@ import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { UpdateAgentSharingInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import {
+  AgentSharingAudience,
   AgentSharingMessagesSchema,
   AgentSharingSchema,
   type AgentSharing,
@@ -27,10 +28,19 @@ import { CommandResult } from "../output/index.js";
 import { isAgentId } from "./reference.js";
 import { resolveAgentRef } from "./run/resolve.js";
 
+/** Who can chat over the shared link. Mirrors the SDK's SharingAudience. */
+export type ShareAudience = "public" | "org";
+
 /** Inputs for {@link shareAgent} beyond the reference itself. */
 export interface ShareAgentOptions {
   /** Desired sharing state: `true` to enable, `false` to disable. */
   readonly enabled: boolean;
+  /**
+   * Desired audience. Omitted means "keep the agent's current audience" —
+   * a plain toggle must never flip an org-members-only share back to
+   * public (or vice versa).
+   */
+  readonly audience?: ShareAudience;
   /** The app origin serving the hosted chat page and `embed.js`. */
   readonly appOrigin: string;
   /**
@@ -66,27 +76,50 @@ export async function shareAgent(
   const agent = await resolveAgentRef(client, ref, org);
   const current = agent.spec?.sharing;
 
-  if ((current?.enabled ?? false) === options.enabled) {
-    return describeOutcome(agent, options, /* alreadyInState */ true);
+  const currentAudience = audienceFromProto(current?.audience);
+  const targetAudience = options.audience ?? currentAudience;
+  const alreadyInState =
+    (current?.enabled ?? false) === options.enabled &&
+    currentAudience === targetAudience;
+
+  if (alreadyInState) {
+    return describeOutcome(agent, options, targetAudience, /* alreadyInState */ true);
   }
 
-  // Send the COMPLETE sharing block with only `enabled` flipped, so a CLI
-  // toggle can never wipe console-configured origins or visitor messages.
+  // Send the COMPLETE sharing block with only the requested fields changed,
+  // so a CLI toggle can never wipe console-configured origins, visitor
+  // messages, or an org-members-only audience.
   await client.agent.updateSharing(
     create(UpdateAgentSharingInputSchema, {
       resourceId: agent.metadata?.id ?? "",
-      sharing: preservingSharing(current, options.enabled),
+      sharing: preservingSharing(current, options.enabled, targetAudience),
     }),
   );
 
-  return describeOutcome(agent, options, /* alreadyInState */ false);
+  return describeOutcome(agent, options, targetAudience, /* alreadyInState */ false);
 }
 
-// The full sharing config with the desired `enabled`, preserving origins and
-// messages (empty defaults when the agent was never shared before).
-function preservingSharing(current: AgentSharing | undefined, enabled: boolean): AgentSharing {
+// Unspecified means public by contract (pre-audience shares keep their
+// anyone-with-link behavior).
+function audienceFromProto(audience: AgentSharingAudience | undefined): ShareAudience {
+  return audience === AgentSharingAudience.org ? "org" : "public";
+}
+
+// The full sharing config with the desired `enabled` and audience,
+// preserving origins and messages (empty defaults when the agent was never
+// shared before). The audience is written explicitly — never left
+// unspecified — so a console-managed org share can't drift back to public.
+function preservingSharing(
+  current: AgentSharing | undefined,
+  enabled: boolean,
+  audience: ShareAudience,
+): AgentSharing {
   return create(AgentSharingSchema, {
     enabled,
+    audience:
+      audience === "org"
+        ? AgentSharingAudience.org
+        : AgentSharingAudience.public,
     allowedOrigins: [...(current?.allowedOrigins ?? [])],
     messages: create(AgentSharingMessagesSchema, {
       rateLimited: current?.messages?.rateLimited ?? "",
@@ -99,7 +132,12 @@ function preservingSharing(current: AgentSharing | undefined, enabled: boolean):
 // Build the user-facing result. Org/slug come from the RESOLVED agent's
 // metadata (authoritative even when the user passed an ID), matching how the
 // web share dialog derives them.
-function describeOutcome(agent: Agent, options: ShareAgentOptions, alreadyInState: boolean): CommandResult {
+function describeOutcome(
+  agent: Agent,
+  options: ShareAgentOptions,
+  audience: ShareAudience,
+  alreadyInState: boolean,
+): CommandResult {
   const org = agent.metadata?.org ?? "";
   const slug = agent.metadata?.slug ?? "";
   const name = agent.metadata?.name || slug;
@@ -117,15 +155,24 @@ function describeOutcome(agent: Agent, options: ShareAgentOptions, alreadyInStat
     alreadyInState ? `Sharing is already on for '${name}'` : `Sharing enabled for '${name}'`,
   );
 
-  result.addSection("Public chat link").item(buildChatUrl(options.appOrigin, org, slug));
+  result
+    .addSection(audience === "org" ? "Member chat link" : "Public chat link")
+    .item(buildChatUrl(options.appOrigin, org, slug));
 
-  const snippetSection = result.addSection("Embed on your site");
-  for (const line of buildEmbedSnippet(options.appOrigin, org, slug).split("\n")) {
-    snippetSection.item(line);
+  if (audience === "org") {
+    // Embeds serve anonymous guests, which org-members-only shares refuse
+    // by design — no snippet to print.
+    result.hint(`Only signed-in members of ${org} can chat. Access ends when they leave the organization.`);
+    result.hint(`Members chat on ${org}'s credits.`);
+  } else {
+    const snippetSection = result.addSection("Embed on your site");
+    for (const line of buildEmbedSnippet(options.appOrigin, org, slug).split("\n")) {
+      snippetSection.item(line);
+    }
+
+    result.hint(`Visitors chat on ${org}'s credits.`);
+    result.hint("Public links can be forwarded and indexed by search engines.");
   }
-
-  result.hint(`Visitors chat on ${org}'s credits.`);
-  result.hint("Public links can be forwarded and indexed by search engines.");
   if (options.isLocal) {
     result.hint("Guest chat is a Stigmer Cloud capability — this local link won't serve visitors.");
   }

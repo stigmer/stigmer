@@ -277,12 +277,13 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * <pre>
    * Sharing configuration for the agent's hosted chat experience.
    *
-   * Controls whether anyone with the agent's public link can chat with the
-   * running agent. This is a distinct consent from metadata.visibility:
-   * visibility governs who can READ the agent blueprint (marketplace), while
-   * sharing governs who can CHAT with the agent runtime. Conversations over a
-   * shared link consume the owning organization's credits, so enabling
-   * sharing is an explicit, billing-affecting decision.
+   * Controls who can chat with the running agent over its hosted link: anyone
+   * with the link (public audience) or signed-in members of the owning
+   * organization (org audience). This is a distinct consent from
+   * metadata.visibility: visibility governs who can READ the agent blueprint
+   * (marketplace), while sharing governs who can CHAT with the agent runtime.
+   * Conversations over a shared link consume the owning organization's
+   * credits, so enabling sharing is an explicit, billing-affecting decision.
    *
    * Unset is equivalent to sharing disabled.
    *
@@ -305,12 +306,13 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * <pre>
    * Sharing configuration for the agent's hosted chat experience.
    *
-   * Controls whether anyone with the agent's public link can chat with the
-   * running agent. This is a distinct consent from metadata.visibility:
-   * visibility governs who can READ the agent blueprint (marketplace), while
-   * sharing governs who can CHAT with the agent runtime. Conversations over a
-   * shared link consume the owning organization's credits, so enabling
-   * sharing is an explicit, billing-affecting decision.
+   * Controls who can chat with the running agent over its hosted link: anyone
+   * with the link (public audience) or signed-in members of the owning
+   * organization (org audience). This is a distinct consent from
+   * metadata.visibility: visibility governs who can READ the agent blueprint
+   * (marketplace), while sharing governs who can CHAT with the agent runtime.
+   * Conversations over a shared link consume the owning organization's
+   * credits, so enabling sharing is an explicit, billing-affecting decision.
    *
    * Unset is equivalent to sharing disabled.
    *
@@ -333,12 +335,13 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    * <pre>
    * Sharing configuration for the agent's hosted chat experience.
    *
-   * Controls whether anyone with the agent's public link can chat with the
-   * running agent. This is a distinct consent from metadata.visibility:
-   * visibility governs who can READ the agent blueprint (marketplace), while
-   * sharing governs who can CHAT with the agent runtime. Conversations over a
-   * shared link consume the owning organization's credits, so enabling
-   * sharing is an explicit, billing-affecting decision.
+   * Controls who can chat with the running agent over its hosted link: anyone
+   * with the link (public audience) or signed-in members of the owning
+   * organization (org audience). This is a distinct consent from
+   * metadata.visibility: visibility governs who can READ the agent blueprint
+   * (marketplace), while sharing governs who can CHAT with the agent runtime.
+   * Conversations over a shared link consume the owning organization's
+   * credits, so enabling sharing is an explicit, billing-affecting decision.
    *
    * Unset is equivalent to sharing disabled.
    *

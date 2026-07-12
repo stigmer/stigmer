@@ -9,11 +9,14 @@ import { useSharedAgentProfile } from "../useSharedAgentProfile";
 
 function createMockStigmer(overrides: {
   getSharedProfile?: (...args: unknown[]) => Promise<unknown>;
+  getSharedProfileForMember?: (...args: unknown[]) => Promise<unknown>;
 } = {}) {
   return {
     agent: {
       getSharedProfile:
         overrides.getSharedProfile ?? vi.fn().mockResolvedValue(null),
+      getSharedProfileForMember:
+        overrides.getSharedProfileForMember ?? vi.fn().mockResolvedValue(null),
     },
   } as never;
 }
@@ -63,6 +66,50 @@ describe("useSharedAgentProfile", () => {
       org: "acme",
       slug: "support-agent",
     });
+  });
+
+  it("resolves through getSharedProfileForMember for the org audience", async () => {
+    const getSharedProfile = vi.fn();
+    const getSharedProfileForMember = vi.fn().mockResolvedValue(PROFILE);
+    const client = createMockStigmer({
+      getSharedProfile,
+      getSharedProfileForMember,
+    });
+
+    const { result } = renderHook(
+      () =>
+        useSharedAgentProfile("acme", "support-agent", { audience: "org" }),
+      { wrapper: wrapper(client) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.profile).toBe(PROFILE);
+    expect(getSharedProfileForMember).toHaveBeenCalledWith({
+      org: "acme",
+      slug: "support-agent",
+    });
+    // The anonymous path returns NOT_FOUND for org shares by design; the
+    // hook must never fall back to it in org mode.
+    expect(getSharedProfile).not.toHaveBeenCalled();
+  });
+
+  it("maps a member-path NOT_FOUND (non-member) to profile === null", async () => {
+    const getSharedProfileForMember = vi.fn().mockRejectedValue(
+      new StigmerError("not-found", "agent not found", Code.NotFound),
+    );
+    const client = createMockStigmer({ getSharedProfileForMember });
+
+    const { result } = renderHook(
+      () =>
+        useSharedAgentProfile("acme", "support-agent", { audience: "org" }),
+      { wrapper: wrapper(client) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.profile).toBeNull();
+    expect(result.current.error).toBeNull();
   });
 
   it("skips fetching when org is null", () => {

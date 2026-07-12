@@ -40,6 +40,23 @@ func (c *AgentController) GetSharedProfile(
 	return profile, nil
 }
 
+// GetSharedProfileForMember resolves a shared agent's profile for an
+// authenticated organization member.
+//
+// In the cloud edition this RPC is the resolution path for org-audience
+// shares (spec.sharing.audience = org), gated by a live org-membership
+// check. The OSS edition is single-user and local: the one principal is
+// effectively the organization, so membership always holds and this
+// resolves exactly like GetSharedProfile — any enabled share, regardless
+// of audience. Implemented for contract parity so clients can use one
+// authenticated resolution path against either edition.
+func (c *AgentController) GetSharedProfileForMember(
+	ctx context.Context,
+	ref *apiresource.ApiResourceReference,
+) (*agentv1.SharedAgentProfile, error) {
+	return c.GetSharedProfile(ctx, ref)
+}
+
 const sharedProfileKey = "sharedAgentProfile"
 
 func (c *AgentController) buildGetSharedProfilePipeline() *pipeline.Pipeline[*apiresource.ApiResourceReference] {

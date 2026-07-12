@@ -1,6 +1,6 @@
 {
   "name": "AgentSharing",
-  "description": "AgentSharing controls public, anyone-with-link access to an agent's\n hosted chat experience.\n\n When enabled, the agent's trimmed profile becomes resolvable through the\n public getSharedProfile RPC and the hosted chat page can serve visitors\n without Stigmer accounts. When disabled (or unset), the shared link\n behaves as if the agent does not exist (NOT_FOUND).\n\n This message is intentionally a wrapper around a single flag so later\n phases can add fields (usage caps, org-only mode, expiry) without a\n breaking change.",
+  "description": "AgentSharing controls access to an agent's hosted chat experience —\n anyone with the link (public audience) or org members only (org audience).\n\n When enabled with the public audience, the agent's trimmed profile becomes\n resolvable through the public getSharedProfile RPC and the hosted chat\n page can serve visitors without Stigmer accounts. When enabled with the\n org audience, only signed-in members of the owning organization can\n resolve the profile (getSharedProfileForMember) and chat. When disabled\n (or unset), the shared link behaves as if the agent does not exist\n (NOT_FOUND).\n\n This message is intentionally a wrapper so later phases can add fields\n (usage caps, expiry) without a breaking change.",
   "protoType": "ai.stigmer.agentic.agent.v1.AgentSharing",
   "protoFile": "apis/ai/stigmer/agentic/agent/v1/spec.proto",
   "fields": [
@@ -11,7 +11,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Whether anyone-with-link access to the hosted chat is enabled.",
+      "description": "Whether hosted-chat access for the configured audience is enabled.",
       "required": false
     },
     {
@@ -39,6 +39,21 @@
         "messageType": "AgentSharingMessages"
       },
       "description": "Owner-customizable copy shown to visitors when a launch-gate limit\n refuses their message. Unset fields fall back to platform defaults.\n\n @internal\n Resolved server-side at the refusal point and carried in the gRPC\n status description — deliberately NOT surfaced on SharedAgentProfile\n and NOT mapped client-side, so the copy reaches every client (web,\n embed, CLI) through the existing error-message path.",
+      "required": false
+    },
+    {
+      "name": "Audience",
+      "jsonName": "audience",
+      "protoField": "audience",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.agent.v1.AgentSharingAudience",
+        "enumValues": [
+          "agent_sharing_audience_public",
+          "agent_sharing_audience_org"
+        ]
+      },
+      "description": "Who can chat with the shared agent. Unspecified means public\n (anyone with the link), so pre-existing shares keep their behavior.\n\n To keep an agent org-only, audience must be present in every apply:\n update/apply replace spec.sharing wholesale, so a manifest that sets\n enabled without audience resets the share to public.\n\n @internal\n Org audience is enforced cloud-side only (org membership is a\n multi-tenant IAM concept): the guest mint and public profile handlers\n treat audience=org as NOT_FOUND, and the create-time blueprint gate\n admits authenticated org members via an app-level FGA member check\n (no visibility tuples written — same posture as the sharing flag).\n The OSS single-user server stores and echoes the field.",
       "required": false
     }
   ]

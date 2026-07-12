@@ -12,7 +12,7 @@ public interface AgentSharingOrBuilder extends
 
   /**
    * <pre>
-   * Whether anyone-with-link access to the hosted chat is enabled.
+   * Whether hosted-chat access for the configured audience is enabled.
    * </pre>
    *
    * <code>bool enabled = 1 [json_name = "enabled"];</code>
@@ -168,4 +168,49 @@ public interface AgentSharingOrBuilder extends
    * <code>.ai.stigmer.agentic.agent.v1.AgentSharingMessages messages = 3 [json_name = "messages"];</code>
    */
   ai.stigmer.agentic.agent.v1.AgentSharingMessagesOrBuilder getMessagesOrBuilder();
+
+  /**
+   * <pre>
+   * Who can chat with the shared agent. Unspecified means public
+   * (anyone with the link), so pre-existing shares keep their behavior.
+   *
+   * To keep an agent org-only, audience must be present in every apply:
+   * update/apply replace spec.sharing wholesale, so a manifest that sets
+   * enabled without audience resets the share to public.
+   *
+   * &#64;internal
+   * Org audience is enforced cloud-side only (org membership is a
+   * multi-tenant IAM concept): the guest mint and public profile handlers
+   * treat audience=org as NOT_FOUND, and the create-time blueprint gate
+   * admits authenticated org members via an app-level FGA member check
+   * (no visibility tuples written — same posture as the sharing flag).
+   * The OSS single-user server stores and echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agent.v1.AgentSharingAudience audience = 4 [json_name = "audience"];</code>
+   * @return The enum numeric value on the wire for audience.
+   */
+  int getAudienceValue();
+  /**
+   * <pre>
+   * Who can chat with the shared agent. Unspecified means public
+   * (anyone with the link), so pre-existing shares keep their behavior.
+   *
+   * To keep an agent org-only, audience must be present in every apply:
+   * update/apply replace spec.sharing wholesale, so a manifest that sets
+   * enabled without audience resets the share to public.
+   *
+   * &#64;internal
+   * Org audience is enforced cloud-side only (org membership is a
+   * multi-tenant IAM concept): the guest mint and public profile handlers
+   * treat audience=org as NOT_FOUND, and the create-time blueprint gate
+   * admits authenticated org members via an app-level FGA member check
+   * (no visibility tuples written — same posture as the sharing flag).
+   * The OSS single-user server stores and echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agent.v1.AgentSharingAudience audience = 4 [json_name = "audience"];</code>
+   * @return The audience.
+   */
+  ai.stigmer.agentic.agent.v1.AgentSharingAudience getAudience();
 }

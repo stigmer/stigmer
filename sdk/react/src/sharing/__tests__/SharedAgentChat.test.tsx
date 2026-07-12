@@ -39,8 +39,12 @@ const profileState: { current: UseSharedAgentProfileReturn } = {
     refetch: vi.fn(),
   },
 };
+const profileHookCalls: unknown[][] = [];
 vi.mock("../useSharedAgentProfile", () => ({
-  useSharedAgentProfile: () => profileState.current,
+  useSharedAgentProfile: (...args: unknown[]) => {
+    profileHookCalls.push(args);
+    return profileState.current;
+  },
 }));
 
 import { SharedAgentChat } from "../SharedAgentChat";
@@ -68,6 +72,7 @@ function setProfileState(state: Partial<UseSharedAgentProfileReturn>) {
 beforeEach(() => {
   newSessionViewerProps.length = 0;
   sessionViewerProps.length = 0;
+  profileHookCalls.length = 0;
 });
 
 afterEach(() => {
@@ -82,6 +87,31 @@ describe("SharedAgentChat", () => {
 
     expect(screen.getByLabelText("Loading agent")).toBeTruthy();
     expect(newSessionViewerProps).toHaveLength(0);
+  });
+
+  it("resolves via the public path by default and the member path for sharingAudience=org", () => {
+    setProfileState({ profile: PROFILE });
+    render(<SharedAgentChat org="acme" slug="support-agent" />);
+    expect(profileHookCalls[0]).toEqual([
+      "acme",
+      "support-agent",
+      { audience: "public" },
+    ]);
+
+    cleanup();
+    profileHookCalls.length = 0;
+
+    render(
+      <SharedAgentChat org="acme" slug="support-agent" sharingAudience="org" />,
+    );
+    expect(profileHookCalls[0]).toEqual([
+      "acme",
+      "support-agent",
+      { audience: "org" },
+    ]);
+    // Presentation is identical either way: the session organisms still
+    // render with the pure-chat guest audience.
+    expect(newSessionViewerProps[0]?.audience).toBe("guest");
   });
 
   it("renders an error state with retry on transient failures", () => {

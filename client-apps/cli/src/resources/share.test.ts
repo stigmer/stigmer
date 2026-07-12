@@ -5,6 +5,7 @@
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { UpdateAgentSharingInput } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { AgentSharingAudience } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { buildEmbedSnippet, type Stigmer } from "@stigmer/sdk";
 import { describe, expect, it } from "vitest";
 import { classify, ExitCode, UsageError } from "../errors/index.js";
@@ -15,6 +16,7 @@ const LOCAL = { appOrigin: "http://localhost:8234", isLocal: true };
 
 function makeAgent(sharing?: {
   enabled?: boolean;
+  audience?: AgentSharingAudience;
   allowedOrigins?: string[];
   messages?: { rateLimited?: string; unavailable?: string; conversationEnded?: string };
 }): Agent {
@@ -94,6 +96,96 @@ describe("shareAgent merge-preservation (fails closed)", () => {
     expect(calls[0].sharing?.enabled).toBe(true);
     expect(calls[0].sharing?.allowedOrigins).toEqual([]);
     expect(calls[0].sharing?.messages?.rateLimited).toBe("");
+  });
+
+  it("a plain toggle preserves an org-members-only audience (never reverts to public)", async () => {
+    const agent = makeAgent({
+      enabled: false,
+      audience: AgentSharingAudience.org,
+      allowedOrigins: [],
+    });
+    const { client, calls } = fakeClient(agent);
+
+    await shareAgent(client, "acme/support-agent", "acme", { enabled: true, ...CLOUD });
+
+    expect(calls).toHaveLength(1);
+    // A re-enable without --audience must keep the org restriction: writing
+    // public here would silently expose an internal agent to the internet.
+    expect(calls[0].sharing?.audience).toBe(AgentSharingAudience.org);
+  });
+});
+
+describe("shareAgent audience", () => {
+  it("--audience org sets the audience and writes the full block", async () => {
+    const agent = makeAgent({
+      enabled: true,
+      allowedOrigins: ["https://example.com"],
+      messages: { rateLimited: "Slow down!" },
+    });
+    const { client, calls } = fakeClient(agent);
+
+    const result = await shareAgent(client, "acme/support-agent", "acme", {
+      enabled: true,
+      audience: "org",
+      ...CLOUD,
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].sharing?.audience).toBe(AgentSharingAudience.org);
+    expect(calls[0].sharing?.enabled).toBe(true);
+    expect(calls[0].sharing?.allowedOrigins).toEqual(["https://example.com"]);
+    expect(calls[0].sharing?.messages?.rateLimited).toBe("Slow down!");
+
+    // Org shares print the member link and NO embed snippet (embeds serve
+    // anonymous guests, which org shares refuse).
+    const link = result.sections.find((s) => s.title === "Member chat link");
+    expect(link?.items).toEqual(["https://app.stigmer.ai/chat/acme/support-agent"]);
+    expect(result.sections.find((s) => s.title === "Embed on your site")).toBeUndefined();
+    expect(result.hints.some((h) => h.includes("signed-in members"))).toBe(true);
+    expect(result.hints.some((h) => h.includes("search engines"))).toBe(false);
+  });
+
+  it("--audience public converts an org share back to an explicit public one", async () => {
+    const agent = makeAgent({ enabled: true, audience: AgentSharingAudience.org });
+    const { client, calls } = fakeClient(agent);
+
+    await shareAgent(client, "acme/support-agent", "acme", {
+      enabled: true,
+      audience: "public",
+      ...CLOUD,
+    });
+
+    expect(calls).toHaveLength(1);
+    // Written as the explicit enum value, never left unspecified.
+    expect(calls[0].sharing?.audience).toBe(AgentSharingAudience.public);
+  });
+
+  it("an audience change alone triggers a write even when enabled matches", async () => {
+    const agent = makeAgent({ enabled: true });
+    const { client, calls } = fakeClient(agent);
+
+    const result = await shareAgent(client, "acme/support-agent", "acme", {
+      enabled: true,
+      audience: "org",
+      ...CLOUD,
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(result.message).toContain("Sharing enabled");
+  });
+
+  it("matching enabled AND audience stays idempotent (no write)", async () => {
+    const agent = makeAgent({ enabled: true, audience: AgentSharingAudience.org });
+    const { client, calls } = fakeClient(agent);
+
+    const result = await shareAgent(client, "acme/support-agent", "acme", {
+      enabled: true,
+      audience: "org",
+      ...CLOUD,
+    });
+
+    expect(calls).toHaveLength(0);
+    expect(result.message).toContain("already on");
   });
 });
 

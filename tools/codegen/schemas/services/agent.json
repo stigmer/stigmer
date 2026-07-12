@@ -93,7 +93,15 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "SharedAgentProfile",
           "outputFullType": "ai.stigmer.agentic.agent.v1.SharedAgentProfile",
-          "description": "Get the public profile of a shared agent by its org/slug reference.\n\n This is the resolution path for the hosted chat page: anonymous\n visitors (no Stigmer account, no token) resolve a shared link to the\n trimmed SharedAgentProfile — never the full Agent, whose spec carries\n the system prompt, environment declarations, and MCP wiring.\n\n Returns NOT_FOUND when the agent does not exist OR exists but is not\n shared (spec.sharing.enabled is false/unset). The two cases are\n deliberately indistinguishable so an unshared agent's URL leaks nothing —\n unlike getByReference, which returns PERMISSION_DENIED for an existing\n but unauthorized agent. Returns INVALID_ARGUMENT when org is empty:\n org+slug is the shared URL's identity, and cross-org slug matching on a\n public endpoint would enable enumeration.\n\n @internal\n Public by design (no authentication): enforcement is the app-level\n sharing gate in the handler, not FGA — see AgentSharing in spec.proto\n for why sharing writes no visibility tuples."
+          "description": "Get the public profile of a shared agent by its org/slug reference.\n\n This is the resolution path for the hosted chat page: anonymous\n visitors (no Stigmer account, no token) resolve a shared link to the\n trimmed SharedAgentProfile — never the full Agent, whose spec carries\n the system prompt, environment declarations, and MCP wiring.\n\n Returns NOT_FOUND when the agent does not exist, is not shared\n (spec.sharing.enabled is false/unset), or is shared with the org\n audience (spec.sharing.audience is org — anonymous callers must not be\n able to distinguish an org-internal share from a nonexistent agent; use\n getSharedProfileForMember instead). The cases are deliberately\n indistinguishable so an unshared agent's URL leaks nothing — unlike\n getByReference, which returns PERMISSION_DENIED for an existing but\n unauthorized agent. Returns INVALID_ARGUMENT when org is empty:\n org+slug is the shared URL's identity, and cross-org slug matching on a\n public endpoint would enable enumeration.\n\n @internal\n Public by design (no authentication): enforcement is the app-level\n sharing gate in the handler, not FGA — see AgentSharing in spec.proto\n for why sharing writes no visibility tuples."
+        },
+        {
+          "name": "GetSharedProfileForMember",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "SharedAgentProfile",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.SharedAgentProfile",
+          "description": "Get the profile of a shared agent as a signed-in organization member.\n\n This is the resolution path for the hosted chat page when an agent is\n shared with the org audience (spec.sharing.audience is org): the public\n getSharedProfile deliberately returns NOT_FOUND for such agents, so a\n signed-in member resolves the same trimmed SharedAgentProfile through\n this authenticated RPC instead. Also resolves public-audience shares,\n so an authenticated caller can use one resolution path for any share.\n\n Returns NOT_FOUND when the agent does not exist, is not shared, or the\n caller is not a member of the owning organization — the cases are\n deliberately indistinguishable so a share URL leaks nothing to\n non-members. Returns INVALID_ARGUMENT when org is empty.\n\n @internal\n Custom authorization in handler — requires authentication (not\n is_public), then an app-level organization#member FGA check for org\n shares. No standard resource_kind/permission config: the sharing gate\n is app-level by design (see AgentSharing in spec.proto), and membership\n is checked live on every call so revoked members lose access\n immediately."
         }
       ]
     }
@@ -497,6 +505,23 @@
           "name": "project",
           "number": 60,
           "description": "Aggregate root grouping related resources for lifecycle management."
+        }
+      ]
+    },
+    {
+      "name": "AgentSharingAudience",
+      "description": "AgentSharingAudience selects who can chat with a shared agent over its\n hosted link.\n\n Unspecified is treated as public for backward compatibility: every share\n created before the audience field existed is an anyone-with-link share.",
+      "protoType": "ai.stigmer.agentic.agent.v1.AgentSharingAudience",
+      "values": [
+        {
+          "name": "agent_sharing_audience_public",
+          "number": 1,
+          "description": "Anyone with the link can chat — no Stigmer account required.\n Visitors are anonymous guests; suitable only for knowledge that is\n safe to expose to the entire internet."
+        },
+        {
+          "name": "agent_sharing_audience_org",
+          "number": 2,
+          "description": "Only signed-in members of the owning organization can chat.\n Membership is checked on every conversation turn, so access ends the\n moment a member leaves the organization. The right mode for\n org-internal knowledge agents."
         }
       ]
     }

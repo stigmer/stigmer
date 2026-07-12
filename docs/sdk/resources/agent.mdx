@@ -60,6 +60,7 @@ Agent agent = client.agents().get("agt_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`getByReference`](#getbyreference) | Get an agent by its organization-scoped reference (org/slug). |
 | [`getDefault`](#getdefault) | Get the platform default agent. |
 | [`getSharedProfile`](#getsharedprofile) | Get the public profile of a shared agent by its org/slug reference. |
+| [`getSharedProfileForMember`](#getsharedprofileformember) | Get the profile of a shared agent as a signed-in organization member. |
 | [`apply`](#apply) | Create or update an agent. |
 | [`create`](#create) | Create an agent. |
 | [`update`](#update) | Update an existing agent. |
@@ -202,7 +203,7 @@ Get the public profile of a shared agent by its org/slug reference.
 
 This is the resolution path for the hosted chat page: anonymous visitors (no Stigmer account, no token) resolve a shared link to the trimmed SharedAgentProfile — never the full Agent, whose spec carries the system prompt, environment declarations, and MCP wiring.
 
-Returns NOT_FOUND when the agent does not exist OR exists but is not shared (spec.sharing.enabled is false/unset). The two cases are deliberately indistinguishable so an unshared agent's URL leaks nothing — unlike getByReference, which returns PERMISSION_DENIED for an existing but unauthorized agent. Returns INVALID_ARGUMENT when org is empty: org+slug is the shared URL's identity, and cross-org slug matching on a public endpoint would enable enumeration.
+Returns NOT_FOUND when the agent does not exist, is not shared (spec.sharing.enabled is false/unset), or is shared with the org audience (spec.sharing.audience is org — anonymous callers must not be able to distinguish an org-internal share from a nonexistent agent; use getSharedProfileForMember instead). The cases are deliberately indistinguishable so an unshared agent's URL leaks nothing — unlike getByReference, which returns PERMISSION_DENIED for an existing but unauthorized agent. Returns INVALID_ARGUMENT when org is empty: org+slug is the shared URL's identity, and cross-org slug matching on a public endpoint would enable enumeration.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -238,6 +239,61 @@ shared_agent_profile = client.agents.get_shared_profile(ApiResourceReference(
 <Tab value="Java">
 ```java
 SharedAgentProfile sharedAgentProfile = client.agents().getSharedProfile(ApiResourceReference.builder()
+    .org("...")
+    .kind("...")
+    .slug("...")
+    .version("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ResourceRef`](#resourceref)
+
+**Returns**: [`SharedAgentProfile`](#sharedagentprofile)
+
+### getSharedProfileForMember
+
+Get the profile of a shared agent as a signed-in organization member.
+
+This is the resolution path for the hosted chat page when an agent is shared with the org audience (spec.sharing.audience is org): the public getSharedProfile deliberately returns NOT_FOUND for such agents, so a signed-in member resolves the same trimmed SharedAgentProfile through this authenticated RPC instead. Also resolves public-audience shares, so an authenticated caller can use one resolution path for any share.
+
+Returns NOT_FOUND when the agent does not exist, is not shared, or the caller is not a member of the owning organization — the cases are deliberately indistinguishable so a share URL leaks nothing to non-members. Returns INVALID_ARGUMENT when org is empty.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const sharedAgentProfile = await stigmer.agent.getSharedProfileForMember({
+  org: "...",
+  kind: "...",
+  slug: "...",
+  version: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+sharedAgentProfile, err := client.Agent.GetSharedProfileForMember(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+shared_agent_profile = client.agents.get_shared_profile_for_member(ApiResourceReference(
+    org="...",
+    kind="...",
+    slug="...",
+    version="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SharedAgentProfile sharedAgentProfile = client.agents().getSharedProfileForMember(ApiResourceReference.builder()
     .org("...")
     .kind("...")
     .slug("...")
@@ -727,13 +783,14 @@ EnvVarDeclaration declares an environment variable required (or optionally accep
 
 ### AgentSharingInput
 
-AgentSharing controls public, anyone-with-link access to an agent's hosted chat experience.
+AgentSharing controls access to an agent's hosted chat experience — anyone with the link (public audience) or org members only (org audience).
 
 <TypeTable
   type={{
-    enabled: { type: "boolean", description: "Whether anyone-with-link access to the hosted chat is enabled." },
+    enabled: { type: "boolean", description: "Whether hosted-chat access for the configured audience is enabled." },
     allowedOrigins: { type: "string[]", description: "Origins permitted to embed this agent's chat widget." },
     messages: { type: "AgentSharingMessagesInput", description: "Owner-customizable copy shown to visitors when a launch-gate limit refuses their message.", typeDescriptionLink: "#agentsharingmessagesinput" },
+    audience: { type: "AgentSharingAudience", description: "Who can chat with the shared agent.", typeDescriptionLink: "#agentsharingaudience" },
   }}
 />
 
@@ -820,4 +877,13 @@ AgentStatus contains system-managed state for an agent.
     defaultInstanceId: { type: "string", description: "ID of the default agent instance." },
   }}
 />
+
+### AgentSharingAudience
+
+AgentSharingAudience selects who can chat with a shared agent over its hosted link.
+
+| Value | Description |
+|-------|-------------|
+| `agent_sharing_audience_public` | Anyone with the link can chat — no Stigmer account required. |
+| `agent_sharing_audience_org` | Only signed-in members of the owning organization can chat. |
 

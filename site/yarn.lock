@@ -2622,16 +2622,16 @@ __metadata:
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=3c50ee&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=97ff8f&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
-  checksum: 10c0/36c72eeacef4bb345abb0fd1bdb97f2d92eaad5cc74afe88975783cdb9b2950fea69283b0ef9c461763f0273a38d2ced66bed10d74f354bd18630805dc06a892
+  checksum: 10c0/c8f5104d599b4307c4e1029f9da653322e7bb69becba4be31d486427509acabc3a7a176e4ac0ae656366174826ca626765f9cdca1f0debfa17cf04b1980534bc
   languageName: node
   linkType: hard
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=266f66&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=eebec4&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protovalidate": "npm:^1.1.1"
     "@dagrejs/dagre": "npm:^1.1.4"
@@ -2699,13 +2699,13 @@ __metadata:
       optional: true
     recharts:
       optional: true
-  checksum: 10c0/9d48b7f896bdcbc35cb1368fcc42305b9cadb90ae09b92db1bf032dfeaf61aa01d2535e1ab66ff685adef92ce57aba9bf8827bc78c3bda1fc613b3427c42d619
+  checksum: 10c0/78408e80af37dc3993809896afbc3283a6516c91e1f233320f780409fb809dd086273db77e70b7f8d99d23b477f22ec23377cd9e73519396087a7af8309271e9
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=136fb6&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=124287&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2716,7 +2716,7 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/c56ab8ad3bfc7bfb9fbbc77b7cd4eb4bd10d0133fbd9a8f26b6b483d089d07fc4bb0b2d92c6aad8fb75d977043c4c18eadcff65636b7ee27b6136b4ea76680fc
+  checksum: 10c0/9870b855e5749de6051f8c651343d98972d269ff93ddc763ce3557f746c1af667c9503370d476503387504fbc5fa5f508be0acd2e464b2da5926220394bf1460
   languageName: node
   linkType: hard
 
@@ -10438,6 +10438,7 @@ __metadata:
     fumadocs-ui: "npm:15.8.5"
     gray-matter: "npm:^4.0.3"
     happy-dom: "npm:^20.8.4"
+    lowlight: "npm:^3.3.0"
     lucide-react: "npm:^0.469.0"
     mermaid: "npm:^11.13.0"
     msw: "npm:^2.7.3"

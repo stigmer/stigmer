@@ -1,10 +1,17 @@
 export { useSharedAgentProfile } from "./useSharedAgentProfile.js";
-export type { UseSharedAgentProfileReturn } from "./useSharedAgentProfile.js";
+export type {
+  UseSharedAgentProfileOptions,
+  UseSharedAgentProfileReturn,
+} from "./useSharedAgentProfile.js";
 export { SharedAgentChat } from "./SharedAgentChat.js";
 export type { SharedAgentChatProps } from "./SharedAgentChat.js";
-export { useUpdateAgentSharing } from "./useUpdateAgentSharing.js";
+export {
+  sharingAudienceFromProto,
+  useUpdateAgentSharing,
+} from "./useUpdateAgentSharing.js";
 export type {
   AgentSharingDraft,
+  SharingAudience,
   UseUpdateAgentSharingReturn,
 } from "./useUpdateAgentSharing.js";
 export { ShareAgentDialog } from "./ShareAgentDialog.js";

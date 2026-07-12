@@ -24,6 +24,68 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// AgentSharingAudience selects who can chat with a shared agent over its
+// hosted link.
+//
+// Unspecified is treated as public for backward compatibility: every share
+// created before the audience field existed is an anyone-with-link share.
+type AgentSharingAudience int32
+
+const (
+	// Treated as public (backward compatibility with pre-audience shares).
+	AgentSharingAudience_agent_sharing_audience_unspecified AgentSharingAudience = 0
+	// Anyone with the link can chat — no Stigmer account required.
+	// Visitors are anonymous guests; suitable only for knowledge that is
+	// safe to expose to the entire internet.
+	AgentSharingAudience_agent_sharing_audience_public AgentSharingAudience = 1
+	// Only signed-in members of the owning organization can chat.
+	// Membership is checked on every conversation turn, so access ends the
+	// moment a member leaves the organization. The right mode for
+	// org-internal knowledge agents.
+	AgentSharingAudience_agent_sharing_audience_org AgentSharingAudience = 2
+)
+
+// Enum value maps for AgentSharingAudience.
+var (
+	AgentSharingAudience_name = map[int32]string{
+		0: "agent_sharing_audience_unspecified",
+		1: "agent_sharing_audience_public",
+		2: "agent_sharing_audience_org",
+	}
+	AgentSharingAudience_value = map[string]int32{
+		"agent_sharing_audience_unspecified": 0,
+		"agent_sharing_audience_public":      1,
+		"agent_sharing_audience_org":         2,
+	}
+)
+
+func (x AgentSharingAudience) Enum() *AgentSharingAudience {
+	p := new(AgentSharingAudience)
+	*p = x
+	return p
+}
+
+func (x AgentSharingAudience) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AgentSharingAudience) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_enumTypes[0].Descriptor()
+}
+
+func (AgentSharingAudience) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agent_v1_spec_proto_enumTypes[0]
+}
+
+func (x AgentSharingAudience) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AgentSharingAudience.Descriptor instead.
+func (AgentSharingAudience) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP(), []int{0}
+}
+
 // AgentSpec defines the configurable properties of an agent.
 //
 // @internal
@@ -51,12 +113,13 @@ type AgentSpec struct {
 	Env map[string]*v1.EnvVarDeclaration `protobuf:"bytes,7,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Sharing configuration for the agent's hosted chat experience.
 	//
-	// Controls whether anyone with the agent's public link can chat with the
-	// running agent. This is a distinct consent from metadata.visibility:
-	// visibility governs who can READ the agent blueprint (marketplace), while
-	// sharing governs who can CHAT with the agent runtime. Conversations over a
-	// shared link consume the owning organization's credits, so enabling
-	// sharing is an explicit, billing-affecting decision.
+	// Controls who can chat with the running agent over its hosted link: anyone
+	// with the link (public audience) or signed-in members of the owning
+	// organization (org audience). This is a distinct consent from
+	// metadata.visibility: visibility governs who can READ the agent blueprint
+	// (marketplace), while sharing governs who can CHAT with the agent runtime.
+	// Conversations over a shared link consume the owning organization's
+	// credits, so enabling sharing is an explicit, billing-affecting decision.
 	//
 	// Unset is equivalent to sharing disabled.
 	//
@@ -160,20 +223,22 @@ func (x *AgentSpec) GetSharing() *AgentSharing {
 	return nil
 }
 
-// AgentSharing controls public, anyone-with-link access to an agent's
-// hosted chat experience.
+// AgentSharing controls access to an agent's hosted chat experience —
+// anyone with the link (public audience) or org members only (org audience).
 //
-// When enabled, the agent's trimmed profile becomes resolvable through the
-// public getSharedProfile RPC and the hosted chat page can serve visitors
-// without Stigmer accounts. When disabled (or unset), the shared link
-// behaves as if the agent does not exist (NOT_FOUND).
+// When enabled with the public audience, the agent's trimmed profile becomes
+// resolvable through the public getSharedProfile RPC and the hosted chat
+// page can serve visitors without Stigmer accounts. When enabled with the
+// org audience, only signed-in members of the owning organization can
+// resolve the profile (getSharedProfileForMember) and chat. When disabled
+// (or unset), the shared link behaves as if the agent does not exist
+// (NOT_FOUND).
 //
-// This message is intentionally a wrapper around a single flag so later
-// phases can add fields (usage caps, org-only mode, expiry) without a
-// breaking change.
+// This message is intentionally a wrapper so later phases can add fields
+// (usage caps, expiry) without a breaking change.
 type AgentSharing struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Whether anyone-with-link access to the hosted chat is enabled.
+	// Whether hosted-chat access for the configured audience is enabled.
 	Enabled bool `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Origins permitted to embed this agent's chat widget.
 	//
@@ -200,7 +265,22 @@ type AgentSharing struct {
 	// status description — deliberately NOT surfaced on SharedAgentProfile
 	// and NOT mapped client-side, so the copy reaches every client (web,
 	// embed, CLI) through the existing error-message path.
-	Messages      *AgentSharingMessages `protobuf:"bytes,3,opt,name=messages,proto3" json:"messages,omitempty"`
+	Messages *AgentSharingMessages `protobuf:"bytes,3,opt,name=messages,proto3" json:"messages,omitempty"`
+	// Who can chat with the shared agent. Unspecified means public
+	// (anyone with the link), so pre-existing shares keep their behavior.
+	//
+	// To keep an agent org-only, audience must be present in every apply:
+	// update/apply replace spec.sharing wholesale, so a manifest that sets
+	// enabled without audience resets the share to public.
+	//
+	// @internal
+	// Org audience is enforced cloud-side only (org membership is a
+	// multi-tenant IAM concept): the guest mint and public profile handlers
+	// treat audience=org as NOT_FOUND, and the create-time blueprint gate
+	// admits authenticated org members via an app-level FGA member check
+	// (no visibility tuples written — same posture as the sharing flag).
+	// The OSS single-user server stores and echoes the field.
+	Audience      AgentSharingAudience `protobuf:"varint,4,opt,name=audience,proto3,enum=ai.stigmer.agentic.agent.v1.AgentSharingAudience" json:"audience,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -254,6 +334,13 @@ func (x *AgentSharing) GetMessages() *AgentSharingMessages {
 		return x.Messages
 	}
 	return nil
+}
+
+func (x *AgentSharing) GetAudience() AgentSharingAudience {
+	if x != nil {
+		return x.Audience
+	}
+	return AgentSharingAudience_agent_sharing_audience_unspecified
 }
 
 // AgentSharingMessages holds owner-customizable visitor-facing copy for
@@ -675,12 +762,13 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\asharing\x18\b \x01(\v2).ai.stigmer.agentic.agent.v1.AgentSharingR\asharing\x1al\n" +
 	"\bEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12J\n" +
-	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01\"\xba\x03\n" +
+	"\x05value\x18\x02 \x01(\v24.ai.stigmer.agentic.environment.v1.EnvVarDeclarationR\x05value:\x028\x01\"\x89\x04\n" +
 	"\fAgentSharing\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\xc0\x02\n" +
 	"\x0fallowed_origins\x18\x02 \x03(\tB\x96\x02\xbaH\x92\x02\x92\x01\x8e\x02\x10 \"\x89\x02\xba\x01\x85\x02\n" +
 	"\x16allowed_origins.format\x12nallowed_origins entries must be exact web origins like https://example.com (no path, query, or trailing slash)\x1a{this.matches('^https?://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*(:[0-9]{1,5})?$')R\x0eallowedOrigins\x12M\n" +
-	"\bmessages\x18\x03 \x01(\v21.ai.stigmer.agentic.agent.v1.AgentSharingMessagesR\bmessages\"\xa8\x01\n" +
+	"\bmessages\x18\x03 \x01(\v21.ai.stigmer.agentic.agent.v1.AgentSharingMessagesR\bmessages\x12M\n" +
+	"\baudience\x18\x04 \x01(\x0e21.ai.stigmer.agentic.agent.v1.AgentSharingAudienceR\baudience\"\xa8\x01\n" +
 	"\x14AgentSharingMessages\x12+\n" +
 	"\frate_limited\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xac\x02R\vrateLimited\x12*\n" +
 	"\vunavailable\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\xac\x02R\vunavailable\x127\n" +
@@ -708,7 +796,11 @@ const file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc = "" +
 	"\x14ToolApprovalOverride\x12$\n" +
 	"\ttool_name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btoolName\x12+\n" +
 	"\x11requires_approval\x18\x02 \x01(\bR\x10requiresApproval\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessageB\x8a\x02\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage*\x81\x01\n" +
+	"\x14AgentSharingAudience\x12&\n" +
+	"\"agent_sharing_audience_unspecified\x10\x00\x12!\n" +
+	"\x1dagent_sharing_audience_public\x10\x01\x12\x1e\n" +
+	"\x1aagent_sharing_audience_org\x10\x02B\x8a\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\tSpecProtoP\x01ZKgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var (
@@ -723,36 +815,39 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agent_v1_spec_proto_rawDescData
 }
 
+var file_ai_stigmer_agentic_agent_v1_spec_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ai_stigmer_agentic_agent_v1_spec_proto_goTypes = []any{
-	(*AgentSpec)(nil),                        // 0: ai.stigmer.agentic.agent.v1.AgentSpec
-	(*AgentSharing)(nil),                     // 1: ai.stigmer.agentic.agent.v1.AgentSharing
-	(*AgentSharingMessages)(nil),             // 2: ai.stigmer.agentic.agent.v1.AgentSharingMessages
-	(*SubAgent)(nil),                         // 3: ai.stigmer.agentic.agent.v1.SubAgent
-	(*McpServerUsage)(nil),                   // 4: ai.stigmer.agentic.agent.v1.McpServerUsage
-	(*McpAccess)(nil),                        // 5: ai.stigmer.agentic.agent.v1.McpAccess
-	(*ToolApprovalOverride)(nil),             // 6: ai.stigmer.agentic.agent.v1.ToolApprovalOverride
-	nil,                                      // 7: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
-	(*apiresource.ApiResourceReference)(nil), // 8: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*v1.EnvVarDeclaration)(nil),             // 9: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	(AgentSharingAudience)(0),                // 0: ai.stigmer.agentic.agent.v1.AgentSharingAudience
+	(*AgentSpec)(nil),                        // 1: ai.stigmer.agentic.agent.v1.AgentSpec
+	(*AgentSharing)(nil),                     // 2: ai.stigmer.agentic.agent.v1.AgentSharing
+	(*AgentSharingMessages)(nil),             // 3: ai.stigmer.agentic.agent.v1.AgentSharingMessages
+	(*SubAgent)(nil),                         // 4: ai.stigmer.agentic.agent.v1.SubAgent
+	(*McpServerUsage)(nil),                   // 5: ai.stigmer.agentic.agent.v1.McpServerUsage
+	(*McpAccess)(nil),                        // 6: ai.stigmer.agentic.agent.v1.McpAccess
+	(*ToolApprovalOverride)(nil),             // 7: ai.stigmer.agentic.agent.v1.ToolApprovalOverride
+	nil,                                      // 8: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
+	(*apiresource.ApiResourceReference)(nil), // 9: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*v1.EnvVarDeclaration)(nil),             // 10: ai.stigmer.agentic.environment.v1.EnvVarDeclaration
 }
 var file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs = []int32{
-	4,  // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.agent.v1.McpServerUsage
-	8,  // 1: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	3,  // 2: ai.stigmer.agentic.agent.v1.AgentSpec.sub_agents:type_name -> ai.stigmer.agentic.agent.v1.SubAgent
-	7,  // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
-	1,  // 4: ai.stigmer.agentic.agent.v1.AgentSpec.sharing:type_name -> ai.stigmer.agentic.agent.v1.AgentSharing
-	2,  // 5: ai.stigmer.agentic.agent.v1.AgentSharing.messages:type_name -> ai.stigmer.agentic.agent.v1.AgentSharingMessages
-	5,  // 6: ai.stigmer.agentic.agent.v1.SubAgent.mcp_access:type_name -> ai.stigmer.agentic.agent.v1.McpAccess
-	8,  // 7: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	8,  // 8: ai.stigmer.agentic.agent.v1.McpServerUsage.mcp_server_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	6,  // 9: ai.stigmer.agentic.agent.v1.McpServerUsage.tool_approval_overrides:type_name -> ai.stigmer.agentic.agent.v1.ToolApprovalOverride
-	9,  // 10: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	5,  // 0: ai.stigmer.agentic.agent.v1.AgentSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.agent.v1.McpServerUsage
+	9,  // 1: ai.stigmer.agentic.agent.v1.AgentSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4,  // 2: ai.stigmer.agentic.agent.v1.AgentSpec.sub_agents:type_name -> ai.stigmer.agentic.agent.v1.SubAgent
+	8,  // 3: ai.stigmer.agentic.agent.v1.AgentSpec.env:type_name -> ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry
+	2,  // 4: ai.stigmer.agentic.agent.v1.AgentSpec.sharing:type_name -> ai.stigmer.agentic.agent.v1.AgentSharing
+	3,  // 5: ai.stigmer.agentic.agent.v1.AgentSharing.messages:type_name -> ai.stigmer.agentic.agent.v1.AgentSharingMessages
+	0,  // 6: ai.stigmer.agentic.agent.v1.AgentSharing.audience:type_name -> ai.stigmer.agentic.agent.v1.AgentSharingAudience
+	6,  // 7: ai.stigmer.agentic.agent.v1.SubAgent.mcp_access:type_name -> ai.stigmer.agentic.agent.v1.McpAccess
+	9,  // 8: ai.stigmer.agentic.agent.v1.SubAgent.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	9,  // 9: ai.stigmer.agentic.agent.v1.McpServerUsage.mcp_server_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	7,  // 10: ai.stigmer.agentic.agent.v1.McpServerUsage.tool_approval_overrides:type_name -> ai.stigmer.agentic.agent.v1.ToolApprovalOverride
+	10, // 11: ai.stigmer.agentic.agent.v1.AgentSpec.EnvEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvVarDeclaration
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agent_v1_spec_proto_init() }
@@ -765,13 +860,14 @@ func file_ai_stigmer_agentic_agent_v1_spec_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_agent_v1_spec_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_agent_v1_spec_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_agent_v1_spec_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_agentic_agent_v1_spec_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_agent_v1_spec_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_agent_v1_spec_proto = out.File

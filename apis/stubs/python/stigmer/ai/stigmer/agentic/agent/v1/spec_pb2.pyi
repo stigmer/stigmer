@@ -3,12 +3,22 @@ from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_p
 from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Iterable as _Iterable, Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
+
+class AgentSharingAudience(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    agent_sharing_audience_unspecified: _ClassVar[AgentSharingAudience]
+    agent_sharing_audience_public: _ClassVar[AgentSharingAudience]
+    agent_sharing_audience_org: _ClassVar[AgentSharingAudience]
+agent_sharing_audience_unspecified: AgentSharingAudience
+agent_sharing_audience_public: AgentSharingAudience
+agent_sharing_audience_org: AgentSharingAudience
 
 class AgentSpec(_message.Message):
     __slots__ = ("description", "icon_url", "instructions", "mcp_server_usages", "skill_refs", "sub_agents", "env", "sharing")
@@ -38,14 +48,16 @@ class AgentSpec(_message.Message):
     def __init__(self, description: _Optional[str] = ..., icon_url: _Optional[str] = ..., instructions: _Optional[str] = ..., mcp_server_usages: _Optional[_Iterable[_Union[McpServerUsage, _Mapping]]] = ..., skill_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., sub_agents: _Optional[_Iterable[_Union[SubAgent, _Mapping]]] = ..., env: _Optional[_Mapping[str, _spec_pb2.EnvVarDeclaration]] = ..., sharing: _Optional[_Union[AgentSharing, _Mapping]] = ...) -> None: ...
 
 class AgentSharing(_message.Message):
-    __slots__ = ("enabled", "allowed_origins", "messages")
+    __slots__ = ("enabled", "allowed_origins", "messages", "audience")
     ENABLED_FIELD_NUMBER: _ClassVar[int]
     ALLOWED_ORIGINS_FIELD_NUMBER: _ClassVar[int]
     MESSAGES_FIELD_NUMBER: _ClassVar[int]
+    AUDIENCE_FIELD_NUMBER: _ClassVar[int]
     enabled: bool
     allowed_origins: _containers.RepeatedScalarFieldContainer[str]
     messages: AgentSharingMessages
-    def __init__(self, enabled: bool = ..., allowed_origins: _Optional[_Iterable[str]] = ..., messages: _Optional[_Union[AgentSharingMessages, _Mapping]] = ...) -> None: ...
+    audience: AgentSharingAudience
+    def __init__(self, enabled: bool = ..., allowed_origins: _Optional[_Iterable[str]] = ..., messages: _Optional[_Union[AgentSharingMessages, _Mapping]] = ..., audience: _Optional[_Union[AgentSharingAudience, str]] = ...) -> None: ...
 
 class AgentSharingMessages(_message.Message):
     __slots__ = ("rate_limited", "unavailable", "conversation_ended")
