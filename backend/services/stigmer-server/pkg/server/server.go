@@ -535,6 +535,13 @@ func Run() error {
 
 	log.Info().Msg("Injected dependencies into controllers")
 
+	// Controllers are now fully wired, so the server can answer RPCs. Flip the
+	// standard gRPC health service to SERVING before the network listener opens
+	// (below), giving supervisors a readiness signal that means "answering RPCs"
+	// rather than merely "port bound". Stop() flips it back to NOT_SERVING.
+	server.SetHealthServing()
+	log.Info().Msg("gRPC health status set to SERVING")
+
 	// ============================================================================
 	// Start Temporal health monitor (after all controllers are ready)
 	// ============================================================================

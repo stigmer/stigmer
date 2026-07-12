@@ -224,6 +224,9 @@ grpcurl -plaintext -d '{"id": "agent-123"}' localhost:8080 ai.stigmer.agentic.ag
 
 # List agents
 grpcurl -plaintext localhost:8080 ai.stigmer.agentic.agent.v1.AgentQueryController/List
+
+# Check readiness via the standard health service (reports SERVING once wired)
+grpcurl -plaintext localhost:8080 grpc.health.v1.Health/Check
 ```
 
 ## Deployment
