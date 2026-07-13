@@ -90,6 +90,12 @@ Every surface that shows pending gates — `WorkflowExecutionViewer`'s inspector
 and its timeline — picks the renderer up from context. No other wiring is
 required.
 
+Here is the result, live. This gate carries the revision above as its payload
+with `ui_hint: article-diff`, and a registered renderer presents it as a diff —
+try a decision:
+
+<DemoReviewPayloadRenderer />
+
 ## The renderer contract
 
 Your component receives `ReviewRendererProps`:
@@ -115,6 +121,11 @@ it — the Stigmer Console, the CLI, another team's app — the built-in approva
 card renders instead, showing the payload as structured data. Your workflow
 stays portable across every surface; only the presentation upgrades where a
 renderer exists.
+
+This is the same gate — same payload, same `ui_hint` — on a surface with no
+registered renderers:
+
+<DemoReviewPayloadFallback />
 
 This also means you can add `ui_hint` to production workflows before your
 renderer ships: reviewers see structured data today, your custom UI tomorrow,

@@ -28,6 +28,8 @@ export { PlatformClientSetupTour as DemoPlatformClientSetupTour } from "./demos/
 export { PlatformClientTokenFlow as DemoPlatformClientTokenFlow } from "./demos/scenarios/platform-client-token-flow";
 export { ThemingPlayground as DemoThemingPlayground } from "./demos/scenarios/theming-playground";
 export { ShareAgentDialogDemo as DemoShareAgentDialog } from "./demos/scenarios/share-agent-dialog";
+export { ReviewPayloadRenderer as DemoReviewPayloadRenderer } from "./demos/scenarios/review-payload-gate";
+export { ReviewPayloadFallback as DemoReviewPayloadFallback } from "./demos/scenarios/review-payload-gate";
 export { glossary } from "./glossary";
 export { Mermaid } from "./mermaid";
 export { ScenarEmbed } from "./scenar-embed";
