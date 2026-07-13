@@ -95,6 +95,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # No build cache: the image is a single `npm install --global` layer that
+      # builds in well under a minute per platform, so the GitHub Actions cache
+      # (type=gha) buys nothing. Worse, `cache-to type=gha,mode=max` has hung the
+      # export for up to an hour (see the v3.1.11 release), so we omit it entirely.
       - name: Build and push Docker image
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
@@ -106,8 +110,6 @@ jobs:
             --build-arg MCP_SERVER_VERSION=$NPM_VERSION \
             --tag ghcr.io/stigmer/mcp-server-stigmer:$VERSION \
             --tag ghcr.io/stigmer/mcp-server-stigmer:latest \
-            --cache-from type=gha \
-            --cache-to type=gha,mode=max \
             --push \
             .
 
