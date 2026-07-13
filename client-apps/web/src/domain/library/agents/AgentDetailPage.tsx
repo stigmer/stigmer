@@ -14,6 +14,7 @@ import {
   useExportResource,
   ConfirmDialog,
   useBreadcrumbOverride,
+  useActiveOrgSlug,
   type DetailAction,
 } from "@stigmer/react";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
@@ -30,6 +31,9 @@ interface AgentDetailPageInnerProps {
 export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   const router = useRouter();
   const { setLabel } = useBreadcrumbOverride();
+  // The viewer's own org — enables "Create share link" on other orgs'
+  // marketplace-public agents (the cross-org share entry, decision 013).
+  const viewerOrg = useActiveOrgSlug();
   const { navigateToDetail } = useLibraryNavigation();
   const [resourceId, setResourceId] = useState<string | null>(null);
   const [resourceName, setResourceName] = useState<string>("Agent");
@@ -186,6 +190,7 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         primaryAction={primaryAction}
         actions={actions}
         buildShareUrl={buildShareUrl}
+        viewerOrg={viewerOrg}
         onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}
         onInstanceStartSessionClick={handleInstanceStartSession}
         onInstanceDeleteClick={handleInstanceDelete}

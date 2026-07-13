@@ -7,9 +7,11 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentsharev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1"
+	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
 	"google.golang.org/grpc/codes"
@@ -31,31 +33,33 @@ func agentCtx() context.Context {
 }
 
 type testControllers struct {
+	store  store.Store
 	shares *AgentShareController
 	agents *agentcontroller.AgentController
 }
 
 func newTestControllers(t *testing.T) *testControllers {
 	t.Helper()
-	store, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
+	s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
 	if err != nil {
 		t.Fatalf("failed to create store: %v", err)
 	}
-	t.Cleanup(func() { store.Close() })
+	t.Cleanup(func() { s.Close() })
 	return &testControllers{
-		shares: NewAgentShareController(store),
-		agents: agentcontroller.NewAgentController(store, nil),
+		store:  s,
+		shares: NewAgentShareController(s),
+		agents: agentcontroller.NewAgentController(s, nil),
 	}
 }
 
-func createTestAgent(t *testing.T, tc *testControllers, name string) *agentv1.Agent {
+func createTestAgentInOrg(t *testing.T, tc *testControllers, name, org string) *agentv1.Agent {
 	t.Helper()
 	created, err := tc.agents.Create(agentCtx(), &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Agent",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: name,
-			Org:  "test-org",
+			Org:  org,
 		},
 		Spec: &agentv1.AgentSpec{
 			Description:  "Agent for sharing tests",
@@ -67,6 +71,47 @@ func createTestAgent(t *testing.T, tc *testControllers, name string) *agentv1.Ag
 		t.Fatalf("agent Create failed: %v", err)
 	}
 	return created
+}
+
+func createTestAgent(t *testing.T, tc *testControllers, name string) *agentv1.Agent {
+	t.Helper()
+	return createTestAgentInOrg(t, tc, name, "test-org")
+}
+
+// makeAgentPublic flips the agent to marketplace-public through the real
+// updateVisibility pipeline — the origin org's consent act for cross-org
+// shares (decision 013 D1).
+func makeAgentPublic(t *testing.T, tc *testControllers, agent *agentv1.Agent) *agentv1.Agent {
+	t.Helper()
+	updated, err := tc.agents.UpdateVisibility(agentCtx(), &apiresource.UpdateVisibilityInput{
+		ResourceId: agent.GetMetadata().GetId(),
+		Visibility: apiresource.ApiResourceVisibility_visibility_public,
+	})
+	if err != nil {
+		t.Fatalf("agent UpdateVisibility failed: %v", err)
+	}
+	return updated
+}
+
+// saveSkill writes a skill fixture directly to the store — the established
+// cross-domain fixture pattern (the skill controller needs artifact
+// storage the sharing tests don't).
+func saveSkill(t *testing.T, tc *testControllers, id, org, slug string, visibility apiresource.ApiResourceVisibility) {
+	t.Helper()
+	skill := &skillv1.Skill{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Skill",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:         id,
+			Name:       slug,
+			Slug:       slug,
+			Org:        org,
+			Visibility: visibility,
+		},
+	}
+	if err := tc.store.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_skill, id, skill); err != nil {
+		t.Fatalf("failed to save skill %s: %v", id, err)
+	}
 }
 
 // shareFor builds the minimal canonical share for an agent: no slug, no
@@ -134,14 +179,40 @@ func TestAgentShareController_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("cross-org agent_ref is FAILED_PRECONDITION (Phase A invariant)", func(t *testing.T) {
-		agent := createTestAgent(t, tc, "Cross Org Agent")
+	t.Run("cross-org ref to a nonexistent agent is NOT_FOUND", func(t *testing.T) {
+		agent := createTestAgent(t, tc, "Cross Org Ghost Agent")
 		share := shareFor(agent, true)
+		// The slug exists in test-org but not in the referenced org — the
+		// lookup must miss, never fall back across orgs.
 		share.Spec.AgentRef.Org = "some-other-org"
 
 		_, err := tc.shares.Create(shareCtx(), share)
-		if status.Code(err) != codes.FailedPrecondition {
-			t.Errorf("expected FAILED_PRECONDITION for cross-org share, got %s (%v)", status.Code(err), err)
+		if status.Code(err) != codes.NotFound {
+			t.Errorf("expected NOT_FOUND for a cross-org ref to a nonexistent agent, got %s (%v)", status.Code(err), err)
+		}
+	})
+
+	t.Run("stamps the agent-id pin on the created share", func(t *testing.T) {
+		agent := createTestAgent(t, tc, "Pin Stamp Agent")
+		share := createTestShare(t, tc, agent, true)
+
+		if got := share.GetStatus().GetAgentId(); got != agent.GetMetadata().GetId() {
+			t.Errorf("status.agent_id should pin the referenced agent: expected %q, got %q",
+				agent.GetMetadata().GetId(), got)
+		}
+	})
+
+	t.Run("a client-provided pin is discarded, never trusted", func(t *testing.T) {
+		agent := createTestAgent(t, tc, "Pin Forgery Agent")
+		share := shareFor(agent, true)
+		share.Status = &agentsharev1.AgentShareStatus{AgentId: "agt_forged"}
+
+		created, err := tc.shares.Create(shareCtx(), share)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+		if got := created.GetStatus().GetAgentId(); got != agent.GetMetadata().GetId() {
+			t.Errorf("client-provided status.agent_id must be replaced with the real pin: got %q", got)
 		}
 	})
 
@@ -331,6 +402,212 @@ func TestAgentShareController_Update(t *testing.T) {
 		_, err := tc.shares.Update(shareCtx(), repointed)
 		if status.Code(err) != codes.FailedPrecondition {
 			t.Errorf("expected FAILED_PRECONDITION for a re-pointed agent_ref, got %s (%v)", status.Code(err), err)
+		}
+	})
+}
+
+// TestAgentShareController_CrossOrg pins the Phase B contract
+// (decision 013): a share may reference a marketplace-public agent in
+// another org, gated by the D1/D3/D5 create-time validation, the agent-id
+// pin, and the per-resolution visibility re-check.
+func TestAgentShareController_CrossOrg(t *testing.T) {
+	tc := newTestControllers(t)
+
+	// crossOrgShare builds a share in consumer-org referencing an agent in
+	// its own (provider) org.
+	crossOrgShare := func(agent *agentv1.Agent, enabled bool) *agentsharev1.AgentShare {
+		share := shareFor(agent, enabled)
+		share.Metadata.Org = "consumer-org"
+		share.Spec.AgentRef.Org = agent.GetMetadata().GetOrg()
+		return share
+	}
+
+	t.Run("public agent is shareable cross-org, pin stamped, slug defaulted", func(t *testing.T) {
+		agent := makeAgentPublic(t, tc,
+			createTestAgentInOrg(t, tc, "Public Provider Agent", "provider-org"))
+
+		created, err := tc.shares.Create(shareCtx(), crossOrgShare(agent, true))
+		if err != nil {
+			t.Fatalf("cross-org Create failed: %v", err)
+		}
+		if got := created.GetMetadata().GetOrg(); got != "consumer-org" {
+			t.Errorf("share must live in the sharing org: got %q", got)
+		}
+		if got := created.GetSpec().GetAgentRef().GetOrg(); got != "provider-org" {
+			t.Errorf("agent_ref must keep the provider org: got %q", got)
+		}
+		if got := created.GetMetadata().GetSlug(); got != agent.GetMetadata().GetSlug() {
+			t.Errorf("share slug should default to the agent's slug in the sharing org's namespace: got %q", got)
+		}
+		if got := created.GetStatus().GetAgentId(); got != agent.GetMetadata().GetId() {
+			t.Errorf("cross-org share must carry the agent-id pin: expected %q, got %q",
+				agent.GetMetadata().GetId(), got)
+		}
+
+		profile, err := tc.shares.GetSharedProfile(shareCtx(), &agentsharev1.GetSharedProfileRequest{
+			Org:  "consumer-org",
+			Slug: created.GetMetadata().GetSlug(),
+		})
+		if err != nil {
+			t.Fatalf("cross-org GetSharedProfile failed: %v", err)
+		}
+		if profile.GetOrg() != "consumer-org" {
+			t.Errorf("profile URL identity must be the share's org: got %q", profile.GetOrg())
+		}
+		if profile.GetName() != agent.GetMetadata().GetName() {
+			t.Errorf("profile display fields must come from the provider agent: got %q", profile.GetName())
+		}
+	})
+
+	t.Run("non-public agent is NOT_FOUND, indistinguishable from absence", func(t *testing.T) {
+		agent := createTestAgentInOrg(t, tc, "Private Provider Agent", "provider-org")
+
+		_, err := tc.shares.Create(shareCtx(), crossOrgShare(agent, true))
+		if status.Code(err) != codes.NotFound {
+			t.Errorf("expected NOT_FOUND for a cross-org share of a private agent, got %s (%v)", status.Code(err), err)
+		}
+
+		// The refusal must match a genuinely missing agent — this create
+		// path must not become an existence probe for private slugs. The
+		// probe uses the SAME slug in an org where it does not exist,
+		// because the unified NOT_FOUND echoes the caller's slug (the T09
+		// indistinguishability contract).
+		ghost := crossOrgShare(agent, true)
+		ghost.Spec.AgentRef.Org = "empty-provider-org"
+		_, ghostErr := tc.shares.Create(shareCtx(), ghost)
+		if status.Convert(err).Message() != status.Convert(ghostErr).Message() {
+			t.Errorf("private-agent and missing-agent refusals must be identical:\n  private: %v\n  missing: %v",
+				status.Convert(err).Message(), status.Convert(ghostErr).Message())
+		}
+	})
+
+	t.Run("org audience is refused cross-org, on create and on update", func(t *testing.T) {
+		agent := makeAgentPublic(t, tc,
+			createTestAgentInOrg(t, tc, "Audience Rule Agent", "provider-org"))
+
+		orgAudience := crossOrgShare(agent, true)
+		orgAudience.Spec.Audience = agentsharev1.AgentShareAudience_agent_share_audience_org
+		_, err := tc.shares.Create(shareCtx(), orgAudience)
+		if status.Code(err) != codes.FailedPrecondition {
+			t.Errorf("expected FAILED_PRECONDITION for an org-audience cross-org create, got %s (%v)", status.Code(err), err)
+		}
+
+		created, err := tc.shares.Create(shareCtx(), crossOrgShare(agent, true))
+		if err != nil {
+			t.Fatalf("cross-org Create failed: %v", err)
+		}
+		created.Spec.Audience = agentsharev1.AgentShareAudience_agent_share_audience_org
+		_, err = tc.shares.Update(shareCtx(), created)
+		if status.Code(err) != codes.FailedPrecondition {
+			t.Errorf("update must not open a side door to an org-audience cross-org share, got %s (%v)", status.Code(err), err)
+		}
+	})
+
+	t.Run("non-public dependencies block creation, naming every blocker", func(t *testing.T) {
+		saveSkill(t, tc, "skl_private_dep", "provider-org", "private-skill",
+			apiresource.ApiResourceVisibility_visibility_private)
+		saveSkill(t, tc, "skl_public_dep", "provider-org", "public-skill",
+			apiresource.ApiResourceVisibility_visibility_public)
+
+		agent, err := tc.agents.Create(agentCtx(), &agentv1.Agent{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Agent",
+			Metadata:   &apiresource.ApiResourceMetadata{Name: "Tooling Agent", Org: "provider-org"},
+			Spec: &agentv1.AgentSpec{
+				Instructions: "You are a tool-using cross-org test agent.",
+				SkillRefs: []*apiresource.ApiResourceReference{
+					{Kind: apiresourcekind.ApiResourceKind_skill, Slug: "private-skill"},
+					{Kind: apiresourcekind.ApiResourceKind_skill, Slug: "public-skill"},
+				},
+			},
+		})
+		if err != nil {
+			t.Fatalf("agent Create failed: %v", err)
+		}
+		agent = makeAgentPublic(t, tc, agent)
+
+		_, err = tc.shares.Create(shareCtx(), crossOrgShare(agent, true))
+		if status.Code(err) != codes.FailedPrecondition {
+			t.Fatalf("expected FAILED_PRECONDITION for non-public dependencies, got %s (%v)", status.Code(err), err)
+		}
+		if !strings.Contains(err.Error(), "provider-org/private-skill") {
+			t.Errorf("the refusal must name the blocking dependency, got: %v", err)
+		}
+		if strings.Contains(err.Error(), "public-skill") {
+			t.Errorf("the refusal must not list dependencies that are public, got: %v", err)
+		}
+
+		// Same-org sharing of the same agent stays unaffected — the sweep
+		// is a cross-org rule only.
+		sameOrg := shareFor(agent, true)
+		if _, err := tc.shares.Create(shareCtx(), sameOrg); err != nil {
+			t.Errorf("same-org share of an agent with private deps must still work: %v", err)
+		}
+	})
+
+	t.Run("visibility flip fails the profile closed", func(t *testing.T) {
+		agent := makeAgentPublic(t, tc,
+			createTestAgentInOrg(t, tc, "Revocable Agent", "provider-org"))
+		created, err := tc.shares.Create(shareCtx(), crossOrgShare(agent, true))
+		if err != nil {
+			t.Fatalf("cross-org Create failed: %v", err)
+		}
+
+		ref := &agentsharev1.GetSharedProfileRequest{Org: "consumer-org", Slug: created.GetMetadata().GetSlug()}
+		if _, err := tc.shares.GetSharedProfile(shareCtx(), ref); err != nil {
+			t.Fatalf("profile should resolve while the agent is public: %v", err)
+		}
+
+		if _, err := tc.agents.UpdateVisibility(agentCtx(), &apiresource.UpdateVisibilityInput{
+			ResourceId: agent.GetMetadata().GetId(),
+			Visibility: apiresource.ApiResourceVisibility_visibility_private,
+		}); err != nil {
+			t.Fatalf("UpdateVisibility(private) failed: %v", err)
+		}
+
+		_, err = tc.shares.GetSharedProfile(shareCtx(), ref)
+		if status.Code(err) != codes.NotFound {
+			t.Errorf("withdrawing public visibility must kill the external channel, got %s (%v)", status.Code(err), err)
+		}
+	})
+
+	t.Run("agent delete leaves the cross-org share failing closed; recreate never rebinds", func(t *testing.T) {
+		agent := makeAgentPublic(t, tc,
+			createTestAgentInOrg(t, tc, "Ephemeral Provider Agent", "provider-org"))
+		created, err := tc.shares.Create(shareCtx(), crossOrgShare(agent, true))
+		if err != nil {
+			t.Fatalf("cross-org Create failed: %v", err)
+		}
+		ref := &agentsharev1.GetSharedProfileRequest{Org: "consumer-org", Slug: created.GetMetadata().GetSlug()}
+
+		if _, err := tc.agents.Delete(agentCtx(), &agentv1.AgentId{Value: agent.GetMetadata().GetId()}); err != nil {
+			t.Fatalf("agent Delete failed: %v", err)
+		}
+
+		// The consumer org's share survives the provider's delete (it is
+		// not the provider's resource to destroy) but fails closed.
+		survived, err := tc.shares.Get(shareCtx(), &agentsharev1.AgentShareId{Value: created.GetMetadata().GetId()})
+		if err != nil {
+			t.Fatalf("cross-org share must survive the provider agent's delete: %v", err)
+		}
+		if survived.GetStatus().GetAgentId() != agent.GetMetadata().GetId() {
+			t.Errorf("the surviving share must keep its original pin")
+		}
+		if _, err := tc.shares.GetSharedProfile(shareCtx(), ref); status.Code(err) != codes.NotFound {
+			t.Errorf("dangling cross-org share must resolve NOT_FOUND, got %v", err)
+		}
+
+		// A DIFFERENT public agent later claims the same org/slug: the pin
+		// must keep the old share dark — its audience, token, and
+		// credentials were consented for the original agent only.
+		recreated := makeAgentPublic(t, tc,
+			createTestAgentInOrg(t, tc, "Ephemeral Provider Agent", "provider-org"))
+		if recreated.GetMetadata().GetSlug() != agent.GetMetadata().GetSlug() {
+			t.Fatalf("fixture expects the recreate to land on the same slug")
+		}
+		_, err = tc.shares.GetSharedProfile(shareCtx(), ref)
+		if status.Code(err) != codes.NotFound {
+			t.Errorf("a recreated agent at the same slug must NOT revive the old share (pin mismatch), got %v", err)
 		}
 	})
 }

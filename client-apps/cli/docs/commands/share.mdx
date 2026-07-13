@@ -54,6 +54,19 @@ same "not found" page as for an Agent that never existed. Omitting
 `--audience` preserves the share's current audience — a plain toggle never
 turns an org-members-only share back into a public one.
 
+### Share a public Agent from another Organization
+
+```bash
+stigmer share agent other-org/their-public-agent
+```
+
+When the referenced Agent is public and belongs to another Organization, the
+share is created in *your* Organization: your link
+(`https://app.stigmer.ai/chat/<your-org>/their-public-agent`), your credits,
+your credential bindings. The Agent stays with the Organization that built it
+— if its owner makes it private or deletes it, your link stops working on the
+visitor's next message.
+
 ### Reset a leaked public link
 
 ```bash
@@ -82,6 +95,10 @@ kept for the next time you enable sharing.
   engines — don't share Agents that know confidential information.
 - Guest chat is served by Stigmer Cloud. Against a local backend the command
   still records the share, but the local link won't serve visitors.
+- A share of another Organization's Agent serves anyone with the link —
+  `--audience org` is refused with guidance. If the Agent depends on Skills or
+  MCP Servers that are not public, the server refuses the share and names what
+  is blocking.
 - To restrict which websites may embed the Agent, customize visitor messages,
   or bind tool credentials, use the Share dialog in the web console.
 - Sharing is stored as its own AgentShare resource, separate from the Agent.

@@ -26,20 +26,24 @@ export interface UseAgentShareReturn {
 }
 
 /**
- * The canonical share among an agent's shares: the one whose slug equals
- * the agent's slug (the server's default when a share is created without
- * an explicit slug), falling back to the first entry. The data model
- * allows N shares per agent (decision 011 D3); the console manages the
- * canonical one in Phase A, so extra shares created via manifests never
- * confuse the dialog.
+ * The canonical share among an agent's shares **within one sharing org**:
+ * the one whose slug equals the agent's slug (the server's default when a
+ * share is created without an explicit slug), falling back to the first
+ * entry in that org. The data model allows N shares per agent across N
+ * orgs (decision 011 D3 + decision 013), so the org filter is what keeps
+ * each org's dialog on its own channel — without it, an owner who can
+ * also see another org's share of the same agent would edit the wrong
+ * one. Extra shares created via manifests never confuse the dialog.
  */
 function pickCanonicalShare(
   shares: readonly AgentShare[],
+  shareOrg: string,
   agentSlug: string,
 ): AgentShare | null {
+  const inOrg = shares.filter((share) => share.metadata?.org === shareOrg);
   return (
-    shares.find((share) => share.metadata?.slug === agentSlug) ??
-    shares[0] ??
+    inOrg.find((share) => share.metadata?.slug === agentSlug) ??
+    inOrg[0] ??
     null
   );
 }
@@ -54,9 +58,15 @@ function pickCanonicalShare(
  * tell whether it is shared. This hook is how owner-side surfaces (the
  * Share dialog) resolve that state.
  *
+ * `shareOrg` scopes resolution to one sharing org's channel and defaults
+ * to the agent's own org (the owner's share). Pass the viewer's org to
+ * manage a **cross-org share** — the viewer's own channel of another
+ * org's marketplace-public agent (decision 013).
+ *
  * Pass `null` for `agent` to skip fetching (stable no-op) — useful
  * while the agent is still loading. A resolved `null` share means the
- * agent has never been shared; the first save creates the share.
+ * agent has never been shared in `shareOrg`; the first save creates the
+ * share.
  *
  * @example
  * ```tsx
@@ -66,24 +76,28 @@ function pickCanonicalShare(
  * const enabled = share?.spec?.enabled ?? false;
  * ```
  */
-export function useAgentShare(agent: Agent | null): UseAgentShareReturn {
+export function useAgentShare(
+  agent: Agent | null,
+  shareOrg?: string,
+): UseAgentShareReturn {
   const stigmer = useStigmer();
 
   const agentId = agent?.metadata?.id ?? "";
   const agentSlug = agent?.metadata?.slug ?? "";
+  const resolvedShareOrg = shareOrg || (agent?.metadata?.org ?? "");
 
   const fetchFn = agentId
     ? async () => {
         const result = await stigmer.agentShare.getByAgent(
           create(GetAgentSharesByAgentRequestSchema, { agentId }),
         );
-        return pickCanonicalShare(result.items, agentSlug);
+        return pickCanonicalShare(result.items, resolvedShareOrg, agentSlug);
       }
     : null;
 
   const { data: share, isLoading, isRefetching, error, refetch } = useFetch(
     fetchFn,
-    [agentId, agentSlug, stigmer],
+    [agentId, agentSlug, resolvedShareOrg, stigmer],
     null as AgentShare | null,
   );
 

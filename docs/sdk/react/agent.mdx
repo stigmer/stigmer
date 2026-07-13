@@ -482,6 +482,7 @@ All visual properties flow through `--stgm-*` design tokens.
     org: { type: "string", description: "Organization slug that owns the agent.", required: true },
     primaryAction: { type: "DetailAction", description: "Primary action rendered as a visible button in the header area. Typically \"Edit\" for agent detail pages.", typeDescriptionLink: "/docs/sdk/react/resource-detail#detailaction" },
     slug: { type: "string", description: "Agent slug (URL-friendly identifier unique within the org).", required: true },
+    viewerOrg: { type: "string", description: "The viewer's active organization slug. When it differs from the agent's org and the agent is marketplace-public, the kebab gains a \"Create share link\" action — the viewer org's own share of this agent (decision 013): its URL, billing, and credentials, against the agent org's live blueprint. Omit to disable the cross-org entry (the same-org Share action is unaffected — it gates on agent `can_edit`, not on this prop)." },
   }}
 />
 

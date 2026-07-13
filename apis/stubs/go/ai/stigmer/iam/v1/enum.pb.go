@@ -82,6 +82,15 @@ const (
 	// Platform-level permission to execute internal billing operations
 	// (authorize, record, finalize). Gated to operator (machine account).
 	IamPermission_can_execute_billing_ops IamPermission = 29
+	// Organization-level permission to create agent shares billed to the
+	// organization.
+	//
+	// Checked only for CROSS-ORG shares (a share of another org's
+	// marketplace-public agent — decision 013): a public share spends the
+	// sharing org's credits on the open internet, an admin-level act.
+	// Same-org shares keep their Phase A bar (can_edit on the agent), which
+	// already implies membership in the agent's org.
+	IamPermission_can_create_agent_share IamPermission = 30
 )
 
 // Enum value maps for IamPermission.
@@ -116,6 +125,7 @@ var (
 		27: "can_view_billing",
 		28: "can_manage_billing",
 		29: "can_execute_billing_ops",
+		30: "can_create_agent_share",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -147,6 +157,7 @@ var (
 		"can_view_billing":             27,
 		"can_manage_billing":           28,
 		"can_execute_billing_ops":      29,
+		"can_create_agent_share":       30,
 	}
 )
 
@@ -250,7 +261,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xb6\x05\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xd2\x05\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -282,7 +293,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x12can_delete_session\x10\x1a\x1a\x02\b\x01\x12\x14\n" +
 	"\x10can_view_billing\x10\x1b\x12\x16\n" +
 	"\x12can_manage_billing\x10\x1c\x12\x1b\n" +
-	"\x17can_execute_billing_ops\x10\x1d*Q\n" +
+	"\x17can_execute_billing_ops\x10\x1d\x12\x1a\n" +
+	"\x16can_create_agent_share\x10\x1e*Q\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

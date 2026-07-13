@@ -66,6 +66,16 @@ export interface ShareAgentDialogProps {
    */
   readonly onSharingChanged?: () => void;
   /**
+   * The org that owns (and pays for) the share. Defaults to the agent's
+   * own org — the owner's channel. Pass the viewer's org to manage a
+   * **cross-org share** of another org's marketplace-public agent
+   * (decision 013): the share, its billing, its credentials, and its
+   * hosted URL all belong to this org, while the agent stays live in its
+   * own. Cross-org shares are public-audience only, so the audience
+   * selector is hidden in that mode.
+   */
+  readonly shareOrg?: string;
+  /**
    * When `false`, renders as an in-flow open dialog instead of a
    * top-layer modal — no `showModal()`, no backdrop, no focus trap.
    * For embedding the dialog in a constrained surface (documentation
@@ -106,6 +116,7 @@ export function ShareAgentDialog({
   agent,
   buildShareUrl,
   onSharingChanged,
+  shareOrg,
   modal = true,
 }: ShareAgentDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -150,6 +161,7 @@ export function ShareAgentDialog({
           agent={agent}
           buildShareUrl={buildShareUrl}
           onSharingChanged={onSharingChanged}
+          shareOrg={shareOrg}
           onClose={handleClose}
         />
       )}
@@ -171,14 +183,18 @@ function ShareAgentDialogBody({
   agent,
   buildShareUrl,
   onSharingChanged,
+  shareOrg,
   onClose,
 }: {
   readonly agent: Agent;
   readonly buildShareUrl?: (org: string, slug: string) => string;
   readonly onSharingChanged?: () => void;
+  readonly shareOrg?: string;
   readonly onClose: () => void;
 }) {
-  const { share, isLoading, error, refetch } = useAgentShare(agent);
+  const { share, isLoading, error, refetch } = useAgentShare(agent, shareOrg);
+  const isCrossOrg =
+    !!shareOrg && shareOrg !== (agent.metadata?.org ?? "");
 
   return (
     <div className="flex flex-col">
@@ -192,7 +208,11 @@ function ShareAgentDialogBody({
             Share
           </h2>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {agent.metadata?.name || agent.metadata?.slug}
+            {/* Cross-org: qualify the agent so it's clear whose blueprint
+                this channel serves — the URL and billing are still yours. */}
+            {isCrossOrg
+              ? `${agent.metadata?.org}/${agent.metadata?.slug}`
+              : agent.metadata?.name || agent.metadata?.slug}
           </p>
         </div>
         <button
@@ -244,6 +264,7 @@ function ShareAgentDialogBody({
           initialShare={share}
           buildShareUrl={buildShareUrl}
           onSharingChanged={onSharingChanged}
+          shareOrg={shareOrg}
         />
       )}
 
@@ -298,11 +319,13 @@ function ShareAgentForm({
   initialShare,
   buildShareUrl,
   onSharingChanged,
+  shareOrg,
 }: {
   readonly agent: Agent;
   readonly initialShare: AgentShare | null;
   readonly buildShareUrl?: (org: string, slug: string) => string;
   readonly onSharingChanged?: () => void;
+  readonly shareOrg?: string;
 }) {
   const agentName = agent.metadata?.name || (agent.metadata?.slug ?? "");
 
@@ -315,17 +338,24 @@ function ShareAgentForm({
   );
   const [activeTab, setActiveTab] = useState("link");
 
-  const { save, isPending } = useSaveAgentShare(agent);
+  const { save, isPending } = useSaveAgentShare(agent, shareOrg);
   const { rotateShareLink, isPending: isRotating } = useRotateShareLink(
     share?.metadata?.id ?? null,
   );
 
   // The share's own org/slug form the hosted URL. Before the first save
-  // the agent's stand in — exactly the identity the server will assign
-  // on create (D2: share slug defaults to the agent's).
-  const org = share?.metadata?.org || (agent.metadata?.org ?? "");
+  // the sharing org + the agent's slug stand in — exactly the identity
+  // the server will assign on create (D2: share slug defaults to the
+  // agent's; the org is the channel owner's, which for a cross-org share
+  // is the viewer's org, not the agent's — decision 013).
+  const org =
+    share?.metadata?.org || shareOrg || (agent.metadata?.org ?? "");
   const slug = share?.metadata?.slug || (agent.metadata?.slug ?? "");
   const linkToken = share?.status?.shareLinkToken ?? "";
+  // Cross-org shares are public-audience only (decision 013 D3) — the
+  // audience selector disappears rather than offering a choice the
+  // server would refuse.
+  const isCrossOrg = org !== (agent.metadata?.org ?? "");
 
   // Single commit path: apply the complete draft, adopt the server's
   // returned share as the new baseline, notify the host.
@@ -431,11 +461,13 @@ function ShareAgentForm({
             aria-labelledby="share-enabled-label"
           />
         </div>
-        <AudienceSelector
-          audience={draft.audience}
-          onChange={handleAudienceChange}
-          disabled={isPending}
-        />
+        {!isCrossOrg && (
+          <AudienceSelector
+            audience={draft.audience}
+            onChange={handleAudienceChange}
+            disabled={isPending}
+          />
+        )}
         <ToolReadinessHint agent={agent} draft={draft} />
       </div>
 

@@ -298,10 +298,20 @@ func (s *projectMemberSharedProfileStep) Execute(ctx *pipeline.RequestContext[*a
 // and member paths.
 //
 // The URL identity (org, slug) comes from the SHARE; the display fields
-// and default_instance_id come from the referenced AGENT. A dangling
-// agent_ref (agent deleted after the share was created) fails closed with
-// the standard refusal — a channel to a missing agent must look exactly
-// like no channel at all.
+// and default_instance_id come from the referenced AGENT. Three misses all
+// fail closed with the standard refusal, indistinguishable from absence:
+//
+//   - A dangling agent_ref (agent deleted after the share was created) —
+//     a channel to a missing agent must look exactly like no channel.
+//   - A stale agent-id pin (status.agent_id set but a DIFFERENT agent now
+//     lives at the referenced org/slug) — the rebind guard (decision 013):
+//     the share's audience, link token, and credentials were consented for
+//     the original agent, never its slug's successor. Checked only when
+//     present; pre-pin legacy shares are covered by the same-org delete
+//     cascade instead.
+//   - A cross-org agent that is no longer visibility_public — public
+//     visibility is the origin org's consent to external shares, and
+//     withdrawing it must kill every external channel (decision 013).
 func buildSharedAgentProfile(
 	ctx context.Context,
 	s store.Store,
@@ -313,6 +323,15 @@ func buildSharedAgentProfile(
 		return nil, err
 	}
 	if !found {
+		return nil, sharedNotFound(share.GetMetadata().GetSlug())
+	}
+
+	if pin := share.GetStatus().GetAgentId(); pin != "" && pin != agent.GetMetadata().GetId() {
+		return nil, sharedNotFound(share.GetMetadata().GetSlug())
+	}
+
+	isCrossOrg := share.GetMetadata().GetOrg() != agent.GetMetadata().GetOrg()
+	if isCrossOrg && agent.GetMetadata().GetVisibility() != apiresource.ApiResourceVisibility_visibility_public {
 		return nil, sharedNotFound(share.GetMetadata().GetSlug())
 	}
 

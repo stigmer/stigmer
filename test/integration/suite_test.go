@@ -165,7 +165,7 @@ func TestMain(m *testing.M) {
 		suiteLogger.Info("FGA base tuples seeded")
 	}
 
-	if err := harness.ProvisionTestBillingAccount(ctx, grpcConn, "integration-test-seed-credits"); err != nil {
+	if err := harness.ProvisionTestBillingAccount(ctx, grpcConn, harness.TestOrg, "integration-test-seed-credits"); err != nil {
 		suiteLogger.Warn("failed to provision test billing account — agent_call tests may fail", "error", err)
 	}
 

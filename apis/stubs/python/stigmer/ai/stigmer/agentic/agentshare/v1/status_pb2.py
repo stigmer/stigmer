@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from ai.stigmer.commons.apiresource import status_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_status__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/agentic/agentshare/v1/status.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\x84\x01\n\x10\x41gentShareStatus\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x12(\n\x10share_link_token\x18\x01 \x01(\tR\x0eshareLinkTokenB\xd8\x01\n$com.ai.stigmer.agentic.agentshare.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/agentic/agentshare/v1/status.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\x9f\x01\n\x10\x41gentShareStatus\x12\x46\n\x05\x61udit\x18\x63 \x01(\x0b\x32\x30.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05\x61udit\x12(\n\x10share_link_token\x18\x01 \x01(\tR\x0eshareLinkToken\x12\x19\n\x08\x61gent_id\x18\x02 \x01(\tR\x07\x61gentIdB\xd8\x01\n$com.ai.stigmer.agentic.agentshare.v1B\x0bStatusProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,5 +34,5 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n$com.ai.stigmer.agentic.agentshare.v1B\013StatusProtoP\001\242\002\004ASAA\252\002 Ai.Stigmer.Agentic.Agentshare.V1\312\002 Ai\\Stigmer\\Agentic\\Agentshare\\V1\342\002,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\352\002$Ai::Stigmer::Agentic::Agentshare::V1'
   _globals['_AGENTSHARESTATUS']._serialized_start=129
-  _globals['_AGENTSHARESTATUS']._serialized_end=261
+  _globals['_AGENTSHARESTATUS']._serialized_end=288
 # @@protoc_insertion_point(module_scope)

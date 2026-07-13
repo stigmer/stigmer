@@ -480,7 +480,7 @@ Agent agent = client.agents().updateVisibility(UpdateVisibilityInput.builder()
 
 Delete an agent.
 
-Deletion also removes the agent's system-managed default instance and every AgentShare referencing the agent, so a later agent created at the same org/slug starts clean. Personal instances and sessions are not deleted.
+Deletion also removes the agent's system-managed default instance and every AgentShare in the agent's own organization referencing it, so a later agent created at the same org/slug starts clean. Personal instances, sessions, and other organizations' shares of this agent are not deleted — external shares stop resolving instead.
 
 <SDKTabs>
 <Tab value="TypeScript">

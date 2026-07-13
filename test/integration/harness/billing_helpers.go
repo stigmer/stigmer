@@ -12,18 +12,21 @@ import (
 )
 
 // AssertProxyMetered verifies that the given execution produced at least one
-// usage_debit ledger entry, confirming LLM calls were routed through the
-// proxy and the billing pipeline recorded per-call usage.
+// usage_debit ledger entry in the given org's ledger, confirming LLM calls
+// were routed through the proxy and the billing pipeline recorded per-call
+// usage against that org. The org matters: billing follows the execution's
+// metadata.org, which for cross-org shares is the SHARING org, not the
+// agent's.
 //
 // Call this after execution reaches a terminal phase and a brief settling
 // period has elapsed (billing finalization is async).
-func AssertProxyMetered(t *testing.T, ctx context.Context, clients *Clients, executionID string) {
+func AssertProxyMetered(t *testing.T, ctx context.Context, clients *Clients, org, executionID string) {
 	t.Helper()
 
 	time.Sleep(2 * time.Second)
 
 	ledger, err := clients.BillingQuery.GetCreditLedger(ctx, &billingv1.GetCreditLedgerInput{
-		OrgId: TestOrg,
+		OrgId: org,
 		Page:  &rpcpb.PageInfo{Size: 100},
 	})
 	require.NoError(t, err, "get credit ledger should succeed")
