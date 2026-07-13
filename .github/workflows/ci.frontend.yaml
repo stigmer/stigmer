@@ -21,6 +21,9 @@ on:
       - "client-apps/web/**"
       - "client-apps/desktop/**"
       - "client-apps/cli/**"
+      # The build step compiles the full npm workspace (build:libs), which
+      # includes mcp-server — so its changes can break this workflow too.
+      - "mcp-server/**"
       - "apis/stubs/ts/**"
       - "package.json"
       - "package-lock.json"
@@ -35,10 +38,12 @@ on:
       - "client-apps/web/**"
       - "client-apps/desktop/**"
       - "client-apps/cli/**"
+      - "mcp-server/**"
       - "apis/stubs/ts/**"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/ci.frontend.yaml"
+  workflow_dispatch:
 
 concurrency:
   group: frontend-${{ github.head_ref || github.ref }}
