@@ -52,13 +52,6 @@ When a member opens an org-members-only link without being signed in, the page
 offers **Sign in if you have access**. After signing in, they land back on the
 chat.
 
-<Callout type="warn">
-  If you manage the Agent with YAML manifests, keep `audience: org` in the
-  `sharing` block of every apply. Applies replace the sharing settings as a
-  whole, and a missing audience means public — an apply that omits it turns an
-  org-members-only share back into a public one.
-</Callout>
-
 Embedding is available for the public audience only: embeds serve anonymous
 visitors, and an org-members-only Agent requires a signed-in member.
 
@@ -151,10 +144,10 @@ https://app.stigmer.ai/chat/<org>/<agent>?k=<key>
 - The embed snippet changes too: re-copy it from the **Embed** tab after a reset
   so your website keeps working.
 
-Stigmer stores the key on the server side, outside your Agent's spec — applying
-a YAML manifest never removes or changes it. Resetting is only offered for
-public links; an org-members-only share needs no reset, because access ends with
-membership.
+Stigmer stores the key on the server side, outside anything a YAML manifest
+carries — applying a manifest, whether the Agent's or the share's, never removes
+or changes it. Resetting is only offered for public links; an org-members-only
+share needs no reset, because access ends with membership.
 
 <Callout>
   A reset link is still a public link: anyone who has the new URL can chat.
@@ -191,6 +184,40 @@ messages, and audience stay as you set them here. A plain toggle never turns an
 org-members-only share back into a public one. Visitor chat is served by Stigmer
 Cloud, so a link from a local backend won't serve visitors. See the
 [`stigmer share` reference](/docs/cli/commands/share) for all flags.
+
+## Manage sharing declaratively
+
+Sharing lives in its own resource — an `AgentShare` — separate from the Agent it
+points at. If you manage resources with YAML manifests, manage the share the
+same way:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: AgentShare
+metadata:
+  name: internal-helper
+  org: acme-corp
+spec:
+  agent_ref:
+    kind: agent
+    org: acme-corp
+    slug: internal-helper
+  enabled: true
+  audience: agent_share_audience_org
+```
+
+Apply it with `stigmer apply -f share.yaml`. Because the share is a separate
+resource, applying your Agent's manifest never changes sharing — and applying
+the share never changes the Agent.
+
+<Callout type="warn">
+  An apply replaces the share's settings as a whole, and a missing `audience`
+  means public. Keep `audience` in every apply of an org-members-only share — a
+  manifest that omits it turns the share back into a public one.
+</Callout>
+
+See the [AgentShare reference](/docs/sdk/resources/agent-share) for every field,
+including embed origins, visitor messages, and tool credentials.
 
 ## Go further with the SDK
 

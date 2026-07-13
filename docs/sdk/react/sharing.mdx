@@ -6,34 +6,82 @@ title: sharing
 
 ## Hooks
 
-### useRotateShareLink
+### useAgentShare
 
-Behavior hook that rotates an agent's share-link token.
+Data hook that loads an agent's canonical `AgentShare` — the
+resource carrying the hosted-chat channel configuration (audience,
+allowed origins, visitor messages, tool credentials, link token).
 
-Wraps the `stigmer.agent.rotateShareLink()` RPC (authorized by
-`can_edit`) with loading and error state management. The server
-generates the token — there is nothing to supply — and the previous
-link stops working the moment the call resolves, including for
-visitors mid-conversation. The token lives in `status.shareLinkToken`
-(server-owned), so it is never part of a sharing draft and survives
-manifest applies.
+Sharing is channel configuration, not agent behavior (decision 011):
+it lives in its own resource, so reading the agent alone can never
+tell whether it is shared. This hook is how owner-side surfaces (the
+Share dialog) resolve that state.
 
-The hook is stateless with respect to the agent — adopt the returned
-agent (or refetch) so the UI shows the new tokened link, matching the
-[`useUpdateAgentSharing`](#useupdateagentsharing) convention.
-
-Pass `null` for `agentId` to produce a stable no-op (useful while the
-agent is still loading).
+Pass `null` for `agent` to skip fetching (stable no-op) — useful
+while the agent is still loading. A resolved `null` share means the
+agent has never been shared; the first save creates the share.
 
 **Signature**
 
 ```tsx
-function useRotateShareLink(agentId: string | null): UseRotateShareLinkReturn
+function useAgentShare(agent: Agent | null): UseAgentShareReturn
 ```
 
 <TypeTable
   type={{
-    agentId: { type: "string | null", description: "", required: true },
+    agent: { type: "Agent | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseAgentShareReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the share from the server." },
+    share: { type: "AgentShare | null", description: "The agent's canonical share, or `null` while loading, on error, or when the agent has never been shared. `share === null && !isLoading && !error` means \"no share exists yet\" — the first save creates it." },
+  }}
+/>
+
+```tsx
+const { share, isLoading } = useAgentShare(agent);
+
+if (isLoading) return <Spinner />;
+const enabled = share?.spec?.enabled ?? false;
+```
+
+
+### useRotateShareLink
+
+Behavior hook that rotates a share's link token.
+
+Wraps the `stigmer.agentShare.rotateShareLink()` RPC (authorized by
+the share's `can_edit`) with loading and error state management. The
+server generates the token — there is nothing to supply — and the
+previous link stops working the moment the call resolves, including
+for visitors mid-conversation. The token lives in
+`status.shareLinkToken` (server-owned; this RPC is its sole writer),
+so it is never part of a share draft and survives every apply.
+
+The hook is stateless with respect to the share — adopt the returned
+share (or refetch) so the UI shows the new tokened link, matching the
+[`useSaveAgentShare`](#usesaveagentshare) convention.
+
+Pass `null` for `shareId` to produce a stable no-op (useful while the
+share is still loading, or before the agent has ever been shared —
+there is no token to rotate until a share exists).
+
+**Signature**
+
+```tsx
+function useRotateShareLink(shareId: string | null): UseRotateShareLinkReturn
+```
+
+<TypeTable
+  type={{
+    shareId: { type: "string | null", description: "", required: true },
   }}
 />
 
@@ -43,15 +91,68 @@ function useRotateShareLink(agentId: string | null): UseRotateShareLinkReturn
   type={{
     error: { type: "Error | null", description: "The last error from the RPC, or `null`." },
     isPending: { type: "boolean", description: "`true` while the RPC is in flight." },
-    rotateShareLink: { type: "() => Promise<Agent | undefined>", description: "Rotate the agent's share-link token via the `rotateShareLink` RPC. Resolves with the updated agent, whose `status.shareLinkToken` carries the new token for building the fresh share URL." },
+    rotateShareLink: { type: "() => Promise<AgentShare | undefined>", description: "Rotate the share's link token via the `rotateShareLink` RPC. Resolves with the updated share, whose `status.shareLinkToken` carries the new token for building the fresh share URL." },
   }}
 />
 
 ```tsx
-const { rotateShareLink, isPending } = useRotateShareLink(agent.metadata.id);
+const { rotateShareLink, isPending } = useRotateShareLink(
+  share?.metadata?.id ?? null,
+);
 
 const updated = await rotateShareLink();
 // updated.status.shareLinkToken is the new token
+```
+
+
+### useSaveAgentShare
+
+Behavior hook that persists an agent's canonical share configuration.
+
+Commits via `stigmer.agentShare.apply()` — an idempotent upsert keyed
+on the share's `(org, slug)` identity — so one code path serves both
+the first enable (creates the share; the server authorizes on the
+referenced agent's `can_edit`) and every later edit. There is
+deliberately no create/update branching: the share slug is unique per
+org and defaults to the agent's slug, which makes apply-by-identity
+exact, and the generated `AgentShareInput` carries no `metadata.id`
+for an update to route by anyway.
+
+Disabling is a save with `enabled: false` — a config-preserving pause
+(decision 011 D1). Deleting the share is a separate, destructive
+operation this hook does not perform.
+
+Pass `null` for `agent` to produce a stable no-op (useful while the
+agent is still loading).
+
+**Signature**
+
+```tsx
+function useSaveAgentShare(agent: Agent | null): UseSaveAgentShareReturn
+```
+
+<TypeTable
+  type={{
+    agent: { type: "Agent | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseSaveAgentShareReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "The last error from the RPC, or `null`." },
+    isPending: { type: "boolean", description: "`true` while the RPC is in flight." },
+    save: { type: "(draft: AgentShareDraft, current: AgentShare | null) => Promise<AgentShare | undefined>", description: "Persist the complete share configuration. Resolves with the persisted AgentShare — adopt it as the new baseline (its `status.shareLinkToken` carries the live link token).  `current` is the share being edited, or `null` when the agent has never been shared — the save then creates the canonical share." },
+  }}
+/>
+
+```tsx
+const { share } = useAgentShare(agent);
+const { save, isPending } = useSaveAgentShare(agent);
+
+const persisted = await save({ ...draft, enabled: true }, share);
+// persisted.status.shareLinkToken is the live link token
 ```
 
 
@@ -63,10 +164,11 @@ governs who can *read* the blueprint; Share governs who can *chat* with
 the running agent (billed to the owning org).
 
 Owns the open-state and the `can_edit` gate — the same permission the
-`updateSharing` RPC enforces, so the action never appears to a user
-whose changes would be rejected. Returns a `null` action while the
-agent is loading or the user cannot edit, so the host can
-unconditionally fold `action` into its actions array.
+AgentShare create/apply handlers enforce on the referenced agent, so
+the action never appears to a user whose changes would be rejected.
+Returns a `null` action while the agent is loading or the user cannot
+edit, so the host can unconditionally fold `action` into its actions
+array.
 
 **Signature**
 
@@ -105,8 +207,9 @@ const share = useShareAgent({
 
 ### useSharedAgentProfile
 
-Data hook that fetches a shared agent's public profile by
-organization and agent slug.
+Data hook that fetches a shared agent's public profile by the org and
+slug from the share URL (the share's slug — it defaults to the
+agent's, so existing links resolve unchanged).
 
 By default this hook calls the `getSharedProfile` endpoint, which is
 **public** — it requires no authentication. The server returns a
@@ -171,72 +274,62 @@ return <h1>{profile.name}</h1>;
 ```
 
 
-### useUpdateAgentSharing
+### useShareToolReadiness
 
-Behavior hook that updates an agent's sharing configuration.
+Data hook that checks whether a tool-using shared agent's credentials
+will work for visitors — i.e. whether the share binds environments
+(`environment_refs`) and each one is shared with the organization
+(`visibility_org`).
 
-Wraps the targeted `stigmer.agent.updateSharing()` RPC (authorized by
-`can_edit`) with loading and error state management. The hook is
-stateless with respect to the agent — the caller refreshes the resource
-after a successful update (e.g. via `refetch` from `useAgent`), matching
-the [`useUpdateVisibility`](/docs/sdk/react/library#useupdatevisibility) convention.
+Guest executions receive credentials exclusively from the share's own
+`environment_refs`, resolved through the org-shared environment seam
+(decision 011 — the agent's default instance stays pristine and is
+never consulted). So a tool-using agent with an empty binding list is
+*guaranteed* broken for visitors, and this hook says so explicitly
+(`needs-credentials`) instead of staying silent — the gap that made
+session 12's misconfiguration invisible until a visitor's first
+message failed.
 
-Pass `null` for `agentId` to produce a stable no-op (useful while the
-agent is still loading).
+The check runs only when the share is enabled with a public audience
+(org-audience shares reject bindings at the proto boundary), the
+deployment is cloud (local mode has no guest runtime or secret
+gating), and the agent declares MCP server usages. All lookups run as
+the owner viewing the dialog, who can read the bound environments.
 
 **Signature**
 
 ```tsx
-function useUpdateAgentSharing(agentId: string | null): UseUpdateAgentSharingReturn
+function useShareToolReadiness(agent: Agent, draft: AgentShareDraft): ShareToolReadiness
 ```
 
 <TypeTable
   type={{
-    agentId: { type: "string | null", description: "", required: true },
+    agent: { type: "Agent", description: "", required: true },
+    draft: { type: "AgentShareDraft", description: "", required: true },
   }}
 />
-
-**Returns** — `UseUpdateAgentSharingReturn`
-
-<TypeTable
-  type={{
-    error: { type: "Error | null", description: "The last error from the RPC, or `null`." },
-    isPending: { type: "boolean", description: "`true` while the RPC is in flight." },
-    updateSharing: { type: "(draft: AgentSharingDraft) => Promise<Agent | undefined>", description: "Persist the complete sharing configuration via the `updateSharing` RPC. Resolves with the updated agent." },
-  }}
-/>
-
-```tsx
-const { updateSharing, isPending } = useUpdateAgentSharing(agent.metadata.id);
-
-await updateSharing({
-  enabled: true,
-  audience: "public",
-  allowedOrigins: ["https://example.com"],
-  messages: { rateLimited: "", unavailable: "", conversationEnded: "" },
-});
-refetch();
-```
 
 
 ## Components
 
 ### ShareAgentDialog
 
-The Share dialog for an agent: toggle public sharing, copy the hosted
-chat link, copy an embeddable iframe snippet, manage allowed embed
-origins, customize visitor refusal messages, and discover the
-PlatformClient SDK path.
+The Share dialog for an agent: toggle sharing, copy the hosted chat
+link, copy an embeddable snippet, manage allowed embed origins, bind
+tool credentials for visitors, customize visitor refusal messages,
+and discover the PlatformClient SDK path.
 
 Sharing is a distinct consent from marketplace visibility: visibility
 governs who can *read* the blueprint; sharing governs who can *chat*
 with the running agent — billed to the owning org. The dialog states
 who pays next to the toggle so enabling sharing never surprises.
 
-Every save sends the complete sharing configuration (the RPC replaces
-`spec.sharing` wholesale — see [`AgentSharingDraft`](#agentsharingdraft)), and the
-local draft is refreshed from the RPC's returned agent, so the dialog
-never drifts from the server.
+Sharing lives in its own **AgentShare resource** (decision 011), so
+the dialog loads the agent's canonical share when it opens and every
+save is an idempotent `apply` of the complete configuration — the
+first enable creates the share, later edits update it, one code path
+(see [`useSaveAgentShare`](#usesaveagentshare)). The local draft is refreshed from
+every returned share, so the dialog never drifts from the server.
 
 Built on the native `<dialog>` element for focus trapping and escape
 handling, matching the SDK's modal convention ([`ManageAccessDialog`](/docs/sdk/react/access#manageaccessdialog)).
@@ -313,24 +406,44 @@ const client = useMemo(
 
 ## Types
 
-### AgentSharingDraft
+### AgentShareDraft
 
-A complete sharing configuration to persist.
+A complete share configuration to persist.
 
-Every field is required by design: the `updateSharing` RPC **replaces**
-the agent's whole `spec.sharing` block, so a caller must always supply
-the full configuration. A partial type here would let a toggle change
-silently wipe `allowedOrigins`, `messages`, or the `audience` — the
-required shape makes that mistake unrepresentable.
+Every field is required by design: saving **replaces the share's whole
+spec**, so a caller must always supply the full configuration. A
+partial type here would let a toggle change silently wipe
+`allowedOrigins`, `messages`, `environmentRefs`, or the `audience` —
+the required shape makes that mistake unrepresentable. (The rotatable
+link token is exempt: it is server-owned `status`, which survives
+every save verbatim.)
 
 <TypeTable
   type={{
-    allowedOrigins: { type: "readonly string[]", description: "Exact web origins allowed to embed the shared agent (e.g. `https://example.com`). Stored now; enforced by the embed widget's Origin check. Embedding is public-audience only.", required: true },
+    allowedOrigins: { type: "readonly string[]", description: "Exact web origins allowed to embed the shared agent (e.g. `https://example.com`). Empty list = embeddable anywhere. Embedding is public-audience only.", required: true },
     audience: { type: "SharingAudience", description: "Who can chat: anyone with the link, or org members only.", required: true, typeDescriptionLink: "#sharingaudience" },
     enabled: { type: "boolean", description: "Whether hosted-chat access for the configured audience is enabled.", required: true },
+    environmentRefs: { type: "readonly ResourceRef[]", description: "Org-shared environments whose values guest conversations receive — how a tool-using agent becomes chattable over a share link without touching its pristine default instance. Public-audience only (the proto CEL rule rejects bindings on org-audience shares, whose member sessions carry no share linkage in Phase A — decision 011 addendum).", required: true },
     messages: { type: "{ conversationEnded: string; rateLimited: string; unavailable: string }", description: "Owner-customized visitor refusal copy. Empty strings mean platform defaults.", required: true },
   }}
 />
+
+
+### ShareToolReadiness
+
+Readiness of a share's tool credentials for visitor executions.
+
+- `na` — nothing to check: the agent uses no MCP tools, sharing is
+  off, the audience is org (bindings are public-audience only), or
+  the deployment cannot serve guest chat (local mode).
+- `needs-credentials` — the agent uses MCP tools but the share has no
+  environments bound: visitors' tool calls will fail until the owner
+  binds credentials.
+- `checking` — lookups in flight.
+- `ready` — every environment bound to the share is shared with the
+  organization.
+- `blocked` — one or more bound environments are private; their
+  `org/slug` references are listed for the hint copy.
 
 
 ### SharingAudience
@@ -345,12 +458,12 @@ Who can chat with a shared agent over its hosted link.
 
 ### sharingAudienceFromProto
 
-Maps a proto `AgentSharingAudience` to the SDK's string union.
-Unspecified means public by contract (pre-audience shares keep their
-anyone-with-link behavior).
+Maps a proto `AgentShareAudience` to the SDK's string union.
+Unspecified means public by contract (a share created without an
+explicit audience is an anyone-with-link share).
 
 ```tsx
-function sharingAudienceFromProto(audience: AgentSharingAudience | undefined): SharingAudience
+function sharingAudienceFromProto(audience: AgentShareAudience | undefined): SharingAudience
 ```
 
 

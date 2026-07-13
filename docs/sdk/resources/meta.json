@@ -4,6 +4,7 @@
     "agent",
     "agent-execution",
     "agent-instance",
+    "agent-share",
     "api-key",
     "artifact",
     "commons",
