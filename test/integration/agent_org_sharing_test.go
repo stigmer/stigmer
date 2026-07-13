@@ -9,6 +9,7 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	agentsharev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	iampolicyv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1"
@@ -21,10 +22,10 @@ import (
 )
 
 // This file covers T07 — org-internal authenticated sharing
-// (spec.sharing.audience = org): a signed-in org member chats with a shared
-// agent while anonymous guests are excluded, the agent stays private in the
-// marketplace, and membership is re-checked on every conversation turn so a
-// revoked member loses access immediately.
+// (AgentShareSpec.audience = org): a signed-in org member chats with a
+// shared agent while anonymous guests are excluded, the agent stays private
+// in the marketplace, and membership is re-checked on every conversation
+// turn so a revoked member loses access immediately.
 
 // createOrgAudienceAgent creates a PRIVATE agent and shares it with the org
 // audience. Private visibility matters: agents default to visibility_org, and
@@ -40,19 +41,14 @@ func createOrgAudienceAgent(t *testing.T, ctx context.Context, clients *harness.
 			a.Metadata.Visibility = apiresource.ApiResourceVisibility_visibility_private
 		}})
 
-	updated, err := clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-		ResourceId: agent.GetMetadata().GetId(),
-		Sharing: &agentv1.AgentSharing{
-			Enabled:  true,
-			Audience: agentv1.AgentSharingAudience_agent_sharing_audience_org,
-		},
-	})
-	require.NoError(t, err, "enabling org-audience sharing should succeed")
-	require.True(t, updated.GetSpec().GetSharing().GetEnabled())
-	require.Equal(t, agentv1.AgentSharingAudience_agent_sharing_audience_org,
-		updated.GetSpec().GetSharing().GetAudience(),
-		"the audience must round-trip through updateSharing")
-	return updated
+	share := shareFor(agent, true)
+	share.Spec.Audience = agentsharev1.AgentShareAudience_agent_share_audience_org
+	applied := applyShare(t, ctx, clients, share)
+	require.True(t, applied.GetSpec().GetEnabled())
+	require.Equal(t, agentsharev1.AgentShareAudience_agent_share_audience_org,
+		applied.GetSpec().GetAudience(),
+		"the audience must round-trip through apply")
+	return agent
 }
 
 // memberCreateSession creates a session as an authenticated actor against the
@@ -131,19 +127,20 @@ func TestOrgAudienceSharing_GuestPathsExcluded(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, codes.NotFound, missingStatus.Code())
 
-	// 1. Guest mint on the org-audience agent: NOT_FOUND, identical to missing.
+	// 1. Guest mint on the org-audience agent: NOT_FOUND, indistinguishable
+	// from missing (modulo the caller-echoed slug).
 	_, err = clients.PlatformClientToken.MintGuestToken(ctx, &platformclientv1.MintGuestTokenRequest{
 		Org: org, Slug: slug,
 	})
 	require.Error(t, err, "guests must never mint on an org-audience agent")
 	orgStatus, ok := status.FromError(err)
 	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, orgStatus.Code())
-	assert.Equal(t, missingStatus.Message(), orgStatus.Message(),
-		"an org-audience share must be indistinguishable from a nonexistent agent at the mint endpoint")
+	requireIndistinguishableRefusals(t,
+		"an org-audience share must be indistinguishable from a nonexistent agent at the mint endpoint",
+		orgStatus, slug, missingStatus, "does-not-exist")
 
 	// 2. Anonymous getSharedProfile: NOT_FOUND too.
-	_, err = clients.AgentQuery.GetSharedProfile(ctx, &agentv1.GetSharedProfileRequest{
+	_, err = clients.AgentShareQuery.GetSharedProfile(ctx, &agentsharev1.GetSharedProfileRequest{
 		Org: org, Slug: slug,
 	})
 	require.Error(t, err, "the anonymous profile path must not resolve an org-audience share")
@@ -151,25 +148,16 @@ func TestOrgAudienceSharing_GuestPathsExcluded(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, codes.NotFound, st.Code())
 
-	// 3. Revocation parity: a guest token minted while the agent was PUBLIC
+	// 3. Revocation parity: a guest token minted while the share was PUBLIC
 	// dies on its next create after the owner switches to the org audience.
-	_, err = clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-		ResourceId: agent.GetMetadata().GetId(),
-		Sharing:    &agentv1.AgentSharing{Enabled: true}, // unspecified audience = public
-	})
-	require.NoError(t, err)
+	applyShare(t, ctx, clients, shareFor(agent, true)) // unspecified audience = public
 
 	minted := mintGuestToken(t, ctx, clients, org, slug, "")
 	guest := guestClients(t, minted.GetAccessToken())
 
-	_, err = clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-		ResourceId: agent.GetMetadata().GetId(),
-		Sharing: &agentv1.AgentSharing{
-			Enabled:  true,
-			Audience: agentv1.AgentSharingAudience_agent_sharing_audience_org,
-		},
-	})
-	require.NoError(t, err)
+	backToOrg := shareFor(agent, true)
+	backToOrg.Spec.Audience = agentsharev1.AgentShareAudience_agent_share_audience_org
+	applyShare(t, ctx, clients, backToOrg)
 
 	_, err = guestCreateSession(t, ctx, guest, agent, "after-audience-switch")
 	require.Error(t, err,
@@ -200,7 +188,7 @@ func TestOrgAudienceSharing_MemberProfileResolution(t *testing.T) {
 	ref := &apiresource.ApiResourceReference{Org: org, Slug: slug}
 
 	// 1. Member resolves the trimmed profile.
-	profile, err := member.Clients.AgentQuery.GetSharedProfileForMember(ctx, ref)
+	profile, err := member.Clients.AgentShareQuery.GetSharedProfileForMember(ctx, ref)
 	require.NoError(t, err, "an org member must resolve an org-audience share")
 	assert.Equal(t, org, profile.GetOrg())
 	assert.Equal(t, slug, profile.GetSlug())
@@ -208,7 +196,7 @@ func TestOrgAudienceSharing_MemberProfileResolution(t *testing.T) {
 		"the profile must carry the default instance id the chat page pins")
 
 	// 2. Stranger: NOT_FOUND, byte-identical to a missing agent.
-	_, err = stranger.Clients.AgentQuery.GetSharedProfileForMember(ctx, &apiresource.ApiResourceReference{
+	_, err = stranger.Clients.AgentShareQuery.GetSharedProfileForMember(ctx, &apiresource.ApiResourceReference{
 		Org: org, Slug: "does-not-exist",
 	})
 	require.Error(t, err)
@@ -216,32 +204,24 @@ func TestOrgAudienceSharing_MemberProfileResolution(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, codes.NotFound, missingStatus.Code())
 
-	_, err = stranger.Clients.AgentQuery.GetSharedProfileForMember(ctx, ref)
+	_, err = stranger.Clients.AgentShareQuery.GetSharedProfileForMember(ctx, ref)
 	require.Error(t, err, "a non-member must not resolve an org-audience share")
 	strangerStatus, ok := status.FromError(err)
 	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, strangerStatus.Code())
-	assert.Equal(t, missingStatus.Message(), strangerStatus.Message(),
-		"a non-member's refusal must not reveal that the agent exists")
+	requireIndistinguishableRefusals(t,
+		"a non-member's refusal must not reveal that the agent exists",
+		strangerStatus, slug, missingStatus, "does-not-exist")
 
 	// 3. The same authenticated path resolves a public-audience share too.
-	_, err = clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-		ResourceId: agent.GetMetadata().GetId(),
-		Sharing:    &agentv1.AgentSharing{Enabled: true},
-	})
-	require.NoError(t, err)
-	_, err = member.Clients.AgentQuery.GetSharedProfileForMember(ctx, ref)
+	applyShare(t, ctx, clients, shareFor(agent, true))
+	_, err = member.Clients.AgentShareQuery.GetSharedProfileForMember(ctx, ref)
 	require.NoError(t, err,
 		"getSharedProfileForMember must resolve public shares as well — one path for any share")
 
-	// 4. Unshared: NOT_FOUND even for a member.
-	_, err = clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-		ResourceId: agent.GetMetadata().GetId(),
-		Sharing:    &agentv1.AgentSharing{Enabled: false},
-	})
-	require.NoError(t, err)
-	_, err = member.Clients.AgentQuery.GetSharedProfileForMember(ctx, ref)
-	require.Error(t, err, "an unshared agent must not resolve for anyone")
+	// 4. Paused: NOT_FOUND even for a member.
+	applyShare(t, ctx, clients, shareFor(agent, false))
+	_, err = member.Clients.AgentShareQuery.GetSharedProfileForMember(ctx, ref)
+	require.Error(t, err, "a paused share must not resolve for anyone")
 	st, ok := status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.NotFound, st.Code())
