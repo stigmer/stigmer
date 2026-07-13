@@ -292,6 +292,137 @@ func TestGetDownloadUrl_NonExistent_ReturnsNotFound(t *testing.T) {
 	assertGRPCCode(t, err, codes.NotFound)
 }
 
+// ---- GetContent ----
+
+func TestGetContent_ExistingArtifact_ReturnsFullContent(t *testing.T) {
+	env := setup(t)
+	ctx := ctxWithArtifactKind()
+	content := []byte(`{"proposal": ["record-1", "record-2"]}`)
+
+	created, err := env.ctrl.Create(ctx, validCreateInput(content))
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	resp, err := env.ctrl.GetContent(ctx, &artifactv1.GetArtifactContentRequest{
+		ArtifactId: created.GetMetadata().GetId(),
+	})
+	if err != nil {
+		t.Fatalf("GetContent failed: %v", err)
+	}
+	if string(resp.GetContent()) != string(content) {
+		t.Errorf("expected content %q, got %q", content, resp.GetContent())
+	}
+	if resp.GetTruncated() {
+		t.Error("expected truncated=false for content under the default limit")
+	}
+	if resp.GetTotalSizeBytes() != int64(len(content)) {
+		t.Errorf("expected total_size_bytes %d, got %d", len(content), resp.GetTotalSizeBytes())
+	}
+	if resp.GetContentType() != "application/json" {
+		t.Errorf("expected content_type application/json, got %s", resp.GetContentType())
+	}
+}
+
+func TestGetContent_MaxBytes_TruncatesAndReportsTotalSize(t *testing.T) {
+	env := setup(t)
+	ctx := ctxWithArtifactKind()
+	content := []byte(strings.Repeat("x", 100))
+
+	created, err := env.ctrl.Create(ctx, validCreateInput(content))
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	resp, err := env.ctrl.GetContent(ctx, &artifactv1.GetArtifactContentRequest{
+		ArtifactId: created.GetMetadata().GetId(),
+		MaxBytes:   10,
+	})
+	if err != nil {
+		t.Fatalf("GetContent failed: %v", err)
+	}
+	if len(resp.GetContent()) != 10 {
+		t.Errorf("expected 10 bytes, got %d", len(resp.GetContent()))
+	}
+	if !resp.GetTruncated() {
+		t.Error("expected truncated=true when content exceeds max_bytes")
+	}
+	if resp.GetTotalSizeBytes() != 100 {
+		t.Errorf("expected total_size_bytes 100, got %d", resp.GetTotalSizeBytes())
+	}
+}
+
+func TestGetContent_MaxBytesEqualToSize_NotTruncated(t *testing.T) {
+	env := setup(t)
+	ctx := ctxWithArtifactKind()
+	content := []byte(strings.Repeat("y", 64))
+
+	created, err := env.ctrl.Create(ctx, validCreateInput(content))
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	resp, err := env.ctrl.GetContent(ctx, &artifactv1.GetArtifactContentRequest{
+		ArtifactId: created.GetMetadata().GetId(),
+		MaxBytes:   64,
+	})
+	if err != nil {
+		t.Fatalf("GetContent failed: %v", err)
+	}
+	if resp.GetTruncated() {
+		t.Error("expected truncated=false when content size equals max_bytes")
+	}
+	if len(resp.GetContent()) != 64 {
+		t.Errorf("expected 64 bytes, got %d", len(resp.GetContent()))
+	}
+}
+
+func TestGetContent_DeletedArtifact_ReturnsFailedPrecondition(t *testing.T) {
+	env := setup(t)
+	ctx := ctxWithArtifactKind()
+
+	created, err := env.ctrl.Create(ctx, validCreateInput([]byte("gone soon")))
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+	if _, err := env.ctrl.Delete(ctx, &apiresource.ApiResourceId{Value: created.GetMetadata().GetId()}); err != nil {
+		t.Fatalf("Delete failed: %v", err)
+	}
+
+	_, err = env.ctrl.GetContent(ctx, &artifactv1.GetArtifactContentRequest{
+		ArtifactId: created.GetMetadata().GetId(),
+	})
+	assertGRPCCode(t, err, codes.FailedPrecondition)
+}
+
+func TestGetContent_NonExistent_ReturnsNotFound(t *testing.T) {
+	env := setup(t)
+	_, err := env.ctrl.GetContent(ctxWithArtifactKind(), &artifactv1.GetArtifactContentRequest{
+		ArtifactId: "art_nope",
+	})
+	assertGRPCCode(t, err, codes.NotFound)
+}
+
+func TestGetContent_EmptyArtifactId_ReturnsInvalidArgument(t *testing.T) {
+	env := setup(t)
+	_, err := env.ctrl.GetContent(ctxWithArtifactKind(), &artifactv1.GetArtifactContentRequest{})
+	assertGRPCCode(t, err, codes.InvalidArgument)
+}
+
+func TestGetContent_StorageNotConfigured_ReturnsInternal(t *testing.T) {
+	s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
+	if err != nil {
+		t.Fatalf("failed to create store: %v", err)
+	}
+	t.Cleanup(func() { s.Close() })
+
+	ctrl := NewArtifactController(s, nil)
+	_, err = ctrl.GetContent(ctxWithArtifactKind(), &artifactv1.GetArtifactContentRequest{
+		ArtifactId: "art_any",
+	})
+	assertGRPCCode(t, err, codes.Internal)
+}
+
 // ---- Delete ----
 
 func TestDelete_ExistingArtifact_TransitionsState(t *testing.T) {

@@ -1581,6 +1581,26 @@
           "groupId": "access",
           "fieldNumber": 7,
           "elementType": "string"
+        },
+        {
+          "name": "payload",
+          "displayName": "Payload",
+          "description": "Structured material for the reviewer to examine before deciding. Supports ${ } expression interpolation: the whole value can be a single expression string (\"${ $context.draft_revision }\") or an inline object/array whose nested strings carry embedded expressions. The runtime resolves expressions when the gate activates and attaches the resolved payload to the approval_requested event, so the approval record is permanently bound to exactly what the reviewer saw. Distinct from prompt (the instruction to the reviewer) and form_schema (the shape of the reviewer's response): payload is the thing under review — an article diff, a proposed record set, a generated plan. Resolved payloads at or above the artifact promotion threshold (256KB) are stored in the artifact store; the approval_requested event then carries payload_artifact_id instead of the inline value. See ApprovalRequestedPayload in workflowexecution/v1/event.proto. Expression support is documented here rather than via the is_expression option, which annotates string fields only — matching how other Struct/Value-typed expression-bearing configs are handled.",
+          "type": "message",
+          "required": false,
+          "fieldNumber": 8,
+          "elementType": "Value"
+        },
+        {
+          "name": "ui_hint",
+          "displayName": "Ui Hint",
+          "description": "Hint identifying which UI should present the payload. A plain discriminator string (e.g. \"article-diff\", \"infra-proposal\") that embedding applications match against their registered review renderers. When no renderer is registered for the hint — or the gate is viewed from a surface without custom renderers (CLI, plain console) — the payload is shown as structured data by the built-in approval card, so workflows stay portable across surfaces. Deliberately a hint, not a contract: an unrecognized value must never block the gate. Not expression-valued — the hint is workflow design, not runtime data.",
+          "type": "string",
+          "required": false,
+          "fieldNumber": 9,
+          "validationHints": [
+            "max_length: 63"
+          ]
         }
       ],
       "fieldGroups": [
@@ -1640,6 +1660,10 @@
             },
             "type": "array"
           },
+          "payload": {
+            "description": "Structured material for the reviewer to examine before deciding. Supports ${ } expression interpolation: the whole value can be a single expression string (\"${ $context.draft_revision }\") or an inline object/array whose nested strings carry embedded expressions. The runtime resolves expressions when the gate activates and attaches the resolved payload to the approval_requested event, so the approval record is permanently bound to exactly what the reviewer saw. Distinct from prompt (the instruction to the reviewer) and form_schema (the shape of the reviewer's response): payload is the thing under review — an article diff, a proposed record set, a generated plan. Resolved payloads at or above the artifact promotion threshold (256KB) are stored in the artifact store; the approval_requested event then carries payload_artifact_id instead of the inline value. See ApprovalRequestedPayload in workflowexecution/v1/event.proto. Expression support is documented here rather than via the is_expression option, which annotates string fields only — matching how other Struct/Value-typed expression-bearing configs are handled.",
+            "type": "object"
+          },
           "prompt": {
             "description": "Message shown to the reviewer explaining what needs approval or input. Supports ${ } expression interpolation for injecting workflow context. Example: \"Approve escalation for ticket ${ $context.ticket.id }?\"",
             "minLength": 1,
@@ -1649,6 +1673,11 @@
             "description": "Timeout in seconds before the on_timeout policy applies. Default: 0 (no timeout — the task waits indefinitely). Max: 2592000 (30 days). A timeout of 0 means the workflow will wait until a human responds. For production workflows, setting a timeout with an appropriate on_timeout policy is strongly recommended.",
             "maximum": 2592000,
             "type": "integer"
+          },
+          "ui_hint": {
+            "description": "Hint identifying which UI should present the payload. A plain discriminator string (e.g. \"article-diff\", \"infra-proposal\") that embedding applications match against their registered review renderers. When no renderer is registered for the hint — or the gate is viewed from a surface without custom renderers (CLI, plain console) — the payload is shown as structured data by the built-in approval card, so workflows stay portable across surfaces. Deliberately a hint, not a contract: an unrecognized value must never block the gate. Not expression-valued — the hint is workflow design, not runtime data.",
+            "maxLength": 63,
+            "type": "string"
           }
         },
         "required": [

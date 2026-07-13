@@ -429,6 +429,12 @@ func convertHumanInputTask(cfg *tasksv1.HumanInputTaskConfig) map[string]interfa
 	if len(cfg.NotificationChannels) > 0 {
 		with["notification_channels"] = cfg.NotificationChannels
 	}
+	if cfg.Payload != nil {
+		with["payload"] = cfg.Payload.AsInterface()
+	}
+	if cfg.UiHint != "" {
+		with["ui_hint"] = cfg.UiHint
+	}
 
 	return map[string]interface{}{
 		"call": "human_input",

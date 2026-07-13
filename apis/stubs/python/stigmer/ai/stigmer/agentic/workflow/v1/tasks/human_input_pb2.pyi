@@ -34,7 +34,7 @@ class HumanInputOutcome(_message.Message):
     def __init__(self, name: _Optional[str] = ..., label: _Optional[str] = ..., then: _Optional[str] = ...) -> None: ...
 
 class HumanInputTaskConfig(_message.Message):
-    __slots__ = ("prompt", "form_schema", "outcomes", "approvers", "timeout", "on_timeout", "notification_channels")
+    __slots__ = ("prompt", "form_schema", "outcomes", "approvers", "timeout", "on_timeout", "notification_channels", "payload", "ui_hint")
     PROMPT_FIELD_NUMBER: _ClassVar[int]
     FORM_SCHEMA_FIELD_NUMBER: _ClassVar[int]
     OUTCOMES_FIELD_NUMBER: _ClassVar[int]
@@ -42,6 +42,8 @@ class HumanInputTaskConfig(_message.Message):
     TIMEOUT_FIELD_NUMBER: _ClassVar[int]
     ON_TIMEOUT_FIELD_NUMBER: _ClassVar[int]
     NOTIFICATION_CHANNELS_FIELD_NUMBER: _ClassVar[int]
+    PAYLOAD_FIELD_NUMBER: _ClassVar[int]
+    UI_HINT_FIELD_NUMBER: _ClassVar[int]
     prompt: str
     form_schema: _struct_pb2.Struct
     outcomes: _containers.RepeatedCompositeFieldContainer[HumanInputOutcome]
@@ -49,4 +51,6 @@ class HumanInputTaskConfig(_message.Message):
     timeout: int
     on_timeout: HumanInputTimeoutPolicy
     notification_channels: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, prompt: _Optional[str] = ..., form_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., outcomes: _Optional[_Iterable[_Union[HumanInputOutcome, _Mapping]]] = ..., approvers: _Optional[_Iterable[str]] = ..., timeout: _Optional[int] = ..., on_timeout: _Optional[_Union[HumanInputTimeoutPolicy, str]] = ..., notification_channels: _Optional[_Iterable[str]] = ...) -> None: ...
+    payload: _struct_pb2.Value
+    ui_hint: str
+    def __init__(self, prompt: _Optional[str] = ..., form_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., outcomes: _Optional[_Iterable[_Union[HumanInputOutcome, _Mapping]]] = ..., approvers: _Optional[_Iterable[str]] = ..., timeout: _Optional[int] = ..., on_timeout: _Optional[_Union[HumanInputTimeoutPolicy, str]] = ..., notification_channels: _Optional[_Iterable[str]] = ..., payload: _Optional[_Union[_struct_pb2.Value, _Mapping]] = ..., ui_hint: _Optional[str] = ...) -> None: ...

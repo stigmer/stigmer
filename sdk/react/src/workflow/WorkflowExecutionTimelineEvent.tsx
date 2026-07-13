@@ -5,8 +5,10 @@ import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/
 import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { cn } from "@stigmer/theme";
+import { toJson, type JsonValue } from "@bufbuild/protobuf";
+import { ValueSchema } from "@bufbuild/protobuf/wkt";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
-import { WorkflowTaskApprovalCard } from "./WorkflowTaskApprovalCard.js";
+import { WorkflowTaskReviewGate } from "./WorkflowTaskReviewGate.js";
 import { formatDuration, formatMicroUsd, formatBytes, formatTimestamp, formatMetaChips } from "./format-utils.js";
 
 interface TimelineEventProps {
@@ -270,7 +272,7 @@ export const WorkflowExecutionTimelineEvent = memo(function WorkflowExecutionTim
             </p>
           )}
           {showCard && (
-            <WorkflowTaskApprovalCard
+            <WorkflowTaskReviewGate
               taskName={event.taskName}
               prompt={p.value.prompt}
               outcomes={(p.value.outcomes ?? []).map((o) => ({
@@ -280,6 +282,11 @@ export const WorkflowExecutionTimelineEvent = memo(function WorkflowExecutionTim
               formSchema={p.value.formSchema
                 ? (p.value.formSchema as unknown as Record<string, unknown>)
                 : undefined}
+              payload={p.value.payload
+                ? (toJson(ValueSchema, p.value.payload) as JsonValue)
+                : null}
+              uiHint={p.value.uiHint}
+              payloadArtifactId={p.value.payloadArtifactId || null}
               onSubmit={onSubmitTaskApproval}
               isSubmitting={taskApprovalSubmittingTaskNames?.has(event.taskName) ?? false}
               error={taskApprovalErrorsByTaskName?.get(event.taskName) ?? null}

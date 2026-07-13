@@ -1924,9 +1924,43 @@ type ApprovalRequestedPayload struct {
 	// is required or for agent tool approvals.
 	//
 	// @since T13c (Workflow HITL Approval UI)
-	FormSchema    *structpb.Struct `protobuf:"bytes,7,opt,name=form_schema,json=formSchema,proto3" json:"form_schema,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	FormSchema *structpb.Struct `protobuf:"bytes,7,opt,name=form_schema,json=formSchema,proto3" json:"form_schema,omitempty"`
+	// Resolved review payload the gate presented to the reviewer.
+	//
+	// @internal
+	// Populated from HumanInputTaskConfig.payload after the runner resolves
+	// its ${ } expressions — the event carries the materialized value, not
+	// the expression, so the execution history records exactly what the
+	// reviewer saw. Empty for agent tool approvals, for human_input tasks
+	// without a payload, and when the resolved payload was promoted to the
+	// artifact store (payload_artifact_id is set instead — the two fields
+	// are mutually exclusive).
+	//
+	// @since Review Payloads (stigmer/stigmer#234)
+	Payload *structpb.Value `protobuf:"bytes,8,opt,name=payload,proto3" json:"payload,omitempty"`
+	// UI hint identifying which renderer should present the payload.
+	//
+	// @internal
+	// Copied verbatim from HumanInputTaskConfig.ui_hint. Clients with a
+	// registered renderer for this hint present domain-native review UI;
+	// all other clients fall back to showing the payload as structured
+	// data. Empty when the task config sets no hint.
+	//
+	// @since Review Payloads (stigmer/stigmer#234)
+	UiHint string `protobuf:"bytes,9,opt,name=ui_hint,json=uiHint,proto3" json:"ui_hint,omitempty"`
+	// Artifact holding the resolved review payload when it exceeded the
+	// inline promotion threshold (256KB).
+	//
+	// @internal
+	// Set instead of payload (mutually exclusive). Clients read the content
+	// via ArtifactQueryController.getContent — API-proxied, so embedded SDK
+	// consumers avoid CORS exposure — or offer a download via getDownloadUrl.
+	// Format: "art_{unique-suffix}".
+	//
+	// @since Review Payloads (stigmer/stigmer#234)
+	PayloadArtifactId string `protobuf:"bytes,10,opt,name=payload_artifact_id,json=payloadArtifactId,proto3" json:"payload_artifact_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ApprovalRequestedPayload) Reset() {
@@ -2006,6 +2040,27 @@ func (x *ApprovalRequestedPayload) GetFormSchema() *structpb.Struct {
 		return x.FormSchema
 	}
 	return nil
+}
+
+func (x *ApprovalRequestedPayload) GetPayload() *structpb.Value {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+func (x *ApprovalRequestedPayload) GetUiHint() string {
+	if x != nil {
+		return x.UiHint
+	}
+	return ""
+}
+
+func (x *ApprovalRequestedPayload) GetPayloadArtifactId() string {
+	if x != nil {
+		return x.PayloadArtifactId
+	}
+	return ""
 }
 
 // Payload for approval_resolved events.
@@ -2533,7 +2588,7 @@ const file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDesc = "" +
 	"\x05error\x18\x06 \x01(\tR\x05error\"A\n" +
 	"\x15HumanInputOutcomeInfo\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05label\x18\x02 \x01(\tR\x05label\"\xdf\x02\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\"\xda\x03\n" +
 	"\x18ApprovalRequestedPayload\x12\x16\n" +
 	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x12\x1c\n" +
 	"\tapprovers\x18\x02 \x03(\tR\tapprovers\x12'\n" +
@@ -2543,7 +2598,11 @@ const file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDesc = "" +
 	"\x12child_execution_id\x18\x05 \x01(\tR\x10childExecutionId\x12Z\n" +
 	"\boutcomes\x18\x06 \x03(\v2>.ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfoR\boutcomes\x128\n" +
 	"\vform_schema\x18\a \x01(\v2\x17.google.protobuf.StructR\n" +
-	"formSchema\"\xcc\x01\n" +
+	"formSchema\x120\n" +
+	"\apayload\x18\b \x01(\v2\x16.google.protobuf.ValueR\apayload\x12\x17\n" +
+	"\aui_hint\x18\t \x01(\tR\x06uiHint\x12.\n" +
+	"\x13payload_artifact_id\x18\n" +
+	" \x01(\tR\x11payloadArtifactId\"\xcc\x01\n" +
 	"\x17ApprovalResolvedPayload\x12L\n" +
 	"\x06action\x18\x01 \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ApprovalActionR\x06action\x12\x1f\n" +
 	"\vresolved_by\x18\x02 \x01(\tR\n" +
@@ -2641,8 +2700,9 @@ var file_ai_stigmer_agentic_workflowexecution_v1_event_proto_goTypes = []any{
 	(*structpb.Struct)(nil),            // 24: google.protobuf.Struct
 	(v1.WorkflowTaskKind)(0),           // 25: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
 	(v11.ExecutionPhase)(0),            // 26: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	(v11.ApprovalAction)(0),            // 27: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(v1.BudgetExceededPolicy)(0),       // 28: ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
+	(*structpb.Value)(nil),             // 27: google.protobuf.Value
+	(v11.ApprovalAction)(0),            // 28: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(v1.BudgetExceededPolicy)(0),       // 29: ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
 }
 var file_ai_stigmer_agentic_workflowexecution_v1_event_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.event_type:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType
@@ -2678,14 +2738,15 @@ var file_ai_stigmer_agentic_workflowexecution_v1_event_proto_depIdxs = []int32{
 	26, // 30: ai.stigmer.agentic.workflowexecution.v1.AgentCallCompletedPayload.agent_phase:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
 	17, // 31: ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload.outcomes:type_name -> ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo
 	24, // 32: ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload.form_schema:type_name -> google.protobuf.Struct
-	27, // 33: ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	28, // 34: ai.stigmer.agentic.workflowexecution.v1.BudgetCheckpointPayload.on_exceeded_policy:type_name -> ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
-	24, // 35: ai.stigmer.agentic.workflowexecution.v1.SignalReceivedPayload.payload_summary:type_name -> google.protobuf.Struct
-	36, // [36:36] is the sub-list for method output_type
-	36, // [36:36] is the sub-list for method input_type
-	36, // [36:36] is the sub-list for extension type_name
-	36, // [36:36] is the sub-list for extension extendee
-	0,  // [0:36] is the sub-list for field type_name
+	27, // 33: ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload.payload:type_name -> google.protobuf.Value
+	28, // 34: ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	29, // 35: ai.stigmer.agentic.workflowexecution.v1.BudgetCheckpointPayload.on_exceeded_policy:type_name -> ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
+	24, // 36: ai.stigmer.agentic.workflowexecution.v1.SignalReceivedPayload.payload_summary:type_name -> google.protobuf.Struct
+	37, // [37:37] is the sub-list for method output_type
+	37, // [37:37] is the sub-list for method input_type
+	37, // [37:37] is the sub-list for extension type_name
+	37, // [37:37] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflowexecution_v1_event_proto_init() }

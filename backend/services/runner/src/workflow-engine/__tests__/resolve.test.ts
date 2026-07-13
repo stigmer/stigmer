@@ -136,6 +136,56 @@ describe("resolveConfigExpressions", () => {
     expect(result.value).toBe(3);
     expect(frozen.value).toBe("${ 1 + 2 }");
   });
+
+  it("never re-interprets literal ${ } text nested inside a Phase-1 object result (injection safety)", async () => {
+    // A strict expression resolving to external data (webhook body, API
+    // response, document under review) may contain literal `${ ... }`
+    // text at any depth. Phase 2 must skip the entire resolved subtree —
+    // not just a string at the exact resolved path.
+    const config = { payload: "${ $context.article }" };
+
+    const state = createState();
+    state.context = {
+      article: {
+        body: "Use ${ .secrets.KEY } to authenticate",
+        steps: ["run ${ $env.HOME }/setup.sh"],
+      },
+    };
+
+    const result = await resolveConfigExpressions(
+      config,
+      null,
+      state,
+      evaluateExpressionBatch,
+    );
+
+    expect(result.payload).toEqual({
+      body: "Use ${ .secrets.KEY } to authenticate",
+      steps: ["run ${ $env.HOME }/setup.sh"],
+    });
+  });
+
+  it("still interpolates embedded expressions in sibling fields alongside a Phase-1 object result", async () => {
+    // The subtree skip is scoped to the resolved path only — template
+    // strings elsewhere in the config keep working.
+    const config = {
+      payload: "${ $context.doc }",
+      note: "Reviewing ${ $context.doc.title }",
+    };
+
+    const state = createState();
+    state.context = { doc: { title: "Q3 plan", raw: "keep ${ .this } intact" } };
+
+    const result = await resolveConfigExpressions(
+      config,
+      null,
+      state,
+      evaluateExpressionBatch,
+    );
+
+    expect(result.payload).toEqual({ title: "Q3 plan", raw: "keep ${ .this } intact" });
+    expect(result.note).toBe("Reviewing Q3 plan");
+  });
 });
 
 describe("isRuntimePlaceholder", () => {

@@ -117,6 +117,37 @@ public final class ArtifactQueryControllerGrpc {
     return getGetDownloadUrlMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest,
+      ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse> getGetContentMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getContent",
+      requestType = ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest.class,
+      responseType = ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest,
+      ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse> getGetContentMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest, ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse> getGetContentMethod;
+    if ((getGetContentMethod = ArtifactQueryControllerGrpc.getGetContentMethod) == null) {
+      synchronized (ArtifactQueryControllerGrpc.class) {
+        if ((getGetContentMethod = ArtifactQueryControllerGrpc.getGetContentMethod) == null) {
+          ArtifactQueryControllerGrpc.getGetContentMethod = getGetContentMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest, ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getContent"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new ArtifactQueryControllerMethodDescriptorSupplier("getContent"))
+              .build();
+        }
+      }
+    }
+    return getGetContentMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -271,6 +302,32 @@ public final class ArtifactQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetDownloadUrlMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Read artifact content bytes through the Stigmer API.
+     * Returns the artifact's raw bytes directly in the response, eliminating
+     * CORS concerns for SDK consumers who need to read content
+     * programmatically — e.g., rendering an artifact-backed review payload
+     * inside an embedded approval gate.
+     * For direct file downloads, use getDownloadUrl instead — it returns a
+     * presigned URL that avoids proxying bytes through the server.
+     * &#64;internal
+     * Mirrors AgentExecutionQueryController.getArtifactContent (same
+     * truncation contract). Content is truncated to max_bytes (default:
+     * 512 KB); the response includes total_size_bytes and a truncated flag
+     * so callers can decide whether to offer a full download.
+     * Error Cases:
+     * - NOT_FOUND: No Artifact exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
+     * &#64;since Review Payloads (stigmer/stigmer#234)
+     * </pre>
+     */
+    default void getContent(ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetContentMethod(), responseObserver);
+    }
   }
 
   /**
@@ -406,6 +463,33 @@ public final class ArtifactQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetDownloadUrlMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Read artifact content bytes through the Stigmer API.
+     * Returns the artifact's raw bytes directly in the response, eliminating
+     * CORS concerns for SDK consumers who need to read content
+     * programmatically — e.g., rendering an artifact-backed review payload
+     * inside an embedded approval gate.
+     * For direct file downloads, use getDownloadUrl instead — it returns a
+     * presigned URL that avoids proxying bytes through the server.
+     * &#64;internal
+     * Mirrors AgentExecutionQueryController.getArtifactContent (same
+     * truncation contract). Content is truncated to max_bytes (default:
+     * 512 KB); the response includes total_size_bytes and a truncated flag
+     * so callers can decide whether to offer a full download.
+     * Error Cases:
+     * - NOT_FOUND: No Artifact exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
+     * &#64;since Review Payloads (stigmer/stigmer#234)
+     * </pre>
+     */
+    public void getContent(ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetContentMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -515,6 +599,32 @@ public final class ArtifactQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetDownloadUrlMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Read artifact content bytes through the Stigmer API.
+     * Returns the artifact's raw bytes directly in the response, eliminating
+     * CORS concerns for SDK consumers who need to read content
+     * programmatically — e.g., rendering an artifact-backed review payload
+     * inside an embedded approval gate.
+     * For direct file downloads, use getDownloadUrl instead — it returns a
+     * presigned URL that avoids proxying bytes through the server.
+     * &#64;internal
+     * Mirrors AgentExecutionQueryController.getArtifactContent (same
+     * truncation contract). Content is truncated to max_bytes (default:
+     * 512 KB); the response includes total_size_bytes and a truncated flag
+     * so callers can decide whether to offer a full download.
+     * Error Cases:
+     * - NOT_FOUND: No Artifact exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
+     * &#64;since Review Payloads (stigmer/stigmer#234)
+     * </pre>
+     */
+    public ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse getContent(ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetContentMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -623,6 +733,32 @@ public final class ArtifactQueryControllerGrpc {
     public ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl getDownloadUrl(ai.stigmer.agentic.artifact.v1.ArtifactId request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetDownloadUrlMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Read artifact content bytes through the Stigmer API.
+     * Returns the artifact's raw bytes directly in the response, eliminating
+     * CORS concerns for SDK consumers who need to read content
+     * programmatically — e.g., rendering an artifact-backed review payload
+     * inside an embedded approval gate.
+     * For direct file downloads, use getDownloadUrl instead — it returns a
+     * presigned URL that avoids proxying bytes through the server.
+     * &#64;internal
+     * Mirrors AgentExecutionQueryController.getArtifactContent (same
+     * truncation contract). Content is truncated to max_bytes (default:
+     * 512 KB); the response includes total_size_bytes and a truncated flag
+     * so callers can decide whether to offer a full download.
+     * Error Cases:
+     * - NOT_FOUND: No Artifact exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
+     * &#64;since Review Payloads (stigmer/stigmer#234)
+     * </pre>
+     */
+    public ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse getContent(ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetContentMethod(), getCallOptions(), request);
     }
   }
 
@@ -736,11 +872,39 @@ public final class ArtifactQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetDownloadUrlMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Read artifact content bytes through the Stigmer API.
+     * Returns the artifact's raw bytes directly in the response, eliminating
+     * CORS concerns for SDK consumers who need to read content
+     * programmatically — e.g., rendering an artifact-backed review payload
+     * inside an embedded approval gate.
+     * For direct file downloads, use getDownloadUrl instead — it returns a
+     * presigned URL that avoids proxying bytes through the server.
+     * &#64;internal
+     * Mirrors AgentExecutionQueryController.getArtifactContent (same
+     * truncation contract). Content is truncated to max_bytes (default:
+     * 512 KB); the response includes total_size_bytes and a truncated flag
+     * so callers can decide whether to offer a full download.
+     * Error Cases:
+     * - NOT_FOUND: No Artifact exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
+     * &#64;since Review Payloads (stigmer/stigmer#234)
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse> getContent(
+        ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetContentMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_LIST_BY_EXECUTION = 1;
   private static final int METHODID_GET_DOWNLOAD_URL = 2;
+  private static final int METHODID_GET_CONTENT = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -770,6 +934,10 @@ public final class ArtifactQueryControllerGrpc {
         case METHODID_GET_DOWNLOAD_URL:
           serviceImpl.getDownloadUrl((ai.stigmer.agentic.artifact.v1.ArtifactId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl>) responseObserver);
+          break;
+        case METHODID_GET_CONTENT:
+          serviceImpl.getContent((ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -810,6 +978,13 @@ public final class ArtifactQueryControllerGrpc {
               ai.stigmer.agentic.artifact.v1.ArtifactId,
               ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl>(
                 service, METHODID_GET_DOWNLOAD_URL)))
+        .addMethod(
+          getGetContentMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest,
+              ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse>(
+                service, METHODID_GET_CONTENT)))
         .build();
   }
 
@@ -861,6 +1036,7 @@ public final class ArtifactQueryControllerGrpc {
               .addMethod(getGetMethod())
               .addMethod(getListByExecutionMethod())
               .addMethod(getGetDownloadUrlMethod())
+              .addMethod(getGetContentMethod())
               .build();
         }
       }

@@ -22,6 +22,7 @@ const (
 	ArtifactQueryController_Get_FullMethodName             = "/ai.stigmer.agentic.artifact.v1.ArtifactQueryController/get"
 	ArtifactQueryController_ListByExecution_FullMethodName = "/ai.stigmer.agentic.artifact.v1.ArtifactQueryController/listByExecution"
 	ArtifactQueryController_GetDownloadUrl_FullMethodName  = "/ai.stigmer.agentic.artifact.v1.ArtifactQueryController/getDownloadUrl"
+	ArtifactQueryController_GetContent_FullMethodName      = "/ai.stigmer.agentic.artifact.v1.ArtifactQueryController/getContent"
 )
 
 // ArtifactQueryControllerClient is the client API for ArtifactQueryController service.
@@ -120,6 +121,30 @@ type ArtifactQueryControllerClient interface {
 	// - PERMISSION_DENIED: User doesn't have view access to the parent execution
 	// - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
 	GetDownloadUrl(ctx context.Context, in *ArtifactId, opts ...grpc.CallOption) (*ArtifactDownloadUrl, error)
+	// Read artifact content bytes through the Stigmer API.
+	//
+	// Returns the artifact's raw bytes directly in the response, eliminating
+	// CORS concerns for SDK consumers who need to read content
+	// programmatically — e.g., rendering an artifact-backed review payload
+	// inside an embedded approval gate.
+	//
+	// For direct file downloads, use getDownloadUrl instead — it returns a
+	// presigned URL that avoids proxying bytes through the server.
+	//
+	// @internal
+	// Mirrors AgentExecutionQueryController.getArtifactContent (same
+	// truncation contract). Content is truncated to max_bytes (default:
+	// 512 KB); the response includes total_size_bytes and a truncated flag
+	// so callers can decide whether to offer a full download.
+	//
+	// Error Cases:
+	//
+	// - NOT_FOUND: No Artifact exists with the given ID
+	// - PERMISSION_DENIED: User doesn't have view access to the parent execution
+	// - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
+	//
+	// @since Review Payloads (stigmer/stigmer#234)
+	GetContent(ctx context.Context, in *GetArtifactContentRequest, opts ...grpc.CallOption) (*GetArtifactContentResponse, error)
 }
 
 type artifactQueryControllerClient struct {
@@ -154,6 +179,16 @@ func (c *artifactQueryControllerClient) GetDownloadUrl(ctx context.Context, in *
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ArtifactDownloadUrl)
 	err := c.cc.Invoke(ctx, ArtifactQueryController_GetDownloadUrl_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *artifactQueryControllerClient) GetContent(ctx context.Context, in *GetArtifactContentRequest, opts ...grpc.CallOption) (*GetArtifactContentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetArtifactContentResponse)
+	err := c.cc.Invoke(ctx, ArtifactQueryController_GetContent_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -256,6 +291,30 @@ type ArtifactQueryControllerServer interface {
 	// - PERMISSION_DENIED: User doesn't have view access to the parent execution
 	// - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
 	GetDownloadUrl(context.Context, *ArtifactId) (*ArtifactDownloadUrl, error)
+	// Read artifact content bytes through the Stigmer API.
+	//
+	// Returns the artifact's raw bytes directly in the response, eliminating
+	// CORS concerns for SDK consumers who need to read content
+	// programmatically — e.g., rendering an artifact-backed review payload
+	// inside an embedded approval gate.
+	//
+	// For direct file downloads, use getDownloadUrl instead — it returns a
+	// presigned URL that avoids proxying bytes through the server.
+	//
+	// @internal
+	// Mirrors AgentExecutionQueryController.getArtifactContent (same
+	// truncation contract). Content is truncated to max_bytes (default:
+	// 512 KB); the response includes total_size_bytes and a truncated flag
+	// so callers can decide whether to offer a full download.
+	//
+	// Error Cases:
+	//
+	// - NOT_FOUND: No Artifact exists with the given ID
+	// - PERMISSION_DENIED: User doesn't have view access to the parent execution
+	// - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
+	//
+	// @since Review Payloads (stigmer/stigmer#234)
+	GetContent(context.Context, *GetArtifactContentRequest) (*GetArtifactContentResponse, error)
 }
 
 // UnimplementedArtifactQueryControllerServer should be embedded to have
@@ -273,6 +332,9 @@ func (UnimplementedArtifactQueryControllerServer) ListByExecution(context.Contex
 }
 func (UnimplementedArtifactQueryControllerServer) GetDownloadUrl(context.Context, *ArtifactId) (*ArtifactDownloadUrl, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDownloadUrl not implemented")
+}
+func (UnimplementedArtifactQueryControllerServer) GetContent(context.Context, *GetArtifactContentRequest) (*GetArtifactContentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetContent not implemented")
 }
 func (UnimplementedArtifactQueryControllerServer) testEmbeddedByValue() {}
 
@@ -348,6 +410,24 @@ func _ArtifactQueryController_GetDownloadUrl_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ArtifactQueryController_GetContent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetArtifactContentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArtifactQueryControllerServer).GetContent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArtifactQueryController_GetContent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArtifactQueryControllerServer).GetContent(ctx, req.(*GetArtifactContentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ArtifactQueryController_ServiceDesc is the grpc.ServiceDesc for ArtifactQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -366,6 +446,10 @@ var ArtifactQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getDownloadUrl",
 			Handler:    _ArtifactQueryController_GetDownloadUrl_Handler,
+		},
+		{
+			MethodName: "getContent",
+			Handler:    _ArtifactQueryController_GetContent_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

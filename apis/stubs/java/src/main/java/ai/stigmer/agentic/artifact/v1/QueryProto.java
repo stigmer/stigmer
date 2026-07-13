@@ -41,7 +41,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ai/stigmer/agentic/artifact/v1/io.proto\032" +
       "8ai/stigmer/commons/apiresource/rpc_serv" +
       "ice_options.proto\032+ai/stigmer/commons/rp" +
-      "c/method_options.proto2\335\003\n\027ArtifactQuery" +
+      "c/method_options.proto2\241\005\n\027ArtifactQuery" +
       "Controller\022\212\001\n\003get\022*.ai.stigmer.agentic." +
       "artifact.v1.ArtifactId\032(.ai.stigmer.agen" +
       "tic.artifact.v1.Artifact\"-\302\270\030)\010\001\0207\"\005valu" +
@@ -53,12 +53,16 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       ".agentic.artifact.v1.ArtifactId\0323.ai.sti" +
       "gmer.agentic.artifact.v1.ArtifactDownloa" +
       "dUrl\"2\302\270\030.\010\001\0207\"\005value*!unauthorized to d" +
-      "ownload artifact\032\004\240\377+7B\251\001B\nQueryProtoP\001\242" +
-      "\002\004ASAA\252\002\036Ai.Stigmer.Agentic.Artifact.V1\312" +
-      "\002\036Ai\\Stigmer\\Agentic\\Artifact\\V1\342\002*Ai\\St" +
-      "igmer\\Agentic\\Artifact\\V1\\GPBMetadata\352\002\"" +
-      "Ai::Stigmer::Agentic::Artifact::V1b\006prot" +
-      "o3"
+      "ownload artifact\022\301\001\n\ngetContent\0229.ai.sti" +
+      "gmer.agentic.artifact.v1.GetArtifactCont" +
+      "entRequest\032:.ai.stigmer.agentic.artifact" +
+      ".v1.GetArtifactContentResponse\"<\302\270\0308\010\001\0207" +
+      "\"\013artifact_id*%unauthorized to read arti" +
+      "fact content\032\004\240\377+7B\251\001B\nQueryProtoP\001\242\002\004AS" +
+      "AA\252\002\036Ai.Stigmer.Agentic.Artifact.V1\312\002\036Ai" +
+      "\\Stigmer\\Agentic\\Artifact\\V1\342\002*Ai\\Stigme" +
+      "r\\Agentic\\Artifact\\V1\\GPBMetadata\352\002\"Ai::" +
+      "Stigmer::Agentic::Artifact::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

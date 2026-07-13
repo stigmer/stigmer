@@ -6,6 +6,7 @@ import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1"
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../../commons/apiresource/field_options_pb.js";
 import { file_buf_validate_validate } from "../../../../../../buf/validate/validate_pb.js";
+import type { Value } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
 import type { JsonObject, Message } from "@bufbuild/protobuf";
 
@@ -13,7 +14,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflow/v1/tasks/human_input.proto.
  */
 export const file_ai_stigmer_agentic_workflow_v1_tasks_human_input: GenFile = /*@__PURE__*/
-  fileDesc("CjZhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvaHVtYW5faW5wdXQucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcyJMChFIdW1hbklucHV0T3V0Y29tZRIaCgRuYW1lGAEgASgJQgy6SAnIAQFyBBABGD8SDQoFbGFiZWwYAiABKAkSDAoEdGhlbhgDIAEoCSLkAgoUSHVtYW5JbnB1dFRhc2tDb25maWcSHgoGcHJvbXB0GAEgASgJQg66SAfIAQFyAhAB2IUsARIsCgtmb3JtX3NjaGVtYRgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSSQoIb3V0Y29tZXMYAyADKAsyNy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuSHVtYW5JbnB1dE91dGNvbWUSEQoJYXBwcm92ZXJzGAQgAygJEh0KB3RpbWVvdXQYBSABKAVCDLpICRoHGICangEoABJRCgpvbl90aW1lb3V0GAYgASgOMj0uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLkh1bWFuSW5wdXRUaW1lb3V0UG9saWN5Eh0KFW5vdGlmaWNhdGlvbl9jaGFubmVscxgHIAMoCToP6ossC2h1bWFuX2lucHV0KsQBChdIdW1hbklucHV0VGltZW91dFBvbGljeRIqCiZIVU1BTl9JTlBVVF9USU1FT1VUX1BPTElDWV9VTlNQRUNJRklFRBAAEhwKGEhVTUFOX0lOUFVUX1RJTUVPVVRfRkFJTBABEh8KG0hVTUFOX0lOUFVUX1RJTUVPVVRfQVBQUk9WRRACEhwKGEhVTUFOX0lOUFVUX1RJTUVPVVRfREVOWRADEiAKHEhVTUFOX0lOUFVUX1RJTUVPVVRfRVNDQUxBVEUQBGIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjZhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvaHVtYW5faW5wdXQucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcyJMChFIdW1hbklucHV0T3V0Y29tZRIaCgRuYW1lGAEgASgJQgy6SAnIAQFyBBABGD8SDQoFbGFiZWwYAiABKAkSDAoEdGhlbhgDIAEoCSKnAwoUSHVtYW5JbnB1dFRhc2tDb25maWcSHgoGcHJvbXB0GAEgASgJQg66SAfIAQFyAhAB2IUsARIsCgtmb3JtX3NjaGVtYRgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSSQoIb3V0Y29tZXMYAyADKAsyNy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuSHVtYW5JbnB1dE91dGNvbWUSEQoJYXBwcm92ZXJzGAQgAygJEh0KB3RpbWVvdXQYBSABKAVCDLpICRoHGICangEoABJRCgpvbl90aW1lb3V0GAYgASgOMj0uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLnRhc2tzLkh1bWFuSW5wdXRUaW1lb3V0UG9saWN5Eh0KFW5vdGlmaWNhdGlvbl9jaGFubmVscxgHIAMoCRInCgdwYXlsb2FkGAggASgLMhYuZ29vZ2xlLnByb3RvYnVmLlZhbHVlEhgKB3VpX2hpbnQYCSABKAlCB7pIBHICGD86D+qLLAtodW1hbl9pbnB1dCrEAQoXSHVtYW5JbnB1dFRpbWVvdXRQb2xpY3kSKgomSFVNQU5fSU5QVVRfVElNRU9VVF9QT0xJQ1lfVU5TUEVDSUZJRUQQABIcChhIVU1BTl9JTlBVVF9USU1FT1VUX0ZBSUwQARIfChtIVU1BTl9JTlBVVF9USU1FT1VUX0FQUFJPVkUQAhIcChhIVU1BTl9JTlBVVF9USU1FT1VUX0RFTlkQAxIgChxIVU1BTl9JTlBVVF9USU1FT1VUX0VTQ0FMQVRFEARiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * HumanInputOutcome defines a named outcome that a reviewer can select
@@ -241,6 +242,57 @@ export type HumanInputTaskConfig = Message<"ai.stigmer.agentic.workflow.v1.tasks
    * @generated from field: repeated string notification_channels = 7;
    */
   notificationChannels: string[];
+
+  /**
+   * Structured material for the reviewer to examine before deciding.
+   *
+   * Supports ${ } expression interpolation: the whole value can be a
+   * single expression string ("${ $context.draft_revision }") or an
+   * inline object/array whose nested strings carry embedded expressions.
+   * The runtime resolves expressions when the gate activates and attaches
+   * the resolved payload to the approval_requested event, so the approval
+   * record is permanently bound to exactly what the reviewer saw.
+   *
+   * Distinct from prompt (the instruction to the reviewer) and form_schema
+   * (the shape of the reviewer's response): payload is the thing under
+   * review — an article diff, a proposed record set, a generated plan.
+   *
+   * @internal
+   * Resolved payloads at or above the artifact promotion threshold (256KB)
+   * are stored in the artifact store; the approval_requested event then
+   * carries payload_artifact_id instead of the inline value. See
+   * ApprovalRequestedPayload in workflowexecution/v1/event.proto.
+   *
+   * Expression support is documented here rather than via the
+   * is_expression option, which annotates string fields only — matching
+   * how other Struct/Value-typed expression-bearing configs are handled.
+   *
+   * @since Review Payloads (stigmer/stigmer#234)
+   *
+   * @generated from field: google.protobuf.Value payload = 8;
+   */
+  payload?: Value;
+
+  /**
+   * Hint identifying which UI should present the payload.
+   *
+   * A plain discriminator string (e.g. "article-diff", "infra-proposal")
+   * that embedding applications match against their registered review
+   * renderers. When no renderer is registered for the hint — or the gate
+   * is viewed from a surface without custom renderers (CLI, plain
+   * console) — the payload is shown as structured data by the built-in
+   * approval card, so workflows stay portable across surfaces.
+   *
+   * @internal
+   * Deliberately a hint, not a contract: an unrecognized value must never
+   * block the gate. Not expression-valued — the hint is workflow design,
+   * not runtime data.
+   *
+   * @since Review Payloads (stigmer/stigmer#234)
+   *
+   * @generated from field: string ui_hint = 9;
+   */
+  uiHint: string;
 };
 
 /**

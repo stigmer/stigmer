@@ -43,6 +43,26 @@ class ListArtifactsByExecutionRequest(_message.Message):
     page_token: str
     def __init__(self, workflow_execution_id: _Optional[str] = ..., agent_execution_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
+class GetArtifactContentRequest(_message.Message):
+    __slots__ = ("artifact_id", "max_bytes")
+    ARTIFACT_ID_FIELD_NUMBER: _ClassVar[int]
+    MAX_BYTES_FIELD_NUMBER: _ClassVar[int]
+    artifact_id: str
+    max_bytes: int
+    def __init__(self, artifact_id: _Optional[str] = ..., max_bytes: _Optional[int] = ...) -> None: ...
+
+class GetArtifactContentResponse(_message.Message):
+    __slots__ = ("content", "content_type", "total_size_bytes", "truncated")
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_TYPE_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_SIZE_BYTES_FIELD_NUMBER: _ClassVar[int]
+    TRUNCATED_FIELD_NUMBER: _ClassVar[int]
+    content: bytes
+    content_type: str
+    total_size_bytes: int
+    truncated: bool
+    def __init__(self, content: _Optional[bytes] = ..., content_type: _Optional[str] = ..., total_size_bytes: _Optional[int] = ..., truncated: bool = ...) -> None: ...
+
 class ArtifactDownloadUrl(_message.Message):
     __slots__ = ("url", "ttl_seconds", "size_bytes", "content_type")
     URL_FIELD_NUMBER: _ClassVar[int]

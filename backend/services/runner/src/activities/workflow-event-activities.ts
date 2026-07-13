@@ -12,7 +12,8 @@
 
 import { StigmerClient } from "../client/stigmer-client.js";
 import { loadConfig } from "../config.js";
-import { create } from "@bufbuild/protobuf";
+import { create, fromJson } from "@bufbuild/protobuf";
+import { ValueSchema } from "@bufbuild/protobuf/wkt";
 import {
   WorkflowExecutionEventSchema,
   type WorkflowExecutionEvent,
@@ -40,7 +41,7 @@ import {
 import { ExecutionPhase, WorkflowTaskStatus, WorkflowTaskType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { ExecutionPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import type { JsonObject } from "@bufbuild/protobuf";
+import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
 import type { WorkflowEventDescriptor } from "../workflow-engine/types.js";
 import type { TaskStatusEntry } from "../workflow-engine/task-status-accumulator.js";
 import type { RecoveryTaskData } from "../workflow-engine/recovery.js";
@@ -289,6 +290,13 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
           formSchema: desc.formSchema
             ? (desc.formSchema as JsonObject)
             : undefined,
+          // The resolved review payload is arbitrary JSON; fromJson builds
+          // the google.protobuf.Value wrapper the proto field expects.
+          payload: desc.payload !== undefined
+            ? fromJson(ValueSchema, desc.payload as JsonValue)
+            : undefined,
+          uiHint: desc.uiHint ?? "",
+          payloadArtifactId: desc.payloadArtifactId ?? "",
         }),
       };
       break;

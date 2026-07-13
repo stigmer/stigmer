@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ArtifactSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_artifact_v1_api } from "./api_pb.js";
-import type { ArtifactDownloadUrlSchema, ArtifactIdSchema, ArtifactListSchema, ListArtifactsByExecutionRequestSchema } from "./io_pb.js";
+import type { ArtifactDownloadUrlSchema, ArtifactIdSchema, ArtifactListSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, ListArtifactsByExecutionRequestSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_artifact_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/artifact/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_artifact_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvYXJ0aWZhY3QvdjEvcXVlcnkucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MTLdAwoXQXJ0aWZhY3RRdWVyeUNvbnRyb2xsZXISigEKA2dldBIqLmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MS5BcnRpZmFjdElkGiguYWkuc3RpZ21lci5hZ2VudGljLmFydGlmYWN0LnYxLkFydGlmYWN0Ii3CuBgpCAEQNyIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBnZXQgYXJ0aWZhY3QShgEKD2xpc3RCeUV4ZWN1dGlvbhI/LmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MS5MaXN0QXJ0aWZhY3RzQnlFeGVjdXRpb25SZXF1ZXN0GiwuYWkuc3RpZ21lci5hZ2VudGljLmFydGlmYWN0LnYxLkFydGlmYWN0TGlzdCIE0LgYARKlAQoOZ2V0RG93bmxvYWRVcmwSKi5haS5zdGlnbWVyLmFnZW50aWMuYXJ0aWZhY3QudjEuQXJ0aWZhY3RJZBozLmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MS5BcnRpZmFjdERvd25sb2FkVXJsIjLCuBguCAEQNyIFdmFsdWUqIXVuYXV0aG9yaXplZCB0byBkb3dubG9hZCBhcnRpZmFjdBoEoP8rN2IGcHJvdG8z", [file_ai_stigmer_agentic_artifact_v1_api, file_ai_stigmer_agentic_artifact_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CiphaS9zdGlnbWVyL2FnZW50aWMvYXJ0aWZhY3QvdjEvcXVlcnkucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MTKhBQoXQXJ0aWZhY3RRdWVyeUNvbnRyb2xsZXISigEKA2dldBIqLmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MS5BcnRpZmFjdElkGiguYWkuc3RpZ21lci5hZ2VudGljLmFydGlmYWN0LnYxLkFydGlmYWN0Ii3CuBgpCAEQNyIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBnZXQgYXJ0aWZhY3QShgEKD2xpc3RCeUV4ZWN1dGlvbhI/LmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MS5MaXN0QXJ0aWZhY3RzQnlFeGVjdXRpb25SZXF1ZXN0GiwuYWkuc3RpZ21lci5hZ2VudGljLmFydGlmYWN0LnYxLkFydGlmYWN0TGlzdCIE0LgYARKlAQoOZ2V0RG93bmxvYWRVcmwSKi5haS5zdGlnbWVyLmFnZW50aWMuYXJ0aWZhY3QudjEuQXJ0aWZhY3RJZBozLmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MS5BcnRpZmFjdERvd25sb2FkVXJsIjLCuBguCAEQNyIFdmFsdWUqIXVuYXV0aG9yaXplZCB0byBkb3dubG9hZCBhcnRpZmFjdBLBAQoKZ2V0Q29udGVudBI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MS5HZXRBcnRpZmFjdENvbnRlbnRSZXF1ZXN0GjouYWkuc3RpZ21lci5hZ2VudGljLmFydGlmYWN0LnYxLkdldEFydGlmYWN0Q29udGVudFJlc3BvbnNlIjzCuBg4CAEQNyILYXJ0aWZhY3RfaWQqJXVuYXV0aG9yaXplZCB0byByZWFkIGFydGlmYWN0IGNvbnRlbnQaBKD/KzdiBnByb3RvMw", [file_ai_stigmer_agentic_artifact_v1_api, file_ai_stigmer_agentic_artifact_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ArtifactQueryController handles read operations for Artifact resources.
@@ -136,6 +136,38 @@ export const ArtifactQueryController: GenService<{
     methodKind: "unary";
     input: typeof ArtifactIdSchema;
     output: typeof ArtifactDownloadUrlSchema;
+  },
+  /**
+   * Read artifact content bytes through the Stigmer API.
+   *
+   * Returns the artifact's raw bytes directly in the response, eliminating
+   * CORS concerns for SDK consumers who need to read content
+   * programmatically — e.g., rendering an artifact-backed review payload
+   * inside an embedded approval gate.
+   *
+   * For direct file downloads, use getDownloadUrl instead — it returns a
+   * presigned URL that avoids proxying bytes through the server.
+   *
+   * @internal
+   * Mirrors AgentExecutionQueryController.getArtifactContent (same
+   * truncation contract). Content is truncated to max_bytes (default:
+   * 512 KB); the response includes total_size_bytes and a truncated flag
+   * so callers can decide whether to offer a full download.
+   *
+   * Error Cases:
+   *
+   * - NOT_FOUND: No Artifact exists with the given ID
+   * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+   * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
+   *
+   * @since Review Payloads (stigmer/stigmer#234)
+   *
+   * @generated from rpc ai.stigmer.agentic.artifact.v1.ArtifactQueryController.getContent
+   */
+  getContent: {
+    methodKind: "unary";
+    input: typeof GetArtifactContentRequestSchema;
+    output: typeof GetArtifactContentResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_artifact_v1_query, 0);

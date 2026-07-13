@@ -6,7 +6,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ArtifactSchema, type Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { ArtifactCommandController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/command_pb";
-import { ArtifactIdSchema, CreateArtifactInputSchema, ListArtifactsByExecutionRequestSchema, ArtifactListSchema, ArtifactDownloadUrlSchema, type CreateArtifactInput, type ListArtifactsByExecutionRequest, type ArtifactList, type ArtifactDownloadUrl } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/io_pb";
+import { ArtifactIdSchema, CreateArtifactInputSchema, ListArtifactsByExecutionRequestSchema, ArtifactListSchema, ArtifactDownloadUrlSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, type CreateArtifactInput, type ListArtifactsByExecutionRequest, type ArtifactList, type ArtifactDownloadUrl, type GetArtifactContentRequest, type GetArtifactContentResponse } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/io_pb";
 import { ArtifactQueryController } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/query_pb";
 import { ArtifactSpecSchema, ArtifactSourceSchema, RetentionPolicySchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/spec_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -50,6 +50,12 @@ export class ArtifactClient {
   async getDownloadUrl(id: string): Promise<ArtifactDownloadUrl> {
     try {
       return await this.query.getDownloadUrl(create(ArtifactIdSchema, { value: id }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getContent(input: GetArtifactContentRequest): Promise<GetArtifactContentResponse> {
+    try {
+      return await this.query.getContent(input);
     } catch (e) { throw wrapError(e); }
   }
 }

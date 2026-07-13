@@ -1452,6 +1452,10 @@ export {
   WorkflowTemplateCard,
   WorkflowTemplatePreview,
   WorkflowTemplateGallery,
+  // Review payloads (issue #234): custom renderers for human_input gates
+  WorkflowTaskReviewGate,
+  useReviewRenderer,
+  useReviewPayload,
 } from "./workflow/index.js";
 export type {
   TaskKindDescriptor,
@@ -1585,6 +1589,12 @@ export type {
   WorkflowTemplateCardProps,
   WorkflowTemplatePreviewProps,
   WorkflowTemplateGalleryProps,
+  // Review payloads (issue #234): custom renderer contract
+  ReviewRendererProps,
+  ReviewRenderers,
+  TaskOutcome,
+  WorkflowTaskReviewGateProps,
+  UseReviewPayloadReturn,
 } from "./workflow/index.js";
 
 // ─── Dashboard (Unified Platform) ──────────────────────────────────────────

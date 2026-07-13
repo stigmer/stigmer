@@ -26,30 +26,36 @@ var File_ai_stigmer_agentic_artifact_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_artifact_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/artifact/v1/query.proto\x12\x1eai.stigmer.agentic.artifact.v1\x1a(ai/stigmer/agentic/artifact/v1/api.proto\x1a'ai/stigmer/agentic/artifact/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xdd\x03\n" +
+	"*ai/stigmer/agentic/artifact/v1/query.proto\x12\x1eai.stigmer.agentic.artifact.v1\x1a(ai/stigmer/agentic/artifact/v1/api.proto\x1a'ai/stigmer/agentic/artifact/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xa1\x05\n" +
 	"\x17ArtifactQueryController\x12\x8a\x01\n" +
 	"\x03get\x12*.ai.stigmer.agentic.artifact.v1.ArtifactId\x1a(.ai.stigmer.agentic.artifact.v1.Artifact\"-¸\x18)\b\x01\x107\"\x05value*\x1cunauthorized to get artifact\x12\x86\x01\n" +
 	"\x0flistByExecution\x12?.ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest\x1a,.ai.stigmer.agentic.artifact.v1.ArtifactList\"\x04и\x18\x01\x12\xa5\x01\n" +
-	"\x0egetDownloadUrl\x12*.ai.stigmer.agentic.artifact.v1.ArtifactId\x1a3.ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl\"2¸\x18.\b\x01\x107\"\x05value*!unauthorized to download artifact\x1a\x04\xa0\xff+7B\xa1\x02\n" +
+	"\x0egetDownloadUrl\x12*.ai.stigmer.agentic.artifact.v1.ArtifactId\x1a3.ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl\"2¸\x18.\b\x01\x107\"\x05value*!unauthorized to download artifact\x12\xc1\x01\n" +
+	"\n" +
+	"getContent\x129.ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest\x1a:.ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse\"<¸\x188\b\x01\x107\"\vartifact_id*%unauthorized to read artifact content\x1a\x04\xa0\xff+7B\xa1\x02\n" +
 	"\"com.ai.stigmer.agentic.artifact.v1B\n" +
 	"QueryProtoP\x01ZRgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/artifact/v1;artifactv1\xa2\x02\x04ASAA\xaa\x02\x1eAi.Stigmer.Agentic.Artifact.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Artifact\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Artifact::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_artifact_v1_query_proto_goTypes = []any{
 	(*ArtifactId)(nil),                      // 0: ai.stigmer.agentic.artifact.v1.ArtifactId
 	(*ListArtifactsByExecutionRequest)(nil), // 1: ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest
-	(*Artifact)(nil),                        // 2: ai.stigmer.agentic.artifact.v1.Artifact
-	(*ArtifactList)(nil),                    // 3: ai.stigmer.agentic.artifact.v1.ArtifactList
-	(*ArtifactDownloadUrl)(nil),             // 4: ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl
+	(*GetArtifactContentRequest)(nil),       // 2: ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest
+	(*Artifact)(nil),                        // 3: ai.stigmer.agentic.artifact.v1.Artifact
+	(*ArtifactList)(nil),                    // 4: ai.stigmer.agentic.artifact.v1.ArtifactList
+	(*ArtifactDownloadUrl)(nil),             // 5: ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl
+	(*GetArtifactContentResponse)(nil),      // 6: ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse
 }
 var file_ai_stigmer_agentic_artifact_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.artifact.v1.ArtifactQueryController.get:input_type -> ai.stigmer.agentic.artifact.v1.ArtifactId
 	1, // 1: ai.stigmer.agentic.artifact.v1.ArtifactQueryController.listByExecution:input_type -> ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest
 	0, // 2: ai.stigmer.agentic.artifact.v1.ArtifactQueryController.getDownloadUrl:input_type -> ai.stigmer.agentic.artifact.v1.ArtifactId
-	2, // 3: ai.stigmer.agentic.artifact.v1.ArtifactQueryController.get:output_type -> ai.stigmer.agentic.artifact.v1.Artifact
-	3, // 4: ai.stigmer.agentic.artifact.v1.ArtifactQueryController.listByExecution:output_type -> ai.stigmer.agentic.artifact.v1.ArtifactList
-	4, // 5: ai.stigmer.agentic.artifact.v1.ArtifactQueryController.getDownloadUrl:output_type -> ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	2, // 3: ai.stigmer.agentic.artifact.v1.ArtifactQueryController.getContent:input_type -> ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest
+	3, // 4: ai.stigmer.agentic.artifact.v1.ArtifactQueryController.get:output_type -> ai.stigmer.agentic.artifact.v1.Artifact
+	4, // 5: ai.stigmer.agentic.artifact.v1.ArtifactQueryController.listByExecution:output_type -> ai.stigmer.agentic.artifact.v1.ArtifactList
+	5, // 6: ai.stigmer.agentic.artifact.v1.ArtifactQueryController.getDownloadUrl:output_type -> ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl
+	6, // 7: ai.stigmer.agentic.artifact.v1.ArtifactQueryController.getContent:output_type -> ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

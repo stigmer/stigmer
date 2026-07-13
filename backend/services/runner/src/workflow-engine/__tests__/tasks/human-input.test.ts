@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { executeHumanInputTask } from "../../tasks/human-input.js";
 import { createState } from "../../state.js";
+import { evaluateExpressionBatch } from "../../expression.js";
 import type {
   HumanInputTaskDef,
   TaskExecutionContext,
@@ -8,14 +9,27 @@ import type {
   HumanInputResult,
   AwaitHumanInputFn,
   EmitEventsFn,
+  ExpressionEvaluator,
+  PromoteTaskOutputFn,
   WorkflowEventDescriptor,
 } from "../../types.js";
 
 const notAvailable = () => { throw new Error("not available in test"); };
 
-function makeCtx(awaitFn?: AwaitHumanInputFn, emitFn?: EmitEventsFn): TaskExecutionContext {
+interface CtxOptions {
+  readonly awaitFn?: AwaitHumanInputFn;
+  readonly emitFn?: EmitEventsFn;
+  readonly evaluateExpressions?: ExpressionEvaluator;
+  readonly promoteTaskOutput?: PromoteTaskOutputFn;
+}
+
+function makeCtx(
+  awaitFn?: AwaitHumanInputFn,
+  emitFn?: EmitEventsFn,
+  options?: CtxOptions,
+): TaskExecutionContext {
   return {
-    evaluateExpressions: async () => ({}),
+    evaluateExpressions: options?.evaluateExpressions ?? (async () => ({})),
     doc: { document: { dsl: "1.0.0", name: "test" }, do: [] },
     sleep: notAvailable,
     listen: notAvailable,
@@ -27,6 +41,7 @@ function makeCtx(awaitFn?: AwaitHumanInputFn, emitFn?: EmitEventsFn): TaskExecut
     callFunction: notAvailable,
     callAgent: notAvailable,
     emitEvents: emitFn,
+    promoteTaskOutput: options?.promoteTaskOutput,
   };
 }
 
@@ -411,6 +426,217 @@ describe("executeHumanInputTask", () => {
 
       expect(resolved.autoResolved).toBe(true);
       expect(resolved.outcome).toBe("approve");
+    });
+  });
+
+  describe("review payload", () => {
+    const awaitApprove: AwaitHumanInputFn = async () => ({ outcome: "approve" });
+
+    function gateWith(payload: unknown, uiHint?: string): HumanInputTaskDef {
+      return {
+        kind: "human_input",
+        humanInput: { prompt: "Review the material", payload, uiHint },
+      };
+    }
+
+    /** Captures emitted batches and returns the approval_requested event. */
+    function captureRequested(emitted: WorkflowEventDescriptor[][]) {
+      const requested = emitted[0].find((e) => e.type === "approval_requested");
+      if (!requested || requested.type !== "approval_requested") {
+        throw new Error("approval_requested not emitted");
+      }
+      return requested;
+    }
+
+    it("resolves a whole-value expression payload against workflow state", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+
+      const state = createState();
+      state.context = { draft: { title: "Q3 plan", items: [1, 2, 3] } };
+
+      await executeHumanInputTask(
+        gateWith("${ $context.draft }", "plan-review"),
+        "gate", state,
+        makeCtx(awaitApprove, emitFn, { evaluateExpressions: evaluateExpressionBatch }),
+      );
+
+      const requested = captureRequested(emitted);
+      expect(requested.payload).toEqual({ title: "Q3 plan", items: [1, 2, 3] });
+      expect(requested.uiHint).toBe("plan-review");
+      expect(requested.payloadArtifactId).toBeUndefined();
+    });
+
+    it("resolves embedded expressions inside an inline object payload", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+
+      const state = createState();
+      state.context = { triage: { severity: "P1" } };
+
+      await executeHumanInputTask(
+        gateWith({ summary: "Severity: ${ $context.triage.severity }", static: true }),
+        "gate", state,
+        makeCtx(awaitApprove, emitFn, { evaluateExpressions: evaluateExpressionBatch }),
+      );
+
+      const requested = captureRequested(emitted);
+      expect(requested.payload).toEqual({ summary: "Severity: P1", static: true });
+      expect(requested.uiHint).toBeUndefined();
+    });
+
+    it("does not re-evaluate literal ${ } text inside resolved payload data (injection safety)", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+
+      // External data (e.g. a webhook body) containing literal expression
+      // syntax must survive resolution verbatim.
+      const state = createState();
+      state.context = { article: { body: "Use ${ .secrets.KEY } to authenticate" } };
+
+      await executeHumanInputTask(
+        gateWith("${ $context.article }"),
+        "gate", state,
+        makeCtx(awaitApprove, emitFn, { evaluateExpressions: evaluateExpressionBatch }),
+      );
+
+      const requested = captureRequested(emitted);
+      expect(requested.payload).toEqual({ body: "Use ${ .secrets.KEY } to authenticate" });
+    });
+
+    it("fails the task when payload resolution errors", async () => {
+      const failingEvaluator: ExpressionEvaluator = async () => {
+        throw new Error("jq: compile error");
+      };
+
+      await expect(
+        executeHumanInputTask(
+          gateWith("${ $context.draft | invalid_filter }"),
+          "gate", createState(),
+          makeCtx(awaitApprove, undefined, { evaluateExpressions: failingEvaluator }),
+        ),
+      ).rejects.toThrow("failed to resolve 'payload' expressions");
+    });
+
+    it("fails the task when payload resolves to null (missing context path)", async () => {
+      await expect(
+        executeHumanInputTask(
+          gateWith("${ $context.does_not_exist }"),
+          "gate", createState(),
+          makeCtx(awaitApprove, undefined, { evaluateExpressions: evaluateExpressionBatch }),
+        ),
+      ).rejects.toThrow("'payload' resolved to null");
+    });
+
+    it("promotes the payload and emits an artifact reference instead of inline data", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+
+      const promoteFn: PromoteTaskOutputFn = vi.fn(async () => ({
+        output: { _artifact_ref: "art_review123" },
+        artifactIds: ["art_review123"],
+        artifactCreatedEvents: [{
+          type: "artifact_created" as const,
+          artifactId: "art_review123",
+          displayName: "gate — review-payload.json",
+          contentType: "application/json",
+          sizeBytes: 300_000,
+          occurredAt: new Date().toISOString(),
+        }],
+      }));
+
+      const state = createState();
+      state.context = { proposal: { records: ["huge"] } };
+
+      await executeHumanInputTask(
+        gateWith("${ $context.proposal }", "infra-proposal"),
+        "gate", state,
+        makeCtx(awaitApprove, emitFn, {
+          evaluateExpressions: evaluateExpressionBatch,
+          promoteTaskOutput: promoteFn,
+        }),
+      );
+
+      expect(promoteFn).toHaveBeenCalledWith(
+        { records: ["huge"] }, "", "gate", "gate — review-payload.json",
+      );
+
+      const requested = captureRequested(emitted);
+      expect(requested.payload).toBeUndefined();
+      expect(requested.payloadArtifactId).toBe("art_review123");
+      expect(requested.uiHint).toBe("infra-proposal");
+
+      const artifactEvent = emitted[0].find((e) => e.type === "artifact_created");
+      expect(artifactEvent).toBeDefined();
+      if (artifactEvent?.type !== "artifact_created") throw new Error("unexpected");
+      expect(artifactEvent.artifactId).toBe("art_review123");
+    });
+
+    it("delivers inline when the promotion activity returns no artifacts (below threshold)", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+
+      const promoteFn: PromoteTaskOutputFn = async (taskOutput) => ({
+        output: taskOutput, artifactIds: [], artifactCreatedEvents: [],
+      });
+
+      const state = createState();
+      state.context = { note: "small" };
+
+      await executeHumanInputTask(
+        gateWith("${ $context.note }"),
+        "gate", state,
+        makeCtx(awaitApprove, emitFn, {
+          evaluateExpressions: evaluateExpressionBatch,
+          promoteTaskOutput: promoteFn,
+        }),
+      );
+
+      const requested = captureRequested(emitted);
+      expect(requested.payload).toBe("small");
+      expect(requested.payloadArtifactId).toBeUndefined();
+    });
+
+    it("falls back to inline delivery when promotion fails (best-effort policy)", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+
+      const promoteFn: PromoteTaskOutputFn = async () => {
+        throw new Error("artifact store unavailable");
+      };
+
+      const state = createState();
+      state.context = { doc: { text: "content" } };
+
+      await executeHumanInputTask(
+        gateWith("${ $context.doc }"),
+        "gate", state,
+        makeCtx(awaitApprove, emitFn, {
+          evaluateExpressions: evaluateExpressionBatch,
+          promoteTaskOutput: promoteFn,
+        }),
+      );
+
+      const requested = captureRequested(emitted);
+      expect(requested.payload).toEqual({ text: "content" });
+      expect(requested.payloadArtifactId).toBeUndefined();
+    });
+
+    it("omits payload fields entirely when the task config has no payload", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: { prompt: "Simple gate" },
+      };
+
+      await executeHumanInputTask(taskDef, "gate", createState(), makeCtx(awaitApprove, emitFn));
+
+      const requested = captureRequested(emitted);
+      expect(requested.payload).toBeUndefined();
+      expect(requested.uiHint).toBeUndefined();
+      expect(requested.payloadArtifactId).toBeUndefined();
     });
   });
 });

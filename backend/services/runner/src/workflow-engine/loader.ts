@@ -520,5 +520,9 @@ function parseHumanInputConfig(taskName: string, raw: unknown): import("./types.
       : undefined,
     timeout: typeof obj.timeout === "number" ? obj.timeout : undefined,
     onTimeout: (obj.on_timeout as "fail" | "approve" | "deny") ?? undefined,
+    // Any JSON shape is a valid payload (expression string, object, array),
+    // so only null/undefined mean "no payload" here.
+    payload: obj.payload ?? undefined,
+    uiHint: typeof obj.ui_hint === "string" && obj.ui_hint ? obj.ui_hint : undefined,
   };
 }

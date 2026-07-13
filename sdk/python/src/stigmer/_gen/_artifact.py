@@ -54,6 +54,12 @@ class ArtifactClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_content(self, input: io_pb2.GetArtifactContentRequest) -> io_pb2.GetArtifactContentResponse:
+        try:
+            return self._query.getContent(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class ArtifactInput:

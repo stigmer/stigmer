@@ -9,6 +9,8 @@ import ai.stigmer.agentic.artifact.v1.ArtifactId;
 import ai.stigmer.agentic.artifact.v1.ArtifactList;
 import ai.stigmer.agentic.artifact.v1.ArtifactQueryControllerGrpc;
 import ai.stigmer.agentic.artifact.v1.CreateArtifactInput;
+import ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest;
+import ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse;
 import ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import io.grpc.Channel;
@@ -51,6 +53,12 @@ public final class ArtifactClient {
     public ArtifactDownloadUrl getDownloadUrl(String id) {
         try {
             return query.getDownloadUrl(ArtifactId.newBuilder().setValue(id).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public GetArtifactContentResponse getContent(GetArtifactContentRequest input) {
+        try {
+            return query.getContent(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

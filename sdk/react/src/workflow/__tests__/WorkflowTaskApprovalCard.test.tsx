@@ -134,6 +134,33 @@ describe("WorkflowTaskApprovalCard", () => {
     });
   });
 
+  describe("review payload (issue #234 fallback display)", () => {
+    it("renders an object payload as structured data", () => {
+      render(
+        <WorkflowTaskApprovalCard
+          {...defaultProps}
+          payload={{ severity: "P1", summary: "Escalate the incident" }}
+        />,
+      );
+      expect(screen.getByLabelText("Review material for review_task")).toBeTruthy();
+      expect(screen.getByText("Escalate the incident")).toBeTruthy();
+    });
+
+    it("renders non-object payloads as formatted JSON", () => {
+      render(
+        <WorkflowTaskApprovalCard {...defaultProps} payload={["item-1", "item-2"]} />,
+      );
+      const section = screen.getByLabelText("Review material for review_task");
+      expect(section.textContent).toContain("item-1");
+      expect(section.textContent).toContain("item-2");
+    });
+
+    it("renders no review material section when payload is absent", () => {
+      render(<WorkflowTaskApprovalCard {...defaultProps} />);
+      expect(screen.queryByLabelText("Review material for review_task")).toBeNull();
+    });
+  });
+
   describe("submission", () => {
     it("onSubmit called with (taskName, outcomeName, undefined, undefined) when no form or comment", () => {
       const onSubmit = vi.fn().mockResolvedValue(undefined);

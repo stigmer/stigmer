@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/artifact/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_artifact_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYXJ0aWZhY3QvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MSIjCgpBcnRpZmFjdElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiXgoMQXJ0aWZhY3RMaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjkKB2VudHJpZXMYAiADKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuYXJ0aWZhY3QudjEuQXJ0aWZhY3QieQoTQ3JlYXRlQXJ0aWZhY3RJbnB1dBJCCgRzcGVjGAEgASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLmFydGlmYWN0LnYxLkFydGlmYWN0U3BlY0IGukgDyAEBEh4KB2NvbnRlbnQYAiABKAxCDbpICsgBAXoFGICAgBkigwEKH0xpc3RBcnRpZmFjdHNCeUV4ZWN1dGlvblJlcXVlc3QSHQoVd29ya2Zsb3dfZXhlY3V0aW9uX2lkGAEgASgJEhoKEmFnZW50X2V4ZWN1dGlvbl9pZBgCIAEoCRIRCglwYWdlX3NpemUYAyABKAUSEgoKcGFnZV90b2tlbhgEIAEoCSJhChNBcnRpZmFjdERvd25sb2FkVXJsEgsKA3VybBgBIAEoCRITCgt0dGxfc2Vjb25kcxgCIAEoBRISCgpzaXplX2J5dGVzGAMgASgDEhQKDGNvbnRlbnRfdHlwZRgEIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_artifact_v1_api, file_ai_stigmer_agentic_artifact_v1_spec, file_buf_validate_validate]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYXJ0aWZhY3QvdjEvaW8ucHJvdG8SHmFpLnN0aWdtZXIuYWdlbnRpYy5hcnRpZmFjdC52MSIjCgpBcnRpZmFjdElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiXgoMQXJ0aWZhY3RMaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjkKB2VudHJpZXMYAiADKAsyKC5haS5zdGlnbWVyLmFnZW50aWMuYXJ0aWZhY3QudjEuQXJ0aWZhY3QieQoTQ3JlYXRlQXJ0aWZhY3RJbnB1dBJCCgRzcGVjGAEgASgLMiwuYWkuc3RpZ21lci5hZ2VudGljLmFydGlmYWN0LnYxLkFydGlmYWN0U3BlY0IGukgDyAEBEh4KB2NvbnRlbnQYAiABKAxCDbpICsgBAXoFGICAgBkigwEKH0xpc3RBcnRpZmFjdHNCeUV4ZWN1dGlvblJlcXVlc3QSHQoVd29ya2Zsb3dfZXhlY3V0aW9uX2lkGAEgASgJEhoKEmFnZW50X2V4ZWN1dGlvbl9pZBgCIAEoCRIRCglwYWdlX3NpemUYAyABKAUSEgoKcGFnZV90b2tlbhgEIAEoCSJMChlHZXRBcnRpZmFjdENvbnRlbnRSZXF1ZXN0EhwKC2FydGlmYWN0X2lkGAEgASgJQge6SARyAhABEhEKCW1heF9ieXRlcxgCIAEoAyJwChpHZXRBcnRpZmFjdENvbnRlbnRSZXNwb25zZRIPCgdjb250ZW50GAEgASgMEhQKDGNvbnRlbnRfdHlwZRgCIAEoCRIYChB0b3RhbF9zaXplX2J5dGVzGAMgASgDEhEKCXRydW5jYXRlZBgEIAEoCCJhChNBcnRpZmFjdERvd25sb2FkVXJsEgsKA3VybBgBIAEoCRITCgt0dGxfc2Vjb25kcxgCIAEoBRISCgpzaXplX2J5dGVzGAMgASgDEhQKDGNvbnRlbnRfdHlwZRgEIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_artifact_v1_api, file_ai_stigmer_agentic_artifact_v1_spec, file_buf_validate_validate]);
 
 /**
  * ArtifactId wraps an artifact identifier.
@@ -180,6 +180,120 @@ export const ListArtifactsByExecutionRequestSchema: GenMessage<ListArtifactsByEx
   messageDesc(file_ai_stigmer_agentic_artifact_v1_io, 3);
 
 /**
+ * GetArtifactContentRequest reads the raw content of an artifact.
+ *
+ * Unlike getDownloadUrl (which returns a presigned URL for direct
+ * browser download), this endpoint returns the artifact bytes through the
+ * Stigmer API. This eliminates CORS concerns for SDK consumers who need to
+ * read artifact content programmatically — e.g., rendering an artifact-backed
+ * review payload inside an embedded approval gate.
+ *
+ * @internal
+ * Mirrors AgentExecutionQueryController.getArtifactContent, which was added
+ * for the same reason on the agent-execution side. Artifacts are addressed
+ * by artifact ID here (the T07 store's identity) rather than by
+ * execution_id + storage_key.
+ *
+ * The server enforces a maximum content size (default: 512 KB). If the
+ * artifact exceeds max_bytes, the response contains the first max_bytes of
+ * content with truncated=true. Callers use total_size_bytes to decide
+ * whether to offer a full download via getDownloadUrl instead.
+ *
+ * @since Review Payloads (stigmer/stigmer#234)
+ *
+ * @generated from message ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest
+ */
+export type GetArtifactContentRequest = Message<"ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest"> & {
+  /**
+   * Artifact identifier.
+   * Format: "art_{unique-suffix}"
+   *
+   * @generated from field: string artifact_id = 1;
+   */
+  artifactId: string;
+
+  /**
+   * Maximum number of bytes to return.
+   *
+   * If the artifact is larger than this limit, the response contains
+   * the first max_bytes of content with truncated=true.
+   *
+   * When 0 or unset, the server applies a default limit (512 KB).
+   * The server may also enforce a hard upper bound regardless of this value.
+   *
+   * @generated from field: int64 max_bytes = 2;
+   */
+  maxBytes: bigint;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest.
+ * Use `create(GetArtifactContentRequestSchema)` to create a new message.
+ */
+export const GetArtifactContentRequestSchema: GenMessage<GetArtifactContentRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_artifact_v1_io, 4);
+
+/**
+ * GetArtifactContentResponse returns the raw content of an artifact.
+ *
+ * The content field contains the artifact bytes (up to max_bytes). For text
+ * artifacts, clients decode as UTF-8. The content_type field is the type
+ * recorded at creation (ArtifactSpec.content_type).
+ *
+ * @since Review Payloads (stigmer/stigmer#234)
+ *
+ * @generated from message ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse
+ */
+export type GetArtifactContentResponse = Message<"ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse"> & {
+  /**
+   * Raw artifact content (up to max_bytes).
+   *
+   * For text artifacts (JSON, YAML, Markdown, etc.), decode as UTF-8.
+   * For binary artifacts, callers should generally use getDownloadUrl
+   * instead of this endpoint.
+   *
+   * @generated from field: bytes content = 1;
+   */
+  content: Uint8Array;
+
+  /**
+   * MIME content type recorded when the artifact was created
+   * (same as ArtifactSpec.content_type). Example: "application/json".
+   *
+   * @generated from field: string content_type = 2;
+   */
+  contentType: string;
+
+  /**
+   * Actual total size of the artifact in bytes.
+   *
+   * Larger than len(content) when truncated=true. Callers can use this
+   * to show "showing 512 KB of 2.1 MB" messages or to decide whether
+   * to offer a full download link.
+   *
+   * @generated from field: int64 total_size_bytes = 3;
+   */
+  totalSizeBytes: bigint;
+
+  /**
+   * Whether the content was truncated to fit within max_bytes.
+   *
+   * When true, content contains only the first max_bytes of the artifact.
+   * The full artifact can be downloaded via getDownloadUrl.
+   *
+   * @generated from field: bool truncated = 4;
+   */
+  truncated: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse.
+ * Use `create(GetArtifactContentResponseSchema)` to create a new message.
+ */
+export const GetArtifactContentResponseSchema: GenMessage<GetArtifactContentResponse> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_artifact_v1_io, 5);
+
+/**
  * ArtifactDownloadUrl provides a URL for downloading artifact content.
  *
  * @internal
@@ -235,5 +349,5 @@ export type ArtifactDownloadUrl = Message<"ai.stigmer.agentic.artifact.v1.Artifa
  * Use `create(ArtifactDownloadUrlSchema)` to create a new message.
  */
 export const ArtifactDownloadUrlSchema: GenMessage<ArtifactDownloadUrl> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_artifact_v1_io, 4);
+  messageDesc(file_ai_stigmer_agentic_artifact_v1_io, 6);
 

@@ -285,7 +285,7 @@ class HumanInputOutcomeInfo(_message.Message):
     def __init__(self, name: _Optional[str] = ..., label: _Optional[str] = ...) -> None: ...
 
 class ApprovalRequestedPayload(_message.Message):
-    __slots__ = ("prompt", "approvers", "timeout_seconds", "tool_call_id", "child_execution_id", "outcomes", "form_schema")
+    __slots__ = ("prompt", "approvers", "timeout_seconds", "tool_call_id", "child_execution_id", "outcomes", "form_schema", "payload", "ui_hint", "payload_artifact_id")
     PROMPT_FIELD_NUMBER: _ClassVar[int]
     APPROVERS_FIELD_NUMBER: _ClassVar[int]
     TIMEOUT_SECONDS_FIELD_NUMBER: _ClassVar[int]
@@ -293,6 +293,9 @@ class ApprovalRequestedPayload(_message.Message):
     CHILD_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     OUTCOMES_FIELD_NUMBER: _ClassVar[int]
     FORM_SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    PAYLOAD_FIELD_NUMBER: _ClassVar[int]
+    UI_HINT_FIELD_NUMBER: _ClassVar[int]
+    PAYLOAD_ARTIFACT_ID_FIELD_NUMBER: _ClassVar[int]
     prompt: str
     approvers: _containers.RepeatedScalarFieldContainer[str]
     timeout_seconds: int
@@ -300,7 +303,10 @@ class ApprovalRequestedPayload(_message.Message):
     child_execution_id: str
     outcomes: _containers.RepeatedCompositeFieldContainer[HumanInputOutcomeInfo]
     form_schema: _struct_pb2.Struct
-    def __init__(self, prompt: _Optional[str] = ..., approvers: _Optional[_Iterable[str]] = ..., timeout_seconds: _Optional[int] = ..., tool_call_id: _Optional[str] = ..., child_execution_id: _Optional[str] = ..., outcomes: _Optional[_Iterable[_Union[HumanInputOutcomeInfo, _Mapping]]] = ..., form_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
+    payload: _struct_pb2.Value
+    ui_hint: str
+    payload_artifact_id: str
+    def __init__(self, prompt: _Optional[str] = ..., approvers: _Optional[_Iterable[str]] = ..., timeout_seconds: _Optional[int] = ..., tool_call_id: _Optional[str] = ..., child_execution_id: _Optional[str] = ..., outcomes: _Optional[_Iterable[_Union[HumanInputOutcomeInfo, _Mapping]]] = ..., form_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., payload: _Optional[_Union[_struct_pb2.Value, _Mapping]] = ..., ui_hint: _Optional[str] = ..., payload_artifact_id: _Optional[str] = ...) -> None: ...
 
 class ApprovalResolvedPayload(_message.Message):
     __slots__ = ("action", "resolved_by", "comment", "wait_duration_ms")

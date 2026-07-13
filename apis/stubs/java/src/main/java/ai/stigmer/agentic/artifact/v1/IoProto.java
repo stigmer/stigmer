@@ -47,6 +47,16 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_artifact_v1_ListArtifactsByExecutionRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_artifact_v1_GetArtifactContentRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_artifact_v1_GetArtifactContentRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_artifact_v1_GetArtifactContentResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_artifact_v1_GetArtifactContentResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_artifact_v1_ArtifactDownloadUrl_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -77,14 +87,21 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "flowExecutionId\022,\n\022agent_execution_id\030\002 " +
       "\001(\tR\020agentExecutionId\022\033\n\tpage_size\030\003 \001(\005" +
       "R\010pageSize\022\035\n\npage_token\030\004 \001(\tR\tpageToke" +
-      "n\"\212\001\n\023ArtifactDownloadUrl\022\020\n\003url\030\001 \001(\tR\003" +
-      "url\022\037\n\013ttl_seconds\030\002 \001(\005R\nttlSeconds\022\035\n\n" +
-      "size_bytes\030\003 \001(\003R\tsizeBytes\022!\n\014content_t" +
-      "ype\030\004 \001(\tR\013contentTypeB\246\001B\007IoProtoP\001\242\002\004A" +
-      "SAA\252\002\036Ai.Stigmer.Agentic.Artifact.V1\312\002\036A" +
-      "i\\Stigmer\\Agentic\\Artifact\\V1\342\002*Ai\\Stigm" +
-      "er\\Agentic\\Artifact\\V1\\GPBMetadata\352\002\"Ai:" +
-      ":Stigmer::Agentic::Artifact::V1b\006proto3"
+      "n\"b\n\031GetArtifactContentRequest\022(\n\013artifa" +
+      "ct_id\030\001 \001(\tB\007\272H\004r\002\020\001R\nartifactId\022\033\n\tmax_" +
+      "bytes\030\002 \001(\003R\010maxBytes\"\241\001\n\032GetArtifactCon" +
+      "tentResponse\022\030\n\007content\030\001 \001(\014R\007content\022!" +
+      "\n\014content_type\030\002 \001(\tR\013contentType\022(\n\020tot" +
+      "al_size_bytes\030\003 \001(\003R\016totalSizeBytes\022\034\n\tt" +
+      "runcated\030\004 \001(\010R\ttruncated\"\212\001\n\023ArtifactDo" +
+      "wnloadUrl\022\020\n\003url\030\001 \001(\tR\003url\022\037\n\013ttl_secon" +
+      "ds\030\002 \001(\005R\nttlSeconds\022\035\n\nsize_bytes\030\003 \001(\003" +
+      "R\tsizeBytes\022!\n\014content_type\030\004 \001(\tR\013conte" +
+      "ntTypeB\246\001B\007IoProtoP\001\242\002\004ASAA\252\002\036Ai.Stigmer" +
+      ".Agentic.Artifact.V1\312\002\036Ai\\Stigmer\\Agenti" +
+      "c\\Artifact\\V1\342\002*Ai\\Stigmer\\Agentic\\Artif" +
+      "act\\V1\\GPBMetadata\352\002\"Ai::Stigmer::Agenti" +
+      "c::Artifact::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -117,8 +134,20 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_artifact_v1_ListArtifactsByExecutionRequest_descriptor,
         new java.lang.String[] { "WorkflowExecutionId", "AgentExecutionId", "PageSize", "PageToken", });
-    internal_static_ai_stigmer_agentic_artifact_v1_ArtifactDownloadUrl_descriptor =
+    internal_static_ai_stigmer_agentic_artifact_v1_GetArtifactContentRequest_descriptor =
       getDescriptor().getMessageType(4);
+    internal_static_ai_stigmer_agentic_artifact_v1_GetArtifactContentRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_artifact_v1_GetArtifactContentRequest_descriptor,
+        new java.lang.String[] { "ArtifactId", "MaxBytes", });
+    internal_static_ai_stigmer_agentic_artifact_v1_GetArtifactContentResponse_descriptor =
+      getDescriptor().getMessageType(5);
+    internal_static_ai_stigmer_agentic_artifact_v1_GetArtifactContentResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_artifact_v1_GetArtifactContentResponse_descriptor,
+        new java.lang.String[] { "Content", "ContentType", "TotalSizeBytes", "Truncated", });
+    internal_static_ai_stigmer_agentic_artifact_v1_ArtifactDownloadUrl_descriptor =
+      getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_agentic_artifact_v1_ArtifactDownloadUrl_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_artifact_v1_ArtifactDownloadUrl_descriptor,

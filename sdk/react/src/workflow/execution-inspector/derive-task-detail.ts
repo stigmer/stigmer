@@ -11,7 +11,8 @@
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import type { JsonObject } from "@bufbuild/protobuf";
+import { toJson, type JsonObject, type JsonValue } from "@bufbuild/protobuf";
+import { ValueSchema } from "@bufbuild/protobuf/wkt";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
 import { kindToDisplayName } from "../kind-metadata.js";
 import { taskKindToString } from "../workflow-graph-conversions.js";
@@ -96,6 +97,25 @@ export interface TaskDetailApproval {
   readonly outcomes: readonly { readonly name: string; readonly label: string }[];
   readonly formSchema: JsonObject | null;
   readonly timeoutSeconds: number;
+  /**
+   * Resolved review payload the gate presented — the material under
+   * review (issue #234). `null` when the gate carries no payload or when
+   * the payload is artifact-backed (see {@link payloadArtifactId}).
+   */
+  readonly payload: JsonValue | null;
+  /**
+   * Renderer discriminator from the task config's `ui_hint`. Consumers
+   * with a registered review renderer for this hint present domain-native
+   * UI; everything else falls back to structured-data display. The empty
+   * string when the task config sets no hint.
+   */
+  readonly uiHint: string;
+  /**
+   * Artifact holding the payload when it exceeded the inline promotion
+   * threshold. Mutually exclusive with {@link payload}; resolve the
+   * content via `stigmer.artifact.getContent`. `null` when inline.
+   */
+  readonly payloadArtifactId: string | null;
   readonly decision: TaskDetailApprovalDecision | null;
 }
 
@@ -204,7 +224,7 @@ interface EventBuckets {
   agentStarted: { childExecutionId: string; agentSlug: string; messageSummary: string } | null;
   agentProgress: { childExecutionId: string; agentPhase: number; currentToolName: string; tokensConsumed: bigint; messagesCount: number; toolCallsCount: number } | null;
   agentCompleted: { durationMs: number; tokensConsumed: bigint; costMicros: bigint; error: string; agentPhase: number } | null;
-  approvalRequested: { prompt: string; approvers: string[]; timeoutSeconds: number; outcomes: Array<{ name: string; label: string }>; formSchema: JsonObject | null } | null;
+  approvalRequested: { prompt: string; approvers: string[]; timeoutSeconds: number; outcomes: Array<{ name: string; label: string }>; formSchema: JsonObject | null; payload: JsonValue | null; uiHint: string; payloadArtifactId: string | null } | null;
   approvalResolved: { action: number; resolvedBy: string; comment: string; waitDurationMs: number } | null;
   inputSummary: JsonObject | null;
   outputSummary: JsonObject | null;
@@ -315,6 +335,12 @@ function bucketEvents(taskEvents: readonly WorkflowExecutionEvent[]): EventBucke
           timeoutSeconds: p.value.timeoutSeconds,
           outcomes: (p.value.outcomes ?? []).map((o) => ({ name: o.name, label: o.label })),
           formSchema: p.value.formSchema ? (p.value.formSchema as unknown as JsonObject) : null,
+          // The payload rides the event as a google.protobuf.Value message;
+          // unwrap it to plain JSON once here so all consumers downstream
+          // (renderers, fallback card) work with ordinary values.
+          payload: p.value.payload ? (toJson(ValueSchema, p.value.payload) as JsonValue) : null,
+          uiHint: p.value.uiHint,
+          payloadArtifactId: p.value.payloadArtifactId || null,
         };
         break;
 
@@ -515,6 +541,9 @@ function buildApproval(
       outcomes: req.outcomes,
       formSchema: req.formSchema,
       timeoutSeconds: req.timeoutSeconds,
+      payload: req.payload,
+      uiHint: req.uiHint,
+      payloadArtifactId: req.payloadArtifactId,
       decision: null,
     };
   }
@@ -525,6 +554,9 @@ function buildApproval(
     outcomes: req.outcomes,
     formSchema: req.formSchema,
     timeoutSeconds: req.timeoutSeconds,
+    payload: req.payload,
+    uiHint: req.uiHint,
+    payloadArtifactId: req.payloadArtifactId,
     decision: {
       outcome: outputOutcome,
       reviewer: readSnapshotString(taskOutput, "reviewer") || (res?.resolvedBy ?? ""),

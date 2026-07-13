@@ -301,8 +301,16 @@ function collectEmbeddedFromValue(
   batchExprs: Record<string, string>,
   skipPaths: Set<string>,
 ): void {
+  // A Phase-1-resolved path holds data, not template text: skip its
+  // entire subtree, whatever shape it resolved to. A strict expression
+  // can resolve to an object or array whose nested strings carry literal
+  // `${ ... }` text from external sources (webhook payloads, API
+  // responses, documents under review) that must never be re-interpreted
+  // as expressions. Checking only string values at the exact path — the
+  // previous behavior — left those nested strings exposed.
+  if (skipPaths.has(path)) return;
+
   if (typeof value === "string") {
-    if (skipPaths.has(path)) return;
     if (isStrictExpr(value)) return;
     const expressions = extractEmbeddedExpressions(value);
     if (expressions.length === 0) return;

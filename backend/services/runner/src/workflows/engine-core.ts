@@ -243,8 +243,8 @@ export async function runWorkflowEngine(
         taskName: agentMeta.taskName,
         workflowExecutionId: agentMeta.workflowExecutionId || executionId,
       }),
-    promoteTaskOutput: (taskOutput: unknown, wexId: string, taskName: string) =>
-      promoteProxy.PromoteTaskOutput(taskOutput, wexId || executionId, taskName),
+    promoteTaskOutput: (taskOutput: unknown, wexId: string, taskName: string, displayName?: string) =>
+      promoteProxy.PromoteTaskOutput(taskOutput, wexId || executionId, taskName, displayName),
   };
 
   const state = createState();

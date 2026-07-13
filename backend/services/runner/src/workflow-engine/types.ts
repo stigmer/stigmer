@@ -565,6 +565,14 @@ export interface HumanInputConfig {
   readonly approvers?: readonly string[];
   readonly timeout?: number;
   readonly onTimeout?: "fail" | "approve" | "deny";
+  /**
+   * Material for the reviewer to examine — a whole-value expression
+   * string, or an object/array with embedded expressions. Resolved at
+   * gate activation and attached to the approval_requested event.
+   */
+  readonly payload?: unknown;
+  /** Renderer discriminator forwarded verbatim to the approval UI. */
+  readonly uiHint?: string;
 }
 
 export interface HumanInputOutcome {
@@ -795,6 +803,14 @@ export interface ApprovalRequestedEvent extends EventBase {
   readonly timeoutSeconds: number;
   readonly outcomes: ReadonlyArray<{ name: string; label: string }>;
   readonly formSchema?: Record<string, unknown>;
+  /**
+   * Resolved review payload the gate presents. Mutually exclusive with
+   * payloadArtifactId — payloads at/above the promotion threshold live
+   * in the artifact store and only the reference rides the event.
+   */
+  readonly payload?: unknown;
+  readonly uiHint?: string;
+  readonly payloadArtifactId?: string;
 }
 
 export interface ApprovalResolvedEvent extends EventBase {
@@ -885,6 +901,8 @@ export type PromoteTaskOutputFn = (
   taskOutput: unknown,
   workflowExecutionId: string,
   taskName: string,
+  /** Artifact display name override; defaults to "<taskName> — output.json". */
+  displayName?: string,
 ) => Promise<PromoteTaskOutputResult>;
 
 // ─────────────────────────────────────────────────────────────────────

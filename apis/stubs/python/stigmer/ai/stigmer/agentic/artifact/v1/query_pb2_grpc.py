@@ -44,6 +44,11 @@ class ArtifactQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ArtifactId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ArtifactDownloadUrl.FromString,
                 _registered_method=True)
+        self.getContent = channel.unary_unary(
+                '/ai.stigmer.agentic.artifact.v1.ArtifactQueryController/getContent',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.GetArtifactContentRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.GetArtifactContentResponse.FromString,
+                _registered_method=True)
 
 
 class ArtifactQueryControllerServicer(object):
@@ -155,6 +160,35 @@ class ArtifactQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getContent(self, request, context):
+        """Read artifact content bytes through the Stigmer API.
+
+        Returns the artifact's raw bytes directly in the response, eliminating
+        CORS concerns for SDK consumers who need to read content
+        programmatically — e.g., rendering an artifact-backed review payload
+        inside an embedded approval gate.
+
+        For direct file downloads, use getDownloadUrl instead — it returns a
+        presigned URL that avoids proxying bytes through the server.
+
+        @internal
+        Mirrors AgentExecutionQueryController.getArtifactContent (same
+        truncation contract). Content is truncated to max_bytes (default:
+        512 KB); the response includes total_size_bytes and a truncated flag
+        so callers can decide whether to offer a full download.
+
+        Error Cases:
+
+        - NOT_FOUND: No Artifact exists with the given ID
+        - PERMISSION_DENIED: User doesn't have view access to the parent execution
+        - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
+
+        @since Review Payloads (stigmer/stigmer#234)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ArtifactQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -172,6 +206,11 @@ def add_ArtifactQueryControllerServicer_to_server(servicer, server):
                     servicer.getDownloadUrl,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ArtifactId.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ArtifactDownloadUrl.SerializeToString,
+            ),
+            'getContent': grpc.unary_unary_rpc_method_handler(
+                    servicer.getContent,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.GetArtifactContentRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.GetArtifactContentResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -269,6 +308,33 @@ class ArtifactQueryController(object):
             '/ai.stigmer.agentic.artifact.v1.ArtifactQueryController/getDownloadUrl',
             ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ArtifactId.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.ArtifactDownloadUrl.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getContent(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.artifact.v1.ArtifactQueryController/getContent',
+            ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.GetArtifactContentRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_artifact_dot_v1_dot_io__pb2.GetArtifactContentResponse.FromString,
             options,
             channel_credentials,
             insecure,

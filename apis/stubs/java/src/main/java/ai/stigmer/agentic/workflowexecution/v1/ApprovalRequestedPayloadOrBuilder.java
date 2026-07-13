@@ -272,4 +272,138 @@ public interface ApprovalRequestedPayloadOrBuilder extends
    * <code>.google.protobuf.Struct form_schema = 7 [json_name = "formSchema"];</code>
    */
   com.google.protobuf.StructOrBuilder getFormSchemaOrBuilder();
+
+  /**
+   * <pre>
+   * Resolved review payload the gate presented to the reviewer.
+   *
+   * &#64;internal
+   * Populated from HumanInputTaskConfig.payload after the runner resolves
+   * its ${ } expressions — the event carries the materialized value, not
+   * the expression, so the execution history records exactly what the
+   * reviewer saw. Empty for agent tool approvals, for human_input tasks
+   * without a payload, and when the resolved payload was promoted to the
+   * artifact store (payload_artifact_id is set instead — the two fields
+   * are mutually exclusive).
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>.google.protobuf.Value payload = 8 [json_name = "payload"];</code>
+   * @return Whether the payload field is set.
+   */
+  boolean hasPayload();
+  /**
+   * <pre>
+   * Resolved review payload the gate presented to the reviewer.
+   *
+   * &#64;internal
+   * Populated from HumanInputTaskConfig.payload after the runner resolves
+   * its ${ } expressions — the event carries the materialized value, not
+   * the expression, so the execution history records exactly what the
+   * reviewer saw. Empty for agent tool approvals, for human_input tasks
+   * without a payload, and when the resolved payload was promoted to the
+   * artifact store (payload_artifact_id is set instead — the two fields
+   * are mutually exclusive).
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>.google.protobuf.Value payload = 8 [json_name = "payload"];</code>
+   * @return The payload.
+   */
+  com.google.protobuf.Value getPayload();
+  /**
+   * <pre>
+   * Resolved review payload the gate presented to the reviewer.
+   *
+   * &#64;internal
+   * Populated from HumanInputTaskConfig.payload after the runner resolves
+   * its ${ } expressions — the event carries the materialized value, not
+   * the expression, so the execution history records exactly what the
+   * reviewer saw. Empty for agent tool approvals, for human_input tasks
+   * without a payload, and when the resolved payload was promoted to the
+   * artifact store (payload_artifact_id is set instead — the two fields
+   * are mutually exclusive).
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>.google.protobuf.Value payload = 8 [json_name = "payload"];</code>
+   */
+  com.google.protobuf.ValueOrBuilder getPayloadOrBuilder();
+
+  /**
+   * <pre>
+   * UI hint identifying which renderer should present the payload.
+   *
+   * &#64;internal
+   * Copied verbatim from HumanInputTaskConfig.ui_hint. Clients with a
+   * registered renderer for this hint present domain-native review UI;
+   * all other clients fall back to showing the payload as structured
+   * data. Empty when the task config sets no hint.
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>string ui_hint = 9 [json_name = "uiHint"];</code>
+   * @return The uiHint.
+   */
+  java.lang.String getUiHint();
+  /**
+   * <pre>
+   * UI hint identifying which renderer should present the payload.
+   *
+   * &#64;internal
+   * Copied verbatim from HumanInputTaskConfig.ui_hint. Clients with a
+   * registered renderer for this hint present domain-native review UI;
+   * all other clients fall back to showing the payload as structured
+   * data. Empty when the task config sets no hint.
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>string ui_hint = 9 [json_name = "uiHint"];</code>
+   * @return The bytes for uiHint.
+   */
+  com.google.protobuf.ByteString
+      getUiHintBytes();
+
+  /**
+   * <pre>
+   * Artifact holding the resolved review payload when it exceeded the
+   * inline promotion threshold (256KB).
+   *
+   * &#64;internal
+   * Set instead of payload (mutually exclusive). Clients read the content
+   * via ArtifactQueryController.getContent — API-proxied, so embedded SDK
+   * consumers avoid CORS exposure — or offer a download via getDownloadUrl.
+   * Format: "art_{unique-suffix}".
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>string payload_artifact_id = 10 [json_name = "payloadArtifactId"];</code>
+   * @return The payloadArtifactId.
+   */
+  java.lang.String getPayloadArtifactId();
+  /**
+   * <pre>
+   * Artifact holding the resolved review payload when it exceeded the
+   * inline promotion threshold (256KB).
+   *
+   * &#64;internal
+   * Set instead of payload (mutually exclusive). Clients read the content
+   * via ArtifactQueryController.getContent — API-proxied, so embedded SDK
+   * consumers avoid CORS exposure — or offer a download via getDownloadUrl.
+   * Format: "art_{unique-suffix}".
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>string payload_artifact_id = 10 [json_name = "payloadArtifactId"];</code>
+   * @return The bytes for payloadArtifactId.
+   */
+  com.google.protobuf.ByteString
+      getPayloadArtifactIdBytes();
 }

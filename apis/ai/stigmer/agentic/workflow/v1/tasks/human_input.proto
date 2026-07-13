@@ -224,4 +224,47 @@ message HumanInputTaskConfig {
   // actual notification providers configured in the workflow instance's
   // environment.
   repeated string notification_channels = 7;
+
+  // Structured material for the reviewer to examine before deciding.
+  //
+  // Supports ${ } expression interpolation: the whole value can be a
+  // single expression string ("${ $context.draft_revision }") or an
+  // inline object/array whose nested strings carry embedded expressions.
+  // The runtime resolves expressions when the gate activates and attaches
+  // the resolved payload to the approval_requested event, so the approval
+  // record is permanently bound to exactly what the reviewer saw.
+  //
+  // Distinct from prompt (the instruction to the reviewer) and form_schema
+  // (the shape of the reviewer's response): payload is the thing under
+  // review — an article diff, a proposed record set, a generated plan.
+  //
+  // @internal
+  // Resolved payloads at or above the artifact promotion threshold (256KB)
+  // are stored in the artifact store; the approval_requested event then
+  // carries payload_artifact_id instead of the inline value. See
+  // ApprovalRequestedPayload in workflowexecution/v1/event.proto.
+  //
+  // Expression support is documented here rather than via the
+  // is_expression option, which annotates string fields only — matching
+  // how other Struct/Value-typed expression-bearing configs are handled.
+  //
+  // @since Review Payloads (stigmer/stigmer#234)
+  google.protobuf.Value payload = 8;
+
+  // Hint identifying which UI should present the payload.
+  //
+  // A plain discriminator string (e.g. "article-diff", "infra-proposal")
+  // that embedding applications match against their registered review
+  // renderers. When no renderer is registered for the hint — or the gate
+  // is viewed from a surface without custom renderers (CLI, plain
+  // console) — the payload is shown as structured data by the built-in
+  // approval card, so workflows stay portable across surfaces.
+  //
+  // @internal
+  // Deliberately a hint, not a contract: an unrecognized value must never
+  // block the gate. Not expression-valued — the hint is workflow design,
+  // not runtime data.
+  //
+  // @since Review Payloads (stigmer/stigmer#234)
+  string ui_hint = 9 [(buf.validate.field).string.max_len = 63];
 }

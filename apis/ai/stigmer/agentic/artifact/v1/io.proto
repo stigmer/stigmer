@@ -91,6 +91,74 @@ message ListArtifactsByExecutionRequest {
   string page_token = 4;
 }
 
+// GetArtifactContentRequest reads the raw content of an artifact.
+//
+// Unlike getDownloadUrl (which returns a presigned URL for direct
+// browser download), this endpoint returns the artifact bytes through the
+// Stigmer API. This eliminates CORS concerns for SDK consumers who need to
+// read artifact content programmatically — e.g., rendering an artifact-backed
+// review payload inside an embedded approval gate.
+//
+// @internal
+// Mirrors AgentExecutionQueryController.getArtifactContent, which was added
+// for the same reason on the agent-execution side. Artifacts are addressed
+// by artifact ID here (the T07 store's identity) rather than by
+// execution_id + storage_key.
+//
+// The server enforces a maximum content size (default: 512 KB). If the
+// artifact exceeds max_bytes, the response contains the first max_bytes of
+// content with truncated=true. Callers use total_size_bytes to decide
+// whether to offer a full download via getDownloadUrl instead.
+//
+// @since Review Payloads (stigmer/stigmer#234)
+message GetArtifactContentRequest {
+  // Artifact identifier.
+  // Format: "art_{unique-suffix}"
+  string artifact_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Maximum number of bytes to return.
+  //
+  // If the artifact is larger than this limit, the response contains
+  // the first max_bytes of content with truncated=true.
+  //
+  // When 0 or unset, the server applies a default limit (512 KB).
+  // The server may also enforce a hard upper bound regardless of this value.
+  int64 max_bytes = 2;
+}
+
+// GetArtifactContentResponse returns the raw content of an artifact.
+//
+// The content field contains the artifact bytes (up to max_bytes). For text
+// artifacts, clients decode as UTF-8. The content_type field is the type
+// recorded at creation (ArtifactSpec.content_type).
+//
+// @since Review Payloads (stigmer/stigmer#234)
+message GetArtifactContentResponse {
+  // Raw artifact content (up to max_bytes).
+  //
+  // For text artifacts (JSON, YAML, Markdown, etc.), decode as UTF-8.
+  // For binary artifacts, callers should generally use getDownloadUrl
+  // instead of this endpoint.
+  bytes content = 1;
+
+  // MIME content type recorded when the artifact was created
+  // (same as ArtifactSpec.content_type). Example: "application/json".
+  string content_type = 2;
+
+  // Actual total size of the artifact in bytes.
+  //
+  // Larger than len(content) when truncated=true. Callers can use this
+  // to show "showing 512 KB of 2.1 MB" messages or to decide whether
+  // to offer a full download link.
+  int64 total_size_bytes = 3;
+
+  // Whether the content was truncated to fit within max_bytes.
+  //
+  // When true, content contains only the first max_bytes of the artifact.
+  // The full artifact can be downloaded via getDownloadUrl.
+  bool truncated = 4;
+}
+
 // ArtifactDownloadUrl provides a URL for downloading artifact content.
 //
 // @internal

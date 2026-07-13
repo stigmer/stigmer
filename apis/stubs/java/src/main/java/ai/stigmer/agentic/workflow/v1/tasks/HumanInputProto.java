@@ -52,7 +52,7 @@ public final class HumanInputProto extends com.google.protobuf.GeneratedFile {
       "/validate.proto\032\034google/protobuf/struct." +
       "proto\"_\n\021HumanInputOutcome\022 \n\004name\030\001 \001(\t" +
       "B\014\272H\tr\004\020\001\030?\310\001\001R\004name\022\024\n\005label\030\002 \001(\tR\005lab" +
-      "el\022\022\n\004then\030\003 \001(\tR\004then\"\267\003\n\024HumanInputTas" +
+      "el\022\022\n\004then\030\003 \001(\tR\004then\"\213\004\n\024HumanInputTas" +
       "kConfig\022&\n\006prompt\030\001 \001(\tB\016\272H\007r\002\020\001\310\001\001\330\205,\001R" +
       "\006prompt\0228\n\013form_schema\030\002 \001(\0132\027.google.pr" +
       "otobuf.StructR\nformSchema\022S\n\010outcomes\030\003 " +
@@ -63,17 +63,19 @@ public final class HumanInputProto extends com.google.protobuf.GeneratedFile {
       "2=.ai.stigmer.agentic.workflow.v1.tasks." +
       "HumanInputTimeoutPolicyR\tonTimeout\0223\n\025no" +
       "tification_channels\030\007 \003(\tR\024notificationC" +
-      "hannels:\017\352\213,\013human_input*\304\001\n\027HumanInputT" +
-      "imeoutPolicy\022*\n&HUMAN_INPUT_TIMEOUT_POLI" +
-      "CY_UNSPECIFIED\020\000\022\034\n\030HUMAN_INPUT_TIMEOUT_" +
-      "FAIL\020\001\022\037\n\033HUMAN_INPUT_TIMEOUT_APPROVE\020\002\022" +
-      "\034\n\030HUMAN_INPUT_TIMEOUT_DENY\020\003\022 \n\034HUMAN_I" +
-      "NPUT_TIMEOUT_ESCALATE\020\004B\311\001B\017HumanInputPr" +
-      "otoP\001\242\002\006ASAWVT\252\002$Ai.Stigmer.Agentic.Work" +
-      "flow.V1.Tasks\312\002$Ai\\Stigmer\\Agentic\\Workf" +
-      "low\\V1\\Tasks\342\0020Ai\\Stigmer\\Agentic\\Workfl" +
-      "ow\\V1\\Tasks\\GPBMetadata\352\002)Ai::Stigmer::A" +
-      "gentic::Workflow::V1::Tasksb\006proto3"
+      "hannels\0220\n\007payload\030\010 \001(\0132\026.google.protob" +
+      "uf.ValueR\007payload\022 \n\007ui_hint\030\t \001(\tB\007\272H\004r" +
+      "\002\030?R\006uiHint:\017\352\213,\013human_input*\304\001\n\027HumanIn" +
+      "putTimeoutPolicy\022*\n&HUMAN_INPUT_TIMEOUT_" +
+      "POLICY_UNSPECIFIED\020\000\022\034\n\030HUMAN_INPUT_TIME" +
+      "OUT_FAIL\020\001\022\037\n\033HUMAN_INPUT_TIMEOUT_APPROV" +
+      "E\020\002\022\034\n\030HUMAN_INPUT_TIMEOUT_DENY\020\003\022 \n\034HUM" +
+      "AN_INPUT_TIMEOUT_ESCALATE\020\004B\311\001B\017HumanInp" +
+      "utProtoP\001\242\002\006ASAWVT\252\002$Ai.Stigmer.Agentic." +
+      "Workflow.V1.Tasks\312\002$Ai\\Stigmer\\Agentic\\W" +
+      "orkflow\\V1\\Tasks\342\0020Ai\\Stigmer\\Agentic\\Wo" +
+      "rkflow\\V1\\Tasks\\GPBMetadata\352\002)Ai::Stigme" +
+      "r::Agentic::Workflow::V1::Tasksb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -93,7 +95,7 @@ public final class HumanInputProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflow_v1_tasks_HumanInputTaskConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflow_v1_tasks_HumanInputTaskConfig_descriptor,
-        new java.lang.String[] { "Prompt", "FormSchema", "Outcomes", "Approvers", "Timeout", "OnTimeout", "NotificationChannels", });
+        new java.lang.String[] { "Prompt", "FormSchema", "Outcomes", "Approvers", "Timeout", "OnTimeout", "NotificationChannels", "Payload", "UiHint", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

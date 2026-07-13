@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ArtifactDownloadUrl, ArtifactId, ArtifactList, ListArtifactsByExecutionRequest } from "./io_pbjs";
+import { ArtifactDownloadUrl, ArtifactId, ArtifactList, GetArtifactContentRequest, GetArtifactContentResponse, ListArtifactsByExecutionRequest } from "./io_pbjs";
 import { Artifact } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -130,6 +130,39 @@ export const ArtifactQueryController = {
       name: "getDownloadUrl",
       I: ArtifactId,
       O: ArtifactDownloadUrl,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Read artifact content bytes through the Stigmer API.
+     *
+     * Returns the artifact's raw bytes directly in the response, eliminating
+     * CORS concerns for SDK consumers who need to read content
+     * programmatically — e.g., rendering an artifact-backed review payload
+     * inside an embedded approval gate.
+     *
+     * For direct file downloads, use getDownloadUrl instead — it returns a
+     * presigned URL that avoids proxying bytes through the server.
+     *
+     * @internal
+     * Mirrors AgentExecutionQueryController.getArtifactContent (same
+     * truncation contract). Content is truncated to max_bytes (default:
+     * 512 KB); the response includes total_size_bytes and a truncated flag
+     * so callers can decide whether to offer a full download.
+     *
+     * Error Cases:
+     *
+     * - NOT_FOUND: No Artifact exists with the given ID
+     * - PERMISSION_DENIED: User doesn't have view access to the parent execution
+     * - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)
+     *
+     * @since Review Payloads (stigmer/stigmer#234)
+     *
+     * @generated from rpc ai.stigmer.agentic.artifact.v1.ArtifactQueryController.getContent
+     */
+    getContent: {
+      name: "getContent",
+      I: GetArtifactContentRequest,
+      O: GetArtifactContentResponse,
       kind: MethodKind.Unary,
     },
   }

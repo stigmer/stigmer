@@ -63,11 +63,17 @@ export function createPromoteTaskOutputActivities() {
      * Check if a task output should be promoted to an artifact. If the
      * serialized JSON exceeds the threshold, create an artifact via gRPC
      * and return a reference.
+     *
+     * @param displayName - Optional artifact display name. Defaults to
+     *   "<taskName> — output.json"; callers promoting something other
+     *   than a task output (e.g. a human_input review payload) pass a
+     *   name that describes what the artifact actually holds.
      */
     async PromoteTaskOutput(
       taskOutput: unknown,
       workflowExecutionId: string,
       taskName: string,
+      displayName?: string,
     ): Promise<PromoteTaskOutputResult> {
       if (taskOutput === undefined || taskOutput === null) {
         return { output: taskOutput, artifactIds: [], artifactCreatedEvents: [] };
@@ -85,14 +91,14 @@ export function createPromoteTaskOutputActivities() {
         return { output: taskOutput, artifactIds: [], artifactCreatedEvents: [] };
       }
 
-      const displayName = `${taskName} — output.json`;
+      const effectiveDisplayName = displayName ?? `${taskName} — output.json`;
       const contentType = "application/json";
       const contentBytes = Buffer.from(serialized, "utf-8");
 
       const input = create(CreateArtifactInputSchema, {
         spec: create(ArtifactSpecSchema, {
           contentType,
-          displayName,
+          displayName: effectiveDisplayName,
           source: create(ArtifactSourceSchema, {
             workflowExecutionId,
             taskName,
@@ -107,7 +113,7 @@ export function createPromoteTaskOutputActivities() {
       return {
         output: {
           _artifact_ref: artifactId,
-          display_name: displayName,
+          display_name: effectiveDisplayName,
           content_type: contentType,
           size_bytes: byteLength,
         },
@@ -115,7 +121,7 @@ export function createPromoteTaskOutputActivities() {
         artifactCreatedEvents: [{
           type: "artifact_created" as const,
           artifactId,
-          displayName,
+          displayName: effectiveDisplayName,
           contentType,
           sizeBytes: byteLength,
           occurredAt: new Date().toISOString(),

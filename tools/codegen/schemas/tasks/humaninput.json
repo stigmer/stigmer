@@ -100,6 +100,30 @@
       },
       "description": "Channel identifiers for sending approval request notifications.\n\n When the task starts, the runtime sends notifications through these\n channels to alert potential approvers. Format examples:\n   - \"slack:#approvals\" — Slack channel\n   - \"email:ops@acme.com\" — email address\n   - \"teams:#incident-response\" — Microsoft Teams channel\n\n The format and routing of notifications is a runtime concern (T13).\n The proto carries the identifiers; the runtime resolves them to\n actual notification providers configured in the workflow instance's\n environment.",
       "required": false
+    },
+    {
+      "name": "Payload",
+      "jsonName": "payload",
+      "protoField": "payload",
+      "type": {
+        "kind": "message",
+        "messageType": "Value"
+      },
+      "description": "Structured material for the reviewer to examine before deciding.\n\n Supports ${ } expression interpolation: the whole value can be a\n single expression string (\"${ $context.draft_revision }\") or an\n inline object/array whose nested strings carry embedded expressions.\n The runtime resolves expressions when the gate activates and attaches\n the resolved payload to the approval_requested event, so the approval\n record is permanently bound to exactly what the reviewer saw.\n\n Distinct from prompt (the instruction to the reviewer) and form_schema\n (the shape of the reviewer's response): payload is the thing under\n review — an article diff, a proposed record set, a generated plan.\n\n @internal\n Resolved payloads at or above the artifact promotion threshold (256KB)\n are stored in the artifact store; the approval_requested event then\n carries payload_artifact_id instead of the inline value. See\n ApprovalRequestedPayload in workflowexecution/v1/event.proto.\n\n Expression support is documented here rather than via the\n is_expression option, which annotates string fields only — matching\n how other Struct/Value-typed expression-bearing configs are handled.\n\n @since Review Payloads (stigmer/stigmer#234)",
+      "required": false
+    },
+    {
+      "name": "UiHint",
+      "jsonName": "uiHint",
+      "protoField": "ui_hint",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Hint identifying which UI should present the payload.\n\n A plain discriminator string (e.g. \"article-diff\", \"infra-proposal\")\n that embedding applications match against their registered review\n renderers. When no renderer is registered for the hint — or the gate\n is viewed from a surface without custom renderers (CLI, plain\n console) — the payload is shown as structured data by the built-in\n approval card, so workflows stay portable across surfaces.\n\n @internal\n Deliberately a hint, not a contract: an unrecognized value must never\n block the gate. Not expression-valued — the hint is workflow design,\n not runtime data.\n\n @since Review Payloads (stigmer/stigmer#234)",
+      "required": false,
+      "validation": {
+        "maxLength": 63
+      }
     }
   ]
 }

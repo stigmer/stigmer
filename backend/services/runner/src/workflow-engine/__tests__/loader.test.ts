@@ -1343,6 +1343,99 @@ do:
       }
     });
 
+    it("call: human_input with payload and ui_hint", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - reviewGate:
+      call: human_input
+      with:
+        prompt: "Review the proposal"
+        payload: \${ $context.proposal }
+        ui_hint: infra-proposal
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("human_input");
+      if (task.kind === "human_input") {
+        expect(task.humanInput.payload).toBe("${ $context.proposal }");
+        expect(task.humanInput.uiHint).toBe("infra-proposal");
+      }
+    });
+
+    it("call: human_input with an inline object payload", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - reviewGate:
+      call: human_input
+      with:
+        prompt: "Review the summary"
+        payload:
+          summary: "Severity: \${ $context.triage.severity }"
+          static: true
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("human_input");
+      if (task.kind === "human_input") {
+        expect(task.humanInput.payload).toEqual({
+          summary: "Severity: ${ $context.triage.severity }",
+          static: true,
+        });
+      }
+    });
+
+    it("call: human_input without payload/ui_hint leaves both undefined", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - plainGate:
+      call: human_input
+      with:
+        prompt: "Just approve"
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("human_input");
+      if (task.kind === "human_input") {
+        expect(task.humanInput.payload).toBeUndefined();
+        expect(task.humanInput.uiHint).toBeUndefined();
+      }
+    });
+
+    it("call: human_input drops a non-string or empty ui_hint", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - badHint:
+      call: human_input
+      with:
+        prompt: "Approve"
+        ui_hint: 42
+  - emptyHint:
+      call: human_input
+      with:
+        prompt: "Approve"
+        ui_hint: ""
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      for (const entry of model.do) {
+        expect(entry.task.kind).toBe("human_input");
+        if (entry.task.kind === "human_input") {
+          expect(entry.task.humanInput.uiHint).toBeUndefined();
+        }
+      }
+    });
+
     it("call: human_input missing prompt throws", () => {
       const yaml = `
 document:

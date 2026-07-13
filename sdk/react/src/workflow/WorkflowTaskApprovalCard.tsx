@@ -2,10 +2,13 @@
 
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import Markdown from "react-markdown";
+import type { JsonObject, JsonValue } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/theme";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components.js";
 import { DecisionButton, type DecisionVariant } from "../internal/DecisionButton.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
+import { formatJson } from "../execution/tool-rendering-primitives.js";
+import { StructuredDataViewer } from "./execution-inspector/StructuredDataViewer.js";
 
 /** Outcome descriptor for UI rendering. */
 export interface TaskOutcome {
@@ -35,6 +38,14 @@ export interface WorkflowTaskApprovalCardProps {
    * Text properties render as textareas; others as text inputs.
    */
   readonly formSchema?: Record<string, unknown>;
+  /**
+   * Resolved review payload — the material under review (issue #234).
+   * Rendered as structured data between the prompt and the form. This is
+   * the portable fallback presentation; gates whose `ui_hint` matches a
+   * registered review renderer never reach this card (see
+   * {@link WorkflowTaskReviewGate}).
+   */
+  readonly payload?: JsonValue | null;
   /**
    * Called when the reviewer submits a decision.
    * The consumer (typically {@link WorkflowExecutionViewer}) wires this
@@ -99,6 +110,7 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
   prompt,
   outcomes: outcomesProp,
   formSchema,
+  payload = null,
   onSubmit,
   isSubmitting,
   error,
@@ -158,6 +170,21 @@ export const WorkflowTaskApprovalCard = memo(function WorkflowTaskApprovalCard({
               {prompt}
             </Markdown>
           </div>
+        </div>
+      )}
+
+      {payload !== null && (
+        <div
+          aria-label={`Review material for ${taskName}`}
+          className="mb-3 max-h-96 overflow-y-auto rounded border border-border bg-background p-3"
+        >
+          {isPlainObject(payload) ? (
+            <StructuredDataViewer data={payload} />
+          ) : (
+            <pre className="overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-foreground">
+              <code>{formatJson(payload)}</code>
+            </pre>
+          )}
         </div>
       )}
 
@@ -286,4 +313,9 @@ function resolveVariant(
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Object payloads get the structured viewer; arrays and scalars get JSON. */
+function isPlainObject(value: JsonValue): value is JsonObject {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }

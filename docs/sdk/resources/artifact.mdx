@@ -35,6 +35,7 @@ Artifact artifact = client.artifacts().get("art_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | Method | Description |
 |--------|-------------|
 | [`get`](#get) | Get a single artifact by ID. |
+| [`getContent`](#getcontent) | Read artifact content bytes through the Stigmer API. |
 | [`getDownloadUrl`](#getdownloadurl) | Get a download URL for artifact content. |
 | [`listByExecution`](#listbyexecution) | List all artifacts produced by a specific execution. |
 | [`create`](#create) | Create a new artifact with content. |
@@ -88,6 +89,53 @@ Artifact artifact = client.artifacts().get(id);
 | `id` | `string` | Artifact identifier. |
 
 **Returns**: [`Artifact`](#artifact)
+
+### getContent
+
+Read artifact content bytes through the Stigmer API.
+
+Returns the artifact's raw bytes directly in the response, eliminating CORS concerns for SDK consumers who need to read content programmatically — e.g., rendering an artifact-backed review payload inside an embedded approval gate.
+
+For direct file downloads, use getDownloadUrl instead — it returns a presigned URL that avoids proxying bytes through the server.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const getArtifactContentResponse = await stigmer.artifact.getContent({
+  artifactId: "...",
+  maxBytes: 0,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+getArtifactContentResponse, err := client.Artifact.GetContent(ctx, &stigmer.GetArtifactContentRequest{
+  ArtifactId: "...",
+  MaxBytes:   0,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+get_artifact_content_response = client.artifacts.get_content(GetArtifactContentRequest(
+    artifact_id="...",
+    max_bytes=0,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+GetArtifactContentResponse getArtifactContentResponse = client.artifacts().getContent(GetArtifactContentRequest.builder()
+    .artifactId("...")
+    .maxBytes(0)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetArtifactContentRequest`](#getartifactcontentrequest)
+
+**Returns**: [`GetArtifactContentResponse`](#getartifactcontentresponse)
 
 ### getDownloadUrl
 
@@ -371,6 +419,30 @@ ArtifactDownloadUrl provides a URL for downloading artifact content.
     ttlSeconds: { type: "number", description: "Time-to-live for the download URL in seconds." },
     sizeBytes: { type: "number", description: "Size of the artifact content in bytes (convenience, same as status.size_bytes)." },
     contentType: { type: "string", description: "MIME content type (convenience, same as spec.content_type)." },
+  }}
+/>
+
+### GetArtifactContentRequest
+
+GetArtifactContentRequest reads the raw content of an artifact.
+
+<TypeTable
+  type={{
+    artifactId: { type: "string", description: "Artifact identifier." },
+    maxBytes: { type: "number", description: "Maximum number of bytes to return." },
+  }}
+/>
+
+### GetArtifactContentResponse
+
+GetArtifactContentResponse returns the raw content of an artifact.
+
+<TypeTable
+  type={{
+    content: { type: "Uint8Array", description: "Raw artifact content (up to max_bytes)." },
+    contentType: { type: "string", description: "MIME content type recorded when the artifact was created (same as ArtifactSpec.content_type)." },
+    totalSizeBytes: { type: "number", description: "Actual total size of the artifact in bytes." },
+    truncated: { type: "boolean", description: "Whether the content was truncated to fit within max_bytes." },
   }}
 />
 

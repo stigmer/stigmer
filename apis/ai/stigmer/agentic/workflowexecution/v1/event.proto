@@ -639,6 +639,43 @@ message ApprovalRequestedPayload {
   //
   // @since T13c (Workflow HITL Approval UI)
   google.protobuf.Struct form_schema = 7;
+
+  // Resolved review payload the gate presented to the reviewer.
+  //
+  // @internal
+  // Populated from HumanInputTaskConfig.payload after the runner resolves
+  // its ${ } expressions — the event carries the materialized value, not
+  // the expression, so the execution history records exactly what the
+  // reviewer saw. Empty for agent tool approvals, for human_input tasks
+  // without a payload, and when the resolved payload was promoted to the
+  // artifact store (payload_artifact_id is set instead — the two fields
+  // are mutually exclusive).
+  //
+  // @since Review Payloads (stigmer/stigmer#234)
+  google.protobuf.Value payload = 8;
+
+  // UI hint identifying which renderer should present the payload.
+  //
+  // @internal
+  // Copied verbatim from HumanInputTaskConfig.ui_hint. Clients with a
+  // registered renderer for this hint present domain-native review UI;
+  // all other clients fall back to showing the payload as structured
+  // data. Empty when the task config sets no hint.
+  //
+  // @since Review Payloads (stigmer/stigmer#234)
+  string ui_hint = 9;
+
+  // Artifact holding the resolved review payload when it exceeded the
+  // inline promotion threshold (256KB).
+  //
+  // @internal
+  // Set instead of payload (mutually exclusive). Clients read the content
+  // via ArtifactQueryController.getContent — API-proxied, so embedded SDK
+  // consumers avoid CORS exposure — or offer a download via getDownloadUrl.
+  // Format: "art_{unique-suffix}".
+  //
+  // @since Review Payloads (stigmer/stigmer#234)
+  string payload_artifact_id = 10;
 }
 
 // Payload for approval_resolved events.

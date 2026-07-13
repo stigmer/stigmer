@@ -294,6 +294,178 @@ func (x *ListArtifactsByExecutionRequest) GetPageToken() string {
 	return ""
 }
 
+// GetArtifactContentRequest reads the raw content of an artifact.
+//
+// Unlike getDownloadUrl (which returns a presigned URL for direct
+// browser download), this endpoint returns the artifact bytes through the
+// Stigmer API. This eliminates CORS concerns for SDK consumers who need to
+// read artifact content programmatically — e.g., rendering an artifact-backed
+// review payload inside an embedded approval gate.
+//
+// @internal
+// Mirrors AgentExecutionQueryController.getArtifactContent, which was added
+// for the same reason on the agent-execution side. Artifacts are addressed
+// by artifact ID here (the T07 store's identity) rather than by
+// execution_id + storage_key.
+//
+// The server enforces a maximum content size (default: 512 KB). If the
+// artifact exceeds max_bytes, the response contains the first max_bytes of
+// content with truncated=true. Callers use total_size_bytes to decide
+// whether to offer a full download via getDownloadUrl instead.
+//
+// @since Review Payloads (stigmer/stigmer#234)
+type GetArtifactContentRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Artifact identifier.
+	// Format: "art_{unique-suffix}"
+	ArtifactId string `protobuf:"bytes,1,opt,name=artifact_id,json=artifactId,proto3" json:"artifact_id,omitempty"`
+	// Maximum number of bytes to return.
+	//
+	// If the artifact is larger than this limit, the response contains
+	// the first max_bytes of content with truncated=true.
+	//
+	// When 0 or unset, the server applies a default limit (512 KB).
+	// The server may also enforce a hard upper bound regardless of this value.
+	MaxBytes      int64 `protobuf:"varint,2,opt,name=max_bytes,json=maxBytes,proto3" json:"max_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetArtifactContentRequest) Reset() {
+	*x = GetArtifactContentRequest{}
+	mi := &file_ai_stigmer_agentic_artifact_v1_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetArtifactContentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetArtifactContentRequest) ProtoMessage() {}
+
+func (x *GetArtifactContentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_artifact_v1_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetArtifactContentRequest.ProtoReflect.Descriptor instead.
+func (*GetArtifactContentRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_artifact_v1_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetArtifactContentRequest) GetArtifactId() string {
+	if x != nil {
+		return x.ArtifactId
+	}
+	return ""
+}
+
+func (x *GetArtifactContentRequest) GetMaxBytes() int64 {
+	if x != nil {
+		return x.MaxBytes
+	}
+	return 0
+}
+
+// GetArtifactContentResponse returns the raw content of an artifact.
+//
+// The content field contains the artifact bytes (up to max_bytes). For text
+// artifacts, clients decode as UTF-8. The content_type field is the type
+// recorded at creation (ArtifactSpec.content_type).
+//
+// @since Review Payloads (stigmer/stigmer#234)
+type GetArtifactContentResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Raw artifact content (up to max_bytes).
+	//
+	// For text artifacts (JSON, YAML, Markdown, etc.), decode as UTF-8.
+	// For binary artifacts, callers should generally use getDownloadUrl
+	// instead of this endpoint.
+	Content []byte `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
+	// MIME content type recorded when the artifact was created
+	// (same as ArtifactSpec.content_type). Example: "application/json".
+	ContentType string `protobuf:"bytes,2,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+	// Actual total size of the artifact in bytes.
+	//
+	// Larger than len(content) when truncated=true. Callers can use this
+	// to show "showing 512 KB of 2.1 MB" messages or to decide whether
+	// to offer a full download link.
+	TotalSizeBytes int64 `protobuf:"varint,3,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
+	// Whether the content was truncated to fit within max_bytes.
+	//
+	// When true, content contains only the first max_bytes of the artifact.
+	// The full artifact can be downloaded via getDownloadUrl.
+	Truncated     bool `protobuf:"varint,4,opt,name=truncated,proto3" json:"truncated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetArtifactContentResponse) Reset() {
+	*x = GetArtifactContentResponse{}
+	mi := &file_ai_stigmer_agentic_artifact_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetArtifactContentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetArtifactContentResponse) ProtoMessage() {}
+
+func (x *GetArtifactContentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_artifact_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetArtifactContentResponse.ProtoReflect.Descriptor instead.
+func (*GetArtifactContentResponse) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_artifact_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetArtifactContentResponse) GetContent() []byte {
+	if x != nil {
+		return x.Content
+	}
+	return nil
+}
+
+func (x *GetArtifactContentResponse) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
+func (x *GetArtifactContentResponse) GetTotalSizeBytes() int64 {
+	if x != nil {
+		return x.TotalSizeBytes
+	}
+	return 0
+}
+
+func (x *GetArtifactContentResponse) GetTruncated() bool {
+	if x != nil {
+		return x.Truncated
+	}
+	return false
+}
+
 // ArtifactDownloadUrl provides a URL for downloading artifact content.
 //
 // @internal
@@ -327,7 +499,7 @@ type ArtifactDownloadUrl struct {
 
 func (x *ArtifactDownloadUrl) Reset() {
 	*x = ArtifactDownloadUrl{}
-	mi := &file_ai_stigmer_agentic_artifact_v1_io_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_artifact_v1_io_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -339,7 +511,7 @@ func (x *ArtifactDownloadUrl) String() string {
 func (*ArtifactDownloadUrl) ProtoMessage() {}
 
 func (x *ArtifactDownloadUrl) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_artifact_v1_io_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_artifact_v1_io_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -352,7 +524,7 @@ func (x *ArtifactDownloadUrl) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArtifactDownloadUrl.ProtoReflect.Descriptor instead.
 func (*ArtifactDownloadUrl) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_artifact_v1_io_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_artifact_v1_io_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ArtifactDownloadUrl) GetUrl() string {
@@ -404,7 +576,16 @@ const file_ai_stigmer_agentic_artifact_v1_io_proto_rawDesc = "" +
 	"\x12agent_execution_id\x18\x02 \x01(\tR\x10agentExecutionId\x12\x1b\n" +
 	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x04 \x01(\tR\tpageToken\"\x8a\x01\n" +
+	"page_token\x18\x04 \x01(\tR\tpageToken\"b\n" +
+	"\x19GetArtifactContentRequest\x12(\n" +
+	"\vartifact_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
+	"artifactId\x12\x1b\n" +
+	"\tmax_bytes\x18\x02 \x01(\x03R\bmaxBytes\"\xa1\x01\n" +
+	"\x1aGetArtifactContentResponse\x12\x18\n" +
+	"\acontent\x18\x01 \x01(\fR\acontent\x12!\n" +
+	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\x12(\n" +
+	"\x10total_size_bytes\x18\x03 \x01(\x03R\x0etotalSizeBytes\x12\x1c\n" +
+	"\ttruncated\x18\x04 \x01(\bR\ttruncated\"\x8a\x01\n" +
 	"\x13ArtifactDownloadUrl\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x1f\n" +
 	"\vttl_seconds\x18\x02 \x01(\x05R\n" +
@@ -426,19 +607,21 @@ func file_ai_stigmer_agentic_artifact_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_artifact_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_artifact_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_agentic_artifact_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_artifact_v1_io_proto_goTypes = []any{
 	(*ArtifactId)(nil),                      // 0: ai.stigmer.agentic.artifact.v1.ArtifactId
 	(*ArtifactList)(nil),                    // 1: ai.stigmer.agentic.artifact.v1.ArtifactList
 	(*CreateArtifactInput)(nil),             // 2: ai.stigmer.agentic.artifact.v1.CreateArtifactInput
 	(*ListArtifactsByExecutionRequest)(nil), // 3: ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest
-	(*ArtifactDownloadUrl)(nil),             // 4: ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl
-	(*Artifact)(nil),                        // 5: ai.stigmer.agentic.artifact.v1.Artifact
-	(*ArtifactSpec)(nil),                    // 6: ai.stigmer.agentic.artifact.v1.ArtifactSpec
+	(*GetArtifactContentRequest)(nil),       // 4: ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest
+	(*GetArtifactContentResponse)(nil),      // 5: ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse
+	(*ArtifactDownloadUrl)(nil),             // 6: ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl
+	(*Artifact)(nil),                        // 7: ai.stigmer.agentic.artifact.v1.Artifact
+	(*ArtifactSpec)(nil),                    // 8: ai.stigmer.agentic.artifact.v1.ArtifactSpec
 }
 var file_ai_stigmer_agentic_artifact_v1_io_proto_depIdxs = []int32{
-	5, // 0: ai.stigmer.agentic.artifact.v1.ArtifactList.entries:type_name -> ai.stigmer.agentic.artifact.v1.Artifact
-	6, // 1: ai.stigmer.agentic.artifact.v1.CreateArtifactInput.spec:type_name -> ai.stigmer.agentic.artifact.v1.ArtifactSpec
+	7, // 0: ai.stigmer.agentic.artifact.v1.ArtifactList.entries:type_name -> ai.stigmer.agentic.artifact.v1.Artifact
+	8, // 1: ai.stigmer.agentic.artifact.v1.CreateArtifactInput.spec:type_name -> ai.stigmer.agentic.artifact.v1.ArtifactSpec
 	2, // [2:2] is the sub-list for method output_type
 	2, // [2:2] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -459,7 +642,7 @@ func file_ai_stigmer_agentic_artifact_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_artifact_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_artifact_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

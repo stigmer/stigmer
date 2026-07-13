@@ -54,6 +54,14 @@
           "outputType": "ArtifactDownloadUrl",
           "outputFullType": "ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl",
           "description": "Get a download URL for artifact content.\n\n Returns a URL that the client can use to download the artifact's\n content via HTTP GET. This avoids streaming large blobs through\n the gRPC control plane.\n\n Cloud: returns a pre-signed S3 URL with a short TTL (15 minutes).\n OSS: returns a direct URL to the local artifact server endpoint.\n\n Use Cases:\n\n 1. Download Artifact:\n    - User clicks \"Download\" in the execution viewer\n    - UI calls getDownloadUrl() to get a URL\n    - Browser opens the URL in a new tab or triggers a download\n\n 2. Preview Artifact:\n    - UI calls getDownloadUrl() for JSON/text artifacts\n    - UI fetches content from the URL and renders inline\n    - Large artifacts show a truncated preview with download option\n\n 3. CLI Download:\n    - `stigmer workflow artifact download art_abc123 -o output.json`\n    - CLI calls getDownloadUrl() then fetches via HTTP GET\n\n Error Cases:\n\n - NOT_FOUND: No Artifact exists with the given ID\n - PERMISSION_DENIED: User doesn't have view access to the parent execution\n - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)"
+        },
+        {
+          "name": "GetContent",
+          "inputType": "GetArtifactContentRequest",
+          "inputFullType": "ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest",
+          "outputType": "GetArtifactContentResponse",
+          "outputFullType": "ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse",
+          "description": "Read artifact content bytes through the Stigmer API.\n\n Returns the artifact's raw bytes directly in the response, eliminating\n CORS concerns for SDK consumers who need to read content\n programmatically — e.g., rendering an artifact-backed review payload\n inside an embedded approval gate.\n\n For direct file downloads, use getDownloadUrl instead — it returns a\n presigned URL that avoids proxying bytes through the server.\n\n @internal\n Mirrors AgentExecutionQueryController.getArtifactContent (same\n truncation contract). Content is truncated to max_bytes (default:\n 512 KB); the response includes total_size_bytes and a truncated flag\n so callers can decide whether to offer a full download.\n\n Error Cases:\n\n - NOT_FOUND: No Artifact exists with the given ID\n - PERMISSION_DENIED: User doesn't have view access to the parent execution\n - FAILED_PRECONDITION: Artifact blob has been deleted (storage_state_deleted)\n\n @since Review Payloads (stigmer/stigmer#234)"
         }
       ]
     }
@@ -219,6 +227,85 @@
             "kind": "string"
           },
           "description": "MIME content type (convenience, same as spec.content_type).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetArtifactContentRequest",
+      "description": "GetArtifactContentRequest reads the raw content of an artifact.\n\n Unlike getDownloadUrl (which returns a presigned URL for direct\n browser download), this endpoint returns the artifact bytes through the\n Stigmer API. This eliminates CORS concerns for SDK consumers who need to\n read artifact content programmatically — e.g., rendering an artifact-backed\n review payload inside an embedded approval gate.\n\n @internal\n Mirrors AgentExecutionQueryController.getArtifactContent, which was added\n for the same reason on the agent-execution side. Artifacts are addressed\n by artifact ID here (the T07 store's identity) rather than by\n execution_id + storage_key.\n\n The server enforces a maximum content size (default: 512 KB). If the\n artifact exceeds max_bytes, the response contains the first max_bytes of\n content with truncated=true. Callers use total_size_bytes to decide\n whether to offer a full download via getDownloadUrl instead.\n\n @since Review Payloads (stigmer/stigmer#234)",
+      "protoType": "ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest",
+      "protoFile": "apis/ai/stigmer/agentic/artifact/v1/io.proto",
+      "fields": [
+        {
+          "name": "ArtifactId",
+          "jsonName": "artifactId",
+          "protoField": "artifact_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Artifact identifier.\n Format: \"art_{unique-suffix}\"",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "MaxBytes",
+          "jsonName": "maxBytes",
+          "protoField": "max_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Maximum number of bytes to return.\n\n If the artifact is larger than this limit, the response contains\n the first max_bytes of content with truncated=true.\n\n When 0 or unset, the server applies a default limit (512 KB).\n The server may also enforce a hard upper bound regardless of this value.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetArtifactContentResponse",
+      "description": "GetArtifactContentResponse returns the raw content of an artifact.\n\n The content field contains the artifact bytes (up to max_bytes). For text\n artifacts, clients decode as UTF-8. The content_type field is the type\n recorded at creation (ArtifactSpec.content_type).\n\n @since Review Payloads (stigmer/stigmer#234)",
+      "protoType": "ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse",
+      "protoFile": "apis/ai/stigmer/agentic/artifact/v1/io.proto",
+      "fields": [
+        {
+          "name": "Content",
+          "jsonName": "content",
+          "protoField": "content",
+          "type": {
+            "kind": "bytes"
+          },
+          "description": "Raw artifact content (up to max_bytes).\n\n For text artifacts (JSON, YAML, Markdown, etc.), decode as UTF-8.\n For binary artifacts, callers should generally use getDownloadUrl\n instead of this endpoint.",
+          "required": false
+        },
+        {
+          "name": "ContentType",
+          "jsonName": "contentType",
+          "protoField": "content_type",
+          "type": {
+            "kind": "string"
+          },
+          "description": "MIME content type recorded when the artifact was created\n (same as ArtifactSpec.content_type). Example: \"application/json\".",
+          "required": false
+        },
+        {
+          "name": "TotalSizeBytes",
+          "jsonName": "totalSizeBytes",
+          "protoField": "total_size_bytes",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Actual total size of the artifact in bytes.\n\n Larger than len(content) when truncated=true. Callers can use this\n to show \"showing 512 KB of 2.1 MB\" messages or to decide whether\n to offer a full download link.",
+          "required": false
+        },
+        {
+          "name": "Truncated",
+          "jsonName": "truncated",
+          "protoField": "truncated",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Whether the content was truncated to fit within max_bytes.\n\n When true, content contains only the first max_bytes of the artifact.\n The full artifact can be downloaded via getDownloadUrl.",
           "required": false
         }
       ]

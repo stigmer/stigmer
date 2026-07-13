@@ -16,7 +16,7 @@ import { RetriesTab } from "./RetriesTab.js";
 import { AgentCallTab } from "./AgentCallTab.js";
 import { EventLogTab } from "./EventLogTab.js";
 import { WorkflowExecutionApprovalCard } from "../WorkflowExecutionApprovalCard.js";
-import { WorkflowTaskApprovalCard } from "../WorkflowTaskApprovalCard.js";
+import { WorkflowTaskReviewGate } from "../WorkflowTaskReviewGate.js";
 import { WorkflowTaskApprovalSummary } from "../WorkflowTaskApprovalSummary.js";
 
 /** Props for {@link ExecutionInspector}. */
@@ -250,12 +250,17 @@ export const ExecutionInspector = memo(function ExecutionInspector({
           )}
           {effectiveTab === "approval" && detail.approval && (
             detail.status === "waiting_approval" && onSubmitTaskApproval ? (
-              // Gate still awaiting a decision — collect one.
-              <WorkflowTaskApprovalCard
+              // Gate still awaiting a decision — collect one. The gate
+              // resolves artifact-backed payloads and dispatches to a
+              // registered review renderer (by ui_hint) or the built-in card.
+              <WorkflowTaskReviewGate
                 taskName={detail.taskName}
                 prompt={detail.approval.prompt}
                 outcomes={detail.approval.outcomes}
                 formSchema={detail.approval.formSchema ?? undefined}
+                payload={detail.approval.payload}
+                uiHint={detail.approval.uiHint}
+                payloadArtifactId={detail.approval.payloadArtifactId}
                 onSubmit={onSubmitTaskApproval}
                 isSubmitting={taskApprovalSubmittingTaskNames?.has(detail.taskName) ?? false}
                 error={taskApprovalErrorsByTaskName?.get(detail.taskName) ?? null}

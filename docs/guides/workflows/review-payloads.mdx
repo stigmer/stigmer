@@ -1,0 +1,140 @@
+---
+title: Custom review surfaces
+description:
+  Attach the material under review to a human_input gate and render it with your
+  own React component in an embedded approval flow.
+---
+
+An approval gate is only as good as what the reviewer can see. A `human_input`
+task shows the reviewer a prompt and an optional form — but when the decision is
+about something rich (an article diff, a generated plan, a set of proposed
+records), the reviewer needs to see the thing itself, rendered the way your
+product renders it.
+
+This guide shows you how to:
+
+1. Attach a **review payload** to a `human_input` task
+2. Tag it with a **`ui_hint`** so clients know which UI should present it
+3. Register a **custom renderer** in your React app so the gate shows your
+   domain-native review UI instead of the built-in card
+
+You need a working workflow with a `human_input` task and an app that embeds
+`@stigmer/react`. If you are new to approval gates, start with the
+[Human Input task reference](/docs/guides/workflows/task-types/human-input).
+
+## Attach the payload in the workflow
+
+Add `payload` and `ui_hint` to the task config. `payload` supports `${ }`
+expressions — point it at the workflow data the reviewer must examine:
+
+```yaml
+- editorial_review:
+    human_input:
+      prompt: "Review the proposed revision before publishing."
+      payload: ${ $context.draft_revision }
+      ui_hint: article-diff
+      form_schema:
+        type: object
+        properties:
+          notes: { type: string }
+      outcomes:
+        - name: approve
+        - name: request_changes
+          then: revise_draft
+    export:
+      as: "${ . }"
+```
+
+When the gate activates, the runtime resolves the expression and attaches the
+**resolved value** to the gate's `approval_requested` event. The approval record
+is permanently bound to exactly what the reviewer saw — the execution history
+can always answer "what was approved?"
+
+Two properties to know:
+
+- **Large payloads become artifacts automatically.** A resolved payload at or
+  above 256KB is stored in the artifact store, and the event carries a reference
+  instead of inline data. The SDK resolves the reference for you — your renderer
+  always receives the full materialized value.
+- **A payload that fails to resolve fails the task.** A gate must never silently
+  present an empty review. If the expression references data that does not
+  exist, the task fails with an error naming the problem.
+
+## Register your renderer
+
+Pass a `reviewRenderers` map to `StigmerProvider`, keyed by `ui_hint`:
+
+```tsx
+import { StigmerProvider, type ReviewRenderers } from "@stigmer/react";
+
+const reviewRenderers: ReviewRenderers = {
+  "article-diff": ({ payload, outcomes, submit, isSubmitting }) => (
+    <ArticleDiffView
+      revision={payload}
+      outcomes={outcomes}
+      onDecision={(outcome, notes) => submit(outcome, { notes })}
+      disabled={isSubmitting}
+    />
+  ),
+};
+
+<StigmerProvider client={client} reviewRenderers={reviewRenderers}>
+  <App />
+</StigmerProvider>;
+```
+
+Define the map as a module constant (or wrap it in `useMemo`) — a new object on
+every render re-renders every mounted gate.
+
+Every surface that shows pending gates — `WorkflowExecutionViewer`'s inspector
+and its timeline — picks the renderer up from context. No other wiring is
+required.
+
+## The renderer contract
+
+Your component receives `ReviewRendererProps`:
+
+| Prop           | Type                                                 | What it is                                                                                |
+| -------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `taskName`     | `string`                                             | The gate's task name.                                                                     |
+| `payload`      | `JsonValue`                                          | The materialized review payload. Artifact-backed payloads are already fetched and parsed. |
+| `formSchema`   | `Record<string, unknown> \| null`                    | The gate's `form_schema`, when it defines one.                                            |
+| `outcomes`     | `readonly TaskOutcome[]`                             | Configured outcomes; empty means the default approve/reject pair.                         |
+| `submit`       | `(outcome, formData?, comment?) => Promise<unknown>` | Submits the decision through the standard approval path.                                  |
+| `isSubmitting` | `boolean`                                            | True while this gate's submission is in flight.                                           |
+| `error`        | `Error \| null`                                      | This gate's last failed submission.                                                       |
+
+The response contract does not change: whatever your surface collects flows
+through `submit` into the same `submitWorkflowTaskApproval` path the built-in
+card uses. Outcomes, branch routing, and the audit trail behave identically.
+
+## Portability: The hint is a hint
+
+`ui_hint` is a discriminator, not a contract. When no renderer is registered for
+it — the Stigmer Console, the CLI, another team's app — the built-in approval
+card renders instead, showing the payload as structured data. Your workflow
+stays portable across every surface; only the presentation upgrades where a
+renderer exists.
+
+This also means you can add `ui_hint` to production workflows before your
+renderer ships: reviewers see structured data today, your custom UI tomorrow,
+with no workflow change in between.
+
+## Reading the payload yourself
+
+If you build a fully custom approval surface (your own list of pending gates,
+your own layout), the pieces compose individually:
+
+- `useExecutionTaskDetail(...)` exposes `approval.payload`, `approval.uiHint`,
+  and `approval.payloadArtifactId` for any task
+- `useReviewPayload(payload, payloadArtifactId)` materializes the payload —
+  inline values pass through; artifact references are fetched through the
+  Stigmer API (no CORS exposure on third-party origins) and parsed
+- `WorkflowTaskReviewGate` is the assembled decision surface the viewer uses,
+  available as a standalone component
+
+## Next step
+
+The reviewer's decision — outcome, form data, comment — becomes the task's
+output, available to downstream tasks via `export`. To route different outcomes
+to different branches, see [Workflow Patterns](/docs/guides/workflows/patterns).

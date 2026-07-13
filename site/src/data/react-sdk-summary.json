@@ -256,7 +256,7 @@
       "slug": "workflow",
       "title": "Workflow",
       "description": "Hooks and components for workflow definitions, instances, executions, and the visual builder.",
-      "hooks": 31,
+      "hooks": 33,
       "components": 15
     },
     {

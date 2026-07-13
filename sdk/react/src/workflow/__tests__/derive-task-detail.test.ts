@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { fromJson } from "@bufbuild/protobuf";
+import { ValueSchema } from "@bufbuild/protobuf/wkt";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
@@ -613,6 +615,82 @@ describe("deriveTaskDetail", () => {
     expect(result!.approval!.formSchema).toEqual({ type: "object" });
     expect(result!.approval!.timeoutSeconds).toBe(3600);
     expect(result!.approval!.decision).toBeNull();
+  });
+
+  // 13b. Review payload fields (issue #234)
+  it("unwraps an inline review payload with ui_hint from the approvalRequested event", () => {
+    const derived = makeDerived({ status: "waiting_approval" });
+    const events = [
+      makeEvent("my-task", 1, "2026-01-01T00:00:00Z", {
+        case: "approvalRequested",
+        value: {
+          prompt: "Review the draft",
+          approvers: [],
+          timeoutSeconds: 0,
+          outcomes: [],
+          formSchema: null,
+          // Real events carry a google.protobuf.Value message.
+          payload: fromJson(ValueSchema, { title: "Q3 plan", items: [1, 2] }),
+          uiHint: "plan-review",
+          payloadArtifactId: "",
+        },
+      }),
+    ];
+
+    const result = deriveTaskDetail("my-task", events, undefined, derived);
+
+    expect(result!.approval!.payload).toEqual({ title: "Q3 plan", items: [1, 2] });
+    expect(result!.approval!.uiHint).toBe("plan-review");
+    expect(result!.approval!.payloadArtifactId).toBeNull();
+  });
+
+  it("carries the artifact reference instead of inline data for promoted payloads", () => {
+    const derived = makeDerived({ status: "waiting_approval" });
+    const events = [
+      makeEvent("my-task", 1, "2026-01-01T00:00:00Z", {
+        case: "approvalRequested",
+        value: {
+          prompt: "Review the proposal",
+          approvers: [],
+          timeoutSeconds: 0,
+          outcomes: [],
+          formSchema: null,
+          payload: undefined,
+          uiHint: "infra-proposal",
+          payloadArtifactId: "art_review123",
+        },
+      }),
+    ];
+
+    const result = deriveTaskDetail("my-task", events, undefined, derived);
+
+    expect(result!.approval!.payload).toBeNull();
+    expect(result!.approval!.uiHint).toBe("infra-proposal");
+    expect(result!.approval!.payloadArtifactId).toBe("art_review123");
+  });
+
+  it("defaults review payload fields when the gate carries none (pre-#234 events)", () => {
+    const derived = makeDerived({ status: "waiting_approval" });
+    const events = [
+      makeEvent("my-task", 1, "2026-01-01T00:00:00Z", {
+        case: "approvalRequested",
+        value: {
+          prompt: "Continue?",
+          approvers: [],
+          timeoutSeconds: 0,
+          outcomes: [],
+          formSchema: null,
+          uiHint: "",
+          payloadArtifactId: "",
+        },
+      }),
+    ];
+
+    const result = deriveTaskDetail("my-task", events, undefined, derived);
+
+    expect(result!.approval!.payload).toBeNull();
+    expect(result!.approval!.uiHint).toBe("");
+    expect(result!.approval!.payloadArtifactId).toBeNull();
   });
 
   // 14. Approval resolved — event-only (the brief "finalizing" window before

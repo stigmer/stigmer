@@ -394,4 +394,148 @@ public interface HumanInputTaskConfigOrBuilder extends
    */
   com.google.protobuf.ByteString
       getNotificationChannelsBytes(int index);
+
+  /**
+   * <pre>
+   * Structured material for the reviewer to examine before deciding.
+   *
+   * Supports ${ } expression interpolation: the whole value can be a
+   * single expression string ("${ $context.draft_revision }") or an
+   * inline object/array whose nested strings carry embedded expressions.
+   * The runtime resolves expressions when the gate activates and attaches
+   * the resolved payload to the approval_requested event, so the approval
+   * record is permanently bound to exactly what the reviewer saw.
+   *
+   * Distinct from prompt (the instruction to the reviewer) and form_schema
+   * (the shape of the reviewer's response): payload is the thing under
+   * review — an article diff, a proposed record set, a generated plan.
+   *
+   * &#64;internal
+   * Resolved payloads at or above the artifact promotion threshold (256KB)
+   * are stored in the artifact store; the approval_requested event then
+   * carries payload_artifact_id instead of the inline value. See
+   * ApprovalRequestedPayload in workflowexecution/v1/event.proto.
+   *
+   * Expression support is documented here rather than via the
+   * is_expression option, which annotates string fields only — matching
+   * how other Struct/Value-typed expression-bearing configs are handled.
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>.google.protobuf.Value payload = 8 [json_name = "payload"];</code>
+   * @return Whether the payload field is set.
+   */
+  boolean hasPayload();
+  /**
+   * <pre>
+   * Structured material for the reviewer to examine before deciding.
+   *
+   * Supports ${ } expression interpolation: the whole value can be a
+   * single expression string ("${ $context.draft_revision }") or an
+   * inline object/array whose nested strings carry embedded expressions.
+   * The runtime resolves expressions when the gate activates and attaches
+   * the resolved payload to the approval_requested event, so the approval
+   * record is permanently bound to exactly what the reviewer saw.
+   *
+   * Distinct from prompt (the instruction to the reviewer) and form_schema
+   * (the shape of the reviewer's response): payload is the thing under
+   * review — an article diff, a proposed record set, a generated plan.
+   *
+   * &#64;internal
+   * Resolved payloads at or above the artifact promotion threshold (256KB)
+   * are stored in the artifact store; the approval_requested event then
+   * carries payload_artifact_id instead of the inline value. See
+   * ApprovalRequestedPayload in workflowexecution/v1/event.proto.
+   *
+   * Expression support is documented here rather than via the
+   * is_expression option, which annotates string fields only — matching
+   * how other Struct/Value-typed expression-bearing configs are handled.
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>.google.protobuf.Value payload = 8 [json_name = "payload"];</code>
+   * @return The payload.
+   */
+  com.google.protobuf.Value getPayload();
+  /**
+   * <pre>
+   * Structured material for the reviewer to examine before deciding.
+   *
+   * Supports ${ } expression interpolation: the whole value can be a
+   * single expression string ("${ $context.draft_revision }") or an
+   * inline object/array whose nested strings carry embedded expressions.
+   * The runtime resolves expressions when the gate activates and attaches
+   * the resolved payload to the approval_requested event, so the approval
+   * record is permanently bound to exactly what the reviewer saw.
+   *
+   * Distinct from prompt (the instruction to the reviewer) and form_schema
+   * (the shape of the reviewer's response): payload is the thing under
+   * review — an article diff, a proposed record set, a generated plan.
+   *
+   * &#64;internal
+   * Resolved payloads at or above the artifact promotion threshold (256KB)
+   * are stored in the artifact store; the approval_requested event then
+   * carries payload_artifact_id instead of the inline value. See
+   * ApprovalRequestedPayload in workflowexecution/v1/event.proto.
+   *
+   * Expression support is documented here rather than via the
+   * is_expression option, which annotates string fields only — matching
+   * how other Struct/Value-typed expression-bearing configs are handled.
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>.google.protobuf.Value payload = 8 [json_name = "payload"];</code>
+   */
+  com.google.protobuf.ValueOrBuilder getPayloadOrBuilder();
+
+  /**
+   * <pre>
+   * Hint identifying which UI should present the payload.
+   *
+   * A plain discriminator string (e.g. "article-diff", "infra-proposal")
+   * that embedding applications match against their registered review
+   * renderers. When no renderer is registered for the hint — or the gate
+   * is viewed from a surface without custom renderers (CLI, plain
+   * console) — the payload is shown as structured data by the built-in
+   * approval card, so workflows stay portable across surfaces.
+   *
+   * &#64;internal
+   * Deliberately a hint, not a contract: an unrecognized value must never
+   * block the gate. Not expression-valued — the hint is workflow design,
+   * not runtime data.
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>string ui_hint = 9 [json_name = "uiHint", (.buf.validate.field) = { ... }</code>
+   * @return The uiHint.
+   */
+  java.lang.String getUiHint();
+  /**
+   * <pre>
+   * Hint identifying which UI should present the payload.
+   *
+   * A plain discriminator string (e.g. "article-diff", "infra-proposal")
+   * that embedding applications match against their registered review
+   * renderers. When no renderer is registered for the hint — or the gate
+   * is viewed from a surface without custom renderers (CLI, plain
+   * console) — the payload is shown as structured data by the built-in
+   * approval card, so workflows stay portable across surfaces.
+   *
+   * &#64;internal
+   * Deliberately a hint, not a contract: an unrecognized value must never
+   * block the gate. Not expression-valued — the hint is workflow design,
+   * not runtime data.
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>string ui_hint = 9 [json_name = "uiHint", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for uiHint.
+   */
+  com.google.protobuf.ByteString
+      getUiHintBytes();
 }

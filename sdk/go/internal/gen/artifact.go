@@ -48,6 +48,11 @@ func (a *ArtifactClient) GetDownloadUrl(ctx context.Context, id string) (*artifa
 	return resp, wrapErr(err)
 }
 
+func (a *ArtifactClient) GetContent(ctx context.Context, input *artifactv1.GetArtifactContentRequest) (*artifactv1.GetArtifactContentResponse, error) {
+	resp, err := a.query.GetContent(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // ArtifactInput holds the fields for creating/updating a Artifact.
 type ArtifactInput struct {
 	Name        string

@@ -220,6 +220,22 @@ export {
   type TaskOutcome,
 } from "./WorkflowTaskApprovalCard.js";
 
+// Review payloads (issue #234): custom renderers for human_input gates
+export {
+  WorkflowTaskReviewGate,
+  type WorkflowTaskReviewGateProps,
+} from "./WorkflowTaskReviewGate.js";
+export {
+  ReviewRendererContext,
+  useReviewRenderer,
+  type ReviewRendererProps,
+  type ReviewRenderers,
+} from "./ReviewRendererContext.js";
+export {
+  useReviewPayload,
+  type UseReviewPayloadReturn,
+} from "./useReviewPayload.js";
+
 export {
   WorkflowTaskApprovalSummary,
   type WorkflowTaskApprovalSummaryProps,

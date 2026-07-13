@@ -320,8 +320,49 @@ type HumanInputTaskConfig struct {
 	// actual notification providers configured in the workflow instance's
 	// environment.
 	NotificationChannels []string `protobuf:"bytes,7,rep,name=notification_channels,json=notificationChannels,proto3" json:"notification_channels,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// Structured material for the reviewer to examine before deciding.
+	//
+	// Supports ${ } expression interpolation: the whole value can be a
+	// single expression string ("${ $context.draft_revision }") or an
+	// inline object/array whose nested strings carry embedded expressions.
+	// The runtime resolves expressions when the gate activates and attaches
+	// the resolved payload to the approval_requested event, so the approval
+	// record is permanently bound to exactly what the reviewer saw.
+	//
+	// Distinct from prompt (the instruction to the reviewer) and form_schema
+	// (the shape of the reviewer's response): payload is the thing under
+	// review — an article diff, a proposed record set, a generated plan.
+	//
+	// @internal
+	// Resolved payloads at or above the artifact promotion threshold (256KB)
+	// are stored in the artifact store; the approval_requested event then
+	// carries payload_artifact_id instead of the inline value. See
+	// ApprovalRequestedPayload in workflowexecution/v1/event.proto.
+	//
+	// Expression support is documented here rather than via the
+	// is_expression option, which annotates string fields only — matching
+	// how other Struct/Value-typed expression-bearing configs are handled.
+	//
+	// @since Review Payloads (stigmer/stigmer#234)
+	Payload *structpb.Value `protobuf:"bytes,8,opt,name=payload,proto3" json:"payload,omitempty"`
+	// Hint identifying which UI should present the payload.
+	//
+	// A plain discriminator string (e.g. "article-diff", "infra-proposal")
+	// that embedding applications match against their registered review
+	// renderers. When no renderer is registered for the hint — or the gate
+	// is viewed from a surface without custom renderers (CLI, plain
+	// console) — the payload is shown as structured data by the built-in
+	// approval card, so workflows stay portable across surfaces.
+	//
+	// @internal
+	// Deliberately a hint, not a contract: an unrecognized value must never
+	// block the gate. Not expression-valued — the hint is workflow design,
+	// not runtime data.
+	//
+	// @since Review Payloads (stigmer/stigmer#234)
+	UiHint        string `protobuf:"bytes,9,opt,name=ui_hint,json=uiHint,proto3" json:"ui_hint,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *HumanInputTaskConfig) Reset() {
@@ -403,6 +444,20 @@ func (x *HumanInputTaskConfig) GetNotificationChannels() []string {
 	return nil
 }
 
+func (x *HumanInputTaskConfig) GetPayload() *structpb.Value {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+func (x *HumanInputTaskConfig) GetUiHint() string {
+	if x != nil {
+		return x.UiHint
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_workflow_v1_tasks_human_input_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflow_v1_tasks_human_input_proto_rawDesc = "" +
@@ -411,7 +466,7 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_human_input_proto_rawDesc = "" +
 	"\x11HumanInputOutcome\x12 \n" +
 	"\x04name\x18\x01 \x01(\tB\f\xbaH\t\xc8\x01\x01r\x04\x10\x01\x18?R\x04name\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12\x12\n" +
-	"\x04then\x18\x03 \x01(\tR\x04then\"\xb7\x03\n" +
+	"\x04then\x18\x03 \x01(\tR\x04then\"\x8b\x04\n" +
 	"\x14HumanInputTaskConfig\x12&\n" +
 	"\x06prompt\x18\x01 \x01(\tB\x0e\xbaH\a\xc8\x01\x01r\x02\x10\x01\u0605,\x01R\x06prompt\x128\n" +
 	"\vform_schema\x18\x02 \x01(\v2\x17.google.protobuf.StructR\n" +
@@ -421,7 +476,9 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_human_input_proto_rawDesc = "" +
 	"\atimeout\x18\x05 \x01(\x05B\f\xbaH\t\x1a\a\x18\x80\x9a\x9e\x01(\x00R\atimeout\x12\\\n" +
 	"\n" +
 	"on_timeout\x18\x06 \x01(\x0e2=.ai.stigmer.agentic.workflow.v1.tasks.HumanInputTimeoutPolicyR\tonTimeout\x123\n" +
-	"\x15notification_channels\x18\a \x03(\tR\x14notificationChannels:\x0f\xea\x8b,\vhuman_input*\xc4\x01\n" +
+	"\x15notification_channels\x18\a \x03(\tR\x14notificationChannels\x120\n" +
+	"\apayload\x18\b \x01(\v2\x16.google.protobuf.ValueR\apayload\x12 \n" +
+	"\aui_hint\x18\t \x01(\tB\a\xbaH\x04r\x02\x18?R\x06uiHint:\x0f\xea\x8b,\vhuman_input*\xc4\x01\n" +
 	"\x17HumanInputTimeoutPolicy\x12*\n" +
 	"&HUMAN_INPUT_TIMEOUT_POLICY_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18HUMAN_INPUT_TIMEOUT_FAIL\x10\x01\x12\x1f\n" +
@@ -449,16 +506,18 @@ var file_ai_stigmer_agentic_workflow_v1_tasks_human_input_proto_goTypes = []any{
 	(*HumanInputOutcome)(nil),    // 1: ai.stigmer.agentic.workflow.v1.tasks.HumanInputOutcome
 	(*HumanInputTaskConfig)(nil), // 2: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig
 	(*structpb.Struct)(nil),      // 3: google.protobuf.Struct
+	(*structpb.Value)(nil),       // 4: google.protobuf.Value
 }
 var file_ai_stigmer_agentic_workflow_v1_tasks_human_input_proto_depIdxs = []int32{
 	3, // 0: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig.form_schema:type_name -> google.protobuf.Struct
 	1, // 1: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig.outcomes:type_name -> ai.stigmer.agentic.workflow.v1.tasks.HumanInputOutcome
 	0, // 2: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig.on_timeout:type_name -> ai.stigmer.agentic.workflow.v1.tasks.HumanInputTimeoutPolicy
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	4, // 3: ai.stigmer.agentic.workflow.v1.tasks.HumanInputTaskConfig.payload:type_name -> google.protobuf.Value
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflow_v1_tasks_human_input_proto_init() }

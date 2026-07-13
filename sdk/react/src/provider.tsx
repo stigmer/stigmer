@@ -26,6 +26,8 @@ import { fetchModelRegistry } from "./models/registry.js";
 import { TaskKindRegistryContext } from "./workflow/TaskKindRegistryContext.js";
 import type { TaskKindRegistryState } from "./workflow/TaskKindRegistryContext.js";
 import type { TaskKindDescriptor } from "./workflow/types.js";
+import { ReviewRendererContext } from "./workflow/ReviewRendererContext.js";
+import type { ReviewRenderers } from "./workflow/ReviewRendererContext.js";
 
 /** Props for {@link StigmerProvider}. */
 export interface StigmerProviderProps {
@@ -133,7 +135,40 @@ export interface StigmerProviderProps {
    * ```
    */
   readonly colorMode?: ColorMode;
+  /**
+   * Custom renderers for human_input review payloads, keyed by the task
+   * config's `ui_hint`.
+   *
+   * When a pending approval gate carries a `ui_hint` that matches a key
+   * here, the registered component presents the review material instead
+   * of the built-in approval card — the host application owns how its
+   * domain objects look while being reviewed, while Stigmer keeps owning
+   * the approval mechanics (outcomes, submission, timeline, audit).
+   *
+   * Hints with no registered renderer fall back to the built-in card
+   * with the payload shown as structured data, so workflows stay portable
+   * across surfaces that register nothing.
+   *
+   * Pass a referentially stable object (module constant or `useMemo`) —
+   * a new object every render re-renders every mounted gate.
+   *
+   * @example
+   * ```tsx
+   * const reviewRenderers: ReviewRenderers = {
+   *   "article-diff": ({ payload, submit }) => (
+   *     <ArticleDiffView revision={payload} onDecision={submit} />
+   *   ),
+   * };
+   *
+   * <StigmerProvider client={client} reviewRenderers={reviewRenderers}>
+   *   <App />
+   * </StigmerProvider>
+   * ```
+   */
+  readonly reviewRenderers?: ReviewRenderers;
 }
+
+const EMPTY_REVIEW_RENDERERS: ReviewRenderers = {};
 
 /**
  * React provider that distributes a {@link Stigmer} SDK client to
@@ -174,6 +209,7 @@ export function StigmerProvider({
   preset,
   className,
   colorMode = "light",
+  reviewRenderers,
 }: StigmerProviderProps) {
   const systemMode = useSystemColorMode();
   const resolvedMode: ResolvedColorMode =
@@ -194,14 +230,16 @@ export function StigmerProvider({
             <ColorModeContext.Provider value={resolvedMode}>
               <ModelRegistryContext.Provider value={registryState}>
                 <TaskKindRegistryContext.Provider value={taskKindRegistryState}>
-                  <PortalContainerContext.Provider value={portalContainer}>
-                    <div
-                      className={scope.className}
-                      data-stgm-color-mode={scope.colorMode}
-                    >
-                      {children}
-                    </div>
-                  </PortalContainerContext.Provider>
+                  <ReviewRendererContext.Provider value={reviewRenderers ?? EMPTY_REVIEW_RENDERERS}>
+                    <PortalContainerContext.Provider value={portalContainer}>
+                      <div
+                        className={scope.className}
+                        data-stgm-color-mode={scope.colorMode}
+                      >
+                        {children}
+                      </div>
+                    </PortalContainerContext.Provider>
+                  </ReviewRendererContext.Provider>
                 </TaskKindRegistryContext.Provider>
               </ModelRegistryContext.Provider>
             </ColorModeContext.Provider>
