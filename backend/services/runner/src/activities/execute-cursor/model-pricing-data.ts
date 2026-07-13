@@ -1,15 +1,14 @@
 /**
- * Cursor model pricing data — fetched from the authenticated model registry API.
+ * Cursor model pricing data — fetched from the model registry endpoint.
  *
  * On first access (or after the TTL expires), fetches the full model
- * registry from the Stigmer Cloud API, filters to cursor-harness models,
- * and caches the result in memory. Falls back to conservative default
- * pricing if the API is unreachable.
- *
- * Environment variables:
- * - STIGMER_CLOUD_API_URL: API base URL (defaults to https://api.stigmer.ai)
- * - STIGMER_AUTH_TOKEN: Bearer token for authentication (required)
+ * registry from the runner's control plane (see registry-endpoint.ts for
+ * endpoint resolution), filters to cursor-harness models, and caches the
+ * result in memory. Falls back to conservative default pricing if the
+ * endpoint is unreachable.
  */
+
+import { resolveModelRegistryUrl, buildRegistryHeaders } from "../../shared/registry-endpoint.js";
 
 /** Per-million rates for a speed/mode variant (e.g. "fast") of a base model. */
 export interface CursorVariantPricing {
@@ -53,7 +52,6 @@ interface RegistryEntry {
   pricingVariants?: Record<string, RegistryVariantEntry>;
 }
 
-const DEFAULT_API_URL = "https://api.stigmer.ai";
 const CACHE_TTL_MS = 3_600_000; // 1 hour
 
 const DEFAULT_PRICING: CursorModelPricing = {
@@ -68,14 +66,6 @@ const DEFAULT_PRICING: CursorModelPricing = {
 
 let cache: { data: readonly CursorModelPricing[]; expiresAt: number } | null = null;
 let inflightFetch: Promise<readonly CursorModelPricing[]> | null = null;
-
-function getApiUrl(): string {
-  return process.env.STIGMER_CLOUD_API_URL ?? DEFAULT_API_URL;
-}
-
-function getAuthToken(): string | undefined {
-  return process.env.STIGMER_TOKEN ?? process.env.STIGMER_AUTH_TOKEN;
-}
 
 function parsePricingTable(json: unknown): CursorModelPricing[] {
   if (!json || typeof json !== "object") return [];
@@ -114,13 +104,7 @@ function parseVariants(
 }
 
 async function fetchFromApi(): Promise<readonly CursorModelPricing[]> {
-  const url = `${getApiUrl()}/v1/proxy/model-registry`;
-  const headers: Record<string, string> = {};
-  const token = getAuthToken();
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  const res = await fetch(url, { headers });
+  const res = await fetch(resolveModelRegistryUrl(), { headers: buildRegistryHeaders() });
   if (!res.ok) throw new Error(`Model registry fetch failed: ${res.status}`);
   const data: unknown = await res.json();
   const table = parsePricingTable(data);

@@ -1,7 +1,6 @@
 package validation
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -11,34 +10,50 @@ import (
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/converter"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/registry"
 )
 
-//go:embed data/model-registry.json
-var modelRegistryJSON []byte
-
+// The model registry is the single embedded copy shared with the
+// /v1/proxy/model-registry HTTP endpoint (see registry.ModelRegistryHandler).
+// It is a verbatim copy of stigmer-cloud's model-registry.json; entries that
+// are `$comment` section headers have no id and are skipped during indexing.
 type modelEntry struct {
-	ID      string `json:"id"`
-	Harness string `json:"harness"`
+	ID         string `json:"id"`
+	ApiModelID string `json:"apiModelId"`
+	Harness    string `json:"harness"`
 }
 
 type modelRegistryData struct {
 	Models []modelEntry `json:"models"`
 }
 
-// modelsByHarness maps harness name ("native", "cursor") to the set of valid model IDs.
+// modelsByHarness maps harness name ("native", "cursor") to the set of valid
+// model references: canonical ids plus provider api ids (apiModelId). Both are
+// accepted because the runner resolves canonical ids via the registry and
+// passes unknown-but-registered api ids to the provider verbatim — anything in
+// this set is executable (stigmer/stigmer#240).
 var modelsByHarness map[string]map[string]bool
 
-// sortedModelsByHarness maps harness name to a sorted slice of model IDs (for deterministic suggestions).
+// sortedModelsByHarness maps harness name to a sorted slice of canonical model
+// IDs only (for deterministic suggestions — the canonical id is the documented
+// form, so suggestions never surface provider api ids).
 var sortedModelsByHarness map[string][]string
 
 func init() {
 	modelsByHarness = make(map[string]map[string]bool)
 	sortedModelsByHarness = make(map[string][]string)
 
-	var data modelRegistryData
-	if err := json.Unmarshal(modelRegistryJSON, &data); err != nil {
+	registryJSON, err := registry.ReadEmbeddedModelRegistry()
+	if err != nil {
 		return
 	}
+
+	var data modelRegistryData
+	if err := json.Unmarshal(registryJSON, &data); err != nil {
+		return
+	}
+
+	canonicalByHarness := make(map[string][]string)
 
 	for _, m := range data.Models {
 		if m.ID == "" || m.Harness == "" {
@@ -48,15 +63,15 @@ func init() {
 			modelsByHarness[m.Harness] = make(map[string]bool)
 		}
 		modelsByHarness[m.Harness][m.ID] = true
+		canonicalByHarness[m.Harness] = append(canonicalByHarness[m.Harness], m.ID)
+		if m.ApiModelID != "" {
+			modelsByHarness[m.Harness][m.ApiModelID] = true
+		}
 	}
 
-	for harness, ids := range modelsByHarness {
-		sorted := make([]string, 0, len(ids))
-		for id := range ids {
-			sorted = append(sorted, id)
-		}
-		sort.Strings(sorted)
-		sortedModelsByHarness[harness] = sorted
+	for harness, ids := range canonicalByHarness {
+		sort.Strings(ids)
+		sortedModelsByHarness[harness] = ids
 	}
 }
 

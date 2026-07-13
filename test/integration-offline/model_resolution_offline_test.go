@@ -4,6 +4,7 @@ package offline
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -101,19 +102,157 @@ func TestOffline_ModelResolution_LlmCall_ResolvesRegistryId(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
-	entries := []harness.RecordedLLMEntry{
+	mockLLM, mgr := startOfflineRunner(t, ctx, llmCallResolutionEntries())
+
+	runLlmCallResolutionWorkflow(t, ctx, mgr, "offline-model-resolution-llm")
+
+	assertProviderReceivedResolvedModel(t, mockLLM)
+}
+
+// TestOffline_ModelResolution_LlmCall_RegistryFromProxyOrigin drops the
+// explicit STIGMER_CLOUD_API_URL override. Without it the runner must fall
+// back to fetching the model registry from its proxy origin — the same origin
+// that serves /v1/proxy/llm (tier 2 in registry-endpoint.ts). This is the
+// path production cloud runners take, so a regression here would silently
+// degrade resolution to identity for every proxy-mode runner.
+func TestOffline_ModelResolution_LlmCall_RegistryFromProxyOrigin(t *testing.T) {
+	requireEvalPrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	mockLLM, mgr := startResolutionRunner(t, ctx, llmCallResolutionEntries(),
+		func(cfg *harness.UnifiedRunnerConfig, _ string) {
+			cfg.CloudAPIURL = ""
+			// Clear any ambient override so the fallback chain is genuinely
+			// exercised regardless of the developer's shell environment.
+			// registry-endpoint.ts treats the empty string as unset.
+			cfg.ExtraEnv = append(cfg.ExtraEnv, "STIGMER_CLOUD_API_URL=")
+		})
+
+	runLlmCallResolutionWorkflow(t, ctx, mgr, "offline-model-res-proxy-origin")
+
+	assertProviderReceivedResolvedModel(t, mockLLM)
+}
+
+// TestOffline_ModelResolution_LlmCall_DirectMode is the offline reproduction
+// of stigmer/stigmer#240: an llm_call task in tokenless direct mode (no
+// STIGMER_PROXY_ENDPOINT, no minted runner token, the user's own provider
+// key). Provider traffic is routed to the mock via ANTHROPIC_BASE_URL, which
+// the @anthropic-ai/sdk honors whenever no explicit baseURL is configured —
+// exactly the direct-mode construction path in model-client.ts. The canonical
+// id must still be resolved to the provider api id before the provider sees
+// it; before the fix, direct mode degraded to identity and Anthropic answered
+// 404 LLM_MODEL_NOT_FOUND.
+//
+// The registry source stays the explicit override: this suite's control plane
+// is the cloud Java service, whose gRPC port cannot serve the REST registry.
+// The local Go server's side of tier 3 (serving /v1/proxy/model-registry from
+// the embed) is covered by the registry package's unit tests, and the
+// runner's tier selection by registry-endpoint.test.ts.
+func TestOffline_ModelResolution_LlmCall_DirectMode(t *testing.T) {
+	requireEvalPrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	mockLLM, mgr := startResolutionRunner(t, ctx, llmCallResolutionEntries(),
+		func(cfg *harness.UnifiedRunnerConfig, mockURL string) {
+			cfg.ProxyEndpoint = ""
+			cfg.ExtraEnv = append(cfg.ExtraEnv,
+				// Direct mode requires a provider key (call-llm.ts throws
+				// LLM_MISSING_API_KEY without one); the mock never checks it.
+				"ANTHROPIC_API_KEY=offline-test-key",
+				// Route direct provider traffic to the mock.
+				"ANTHROPIC_BASE_URL="+mockURL,
+				// Clear any ambient proxy config so the runner is genuinely
+				// tokenless-direct regardless of the developer's shell.
+				"STIGMER_PROXY_ENDPOINT=",
+				// Without ProxyEndpoint the harness emits no artifact-storage
+				// env (that block is proxy-scoped); pin local storage.
+				"ARTIFACT_STORAGE_TYPE=local",
+				"LOCAL_ARTIFACT_PATH="+t.TempDir(),
+			)
+		})
+
+	runLlmCallResolutionWorkflow(t, ctx, mgr, "offline-model-res-direct")
+
+	assertProviderReceivedResolvedModel(t, mockLLM)
+}
+
+// llmCallResolutionEntries returns the single recorded provider response the
+// llm_call resolution tests consume.
+func llmCallResolutionEntries() []harness.RecordedLLMEntry {
+	return []harness.RecordedLLMEntry{
 		harness.BuildLLMEntry(0, harness.AnthropicTextResponse(
 			"HELLO",
 			100, 5,
 		)),
 	}
+}
 
-	mockLLM, mgr := startOfflineRunner(t, ctx, entries)
+// startResolutionRunner starts a runner against a fresh MockLLMProxyServer,
+// letting the test reshape the runner config (registry source, proxy vs
+// direct mode) before launch. The base config mirrors startOfflineRunner
+// (offline_test.go): proxy mode with the registry override pinned to the
+// mock. reshape receives the mock's URL for wiring env overrides.
+func startResolutionRunner(
+	t *testing.T,
+	ctx context.Context,
+	entries []harness.RecordedLLMEntry,
+	reshape func(cfg *harness.UnifiedRunnerConfig, mockURL string),
+) (*harness.MockLLMProxyServer, *harness.UnifiedRunnerManager) {
+	t.Helper()
+
+	mockLLM := harness.NewMockLLMProxyServerFromEntries(entries)
+	t.Cleanup(func() { mockLLM.Close() })
+
+	cfg := harness.UnifiedRunnerConfig{
+		StigmerServiceAddress: testHarness.Service.GRPCAddress(),
+		TemporalAddress:       testHarness.Temporal.Address(),
+		LogDir:                testHarness.LogDir(),
+		ProxyEndpoint:         mockLLM.URL(),
+		CloudAPIURL:           mockLLM.URL(),
+		LocalArtifactDir:      t.TempDir(),
+		LogLabel:              t.Name(),
+		ExtraEnv:              []string{"STIGMER_CHECKPOINTER_TYPE=memory"},
+	}
+	if reshape != nil {
+		reshape(&cfg, mockLLM.URL())
+	}
+
+	mgr, err := harness.StartUnifiedRunnerManager(ctx, cfg, suiteLogger)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			t.Skipf("unified runner not available: %v", err)
+		}
+		t.Fatalf("failed to start resolution runner manager: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := mgr.Stop(); err != nil {
+			t.Logf("warning: failed to stop runner manager: %v", err)
+		}
+	})
+
+	return mockLLM, mgr
+}
+
+// runLlmCallResolutionWorkflow deploys a one-task llm_call workflow that
+// references resolutionRegistryID, executes it through the given runner, and
+// waits for completion. Callers assert on what the mock provider received.
+// slug names the fixture and workflow, so it must be unique per test.
+func runLlmCallResolutionWorkflow(
+	t *testing.T,
+	ctx context.Context,
+	mgr *harness.UnifiedRunnerManager,
+	slug string,
+) {
+	t.Helper()
 
 	clients := harness.NewClients(grpcConn)
 	harness.RequireServiceHealthy(t, ctx, clients)
-	deployer := harness.NewFixtureDeployer(clients, "offline-model-resolution-llm", suiteLogger)
-	defer deployer.Cleanup(ctx)
+	deployer := harness.NewFixtureDeployer(clients, slug, suiteLogger)
+	t.Cleanup(func() { deployer.Cleanup(context.Background()) })
 
 	taskConfig, err := structpb.NewStruct(map[string]any{
 		"model":       resolutionRegistryID,
@@ -128,7 +267,7 @@ func TestOffline_ModelResolution_LlmCall_ResolvesRegistryId(t *testing.T) {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Workflow",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: "offline-model-resolution-llm",
+			Name: slug,
 			Org:  "test-org",
 		},
 		Spec: &workflowv1.WorkflowSpec{
@@ -136,7 +275,7 @@ func TestOffline_ModelResolution_LlmCall_ResolvesRegistryId(t *testing.T) {
 			Document: &workflowv1.WorkflowDocument{
 				Dsl:       "1.0.0",
 				Namespace: "test-org",
-				Name:      "offline-model-resolution-llm",
+				Name:      slug,
 				Version:   "1.0.0",
 			},
 			Tasks: []*workflowv1.WorkflowTask{
@@ -161,8 +300,6 @@ func TestOffline_ModelResolution_LlmCall_ResolvesRegistryId(t *testing.T) {
 		workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, 2*time.Minute)
 	require.NoError(t, err, "execution should reach COMPLETED phase")
 	harness.AssertPhase(t, result, workflowexecutionv1.ExecutionPhase_EXECUTION_COMPLETED)
-
-	assertProviderReceivedResolvedModel(t, mockLLM)
 }
 
 // assertProviderReceivedResolvedModel verifies every request the runner sent to

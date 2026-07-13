@@ -30,7 +30,8 @@ interface RegistryEntry {
   };
 }
 
-const DEFAULT_API_URL = "https://api.stigmer.ai";
+import { resolveModelRegistryUrl, buildRegistryHeaders } from "./registry-endpoint.js";
+
 const CACHE_TTL_MS = 3_600_000;
 
 export const DEFAULT_PRICING: ModelPricing = {
@@ -65,13 +66,7 @@ function parsePricingTable(json: unknown): ModelPricing[] {
 }
 
 async function fetchFromApi(): Promise<readonly ModelPricing[]> {
-  const url = `${process.env.STIGMER_CLOUD_API_URL ?? DEFAULT_API_URL}/v1/proxy/model-registry`;
-  const headers: Record<string, string> = {};
-  const token = process.env.STIGMER_TOKEN ?? process.env.STIGMER_AUTH_TOKEN;
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  const res = await fetch(url, { headers });
+  const res = await fetch(resolveModelRegistryUrl(), { headers: buildRegistryHeaders() });
   if (!res.ok) throw new Error(`Model registry fetch failed: ${res.status}`);
   const data: unknown = await res.json();
   const table = parsePricingTable(data);

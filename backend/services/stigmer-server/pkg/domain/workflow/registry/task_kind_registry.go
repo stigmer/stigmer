@@ -7,7 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-//go:embed data/task-kind-registry.json
+//go:embed data/task-kind-registry.json data/model-registry.json
 var registryFS embed.FS
 
 // ReadEmbeddedRegistry returns the raw task-kind-registry.json bytes.

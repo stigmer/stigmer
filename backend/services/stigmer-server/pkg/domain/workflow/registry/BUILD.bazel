@@ -1,10 +1,22 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "registry",
-    srcs = ["task_kind_registry.go"],
-    embedsrcs = ["data/task-kind-registry.json"],
+    srcs = [
+        "model_registry.go",
+        "task_kind_registry.go",
+    ],
+    embedsrcs = [
+        "data/task-kind-registry.json",
+        "data/model-registry.json",
+    ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/registry",
     visibility = ["//visibility:public"],
     deps = ["@com_github_rs_zerolog//log"],
+)
+
+go_test(
+    name = "registry_test",
+    srcs = ["model_registry_test.go"],
+    embed = [":registry"],
 )

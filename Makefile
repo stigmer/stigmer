@@ -140,12 +140,31 @@ gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync i
 	go run ./tools/codegen/generator --comprehensive --target=task-registry \
 		--schema-dir tools/codegen/schemas --output-dir tools/codegen/output \
 		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta
-	rm -rf backend/services/stigmer-server/pkg/domain/workflow/registry/data
+	# Remove only this generator's own artifacts — registry/data/ also hosts
+	# model-registry.json (owned by sync-model-registry), which must survive.
+	rm -f backend/services/stigmer-server/pkg/domain/workflow/registry/data/task-kind-registry.json
+	rm -rf backend/services/stigmer-server/pkg/domain/workflow/registry/data/json-schemas
 	mkdir -p backend/services/stigmer-server/pkg/domain/workflow/registry/data
 	cp tools/codegen/output/task-kind-registry.json \
 		backend/services/stigmer-server/pkg/domain/workflow/registry/data/task-kind-registry.json
 	cp -R tools/codegen/output/json-schemas \
 		backend/services/stigmer-server/pkg/domain/workflow/registry/data/json-schemas
+
+# Source of truth for the model registry is stigmer-cloud (see the cloud repo's
+# update-model-registry rule, which refreshes it from live pricing sources and
+# ends by running this target). No CI drift check is possible here because the
+# cloud repo is not available in OSS CI — the cloud-side rule is the enforcement
+# point that keeps the two copies in lockstep.
+MODEL_REGISTRY_SOURCE ?= ../stigmer-cloud/backend/services/stigmer-service/src/main/resources/model-registry.json
+
+sync-model-registry: ## Sync model-registry.json from the sibling stigmer-cloud checkout into the backend embed
+	@if [ ! -f "$(MODEL_REGISTRY_SOURCE)" ]; then \
+		echo "error: $(MODEL_REGISTRY_SOURCE) not found — checkout stigmer-cloud next to this repo or set MODEL_REGISTRY_SOURCE"; \
+		exit 1; \
+	fi
+	cp "$(MODEL_REGISTRY_SOURCE)" \
+		backend/services/stigmer-server/pkg/domain/workflow/registry/data/model-registry.json
+	@echo "✓ model-registry.json synced from $(MODEL_REGISTRY_SOURCE)"
 
 gen-task-registry-check: ## Verify the task kind registry is up to date and synced (CI)
 	@go run ./tools/codegen/generator --comprehensive --target=task-registry \

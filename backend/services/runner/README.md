@@ -191,7 +191,7 @@ The claim-check codec offloads oversized Temporal payloads to artifact storage a
 | `OPENAI_API_KEY` | Direct mode (native/OpenAI) | When using OpenAI directly | _(empty)_ | OpenAI API key for the native harness in direct mode. Not needed in proxy mode. |
 | `ANTHROPIC_API_KEY` | Direct mode (native/Anthropic) | When using Anthropic directly | _(empty)_ | Anthropic API key for the native harness in direct mode. Not needed in proxy mode. |
 | `STIGMER_LLM_REQUEST_TIMEOUT_MS` | Native harness | No | `0` (no timeout) | Per-request timeout for native LLM calls, in milliseconds. `0` or unset means no explicit timeout. |
-| `STIGMER_CLOUD_API_URL` | All | No | `https://api.stigmer.ai` | Base URL for the Stigmer cloud API used to fetch model pricing and the model registry. |
+| `STIGMER_CLOUD_API_URL` | All | No | _(unset)_ | Explicit override for the origin serving `/v1/proxy/model-registry` (model resolution and pricing). When unset, fetches go to `STIGMER_PROXY_ENDPOINT` (proxy mode) or `STIGMER_BACKEND_ENDPOINT` (direct/local mode — the local stigmer-server serves the registry). |
 | `STIGMER_AUTH_TOKEN` | Pricing/registry fetch | No | value of `STIGMER_TOKEN` | Fallback bearer token for model-pricing and model-registry requests when `STIGMER_TOKEN` is not set. |
 | `GITHUB_TOKEN` | Deep-agent git writeback | When writing back to GitHub | _(none)_ | Token used by the deep-agent harness for git writeback operations. |
 

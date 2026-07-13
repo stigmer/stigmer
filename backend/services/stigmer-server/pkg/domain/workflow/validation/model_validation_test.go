@@ -70,6 +70,69 @@ func TestValidateModelReferences_ValidNativeModels(t *testing.T) {
 	}
 }
 
+// Provider api ids (apiModelId in the registry) are accepted as aliases of
+// the canonical id: the runner passes them to the provider verbatim, so they
+// are executable and rejecting them at apply time would be stricter than
+// runtime (stigmer/stigmer#240, "Attempt 2").
+func TestValidateModelReferences_ApiModelIdAlias_Accepted(t *testing.T) {
+	spec := &workflowv1.WorkflowSpec{
+		Tasks: []*workflowv1.WorkflowTask{
+			makeLlmCallTask("summarize", "claude-haiku-4-5-20251001"),
+			makeEvalTask("evaluate", "claude-sonnet-4-6"),
+			makeAgentCallTask("analyze", "", "claude-opus-4-6"),
+		},
+	}
+
+	errors := ValidateModelReferences(spec)
+	if len(errors) != 0 {
+		t.Errorf("Expected no errors for provider api-id aliases, got: %v", errors)
+	}
+}
+
+// Suggestions must only surface canonical ids — the documented form — never
+// provider api ids, even though api ids are accepted as input.
+func TestValidateModelReferences_Suggestions_AreCanonicalOnly(t *testing.T) {
+	spec := &workflowv1.WorkflowSpec{
+		Tasks: []*workflowv1.WorkflowTask{
+			// Close to canonical "claude-haiku-4.5" and api id "claude-haiku-4-5-20251001".
+			makeLlmCallTask("summarize", "claude-haiku-45"),
+		},
+	}
+
+	errors := ValidateModelReferences(spec)
+	if len(errors) != 1 {
+		t.Fatalf("Expected 1 error, got %d: %v", len(errors), errors)
+	}
+
+	err := errors[0]
+	if !strings.Contains(err, "claude-haiku-4.5") {
+		t.Errorf("Expected canonical suggestion 'claude-haiku-4.5', got: %s", err)
+	}
+	if strings.Contains(err, "claude-haiku-4-5-20251001") {
+		t.Errorf("Suggestions must not surface provider api ids, got: %s", err)
+	}
+}
+
+// The embedded registry is a verbatim copy of stigmer-cloud's, whose models
+// array interleaves `$comment` section-header rows (no id). Indexing must
+// skip them and still populate both harnesses.
+func TestModelRegistryIndex_PopulatedFromVerbatimRegistry(t *testing.T) {
+	for _, harness := range []string{harnessNameNative, harnessNameCursor} {
+		if len(modelsByHarness[harness]) == 0 {
+			t.Errorf("Expected models indexed for harness %q — did the embedded registry parse fail?", harness)
+		}
+		if len(sortedModelsByHarness[harness]) == 0 {
+			t.Errorf("Expected canonical suggestion candidates for harness %q", harness)
+		}
+	}
+
+	// Alias sets must be supersets of the canonical lists: every canonical id
+	// is valid, and native gains apiModelId aliases on top.
+	if len(modelsByHarness[harnessNameNative]) <= len(sortedModelsByHarness[harnessNameNative]) {
+		t.Error("Expected native valid set to exceed canonical count (apiModelId aliases added)")
+	}
+}
+
 func TestValidateModelReferences_ValidCursorModels(t *testing.T) {
 	spec := &workflowv1.WorkflowSpec{
 		Tasks: []*workflowv1.WorkflowTask{

@@ -30,12 +30,13 @@ type UnifiedRunnerConfig struct {
 	// ProxyEndpoint routes Cursor SDK calls through the Java service proxy.
 	ProxyEndpoint string
 
-	// CloudAPIURL, when set, is passed as STIGMER_CLOUD_API_URL so the runner
-	// fetches the model registry (registry id -> provider apiModelId
-	// resolution) and pricing from this host instead of production. In offline
-	// tests, point it at the MockLLMProxyServer, which serves
-	// /v1/proxy/model-registry — otherwise the fetch hits prod, fails, and
-	// resolution silently degrades to identity (hiding model-id regressions).
+	// CloudAPIURL, when set, is passed as STIGMER_CLOUD_API_URL — the explicit
+	// override for where the runner fetches the model registry (registry id ->
+	// provider apiModelId resolution) and pricing. When unset, the runner falls
+	// back to STIGMER_PROXY_ENDPOINT, then STIGMER_BACKEND_ENDPOINT (see
+	// runner/src/shared/registry-endpoint.ts). Offline tests point it at the
+	// MockLLMProxyServer, which serves /v1/proxy/model-registry, keeping the
+	// registry source explicit rather than relying on the fallback chain.
 	CloudAPIURL string
 
 	// OTLPEndpoint enables OpenTelemetry tracing.

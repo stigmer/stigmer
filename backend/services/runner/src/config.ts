@@ -230,8 +230,11 @@ function requireEnv(name: string): string {
 /**
  * Ensures the endpoint has an HTTP(S) scheme. Port 443 implies TLS;
  * all other bare host:port endpoints get http://.
+ *
+ * Exported so registry-endpoint.ts applies the same normalization to
+ * STIGMER_BACKEND_ENDPOINT that this module applies when loading config.
  */
-function normalizeEndpoint(endpoint: string): string {
+export function normalizeEndpoint(endpoint: string): string {
   if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
     return endpoint;
   }

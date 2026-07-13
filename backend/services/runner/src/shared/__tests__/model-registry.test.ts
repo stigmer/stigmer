@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { getSummarizationModel, getEconomyModel, getDefaultModel, _resetRegistryCache } from "../model-registry.js";
+import {
+  getSummarizationModel,
+  getEconomyModel,
+  getDefaultModel,
+  resolveToApiModelId,
+  _resetRegistryCache,
+} from "../model-registry.js";
 
 describe("getSummarizationModel", () => {
   beforeEach(() => {
@@ -175,6 +181,73 @@ describe("getDefaultModel", () => {
 
     const result = await getDefaultModel();
     expect(result).toBe("claude-sonnet-4-6");
+  });
+});
+
+describe("resolveToApiModelId", () => {
+  beforeEach(() => {
+    _resetRegistryCache();
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    _resetRegistryCache();
+    vi.useRealTimers();
+  });
+
+  it("resolves a canonical registry id to the provider api id", async () => {
+    mockRegistryResponse([
+      { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic", costTier: "economy", harness: "native" },
+    ]);
+
+    const result = await resolveToApiModelId("claude-haiku-4.5");
+    expect(result).toBe("claude-haiku-4-5-20251001");
+  });
+
+  it("passes unknown ids through unchanged (provider api ids stay verbatim)", async () => {
+    mockRegistryResponse([
+      { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic", costTier: "economy", harness: "native" },
+    ]);
+
+    const result = await resolveToApiModelId("claude-haiku-4-5-20251001");
+    expect(result).toBe("claude-haiku-4-5-20251001");
+  });
+
+  it("degrades to pass-through when the registry fetch fails", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("network error"));
+
+    const result = await resolveToApiModelId("claude-haiku-4.5");
+    expect(result).toBe("claude-haiku-4.5");
+  });
+
+  it("retries after the short failure TTL instead of caching the failure for an hour", async () => {
+    vi.useFakeTimers();
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValueOnce(new Error("network error"))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            models: [
+              { id: "claude-haiku-4.5", apiModelId: "claude-haiku-4-5-20251001", provider: "anthropic", costTier: "economy", harness: "native" },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+
+    // First call fails and degrades to pass-through.
+    expect(await resolveToApiModelId("claude-haiku-4.5")).toBe("claude-haiku-4.5");
+
+    // Within the failure TTL the empty result stays cached (no refetch).
+    vi.advanceTimersByTime(30_000);
+    expect(await resolveToApiModelId("claude-haiku-4.5")).toBe("claude-haiku-4.5");
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    // Past the failure TTL the registry is refetched and resolution recovers.
+    vi.advanceTimersByTime(31_000);
+    expect(await resolveToApiModelId("claude-haiku-4.5")).toBe("claude-haiku-4-5-20251001");
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 });
 

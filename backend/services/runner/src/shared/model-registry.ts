@@ -1,13 +1,19 @@
 /**
  * Model registry — provider lookup and economy-tier model derivation.
  *
- * Fetches the model registry from the Stigmer API (same endpoint as
+ * Fetches the model registry from the runner's control plane (see
+ * registry-endpoint.ts for endpoint resolution — same endpoint as
  * model-pricing-data.ts) and uses `costTier` + `harness` fields to
  * dynamically resolve economy-tier models for extraction/summarization.
  */
 
-const DEFAULT_API_URL = "https://api.stigmer.ai";
+import { resolveModelRegistryUrl, buildRegistryHeaders } from "./registry-endpoint.js";
+
 const CACHE_TTL_MS = 3_600_000;
+// Failed fetches are cached much shorter than successes: a transient failure
+// must not poison id -> apiModelId resolution (and thereby fail every llm_call
+// with LLM_MODEL_NOT_FOUND) for a full hour.
+const FAILURE_CACHE_TTL_MS = 60_000;
 
 interface RegistryModel {
   id: string;
@@ -39,13 +45,8 @@ function parseRegistry(json: unknown): RegistryModel[] {
 }
 
 async function fetchRegistry(): Promise<readonly RegistryModel[]> {
-  const url = `${process.env.STIGMER_CLOUD_API_URL ?? DEFAULT_API_URL}/v1/proxy/model-registry`;
-  const headers: Record<string, string> = {};
-  const token = process.env.STIGMER_TOKEN ?? process.env.STIGMER_AUTH_TOKEN;
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  const res = await fetch(url, { headers });
+  const url = resolveModelRegistryUrl();
+  const res = await fetch(url, { headers: buildRegistryHeaders() });
   if (!res.ok) throw new Error(`Model registry fetch failed: ${res.status}`);
   const data: unknown = await res.json();
   return parseRegistry(data);
@@ -64,8 +65,13 @@ async function getRegistry(): Promise<readonly RegistryModel[]> {
       return models;
     })
     .catch((err) => {
-      console.warn(`Failed to fetch model registry for provider lookup: ${err}`);
-      cache = { models: [], expiresAt: Date.now() + CACHE_TTL_MS };
+      console.warn(
+        `Failed to fetch model registry from ${resolveModelRegistryUrl()}: ${err}. ` +
+          `Model id resolution degrades to pass-through until the next attempt ` +
+          `(${FAILURE_CACHE_TTL_MS / 1000}s). Check that the control plane is ` +
+          `reachable and, for cloud endpoints, that STIGMER_TOKEN is set.`,
+      );
+      cache = { models: [], expiresAt: Date.now() + FAILURE_CACHE_TTL_MS };
       return [] as readonly RegistryModel[];
     })
     .finally(() => {
