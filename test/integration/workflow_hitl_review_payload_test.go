@@ -119,6 +119,22 @@ func TestWorkflowHITL_ReviewPayloadInline(t *testing.T) {
 	require.Equal(t, "Q3 rollout", payload.GetFields()["plan_title"].GetStringValue(),
 		"payload must be the RESOLVED value, not the expression string")
 
+	// The org-wide pending-approvals list must surface this gate with its
+	// ui_hint (dashboards badge/group by review type) and the PLAIN task
+	// name — the name submitWorkflowTaskApproval expects, not the composite
+	// task_id. Hard assertion, no edition guard: a stale build would fail
+	// here silently (empty ui_hint), so both editions must be current.
+	pending, err := clients.ExecutionQuery.ListPendingApprovals(ctx,
+		&workflowexecutionv1.ListPendingApprovalsRequest{Org: "test-org", PageSize: 100})
+	require.NoError(t, err, "listPendingApprovals should succeed while the gate waits")
+	entry := findPendingApproval(pending, executionID)
+	require.NotNil(t, entry,
+		"the waiting gate must appear in listPendingApprovals for execution %s", executionID)
+	require.Equal(t, "reviewGate", entry.GetTaskName(),
+		"task_name must be the plain task name, not the composite task_id")
+	require.Equal(t, "plan-review", entry.GetUiHint(),
+		"ui_hint must flow from task config through persisted status to the list")
+
 	_, err = clients.ExecutionCommand.SubmitWorkflowTaskApproval(ctx,
 		&workflowexecutionv1.SubmitWorkflowTaskApprovalInput{
 			ExecutionId: executionID,
@@ -303,6 +319,21 @@ func httpGet(t *testing.T, ctx context.Context, url string) []byte {
 	body, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	return body
+}
+
+// findPendingApproval returns the pending-approval entry for the given
+// execution, or nil. The list is org-wide, so concurrent integration tests
+// may contribute entries of their own — match on execution ID.
+func findPendingApproval(
+	list *workflowexecutionv1.PendingApprovalsList,
+	executionID string,
+) *workflowexecutionv1.PendingApproval {
+	for _, entry := range list.GetEntries() {
+		if entry.GetExecutionId() == executionID {
+			return entry
+		}
+	}
+	return nil
 }
 
 // waitForApprovalRequestedEvent polls the event log until the

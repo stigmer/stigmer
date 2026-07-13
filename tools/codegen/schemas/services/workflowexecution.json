@@ -3106,6 +3106,16 @@
           },
           "description": "Output (completion/generation) tokens produced by this task.\n\n @internal\n Non-zero for LLM-backed tasks. Zero for non-LLM tasks.\n\n @since Cost Data Pipeline",
           "required": false
+        },
+        {
+          "name": "UiHint",
+          "jsonName": "uiHint",
+          "protoField": "ui_hint",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Hint identifying which UI should present this task's review payload.\n\n Copied from the human_input task's ui_hint config when the gate\n activates, so approval surfaces (dashboards, listPendingApprovals)\n can badge or group review requests by type without reading the\n event log. Empty for non-human_input tasks and for executions\n persisted before this field existed — consumers treat empty as a\n generic review.\n\n @internal\n Written by the workflow-runner's task status accumulator on the\n waiting_approval transition and retained after the gate resolves\n (the record of what kind of review was performed). The user-input\n length constraint (max 63 chars) is enforced at the source field,\n HumanInputTaskConfig.ui_hint; this system-written copy is trusted,\n matching the other string fields on this message.\n\n Not to be confused with WorkflowExecutionStatus.pending_approvals,\n which carries forwarded child-agent *tool* approvals — workflow-native\n human_input gates live only here, on tasks[].\n\n @since Review Payloads (stigmer/stigmer#234)",
+          "required": false
         }
       ]
     }

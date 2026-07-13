@@ -25,6 +25,13 @@ export interface TaskStatusEntry {
   readonly costMicros?: number;
   readonly inputTokens?: number;
   readonly outputTokens?: number;
+  /**
+   * Review-surface hint from the human_input task's ui_hint config.
+   * Set on the waiting_approval transition and retained through later
+   * transitions (spread semantics), so the persisted status keeps the
+   * record of what kind of review the gate presented.
+   */
+  readonly uiHint?: string;
 }
 
 /**
@@ -177,7 +184,7 @@ export class TaskStatusAccumulator {
     });
   }
 
-  taskWaitingApproval(name: string): void {
+  taskWaitingApproval(name: string, uiHint?: string): void {
     const existing = this.entries.get(name);
     this.entries.set(name, {
       ...existing,
@@ -186,6 +193,7 @@ export class TaskStatusAccumulator {
       taskKind: existing?.taskKind ?? "",
       status: "waiting_approval",
       startedAt: existing?.startedAt,
+      uiHint: uiHint ?? existing?.uiHint,
     });
   }
 

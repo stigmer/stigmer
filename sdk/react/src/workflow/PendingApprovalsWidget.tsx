@@ -85,9 +85,16 @@ export const PendingApprovalsWidget = memo(function PendingApprovalsWidget({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {approval.workflowName || approval.executionId}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {approval.workflowName || approval.executionId}
+                      </p>
+                      {approval.uiHint && (
+                        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          {approval.uiHint}
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
                       Task: {approval.taskName}
                       {requestedAt && (

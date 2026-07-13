@@ -397,6 +397,7 @@ export async function emitWorkflowEvents(
         costMicros: BigInt(ts.costMicros ?? 0),
         inputTokens: BigInt(ts.inputTokens ?? 0),
         outputTokens: BigInt(ts.outputTokens ?? 0),
+        uiHint: ts.uiHint ?? "",
       }),
     );
 

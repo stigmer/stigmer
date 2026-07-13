@@ -71,6 +71,7 @@ go_test(
     srcs = [
         "execution_filter_test.go",
         "lifecycle_test.go",
+        "list_pending_approvals_test.go",
         "normalize_workflow_ref_step_test.go",
         "pin_workflow_version_step_test.go",
         "send_signal_test.go",

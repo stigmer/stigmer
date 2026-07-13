@@ -866,7 +866,30 @@ type WorkflowTask struct {
 	// Non-zero for LLM-backed tasks. Zero for non-LLM tasks.
 	//
 	// @since Cost Data Pipeline
-	OutputTokens  int64 `protobuf:"varint,14,opt,name=output_tokens,json=outputTokens,proto3" json:"output_tokens,omitempty"`
+	OutputTokens int64 `protobuf:"varint,14,opt,name=output_tokens,json=outputTokens,proto3" json:"output_tokens,omitempty"`
+	// Hint identifying which UI should present this task's review payload.
+	//
+	// Copied from the human_input task's ui_hint config when the gate
+	// activates, so approval surfaces (dashboards, listPendingApprovals)
+	// can badge or group review requests by type without reading the
+	// event log. Empty for non-human_input tasks and for executions
+	// persisted before this field existed — consumers treat empty as a
+	// generic review.
+	//
+	// @internal
+	// Written by the workflow-runner's task status accumulator on the
+	// waiting_approval transition and retained after the gate resolves
+	// (the record of what kind of review was performed). The user-input
+	// length constraint (max 63 chars) is enforced at the source field,
+	// HumanInputTaskConfig.ui_hint; this system-written copy is trusted,
+	// matching the other string fields on this message.
+	//
+	// Not to be confused with WorkflowExecutionStatus.pending_approvals,
+	// which carries forwarded child-agent *tool* approvals — workflow-native
+	// human_input gates live only here, on tasks[].
+	//
+	// @since Review Payloads (stigmer/stigmer#234)
+	UiHint        string `protobuf:"bytes,15,opt,name=ui_hint,json=uiHint,proto3" json:"ui_hint,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -999,6 +1022,13 @@ func (x *WorkflowTask) GetOutputTokens() int64 {
 	return 0
 }
 
+func (x *WorkflowTask) GetUiHint() string {
+	if x != nil {
+		return x.UiHint
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_workflowexecution_v1_api_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc = "" +
@@ -1035,7 +1065,7 @@ const file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc = "" +
 	"\x18child_agent_execution_id\x18\x02 \x01(\tR\x15childAgentExecutionId\"x\n" +
 	"\x19WorkflowPendingFileReview\x127\n" +
 	"\x18child_agent_execution_id\x18\x01 \x01(\tR\x15childAgentExecutionId\x12\"\n" +
-	"\rchange_set_id\x18\x02 \x03(\tR\vchangeSetId\"\xfe\x04\n" +
+	"\rchange_set_id\x18\x02 \x03(\tR\vchangeSetId\"\x97\x05\n" +
 	"\fWorkflowTask\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1b\n" +
 	"\ttask_name\x18\x02 \x01(\tR\btaskName\x12`\n" +
@@ -1053,7 +1083,8 @@ const file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc = "" +
 	"\vcost_micros\x18\f \x01(\x03R\n" +
 	"costMicros\x12!\n" +
 	"\finput_tokens\x18\r \x01(\x03R\vinputTokens\x12#\n" +
-	"\routput_tokens\x18\x0e \x01(\x03R\foutputTokensB\xdd\x02\n" +
+	"\routput_tokens\x18\x0e \x01(\x03R\foutputTokens\x12\x17\n" +
+	"\aui_hint\x18\x0f \x01(\tR\x06uiHintB\xdd\x02\n" +
 	"+com.ai.stigmer.agentic.workflowexecution.v1B\bApiProtoP\x01Zcgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
 
 var (

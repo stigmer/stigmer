@@ -38,6 +38,7 @@ private static final long serialVersionUID = 0L;
     workflowName_ = "";
     taskName_ = "";
     requester_ = "";
+    uiHint_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -376,6 +377,71 @@ private static final long serialVersionUID = 0L;
     return formSchema_ == null ? com.google.protobuf.Struct.getDefaultInstance() : formSchema_;
   }
 
+  public static final int UI_HINT_FIELD_NUMBER = 8;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object uiHint_ = "";
+  /**
+   * <pre>
+   * Hint identifying which UI should present the review.
+   *
+   * Mirrors the human_input task's ui_hint so dashboards can badge or
+   * group pending approvals by review type. The full review payload is
+   * deliberately not carried here — it belongs on the gate detail
+   * (approval_requested event), read when the reviewer opens the gate.
+   * Empty when the task declares no hint or the execution predates the
+   * field — consumers treat empty as a generic review.
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
+   * @return The uiHint.
+   */
+  @java.lang.Override
+  public java.lang.String getUiHint() {
+    java.lang.Object ref = uiHint_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      uiHint_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Hint identifying which UI should present the review.
+   *
+   * Mirrors the human_input task's ui_hint so dashboards can badge or
+   * group pending approvals by review type. The full review payload is
+   * deliberately not carried here — it belongs on the gate detail
+   * (approval_requested event), read when the reviewer opens the gate.
+   * Empty when the task declares no hint or the execution predates the
+   * field — consumers treat empty as a generic review.
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
+   * @return The bytes for uiHint.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getUiHintBytes() {
+    java.lang.Object ref = uiHint_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      uiHint_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -411,6 +477,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(7, getFormSchema());
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(uiHint_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 8, uiHint_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -443,6 +512,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(7, getFormSchema());
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(uiHint_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(8, uiHint_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -482,6 +554,8 @@ private static final long serialVersionUID = 0L;
       if (!getFormSchema()
           .equals(other.getFormSchema())) return false;
     }
+    if (!getUiHint()
+        .equals(other.getUiHint())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -513,6 +587,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + FORM_SCHEMA_FIELD_NUMBER;
       hash = (53 * hash) + getFormSchema().hashCode();
     }
+    hash = (37 * hash) + UI_HINT_FIELD_NUMBER;
+    hash = (53 * hash) + getUiHint().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -677,6 +753,7 @@ private static final long serialVersionUID = 0L;
         formSchemaBuilder_.dispose();
         formSchemaBuilder_ = null;
       }
+      uiHint_ = "";
       return this;
     }
 
@@ -741,6 +818,9 @@ private static final long serialVersionUID = 0L;
             : formSchemaBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.uiHint_ = uiHint_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -784,6 +864,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasFormSchema()) {
         mergeFormSchema(other.getFormSchema());
+      }
+      if (!other.getUiHint().isEmpty()) {
+        uiHint_ = other.uiHint_;
+        bitField0_ |= 0x00000080;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -852,6 +937,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 58
+            case 66: {
+              uiHint_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1751,6 +1841,143 @@ private static final long serialVersionUID = 0L;
         formSchema_ = null;
       }
       return formSchemaBuilder_;
+    }
+
+    private java.lang.Object uiHint_ = "";
+    /**
+     * <pre>
+     * Hint identifying which UI should present the review.
+     *
+     * Mirrors the human_input task's ui_hint so dashboards can badge or
+     * group pending approvals by review type. The full review payload is
+     * deliberately not carried here — it belongs on the gate detail
+     * (approval_requested event), read when the reviewer opens the gate.
+     * Empty when the task declares no hint or the execution predates the
+     * field — consumers treat empty as a generic review.
+     *
+     * &#64;since Review Payloads (stigmer/stigmer#234)
+     * </pre>
+     *
+     * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
+     * @return The uiHint.
+     */
+    public java.lang.String getUiHint() {
+      java.lang.Object ref = uiHint_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        uiHint_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Hint identifying which UI should present the review.
+     *
+     * Mirrors the human_input task's ui_hint so dashboards can badge or
+     * group pending approvals by review type. The full review payload is
+     * deliberately not carried here — it belongs on the gate detail
+     * (approval_requested event), read when the reviewer opens the gate.
+     * Empty when the task declares no hint or the execution predates the
+     * field — consumers treat empty as a generic review.
+     *
+     * &#64;since Review Payloads (stigmer/stigmer#234)
+     * </pre>
+     *
+     * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
+     * @return The bytes for uiHint.
+     */
+    public com.google.protobuf.ByteString
+        getUiHintBytes() {
+      java.lang.Object ref = uiHint_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        uiHint_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Hint identifying which UI should present the review.
+     *
+     * Mirrors the human_input task's ui_hint so dashboards can badge or
+     * group pending approvals by review type. The full review payload is
+     * deliberately not carried here — it belongs on the gate detail
+     * (approval_requested event), read when the reviewer opens the gate.
+     * Empty when the task declares no hint or the execution predates the
+     * field — consumers treat empty as a generic review.
+     *
+     * &#64;since Review Payloads (stigmer/stigmer#234)
+     * </pre>
+     *
+     * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
+     * @param value The uiHint to set.
+     * @return This builder for chaining.
+     */
+    public Builder setUiHint(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      uiHint_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Hint identifying which UI should present the review.
+     *
+     * Mirrors the human_input task's ui_hint so dashboards can badge or
+     * group pending approvals by review type. The full review payload is
+     * deliberately not carried here — it belongs on the gate detail
+     * (approval_requested event), read when the reviewer opens the gate.
+     * Empty when the task declares no hint or the execution predates the
+     * field — consumers treat empty as a generic review.
+     *
+     * &#64;since Review Payloads (stigmer/stigmer#234)
+     * </pre>
+     *
+     * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearUiHint() {
+      uiHint_ = getDefaultInstance().getUiHint();
+      bitField0_ = (bitField0_ & ~0x00000080);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Hint identifying which UI should present the review.
+     *
+     * Mirrors the human_input task's ui_hint so dashboards can badge or
+     * group pending approvals by review type. The full review payload is
+     * deliberately not carried here — it belongs on the gate detail
+     * (approval_requested event), read when the reviewer opens the gate.
+     * Empty when the task declares no hint or the execution predates the
+     * field — consumers treat empty as a generic review.
+     *
+     * &#64;since Review Payloads (stigmer/stigmer#234)
+     * </pre>
+     *
+     * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
+     * @param value The bytes for uiHint to set.
+     * @return This builder for chaining.
+     */
+    public Builder setUiHintBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      uiHint_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflowexecution.v1.PendingApproval)

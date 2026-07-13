@@ -54,9 +54,13 @@ func (c *WorkflowExecutionController) ListPendingApprovals(
 			approval := &workflowexecutionv1.PendingApproval{
 				ExecutionId:  exec.GetMetadata().GetId(),
 				WorkflowName: exec.GetMetadata().GetName(),
-				TaskName:     task.GetTaskId(),
-				Requester:    exec.GetStatus().GetAudit().GetSpecAudit().GetCreatedBy().GetId(),
-				RequestedAt:  parseTimestampString(task.GetStartedAt()),
+				// task_name, not task_id: the composite task_id ("gate:2")
+				// would break submitWorkflowTaskApproval, whose runner-side
+				// signal is keyed by the plain task name.
+				TaskName:    task.GetTaskName(),
+				Requester:   exec.GetStatus().GetAudit().GetSpecAudit().GetCreatedBy().GetId(),
+				RequestedAt: parseTimestampString(task.GetStartedAt()),
+				UiHint:      task.GetUiHint(),
 			}
 			approvals = append(approvals, approval)
 		}

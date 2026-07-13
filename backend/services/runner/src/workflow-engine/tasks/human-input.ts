@@ -72,7 +72,7 @@ export async function executeHumanInputTask(
 
   const approvalRequestedAt = Date.now();
 
-  ctx.taskStatusAccumulator?.taskWaitingApproval(taskName);
+  ctx.taskStatusAccumulator?.taskWaitingApproval(taskName, config.uiHint);
 
   if (ctx.emitEvents) {
     await ctx.emitEvents([

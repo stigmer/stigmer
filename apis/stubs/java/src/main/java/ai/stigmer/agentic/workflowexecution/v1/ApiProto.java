@@ -108,7 +108,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       "on_id\030\002 \001(\tR\025childAgentExecutionId\"x\n\031Wo" +
       "rkflowPendingFileReview\0227\n\030child_agent_e" +
       "xecution_id\030\001 \001(\tR\025childAgentExecutionId" +
-      "\022\"\n\rchange_set_id\030\002 \003(\tR\013changeSetId\"\376\004\n" +
+      "\022\"\n\rchange_set_id\030\002 \003(\tR\013changeSetId\"\227\005\n" +
       "\014WorkflowTask\022\027\n\007task_id\030\001 \001(\tR\006taskId\022\033" +
       "\n\ttask_name\030\002 \001(\tR\010taskName\022`\n\ttask_type" +
       "\030\003 \001(\01629.ai.stigmer.agentic.workflowexec" +
@@ -124,13 +124,13 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
       ".StructR\010metadata\022!\n\014artifact_ids\030\013 \003(\tR" +
       "\013artifactIds\022\037\n\013cost_micros\030\014 \001(\003R\ncostM" +
       "icros\022!\n\014input_tokens\030\r \001(\003R\013inputTokens" +
-      "\022#\n\routput_tokens\030\016 \001(\003R\014outputTokensB\313\001" +
-      "B\010ApiProtoP\001\242\002\004ASAW\252\002\'Ai.Stigmer.Agentic" +
-      ".Workflowexecution.V1\312\002\'Ai\\Stigmer\\Agent" +
-      "ic\\Workflowexecution\\V1\342\0023Ai\\Stigmer\\Age" +
-      "ntic\\Workflowexecution\\V1\\GPBMetadata\352\002+" +
-      "Ai::Stigmer::Agentic::Workflowexecution:" +
-      ":V1b\006proto3"
+      "\022#\n\routput_tokens\030\016 \001(\003R\014outputTokens\022\027\n" +
+      "\007ui_hint\030\017 \001(\tR\006uiHintB\313\001B\010ApiProtoP\001\242\002\004" +
+      "ASAW\252\002\'Ai.Stigmer.Agentic.Workflowexecut" +
+      "ion.V1\312\002\'Ai\\Stigmer\\Agentic\\Workflowexec" +
+      "ution\\V1\342\0023Ai\\Stigmer\\Agentic\\Workflowex" +
+      "ecution\\V1\\GPBMetadata\352\002+Ai::Stigmer::Ag" +
+      "entic::Workflowexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -172,7 +172,7 @@ public final class ApiProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowTask_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_WorkflowTask_descriptor,
-        new java.lang.String[] { "TaskId", "TaskName", "TaskType", "Input", "Output", "Status", "StartedAt", "CompletedAt", "Error", "Metadata", "ArtifactIds", "CostMicros", "InputTokens", "OutputTokens", });
+        new java.lang.String[] { "TaskId", "TaskName", "TaskType", "Input", "Output", "Status", "StartedAt", "CompletedAt", "Error", "Metadata", "ArtifactIds", "CostMicros", "InputTokens", "OutputTokens", "UiHint", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.ApprovalProto.getDescriptor();
     ai.stigmer.agentic.workflowexecution.v1.EnumProto.getDescriptor();

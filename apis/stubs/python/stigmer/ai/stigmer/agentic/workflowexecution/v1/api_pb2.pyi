@@ -76,7 +76,7 @@ class WorkflowPendingFileReview(_message.Message):
     def __init__(self, child_agent_execution_id: _Optional[str] = ..., change_set_id: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class WorkflowTask(_message.Message):
-    __slots__ = ("task_id", "task_name", "task_type", "input", "output", "status", "started_at", "completed_at", "error", "metadata", "artifact_ids", "cost_micros", "input_tokens", "output_tokens")
+    __slots__ = ("task_id", "task_name", "task_type", "input", "output", "status", "started_at", "completed_at", "error", "metadata", "artifact_ids", "cost_micros", "input_tokens", "output_tokens", "ui_hint")
     TASK_ID_FIELD_NUMBER: _ClassVar[int]
     TASK_NAME_FIELD_NUMBER: _ClassVar[int]
     TASK_TYPE_FIELD_NUMBER: _ClassVar[int]
@@ -91,6 +91,7 @@ class WorkflowTask(_message.Message):
     COST_MICROS_FIELD_NUMBER: _ClassVar[int]
     INPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     OUTPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    UI_HINT_FIELD_NUMBER: _ClassVar[int]
     task_id: str
     task_name: str
     task_type: _enum_pb2.WorkflowTaskType
@@ -105,4 +106,5 @@ class WorkflowTask(_message.Message):
     cost_micros: int
     input_tokens: int
     output_tokens: int
-    def __init__(self, task_id: _Optional[str] = ..., task_name: _Optional[str] = ..., task_type: _Optional[_Union[_enum_pb2.WorkflowTaskType, str]] = ..., input: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., status: _Optional[_Union[_enum_pb2.WorkflowTaskStatus, str]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., artifact_ids: _Optional[_Iterable[str]] = ..., cost_micros: _Optional[int] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ...) -> None: ...
+    ui_hint: str
+    def __init__(self, task_id: _Optional[str] = ..., task_name: _Optional[str] = ..., task_type: _Optional[_Union[_enum_pb2.WorkflowTaskType, str]] = ..., input: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., status: _Optional[_Union[_enum_pb2.WorkflowTaskStatus, str]] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., error: _Optional[str] = ..., metadata: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., artifact_ids: _Optional[_Iterable[str]] = ..., cost_micros: _Optional[int] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., ui_hint: _Optional[str] = ...) -> None: ...

@@ -221,6 +221,41 @@ describe("TaskStatusAccumulator", () => {
       expect(entry.status).toBe("waiting_approval");
       expect(entry.input).toEqual({ prompt: "Approve?" });
     });
+
+    it("records the review-surface uiHint", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("gate", "human_input");
+      acc.taskWaitingApproval("gate", "article-diff");
+      const [entry] = acc.toArray();
+      expect(entry.uiHint).toBe("article-diff");
+    });
+
+    it("leaves uiHint undefined when the gate declares no hint", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("gate", "human_input");
+      acc.taskWaitingApproval("gate");
+      const [entry] = acc.toArray();
+      expect(entry.uiHint).toBeUndefined();
+    });
+
+    it("retains uiHint after the gate resolves to completed", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("gate", "human_input");
+      acc.taskWaitingApproval("gate", "article-diff");
+      acc.taskCompleted("gate", 500);
+      const [entry] = acc.toArray();
+      expect(entry.status).toBe("completed");
+      expect(entry.uiHint).toBe("article-diff");
+    });
+
+    it("preserves a previously recorded uiHint when re-entering without one", () => {
+      const acc = new TaskStatusAccumulator();
+      acc.taskStarted("gate", "human_input");
+      acc.taskWaitingApproval("gate", "article-diff");
+      acc.taskWaitingApproval("gate");
+      const [entry] = acc.toArray();
+      expect(entry.uiHint).toBe("article-diff");
+    });
   });
 
   describe("taskSkipped", () => {

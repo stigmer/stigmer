@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { executeHumanInputTask } from "../../tasks/human-input.js";
 import { createState } from "../../state.js";
 import { evaluateExpressionBatch } from "../../expression.js";
+import { TaskStatusAccumulator } from "../../task-status-accumulator.js";
 import type {
   HumanInputTaskDef,
   TaskExecutionContext,
@@ -21,6 +22,7 @@ interface CtxOptions {
   readonly emitFn?: EmitEventsFn;
   readonly evaluateExpressions?: ExpressionEvaluator;
   readonly promoteTaskOutput?: PromoteTaskOutputFn;
+  readonly taskStatusAccumulator?: TaskStatusAccumulator;
 }
 
 function makeCtx(
@@ -42,6 +44,7 @@ function makeCtx(
     callAgent: notAvailable,
     emitEvents: emitFn,
     promoteTaskOutput: options?.promoteTaskOutput,
+    taskStatusAccumulator: options?.taskStatusAccumulator,
   };
 }
 
@@ -465,6 +468,23 @@ describe("executeHumanInputTask", () => {
       expect(requested.payload).toEqual({ title: "Q3 plan", items: [1, 2, 3] });
       expect(requested.uiHint).toBe("plan-review");
       expect(requested.payloadArtifactId).toBeUndefined();
+    });
+
+    it("records the uiHint on the task status entry so listPendingApprovals can badge by review type", async () => {
+      const accumulator = new TaskStatusAccumulator();
+      accumulator.taskStarted("gate", "human_input");
+
+      await executeHumanInputTask(
+        gateWith({ text: "inline" }, "plan-review"),
+        "gate", createState(),
+        makeCtx(awaitApprove, undefined, {
+          evaluateExpressions: evaluateExpressionBatch,
+          taskStatusAccumulator: accumulator,
+        }),
+      );
+
+      const entry = accumulator.toArray().find((e) => e.taskName === "gate");
+      expect(entry?.uiHint).toBe("plan-review");
     });
 
     it("resolves embedded expressions inside an inline object payload", async () => {

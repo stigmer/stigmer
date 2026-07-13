@@ -335,7 +335,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "tion_count\030\004 \001(\005R\016executionCount\"t\n\033List" +
       "PendingApprovalsRequest\022\031\n\003org\030\001 \001(\tB\007\272H" +
       "\004r\002\020\001R\003org\022\033\n\tpage_size\030\002 \001(\005R\010pageSize\022" +
-      "\035\n\npage_token\030\003 \001(\tR\tpageToken\"\310\002\n\017Pendi" +
+      "\035\n\npage_token\030\003 \001(\tR\tpageToken\"\341\002\n\017Pendi" +
       "ngApproval\022!\n\014execution_id\030\001 \001(\tR\013execut" +
       "ionId\022#\n\rworkflow_name\030\002 \001(\tR\014workflowNa" +
       "me\022\033\n\ttask_name\030\003 \001(\tR\010taskName\022\034\n\treque" +
@@ -344,26 +344,27 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "edAt\0229\n\ntimeout_at\030\006 \001(\0132\032.google.protob" +
       "uf.TimestampR\ttimeoutAt\0228\n\013form_schema\030\007" +
       " \001(\0132\027.google.protobuf.StructR\nformSchem" +
-      "a\"\263\001\n\024PendingApprovalsList\022R\n\007entries\030\001 " +
-      "\003(\01328.ai.stigmer.agentic.workflowexecuti" +
-      "on.v1.PendingApprovalR\007entries\022\037\n\013total_" +
-      "count\030\002 \001(\005R\ntotalCount\022&\n\017next_page_tok" +
-      "en\030\003 \001(\tR\rnextPageToken*\302\001\n\022ExecutionSor" +
-      "tField\022$\n EXECUTION_SORT_FIELD_UNSPECIFI" +
-      "ED\020\000\022#\n\037EXECUTION_SORT_FIELD_STARTED_AT\020" +
-      "\001\022!\n\035EXECUTION_SORT_FIELD_DURATION\020\002\022\035\n\031" +
-      "EXECUTION_SORT_FIELD_COST\020\003\022\037\n\033EXECUTION" +
-      "_SORT_FIELD_STATUS\020\004*\277\001\n\021SummaryTimeWind" +
-      "ow\022#\n\037SUMMARY_TIME_WINDOW_UNSPECIFIED\020\000\022" +
-      " \n\034SUMMARY_TIME_WINDOW_LAST_24H\020\001\022\037\n\033SUM" +
-      "MARY_TIME_WINDOW_LAST_7D\020\002\022 \n\034SUMMARY_TI" +
-      "ME_WINDOW_LAST_30D\020\003\022 \n\034SUMMARY_TIME_WIN" +
-      "DOW_ALL_TIME\020\004B\312\001B\007IoProtoP\001\242\002\004ASAW\252\002\'Ai" +
-      ".Stigmer.Agentic.Workflowexecution.V1\312\002\'" +
-      "Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\342" +
-      "\0023Ai\\Stigmer\\Agentic\\Workflowexecution\\V" +
-      "1\\GPBMetadata\352\002+Ai::Stigmer::Agentic::Wo" +
-      "rkflowexecution::V1b\006proto3"
+      "a\022\027\n\007ui_hint\030\010 \001(\tR\006uiHint\"\263\001\n\024PendingAp" +
+      "provalsList\022R\n\007entries\030\001 \003(\01328.ai.stigme" +
+      "r.agentic.workflowexecution.v1.PendingAp" +
+      "provalR\007entries\022\037\n\013total_count\030\002 \001(\005R\nto" +
+      "talCount\022&\n\017next_page_token\030\003 \001(\tR\rnextP" +
+      "ageToken*\302\001\n\022ExecutionSortField\022$\n EXECU" +
+      "TION_SORT_FIELD_UNSPECIFIED\020\000\022#\n\037EXECUTI" +
+      "ON_SORT_FIELD_STARTED_AT\020\001\022!\n\035EXECUTION_" +
+      "SORT_FIELD_DURATION\020\002\022\035\n\031EXECUTION_SORT_" +
+      "FIELD_COST\020\003\022\037\n\033EXECUTION_SORT_FIELD_STA" +
+      "TUS\020\004*\277\001\n\021SummaryTimeWindow\022#\n\037SUMMARY_T" +
+      "IME_WINDOW_UNSPECIFIED\020\000\022 \n\034SUMMARY_TIME" +
+      "_WINDOW_LAST_24H\020\001\022\037\n\033SUMMARY_TIME_WINDO" +
+      "W_LAST_7D\020\002\022 \n\034SUMMARY_TIME_WINDOW_LAST_" +
+      "30D\020\003\022 \n\034SUMMARY_TIME_WINDOW_ALL_TIME\020\004B" +
+      "\312\001B\007IoProtoP\001\242\002\004ASAW\252\002\'Ai.Stigmer.Agenti" +
+      "c.Workflowexecution.V1\312\002\'Ai\\Stigmer\\Agen" +
+      "tic\\Workflowexecution\\V1\342\0023Ai\\Stigmer\\Ag" +
+      "entic\\Workflowexecution\\V1\\GPBMetadata\352\002" +
+      "+Ai::Stigmer::Agentic::Workflowexecution" +
+      "::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -544,7 +545,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflowexecution_v1_PendingApproval_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_PendingApproval_descriptor,
-        new java.lang.String[] { "ExecutionId", "WorkflowName", "TaskName", "Requester", "RequestedAt", "TimeoutAt", "FormSchema", });
+        new java.lang.String[] { "ExecutionId", "WorkflowName", "TaskName", "Requester", "RequestedAt", "TimeoutAt", "FormSchema", "UiHint", });
     internal_static_ai_stigmer_agentic_workflowexecution_v1_PendingApprovalsList_descriptor =
       getDescriptor().getMessageType(27);
     internal_static_ai_stigmer_agentic_workflowexecution_v1_PendingApprovalsList_fieldAccessorTable = new

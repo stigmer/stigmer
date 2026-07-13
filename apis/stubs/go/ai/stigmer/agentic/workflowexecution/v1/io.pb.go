@@ -2465,7 +2465,18 @@ type PendingApproval struct {
 	//
 	// When present, the reviewer is expected to fill in form data
 	// that conforms to this schema before submitting the decision.
-	FormSchema    *structpb.Struct `protobuf:"bytes,7,opt,name=form_schema,json=formSchema,proto3" json:"form_schema,omitempty"`
+	FormSchema *structpb.Struct `protobuf:"bytes,7,opt,name=form_schema,json=formSchema,proto3" json:"form_schema,omitempty"`
+	// Hint identifying which UI should present the review.
+	//
+	// Mirrors the human_input task's ui_hint so dashboards can badge or
+	// group pending approvals by review type. The full review payload is
+	// deliberately not carried here — it belongs on the gate detail
+	// (approval_requested event), read when the reviewer opens the gate.
+	// Empty when the task declares no hint or the execution predates the
+	// field — consumers treat empty as a generic review.
+	//
+	// @since Review Payloads (stigmer/stigmer#234)
+	UiHint        string `protobuf:"bytes,8,opt,name=ui_hint,json=uiHint,proto3" json:"ui_hint,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2547,6 +2558,13 @@ func (x *PendingApproval) GetFormSchema() *structpb.Struct {
 		return x.FormSchema
 	}
 	return nil
+}
+
+func (x *PendingApproval) GetUiHint() string {
+	if x != nil {
+		return x.UiHint
+	}
+	return ""
 }
 
 // PendingApprovalsList contains a paginated list of pending approvals.
@@ -2768,7 +2786,7 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tR\tpageToken\"\xc8\x02\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"\xe1\x02\n" +
 	"\x0fPendingApproval\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12#\n" +
 	"\rworkflow_name\x18\x02 \x01(\tR\fworkflowName\x12\x1b\n" +
@@ -2778,7 +2796,8 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"timeout_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\ttimeoutAt\x128\n" +
 	"\vform_schema\x18\a \x01(\v2\x17.google.protobuf.StructR\n" +
-	"formSchema\"\xb3\x01\n" +
+	"formSchema\x12\x17\n" +
+	"\aui_hint\x18\b \x01(\tR\x06uiHint\"\xb3\x01\n" +
 	"\x14PendingApprovalsList\x12R\n" +
 	"\aentries\x18\x01 \x03(\v28.ai.stigmer.agentic.workflowexecution.v1.PendingApprovalR\aentries\x12\x1f\n" +
 	"\vtotal_count\x18\x02 \x01(\x05R\n" +

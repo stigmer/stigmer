@@ -355,7 +355,7 @@ class ListPendingApprovalsRequest(_message.Message):
     def __init__(self, org: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
 class PendingApproval(_message.Message):
-    __slots__ = ("execution_id", "workflow_name", "task_name", "requester", "requested_at", "timeout_at", "form_schema")
+    __slots__ = ("execution_id", "workflow_name", "task_name", "requester", "requested_at", "timeout_at", "form_schema", "ui_hint")
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     WORKFLOW_NAME_FIELD_NUMBER: _ClassVar[int]
     TASK_NAME_FIELD_NUMBER: _ClassVar[int]
@@ -363,6 +363,7 @@ class PendingApproval(_message.Message):
     REQUESTED_AT_FIELD_NUMBER: _ClassVar[int]
     TIMEOUT_AT_FIELD_NUMBER: _ClassVar[int]
     FORM_SCHEMA_FIELD_NUMBER: _ClassVar[int]
+    UI_HINT_FIELD_NUMBER: _ClassVar[int]
     execution_id: str
     workflow_name: str
     task_name: str
@@ -370,7 +371,8 @@ class PendingApproval(_message.Message):
     requested_at: _timestamp_pb2.Timestamp
     timeout_at: _timestamp_pb2.Timestamp
     form_schema: _struct_pb2.Struct
-    def __init__(self, execution_id: _Optional[str] = ..., workflow_name: _Optional[str] = ..., task_name: _Optional[str] = ..., requester: _Optional[str] = ..., requested_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., timeout_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., form_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
+    ui_hint: str
+    def __init__(self, execution_id: _Optional[str] = ..., workflow_name: _Optional[str] = ..., task_name: _Optional[str] = ..., requester: _Optional[str] = ..., requested_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., timeout_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., form_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., ui_hint: _Optional[str] = ...) -> None: ...
 
 class PendingApprovalsList(_message.Message):
     __slots__ = ("entries", "total_count", "next_page_token")

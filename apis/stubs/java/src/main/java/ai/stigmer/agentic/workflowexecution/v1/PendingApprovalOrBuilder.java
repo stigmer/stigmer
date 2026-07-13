@@ -185,4 +185,42 @@ public interface PendingApprovalOrBuilder extends
    * <code>.google.protobuf.Struct form_schema = 7 [json_name = "formSchema"];</code>
    */
   com.google.protobuf.StructOrBuilder getFormSchemaOrBuilder();
+
+  /**
+   * <pre>
+   * Hint identifying which UI should present the review.
+   *
+   * Mirrors the human_input task's ui_hint so dashboards can badge or
+   * group pending approvals by review type. The full review payload is
+   * deliberately not carried here — it belongs on the gate detail
+   * (approval_requested event), read when the reviewer opens the gate.
+   * Empty when the task declares no hint or the execution predates the
+   * field — consumers treat empty as a generic review.
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
+   * @return The uiHint.
+   */
+  java.lang.String getUiHint();
+  /**
+   * <pre>
+   * Hint identifying which UI should present the review.
+   *
+   * Mirrors the human_input task's ui_hint so dashboards can badge or
+   * group pending approvals by review type. The full review payload is
+   * deliberately not carried here — it belongs on the gate detail
+   * (approval_requested event), read when the reviewer opens the gate.
+   * Empty when the task declares no hint or the execution predates the
+   * field — consumers treat empty as a generic review.
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>string ui_hint = 8 [json_name = "uiHint"];</code>
+   * @return The bytes for uiHint.
+   */
+  com.google.protobuf.ByteString
+      getUiHintBytes();
 }

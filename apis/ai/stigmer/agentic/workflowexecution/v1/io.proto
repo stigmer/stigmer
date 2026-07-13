@@ -892,6 +892,18 @@ message PendingApproval {
   // When present, the reviewer is expected to fill in form data
   // that conforms to this schema before submitting the decision.
   google.protobuf.Struct form_schema = 7;
+
+  // Hint identifying which UI should present the review.
+  //
+  // Mirrors the human_input task's ui_hint so dashboards can badge or
+  // group pending approvals by review type. The full review payload is
+  // deliberately not carried here — it belongs on the gate detail
+  // (approval_requested event), read when the reviewer opens the gate.
+  // Empty when the task declares no hint or the execution predates the
+  // field — consumers treat empty as a generic review.
+  //
+  // @since Review Payloads (stigmer/stigmer#234)
+  string ui_hint = 8;
 }
 
 // PendingApprovalsList contains a paginated list of pending approvals.

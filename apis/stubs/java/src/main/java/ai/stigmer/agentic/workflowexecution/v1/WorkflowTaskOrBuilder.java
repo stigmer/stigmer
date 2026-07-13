@@ -544,4 +544,66 @@ public interface WorkflowTaskOrBuilder extends
    * @return The outputTokens.
    */
   long getOutputTokens();
+
+  /**
+   * <pre>
+   * Hint identifying which UI should present this task's review payload.
+   *
+   * Copied from the human_input task's ui_hint config when the gate
+   * activates, so approval surfaces (dashboards, listPendingApprovals)
+   * can badge or group review requests by type without reading the
+   * event log. Empty for non-human_input tasks and for executions
+   * persisted before this field existed — consumers treat empty as a
+   * generic review.
+   *
+   * &#64;internal
+   * Written by the workflow-runner's task status accumulator on the
+   * waiting_approval transition and retained after the gate resolves
+   * (the record of what kind of review was performed). The user-input
+   * length constraint (max 63 chars) is enforced at the source field,
+   * HumanInputTaskConfig.ui_hint; this system-written copy is trusted,
+   * matching the other string fields on this message.
+   *
+   * Not to be confused with WorkflowExecutionStatus.pending_approvals,
+   * which carries forwarded child-agent *tool* approvals — workflow-native
+   * human_input gates live only here, on tasks[].
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>string ui_hint = 15 [json_name = "uiHint"];</code>
+   * @return The uiHint.
+   */
+  java.lang.String getUiHint();
+  /**
+   * <pre>
+   * Hint identifying which UI should present this task's review payload.
+   *
+   * Copied from the human_input task's ui_hint config when the gate
+   * activates, so approval surfaces (dashboards, listPendingApprovals)
+   * can badge or group review requests by type without reading the
+   * event log. Empty for non-human_input tasks and for executions
+   * persisted before this field existed — consumers treat empty as a
+   * generic review.
+   *
+   * &#64;internal
+   * Written by the workflow-runner's task status accumulator on the
+   * waiting_approval transition and retained after the gate resolves
+   * (the record of what kind of review was performed). The user-input
+   * length constraint (max 63 chars) is enforced at the source field,
+   * HumanInputTaskConfig.ui_hint; this system-written copy is trusted,
+   * matching the other string fields on this message.
+   *
+   * Not to be confused with WorkflowExecutionStatus.pending_approvals,
+   * which carries forwarded child-agent *tool* approvals — workflow-native
+   * human_input gates live only here, on tasks[].
+   *
+   * &#64;since Review Payloads (stigmer/stigmer#234)
+   * </pre>
+   *
+   * <code>string ui_hint = 15 [json_name = "uiHint"];</code>
+   * @return The bytes for uiHint.
+   */
+  com.google.protobuf.ByteString
+      getUiHintBytes();
 }

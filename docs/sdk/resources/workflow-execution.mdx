@@ -1648,6 +1648,7 @@ WorkflowTask represents a single task within a workflow execution.
     costMicros: { type: "number", description: "Cost incurred by this task in micro-USD (1 USD = 1,000,000 micros)." },
     inputTokens: { type: "number", description: "Input (prompt/context) tokens consumed by this task." },
     outputTokens: { type: "number", description: "Output (completion/generation) tokens produced by this task." },
+    uiHint: { type: "string", description: "Hint identifying which UI should present this task's review payload." },
   }}
 />
 
