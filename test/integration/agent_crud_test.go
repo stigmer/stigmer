@@ -348,67 +348,12 @@ func TestAgent_UpdateVisibility(t *testing.T) {
 	t.Logf("visibility toggled: id=%s, public→private", agentID)
 }
 
-func TestAgent_Delete_NonCascading(t *testing.T) {
-	require.NotNil(t, grpcConn)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	clients := harness.NewClients(grpcConn)
-	instanceQuery := agentinstancev1.NewAgentInstanceQueryControllerClient(grpcConn)
-
-	agent, err := clients.AgentCommand.Apply(ctx, &agentv1.Agent{
-		ApiVersion: "agentic.stigmer.ai/v1",
-		Kind:       "Agent",
-		Metadata: &apiresource.ApiResourceMetadata{
-			Name: "test-noncascade-delete",
-			Org:  "test-org",
-		},
-		Spec: &agentv1.AgentSpec{
-			Instructions: "You are a test agent for non-cascading delete verification.",
-		},
-	})
-	require.NoError(t, err)
-
-	agentID := agent.GetMetadata().GetId()
-	instanceID := agent.GetStatus().GetDefaultInstanceId()
-	require.NotEmpty(t, instanceID)
-
-	_, err = instanceQuery.Get(ctx, &agentinstancev1.AgentInstanceId{Value: instanceID})
-	require.NoError(t, err, "default instance should exist before delete")
-
-	_, err = clients.AgentCommand.Delete(ctx, &agentv1.AgentId{Value: agentID})
-	require.NoError(t, err, "delete agent should succeed")
-
-	_, err = clients.AgentQuery.Get(ctx, &agentv1.AgentId{Value: agentID})
-	require.Error(t, err, "agent should be gone after delete")
-
-	// The default instance should survive — agent delete is non-cascading.
-	// Only the agent document + FGA tuples are removed.
-	orphanedInstance, err := instanceQuery.Get(ctx, &agentinstancev1.AgentInstanceId{Value: instanceID})
-	if err != nil {
-		st, ok := status.FromError(err)
-		if ok && st.Code() == codes.PermissionDenied {
-			t.Logf("instance get returned PERMISSION_DENIED — FGA tuples for parent agent were cleaned up, "+
-				"but instance document still exists (FGA denied access). This is expected when FGA is active. id=%s", instanceID)
-		} else {
-			require.NoError(t, err, "default instance should survive agent delete (non-cascading)")
-		}
-	} else {
-		assert.Equal(t, instanceID, orphanedInstance.GetMetadata().GetId(),
-			"orphaned instance should still be queryable")
-		t.Logf("non-cascading delete verified: agent=%s deleted, instance=%s survives",
-			agentID, instanceID)
-	}
-
-	// Clean up the orphaned instance.
-	t.Cleanup(func() {
-		cleanCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		instanceCmd := agentinstancev1.NewAgentInstanceCommandControllerClient(grpcConn)
-		instanceCmd.Delete(cleanCtx, &agentinstancev1.AgentInstanceId{Value: instanceID})
-	})
-}
+// Agent delete is CASCADING since T08: the system-managed default instance
+// and every AgentShare of the agent are deleted with it, while personal
+// instances survive. The full delete contract — including the
+// cross-principal recreate the cascade exists for — is pinned in
+// agent_ownership_hygiene_test.go (TestAgentDeleteCascade_*), which replaced
+// this file's former TestAgent_Delete_NonCascading.
 
 func TestAgent_Delete_Nonexistent(t *testing.T) {
 	require.NotNil(t, grpcConn)

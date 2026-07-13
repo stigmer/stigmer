@@ -6,12 +6,16 @@ import (
 	"testing"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
+	agentsharev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
+	"google.golang.org/protobuf/proto"
 )
 
 // contextWithAgentKind creates a context with the agent resource kind injected
@@ -234,6 +238,230 @@ func TestAgentController_Delete(t *testing.T) {
 		_, err := controller.Delete(contextWithAgentKind(), &agentv1.AgentId{Value: "non-existent-id"})
 		if err == nil {
 			t.Error("Expected error for deleting non-existent agent")
+		}
+	})
+}
+
+// TestAgentController_Delete_Cascade pins the T08 cascade contract: deleting
+// an agent removes its system-managed default instance and every AgentShare
+// referencing it, while personal instances (and look-alike instances of
+// OTHER agents) survive. The children are org+slug-resolved, so leaving them
+// behind poisons a recreate at the same slug (orphaned default instance) or
+// silently rebinds a stale share to the new agent.
+func TestAgentController_Delete_Cascade(t *testing.T) {
+	newAgent := func(name string) *agentv1.Agent {
+		return &agentv1.Agent{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "Agent",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: name,
+				Org:  "test-org",
+			},
+			Spec: &agentv1.AgentSpec{
+				Instructions: "You are a cascade test agent.",
+			},
+		}
+	}
+
+	saveInstance := func(t *testing.T, s store.Store, id, slug, agentID string) {
+		t.Helper()
+		instance := &agentinstancev1.AgentInstance{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "AgentInstance",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Id:   id,
+				Name: slug,
+				Slug: slug,
+				Org:  "test-org",
+			},
+			Spec: &agentinstancev1.AgentInstanceSpec{AgentId: agentID},
+		}
+		if err := s.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_agent_instance, id, instance); err != nil {
+			t.Fatalf("failed to save instance %s: %v", id, err)
+		}
+	}
+
+	saveShare := func(t *testing.T, s store.Store, id, shareSlug, agentSlug string) {
+		t.Helper()
+		share := &agentsharev1.AgentShare{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "AgentShare",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Id:   id,
+				Name: shareSlug,
+				Slug: shareSlug,
+				Org:  "test-org",
+			},
+			Spec: &agentsharev1.AgentShareSpec{
+				AgentRef: &apiresource.ApiResourceReference{
+					Org:  "test-org",
+					Kind: apiresourcekind.ApiResourceKind_agent,
+					Slug: agentSlug,
+				},
+				Enabled: true,
+			},
+		}
+		if err := s.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_agent_share, id, share); err != nil {
+			t.Fatalf("failed to save share %s: %v", id, err)
+		}
+	}
+
+	assertGone := func(t *testing.T, s store.Store, kind apiresourcekind.ApiResourceKind, id string, msg proto.Message) {
+		t.Helper()
+		if err := s.GetResource(context.Background(), kind, id, msg); err == nil {
+			t.Errorf("expected %s %s to be cascade-deleted, but it still exists", kind, id)
+		}
+	}
+
+	assertSurvives := func(t *testing.T, s store.Store, kind apiresourcekind.ApiResourceKind, id string, msg proto.Message) {
+		t.Helper()
+		if err := s.GetResource(context.Background(), kind, id, msg); err != nil {
+			t.Errorf("expected %s %s to survive the cascade, but it is gone: %v", kind, id, err)
+		}
+	}
+
+	t.Run("deletes the default instance via the status pointer", func(t *testing.T) {
+		s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
+		if err != nil {
+			t.Fatalf("failed to create store: %v", err)
+		}
+		defer s.Close()
+		controller := NewAgentController(s, nil)
+
+		created, err := controller.Create(contextWithAgentKind(), newAgent("Pointer Agent"))
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		saveInstance(t, s, "ain_pointer", created.Metadata.Slug+"-default", created.Metadata.Id)
+		created.Status = &agentv1.AgentStatus{DefaultInstanceId: "ain_pointer"}
+		if err := s.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_agent, created.Metadata.Id, created); err != nil {
+			t.Fatalf("failed to save agent with status: %v", err)
+		}
+
+		if _, err := controller.Delete(contextWithAgentKind(), &agentv1.AgentId{Value: created.Metadata.Id}); err != nil {
+			t.Fatalf("Delete failed: %v", err)
+		}
+
+		assertGone(t, s, apiresourcekind.ApiResourceKind_agent_instance, "ain_pointer", &agentinstancev1.AgentInstance{})
+	})
+
+	t.Run("deletes a legacy default instance via the slug fallback", func(t *testing.T) {
+		s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
+		if err != nil {
+			t.Fatalf("failed to create store: %v", err)
+		}
+		defer s.Close()
+		controller := NewAgentController(s, nil)
+
+		// No status.default_instance_id (nil instance client leaves it unset)
+		// — the half-created legacy shape the fallback exists for.
+		created, err := controller.Create(contextWithAgentKind(), newAgent("Fallback Agent"))
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+		saveInstance(t, s, "ain_fallback", created.Metadata.Slug+"-default", created.Metadata.Id)
+
+		if _, err := controller.Delete(contextWithAgentKind(), &agentv1.AgentId{Value: created.Metadata.Id}); err != nil {
+			t.Fatalf("Delete failed: %v", err)
+		}
+
+		assertGone(t, s, apiresourcekind.ApiResourceKind_agent_instance, "ain_fallback", &agentinstancev1.AgentInstance{})
+	})
+
+	t.Run("personal instances and other agents' look-alikes survive", func(t *testing.T) {
+		s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
+		if err != nil {
+			t.Fatalf("failed to create store: %v", err)
+		}
+		defer s.Close()
+		controller := NewAgentController(s, nil)
+
+		created, err := controller.Create(contextWithAgentKind(), newAgent("Survivor Agent"))
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		// A member's personal instance of THIS agent (different slug).
+		saveInstance(t, s, "ain_personal", "my-personal-setup", created.Metadata.Id)
+		// An instance that merely reuses the "-default" name but belongs to a
+		// DIFFERENT agent — the spec.agent_id guard must protect it.
+		saveInstance(t, s, "ain_lookalike", created.Metadata.Slug+"-default", "agt_someone_else")
+
+		if _, err := controller.Delete(contextWithAgentKind(), &agentv1.AgentId{Value: created.Metadata.Id}); err != nil {
+			t.Fatalf("Delete failed: %v", err)
+		}
+
+		assertSurvives(t, s, apiresourcekind.ApiResourceKind_agent_instance, "ain_personal", &agentinstancev1.AgentInstance{})
+		assertSurvives(t, s, apiresourcekind.ApiResourceKind_agent_instance, "ain_lookalike", &agentinstancev1.AgentInstance{})
+	})
+
+	t.Run("deletes every share of the agent, including renamed ones", func(t *testing.T) {
+		s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
+		if err != nil {
+			t.Fatalf("failed to create store: %v", err)
+		}
+		defer s.Close()
+		controller := NewAgentController(s, nil)
+
+		created, err := controller.Create(contextWithAgentKind(), newAgent("Shared Agent"))
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+		otherAgent, err := controller.Create(contextWithAgentKind(), newAgent("Other Agent"))
+		if err != nil {
+			t.Fatalf("Create (other) failed: %v", err)
+		}
+
+		// Canonical share (slug matches the agent) + a renamed share (own slug
+		// diverged; still matched by spec.agent_ref — decision 011 D2).
+		saveShare(t, s, "ash_canonical", created.Metadata.Slug, created.Metadata.Slug)
+		saveShare(t, s, "ash_renamed", "customer-demo-link", created.Metadata.Slug)
+		// A share of a DIFFERENT agent must survive.
+		saveShare(t, s, "ash_other", otherAgent.Metadata.Slug, otherAgent.Metadata.Slug)
+
+		if _, err := controller.Delete(contextWithAgentKind(), &agentv1.AgentId{Value: created.Metadata.Id}); err != nil {
+			t.Fatalf("Delete failed: %v", err)
+		}
+
+		assertGone(t, s, apiresourcekind.ApiResourceKind_agent_share, "ash_canonical", &agentsharev1.AgentShare{})
+		assertGone(t, s, apiresourcekind.ApiResourceKind_agent_share, "ash_renamed", &agentsharev1.AgentShare{})
+		assertSurvives(t, s, apiresourcekind.ApiResourceKind_agent_share, "ash_other", &agentsharev1.AgentShare{})
+	})
+
+	t.Run("recreate at the same slug converges after delete", func(t *testing.T) {
+		s, err := sqlite.NewStore(t.TempDir() + "/test.sqlite")
+		if err != nil {
+			t.Fatalf("failed to create store: %v", err)
+		}
+		defer s.Close()
+		controller := NewAgentController(s, nil)
+
+		created, err := controller.Create(contextWithAgentKind(), newAgent("Recreate Agent"))
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+		saveInstance(t, s, "ain_recreate", created.Metadata.Slug+"-default", created.Metadata.Id)
+		created.Status = &agentv1.AgentStatus{DefaultInstanceId: "ain_recreate"}
+		if err := s.SaveResource(context.Background(), apiresourcekind.ApiResourceKind_agent, created.Metadata.Id, created); err != nil {
+			t.Fatalf("failed to save agent with status: %v", err)
+		}
+
+		if _, err := controller.Delete(contextWithAgentKind(), &agentv1.AgentId{Value: created.Metadata.Id}); err != nil {
+			t.Fatalf("Delete failed: %v", err)
+		}
+
+		// The exact scenario the cascade exists for: a fresh create at the
+		// same org/slug finds no orphan and succeeds cleanly.
+		recreated, err := controller.Create(contextWithAgentKind(), newAgent("Recreate Agent"))
+		if err != nil {
+			t.Fatalf("Recreate at the same slug failed: %v", err)
+		}
+		if recreated.Metadata.Slug != created.Metadata.Slug {
+			t.Errorf("expected recreated slug %q, got %q", created.Metadata.Slug, recreated.Metadata.Slug)
+		}
+		if recreated.Metadata.Id == created.Metadata.Id {
+			t.Error("expected a fresh agent ID on recreate")
 		}
 	})
 }

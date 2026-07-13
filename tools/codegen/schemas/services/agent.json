@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.agentic.agent.v1.AgentId",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Delete an agent."
+          "description": "Delete an agent.\n\n Deletion also removes the agent's system-managed default instance and\n every AgentShare referencing the agent, so a later agent created at the\n same org/slug starts clean. Personal instances and sessions are not\n deleted.\n\n @internal\n Cascade order is children-before-parent so a mid-failure retry\n converges. Shares are matched by spec.agent_ref (org + agent slug) —\n leaving them behind would silently rebind a stale share (audience, link\n token, bound credentials) to whatever agent is later created at that\n slug. Cloud additionally cleans each cascaded child's FGA tuples."
         }
       ]
     },
@@ -241,7 +241,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner (and explicitly granted principals) can access.\n This is the default for instances and personal resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
         },
         {
           "name": "visibility_public",

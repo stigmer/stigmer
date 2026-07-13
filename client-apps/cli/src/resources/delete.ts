@@ -48,12 +48,13 @@ interface HasMetadata {
 type DeleteFn = (client: Stigmer, id: string) => Promise<HasMetadata>;
 
 // Kinds the unified delete handles directly, each bound to its SDK delete call.
-// Mirrors Go's routeDelete switch exactly: kinds that carry a Delete verb but no
-// entry here (identity_provider, oauth_app, environment, instances, session)
-// fall through to a "not implemented" usage error, as in Go's default branch.
+// Kinds that carry a Delete verb but no entry here (identity_provider,
+// oauth_app, environment, workflow_instance, session) fall through to a
+// "not implemented" usage error, matching Go's default branch.
 // McpServer is the outlier whose delete takes a DeleteResourceInput, not an ID.
 const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<ApiResourceKind, DeleteFn>([
   [ApiResourceKind.agent, (c, id) => c.agent.delete(id)],
+  [ApiResourceKind.agent_instance, (c, id) => c.agentInstance.delete(id)],
   [ApiResourceKind.workflow, (c, id) => c.workflow.delete(id)],
   [ApiResourceKind.mcp_server, (c, id) => c.mcpServer.delete({ resourceId: id })],
   [ApiResourceKind.project, (c, id) => c.project.delete(id)],
@@ -79,7 +80,7 @@ export async function planDelete(
   const info = defaultRegistry().getByAlias(typeArg);
   if (info === undefined) {
     throw new UsageError(
-      `unknown resource type: ${typeArg}\n\nAvailable types: agent, workflow, mcpserver, project, skill, execution, organization`,
+      `unknown resource type: ${typeArg}\n\nAvailable types: agent, agent-instance, workflow, mcpserver, project, skill, execution, organization`,
     );
   }
 

@@ -89,9 +89,11 @@ func (c *Client) CreateAsSystem(ctx context.Context, instance *agentinstancev1.A
 // This makes an in-process gRPC call to AgentInstanceCommandController.Apply()
 // using system context, providing idempotent create-or-update semantics.
 //
-// Use case: Default instance creation during agent Apply. If an orphaned
-// instance with the same slug exists from a prior agent deletion (which
-// doesn't cascade to instances), Apply recovers it by updating the agent_id.
+// Use case: Default instance creation during agent Apply. Agent delete
+// cascades the default instance (T08), so this normally creates fresh; the
+// update route remains as self-heal for pre-cascade legacy orphans
+// (self-hosters upgrading across the T08 release), which Apply recovers by
+// re-pointing agent_id at the new agent.
 func (c *Client) ApplyAsSystem(ctx context.Context, instance *agentinstancev1.AgentInstance) (*agentinstancev1.AgentInstance, error) {
 	log.Debug().
 		Str("agent_id", instance.GetSpec().GetAgentId()).

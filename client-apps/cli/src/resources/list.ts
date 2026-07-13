@@ -1,10 +1,15 @@
 // `list` dispatch: render a collection of resources for a kind.
 //
 // Most registry kinds are search-indexed and list through the unified
-// SearchService (matching the Go CLI's search-backed list). Organizations and
-// API keys are not search-indexed and use their dedicated find RPCs.
+// SearchService (matching the Go CLI's search-backed list). Organizations,
+// API keys, and agent instances are not search-indexed and use their
+// dedicated find/list RPCs.
 
+import { create } from "@bufbuild/protobuf";
+import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
+import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { SearchResultSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { OrganizationSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -37,6 +42,12 @@ export async function listResources(
     const result = await client.apiKey.findAll();
     return renderCollection(ApiKeySchema, result.entries, format, APIKEY_TABLE);
   }
+  if (kind === ApiResourceKind.agent_instance) {
+    const result = await client.agentInstance.list(
+      create(ListAgentInstancesRequestSchema, { org, pageInfo: create(PageInfoSchema, { num: 1, size: limit }) }),
+    );
+    return renderCollection(AgentInstanceSchema, result.items, format, INSTANCE_TABLE);
+  }
   if (!SEARCH_KINDS.has(kind)) {
     throw new UsageError("list is not implemented for this resource type");
   }
@@ -54,6 +65,21 @@ export const SEARCH_TABLE: TableShape = {
     str(json, "visibility"),
     date(str(json, "created_at")),
   ],
+};
+
+const INSTANCE_TABLE: TableShape = {
+  resourceName: "agent instances",
+  headers: ["ID", "SLUG", "AGENT", "DESCRIPTION"],
+  row: (json) => {
+    const metadata = obj(json, "metadata");
+    const spec = obj(json, "spec");
+    return [
+      str(metadata, "id"),
+      str(metadata, "slug"),
+      str(spec, "agent_id"),
+      truncate(str(spec, "description"), 50),
+    ];
+  },
 };
 
 const ORG_TABLE: TableShape = {

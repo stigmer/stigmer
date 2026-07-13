@@ -48,6 +48,10 @@ jobs:
   build-docker-image:
     needs: determine-version
     runs-on: ubuntu-latest
+    # A healthy build finishes in ~5 minutes. Cap the job so a stalled buildx /
+    # QEMU / cache-export step fails fast instead of hanging near the default
+    # 6-hour limit (see the ~1h hang on the v3.1.11 release).
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -75,6 +79,11 @@ jobs:
           echo "ERROR: @stigmer/mcp-server@$NPM_VERSION not found on npm after 10 minutes"
           echo "The Docker image installs this package. Check the release.npm-libs workflow."
           exit 1
+
+      # Register QEMU binfmt handlers so the emulated linux/arm64 leg builds
+      # reliably on the amd64 runner (do not rely on preinstalled binfmt).
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

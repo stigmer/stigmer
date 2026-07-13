@@ -2201,7 +2201,7 @@
         {
           "name": "visibility_private",
           "number": 1,
-          "description": "Only the owner (and explicitly granted principals) can access.\n This is the default for instances and personal resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
         },
         {
           "name": "visibility_public",
