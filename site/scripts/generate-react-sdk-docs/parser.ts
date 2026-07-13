@@ -123,6 +123,11 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "The unified Manage access experience — one dialog composing visibility and explicit people-grants, with a kebab hook and a button trigger.",
   },
+  sharing: {
+    title: "Sharing",
+    description:
+      "Hooks and components for turning an agent into a hosted, shareable chat link and embed.",
+  },
   "identity-provider": {
     title: "Identity Provider",
     description:

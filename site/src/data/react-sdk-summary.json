@@ -212,9 +212,9 @@
     },
     {
       "slug": "sharing",
-      "title": "sharing",
-      "description": "",
-      "hooks": 6,
+      "title": "Sharing",
+      "description": "Hooks and components for turning an agent into a hosted, shareable chat link and embed.",
+      "hooks": 7,
       "components": 2
     },
     {

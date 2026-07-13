@@ -161,6 +161,56 @@ Turn the toggle off to revoke the link. The public page stops working
 immediately — visitors see the same "not found" page as for an Agent that never
 existed.
 
+## Share a public Agent from another Organization
+
+Sharing is not limited to Agents your Organization built. When another
+Organization publishes an Agent as public, you can create a share link of your
+own: your Organization's link, paid for with your credits, and running with your
+credentials — while the Agent itself stays with the Organization that built it.
+
+You must be an admin of your Organization to create the link. A share spends
+your Organization's credits with anyone on the internet, so it is an admin-level
+decision.
+
+1. Open the public Agent in the web console — for example, from the Marketplace.
+2. Open the actions menu (⋯) and choose **Create share link**.
+3. The dialog opens with your Organization as the sharing Organization. Turn on
+   the sharing switch and copy your link.
+
+The link carries your Organization, not the Agent owner's:
+
+```
+https://app.stigmer.ai/chat/<your-org>/<agent>
+```
+
+A share of another Organization's Agent works like your own public share, with
+three differences:
+
+- **Anyone with the link can chat.** There is no **Org members** option — a
+  share of another Organization's Agent always serves the public audience.
+- **Your Organization pays.** Conversations over your link use your credits,
+  never the Agent owner's. The rate limits and conversation limits apply to your
+  link independently.
+- **Tools run on your credentials.** If the Agent uses MCP Servers, bind your
+  own Organization-shared Environments in the dialog. The owner's credentials
+  are never used for your link.
+
+The Agent's owner stays in control of the Agent itself. If the owner makes the
+Agent private or deletes it, your link stops working on the visitor's next
+message — it shows the same "not found" page as an Agent that never existed. And
+if the Agent depends on Skills or MCP Servers that are not public, Stigmer
+refuses to create the share and names what is blocking; ask the owner to make
+those public first.
+
+<Callout>
+  The Agent's behavior belongs to its owner. When the owner updates the Agent,
+  the change shows up live in chats over your link — you are sharing their
+  Agent, not a copy of it.
+</Callout>
+
+You can also create the share from the terminal — see the
+[`stigmer share` reference](/docs/cli/commands/share).
+
 ## Share from the CLI
 
 You can also toggle sharing from the terminal:
@@ -209,6 +259,9 @@ spec:
 Apply it with `stigmer apply -f share.yaml`. Because the share is a separate
 resource, applying your Agent's manifest never changes sharing — and applying
 the share never changes the Agent.
+
+For a share of another Organization's public Agent, set `metadata.org` to your
+Organization and `agent_ref.org` to the Agent owner's.
 
 <Callout type="warn">
   An apply replaces the share's settings as a whole, and a missing `audience`
