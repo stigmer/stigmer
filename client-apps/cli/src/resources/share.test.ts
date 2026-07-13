@@ -467,6 +467,79 @@ describe("shareAgent --reset-link (rotatable share token)", () => {
   });
 });
 
+describe("shareAgent cross-org (decision 013)", () => {
+  it("lands the share in the CALLER's org, agent_ref keeps the provider's", async () => {
+    const { client, applies } = fakeClient(makeAgent(), null);
+
+    const result = await shareAgent(client, "acme/support-agent", "consumer-org", {
+      enabled: true,
+      ...CLOUD,
+    });
+
+    expect(applies).toHaveLength(1);
+    // The share is the caller org's channel: its URL, billing, and
+    // credentials — while the blueprint reference stays the provider's.
+    expect(applies[0].org).toBe("consumer-org");
+    expect(applies[0].slug).toBe("support-agent");
+    expect(applies[0].agentRef).toEqual({ org: "acme", slug: "support-agent" });
+
+    const link = result.sections.find((s) => s.title === "Public chat link");
+    expect(link?.items).toEqual(["https://app.stigmer.ai/chat/consumer-org/support-agent"]);
+    expect(result.hints.some((h) => h.includes("consumer-org's credits"))).toBe(true);
+  });
+
+  it("never edits the provider org's own share (canonical resolution is org-scoped)", async () => {
+    // The provider already shares this agent with its own config; the
+    // caller's toggle must create the CALLER org's share, not flip (or
+    // inherit the config of) the provider's row.
+    const providerShare = makeShare({
+      enabled: true,
+      allowedOrigins: ["https://provider.example.com"],
+    });
+    const { client, applies } = fakeClient(makeAgent(), providerShare);
+
+    await shareAgent(client, "acme/support-agent", "consumer-org", {
+      enabled: true,
+      ...CLOUD,
+    });
+
+    expect(applies).toHaveLength(1);
+    expect(applies[0].org).toBe("consumer-org");
+    // Fresh channel, fresh config: the provider's origins must not leak
+    // into the caller org's share.
+    expect(applies[0].allowedOrigins).toEqual([]);
+  });
+
+  it("refuses --audience org with guidance (cross-org shares are public only)", async () => {
+    const { client, applies } = fakeClient(makeAgent(), null);
+
+    const err = await shareAgent(client, "acme/support-agent", "consumer-org", {
+      enabled: true,
+      audience: "org",
+      ...CLOUD,
+    }).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(UsageError);
+    expect((err as Error).message).toContain("agent's own organization");
+    expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
+    expect(applies).toHaveLength(0);
+  });
+
+  it("passes the server's fail-loud dependency refusal through unchanged", async () => {
+    // The D5 sweep names every non-public dependency; the CLI must
+    // surface that message verbatim — it tells the caller exactly what
+    // to ask the provider org to publish.
+    const refusal = new Error(
+      "cannot share acme/support-agent across organizations: it references resources that are not public: skill acme/private-skill",
+    );
+    const { client } = fakeClient(makeAgent(), null, { failWith: refusal });
+
+    await expect(
+      shareAgent(client, "acme/support-agent", "consumer-org", { enabled: true, ...CLOUD }),
+    ).rejects.toThrow(/skill acme\/private-skill/);
+  });
+});
+
 describe("shareAgent errors", () => {
   it("fails fast with org guidance for a bare slug and no org", async () => {
     const { client, applies } = fakeClient(makeAgent(), null);

@@ -638,6 +638,16 @@
         },
         "description": "Rotatable token protecting the share's public link.\n\n Empty means the hosted chat link is the plain `/chat/\u003corg\u003e/\u003cslug\u003e` —\n the behavior of every share created without a token. When set, the\n link only resolves with the matching `?k=\u003ctoken\u003e` query parameter; the\n rotateShareLink RPC generates a fresh value, killing the old link\n immediately. Applies to public-audience shares only (org-audience\n access is governed by live membership instead).\n\n @internal\n Server-generated (rotateShareLink is the sole writer) and deliberately\n in status, not spec: status survives every apply/update verbatim in\n both editions, so a routine manifest apply can never wipe the token\n and silently fail open to the guessable URL. Enforced with the\n allowed_origins pattern — validated at guest mint, stamped into the\n guest JWT, and re-validated against this live value on every\n session/execution create, so rotation revokes live guest tokens on\n their next message. Not a security boundary: rate limits and the org\n credit cap remain the abuse controls; this is a traffic lever for\n over-shared links.",
         "required": false
+      },
+      {
+        "name": "AgentId",
+        "jsonName": "agentId",
+        "protoField": "agent_id",
+        "type": {
+          "kind": "string"
+        },
+        "description": "ID of the agent this share was created against.\n\n Pins the share to the exact agent (by immutable ID) that spec.agent_ref\n resolved to at creation. If that agent is deleted and a different one\n is later created at the same org/slug, the share stops resolving\n instead of silently attaching to the new agent.\n\n @internal\n Server-owned rebind guard (decision 013): agent_ref is org+slug, and\n slugs are reusable after delete — without the pin, a stale share's\n audience, link token, and bound credentials would transfer to whatever\n agent later claims the slug. Stamped once at create (the defaults\n resolver already loads the referenced agent); immutable like agent_ref\n itself; in status so no apply can wipe or forge it (the\n share_link_token posture). Every share-resolution gate (shared\n profile, guest mint, create-time gate, runner elevation) verifies it\n WHEN PRESENT; shares created before this field exists carry an empty\n pin and are tolerated — the same-org delete cascade already guarantees\n a same-org share never outlives its agent, so no backfill is needed.\n Cross-org shares (Phase B) always carry the pin.",
+        "required": false
       }
     ]
   },

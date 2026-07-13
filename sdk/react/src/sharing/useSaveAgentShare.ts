@@ -112,6 +112,12 @@ export interface UseSaveAgentShareReturn {
  * (decision 011 D1). Deleting the share is a separate, destructive
  * operation this hook does not perform.
  *
+ * `shareOrg` selects which org's channel a first save creates and
+ * defaults to the agent's own org. Pass the viewer's org to create a
+ * **cross-org share** (decision 013) — the server then authorizes on the
+ * public agent's `can_execute` plus `can_create_agent_share` in the
+ * sharing org, and bills that org.
+ *
  * Pass `null` for `agent` to produce a stable no-op (useful while the
  * agent is still loading).
  *
@@ -126,6 +132,7 @@ export interface UseSaveAgentShareReturn {
  */
 export function useSaveAgentShare(
   agent: Agent | null,
+  shareOrg?: string,
 ): UseSaveAgentShareReturn {
   const stigmer = useStigmer();
   const [isPending, setIsPending] = useState(false);
@@ -134,6 +141,7 @@ export function useSaveAgentShare(
   const agentOrg = agent?.metadata?.org ?? "";
   const agentSlug = agent?.metadata?.slug ?? "";
   const agentName = agent?.metadata?.name ?? "";
+  const resolvedShareOrg = shareOrg || agentOrg;
 
   const save = useCallback(
     async (
@@ -150,9 +158,9 @@ export function useSaveAgentShare(
           // Identity: the existing share's org/slug when editing (a
           // manifest-created share may carry a non-default slug — apply
           // with the agent's slug would create a SECOND share), the
-          // agent's when creating (the server's own D2 default, made
-          // explicit).
-          org: current?.metadata?.org || agentOrg,
+          // sharing org + the agent's slug when creating (the server's
+          // own D2 default, made explicit).
+          org: current?.metadata?.org || resolvedShareOrg,
           slug: current?.metadata?.slug || agentSlug,
           name: current?.metadata?.name || agentName || agentSlug,
           agentRef: { org: agentOrg, slug: agentSlug },
@@ -179,7 +187,7 @@ export function useSaveAgentShare(
         setIsPending(false);
       }
     },
-    [agentOrg, agentSlug, agentName, stigmer],
+    [agentOrg, agentSlug, agentName, resolvedShareOrg, stigmer],
   );
 
   return { save, isPending, error };

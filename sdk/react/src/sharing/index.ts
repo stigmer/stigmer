@@ -25,6 +25,11 @@ export type {
   UseShareAgentArgs,
   UseShareAgentReturn,
 } from "./useShareAgent.js";
+export { useCreateExternalShareLink } from "./useCreateExternalShareLink.js";
+export type {
+  UseCreateExternalShareLinkArgs,
+  UseCreateExternalShareLinkReturn,
+} from "./useCreateExternalShareLink.js";
 export { useShareToolReadiness } from "./useShareToolReadiness.js";
 export type { ShareToolReadiness } from "./useShareToolReadiness.js";
 // Origin validation moved to @stigmer/sdk (framework-free, shared with the

@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentshare/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_agentshare_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9zdGF0dXMucHJvdG8SIGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxIm0KEEFnZW50U2hhcmVTdGF0dXMSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdBIYChBzaGFyZV9saW5rX3Rva2VuGAEgASgJYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_status]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9zdGF0dXMucHJvdG8SIGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudHNoYXJlLnYxIn8KEEFnZW50U2hhcmVTdGF0dXMSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdBIYChBzaGFyZV9saW5rX3Rva2VuGAEgASgJEhAKCGFnZW50X2lkGAIgASgJYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_status]);
 
 /**
  * AgentShareStatus contains system-managed state for an agent share.
@@ -52,6 +52,32 @@ export type AgentShareStatus = Message<"ai.stigmer.agentic.agentshare.v1.AgentSh
    * @generated from field: string share_link_token = 1;
    */
   shareLinkToken: string;
+
+  /**
+   * ID of the agent this share was created against.
+   *
+   * Pins the share to the exact agent (by immutable ID) that spec.agent_ref
+   * resolved to at creation. If that agent is deleted and a different one
+   * is later created at the same org/slug, the share stops resolving
+   * instead of silently attaching to the new agent.
+   *
+   * @internal
+   * Server-owned rebind guard (decision 013): agent_ref is org+slug, and
+   * slugs are reusable after delete — without the pin, a stale share's
+   * audience, link token, and bound credentials would transfer to whatever
+   * agent later claims the slug. Stamped once at create (the defaults
+   * resolver already loads the referenced agent); immutable like agent_ref
+   * itself; in status so no apply can wipe or forge it (the
+   * share_link_token posture). Every share-resolution gate (shared
+   * profile, guest mint, create-time gate, runner elevation) verifies it
+   * WHEN PRESENT; shares created before this field exists carry an empty
+   * pin and are tolerated — the same-org delete cascade already guarantees
+   * a same-org share never outlives its agent, so no backfill is needed.
+   * Cross-org shares (Phase B) always carry the pin.
+   *
+   * @generated from field: string agent_id = 2;
+   */
+  agentId: string;
 };
 
 /**

@@ -18,6 +18,7 @@ import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
 import { useShareAgent } from "../sharing/useShareAgent.js";
+import { useCreateExternalShareLink } from "../sharing/useCreateExternalShareLink.js";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell.js";
 import { Section } from "../resource-detail/Section.js";
 import { useDetailTabs } from "../resource-detail/useDetailTabs.js";
@@ -137,6 +138,16 @@ export interface AgentDetailViewProps {
    */
   readonly buildShareUrl?: (org: string, slug: string) => string;
   /**
+   * The viewer's active organization slug. When it differs from the
+   * agent's org and the agent is marketplace-public, the kebab gains a
+   * "Create share link" action — the viewer org's own share of this
+   * agent (decision 013): its URL, billing, and credentials, against the
+   * agent org's live blueprint. Omit to disable the cross-org entry
+   * (the same-org Share action is unaffected — it gates on agent
+   * `can_edit`, not on this prop).
+   */
+  readonly viewerOrg?: string;
+  /**
    * Called when the user clicks an instance row in the Instances tab.
    * Typically opens an instance detail panel.
    */
@@ -214,6 +225,7 @@ export function AgentDetailView({
   editable = false,
   onResourceUpdated,
   buildShareUrl,
+  viewerOrg,
   onCreateInstanceClick,
   onInstanceClick,
   onInstanceStartSessionClick,
@@ -325,6 +337,18 @@ export function AgentDetailView({
     onSharingChanged: refetch,
   });
 
+  // Cross-org "Create share link" (decision 013) — the marketplace entry
+  // for another org's public agent. Mutually exclusive with the Share
+  // action above by construction (same-org gates on can_edit; this one
+  // requires viewerOrg != agent org), so both fold into the actions
+  // array unconditionally.
+  const externalShare = useCreateExternalShareLink({
+    agent,
+    viewerOrg: viewerOrg ?? "",
+    buildShareUrl,
+    onSharingChanged: refetch,
+  });
+
   if (isLoading) return <LoadingSkeleton className={className} />;
   if (error)
     return <ErrorMessage error={error} retry={refetch} className={className} />;
@@ -363,8 +387,9 @@ export function AgentDetailView({
     <VisibilityBadge visibility={meta.visibility} />
   ) : undefined;
 
-  // Share precedes Manage access within the "sharing" group.
-  const injectedActions = [share.action, access.action].filter(
+  // Share (or its cross-org sibling) precedes Manage access within the
+  // "sharing" group.
+  const injectedActions = [share.action, externalShare.action, access.action].filter(
     (a): a is NonNullable<typeof a> => a != null,
   );
   const mergedActions =
@@ -427,6 +452,7 @@ export function AgentDetailView({
       </ResourceDetailShell>
       {access.dialog}
       {share.dialog}
+      {externalShare.dialog}
     </>
   );
 }

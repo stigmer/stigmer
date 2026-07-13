@@ -807,6 +807,7 @@ AgentShareStatus contains system-managed state for an agent share.
   type={{
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
     shareLinkToken: { type: "string", description: "Rotatable token protecting the share's public link." },
+    agentId: { type: "string", description: "ID of the agent this share was created against." },
   }}
 />
 

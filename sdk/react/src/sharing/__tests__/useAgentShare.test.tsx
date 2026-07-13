@@ -132,6 +132,67 @@ describe("useAgentShare", () => {
     expect(getByAgent).not.toHaveBeenCalled();
   });
 
+  describe("cross-org share resolution (shareOrg — decision 013)", () => {
+    it("scopes the canonical pick to the sharing org's channel", async () => {
+      // The same agent shared in two orgs: the owner's share AND another
+      // org's external share. Each org's dialog must resolve its own row.
+      const ownerShare = makeShare("support-agent");
+      const externalShare = {
+        metadata: { id: "ash_ext", org: "consumer-org", slug: "support-agent" },
+        spec: { enabled: true },
+      };
+      const getByAgent = vi
+        .fn()
+        .mockResolvedValue({ totalCount: 2, items: [ownerShare, externalShare] });
+      const client = createMockStigmer({ getByAgent });
+
+      const { result } = renderHook(
+        () => useAgentShare(AGENT, "consumer-org"),
+        { wrapper: wrapper(client) },
+      );
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.share).toBe(externalShare);
+    });
+
+    it("resolves null when only OTHER orgs' shares exist — never edits a foreign channel", async () => {
+      const ownerShare = makeShare("support-agent");
+      const getByAgent = vi
+        .fn()
+        .mockResolvedValue({ totalCount: 1, items: [ownerShare] });
+      const client = createMockStigmer({ getByAgent });
+
+      const { result } = renderHook(
+        () => useAgentShare(AGENT, "consumer-org"),
+        { wrapper: wrapper(client) },
+      );
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      // Without the org filter this would fall back to the owner's share
+      // and a save would overwrite the wrong org's configuration.
+      expect(result.current.share).toBeNull();
+    });
+
+    it("defaults shareOrg to the agent's own org (Phase A behavior unchanged)", async () => {
+      const ownerShare = makeShare("support-agent");
+      const externalShare = {
+        metadata: { id: "ash_ext", org: "consumer-org", slug: "support-agent" },
+        spec: { enabled: true },
+      };
+      const getByAgent = vi
+        .fn()
+        .mockResolvedValue({ totalCount: 2, items: [externalShare, ownerShare] });
+      const client = createMockStigmer({ getByAgent });
+
+      const { result } = renderHook(() => useAgentShare(AGENT), {
+        wrapper: wrapper(client),
+      });
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.share).toBe(ownerShare);
+    });
+  });
+
   it("exposes fetch failures as errors", async () => {
     const getByAgent = vi
       .fn()

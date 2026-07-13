@@ -995,6 +995,7 @@ export {
   useRotateShareLink,
   ShareAgentDialog,
   useShareAgent,
+  useCreateExternalShareLink,
   useShareToolReadiness,
   validateOrigin,
   MAX_ALLOWED_ORIGINS,
@@ -1011,6 +1012,8 @@ export type {
   ShareAgentDialogProps,
   UseShareAgentArgs,
   UseShareAgentReturn,
+  UseCreateExternalShareLinkArgs,
+  UseCreateExternalShareLinkReturn,
   ShareToolReadiness,
 } from "./sharing/index.js";
 

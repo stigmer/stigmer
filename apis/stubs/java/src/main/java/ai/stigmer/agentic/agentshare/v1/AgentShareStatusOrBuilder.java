@@ -94,4 +94,62 @@ public interface AgentShareStatusOrBuilder extends
    */
   com.google.protobuf.ByteString
       getShareLinkTokenBytes();
+
+  /**
+   * <pre>
+   * ID of the agent this share was created against.
+   *
+   * Pins the share to the exact agent (by immutable ID) that spec.agent_ref
+   * resolved to at creation. If that agent is deleted and a different one
+   * is later created at the same org/slug, the share stops resolving
+   * instead of silently attaching to the new agent.
+   *
+   * &#64;internal
+   * Server-owned rebind guard (decision 013): agent_ref is org+slug, and
+   * slugs are reusable after delete — without the pin, a stale share's
+   * audience, link token, and bound credentials would transfer to whatever
+   * agent later claims the slug. Stamped once at create (the defaults
+   * resolver already loads the referenced agent); immutable like agent_ref
+   * itself; in status so no apply can wipe or forge it (the
+   * share_link_token posture). Every share-resolution gate (shared
+   * profile, guest mint, create-time gate, runner elevation) verifies it
+   * WHEN PRESENT; shares created before this field exists carry an empty
+   * pin and are tolerated — the same-org delete cascade already guarantees
+   * a same-org share never outlives its agent, so no backfill is needed.
+   * Cross-org shares (Phase B) always carry the pin.
+   * </pre>
+   *
+   * <code>string agent_id = 2 [json_name = "agentId"];</code>
+   * @return The agentId.
+   */
+  java.lang.String getAgentId();
+  /**
+   * <pre>
+   * ID of the agent this share was created against.
+   *
+   * Pins the share to the exact agent (by immutable ID) that spec.agent_ref
+   * resolved to at creation. If that agent is deleted and a different one
+   * is later created at the same org/slug, the share stops resolving
+   * instead of silently attaching to the new agent.
+   *
+   * &#64;internal
+   * Server-owned rebind guard (decision 013): agent_ref is org+slug, and
+   * slugs are reusable after delete — without the pin, a stale share's
+   * audience, link token, and bound credentials would transfer to whatever
+   * agent later claims the slug. Stamped once at create (the defaults
+   * resolver already loads the referenced agent); immutable like agent_ref
+   * itself; in status so no apply can wipe or forge it (the
+   * share_link_token posture). Every share-resolution gate (shared
+   * profile, guest mint, create-time gate, runner elevation) verifies it
+   * WHEN PRESENT; shares created before this field exists carry an empty
+   * pin and are tolerated — the same-org delete cascade already guarantees
+   * a same-org share never outlives its agent, so no backfill is needed.
+   * Cross-org shares (Phase B) always carry the pin.
+   * </pre>
+   *
+   * <code>string agent_id = 2 [json_name = "agentId"];</code>
+   * @return The bytes for agentId.
+   */
+  com.google.protobuf.ByteString
+      getAgentIdBytes();
 }

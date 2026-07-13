@@ -197,6 +197,21 @@ public enum IamPermission
    * <code>can_execute_billing_ops = 29;</code>
    */
   can_execute_billing_ops(29),
+  /**
+   * <pre>
+   * Organization-level permission to create agent shares billed to the
+   * organization.
+   *
+   * Checked only for CROSS-ORG shares (a share of another org's
+   * marketplace-public agent — decision 013): a public share spends the
+   * sharing org's credits on the open internet, an admin-level act.
+   * Same-org shares keep their Phase A bar (can_edit on the agent), which
+   * already implies membership in the agent's org.
+   * </pre>
+   *
+   * <code>can_create_agent_share = 30;</code>
+   */
+  can_create_agent_share(30),
   UNRECOGNIZED(-1),
   ;
 
@@ -381,6 +396,21 @@ public enum IamPermission
    * <code>can_execute_billing_ops = 29;</code>
    */
   public static final int can_execute_billing_ops_VALUE = 29;
+  /**
+   * <pre>
+   * Organization-level permission to create agent shares billed to the
+   * organization.
+   *
+   * Checked only for CROSS-ORG shares (a share of another org's
+   * marketplace-public agent — decision 013): a public share spends the
+   * sharing org's credits on the open internet, an admin-level act.
+   * Same-org shares keep their Phase A bar (can_edit on the agent), which
+   * already implies membership in the agent's org.
+   * </pre>
+   *
+   * <code>can_create_agent_share = 30;</code>
+   */
+  public static final int can_create_agent_share_VALUE = 30;
 
 
   public final int getNumber() {
@@ -436,6 +466,7 @@ public enum IamPermission
       case 27: return can_view_billing;
       case 28: return can_manage_billing;
       case 29: return can_execute_billing_ops;
+      case 30: return can_create_agent_share;
       default: return null;
     }
   }

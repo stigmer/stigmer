@@ -464,6 +464,54 @@ describe("ShareAgentDialog", () => {
     });
   });
 
+  describe("cross-org mode (shareOrg — decision 013)", () => {
+    it("qualifies the agent in the header and hides the audience selector", async () => {
+      // No share yet in the consumer org: the owner's share exists but
+      // belongs to acme, so the consumer's dialog starts never-shared.
+      const client = createMockStigmer({
+        getByAgent: withShare(makeShare({ enabled: true })),
+      });
+      await renderOpenDialog(client, { shareOrg: "consumer-org" });
+
+      // The header names whose blueprint this channel serves.
+      expect(screen.getByText("acme/support-agent")).toBeTruthy();
+      // Cross-org shares are public-audience only — no choice to offer.
+      expect(screen.queryByRole("radiogroup", { hidden: true })).toBeNull();
+    });
+
+    it("builds the link, billing line, and create identity from the sharing org", async () => {
+      const apply = vi.fn().mockResolvedValue({});
+      const client = createMockStigmer({ apply });
+      await renderOpenDialog(client, { shareOrg: "consumer-org" });
+
+      // The hosted URL lives in the sharing org's namespace even before
+      // the first save.
+      expect(
+        screen.getByText("https://app.example.com/chat/consumer-org/support-agent"),
+      ).toBeTruthy();
+      // Who-pays names the sharing org, not the agent's.
+      expect(screen.getByText("consumer-org")).toBeTruthy();
+
+      fireEvent.click(screen.getByRole("switch", { hidden: true }));
+
+      await waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
+      const input = apply.mock.calls[0][0] as AgentShareInput;
+      expect(input.org).toBe("consumer-org");
+      expect(input.agentRef).toEqual({ org: "acme", slug: "support-agent" });
+      expect(input.audience).toBe(AgentShareAudience.public);
+    });
+
+    it("same-org dialogs are unchanged when shareOrg equals the agent's org", async () => {
+      const client = createMockStigmer({
+        getByAgent: withShare(makeShare({ enabled: true })),
+      });
+      await renderOpenDialog(client, { shareOrg: "acme" });
+
+      expect(screen.getByText("Support Agent")).toBeTruthy();
+      expect(screen.getByRole("radiogroup", { hidden: true })).toBeTruthy();
+    });
+  });
+
   it("enabling applies the complete spec and notifies the host", async () => {
     const apply = vi.fn().mockResolvedValue({});
     const onSharingChanged = vi.fn();

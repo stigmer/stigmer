@@ -28,10 +28,15 @@ import (
 //     immutable ID (never reused), so they become inert dangling
 //     references — the same posture sessions and executions already have.
 //
-//   - All AgentShares of the agent. Shares reference the agent by org+slug
-//     (spec.agent_ref), so a stale share would silently rebind — audience,
-//     link token, and bound credentials included — to whatever agent is
-//     later created at that slug.
+//   - The agent's SAME-ORG AgentShares. Shares reference the agent by
+//     org+slug (spec.agent_ref), so a stale share would silently rebind —
+//     audience, link token, and bound credentials included — to whatever
+//     agent is later created at that slug. Cross-org shares (another org
+//     sharing this marketplace-public agent, decision 013) are NOT
+//     cascaded: they are that org's resources, and deleting them here
+//     would make agent delete a cross-principal destructive action. They
+//     fail closed instead — via the dangling-ref check and the
+//     status.agent_id pin every share-resolution gate verifies.
 //
 // Both editions implement this contract; the cloud edition additionally
 // cleans up each child's FGA tuples (no IAM system in OSS).
@@ -116,13 +121,16 @@ func (s *cascadeDeleteDefaultInstanceStep) resolveDefaultInstanceID(ctx *pipelin
 	return ""
 }
 
-// cascadeDeleteSharesStep deletes every AgentShare referencing the agent
-// before the agent is deleted.
+// cascadeDeleteSharesStep deletes the agent's same-org AgentShares before
+// the agent is deleted.
 //
 // Shares are matched by spec.agent_ref (org + the AGENT's slug), which
 // finds them all regardless of each share's own slug — a renamed share
-// stays covered (decision 011, D2). AgentShare is not search-indexed, so
-// there is no index entry to clean.
+// stays covered (decision 011, D2) — and scoped to shares living in the
+// agent's own org: another org's share of this agent is that org's
+// resource to delete, and it fails closed on its own (see the package
+// comment above). AgentShare is not search-indexed, so there is no index
+// entry to clean.
 type cascadeDeleteSharesStep struct {
 	store store.Store
 }
@@ -156,6 +164,11 @@ func (s *cascadeDeleteSharesStep) Execute(ctx *pipeline.RequestContext[*agentv1.
 		}
 		ref := share.GetSpec().GetAgentRef()
 		if ref.GetOrg() != agentOrg || ref.GetSlug() != agentSlug {
+			continue
+		}
+		if share.GetMetadata().GetOrg() != agentOrg {
+			// A cross-org share — another org's resource. Fails closed via
+			// the agent-id pin instead of being deleted here.
 			continue
 		}
 		shareID := share.GetMetadata().GetId()

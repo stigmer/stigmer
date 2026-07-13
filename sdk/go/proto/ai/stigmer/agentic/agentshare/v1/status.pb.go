@@ -48,8 +48,29 @@ type AgentShareStatus struct {
 	// credit cap remain the abuse controls; this is a traffic lever for
 	// over-shared links.
 	ShareLinkToken string `protobuf:"bytes,1,opt,name=share_link_token,json=shareLinkToken,proto3" json:"share_link_token,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// ID of the agent this share was created against.
+	//
+	// Pins the share to the exact agent (by immutable ID) that spec.agent_ref
+	// resolved to at creation. If that agent is deleted and a different one
+	// is later created at the same org/slug, the share stops resolving
+	// instead of silently attaching to the new agent.
+	//
+	// @internal
+	// Server-owned rebind guard (decision 013): agent_ref is org+slug, and
+	// slugs are reusable after delete — without the pin, a stale share's
+	// audience, link token, and bound credentials would transfer to whatever
+	// agent later claims the slug. Stamped once at create (the defaults
+	// resolver already loads the referenced agent); immutable like agent_ref
+	// itself; in status so no apply can wipe or forge it (the
+	// share_link_token posture). Every share-resolution gate (shared
+	// profile, guest mint, create-time gate, runner elevation) verifies it
+	// WHEN PRESENT; shares created before this field exists carry an empty
+	// pin and are tolerated — the same-org delete cascade already guarantees
+	// a same-org share never outlives its agent, so no backfill is needed.
+	// Cross-org shares (Phase B) always carry the pin.
+	AgentId       string `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AgentShareStatus) Reset() {
@@ -96,14 +117,22 @@ func (x *AgentShareStatus) GetShareLinkToken() string {
 	return ""
 }
 
+func (x *AgentShareStatus) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agentshare_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentshare_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/agentshare/v1/status.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\x84\x01\n" +
+	"-ai/stigmer/agentic/agentshare/v1/status.proto\x12 ai.stigmer.agentic.agentshare.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\x9f\x01\n" +
 	"\x10AgentShareStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12(\n" +
-	"\x10share_link_token\x18\x01 \x01(\tR\x0eshareLinkTokenB\xaf\x02\n" +
+	"\x10share_link_token\x18\x01 \x01(\tR\x0eshareLinkToken\x12\x19\n" +
+	"\bagent_id\x18\x02 \x01(\tR\aagentIdB\xaf\x02\n" +
 	"$com.ai.stigmer.agentic.agentshare.v1B\vStatusProtoP\x01ZUgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentshare/v1;agentsharev1\xa2\x02\x04ASAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3"
 
 var (

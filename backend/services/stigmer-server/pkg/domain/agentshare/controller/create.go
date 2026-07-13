@@ -13,15 +13,20 @@ import (
 // Pipeline:
 //  1. ValidateProto - Proto field constraints (incl. the message-level CEL
 //     rule refusing environment_refs on org-audience shares)
-//  2. ResolveShareDefaults - Require org, normalize agent_ref + Phase A
-//     org invariant, load the referenced agent, default slug from it
+//  2. ResolveShareDefaults - Require org, normalize agent_ref, load the
+//     referenced agent, default slug from it; for cross-org shares,
+//     enforce the decision 013 contract (public agent, public audience,
+//     public dependencies)
 //  3. ResolveSlug - Generate slug from metadata.name (skipped when the
 //     defaults step already set it)
 //  4. CheckDuplicate - Org+slug uniqueness; with the agent-slug default
 //     this structurally caps shares at one canonical link per agent per org
 //  5. BuildNewState - Set ID (ash_ prefix), clear status, audit fields
-//  6. NormalizeReferences - Make environment_refs absolute (fill org)
-//  7. Persist - Save the share
+//  6. StampAgentPin - Write status.agent_id (the rebind guard) from the
+//     agent loaded in step 2; after BuildNewState so the wipe of
+//     client-provided status cannot erase it
+//  7. NormalizeReferences - Make environment_refs absolute (fill org)
+//  8. Persist - Save the share
 //
 // No search-index step: agent_share is not_search_indexed by design — a
 // share is channel configuration reached through its agent, not a library
@@ -47,6 +52,7 @@ func (c *AgentShareController) buildCreatePipeline() *pipeline.Pipeline[*agentsh
 		AddStep(steps.NewResolveSlugStep[*agentsharev1.AgentShare]()).
 		AddStep(steps.NewCheckDuplicateStep[*agentsharev1.AgentShare](c.store)).
 		AddStep(steps.NewBuildNewStateStep[*agentsharev1.AgentShare]()).
+		AddStep(&stampAgentPinStep{}).
 		AddStep(steps.NewNormalizeReferencesStep[*agentsharev1.AgentShare]()).
 		AddStep(steps.NewPersistStep[*agentsharev1.AgentShare](c.store)).
 		Build()
