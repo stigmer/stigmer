@@ -85,6 +85,18 @@ export const AgentCommandController: GenService<{
   /**
    * Delete an agent.
    *
+   * Deletion also removes the agent's system-managed default instance and
+   * every AgentShare referencing the agent, so a later agent created at the
+   * same org/slug starts clean. Personal instances and sessions are not
+   * deleted.
+   *
+   * @internal
+   * Cascade order is children-before-parent so a mid-failure retry
+   * converges. Shares are matched by spec.agent_ref (org + agent slug) —
+   * leaving them behind would silently rebind a stale share (audience, link
+   * token, bound credentials) to whatever agent is later created at that
+   * slug. Cloud additionally cleans each cascaded child's FGA tuples.
+   *
    * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.delete
    */
   delete: {

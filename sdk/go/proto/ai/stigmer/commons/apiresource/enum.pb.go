@@ -185,9 +185,19 @@ const (
 	// marked defaults_to_org_visibility default to visibility_org; all other
 	// kinds default to visibility_private.
 	ApiResourceVisibility_api_resource_visibility_unspecified ApiResourceVisibility = 0
-	// Only the owner (and explicitly granted principals) can access.
+	// Only the owner, explicitly granted principals, and — for blueprint kinds
+	// in the cloud edition — org admins can access.
 	// This is the default for instances and personal resources.
+	//
+	// Org admins count as owners of blueprint kinds (agent, agent_share,
+	// skill, workflow, project, mcp_server), so a private blueprint stays
+	// manageable — and visible — to its org's admins. Personal kinds
+	// (instances, environments, sessions) stay creator-only.
+	//
+	// @internal
 	// Named visibility_private to avoid Java reserved keyword conflict.
+	// Admin inheritance is the FGA-model composition
+	// `owner: [identity_account] or admin from organization` (T08).
 	ApiResourceVisibility_visibility_private ApiResourceVisibility = 1
 	// Anyone can access (read) this resource.
 	// Used for marketplace-published resources (e.g., "stigmer/web-search").

@@ -16,6 +16,9 @@ import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentex
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
+import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
+import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
@@ -33,6 +36,11 @@ import { tagVersion } from "./tag.js";
 
 const knownAgent = create(AgentSchema, {
   metadata: { name: "Reviewer", slug: "reviewer", org: "acme", id: "agt_1" },
+});
+
+const knownInstance = create(AgentInstanceSchema, {
+  metadata: { name: "reviewer-default", slug: "reviewer-default", org: "acme", id: "ain_1" },
+  spec: { agentId: "agt_1" },
 });
 
 const knownMcp = create(McpServerSchema, {
@@ -84,6 +92,20 @@ beforeAll(async () => {
     });
     router.service(AgentCommandController, {
       delete: () => knownAgent,
+    });
+
+    router.service(AgentInstanceQueryController, {
+      get: (req) => {
+        if (req.value !== "ain_1") throw new ConnectError("agent instance not found", Code.NotFound);
+        return knownInstance;
+      },
+      getByReference: (req) => {
+        if (req.slug !== "reviewer-default") throw new ConnectError("agent instance not found", Code.NotFound);
+        return knownInstance;
+      },
+    });
+    router.service(AgentInstanceCommandController, {
+      delete: () => knownInstance,
     });
 
     router.service(McpServerQueryController, {
@@ -161,6 +183,17 @@ describe("delete (standard kinds)", () => {
   it("resolves an agent by org/slug for the pre-Get", async () => {
     const plan = await planDelete(client, "agent", "reviewer", "acme");
     expect((await plan.perform()).status).toBe("success");
+  });
+
+  it("describes then deletes an agent instance by org/slug", async () => {
+    const plan = await planDelete(client, "agent-instance", "reviewer-default", "acme");
+
+    expect(plan.warning.status).toBe("warning");
+    expect(plan.warning.sections[0].fields).toContainEqual({ key: "ID", value: "ain_1" });
+
+    const result = await plan.perform();
+    expect(result.status).toBe("success");
+    expect(result.message).toBe("Agent Instance deleted successfully");
   });
 
   it("deletes an MCP server via the DeleteResourceInput shape", async () => {

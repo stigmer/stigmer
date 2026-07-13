@@ -11,6 +11,8 @@ import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
+import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
@@ -33,6 +35,13 @@ const knownAgent = create(AgentSchema, {
   kind: "Agent",
   metadata: { name: "Reviewer", slug: "reviewer", org: "acme", id: "agt_1" },
   spec: { description: "reviews code" },
+});
+
+const knownInstance = create(AgentInstanceSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "AgentInstance",
+  metadata: { name: "reviewer-default", slug: "reviewer-default", org: "acme", id: "ain_1" },
+  spec: { agentId: "agt_1", description: "Default instance (auto-created, no custom configuration)" },
 });
 
 const knownOrg = create(OrganizationSchema, {
@@ -72,6 +81,20 @@ beforeAll(async () => {
       getByReference: (req) => {
         if (req.slug !== "reviewer") throw new ConnectError("agent not found", Code.NotFound);
         return knownAgent;
+      },
+    });
+    router.service(AgentInstanceQueryController, {
+      get: (req) => {
+        if (req.value !== "ain_1") throw new ConnectError("agent instance not found", Code.NotFound);
+        return knownInstance;
+      },
+      getByReference: (req) => {
+        if (req.slug !== "reviewer-default") throw new ConnectError("agent instance not found", Code.NotFound);
+        return knownInstance;
+      },
+      list: (req) => {
+        if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
+        return { totalCount: 1, items: [knownInstance] };
       },
     });
     router.service(SearchService, {
@@ -114,6 +137,24 @@ describe("get integration", () => {
     const { message } = await fetchResource(client, ApiResourceKind.agent, { kind: "id", id: "agt_1" });
     expect(JSON.parse(renderResource(AgentSchema, message, "json"))).toMatchObject({
       metadata: { id: "agt_1" },
+    });
+  });
+
+  it("fetches an agent instance by org/slug and renders backend protojson", async () => {
+    const { schema, message } = await fetchResource(client, ApiResourceKind.agent_instance, {
+      kind: "ref",
+      org: "acme",
+      slug: "reviewer-default",
+    });
+    const rendered = JSON.parse(renderResource(schema, message, "json"));
+    expect(rendered).toEqual(toJson(AgentInstanceSchema, knownInstance, { useProtoFieldName: true }));
+  });
+
+  it("fetches an agent instance by ID", async () => {
+    const { message } = await fetchResource(client, ApiResourceKind.agent_instance, { kind: "id", id: "ain_1" });
+    expect(JSON.parse(renderResource(AgentInstanceSchema, message, "json"))).toMatchObject({
+      metadata: { id: "ain_1" },
+      spec: { agent_id: "agt_1" },
     });
   });
 
@@ -160,5 +201,17 @@ describe("list integration", () => {
     const out = await listResources(client, ApiResourceKind.agent, "acme", 50, "table");
     expect(out).toContain("NAME");
     expect(out).toContain("acme/reviewer");
+  });
+
+  it("lists agent instances via the dedicated list RPC as JSON", async () => {
+    const out = await listResources(client, ApiResourceKind.agent_instance, "acme", 50, "json");
+    expect(JSON.parse(out)).toEqual([toJson(AgentInstanceSchema, knownInstance, { useProtoFieldName: true })]);
+  });
+
+  it("renders a human table for agent instances with their parent agent", async () => {
+    const out = await listResources(client, ApiResourceKind.agent_instance, "acme", 50, "table");
+    expect(out).toContain("AGENT");
+    expect(out).toContain("reviewer-default");
+    expect(out).toContain("agt_1");
   });
 });

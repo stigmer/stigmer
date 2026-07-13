@@ -11,15 +11,24 @@ import (
 
 // Delete deletes an agent by ID using the pipeline pattern.
 //
+// Deletion cascades to the agent's org+slug-resolved children — the
+// system-managed default instance and all AgentShares — before the agent
+// row itself is removed. Personal instances are deliberately not cascaded;
+// see delete_cascade.go for the full contract (shared with the cloud
+// edition).
+//
 // Pipeline Steps:
 // 1. ValidateProto - Validate proto field constraints (agent ID wrapper)
 // 2. ExtractResourceId - Extract ID from AgentId.Value wrapper
 // 3. LoadExistingForDelete - Load agent from database (stores in context)
-// 4. DeleteResource - Delete agent from database
+// 4. CascadeDeleteDefaultInstance - Delete the default instance (children before parent)
+// 5. CascadeDeleteShares - Delete the agent's shares
+// 6. DeleteResource - Delete agent from database
+// 7. DeleteSearchIndex - Remove from search index
 //
 // Note: Unlike Stigmer Cloud, OSS excludes:
 // - Authorization step (no multi-user auth)
-// - IAM policy cleanup (no IAM system)
+// - IAM policy cleanup (no IAM system; cloud also cleans each cascaded child's tuples)
 // - Event publishing (no event system)
 //
 // The deleted agent is returned for audit trail purposes (gRPC convention).
@@ -54,7 +63,9 @@ func (c *AgentController) buildDeletePipeline() *pipeline.Pipeline[*agentv1.Agen
 		AddStep(steps.NewValidateProtoStep[*agentv1.AgentId]()).                                // 1. Validate field constraints
 		AddStep(steps.NewExtractResourceIdStep[*agentv1.AgentId]()).                            // 2. Extract ID from wrapper
 		AddStep(steps.NewLoadExistingForDeleteStep[*agentv1.AgentId, *agentv1.Agent](c.store)). // 3. Load agent
-		AddStep(steps.NewDeleteResourceStep[*agentv1.AgentId](c.store)).                        // 4. Delete from database
-		AddStep(steps.NewDeleteSearchIndexStep[*agentv1.AgentId](c.store)).                     // 5. Remove from search index
+		AddStep(newCascadeDeleteDefaultInstanceStep(c.store)).                                  // 4. Cascade: default instance before parent
+		AddStep(newCascadeDeleteSharesStep(c.store)).                                           // 5. Cascade: shares before parent
+		AddStep(steps.NewDeleteResourceStep[*agentv1.AgentId](c.store)).                        // 6. Delete from database
+		AddStep(steps.NewDeleteSearchIndexStep[*agentv1.AgentId](c.store)).                     // 7. Remove from search index
 		Build()
 }

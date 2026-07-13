@@ -59,6 +59,18 @@ type AgentCommandControllerClient interface {
 	// Authorization: Requires can_edit permission on the agent resource.
 	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Agent, error)
 	// Delete an agent.
+	//
+	// Deletion also removes the agent's system-managed default instance and
+	// every AgentShare referencing the agent, so a later agent created at the
+	// same org/slug starts clean. Personal instances and sessions are not
+	// deleted.
+	//
+	// @internal
+	// Cascade order is children-before-parent so a mid-failure retry
+	// converges. Shares are matched by spec.agent_ref (org + agent slug) —
+	// leaving them behind would silently rebind a stale share (audience, link
+	// token, bound credentials) to whatever agent is later created at that
+	// slug. Cloud additionally cleans each cascaded child's FGA tuples.
 	Delete(ctx context.Context, in *AgentId, opts ...grpc.CallOption) (*Agent, error)
 }
 
@@ -152,6 +164,18 @@ type AgentCommandControllerServer interface {
 	// Authorization: Requires can_edit permission on the agent resource.
 	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Agent, error)
 	// Delete an agent.
+	//
+	// Deletion also removes the agent's system-managed default instance and
+	// every AgentShare referencing the agent, so a later agent created at the
+	// same org/slug starts clean. Personal instances and sessions are not
+	// deleted.
+	//
+	// @internal
+	// Cascade order is children-before-parent so a mid-failure retry
+	// converges. Shares are matched by spec.agent_ref (org + agent slug) —
+	// leaving them behind would silently rebind a stale share (audience, link
+	// token, bound credentials) to whatever agent is later created at that
+	// slug. Cloud additionally cleans each cascaded child's FGA tuples.
 	Delete(context.Context, *AgentId) (*Agent, error)
 }
 

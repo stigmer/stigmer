@@ -5,6 +5,7 @@
 
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
@@ -24,6 +25,7 @@ type Getter = (client: Stigmer, ref: ParsedReference) => Promise<ResourceResult>
 
 const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
   [ApiResourceKind.agent, refGetter(ApiResourceKind.agent, AgentSchema, (c) => c.agent)],
+  [ApiResourceKind.agent_instance, refGetter(ApiResourceKind.agent_instance, AgentInstanceSchema, (c) => c.agentInstance)],
   [ApiResourceKind.workflow, refGetter(ApiResourceKind.workflow, WorkflowSchema, (c) => c.workflow)],
   [ApiResourceKind.mcp_server, refGetter(ApiResourceKind.mcp_server, McpServerSchema, (c) => c.mcpServer)],
   [ApiResourceKind.project, refGetter(ApiResourceKind.project, ProjectSchema, (c) => c.project)],

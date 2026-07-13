@@ -81,6 +81,7 @@ type Actors struct {
 	ownerConn grpc.ClientConnInterface
 
 	owner    *Actor
+	admin    *Actor
 	member   *Actor
 	stranger *Actor
 }
@@ -104,6 +105,18 @@ func NewActors(t *testing.T, ctx context.Context, ownerConn grpc.ClientConnInter
 
 // Owner returns the tokenless synthetic caller that owns TestOrg.
 func (a *Actors) Owner() *Actor { return a.owner }
+
+// Admin returns a TestOrg admin: a JIT-provisioned account granted the admin
+// role on TestOrg. Since T08, org admins inherit `owner` on blueprint kinds
+// (agent, agent_share, skill, workflow, project — the
+// `admin from organization` composition), so this is the actor that proves
+// admin inheritance through the real service + FGA. Cached after first call.
+func (a *Actors) Admin() *Actor {
+	if a.admin == nil {
+		a.admin = a.mintActor("admin", true, iamv1.IamRole_admin)
+	}
+	return a.admin
+}
 
 // Member returns a TestOrg member: a JIT-provisioned account granted the member
 // role on TestOrg, so it satisfies the organization:<org>#member userset that

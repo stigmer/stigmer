@@ -128,9 +128,11 @@ func (s *createDefaultInstanceStep) Execute(ctx *pipeline.RequestContext[*agentv
 		},
 	}
 
-	// Use Apply (not Create) for idempotency. If an orphaned instance with
-	// this slug exists from a prior agent deletion that didn't cascade,
-	// Apply recovers it by updating the agent_id to point to the new agent.
+	// Use Apply (not Create) for idempotency. Agent delete now cascades the
+	// default instance, so this normally routes to CREATE; the UPDATE route
+	// remains as self-heal for pre-cascade legacy orphans (self-hosters
+	// upgrading across the T08 release) — Apply recovers such an orphan by
+	// re-pointing its agent_id at the new agent.
 	applied, err := s.agentInstanceClient.ApplyAsSystem(ctx.Context(), instanceRequest)
 	if err != nil {
 		return fmt.Errorf("failed to apply default instance: %w", err)
