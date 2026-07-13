@@ -38,6 +38,7 @@ type mcpInputField struct {
 	oneofGroup         string // non-empty when this field belongs to a proto oneof group
 	enumType           string // fully-qualified proto enum type (e.g., "ai.stigmer.agentic.workflow.v1.WorkflowTaskKind")
 	isStruct           bool   // true when the proto field is google.protobuf.Struct
+	isValue            bool   // true when the proto field is google.protobuf.Value
 	isTimestamp        bool   // true when the proto field is google.protobuf.Timestamp
 	isExpandedConfig   bool   // true when this field is a typed config from expand-struct expansion
 	useExportedToProto bool   // true when this field references a cross-package input type with exported ToProto()
@@ -214,6 +215,11 @@ func (m *mcpGen) resolveField(f *FieldSchema) *mcpInputField {
 		m.ensureMessageInputType(f.Type.ElementType.MessageType, inputName)
 		field.goType = "[]" + inputName
 		field.inputTypeName = inputName
+
+	// google.protobuf.Value → arbitrary JSON (string, number, object, array, ...)
+	case f.Type.Kind == "message" && f.Type.MessageType == "Value":
+		field.goType = "any"
+		field.isValue = true
 
 	// Singular message
 	case f.Type.Kind == "message":

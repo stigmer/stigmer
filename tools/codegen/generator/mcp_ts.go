@@ -123,6 +123,7 @@ type tsField struct {
 	refVersioned bool
 	enumType     string // fully-qualified proto enum type
 	isStruct     bool
+	isValue      bool
 	isTimestamp  bool
 	scalar       string // scalar leaf goType when none of the above
 	isInt64      bool
@@ -142,12 +143,16 @@ func (m *mcpGen) classifyField(f *mcpInputField) tsField {
 		tf.oneof = tsProtoFieldName(f.oneofGroup)
 	}
 
-	// Struct (google.protobuf.Struct) and Timestamp are leaf kinds whose Go type
-	// (map[string]any / string) would otherwise be misread as a collection, so
-	// they are classified before any collection-prefix inspection.
+	// Struct (google.protobuf.Struct), Value (google.protobuf.Value), and
+	// Timestamp are leaf kinds whose Go type (map[string]any / any / string)
+	// would otherwise be misread as a collection or scalar, so they are
+	// classified before any collection-prefix inspection.
 	switch {
 	case f.isStruct:
 		tf.isStruct = true
+		return tf
+	case f.isValue:
+		tf.isValue = true
 		return tf
 	case f.isTimestamp:
 		tf.isTimestamp = true
@@ -395,6 +400,9 @@ func (m *mcpGen) tsZodLeaf(tf tsField, imports *tsImportSet) string {
 		return "z.string()"
 	case tf.isStruct:
 		return "z.record(z.unknown())"
+	case tf.isValue:
+		// google.protobuf.Value accepts any JSON shape (string, object, array, ...).
+		return "z.unknown()"
 	case tf.isTimestamp:
 		return "z.string()"
 	default:
@@ -454,6 +462,8 @@ func (m *mcpGen) tsTypeLeaf(tf tsField) string {
 		leaf = "string"
 	case tf.isStruct:
 		leaf = "Record<string, unknown>"
+	case tf.isValue:
+		leaf = "unknown"
 	case tf.isTimestamp:
 		leaf = "string"
 	default:
@@ -586,6 +596,13 @@ func (m *mcpGen) genTSFieldAssign(w *bytes.Buffer, tf tsField, dst string, impor
 		imports.addType("@bufbuild/protobuf", "JsonObject")
 		fmt.Fprintf(w, "  if (%s !== undefined) %s.%s = %s as JsonObject;\n", in, dst, tf.camel, in)
 
+	case tf.isValue:
+		// fromJson builds the google.protobuf.Value wrapper the proto field expects.
+		imports.addValue("@bufbuild/protobuf", "fromJson")
+		imports.addType("@bufbuild/protobuf", "JsonValue")
+		imports.addValue("@bufbuild/protobuf/wkt", "ValueSchema")
+		fmt.Fprintf(w, "  if (%s !== undefined) %s.%s = fromJson(ValueSchema, %s as JsonValue);\n", in, dst, tf.camel, in)
+
 	case tf.isTimestamp:
 		imports.addValue("./apply-runtime.js", "toTimestamp")
 		fmt.Fprintf(w, "  if (%s !== undefined) %s.%s = toTimestamp(%s);\n", in, dst, tf.camel, in)
@@ -627,6 +644,11 @@ func (m *mcpGen) tsLeafValueExpr(tf tsField, in string, imports *tsImportSet) st
 	switch {
 	case tf.nested != nil:
 		return tsToProtoFn(tf.nested) + "(" + in + ")"
+	case tf.isValue:
+		imports.addValue("@bufbuild/protobuf", "fromJson")
+		imports.addType("@bufbuild/protobuf", "JsonValue")
+		imports.addValue("@bufbuild/protobuf/wkt", "ValueSchema")
+		return "fromJson(ValueSchema, " + in + " as JsonValue)"
 	case tf.isTimestamp:
 		imports.addValue("./apply-runtime.js", "toTimestamp")
 		return "toTimestamp(" + in + ")"
