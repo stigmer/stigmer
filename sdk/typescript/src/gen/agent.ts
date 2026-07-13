@@ -7,9 +7,9 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
-import { AgentIdSchema, UpdateAgentSharingInputSchema, RotateShareLinkInputSchema, GetDefaultAgentRequestSchema, GetSharedProfileRequestSchema, SharedAgentProfileSchema, type UpdateAgentSharingInput, type RotateShareLinkInput, type GetDefaultAgentRequest, type GetSharedProfileRequest, type SharedAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { AgentIdSchema, GetDefaultAgentRequestSchema, type GetDefaultAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import { AgentSpecSchema, AgentSharingAudience, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema, AgentSharingMessagesSchema, AgentSharingSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
@@ -55,18 +55,6 @@ export class AgentClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async updateSharing(input: UpdateAgentSharingInput): Promise<Agent> {
-    try {
-      return await this.command.updateSharing(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async rotateShareLink(input: RotateShareLinkInput): Promise<Agent> {
-    try {
-      return await this.command.rotateShareLink(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
   async delete(id: string): Promise<Agent> {
     try {
       return await this.command.delete(create(AgentIdSchema, { value: id }));
@@ -88,18 +76,6 @@ export class AgentClient {
   async getDefault(input: GetDefaultAgentRequest): Promise<Agent> {
     try {
       return await this.query.getDefault(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async getSharedProfile(input: GetSharedProfileRequest): Promise<SharedAgentProfile> {
-    try {
-      return await this.query.getSharedProfile(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
-  async getSharedProfileForMember(ref: ResourceRef): Promise<SharedAgentProfile> {
-    try {
-      return await this.query.getSharedProfileForMember(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.agent }));
     } catch (e) { throw wrapError(e); }
   }
 
@@ -136,7 +112,6 @@ export interface AgentInput {
   skillRefs?: ResourceRef[];
   subAgents?: SubAgentInput[];
   env?: Record<string, EnvVarDeclarationInput>;
-  sharing?: AgentSharingInput;
 }
 
 /** SDK input type for McpServerUsage. */
@@ -174,21 +149,6 @@ export interface EnvVarDeclarationInput {
   isSecret?: boolean;
   description?: string;
   optional?: boolean;
-}
-
-/** SDK input type for AgentSharing. */
-export interface AgentSharingInput {
-  enabled?: boolean;
-  allowedOrigins?: string[];
-  messages?: AgentSharingMessagesInput;
-  audience?: AgentSharingAudience;
-}
-
-/** SDK input type for AgentSharingMessages. */
-export interface AgentSharingMessagesInput {
-  rateLimited?: string;
-  unavailable?: string;
-  conversationEnded?: string;
 }
 
 function buildToolApprovalOverrideProto(input: ToolApprovalOverrideInput) {
@@ -233,23 +193,6 @@ function buildEnvVarDeclarationProto(input: EnvVarDeclarationInput) {
   }));
 }
 
-function buildAgentSharingMessagesProto(input: AgentSharingMessagesInput) {
-  return Object.assign(create(AgentSharingMessagesSchema), stripUndefined({
-    rateLimited: input.rateLimited,
-    unavailable: input.unavailable,
-    conversationEnded: input.conversationEnded,
-  }));
-}
-
-function buildAgentSharingProto(input: AgentSharingInput) {
-  const msg = create(AgentSharingSchema);
-  if (input.enabled !== undefined) msg.enabled = input.enabled;
-  if (input.allowedOrigins) msg.allowedOrigins = input.allowedOrigins;
-  if (input.messages) msg.messages = buildAgentSharingMessagesProto(input.messages);
-  if (input.audience !== undefined) msg.audience = input.audience;
-  return msg;
-}
-
 export function buildAgentProto(input: AgentInput): Agent {
   const mcpServerUsages = input.mcpServerUsages?.map(buildMcpServerUsageProto);
   const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
@@ -258,7 +201,6 @@ export function buildAgentProto(input: AgentInput): Agent {
   if (input.env) {
     env = Object.fromEntries(Object.entries(input.env).map(([k, v]) => [k, buildEnvVarDeclarationProto(v)]));
   }
-  const sharing = input.sharing ? buildAgentSharingProto(input.sharing) : undefined;
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -277,7 +219,6 @@ export function buildAgentProto(input: AgentInput): Agent {
       skillRefs,
       subAgents,
       env,
-      sharing,
     })),
   }) as Agent;
 }

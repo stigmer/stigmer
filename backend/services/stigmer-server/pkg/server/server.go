@@ -15,6 +15,7 @@ import (
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
+	agentsharev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1"
 	artifactv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/artifact/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
@@ -36,6 +37,8 @@ import (
 	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/controller"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/controller"
+	agentsharecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentshare/controller"
+	agentsharemigration "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentshare/migration"
 	artifactcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/controller"
 	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
@@ -302,6 +305,13 @@ func Run() error {
 
 	log.Info().Msg("Registered Agent controllers")
 
+	// Create and register AgentShare controller
+	agentShareController := agentsharecontroller.NewAgentShareController(store)
+	agentsharev1.RegisterAgentShareCommandControllerServer(grpcServer, agentShareController)
+	agentsharev1.RegisterAgentShareQueryControllerServer(grpcServer, agentShareController)
+
+	log.Info().Msg("Registered AgentShare controllers")
+
 	// Register AgentExecution controller (created earlier for Temporal worker dependency)
 	agentexecutionv1.RegisterAgentExecutionCommandControllerServer(grpcServer, agentExecutionController)
 	agentexecutionv1.RegisterAgentExecutionQueryControllerServer(grpcServer, agentExecutionController)
@@ -438,6 +448,18 @@ func Run() error {
 		log.Warn().Err(err).Msg("Failed to rebuild search index at startup")
 	} else {
 		log.Info().Int("indexed", indexed).Msg("Search index rebuilt at startup")
+	}
+
+	// ============================================================================
+	// One-time data migrations
+	// ============================================================================
+	// Convert legacy Agent.spec.sharing embeddings into AgentShare resources
+	// (decision 011 promotion). Gated on bootstrap_state, so databases created
+	// after the promotion pay one key lookup and nothing else.
+	if result, err := agentsharemigration.BootstrapAgentShares(context.Background(), store); err != nil {
+		log.Error().Err(err).Msg("Agent share backfill failed — legacy shares stay embedded until the next startup")
+	} else if result.Converted > 0 {
+		log.Info().Str("result", result.String()).Msg("Converted legacy agent sharing configs to AgentShare resources")
 	}
 
 	// Create the reconciliation resource deleter for orphan pruning

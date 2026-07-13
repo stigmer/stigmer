@@ -37,16 +37,6 @@ class AgentCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
                 _registered_method=True)
-        self.updateSharing = channel.unary_unary(
-                '/ai.stigmer.agentic.agent.v1.AgentCommandController/updateSharing',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.UpdateAgentSharingInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
-                _registered_method=True)
-        self.rotateShareLink = channel.unary_unary(
-                '/ai.stigmer.agentic.agent.v1.AgentCommandController/rotateShareLink',
-                request_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.RotateShareLinkInput.SerializeToString,
-                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
-                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.agent.v1.AgentCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.AgentId.SerializeToString,
@@ -103,52 +93,6 @@ class AgentCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def updateSharing(self, request, context):
-        """Update the sharing configuration of an existing agent.
-
-        This is a targeted spec update — it only modifies spec.sharing, leaving
-        the rest of the spec, metadata, and status untouched. Use this to enable
-        or revoke anyone-with-link access to the agent's hosted chat without
-        sending the entire agent resource (avoiding read-modify-write races).
-
-        Sharing is a distinct consent from visibility: updateVisibility governs
-        who can read the blueprint (marketplace), updateSharing governs who can
-        chat with the runtime. Conversations over a shared link bill the owning
-        organization's credits.
-
-        @internal
-        Authorization: Requires can_edit permission on the agent resource —
-        the same bar as updateVisibility, since both broaden access.
-        No FGA tuples are written on share; enforcement is app-level in the
-        getSharedProfile handler (see AgentSharing in spec.proto).
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def rotateShareLink(self, request, context):
-        """Rotate the share-link token of an existing agent.
-
-        Generates a fresh server-side token for the agent's hosted chat link.
-        The share URL becomes `/chat/<org>/<slug>?k=<token>` and the previous
-        link (tokened or plain) stops working immediately — including for
-        visitors mid-conversation. Use this to kill a leaked or over-shared
-        public link without disabling sharing or renaming the agent.
-
-        The token lives in status.share_link_token, so manifest applies never
-        reset it. Rotation affects public-audience shares only; org-audience
-        access is governed by live org membership instead.
-
-        @internal
-        Authorization: requires can_edit on the agent — the same bar as
-        updateSharing, since both control shared-link access. The handler is
-        the sole writer of status.share_link_token (server-generated entropy;
-        clients never supply the token).
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
     def delete(self, request, context):
         """Delete an agent.
         """
@@ -177,16 +121,6 @@ def add_AgentCommandControllerServicer_to_server(servicer, server):
             'updateVisibility': grpc.unary_unary_rpc_method_handler(
                     servicer.updateVisibility,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.SerializeToString,
-            ),
-            'updateSharing': grpc.unary_unary_rpc_method_handler(
-                    servicer.updateSharing,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.UpdateAgentSharingInput.FromString,
-                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.SerializeToString,
-            ),
-            'rotateShareLink': grpc.unary_unary_rpc_method_handler(
-                    servicer.rotateShareLink,
-                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.RotateShareLinkInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -303,60 +237,6 @@ class AgentCommandController(object):
             target,
             '/ai.stigmer.agentic.agent.v1.AgentCommandController/updateVisibility',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def updateSharing(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.agentic.agent.v1.AgentCommandController/updateSharing',
-            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.UpdateAgentSharingInput.SerializeToString,
-            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def rotateShareLink(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ai.stigmer.agentic.agent.v1.AgentCommandController/rotateShareLink',
-            ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_io__pb2.RotateShareLinkInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agent_dot_v1_dot_api__pb2.Agent.FromString,
             options,
             channel_credentials,

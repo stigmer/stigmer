@@ -574,6 +574,7 @@ reordering without requiring drag-and-drop libraries.
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
     disabled: { type: "boolean", description: "Disable all interactions." },
+    filterEnvironment: { type: "(environment: Environment) => boolean", description: "Restrict which environments are offered in the dropdown. Already selected references remain listed (and removable) even when they no longer pass the filter — hiding them would strand the binding. When omitted, every environment in the org is offered (the default behavior of every existing caller)." },
     onChange: { type: "(refs: ResourceRef[]) => void", description: "Called when the selection changes.", required: true },
     org: { type: "string", description: "Organization slug to list environments from.", required: true },
     value: { type: "readonly ResourceRef[]", description: "Currently selected environment references, in merge order.", required: true },

@@ -16,6 +16,21 @@ export interface EnvironmentPickerProps {
   readonly onChange: (refs: ResourceRef[]) => void;
   /** Disable all interactions. */
   readonly disabled?: boolean;
+  /**
+   * Restrict which environments are offered in the dropdown. Already
+   * selected references remain listed (and removable) even when they no
+   * longer pass the filter — hiding them would strand the binding.
+   * When omitted, every environment in the org is offered (the default
+   * behavior of every existing caller).
+   *
+   * @example Only org-shared environments (guest-usable credentials):
+   * ```tsx
+   * filterEnvironment={(env) =>
+   *   env.metadata?.visibility === ApiResourceVisibility.visibility_org
+   * }
+   * ```
+   */
+  readonly filterEnvironment?: (environment: Environment) => boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -44,6 +59,7 @@ export function EnvironmentPicker({
   value,
   onChange,
   disabled = false,
+  filterEnvironment,
   className,
 }: EnvironmentPickerProps) {
   const { environments, isLoading } = useEnvironmentList(org);
@@ -55,8 +71,13 @@ export function EnvironmentPicker({
   );
 
   const availableEnvironments = useMemo(
-    () => environments.filter((env) => !selectedSlugs.has(env.metadata?.slug ?? "")),
-    [environments, selectedSlugs],
+    () =>
+      environments.filter(
+        (env) =>
+          !selectedSlugs.has(env.metadata?.slug ?? "") &&
+          (filterEnvironment?.(env) ?? true),
+      ),
+    [environments, selectedSlugs, filterEnvironment],
   );
 
   const handleAdd = useCallback(

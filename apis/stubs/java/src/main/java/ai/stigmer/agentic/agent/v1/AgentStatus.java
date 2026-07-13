@@ -33,7 +33,6 @@ private static final long serialVersionUID = 0L;
   }
   private AgentStatus() {
     defaultInstanceId_ = "";
-    shareLinkToken_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -146,91 +145,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int SHARE_LINK_TOKEN_FIELD_NUMBER = 2;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object shareLinkToken_ = "";
-  /**
-   * <pre>
-   * Rotatable token protecting the agent's public share link.
-   *
-   * Empty means the hosted chat link is the plain `/chat/&lt;org&gt;/&lt;slug&gt;` —
-   * the behavior of every share created before this field existed. When
-   * set, the link only resolves with the matching `?k=&lt;token&gt;` query
-   * parameter; the rotateShareLink RPC generates a fresh value, killing
-   * the old link immediately. Applies to public-audience shares only
-   * (org-audience access is governed by live membership instead).
-   *
-   * &#64;internal
-   * Server-generated (rotateShareLink is the sole writer) and deliberately
-   * in status, not spec.sharing: status survives every apply/update
-   * verbatim in both editions, so a routine manifest apply can never wipe
-   * the token and silently fail open to the guessable URL. Enforced with
-   * the allowed_origins pattern — validated at guest mint, stamped into
-   * the guest JWT, and re-validated against this live value on every
-   * session/execution create, so rotation revokes live guest tokens on
-   * their next message. Not a security boundary: rate limits and the org
-   * credit cap remain the abuse controls; this is a traffic lever for
-   * over-shared links.
-   * </pre>
-   *
-   * <code>string share_link_token = 2 [json_name = "shareLinkToken"];</code>
-   * @return The shareLinkToken.
-   */
-  @java.lang.Override
-  public java.lang.String getShareLinkToken() {
-    java.lang.Object ref = shareLinkToken_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      shareLinkToken_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * Rotatable token protecting the agent's public share link.
-   *
-   * Empty means the hosted chat link is the plain `/chat/&lt;org&gt;/&lt;slug&gt;` —
-   * the behavior of every share created before this field existed. When
-   * set, the link only resolves with the matching `?k=&lt;token&gt;` query
-   * parameter; the rotateShareLink RPC generates a fresh value, killing
-   * the old link immediately. Applies to public-audience shares only
-   * (org-audience access is governed by live membership instead).
-   *
-   * &#64;internal
-   * Server-generated (rotateShareLink is the sole writer) and deliberately
-   * in status, not spec.sharing: status survives every apply/update
-   * verbatim in both editions, so a routine manifest apply can never wipe
-   * the token and silently fail open to the guessable URL. Enforced with
-   * the allowed_origins pattern — validated at guest mint, stamped into
-   * the guest JWT, and re-validated against this live value on every
-   * session/execution create, so rotation revokes live guest tokens on
-   * their next message. Not a security boundary: rate limits and the org
-   * credit cap remain the abuse controls; this is a traffic lever for
-   * over-shared links.
-   * </pre>
-   *
-   * <code>string share_link_token = 2 [json_name = "shareLinkToken"];</code>
-   * @return The bytes for shareLinkToken.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getShareLinkTokenBytes() {
-    java.lang.Object ref = shareLinkToken_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      shareLinkToken_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -248,9 +162,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultInstanceId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, defaultInstanceId_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(shareLinkToken_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 2, shareLinkToken_);
-    }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
     }
@@ -265,9 +176,6 @@ private static final long serialVersionUID = 0L;
     size = 0;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(defaultInstanceId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, defaultInstanceId_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(shareLinkToken_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(2, shareLinkToken_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -295,8 +203,6 @@ private static final long serialVersionUID = 0L;
     }
     if (!getDefaultInstanceId()
         .equals(other.getDefaultInstanceId())) return false;
-    if (!getShareLinkToken()
-        .equals(other.getShareLinkToken())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -314,8 +220,6 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + DEFAULT_INSTANCE_ID_FIELD_NUMBER;
     hash = (53 * hash) + getDefaultInstanceId().hashCode();
-    hash = (37 * hash) + SHARE_LINK_TOKEN_FIELD_NUMBER;
-    hash = (53 * hash) + getShareLinkToken().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -463,7 +367,6 @@ private static final long serialVersionUID = 0L;
         auditBuilder_ = null;
       }
       defaultInstanceId_ = "";
-      shareLinkToken_ = "";
       return this;
     }
 
@@ -507,9 +410,6 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.defaultInstanceId_ = defaultInstanceId_;
       }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
-        result.shareLinkToken_ = shareLinkToken_;
-      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -531,11 +431,6 @@ private static final long serialVersionUID = 0L;
       if (!other.getDefaultInstanceId().isEmpty()) {
         defaultInstanceId_ = other.defaultInstanceId_;
         bitField0_ |= 0x00000002;
-        onChanged();
-      }
-      if (!other.getShareLinkToken().isEmpty()) {
-        shareLinkToken_ = other.shareLinkToken_;
-        bitField0_ |= 0x00000004;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -569,11 +464,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 10
-            case 18: {
-              shareLinkToken_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
-              break;
-            } // case 18
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -858,193 +748,6 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       defaultInstanceId_ = value;
       bitField0_ |= 0x00000002;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object shareLinkToken_ = "";
-    /**
-     * <pre>
-     * Rotatable token protecting the agent's public share link.
-     *
-     * Empty means the hosted chat link is the plain `/chat/&lt;org&gt;/&lt;slug&gt;` —
-     * the behavior of every share created before this field existed. When
-     * set, the link only resolves with the matching `?k=&lt;token&gt;` query
-     * parameter; the rotateShareLink RPC generates a fresh value, killing
-     * the old link immediately. Applies to public-audience shares only
-     * (org-audience access is governed by live membership instead).
-     *
-     * &#64;internal
-     * Server-generated (rotateShareLink is the sole writer) and deliberately
-     * in status, not spec.sharing: status survives every apply/update
-     * verbatim in both editions, so a routine manifest apply can never wipe
-     * the token and silently fail open to the guessable URL. Enforced with
-     * the allowed_origins pattern — validated at guest mint, stamped into
-     * the guest JWT, and re-validated against this live value on every
-     * session/execution create, so rotation revokes live guest tokens on
-     * their next message. Not a security boundary: rate limits and the org
-     * credit cap remain the abuse controls; this is a traffic lever for
-     * over-shared links.
-     * </pre>
-     *
-     * <code>string share_link_token = 2 [json_name = "shareLinkToken"];</code>
-     * @return The shareLinkToken.
-     */
-    public java.lang.String getShareLinkToken() {
-      java.lang.Object ref = shareLinkToken_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        shareLinkToken_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Rotatable token protecting the agent's public share link.
-     *
-     * Empty means the hosted chat link is the plain `/chat/&lt;org&gt;/&lt;slug&gt;` —
-     * the behavior of every share created before this field existed. When
-     * set, the link only resolves with the matching `?k=&lt;token&gt;` query
-     * parameter; the rotateShareLink RPC generates a fresh value, killing
-     * the old link immediately. Applies to public-audience shares only
-     * (org-audience access is governed by live membership instead).
-     *
-     * &#64;internal
-     * Server-generated (rotateShareLink is the sole writer) and deliberately
-     * in status, not spec.sharing: status survives every apply/update
-     * verbatim in both editions, so a routine manifest apply can never wipe
-     * the token and silently fail open to the guessable URL. Enforced with
-     * the allowed_origins pattern — validated at guest mint, stamped into
-     * the guest JWT, and re-validated against this live value on every
-     * session/execution create, so rotation revokes live guest tokens on
-     * their next message. Not a security boundary: rate limits and the org
-     * credit cap remain the abuse controls; this is a traffic lever for
-     * over-shared links.
-     * </pre>
-     *
-     * <code>string share_link_token = 2 [json_name = "shareLinkToken"];</code>
-     * @return The bytes for shareLinkToken.
-     */
-    public com.google.protobuf.ByteString
-        getShareLinkTokenBytes() {
-      java.lang.Object ref = shareLinkToken_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        shareLinkToken_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * Rotatable token protecting the agent's public share link.
-     *
-     * Empty means the hosted chat link is the plain `/chat/&lt;org&gt;/&lt;slug&gt;` —
-     * the behavior of every share created before this field existed. When
-     * set, the link only resolves with the matching `?k=&lt;token&gt;` query
-     * parameter; the rotateShareLink RPC generates a fresh value, killing
-     * the old link immediately. Applies to public-audience shares only
-     * (org-audience access is governed by live membership instead).
-     *
-     * &#64;internal
-     * Server-generated (rotateShareLink is the sole writer) and deliberately
-     * in status, not spec.sharing: status survives every apply/update
-     * verbatim in both editions, so a routine manifest apply can never wipe
-     * the token and silently fail open to the guessable URL. Enforced with
-     * the allowed_origins pattern — validated at guest mint, stamped into
-     * the guest JWT, and re-validated against this live value on every
-     * session/execution create, so rotation revokes live guest tokens on
-     * their next message. Not a security boundary: rate limits and the org
-     * credit cap remain the abuse controls; this is a traffic lever for
-     * over-shared links.
-     * </pre>
-     *
-     * <code>string share_link_token = 2 [json_name = "shareLinkToken"];</code>
-     * @param value The shareLinkToken to set.
-     * @return This builder for chaining.
-     */
-    public Builder setShareLinkToken(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      shareLinkToken_ = value;
-      bitField0_ |= 0x00000004;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Rotatable token protecting the agent's public share link.
-     *
-     * Empty means the hosted chat link is the plain `/chat/&lt;org&gt;/&lt;slug&gt;` —
-     * the behavior of every share created before this field existed. When
-     * set, the link only resolves with the matching `?k=&lt;token&gt;` query
-     * parameter; the rotateShareLink RPC generates a fresh value, killing
-     * the old link immediately. Applies to public-audience shares only
-     * (org-audience access is governed by live membership instead).
-     *
-     * &#64;internal
-     * Server-generated (rotateShareLink is the sole writer) and deliberately
-     * in status, not spec.sharing: status survives every apply/update
-     * verbatim in both editions, so a routine manifest apply can never wipe
-     * the token and silently fail open to the guessable URL. Enforced with
-     * the allowed_origins pattern — validated at guest mint, stamped into
-     * the guest JWT, and re-validated against this live value on every
-     * session/execution create, so rotation revokes live guest tokens on
-     * their next message. Not a security boundary: rate limits and the org
-     * credit cap remain the abuse controls; this is a traffic lever for
-     * over-shared links.
-     * </pre>
-     *
-     * <code>string share_link_token = 2 [json_name = "shareLinkToken"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearShareLinkToken() {
-      shareLinkToken_ = getDefaultInstance().getShareLinkToken();
-      bitField0_ = (bitField0_ & ~0x00000004);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Rotatable token protecting the agent's public share link.
-     *
-     * Empty means the hosted chat link is the plain `/chat/&lt;org&gt;/&lt;slug&gt;` —
-     * the behavior of every share created before this field existed. When
-     * set, the link only resolves with the matching `?k=&lt;token&gt;` query
-     * parameter; the rotateShareLink RPC generates a fresh value, killing
-     * the old link immediately. Applies to public-audience shares only
-     * (org-audience access is governed by live membership instead).
-     *
-     * &#64;internal
-     * Server-generated (rotateShareLink is the sole writer) and deliberately
-     * in status, not spec.sharing: status survives every apply/update
-     * verbatim in both editions, so a routine manifest apply can never wipe
-     * the token and silently fail open to the guessable URL. Enforced with
-     * the allowed_origins pattern — validated at guest mint, stamped into
-     * the guest JWT, and re-validated against this live value on every
-     * session/execution create, so rotation revokes live guest tokens on
-     * their next message. Not a security boundary: rate limits and the org
-     * credit cap remain the abuse controls; this is a traffic lever for
-     * over-shared links.
-     * </pre>
-     *
-     * <code>string share_link_token = 2 [json_name = "shareLinkToken"];</code>
-     * @param value The bytes for shareLinkToken to set.
-     * @return This builder for chaining.
-     */
-    public Builder setShareLinkTokenBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      shareLinkToken_ = value;
-      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }

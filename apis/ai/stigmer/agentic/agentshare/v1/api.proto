@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentshare.v1;
+
+import "ai/stigmer/agentic/agentshare/v1/spec.proto";
+import "ai/stigmer/agentic/agentshare/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// AgentShare turns an agent into a hosted chat link with its own audience, embed origins, and tool credentials.
+//
+// A share is a distribution channel: it controls who can chat with the
+// referenced agent over `/chat/<org>/<slug>`, which sites may embed the
+// chat widget, what visitors see when a limit refuses them, and which
+// environment credentials guest conversations receive. Deleting the share
+// tears the channel down; disabling it pauses serving while preserving
+// configuration. The referenced agent is never modified by share
+// operations.
+//
+// @internal
+// Promoted from Agent.spec.sharing (decision 011): sharing is channel
+// configuration with its own writer, lifecycle, and — in Phase B — its own
+// billing org per channel. metadata.slug appears in the hosted chat URL,
+// defaults to the referenced agent's slug, and is unique per org.
+message AgentShare {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'AgentShare'];
+
+  // Resource metadata including name, organization, and labels.
+  //
+  // The org and slug form the share's hosted chat URL
+  // (`/chat/<org>/<slug>`). The slug defaults to the referenced agent's
+  // slug and is immutable once created — to change a link, create a new
+  // share and delete the old one.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // Configurable properties: referenced agent, audience, origins, messages, and credentials.
+  AgentShareSpec spec = 4;
+
+  // System-managed state including audit trail and the rotatable link token.
+  AgentShareStatus status = 5;
+}

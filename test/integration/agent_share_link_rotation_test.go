@@ -8,6 +8,7 @@ import (
 	"time"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	agentsharev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	platformclientv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/platformclient/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
@@ -18,15 +19,19 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// rotateShareLink rotates the agent's share link and returns the fresh token.
-func rotateShareLink(t *testing.T, ctx context.Context, clients *harness.Clients, agentID string) string {
+// rotateShareLink rotates the agent's canonical share link and returns the
+// fresh token. Resolves the share via getByAgent first: callers hold the
+// agent, not the share id — the same reason production clients got the
+// getByAgent RPC.
+func rotateShareLink(t *testing.T, ctx context.Context, clients *harness.Clients, agent *agentv1.Agent) string {
 	t.Helper()
-	rotated, err := clients.AgentCommand.RotateShareLink(ctx, &agentv1.RotateShareLinkInput{
-		ResourceId: agentID,
+	share := canonicalShare(t, ctx, clients, agent)
+	rotated, err := clients.AgentShareCommand.RotateShareLink(ctx, &agentsharev1.RotateShareLinkInput{
+		ResourceId: share.GetMetadata().GetId(),
 	})
 	require.NoError(t, err, "rotateShareLink should succeed for the owner")
 	token := rotated.GetStatus().GetShareLinkToken()
-	require.NotEmpty(t, token, "rotation must set status.share_link_token")
+	require.NotEmpty(t, token, "rotation must set the share's status.share_link_token")
 	return token
 }
 
@@ -49,7 +54,7 @@ func TestShareLinkRotation_ProfileAndMintGate(t *testing.T) {
 
 	// Baseline refusals for a nonexistent agent, captured for the
 	// byte-identical comparisons below.
-	_, err := clients.AgentQuery.GetSharedProfile(ctx, &agentv1.GetSharedProfileRequest{
+	_, err := clients.AgentShareQuery.GetSharedProfile(ctx, &agentsharev1.GetSharedProfileRequest{
 		Org: org, Slug: "does-not-exist",
 	})
 	require.Error(t, err)
@@ -66,28 +71,28 @@ func TestShareLinkRotation_ProfileAndMintGate(t *testing.T) {
 	require.Equal(t, codes.NotFound, missingMintStatus.Code())
 
 	// A stray ?k= on the still-plain link is harmless (absence-means-open).
-	_, err = clients.AgentQuery.GetSharedProfile(ctx, &agentv1.GetSharedProfileRequest{
+	_, err = clients.AgentShareQuery.GetSharedProfile(ctx, &agentsharev1.GetSharedProfileRequest{
 		Org: org, Slug: slug, LinkToken: "stray-token",
 	})
 	require.NoError(t, err, "a stray token on a plain link must be ignored")
 
-	token := rotateShareLink(t, ctx, clients, agent.GetMetadata().GetId())
+	token := rotateShareLink(t, ctx, clients, agent)
 
 	// 1. Profile gate: tokenless and wrong-token requests refuse with the
 	// missing-agent error, verbatim.
 	for name, presented := range map[string]string{"absent": "", "stale": "wrong-token"} {
-		_, err = clients.AgentQuery.GetSharedProfile(ctx, &agentv1.GetSharedProfileRequest{
+		_, err = clients.AgentShareQuery.GetSharedProfile(ctx, &agentsharev1.GetSharedProfileRequest{
 			Org: org, Slug: slug, LinkToken: presented,
 		})
 		require.Error(t, err, "a locked link must not resolve with a %s token", name)
 		st, ok := status.FromError(err)
 		require.True(t, ok)
-		assert.Equal(t, codes.NotFound, st.Code())
-		assert.Equal(t, missingProfileStatus.Message(), st.Message(),
-			"a killed link (%s token) must be indistinguishable from a nonexistent agent", name)
+		requireIndistinguishableRefusals(t,
+			"a killed link ("+name+" token) must be indistinguishable from a nonexistent agent",
+			st, slug, missingProfileStatus, "does-not-exist")
 	}
 
-	profile, err := clients.AgentQuery.GetSharedProfile(ctx, &agentv1.GetSharedProfileRequest{
+	profile, err := clients.AgentShareQuery.GetSharedProfile(ctx, &agentsharev1.GetSharedProfileRequest{
 		Org: org, Slug: slug, LinkToken: token,
 	})
 	require.NoError(t, err, "the correct token must resolve the locked link")
@@ -100,9 +105,9 @@ func TestShareLinkRotation_ProfileAndMintGate(t *testing.T) {
 	require.Error(t, err, "a locked link must not mint without its token")
 	st, ok := status.FromError(err)
 	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
-	assert.Equal(t, missingMintStatus.Message(), st.Message(),
-		"the tokenless mint refusal must be indistinguishable from a nonexistent agent")
+	requireIndistinguishableRefusals(t,
+		"the tokenless mint refusal must be indistinguishable from a nonexistent agent",
+		st, slug, missingMintStatus, "does-not-exist")
 
 	minted, err := clients.PlatformClientToken.MintGuestToken(ctx, &platformclientv1.MintGuestTokenRequest{
 		Org: org, Slug: slug, LinkToken: token,
@@ -135,7 +140,7 @@ func TestShareLinkRotation_LiveGuestKilledOnRotation(t *testing.T) {
 	require.NoError(t, err, "the plain link must serve guests before rotation")
 
 	// The owner resets the link.
-	token := rotateShareLink(t, ctx, clients, agent.GetMetadata().GetId())
+	token := rotateShareLink(t, ctx, clients, agent)
 
 	// The live guest token (no link_token claim) dies on its next create.
 	_, err = guestCreateSession(t, ctx, guest, agent, "after-rotation")
@@ -155,16 +160,16 @@ func TestShareLinkRotation_LiveGuestKilledOnRotation(t *testing.T) {
 	require.NoError(t, err, "the new link must serve fresh guests immediately")
 
 	// Re-rotation kills the first token's guests the same way.
-	rotateShareLink(t, ctx, clients, agent.GetMetadata().GetId())
+	rotateShareLink(t, ctx, clients, agent)
 	_, err = guestCreateSession(t, ctx, freshGuest, agent, "after-second-rotation")
 	require.Error(t, err, "re-rotation must cut off guests holding the previous token")
 }
 
-// TestShareLinkRotation_ApplyPreservesToken pins the design's core guarantee:
-// the token lives in server-owned status, so a full-resource update (what a
-// manifest apply sends — no status) can never wipe it and silently fail open
-// to the plain guessable URL.
-func TestShareLinkRotation_ApplyPreservesToken(t *testing.T) {
+// TestShareLinkRotation_ShareUpdatePreservesToken pins the design's core
+// guarantee: the token lives in the share's server-owned status, so a
+// full-resource share update (what a manifest apply sends — no status) can
+// never wipe it and silently fail open to the plain guessable URL.
+func TestShareLinkRotation_ShareUpdatePreservesToken(t *testing.T) {
 	requireGuestPrereqs(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
@@ -175,23 +180,24 @@ func TestShareLinkRotation_ApplyPreservesToken(t *testing.T) {
 	org := agent.GetMetadata().GetOrg()
 	slug := agent.GetMetadata().GetSlug()
 
-	token := rotateShareLink(t, ctx, clients, agent.GetMetadata().GetId())
+	token := rotateShareLink(t, ctx, clients, agent)
 
-	// A full-resource update as a manifest apply would send: no status,
-	// sharing kept enabled.
-	withoutStatus := proto.Clone(agent).(*agentv1.Agent)
+	// A full-resource share update as a manifest apply would send: no
+	// status, sharing kept enabled.
+	share := canonicalShare(t, ctx, clients, agent)
+	withoutStatus := proto.Clone(share).(*agentsharev1.AgentShare)
 	withoutStatus.Status = nil
-	updated, err := clients.AgentCommand.Update(ctx, withoutStatus)
-	require.NoError(t, err, "full update should succeed")
+	updated, err := clients.AgentShareCommand.Update(ctx, withoutStatus)
+	require.NoError(t, err, "full share update should succeed")
 	assert.Equal(t, token, updated.GetStatus().GetShareLinkToken(),
-		"a full update must preserve status.share_link_token verbatim")
+		"a share update must preserve status.share_link_token verbatim")
 
 	// The locked link keeps its posture: tokenless refused, tokened resolves.
-	_, err = clients.AgentQuery.GetSharedProfile(ctx, &agentv1.GetSharedProfileRequest{
+	_, err = clients.AgentShareQuery.GetSharedProfile(ctx, &agentsharev1.GetSharedProfileRequest{
 		Org: org, Slug: slug,
 	})
 	require.Error(t, err, "the update must not fail the link open")
-	_, err = clients.AgentQuery.GetSharedProfile(ctx, &agentv1.GetSharedProfileRequest{
+	_, err = clients.AgentShareQuery.GetSharedProfile(ctx, &agentsharev1.GetSharedProfileRequest{
 		Org: org, Slug: slug, LinkToken: token,
 	})
 	require.NoError(t, err, "the token must keep resolving after the update")
@@ -219,39 +225,37 @@ func TestShareLinkRotation_MemberPathRefusesLockedPublic(t *testing.T) {
 
 	// Baseline: a member resolves the plain public share through the
 	// authenticated path (one path for any share).
-	_, err := member.Clients.AgentQuery.GetSharedProfileForMember(ctx, ref)
+	_, err := member.Clients.AgentShareQuery.GetSharedProfileForMember(ctx, ref)
 	require.NoError(t, err)
 
-	_, err = member.Clients.AgentQuery.GetSharedProfileForMember(ctx, &apiresource.ApiResourceReference{
+	_, err = member.Clients.AgentShareQuery.GetSharedProfileForMember(ctx, &apiresource.ApiResourceReference{
 		Org: org, Slug: "does-not-exist",
 	})
 	require.Error(t, err)
 	missingStatus, ok := status.FromError(err)
 	require.True(t, ok)
 
-	rotateShareLink(t, ctx, clients, agent.GetMetadata().GetId())
+	rotateShareLink(t, ctx, clients, agent)
 
 	// Locked public share: refused on this tokenless path, indistinguishable
 	// from missing — even for an owning-org member.
-	_, err = member.Clients.AgentQuery.GetSharedProfileForMember(ctx, ref)
+	_, err = member.Clients.AgentShareQuery.GetSharedProfileForMember(ctx, ref)
 	require.Error(t, err,
 		"the tokenless member path must not reveal a token-locked public share")
 	st, ok := status.FromError(err)
 	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
-	assert.Equal(t, missingStatus.Message(), st.Message())
+	requireIndistinguishableRefusals(t,
+		"a locked public share must be indistinguishable from missing on the member path",
+		st, slug, missingStatus, "does-not-exist")
 
 	// Flipping to the org audience re-opens the member path: org access is
-	// gated by membership, and the lingering token is not consulted.
-	_, err = clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-		ResourceId: agent.GetMetadata().GetId(),
-		Sharing: &agentv1.AgentSharing{
-			Enabled:  true,
-			Audience: agentv1.AgentSharingAudience_agent_sharing_audience_org,
-		},
-	})
-	require.NoError(t, err)
-	_, err = member.Clients.AgentQuery.GetSharedProfileForMember(ctx, ref)
+	// gated by membership, and the lingering token is not consulted. (The
+	// token survives this apply — it lives in status — so this also proves
+	// the org gate genuinely ignores it.)
+	orgShare := shareFor(agent, true)
+	orgShare.Spec.Audience = agentsharev1.AgentShareAudience_agent_share_audience_org
+	applyShare(t, ctx, clients, orgShare)
+	_, err = member.Clients.AgentShareQuery.GetSharedProfileForMember(ctx, ref)
 	require.NoError(t, err,
 		"an org-audience share must stay member-resolvable regardless of the link token")
 }

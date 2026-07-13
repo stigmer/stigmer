@@ -21,7 +21,8 @@ import { MethodKind } from "@bufbuild/protobuf";
  *
  * mintGuestToken is the credential-free exception: no client_id/client_secret.
  * It mints a guest-scoped JWT for anonymous visitors of a shared agent's
- * hosted page, gated on spec.sharing.enabled.
+ * hosted page, gated on an enabled public-audience AgentShare
+ * (ai.stigmer.agentic.agentshare.v1).
  *
  * @generated from service ai.stigmer.iam.platformclient.v1.PlatformClientTokenController
  */
@@ -67,13 +68,16 @@ export const PlatformClientTokenController = {
     /**
      * Mint a guest-scoped JWT for an anonymous visitor of a shared agent's hosted page.
      *
-     * Resolves org+slug to a shared agent, provisions the org's system-managed
+     * Resolves org+slug to an AgentShare, provisions the org's system-managed
      * PlatformClient and guest identity account lazily, and returns a short-lived
      * Stigmer-signed JWT scoped to that org.
      *
      * @internal
      * Public — no Bearer token. No PlatformClient credentials. The handler gates
-     * on agent.spec.sharing.enabled (NOT_FOUND when unshared or missing).
+     * on an enabled public-audience share (NOT_FOUND when disabled or missing)
+     * and stamps the resolved share's id into the guest JWT as the share_id
+     * claim — the create-time gate re-reads the live share by that id on every
+     * session/execution create (decision 011 D6).
      *
      * @generated from rpc ai.stigmer.iam.platformclient.v1.PlatformClientTokenController.mintGuestToken
      */

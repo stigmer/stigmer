@@ -1,0 +1,764 @@
+{
+  "resource": "agentshare",
+  "package": "ai.stigmer.agentic.agentshare.v1",
+  "goImportPath": "agentsharev1",
+  "services": [
+    {
+      "name": "AgentShareCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/agentshare/v1/command.proto",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "AgentShare",
+          "inputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
+          "outputType": "AgentShare",
+          "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
+          "description": "Create or update an agent share.\n\n @internal\n The authorization and state-operation are determined depending on\n whether the share is going to be created or updated, which is resolved\n as part of the request execution. The share slug defaults to the\n referenced agent's slug when omitted."
+        },
+        {
+          "name": "Create",
+          "inputType": "AgentShare",
+          "inputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
+          "outputType": "AgentShare",
+          "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
+          "description": "Create an agent share.\n\n Enabling a share is a billing-affecting decision: conversations over\n the hosted link consume the sharing organization's credits.\n\n @internal\n Authorization: requires can_edit on the REFERENCED AGENT\n (spec.agent_ref), checked in-handler — the same bar as the former\n updateSharing RPC, since creating a channel broadens who can chat with\n the agent runtime. The standard org-scoped create tuples (owner =\n creator) are written for the share itself; no visibility tuples are\n written for visitors (guest admission is app-level by design — see\n AgentShareSpec). Phase A invariant enforced here: metadata.org must\n equal spec.agent_ref.org."
+        },
+        {
+          "name": "Update",
+          "inputType": "AgentShare",
+          "inputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
+          "outputType": "AgentShare",
+          "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
+          "description": "Update an existing agent share.\n\n Replaces the spec wholesale: a manifest that omits audience resets the\n share to public, and one that omits environment_refs unbinds them\n (fails closed). The slug and referenced agent are immutable.\n\n @internal\n Authorization: requires can_edit permission on the agent share.\n status.share_link_token is preserved verbatim (rotateShareLink is its\n sole writer)."
+        },
+        {
+          "name": "RotateShareLink",
+          "inputType": "RotateShareLinkInput",
+          "inputFullType": "ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput",
+          "outputType": "AgentShare",
+          "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
+          "description": "Rotate the share's link token.\n\n Generates a fresh server-side token for the share's hosted chat link.\n The share URL becomes `/chat/\u003corg\u003e/\u003cslug\u003e?k=\u003ctoken\u003e` and the previous\n link (tokened or plain) stops working immediately — including for\n visitors mid-conversation. Use this to kill a leaked or over-shared\n public link without disabling the share or changing its slug.\n\n The token lives in status.share_link_token, so manifest applies never\n reset it. Rotation affects public-audience shares only; org-audience\n access is governed by live org membership instead.\n\n @internal\n Authorization: requires can_edit on the agent share — the same bar as\n update, since both control shared-link access. The handler is the sole\n writer of status.share_link_token (server-generated entropy; clients\n never supply the token)."
+        },
+        {
+          "name": "Delete",
+          "inputType": "AgentShareId",
+          "inputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShareId",
+          "outputType": "AgentShare",
+          "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
+          "description": "Delete an agent share.\n\n Full teardown of the channel: the hosted link stops resolving, live\n guest tokens die on their next message, and the share's configuration\n (origins, messages, credentials, link token) is gone. To pause serving\n while keeping configuration, update the share with enabled=false\n instead.\n\n @internal\n Authorization: requires can_delete permission on the agent share. The\n referenced agent is untouched."
+        }
+      ]
+    },
+    {
+      "name": "AgentShareQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/agentshare/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "AgentShareId",
+          "inputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShareId",
+          "outputType": "AgentShare",
+          "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
+          "description": "Get a single agent share by ID."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "AgentShare",
+          "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShare",
+          "description": "Get an agent share by its organization-scoped reference (org/slug).\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
+        },
+        {
+          "name": "GetByAgent",
+          "inputType": "GetAgentSharesByAgentRequest",
+          "inputFullType": "ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest",
+          "outputType": "AgentShareList",
+          "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShareList",
+          "description": "Get all shares of a specific agent.\n Returns only shares the caller has access to.\n\n This is how the Share dialog and CLI resolve an agent's existing\n share regardless of its slug (a renamed share keeps working).\n\n @internal\n Authorization is handled in-handler: FGA-filtered in cloud, unrestricted\n in OSS (single-user edition)."
+        },
+        {
+          "name": "List",
+          "inputType": "ListAgentSharesRequest",
+          "inputFullType": "ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest",
+          "outputType": "AgentShareList",
+          "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShareList",
+          "description": "List agent shares with optional label filtering.\n\n @internal\n Authorization is handled in-handler via FGA-filtered queries (cloud)\n or unrestricted store queries (OSS)."
+        },
+        {
+          "name": "GetSharedProfile",
+          "inputType": "GetSharedProfileRequest",
+          "inputFullType": "ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest",
+          "outputType": "SharedAgentProfile",
+          "outputFullType": "ai.stigmer.agentic.agentshare.v1.SharedAgentProfile",
+          "description": "Get the public profile of a shared agent by the share's org/slug.\n\n This is the resolution path for the hosted chat page: anonymous\n visitors (no Stigmer account, no token) resolve a shared link to the\n trimmed SharedAgentProfile — never the full Agent, whose spec carries\n the system prompt, environment declarations, and MCP wiring.\n\n Returns NOT_FOUND when the share does not exist, is disabled, has the\n org audience (anonymous callers must not be able to distinguish an\n org-internal share from a nonexistent one; use\n getSharedProfileForMember instead), or the share link is locked and\n link_token does not match the share's current status.share_link_token.\n The cases are deliberately indistinguishable so an unshared, revoked,\n or rotated URL leaks nothing. Returns INVALID_ARGUMENT when org is\n empty: org+slug is the shared URL's identity, and cross-org slug\n matching on a public endpoint would enable enumeration.\n\n @internal\n Public by design (no authentication): enforcement is the app-level\n sharing gate in the handler, not FGA — see AgentShareSpec for why a\n share writes no visibility tuples."
+        },
+        {
+          "name": "GetSharedProfileForMember",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "SharedAgentProfile",
+          "outputFullType": "ai.stigmer.agentic.agentshare.v1.SharedAgentProfile",
+          "description": "Get the profile of a shared agent as a signed-in organization member.\n\n This is the resolution path for the hosted chat page when a share has\n the org audience: the public getSharedProfile deliberately returns\n NOT_FOUND for such shares, so a signed-in member resolves the same\n trimmed SharedAgentProfile through this authenticated RPC instead.\n Also resolves public-audience shares, so an authenticated caller can\n use one resolution path for any share.\n\n Returns NOT_FOUND when the share does not exist, is disabled, the\n caller is not a member of the sharing organization, or the share is a\n public-audience share locked with a link token (this tokenless path\n must not reveal a killed link's profile) — the cases are deliberately\n indistinguishable so a share URL leaks nothing to non-members.\n Returns INVALID_ARGUMENT when org is empty.\n\n @internal\n Custom authorization in handler — requires authentication (not\n is_public), then an app-level organization#member FGA check for org\n shares. No standard resource_kind/permission config: the sharing gate\n is app-level by design (see AgentShareSpec), and membership is checked\n live on every call so revoked members lose access immediately."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "RotateShareLinkInput",
+      "description": "Input for rotating a share's link token.\n\n Used by the rotateShareLink RPC. The server generates the new token —\n callers never supply one — and the previous link stops working the\n moment the rotation persists.",
+      "protoType": "ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentshare/v1/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent share whose link token is being rotated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource.\n\n When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens,\n starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\".\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form).\n\n Use empty org for same-org references (the common case).\n Use explicit org for cross-org references (e.g., marketplace resources).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "iam_policy",
+              "identity_account",
+              "api_key",
+              "invitation",
+              "identity_provider",
+              "oauth_app",
+              "platform_client",
+              "organization",
+              "platform",
+              "agent",
+              "agent_execution",
+              "session",
+              "skill",
+              "mcp_server",
+              "agent_instance",
+              "agent_share",
+              "workflow",
+              "workflow_instance",
+              "workflow_execution",
+              "environment",
+              "artifact",
+              "execution_context",
+              "project"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter\n and end with a letter or digit (e.g., \"web-search\", \"code-reviewer\").\n Length: 2-63 characters.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetAgentSharesByAgentRequest",
+      "description": "Input for retrieving all shares of a specific agent.",
+      "protoType": "ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentshare/v1/io.proto",
+      "fields": [
+        {
+          "name": "AgentId",
+          "jsonName": "agentId",
+          "protoField": "agent_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Identifier of the agent whose shares to retrieve.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageInfo",
+          "jsonName": "pageInfo",
+          "protoField": "page_info",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination options.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "AgentShareList",
+      "description": "Response containing a paginated list of agent shares.",
+      "protoType": "ai.stigmer.agentic.agentshare.v1.AgentShareList",
+      "protoFile": "apis/ai/stigmer/agentic/agentshare/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of agent shares matching the query.",
+          "required": false
+        },
+        {
+          "name": "Items",
+          "jsonName": "items",
+          "protoField": "items",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "AgentShare"
+            }
+          },
+          "description": "Agent shares in the current page.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListAgentSharesRequest",
+      "description": "Input for listing agent shares within an organization.",
+      "protoType": "ai.stigmer.agentic.agentshare.v1.ListAgentSharesRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentshare/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the listing.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Filter by metadata labels. AND semantics: all labels must match.",
+          "required": false
+        },
+        {
+          "name": "PageInfo",
+          "jsonName": "pageInfo",
+          "protoField": "page_info",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination options.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetSharedProfileRequest",
+      "description": "Input for resolving a share's public profile.\n\n Identifies the share by the org and slug from the hosted chat URL, plus\n the link token when the share URL carries one.\n\n @internal\n org emptiness is validated in the handler (INVALID_ARGUMENT) rather than\n the proto to keep the anonymous path's existing error contract: org+slug\n is the shared URL's identity, and cross-org slug matching on a public\n endpoint would enable enumeration.",
+      "protoType": "ai.stigmer.agentic.agentshare.v1.GetSharedProfileRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentshare/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug from the share URL.",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Share slug from the share URL.",
+          "required": false
+        },
+        {
+          "name": "LinkToken",
+          "jsonName": "linkToken",
+          "protoField": "link_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Link token from the share URL's `?k=` parameter.\n\n Required (and validated) only when the share link has been locked with\n rotateShareLink; ignored for plain share links.",
+          "required": false,
+          "validation": {
+            "maxLength": 128
+          }
+        }
+      ]
+    },
+    {
+      "name": "SharedAgentProfile",
+      "description": "SharedAgentProfile is the public projection of a shared agent.\n\n Returned by the getSharedProfile RPC to anonymous visitors of the hosted\n chat page. It is deliberately trimmed: the full Agent resource carries the\n system prompt (spec.instructions), environment declarations, and MCP\n server wiring — none of which may leak to anyone-with-link callers. The\n profile carries only what the hosted chat page needs to render a header\n and start a session.",
+      "protoType": "ai.stigmer.agentic.agentshare.v1.SharedAgentProfile",
+      "protoFile": "apis/ai/stigmer/agentic/agentshare/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the share.",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Slug of the share (unique within the org).\n Together with org, this is the identity in the hosted chat URL.",
+          "required": false
+        },
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable agent name for the chat page header.",
+          "required": false
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable description for the chat page header.",
+          "required": false
+        },
+        {
+          "name": "IconUrl",
+          "jsonName": "iconUrl",
+          "protoField": "icon_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Icon URL for the chat page header.",
+          "required": false
+        },
+        {
+          "name": "DefaultInstanceId",
+          "jsonName": "defaultInstanceId",
+          "protoField": "default_instance_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the referenced agent's default instance, used by the hosted chat\n page to create sessions. This is an identifier, not a capability —\n session creation still requires an authorized token.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": "External tool server connected via the Model Context Protocol."
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": "Configured deployment of an agent with environment-specific overrides."
+        },
+        {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": "Configured deployment of a workflow with environment-specific bindings."
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": "User-owned runtime context for managing execution state."
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Aggregate root grouping related resources for lifecycle management."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#member tuple (all org members)\n - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n   (all members of all organizations managed by the owning org's\n   IdentityProvider)",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner (and explicitly granted principals) can access.\n This is the default for instances and personal resources.\n Named visibility_private to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "All members of the owning organization can access (read) this resource.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#member\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: all org members see all executions via inheritance."
+        },
+        {
+          "name": "visibility_platform",
+          "number": 4,
+          "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
+        }
+      ]
+    },
+    {
+      "name": "AgentShareAudience",
+      "description": "AgentShareAudience selects who can chat over a share's hosted link.\n\n Unspecified is treated as public: a share created without an explicit\n audience is an anyone-with-link share.",
+      "protoType": "ai.stigmer.agentic.agentshare.v1.AgentShareAudience",
+      "values": [
+        {
+          "name": "agent_share_audience_public",
+          "number": 1,
+          "description": "Anyone with the link can chat — no Stigmer account required.\n Visitors are anonymous guests; suitable only for knowledge that is\n safe to expose to the entire internet."
+        },
+        {
+          "name": "agent_share_audience_org",
+          "number": 2,
+          "description": "Only signed-in members of the sharing organization can chat.\n Membership is checked on every conversation turn, so access ends the\n moment a member leaves the organization. The right mode for\n org-internal knowledge agents."
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "AgentShare turns an agent into a hosted chat link with its own audience, embed origins, and tool credentials.\n\n A share is a distribution channel: it controls who can chat with the\n referenced agent over `/chat/\u003corg\u003e/\u003cslug\u003e`, which sites may embed the\n chat widget, what visitors see when a limit refuses them, and which\n environment credentials guest conversations receive. Deleting the share\n tears the channel down; disabling it pauses serving while preserving\n configuration. The referenced agent is never modified by share\n operations.\n\n @internal\n Promoted from Agent.spec.sharing (decision 011): sharing is channel\n configuration with its own writer, lifecycle, and — in Phase B — its own\n billing org per channel. metadata.slug appears in the hosted chat URL,\n defaults to the referenced agent's slug, and is unique per org.",
+  "statusType": {
+    "name": "AgentShareStatus",
+    "description": "AgentShareStatus contains system-managed state for an agent share.",
+    "protoType": "ai.stigmer.agentic.agentshare.v1.AgentShareStatus",
+    "protoFile": "apis/ai/stigmer/agentic/agentshare/v1/status.proto",
+    "fields": [
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+        "required": false
+      },
+      {
+        "name": "ShareLinkToken",
+        "jsonName": "shareLinkToken",
+        "protoField": "share_link_token",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Rotatable token protecting the share's public link.\n\n Empty means the hosted chat link is the plain `/chat/\u003corg\u003e/\u003cslug\u003e` —\n the behavior of every share created without a token. When set, the\n link only resolves with the matching `?k=\u003ctoken\u003e` query parameter; the\n rotateShareLink RPC generates a fresh value, killing the old link\n immediately. Applies to public-audience shares only (org-audience\n access is governed by live membership instead).\n\n @internal\n Server-generated (rotateShareLink is the sole writer) and deliberately\n in status, not spec: status survives every apply/update verbatim in\n both editions, so a routine manifest apply can never wipe the token\n and silently fail open to the guessable URL. Enforced with the\n allowed_origins pattern — validated at guest mint, stamped into the\n guest JWT, and re-validated against this live value on every\n session/execution create, so rotation revokes live guest tokens on\n their next message. Not a security boundary: rate limits and the org\n credit cap remain the abuse controls; this is a traffic lever for\n over-shared links.",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

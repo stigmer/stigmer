@@ -1,106 +1,106 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useStigmer } from "../hooks.js";
 import { useDeploymentMode } from "../deployment-mode.js";
+import type { AgentShareDraft } from "./useSaveAgentShare.js";
 
 /**
- * Readiness of a shared agent's tool credentials for visitor (and
- * teammate) executions.
+ * Readiness of a share's tool credentials for visitor executions.
  *
- * - `na` — nothing to check: the agent uses no MCP tools, the check is
- *   disabled, or the deployment cannot serve guest chat (local mode).
+ * - `na` — nothing to check: the agent uses no MCP tools, sharing is
+ *   off, the audience is org (bindings are public-audience only), or
+ *   the deployment cannot serve guest chat (local mode).
+ * - `needs-credentials` — the agent uses MCP tools but the share has no
+ *   environments bound: visitors' tool calls will fail until the owner
+ *   binds credentials.
  * - `checking` — lookups in flight.
- * - `ready` — every environment bound to the agent's default instance is
- *   shared with the organization.
+ * - `ready` — every environment bound to the share is shared with the
+ *   organization.
  * - `blocked` — one or more bound environments are private; their
  *   `org/slug` references are listed for the hint copy.
  */
 export type ShareToolReadiness =
   | { readonly status: "na" }
+  | { readonly status: "needs-credentials" }
   | { readonly status: "checking" }
   | { readonly status: "ready" }
   | { readonly status: "blocked"; readonly privateEnvironments: readonly string[] };
 
 const NA: ShareToolReadiness = { status: "na" };
+const NEEDS_CREDENTIALS: ShareToolReadiness = { status: "needs-credentials" };
 
 /**
  * Data hook that checks whether a tool-using shared agent's credentials
- * will work for visitors — i.e. whether the environments bound to its
- * default instance are shared with the organization (`visibility_org`).
+ * will work for visitors — i.e. whether the share binds environments
+ * (`environment_refs`) and each one is shared with the organization
+ * (`visibility_org`).
  *
- * Guest and teammate executions can only use org-shared environments;
- * a private environment's secrets are creator-only and silently
- * unavailable to them, so the agent's tools would fail at runtime. This
- * hook powers the Share dialog's pre-flight hint, catching the
- * misconfiguration at share time instead of at the visitor's first
- * message.
+ * Guest executions receive credentials exclusively from the share's own
+ * `environment_refs`, resolved through the org-shared environment seam
+ * (decision 011 — the agent's default instance stays pristine and is
+ * never consulted). So a tool-using agent with an empty binding list is
+ * *guaranteed* broken for visitors, and this hook says so explicitly
+ * (`needs-credentials`) instead of staying silent — the gap that made
+ * session 12's misconfiguration invisible until a visitor's first
+ * message failed.
  *
- * Scope note: environments bound via `environment_refs` are the
- * supported credential path for shared agents. Credentials that only
- * exist in the owner's personal environment are also invisible to
- * guests, but are not detectable from the instance binding — the
- * runtime's enriched FAILED_PRECONDITION error covers that case.
- *
- * The check runs only when `enabled` is true, the deployment is cloud
- * (local mode has no guest runtime or secret gating), and the agent
- * declares MCP server usages. All lookups run as the owner viewing the
- * dialog, who can read the bound environments.
+ * The check runs only when the share is enabled with a public audience
+ * (org-audience shares reject bindings at the proto boundary), the
+ * deployment is cloud (local mode has no guest runtime or secret
+ * gating), and the agent declares MCP server usages. All lookups run as
+ * the owner viewing the dialog, who can read the bound environments.
  */
 export function useShareToolReadiness(
   agent: Agent,
-  enabled: boolean,
+  draft: AgentShareDraft,
 ): ShareToolReadiness {
   const stigmer = useStigmer();
   const deploymentMode = useDeploymentMode();
-  const [readiness, setReadiness] = useState<ShareToolReadiness>(NA);
+  const [checked, setChecked] = useState<ShareToolReadiness>(NA);
 
-  const agentId = agent.metadata?.id ?? "";
   const hasMcpTools = (agent.spec?.mcpServerUsages?.length ?? 0) > 0;
-  const defaultInstanceId = agent.status?.defaultInstanceId ?? "";
-
-  const shouldCheck =
-    enabled &&
+  const applicable =
+    draft.enabled &&
+    draft.audience === "public" &&
     deploymentMode === "cloud" &&
-    hasMcpTools &&
-    defaultInstanceId !== "";
+    hasMcpTools;
+
+  // Stable key for the effect: the visibility lookups depend only on
+  // which environments are bound, not on the array's identity.
+  const refsKey = useMemo(
+    () => draft.environmentRefs.map((ref) => `${ref.org}/${ref.slug}`).join(","),
+    [draft.environmentRefs],
+  );
+
+  const shouldFetch = applicable && refsKey !== "";
 
   useEffect(() => {
-    if (!shouldCheck) {
-      setReadiness(NA);
+    if (!shouldFetch) {
+      setChecked(NA);
       return;
     }
 
     let cancelled = false;
-    setReadiness({ status: "checking" });
+    setChecked({ status: "checking" });
 
     (async (): Promise<ShareToolReadiness> => {
-      const instance = await stigmer.agentInstance.get(defaultInstanceId);
-      const refs = instance.spec?.environmentRefs ?? [];
-      if (refs.length === 0) {
-        // No bound environments to assess. The tools may need no
-        // credentials at all — do not warn on a guess.
-        return NA;
-      }
-
       const privateRefs: string[] = [];
-      for (const ref of refs) {
+      for (const ref of refsKey.split(",")) {
+        const [org, slug] = ref.split("/");
         try {
-          const env = await stigmer.environment.getByReference({
-            org: ref.org,
-            slug: ref.slug,
-          });
+          const env = await stigmer.environment.getByReference({ org, slug });
           if (
             env.metadata?.visibility !== ApiResourceVisibility.visibility_org
           ) {
-            privateRefs.push(`${ref.org}/${ref.slug}`);
+            privateRefs.push(ref);
           }
         } catch {
-          // Unreadable ref (deleted, foreign): the runtime will skip it
-          // for visitors too — surface it as blocking.
-          privateRefs.push(`${ref.org}/${ref.slug}`);
+          // Unreadable ref (deleted, foreign): the runtime's merge will
+          // skip it for visitors too — surface it as blocking.
+          privateRefs.push(ref);
         }
       }
 
@@ -109,21 +109,23 @@ export function useShareToolReadiness(
         : { status: "blocked", privateEnvironments: privateRefs };
     })().then(
       (result) => {
-        if (!cancelled) setReadiness(result);
+        if (!cancelled) setChecked(result);
       },
       () => {
         // The hint is best-effort pre-flight advice — a failed check must
         // never block the dialog. The runtime error path still diagnoses.
-        if (!cancelled) setReadiness(NA);
+        if (!cancelled) setChecked(NA);
       },
     );
 
     return () => {
       cancelled = true;
     };
-    // agentId stands in for the agent object identity: the inputs that
-    // matter (instance id, MCP usage presence) are covered explicitly.
-  }, [shouldCheck, defaultInstanceId, agentId, stigmer]);
+  }, [shouldFetch, refsKey, stigmer]);
 
-  return readiness;
+  if (!applicable) return NA;
+  // Zero bindings needs no lookup: a tool-using agent without bound
+  // credentials is broken for visitors by construction.
+  if (refsKey === "") return NEEDS_CREDENTIALS;
+  return checked;
 }

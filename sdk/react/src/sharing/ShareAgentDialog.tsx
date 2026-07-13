@@ -9,8 +9,12 @@ import {
   chatPath,
   getUserMessage,
   validateOrigin,
+  type ResourceRef,
 } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { Switch } from "../switch/Switch.js";
 import { Tabs, type TabItem } from "../tabs/Tabs.js";
 import { toast } from "../feedback/toast.js";
@@ -18,12 +22,14 @@ import { useCopyResource } from "../resource-detail/useCopyResource.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { useBillingAccount } from "../billing/useBillingAccount.js";
 import { formatCreditBalance } from "../billing/format.js";
+import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
+import { useAgentShare } from "./useAgentShare.js";
 import {
   sharingAudienceFromProto,
-  useUpdateAgentSharing,
-  type AgentSharingDraft,
+  useSaveAgentShare,
+  type AgentShareDraft,
   type SharingAudience,
-} from "./useUpdateAgentSharing.js";
+} from "./useSaveAgentShare.js";
 import { useRotateShareLink } from "./useRotateShareLink.js";
 import { useShareToolReadiness } from "./useShareToolReadiness.js";
 
@@ -70,20 +76,22 @@ export interface ShareAgentDialogProps {
 }
 
 /**
- * The Share dialog for an agent: toggle public sharing, copy the hosted
- * chat link, copy an embeddable iframe snippet, manage allowed embed
- * origins, customize visitor refusal messages, and discover the
- * PlatformClient SDK path.
+ * The Share dialog for an agent: toggle sharing, copy the hosted chat
+ * link, copy an embeddable snippet, manage allowed embed origins, bind
+ * tool credentials for visitors, customize visitor refusal messages,
+ * and discover the PlatformClient SDK path.
  *
  * Sharing is a distinct consent from marketplace visibility: visibility
  * governs who can *read* the blueprint; sharing governs who can *chat*
  * with the running agent — billed to the owning org. The dialog states
  * who pays next to the toggle so enabling sharing never surprises.
  *
- * Every save sends the complete sharing configuration (the RPC replaces
- * `spec.sharing` wholesale — see {@link AgentSharingDraft}), and the
- * local draft is refreshed from the RPC's returned agent, so the dialog
- * never drifts from the server.
+ * Sharing lives in its own **AgentShare resource** (decision 011), so
+ * the dialog loads the agent's canonical share when it opens and every
+ * save is an idempotent `apply` of the complete configuration — the
+ * first enable creates the share, later edits update it, one code path
+ * (see {@link useSaveAgentShare}). The local draft is refreshed from
+ * every returned share, so the dialog never drifts from the server.
  *
  * Built on the native `<dialog>` element for focus trapping and escape
  * handling, matching the SDK's modal convention ({@link ManageAccessDialog}).
@@ -135,8 +143,8 @@ export function ShareAgentDialog({
       )}
       aria-labelledby="share-agent-title"
     >
-      {/* Body mounts only while open so the draft resets per session and
-          the billing fetch never fires on a closed dialog. */}
+      {/* Body mounts only while open so the share is re-read per session
+          (the draft resets with it) and no fetch fires on a closed dialog. */}
       {open && (
         <ShareAgentDialogBody
           agent={agent}
@@ -150,23 +158,15 @@ export function ShareAgentDialog({
 }
 
 // ---------------------------------------------------------------------------
-// Dialog body — owns the sharing draft for the session
+// Dialog body — resolves the canonical share, then hands off to the form
 // ---------------------------------------------------------------------------
 
-function draftFromAgent(agent: Agent): AgentSharingDraft {
-  const sharing = agent.spec?.sharing;
-  return {
-    enabled: sharing?.enabled ?? false,
-    audience: sharingAudienceFromProto(sharing?.audience),
-    allowedOrigins: sharing?.allowedOrigins ?? [],
-    messages: {
-      rateLimited: sharing?.messages?.rateLimited ?? "",
-      unavailable: sharing?.messages?.unavailable ?? "",
-      conversationEnded: sharing?.messages?.conversationEnded ?? "",
-    },
-  };
-}
-
+/**
+ * Loads the agent's canonical share and mounts the form once resolved.
+ * The split keeps the form's draft seeding synchronous (`useState`
+ * initializer from the loaded share) — no hydrate-on-effect, no window
+ * where the switch shows a state the server never had.
+ */
 function ShareAgentDialogBody({
   agent,
   buildShareUrl,
@@ -178,37 +178,166 @@ function ShareAgentDialogBody({
   readonly onSharingChanged?: () => void;
   readonly onClose: () => void;
 }) {
-  const org = agent.metadata?.org ?? "";
-  const slug = agent.metadata?.slug ?? "";
-  const agentName = agent.metadata?.name || slug;
+  const { share, isLoading, error, refetch } = useAgentShare(agent);
 
-  const [draft, setDraft] = useState<AgentSharingDraft>(() =>
-    draftFromAgent(agent),
+  return (
+    <div className="flex flex-col">
+      {/* Header */}
+      <div className="flex items-start justify-between border-b border-border px-6 py-4">
+        <div className="min-w-0">
+          <h2
+            id="share-agent-title"
+            className="text-base font-semibold text-foreground"
+          >
+            Share
+          </h2>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {agent.metadata?.name || agent.metadata?.slug}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className={cn(
+            "rounded-md p-1 text-muted-foreground",
+            "hover:text-foreground hover:bg-accent-hover",
+            "focus:outline-none focus:ring-2 focus:ring-ring",
+          )}
+        >
+          <CloseIcon />
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div
+          className="px-6 py-10 text-center"
+          aria-busy="true"
+          aria-label="Loading sharing settings"
+        >
+          <div className="mx-auto h-4 w-2/3 animate-pulse rounded bg-muted" />
+          <div className="mx-auto mt-2 h-3 w-1/2 animate-pulse rounded bg-muted" />
+        </div>
+      ) : error ? (
+        <div className="px-6 py-8 text-center" role="alert">
+          <p className="text-sm text-foreground">
+            Couldn&apos;t load this agent&apos;s sharing settings.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {getUserMessage(error)}
+          </p>
+          <button
+            type="button"
+            onClick={refetch}
+            className={cn(
+              "mt-3 rounded-md px-3 py-1.5 text-xs font-medium",
+              "border border-border text-foreground hover:bg-accent-hover",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            )}
+          >
+            Try again
+          </button>
+        </div>
+      ) : (
+        <ShareAgentForm
+          agent={agent}
+          initialShare={share}
+          buildShareUrl={buildShareUrl}
+          onSharingChanged={onSharingChanged}
+        />
+      )}
+
+      {/* Footer */}
+      <div className="flex items-center justify-end border-t border-border px-6 py-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className={cn(
+            "rounded-md px-3 py-1.5 text-sm font-medium",
+            "bg-primary text-primary-foreground hover:bg-primary-hover",
+            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+          )}
+        >
+          Done
+        </button>
+      </div>
+    </div>
   );
-  // The share-link token is server-owned status (never part of the sharing
-  // draft — rotateShareLink is its sole writer); track it separately and
-  // adopt it from every returned agent so the shown link never goes stale.
-  const [linkToken, setLinkToken] = useState(
-    () => agent.status?.shareLinkToken ?? "",
+}
+
+// ---------------------------------------------------------------------------
+// Form — owns the share draft for the session
+// ---------------------------------------------------------------------------
+
+/**
+ * The dialog's editable projection of a share. `null` (never shared)
+ * seeds the same defaults the server would apply on first create, so
+ * the form needs no "no share yet" special case beyond the disabled
+ * copy fields that `enabled: false` already produces.
+ */
+function draftFromShare(share: AgentShare | null): AgentShareDraft {
+  const spec = share?.spec;
+  return {
+    enabled: spec?.enabled ?? false,
+    audience: sharingAudienceFromProto(spec?.audience),
+    allowedOrigins: spec?.allowedOrigins ?? [],
+    messages: {
+      rateLimited: spec?.messages?.rateLimited ?? "",
+      unavailable: spec?.messages?.unavailable ?? "",
+      conversationEnded: spec?.messages?.conversationEnded ?? "",
+    },
+    environmentRefs: (spec?.environmentRefs ?? []).map((ref) => ({
+      org: ref.org,
+      slug: ref.slug,
+    })),
+  };
+}
+
+function ShareAgentForm({
+  agent,
+  initialShare,
+  buildShareUrl,
+  onSharingChanged,
+}: {
+  readonly agent: Agent;
+  readonly initialShare: AgentShare | null;
+  readonly buildShareUrl?: (org: string, slug: string) => string;
+  readonly onSharingChanged?: () => void;
+}) {
+  const agentName = agent.metadata?.name || (agent.metadata?.slug ?? "");
+
+  // The latest server share is the single baseline: the draft, the link
+  // token, and the share id for rotation all derive from it. `null`
+  // until the first save creates the share.
+  const [share, setShare] = useState<AgentShare | null>(initialShare);
+  const [draft, setDraft] = useState<AgentShareDraft>(() =>
+    draftFromShare(initialShare),
   );
   const [activeTab, setActiveTab] = useState("link");
 
-  const { updateSharing, isPending } = useUpdateAgentSharing(
-    agent.metadata?.id ?? null,
-  );
+  const { save, isPending } = useSaveAgentShare(agent);
   const { rotateShareLink, isPending: isRotating } = useRotateShareLink(
-    agent.metadata?.id ?? null,
+    share?.metadata?.id ?? null,
   );
 
-  // Single commit path: send the complete draft, adopt the server's
-  // returned agent as the new baseline, notify the host.
+  // The share's own org/slug form the hosted URL. Before the first save
+  // the agent's stand in — exactly the identity the server will assign
+  // on create (D2: share slug defaults to the agent's).
+  const org = share?.metadata?.org || (agent.metadata?.org ?? "");
+  const slug = share?.metadata?.slug || (agent.metadata?.slug ?? "");
+  const linkToken = share?.status?.shareLinkToken ?? "";
+
+  // Single commit path: apply the complete draft, adopt the server's
+  // returned share as the new baseline, notify the host.
   const commit = useCallback(
-    async (next: AgentSharingDraft, successMessage: string): Promise<boolean> => {
+    async (next: AgentShareDraft, successMessage: string): Promise<boolean> => {
       try {
-        const updated = await updateSharing(next);
-        setDraft(updated ? draftFromAgent(updated) : next);
-        if (updated) {
-          setLinkToken(updated.status?.shareLinkToken ?? "");
+        const persisted = await save(next, share);
+        if (persisted) {
+          setShare(persisted);
+          setDraft(draftFromShare(persisted));
+        } else {
+          setDraft(next);
         }
         toast.success(successMessage);
         onSharingChanged?.();
@@ -218,14 +347,14 @@ function ShareAgentDialogBody({
         return false;
       }
     },
-    [updateSharing, onSharingChanged],
+    [save, share, onSharingChanged],
   );
 
   const handleRotateLink = useCallback(async () => {
     try {
       const updated = await rotateShareLink();
       if (updated) {
-        setLinkToken(updated.status?.shareLinkToken ?? "");
+        setShare(updated);
       }
       toast.success("Link reset — the old link no longer works");
       onSharingChanged?.();
@@ -247,10 +376,22 @@ function ShareAgentDialogBody({
   const handleAudienceChange = useCallback(
     (audience: SharingAudience) => {
       if (audience === draft.audience) return;
+      // Credential bindings are public-audience only (the proto CEL rule
+      // rejects them on org shares — decision 011 addendum), so switching
+      // to org drops them, and the toast says so: silent config loss is
+      // worse than a wordier confirmation.
+      const dropsBindings =
+        audience === "org" && draft.environmentRefs.length > 0;
       void commit(
-        { ...draft, audience },
+        {
+          ...draft,
+          audience,
+          environmentRefs: dropsBindings ? [] : draft.environmentRefs,
+        },
         audience === "org"
-          ? "Only organization members can chat now"
+          ? dropsBindings
+            ? "Only organization members can chat now — tool credential bindings were removed (they apply to public links only)"
+            : "Only organization members can chat now"
           : "Anyone with the link can chat now",
       );
     },
@@ -268,34 +409,7 @@ function ShareAgentDialogBody({
     : appendLinkToken(baseShareUrl, linkToken);
 
   return (
-    <div className="flex flex-col">
-      {/* Header */}
-      <div className="flex items-start justify-between border-b border-border px-6 py-4">
-        <div className="min-w-0">
-          <h2
-            id="share-agent-title"
-            className="text-base font-semibold text-foreground"
-          >
-            Share
-          </h2>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {agentName}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className={cn(
-            "rounded-md p-1 text-muted-foreground",
-            "hover:text-foreground hover:bg-accent-hover",
-            "focus:outline-none focus:ring-2 focus:ring-ring",
-          )}
-        >
-          <CloseIcon />
-        </button>
-      </div>
-
+    <>
       {/* Sharing master switch — governs every tab, so it sits above them. */}
       <div className="border-b border-border px-6 py-4">
         <div className="flex items-start justify-between gap-4">
@@ -322,7 +436,7 @@ function ShareAgentDialogBody({
           onChange={handleAudienceChange}
           disabled={isPending}
         />
-        <ToolReadinessHint agent={agent} enabled={draft.enabled} />
+        <ToolReadinessHint agent={agent} draft={draft} />
       </div>
 
       {/* Tabs */}
@@ -338,6 +452,7 @@ function ShareAgentDialogBody({
               <LinkTab
                 shareUrl={shareUrl}
                 org={org}
+                agent={agent}
                 enabled={draft.enabled}
                 draft={draft}
                 isPending={isPending}
@@ -364,44 +479,41 @@ function ShareAgentDialogBody({
           </div>
         </Tabs>
       </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-end border-t border-border px-6 py-3">
-        <button
-          type="button"
-          onClick={onClose}
-          className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-          )}
-        >
-          Done
-        </button>
-      </div>
-    </div>
+    </>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Tool readiness — private credentials block visitors' tool use
+// Tool readiness — visitors' tool use needs credentials bound to the share
 // ---------------------------------------------------------------------------
 
 /**
- * Pre-flight hint for tool-using agents: visitors' chats can only use
- * environments shared with the organization. Renders nothing unless the
- * check finds bound environments that are still private — sharing stays
- * one toggle; this only catches the misconfiguration at share time
- * instead of at the visitor's first message.
+ * Pre-flight hint for tool-using agents: visitors' chats receive
+ * credentials only from the share's own environment bindings, so a
+ * tool-using agent with no bindings (`needs-credentials`) or a binding
+ * that is still private (`blocked`) will fail at the visitor's first
+ * message. Renders nothing when there is nothing to fix — sharing stays
+ * one toggle; this only catches the misconfiguration at share time.
  */
 function ToolReadinessHint({
   agent,
-  enabled,
+  draft,
 }: {
   readonly agent: Agent;
-  readonly enabled: boolean;
+  readonly draft: AgentShareDraft;
 }) {
-  const readiness = useShareToolReadiness(agent, enabled);
+  const readiness = useShareToolReadiness(agent, draft);
+
+  if (readiness.status === "needs-credentials") {
+    return (
+      <p className="mt-2 text-xs text-warning" role="status">
+        Visitors&apos; chats can&apos;t use this agent&apos;s tools yet: no
+        credentials are bound to this share. Bind an org-shared environment
+        under <span className="font-medium">Tool credentials</span> in the
+        Link tab below.
+      </p>
+    );
+  }
 
   if (readiness.status !== "blocked") {
     return null;
@@ -415,8 +527,8 @@ function ToolReadinessHint({
       Visitors&apos; chats can&apos;t use this agent&apos;s tools yet: the
       environment{plural ? "s" : ""} <span className="font-medium">{envList}</span>{" "}
       {plural ? "are" : "is"} private. Share {plural ? "them" : "it"} with your
-      organization (Settings &rarr; Environments) so visitor and teammate runs
-      can use the credentials. Secret values stay hidden either way.
+      organization (Settings &rarr; Environments) so visitor runs can use the
+      credentials. Secret values stay hidden either way.
     </p>
   );
 }
@@ -493,7 +605,7 @@ function WhoPaysLine({
 }) {
   const mode = useDeploymentMode();
   // An Organization's id equals its slug (see ApiResourceMetadata.id), so
-  // the agent's org reference is directly usable as the billing org id.
+  // the share's org reference is directly usable as the billing org id.
   // Cloud-only: local mode has no billing accounts.
   const { account } = useBillingAccount(mode === "cloud" ? org : null);
 
@@ -533,6 +645,7 @@ function SharingOffHint({ subject }: { readonly subject: string }) {
 function LinkTab({
   shareUrl,
   org,
+  agent,
   enabled,
   draft,
   isPending,
@@ -543,11 +656,12 @@ function LinkTab({
 }: {
   readonly shareUrl: string;
   readonly org: string;
+  readonly agent: Agent;
   readonly enabled: boolean;
-  readonly draft: AgentSharingDraft;
+  readonly draft: AgentShareDraft;
   readonly isPending: boolean;
   readonly commit: (
-    next: AgentSharingDraft,
+    next: AgentShareDraft,
     successMessage: string,
   ) => Promise<boolean>;
   readonly hasLinkToken: boolean;
@@ -588,6 +702,16 @@ function LinkTab({
           hasLinkToken={hasLinkToken}
           isRotating={isRotating}
           onResetLink={onResetLink}
+        />
+      )}
+
+      {!isOrgAudience && (
+        <ToolCredentialsSection
+          org={org}
+          agent={agent}
+          draft={draft}
+          isPending={isPending}
+          commit={commit}
         />
       )}
 
@@ -644,6 +768,101 @@ function ResetLinkControl({
 }
 
 // ---------------------------------------------------------------------------
+// Tool credentials — org-shared environments bound to the share for visitors
+// ---------------------------------------------------------------------------
+
+/**
+ * Binds org-shared environments to the share's `environment_refs` — the
+ * consent act that makes a tool-using agent work for visitors (decision
+ * 011: credentials belong to the channel, never to the agent's pristine
+ * default instance). Public audience only; the section disappears for
+ * org shares, whose member sessions carry no share linkage in Phase A.
+ *
+ * Expanded by default when the agent uses MCP tools — for those agents
+ * this is essential configuration, not an advanced option.
+ */
+function ToolCredentialsSection({
+  org,
+  agent,
+  draft,
+  isPending,
+  commit,
+}: {
+  readonly org: string;
+  readonly agent: Agent;
+  readonly draft: AgentShareDraft;
+  readonly isPending: boolean;
+  readonly commit: (
+    next: AgentShareDraft,
+    successMessage: string,
+  ) => Promise<boolean>;
+}) {
+  const hasMcpTools = (agent.spec?.mcpServerUsages?.length ?? 0) > 0;
+  const [expanded, setExpanded] = useState(
+    hasMcpTools || draft.environmentRefs.length > 0,
+  );
+
+  const handleChange = useCallback(
+    (refs: ResourceRef[]) => {
+      const added = refs.length > draft.environmentRefs.length;
+      void commit(
+        { ...draft, environmentRefs: refs },
+        added ? "Credentials bound" : "Credential bindings updated",
+      );
+    },
+    [commit, draft],
+  );
+
+  // Only org-shared environments are guest-usable (the runtime merge
+  // skips private ones — decision 006), so offering others would bind
+  // credentials that silently never apply.
+  const onlyOrgShared = useCallback(
+    (env: Environment) =>
+      env.metadata?.visibility === ApiResourceVisibility.visibility_org,
+    [],
+  );
+
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className={cn(
+          "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground",
+          "hover:text-foreground",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+        )}
+      >
+        <ChevronIcon
+          className={cn("size-3 transition-transform", expanded && "rotate-90")}
+        />
+        Tool credentials
+      </button>
+
+      {expanded && (
+        <div className="mt-2 flex flex-col gap-2">
+          <p className="text-[0.65rem] text-muted-foreground">
+            Environments whose values visitors&apos; chats can use — bind one
+            holding the credentials this agent&apos;s tools need (a read-only
+            token is safest). Only environments shared with your organization
+            can be bound; share one first in Settings &rarr; Environments.
+            Secret values stay hidden from visitors either way.
+          </p>
+          <EnvironmentPicker
+            org={org}
+            value={draft.environmentRefs}
+            onChange={handleChange}
+            disabled={isPending}
+            filterEnvironment={onlyOrgShared}
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Embed tab
 // ---------------------------------------------------------------------------
 
@@ -691,10 +910,10 @@ function EmbedTab({
   readonly agentName: string;
   readonly linkToken: string;
   readonly enabled: boolean;
-  readonly draft: AgentSharingDraft;
+  readonly draft: AgentShareDraft;
   readonly isPending: boolean;
   readonly commit: (
-    next: AgentSharingDraft,
+    next: AgentShareDraft,
     successMessage: string,
   ) => Promise<boolean>;
 }) {
@@ -812,10 +1031,10 @@ function OriginsEditor({
   isPending,
   commit,
 }: {
-  readonly draft: AgentSharingDraft;
+  readonly draft: AgentShareDraft;
   readonly isPending: boolean;
   readonly commit: (
-    next: AgentSharingDraft,
+    next: AgentShareDraft,
     successMessage: string,
   ) => Promise<boolean>;
 }) {
@@ -967,17 +1186,15 @@ const MESSAGE_FIELDS = [
   },
 ] as const;
 
-type MessageKey = (typeof MESSAGE_FIELDS)[number]["key"];
-
 function MessagesEditor({
   draft,
   isPending,
   commit,
 }: {
-  readonly draft: AgentSharingDraft;
+  readonly draft: AgentShareDraft;
   readonly isPending: boolean;
   readonly commit: (
-    next: AgentSharingDraft,
+    next: AgentShareDraft,
     successMessage: string,
   ) => Promise<boolean>;
 }) {

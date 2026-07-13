@@ -379,6 +379,11 @@
           "description": "Configured deployment of an agent with environment-specific overrides."
         },
         {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
+        },
+        {
           "name": "workflow",
           "number": 50,
           "description": "Multi-step orchestration defining how agents collaborate on a task."

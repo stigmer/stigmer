@@ -32,26 +32,6 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agent_v1_AgentId_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_agent_v1_RotateShareLinkInput_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_agent_v1_RotateShareLinkInput_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_agent_v1_GetSharedProfileRequest_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_agent_v1_GetSharedProfileRequest_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_agent_v1_UpdateAgentSharingInput_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_agent_v1_UpdateAgentSharingInput_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_agent_v1_SharedAgentProfile_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_agent_v1_SharedAgentProfile_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_agent_v1_GetDefaultAgentRequest_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -66,33 +46,18 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n$ai/stigmer/agentic/agent/v1/io.proto\022\033" +
-      "ai.stigmer.agentic.agent.v1\032&ai/stigmer/" +
-      "agentic/agent/v1/spec.proto\032\033buf/validat" +
+      "ai.stigmer.agentic.agent.v1\032\033buf/validat" +
       "e/validate.proto\"\'\n\007AgentId\022\034\n\005value\030\001 \001" +
-      "(\tB\006\272H\003\310\001\001R\005value\"?\n\024RotateShareLinkInpu" +
-      "t\022\'\n\013resource_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresource" +
-      "Id\"h\n\027GetSharedProfileRequest\022\020\n\003org\030\001 \001" +
-      "(\tR\003org\022\022\n\004slug\030\002 \001(\tR\004slug\022\'\n\nlink_toke" +
-      "n\030\003 \001(\tB\010\272H\005r\003\030\200\001R\tlinkToken\"\217\001\n\027UpdateA" +
-      "gentSharingInput\022\'\n\013resource_id\030\001 \001(\tB\006\272" +
-      "H\003\310\001\001R\nresourceId\022K\n\007sharing\030\002 \001(\0132).ai." +
-      "stigmer.agentic.agent.v1.AgentSharingB\006\272" +
-      "H\003\310\001\001R\007sharing\"\273\001\n\022SharedAgentProfile\022\020\n" +
-      "\003org\030\001 \001(\tR\003org\022\022\n\004slug\030\002 \001(\tR\004slug\022\022\n\004n" +
-      "ame\030\003 \001(\tR\004name\022 \n\013description\030\004 \001(\tR\013de" +
-      "scription\022\031\n\010icon_url\030\005 \001(\tR\007iconUrl\022.\n\023" +
-      "default_instance_id\030\006 \001(\tR\021defaultInstan" +
-      "ceId\"3\n\026GetDefaultAgentRequest\022\031\n\003org\030\001 " +
-      "\001(\tB\007\272H\004r\002\020\001R\003orgB\232\001B\007IoProtoP\001\242\002\004ASAA\252\002" +
-      "\033Ai.Stigmer.Agentic.Agent.V1\312\002\033Ai\\Stigme" +
-      "r\\Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\" +
-      "Agent\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agen" +
-      "tic::Agent::V1b\006proto3"
+      "(\tB\006\272H\003\310\001\001R\005value\"3\n\026GetDefaultAgentRequ" +
+      "est\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003orgB\232\001B\007IoPro" +
+      "toP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Agent.V" +
+      "1\312\002\033Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\Sti" +
+      "gmer\\Agentic\\Agent\\V1\\GPBMetadata\352\002\037Ai::" +
+      "Stigmer::Agentic::Agent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-          ai.stigmer.agentic.agent.v1.SpecProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_agent_v1_AgentId_descriptor =
@@ -101,38 +66,13 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_AgentId_descriptor,
         new java.lang.String[] { "Value", });
-    internal_static_ai_stigmer_agentic_agent_v1_RotateShareLinkInput_descriptor =
-      getDescriptor().getMessageType(1);
-    internal_static_ai_stigmer_agentic_agent_v1_RotateShareLinkInput_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_agent_v1_RotateShareLinkInput_descriptor,
-        new java.lang.String[] { "ResourceId", });
-    internal_static_ai_stigmer_agentic_agent_v1_GetSharedProfileRequest_descriptor =
-      getDescriptor().getMessageType(2);
-    internal_static_ai_stigmer_agentic_agent_v1_GetSharedProfileRequest_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_agent_v1_GetSharedProfileRequest_descriptor,
-        new java.lang.String[] { "Org", "Slug", "LinkToken", });
-    internal_static_ai_stigmer_agentic_agent_v1_UpdateAgentSharingInput_descriptor =
-      getDescriptor().getMessageType(3);
-    internal_static_ai_stigmer_agentic_agent_v1_UpdateAgentSharingInput_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_agent_v1_UpdateAgentSharingInput_descriptor,
-        new java.lang.String[] { "ResourceId", "Sharing", });
-    internal_static_ai_stigmer_agentic_agent_v1_SharedAgentProfile_descriptor =
-      getDescriptor().getMessageType(4);
-    internal_static_ai_stigmer_agentic_agent_v1_SharedAgentProfile_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_agent_v1_SharedAgentProfile_descriptor,
-        new java.lang.String[] { "Org", "Slug", "Name", "Description", "IconUrl", "DefaultInstanceId", });
     internal_static_ai_stigmer_agentic_agent_v1_GetDefaultAgentRequest_descriptor =
-      getDescriptor().getMessageType(5);
+      getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_agent_v1_GetDefaultAgentRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_GetDefaultAgentRequest_descriptor,
         new java.lang.String[] { "Org", });
     descriptor.resolveAllFeaturesImmutable();
-    ai.stigmer.agentic.agent.v1.SpecProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();

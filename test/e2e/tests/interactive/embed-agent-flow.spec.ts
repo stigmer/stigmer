@@ -1,7 +1,5 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { create } from "@bufbuild/protobuf";
-import { UpdateAgentSharingInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import type { Stigmer } from "@stigmer/sdk";
 import { test, expect } from "../../fixtures";
 import { ensureDefaultOrg } from "../../fixtures/seed-helpers";
@@ -41,13 +39,20 @@ let server: Server;
 let hostOrigin: string;
 let hostPageAttributes = "";
 
-async function enableSharing(client: Stigmer, agentId: string): Promise<void> {
-  await client.agent.updateSharing(
-    create(UpdateAgentSharingInputSchema, {
-      resourceId: agentId,
-      sharing: { enabled: true },
-    }),
-  );
+// Sharing is an AgentShare resource (decision 011): apply upserts the
+// canonical share by (org, slug) — creating it on first use, exactly the
+// commit path the Share dialog and CLI use.
+async function enableSharing(
+  client: Stigmer,
+  agent: { org: string; slug: string },
+): Promise<void> {
+  await client.agentShare.apply({
+    org: agent.org,
+    slug: agent.slug,
+    name: agent.slug,
+    agentRef: { org: agent.org, slug: agent.slug },
+    enabled: true,
+  });
 }
 
 test.describe("Embed agent flow", () => {
@@ -78,7 +83,7 @@ test.describe("Embed agent flow", () => {
     testAgent,
     stigmerClient,
   }) => {
-    await enableSharing(stigmerClient, testAgent.id);
+    await enableSharing(stigmerClient, testAgent);
 
     hostPageAttributes = `org="${testAgent.org}" agent="${testAgent.slug}"`;
     await page.goto(`${hostOrigin}/`);
@@ -111,7 +116,7 @@ test.describe("Embed agent flow", () => {
     testAgent,
     stigmerClient,
   }) => {
-    await enableSharing(stigmerClient, testAgent.id);
+    await enableSharing(stigmerClient, testAgent);
 
     hostPageAttributes =
       `org="${testAgent.org}" agent="${testAgent.slug}" theme="dark" width="320" height="480"`;

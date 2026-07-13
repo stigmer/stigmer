@@ -6,7 +6,7 @@ import { getUserMessage } from "@stigmer/sdk";
 import { NewSessionViewer } from "../session/NewSessionViewer.js";
 import { SessionViewer } from "../session/SessionViewer.js";
 import { useSharedAgentProfile } from "./useSharedAgentProfile.js";
-import type { SharingAudience } from "./useUpdateAgentSharing.js";
+import type { SharingAudience } from "./useSaveAgentShare.js";
 
 // ---------------------------------------------------------------------------
 // Public API

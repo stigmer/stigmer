@@ -52,6 +52,8 @@ const APPLY_ORDER: ReadonlyMap<ApiResourceKind, number> = new Map([
   [ApiResourceKind.agent_instance, 7],
   [ApiResourceKind.workflow_instance, 8],
   [ApiResourceKind.session, 9],
+  // After agent (2) and environment (4): a share references both.
+  [ApiResourceKind.agent_share, 10],
 ]);
 
 /** Expand a path into ordered, kind-resolved apply items (strict YAML parse). */

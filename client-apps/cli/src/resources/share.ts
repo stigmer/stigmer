@@ -1,12 +1,19 @@
-// `share agent` dispatch: enable or disable public sharing for an agent and
-// report the hosted chat link + embed snippet.
+// `share agent` dispatch: enable or disable sharing for an agent and report
+// the hosted chat link + embed snippet.
 //
-// The one correctness invariant here: the `updateSharing` RPC replaces
-// `spec.sharing` WHOLESALE. A naive "set enabled" would silently wipe any
-// `allowed_origins` or visitor messages the owner configured in the console.
-// So this module always reads the current state first and sends the complete
-// block back with only `enabled` flipped — the same merge-preserve discipline
-// as the web dialog's draftFromAgent (sdk/react ShareAgentDialog.tsx).
+// Sharing lives in its own AgentShare resource (decision 011) — the agent is
+// never modified. This module resolves the agent, reads its canonical share,
+// and commits changes via `agentShare.apply`, an idempotent upsert keyed on
+// the share's (org, slug) identity: the first enable creates the share, later
+// toggles update it, one code path.
+//
+// The one correctness invariant here: apply replaces the share's spec
+// WHOLESALE. A naive "set enabled" would silently wipe any allowed_origins,
+// visitor messages, audience, or credential bindings the owner configured in
+// the console. So this module always reads the current share first and sends
+// the complete spec back with only the requested fields flipped — the same
+// merge-preserve discipline as the web dialog. (The rotatable link token is
+// exempt: it is server-owned status, which survives every apply verbatim.)
 //
 // URL and snippet shapes come from @stigmer/sdk's sharing helpers — the single
 // source of truth shared with the web console — so every surface emits
@@ -15,17 +22,18 @@
 
 import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import {
+  GetAgentSharesByAgentRequestSchema,
   RotateShareLinkInputSchema,
-  UpdateAgentSharingInputSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+} from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
+import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
 import {
-  AgentSharingAudience,
-  AgentSharingMessagesSchema,
-  AgentSharingSchema,
-  type AgentSharing,
-} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import { buildChatUrl, buildEmbedSnippet, type Stigmer } from "@stigmer/sdk";
+  buildChatUrl,
+  buildEmbedSnippet,
+  type AgentShareInput,
+  type Stigmer,
+} from "@stigmer/sdk";
 import { UsageError } from "../errors/index.js";
 import { CommandResult } from "../output/index.js";
 import { isAgentId } from "./reference.js";
@@ -39,7 +47,7 @@ export interface ShareAgentOptions {
   /** Desired sharing state: `true` to enable, `false` to disable. */
   readonly enabled: boolean;
   /**
-   * Desired audience. Omitted means "keep the agent's current audience" —
+   * Desired audience. Omitted means "keep the share's current audience" —
    * a plain toggle must never flip an org-members-only share back to
    * public (or vice versa).
    */
@@ -48,7 +56,7 @@ export interface ShareAgentOptions {
    * Rotate the share-link token: the server generates a fresh `?k=`
    * secret and the current link (tokened or plain) stops working
    * immediately. The token is server-owned status — never part of the
-   * sharing block this module merges.
+   * spec this module merges.
    */
   readonly resetLink?: boolean;
   /** The app origin serving the hosted chat page and `embed.js`. */
@@ -63,8 +71,9 @@ export interface ShareAgentOptions {
 
 /**
  * Enable or disable sharing for the referenced agent and describe the
- * outcome. Idempotent: when the agent is already in the desired state, no
- * write is issued (the link is still reported when sharing is on).
+ * outcome. Idempotent: when the canonical share is already in the desired
+ * state, no write is issued (the link is still reported when sharing is
+ * on). When the agent has never been shared, enabling creates the share.
  */
 export async function shareAgent(
   client: Stigmer,
@@ -84,7 +93,8 @@ export async function shareAgent(
   }
 
   const agent = await resolveAgentRef(client, ref, org);
-  const current = agent.spec?.sharing;
+  let share = await resolveCanonicalShare(client, agent);
+  const current = share?.spec;
 
   const currentAudience = audienceFromProto(current?.audience);
   const targetAudience = options.audience ?? currentAudience;
@@ -103,83 +113,133 @@ export async function shareAgent(
     );
   }
 
+  // Never-shared + disable is a no-op, not a write: creating a share row
+  // just to mark it disabled would materialize a resource the owner never
+  // asked for. The one exception is an explicit --audience org, which is
+  // real configuration worth persisting as a paused share (mirroring the
+  // pre-promotion behavior of storing audience on a disabled block).
   const alreadyInState =
-    (current?.enabled ?? false) === options.enabled &&
-    currentAudience === targetAudience;
+    share !== null
+      ? (current?.enabled ?? false) === options.enabled &&
+        currentAudience === targetAudience
+      : !options.enabled && targetAudience !== "org";
 
   if (!alreadyInState) {
-    // Send the COMPLETE sharing block with only the requested fields changed,
-    // so a CLI toggle can never wipe console-configured origins, visitor
-    // messages, or an org-members-only audience.
-    await client.agent.updateSharing(
-      create(UpdateAgentSharingInputSchema, {
-        resourceId: agent.metadata?.id ?? "",
-        sharing: preservingSharing(current, options.enabled, targetAudience),
-      }),
+    // Apply the COMPLETE spec with only the requested fields changed, so a
+    // CLI toggle can never wipe console-configured origins, visitor
+    // messages, credential bindings, or an org-members-only audience.
+    share = await client.agentShare.apply(
+      preservingShareInput(agent, share, options.enabled, targetAudience),
     );
   }
 
   // The rotation is a separate targeted RPC (the token is server-owned
-  // status, not part of the sharing block). The returned agent carries the
-  // fresh token, so the link printed below is the new one.
-  let linkToken = agent.status?.shareLinkToken ?? "";
-  if (options.resetLink === true) {
-    const rotated = await client.agent.rotateShareLink(
+  // status, not part of the spec apply merges). The returned share carries
+  // the fresh token, so the link printed below is the new one.
+  if (options.resetLink === true && share !== null) {
+    share = await client.agentShare.rotateShareLink(
       create(RotateShareLinkInputSchema, {
-        resourceId: agent.metadata?.id ?? "",
+        resourceId: share.metadata?.id ?? "",
       }),
     );
-    linkToken = rotated.status?.shareLinkToken ?? "";
   }
 
-  return describeOutcome(agent, options, targetAudience, linkToken, alreadyInState && options.resetLink !== true);
+  return describeOutcome(
+    agent,
+    share,
+    options,
+    targetAudience,
+    alreadyInState && options.resetLink !== true,
+  );
 }
 
-// Unspecified means public by contract (pre-audience shares keep their
-// anyone-with-link behavior).
-function audienceFromProto(audience: AgentSharingAudience | undefined): ShareAudience {
-  return audience === AgentSharingAudience.org ? "org" : "public";
+/**
+ * The agent's canonical share: the one whose slug equals the agent's (the
+ * server's default on create), else the first entry, else null when the
+ * agent has never been shared. Mirrors the web dialog's selection so both
+ * surfaces manage the same row (decision 011 D3: one canonical share in
+ * Phase A).
+ */
+async function resolveCanonicalShare(
+  client: Stigmer,
+  agent: Agent,
+): Promise<AgentShare | null> {
+  const result = await client.agentShare.getByAgent(
+    create(GetAgentSharesByAgentRequestSchema, {
+      agentId: agent.metadata?.id ?? "",
+    }),
+  );
+  const agentSlug = agent.metadata?.slug ?? "";
+  return (
+    result.items.find((share) => share.metadata?.slug === agentSlug) ??
+    result.items[0] ??
+    null
+  );
 }
 
-// The full sharing config with the desired `enabled` and audience,
-// preserving origins and messages (empty defaults when the agent was never
-// shared before). The audience is written explicitly — never left
-// unspecified — so a console-managed org share can't drift back to public.
-function preservingSharing(
-  current: AgentSharing | undefined,
+// Unspecified means public by contract (a share created without an explicit
+// audience is an anyone-with-link share).
+function audienceFromProto(audience: AgentShareAudience | undefined): ShareAudience {
+  return audience === AgentShareAudience.org ? "org" : "public";
+}
+
+// The full share input with the desired `enabled` and audience, preserving
+// origins, messages, and credential bindings (empty defaults when the agent
+// was never shared before). Identity comes from the existing share when one
+// exists — a manifest-created share may carry a non-default slug, and
+// applying with the agent's slug would create a SECOND share — and from the
+// agent otherwise (the server's own D2 default, made explicit). The audience
+// is written explicitly — never left unspecified — so a console-managed org
+// share can't drift back to public.
+function preservingShareInput(
+  agent: Agent,
+  share: AgentShare | null,
   enabled: boolean,
   audience: ShareAudience,
-): AgentSharing {
-  return create(AgentSharingSchema, {
+): AgentShareInput {
+  const agentOrg = agent.metadata?.org ?? "";
+  const agentSlug = agent.metadata?.slug ?? "";
+  const current = share?.spec;
+  return {
+    org: share?.metadata?.org || agentOrg,
+    slug: share?.metadata?.slug || agentSlug,
+    name: share?.metadata?.name || agent.metadata?.name || agentSlug,
+    agentRef: { org: agentOrg, slug: agentSlug },
     enabled,
     audience:
       audience === "org"
-        ? AgentSharingAudience.org
-        : AgentSharingAudience.public,
+        ? AgentShareAudience.org
+        : AgentShareAudience.public,
     allowedOrigins: [...(current?.allowedOrigins ?? [])],
-    messages: create(AgentSharingMessagesSchema, {
+    messages: {
       rateLimited: current?.messages?.rateLimited ?? "",
       unavailable: current?.messages?.unavailable ?? "",
       conversationEnded: current?.messages?.conversationEnded ?? "",
-    }),
-  });
+    },
+    environmentRefs: (current?.environmentRefs ?? []).map((envRef) => ({
+      org: envRef.org,
+      slug: envRef.slug,
+    })),
+  };
 }
 
-// Build the user-facing result. Org/slug come from the RESOLVED agent's
-// metadata (authoritative even when the user passed an ID), matching how the
-// web share dialog derives them. The link token comes from the agent's
-// status (post-rotation when --reset-link ran) and rides the printed URL
-// and snippet — public audience only (org access is gated by membership).
+// Build the user-facing result. Org/slug come from the SHARE's metadata —
+// the identity in the hosted chat URL (a share may carry a non-default
+// slug) — falling back to the resolved agent's on disable-when-never-shared.
+// The link token comes from the share's status (post-rotation when
+// --reset-link ran) and rides the printed URL and snippet — public audience
+// only (org access is gated by membership).
 function describeOutcome(
   agent: Agent,
+  share: AgentShare | null,
   options: ShareAgentOptions,
   audience: ShareAudience,
-  linkToken: string,
   alreadyInState: boolean,
 ): CommandResult {
-  const org = agent.metadata?.org ?? "";
-  const slug = agent.metadata?.slug ?? "";
+  const org = share?.metadata?.org || (agent.metadata?.org ?? "");
+  const slug = share?.metadata?.slug || (agent.metadata?.slug ?? "");
   const name = agent.metadata?.name || slug;
+  const linkToken = share?.status?.shareLinkToken ?? "";
 
   if (!options.enabled) {
     const result = CommandResult.success(

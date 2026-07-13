@@ -45,7 +45,7 @@ vi.mock("@stigmer/embed", () => ({
   resolveParentOrigin: vi.fn(),
 }));
 
-// The anonymous probe goes through `new Stigmer().agent.getSharedProfile`.
+// The anonymous probe goes through `new Stigmer().agentShare.getSharedProfile`.
 const getSharedProfileMock = vi.fn<(request?: unknown) => Promise<unknown>>();
 const stigmerConfigs: unknown[] = [];
 const guestAuthConfigs: Record<string, unknown>[] = [];
@@ -54,7 +54,7 @@ vi.mock("@stigmer/sdk", async (importOriginal) => {
   return {
     ...actual,
     Stigmer: class MockStigmer {
-      agent = { getSharedProfile: getSharedProfileMock };
+      agentShare = { getSharedProfile: getSharedProfileMock };
       constructor(config: unknown) {
         stigmerConfigs.push(config);
       }

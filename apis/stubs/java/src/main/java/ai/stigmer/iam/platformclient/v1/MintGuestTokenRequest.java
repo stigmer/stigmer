@@ -109,7 +109,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object slug_ = "";
   /**
    * <pre>
-   * Agent slug from the share URL (required).
+   * Share slug from the share URL (required).
    * </pre>
    *
    * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -130,7 +130,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Agent slug from the share URL (required).
+   * Share slug from the share URL (required).
    * </pre>
    *
    * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -220,9 +220,9 @@ private static final long serialVersionUID = 0L;
    * be determined (opaque origin).
    *
    * &#64;internal
-   * Validated at mint against the agent's spec.sharing.allowed_origins:
-   * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
-   * for unlisted origins and for "null". An empty field always passes (the
+   * Validated at mint against the share's spec.allowed_origins: empty list
+   * admits any origin; a non-empty list refuses PERMISSION_DENIED for
+   * unlisted origins and for "null". An empty field always passes (the
    * anyone-with-link hosted page). The validated value is stamped into the
    * guest JWT as the embed_origin claim and re-validated against the live
    * list by the guest create-time gate. Self-reported by design: the widget
@@ -259,9 +259,9 @@ private static final long serialVersionUID = 0L;
    * be determined (opaque origin).
    *
    * &#64;internal
-   * Validated at mint against the agent's spec.sharing.allowed_origins:
-   * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
-   * for unlisted origins and for "null". An empty field always passes (the
+   * Validated at mint against the share's spec.allowed_origins: empty list
+   * admits any origin; a non-empty list refuses PERMISSION_DENIED for
+   * unlisted origins and for "null". An empty field always passes (the
    * anyone-with-link hosted page). The validated value is stamped into the
    * guest JWT as the embed_origin claim and re-validated against the live
    * list by the guest create-time gate. Self-reported by design: the widget
@@ -296,17 +296,17 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Link token from the share URL's `?k=` parameter (optional).
    *
-   * Required when the agent's share link has been locked with
-   * rotateShareLink; ignored for plain share links.
+   * Required when the share link has been locked with rotateShareLink;
+   * ignored for plain share links.
    *
    * &#64;internal
-   * Validated at mint against the agent's live status.share_link_token
-   * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+   * Validated at mint against the share's live status.share_link_token
+   * (mismatch or absence answers the same NOT_FOUND as a disabled share,
    * so a killed link is indistinguishable from a nonexistent one). The
    * validated value is stamped into the guest JWT as the link_token claim
    * and re-validated against the live value by the guest create-time gate
    * on every session/execution create — rotation therefore revokes live
-   * guest tokens on their next message, exactly like disabling sharing.
+   * guest tokens on their next message, exactly like disabling the share.
    * </pre>
    *
    * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
@@ -329,17 +329,17 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Link token from the share URL's `?k=` parameter (optional).
    *
-   * Required when the agent's share link has been locked with
-   * rotateShareLink; ignored for plain share links.
+   * Required when the share link has been locked with rotateShareLink;
+   * ignored for plain share links.
    *
    * &#64;internal
-   * Validated at mint against the agent's live status.share_link_token
-   * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+   * Validated at mint against the share's live status.share_link_token
+   * (mismatch or absence answers the same NOT_FOUND as a disabled share,
    * so a killed link is indistinguishable from a nonexistent one). The
    * validated value is stamped into the guest JWT as the link_token claim
    * and re-validated against the live value by the guest create-time gate
    * on every session/execution create — rotation therefore revokes live
-   * guest tokens on their next message, exactly like disabling sharing.
+   * guest tokens on their next message, exactly like disabling the share.
    * </pre>
    *
    * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
@@ -849,7 +849,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object slug_ = "";
     /**
      * <pre>
-     * Agent slug from the share URL (required).
+     * Share slug from the share URL (required).
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -869,7 +869,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent slug from the share URL (required).
+     * Share slug from the share URL (required).
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -890,7 +890,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent slug from the share URL (required).
+     * Share slug from the share URL (required).
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -907,7 +907,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent slug from the share URL (required).
+     * Share slug from the share URL (required).
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -921,7 +921,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent slug from the share URL (required).
+     * Share slug from the share URL (required).
      * </pre>
      *
      * <code>string slug = 2 [json_name = "slug", (.buf.validate.field) = { ... }</code>
@@ -1062,9 +1062,9 @@ private static final long serialVersionUID = 0L;
      * be determined (opaque origin).
      *
      * &#64;internal
-     * Validated at mint against the agent's spec.sharing.allowed_origins:
-     * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
-     * for unlisted origins and for "null". An empty field always passes (the
+     * Validated at mint against the share's spec.allowed_origins: empty list
+     * admits any origin; a non-empty list refuses PERMISSION_DENIED for
+     * unlisted origins and for "null". An empty field always passes (the
      * anyone-with-link hosted page). The validated value is stamped into the
      * guest JWT as the embed_origin claim and re-validated against the live
      * list by the guest create-time gate. Self-reported by design: the widget
@@ -1100,9 +1100,9 @@ private static final long serialVersionUID = 0L;
      * be determined (opaque origin).
      *
      * &#64;internal
-     * Validated at mint against the agent's spec.sharing.allowed_origins:
-     * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
-     * for unlisted origins and for "null". An empty field always passes (the
+     * Validated at mint against the share's spec.allowed_origins: empty list
+     * admits any origin; a non-empty list refuses PERMISSION_DENIED for
+     * unlisted origins and for "null". An empty field always passes (the
      * anyone-with-link hosted page). The validated value is stamped into the
      * guest JWT as the embed_origin claim and re-validated against the live
      * list by the guest create-time gate. Self-reported by design: the widget
@@ -1139,9 +1139,9 @@ private static final long serialVersionUID = 0L;
      * be determined (opaque origin).
      *
      * &#64;internal
-     * Validated at mint against the agent's spec.sharing.allowed_origins:
-     * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
-     * for unlisted origins and for "null". An empty field always passes (the
+     * Validated at mint against the share's spec.allowed_origins: empty list
+     * admits any origin; a non-empty list refuses PERMISSION_DENIED for
+     * unlisted origins and for "null". An empty field always passes (the
      * anyone-with-link hosted page). The validated value is stamped into the
      * guest JWT as the embed_origin claim and re-validated against the live
      * list by the guest create-time gate. Self-reported by design: the widget
@@ -1174,9 +1174,9 @@ private static final long serialVersionUID = 0L;
      * be determined (opaque origin).
      *
      * &#64;internal
-     * Validated at mint against the agent's spec.sharing.allowed_origins:
-     * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
-     * for unlisted origins and for "null". An empty field always passes (the
+     * Validated at mint against the share's spec.allowed_origins: empty list
+     * admits any origin; a non-empty list refuses PERMISSION_DENIED for
+     * unlisted origins and for "null". An empty field always passes (the
      * anyone-with-link hosted page). The validated value is stamped into the
      * guest JWT as the embed_origin claim and re-validated against the live
      * list by the guest create-time gate. Self-reported by design: the widget
@@ -1206,9 +1206,9 @@ private static final long serialVersionUID = 0L;
      * be determined (opaque origin).
      *
      * &#64;internal
-     * Validated at mint against the agent's spec.sharing.allowed_origins:
-     * empty list admits any origin; a non-empty list refuses PERMISSION_DENIED
-     * for unlisted origins and for "null". An empty field always passes (the
+     * Validated at mint against the share's spec.allowed_origins: empty list
+     * admits any origin; a non-empty list refuses PERMISSION_DENIED for
+     * unlisted origins and for "null". An empty field always passes (the
      * anyone-with-link hosted page). The validated value is stamped into the
      * guest JWT as the embed_origin claim and re-validated against the live
      * list by the guest create-time gate. Self-reported by design: the widget
@@ -1237,17 +1237,17 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Link token from the share URL's `?k=` parameter (optional).
      *
-     * Required when the agent's share link has been locked with
-     * rotateShareLink; ignored for plain share links.
+     * Required when the share link has been locked with rotateShareLink;
+     * ignored for plain share links.
      *
      * &#64;internal
-     * Validated at mint against the agent's live status.share_link_token
-     * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+     * Validated at mint against the share's live status.share_link_token
+     * (mismatch or absence answers the same NOT_FOUND as a disabled share,
      * so a killed link is indistinguishable from a nonexistent one). The
      * validated value is stamped into the guest JWT as the link_token claim
      * and re-validated against the live value by the guest create-time gate
      * on every session/execution create — rotation therefore revokes live
-     * guest tokens on their next message, exactly like disabling sharing.
+     * guest tokens on their next message, exactly like disabling the share.
      * </pre>
      *
      * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
@@ -1269,17 +1269,17 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Link token from the share URL's `?k=` parameter (optional).
      *
-     * Required when the agent's share link has been locked with
-     * rotateShareLink; ignored for plain share links.
+     * Required when the share link has been locked with rotateShareLink;
+     * ignored for plain share links.
      *
      * &#64;internal
-     * Validated at mint against the agent's live status.share_link_token
-     * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+     * Validated at mint against the share's live status.share_link_token
+     * (mismatch or absence answers the same NOT_FOUND as a disabled share,
      * so a killed link is indistinguishable from a nonexistent one). The
      * validated value is stamped into the guest JWT as the link_token claim
      * and re-validated against the live value by the guest create-time gate
      * on every session/execution create — rotation therefore revokes live
-     * guest tokens on their next message, exactly like disabling sharing.
+     * guest tokens on their next message, exactly like disabling the share.
      * </pre>
      *
      * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
@@ -1302,17 +1302,17 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Link token from the share URL's `?k=` parameter (optional).
      *
-     * Required when the agent's share link has been locked with
-     * rotateShareLink; ignored for plain share links.
+     * Required when the share link has been locked with rotateShareLink;
+     * ignored for plain share links.
      *
      * &#64;internal
-     * Validated at mint against the agent's live status.share_link_token
-     * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+     * Validated at mint against the share's live status.share_link_token
+     * (mismatch or absence answers the same NOT_FOUND as a disabled share,
      * so a killed link is indistinguishable from a nonexistent one). The
      * validated value is stamped into the guest JWT as the link_token claim
      * and re-validated against the live value by the guest create-time gate
      * on every session/execution create — rotation therefore revokes live
-     * guest tokens on their next message, exactly like disabling sharing.
+     * guest tokens on their next message, exactly like disabling the share.
      * </pre>
      *
      * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
@@ -1331,17 +1331,17 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Link token from the share URL's `?k=` parameter (optional).
      *
-     * Required when the agent's share link has been locked with
-     * rotateShareLink; ignored for plain share links.
+     * Required when the share link has been locked with rotateShareLink;
+     * ignored for plain share links.
      *
      * &#64;internal
-     * Validated at mint against the agent's live status.share_link_token
-     * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+     * Validated at mint against the share's live status.share_link_token
+     * (mismatch or absence answers the same NOT_FOUND as a disabled share,
      * so a killed link is indistinguishable from a nonexistent one). The
      * validated value is stamped into the guest JWT as the link_token claim
      * and re-validated against the live value by the guest create-time gate
      * on every session/execution create — rotation therefore revokes live
-     * guest tokens on their next message, exactly like disabling sharing.
+     * guest tokens on their next message, exactly like disabling the share.
      * </pre>
      *
      * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>
@@ -1357,17 +1357,17 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Link token from the share URL's `?k=` parameter (optional).
      *
-     * Required when the agent's share link has been locked with
-     * rotateShareLink; ignored for plain share links.
+     * Required when the share link has been locked with rotateShareLink;
+     * ignored for plain share links.
      *
      * &#64;internal
-     * Validated at mint against the agent's live status.share_link_token
-     * (mismatch or absence answers the same NOT_FOUND as an unshared agent,
+     * Validated at mint against the share's live status.share_link_token
+     * (mismatch or absence answers the same NOT_FOUND as a disabled share,
      * so a killed link is indistinguishable from a nonexistent one). The
      * validated value is stamped into the guest JWT as the link_token claim
      * and re-validated against the live value by the guest create-time gate
      * on every session/execution create — rotation therefore revokes live
-     * guest tokens on their next message, exactly like disabling sharing.
+     * guest tokens on their next message, exactly like disabling the share.
      * </pre>
      *
      * <code>string link_token = 5 [json_name = "linkToken", (.buf.validate.field) = { ... }</code>

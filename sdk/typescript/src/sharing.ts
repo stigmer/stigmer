@@ -19,7 +19,7 @@ export const MAX_ALLOWED_ORIGINS = 32;
 /**
  * Exact web origin: scheme://host[:port] — no path, query, fragment, or
  * trailing slash. Mirrors the CEL expression `allowed_origins.format` on
- * `AgentSharing` (`apis/ai/stigmer/agentic/agent/v1/spec.proto`).
+ * `AgentShareSpec` (`apis/ai/stigmer/agentic/agentshare/v1/spec.proto`).
  *
  * The proto is the source of truth — if the CEL expression changes, this
  * pattern must change with it. Mirroring it client-side gives immediate
@@ -52,9 +52,10 @@ export function validateOrigin(value: string): string | null {
 export const LINK_TOKEN_PARAM = "k";
 
 /**
- * The hosted chat page path for a shared agent: `/chat/<org>/<slug>`,
- * plus `?k=<token>` when the share link is locked with a rotatable token
- * (`agent.status.shareLinkToken`).
+ * The hosted chat page path for a shared agent: `/chat/<org>/<slug>`
+ * (the AgentShare's org and slug — the slug defaults to the agent's),
+ * plus `?k=<token>` when the share link is locked with a rotatable
+ * token (`AgentShareStatus.share_link_token`).
  *
  * Useful on its own when the caller renders relative to the current
  * origin (e.g. a host that never configured an absolute app URL).
@@ -90,7 +91,7 @@ export function buildChatUrl(
  * For hosts that construct the base URL through their own callback (the
  * share dialog's `buildShareUrl` prop) rather than {@link buildChatUrl}.
  * A `null`/empty token returns the URL unchanged, so callers can pass
- * `agent.status?.shareLinkToken` straight through. Emits the identical
+ * `share.status?.shareLinkToken` straight through. Emits the identical
  * `?k=` shape as {@link chatPath} — one URL grammar across every surface.
  */
 export function appendLinkToken(url: string, linkToken: string | null | undefined): string {

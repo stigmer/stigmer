@@ -13,9 +13,11 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	agentsharev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	billingv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	platformclientv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/platformclient/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
@@ -39,20 +41,70 @@ func requireGuestPrereqs(t *testing.T) {
 	require.NotNil(t, grpcConn)
 }
 
-// createSharedAgent creates an agent in the test org and enables sharing.
+// shareFor builds the minimal canonical AgentShare for an agent: no slug, no
+// name — both default from the referenced agent, so the share resolves at
+// the agent's own org/slug URL. Mirrors the OSS domain test's helper of the
+// same name; callers set config fields (origins, messages, audience,
+// environment_refs) directly on the returned spec before applying.
+func shareFor(agent *agentv1.Agent, enabled bool) *agentsharev1.AgentShare {
+	return &agentsharev1.AgentShare{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "AgentShare",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Org: agent.GetMetadata().GetOrg(),
+		},
+		Spec: &agentsharev1.AgentShareSpec{
+			AgentRef: &apiresource.ApiResourceReference{
+				Kind: apiresourcekind.ApiResourceKind_agent,
+				Slug: agent.GetMetadata().GetSlug(),
+			},
+			Enabled: enabled,
+		},
+	}
+}
+
+// applyShare upserts an AgentShare. Apply is the canonical commit path
+// (idempotent by (org, slug), preserves server-owned status), matching how
+// the console and CLI persist share config.
+func applyShare(t *testing.T, ctx context.Context, clients *harness.Clients, share *agentsharev1.AgentShare) *agentsharev1.AgentShare {
+	t.Helper()
+	applied, err := clients.AgentShareCommand.Apply(ctx, share)
+	require.NoError(t, err, "agentShare apply should succeed")
+	return applied
+}
+
+// canonicalShare resolves the agent's canonical share: slug-match-else-first,
+// the same selection rule production clients use (React useAgentShare, CLI
+// share.ts). Rotation and share updates need this because callers hold the
+// agent id, not the share id — the same reason production added getByAgent.
+func canonicalShare(t *testing.T, ctx context.Context, clients *harness.Clients, agent *agentv1.Agent) *agentsharev1.AgentShare {
+	t.Helper()
+	list, err := clients.AgentShareQuery.GetByAgent(ctx, &agentsharev1.GetAgentSharesByAgentRequest{
+		AgentId: agent.GetMetadata().GetId(),
+	})
+	require.NoError(t, err, "getByAgent should succeed")
+	require.NotEmpty(t, list.GetItems(), "agent %s must have at least one share", agent.GetMetadata().GetSlug())
+	for _, item := range list.GetItems() {
+		if item.GetMetadata().GetSlug() == agent.GetMetadata().GetSlug() {
+			return item
+		}
+	}
+	return list.GetItems()[0]
+}
+
+// createSharedAgent creates an agent in the test org and enables sharing by
+// applying the canonical AgentShare (public audience). Returns the agent —
+// callers need its metadata and default instance id; the share is
+// resolvable via canonicalShare when needed.
 func createSharedAgent(t *testing.T, ctx context.Context, clients *harness.Clients, name string) *agentv1.Agent {
 	t.Helper()
 
 	agent := harness.CreateAgent(t, ctx, clients, name,
 		"You are a test agent for guest token verification. Answer briefly.")
 
-	updated, err := clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-		ResourceId: agent.GetMetadata().GetId(),
-		Sharing:    &agentv1.AgentSharing{Enabled: true},
-	})
-	require.NoError(t, err, "enabling sharing should succeed")
-	require.True(t, updated.GetSpec().GetSharing().GetEnabled())
-	return updated
+	applied := applyShare(t, ctx, clients, shareFor(agent, true))
+	require.True(t, applied.GetSpec().GetEnabled())
+	return agent
 }
 
 // mintGuestToken mints a guest token for the given shared agent reference.
@@ -78,6 +130,22 @@ func guestClients(t *testing.T, token string) *harness.Clients {
 	t.Helper()
 	conn := harness.GRPCConnWithBearer(t, testHarness.Service.GRPCAddress(), token)
 	return harness.NewClients(conn)
+}
+
+// requireIndistinguishableRefusals asserts two public NOT_FOUND refusals are
+// byte-identical modulo the caller-echoed slug. The refusal message embeds
+// the REQUESTED slug ("Agent not found: <slug>" — the caller already knows
+// it, so echoing leaks nothing), which means refusals for different URLs
+// compare equal only after normalizing that echo. Same-URL comparisons
+// should stay raw byte-identical instead of using this helper.
+func requireIndistinguishableRefusals(t *testing.T, why string, a *status.Status, aSlug string, b *status.Status, bSlug string) {
+	t.Helper()
+	require.Equal(t, codes.NotFound, a.Code(), why)
+	require.Equal(t, codes.NotFound, b.Code(), why)
+	assert.Equal(t,
+		strings.ReplaceAll(a.Message(), aSlug, "<slug>"),
+		strings.ReplaceAll(b.Message(), bSlug, "<slug>"),
+		"%s: refusals must be identical modulo the echoed slug", why)
 }
 
 // jwtClaims decodes the (unverified) claims of a JWT for assertions.
@@ -137,16 +205,17 @@ func TestGuestToken_SharingGate(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, codes.NotFound, unsharedStatus.Code())
 
-	// 2. Nonexistent: byte-identical to unshared.
+	// 2. Nonexistent: indistinguishable from unshared (modulo the slug the
+	// caller itself sent, which the refusal echoes).
 	_, err = clients.PlatformClientToken.MintGuestToken(ctx, &platformclientv1.MintGuestTokenRequest{
 		Org: org, Slug: "does-not-exist",
 	})
 	require.Error(t, err)
 	missingStatus, ok := status.FromError(err)
 	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, missingStatus.Code())
-	assert.Equal(t, unsharedStatus.Message(), missingStatus.Message(),
-		"unshared and nonexistent agents must be indistinguishable at the mint endpoint")
+	requireIndistinguishableRefusals(t,
+		"unshared and nonexistent agents must be indistinguishable at the mint endpoint",
+		unsharedStatus, slug, missingStatus, "does-not-exist")
 
 	// 3. Empty org: INVALID_ARGUMENT (no cross-org slug enumeration).
 	_, err = clients.PlatformClientToken.MintGuestToken(ctx, &platformclientv1.MintGuestTokenRequest{
@@ -158,11 +227,7 @@ func TestGuestToken_SharingGate(t *testing.T) {
 	assert.Equal(t, codes.InvalidArgument, st.Code())
 
 	// 4. Shared: mints; the guest JWT carries the org scope and cookie id.
-	_, err = clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-		ResourceId: agent.GetMetadata().GetId(),
-		Sharing:    &agentv1.AgentSharing{Enabled: true},
-	})
-	require.NoError(t, err)
+	applyShare(t, ctx, clients, shareFor(agent, true))
 
 	minted := mintGuestToken(t, ctx, clients, org, slug, "")
 	claims := jwtClaims(t, minted.GetAccessToken())
@@ -177,12 +242,8 @@ func TestGuestToken_SharingGate(t *testing.T) {
 	echoed := mintGuestToken(t, ctx, clients, org, slug, minted.GetGuestCookieId())
 	assert.Equal(t, minted.GetGuestCookieId(), echoed.GetGuestCookieId())
 
-	// 6. Revoke: minting stops immediately (fail closed).
-	_, err = clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-		ResourceId: agent.GetMetadata().GetId(),
-		Sharing:    &agentv1.AgentSharing{Enabled: false},
-	})
-	require.NoError(t, err)
+	// 6. Revoke (config-preserving pause): minting stops immediately (fail closed).
+	applyShare(t, ctx, clients, shareFor(agent, false))
 
 	_, err = clients.PlatformClientToken.MintGuestToken(ctx, &platformclientv1.MintGuestTokenRequest{
 		Org: org, Slug: slug,
@@ -419,12 +480,8 @@ func TestGuestToken_Denials(t *testing.T) {
 	assert.Equal(t, codes.NotFound, st.Code(),
 		"unshared agent must be indistinguishable from nonexistent, got %s", st.Code())
 
-	// Revoke stops guests: disable sharing, then session create fails closed.
-	_, err = clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-		ResourceId: agent.GetMetadata().GetId(),
-		Sharing:    &agentv1.AgentSharing{Enabled: false},
-	})
-	require.NoError(t, err)
+	// Revoke stops guests: disable the share, then session create fails closed.
+	applyShare(t, ctx, clients, shareFor(agent, false))
 
 	_, err = guestCreateSession(t, ctx, guest, agent, "after-revoke")
 	require.Error(t, err, "an existing guest token must stop working once sharing is revoked")
@@ -458,6 +515,10 @@ const (
 	// Deliberately not owner-customizable: the widget hides on this refusal
 	// rather than rendering copy (T04).
 	defaultOriginRefusedCopy = "This agent can\u2019t be embedded on this site."
+	// Default UNAVAILABLE copy (GuestLimitReason.UNAVAILABLE): what a guest
+	// sees when the agent cannot run — including MCP env validation failures,
+	// whose owner-facing diagnostic must never reach an anonymous visitor.
+	defaultUnavailableCopy = "This agent is currently unavailable. Please check back later."
 )
 
 // TestGuestToken_LaunchGate_SessionRateLimit trips the per-guest
@@ -565,16 +626,11 @@ func TestGuestToken_LaunchGate_FailClosed_CustomCopy(t *testing.T) {
 	agent := harness.CreateAgent(t, ctx, clients, "test-guest-fail-closed",
 		"You are a test agent for fail-closed verification.")
 	customCopy := "Acme's helper is napping — come back soon!"
-	_, err := clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-		ResourceId: agent.GetMetadata().GetId(),
-		Sharing: &agentv1.AgentSharing{
-			Enabled: true,
-			Messages: &agentv1.AgentSharingMessages{
-				Unavailable: customCopy,
-			},
-		},
-	})
-	require.NoError(t, err)
+	share := shareFor(agent, true)
+	share.Spec.Messages = &agentsharev1.AgentShareMessages{
+		Unavailable: customCopy,
+	}
+	applyShare(t, ctx, clients, share)
 	org := agent.GetMetadata().GetOrg()
 	slug := agent.GetMetadata().GetSlug()
 
@@ -621,11 +677,11 @@ func TestGuestToken_LaunchGate_FailClosed_CustomCopy(t *testing.T) {
 }
 
 // TestGuestToken_Sharing_AllowedOriginsRoundTrip pins cloud-edition
-// persistence of the allowed_origins config — stored via updateSharing,
-// surfaced on get, malformed entries rejected by shared proto validation —
-// and the hosted-page exemption: a mint that reports NO embed origin must
-// keep working even when the agent restricts embed origins (the hosted link
-// is anyone-with-link by design; enforcement is embed-only, see
+// persistence of the allowed_origins config — stored on the AgentShare via
+// apply, surfaced on getByAgent, malformed entries rejected by shared proto
+// validation — and the hosted-page exemption: a mint that reports NO embed
+// origin must keep working even when the share restricts embed origins (the
+// hosted link is anyone-with-link by design; enforcement is embed-only, see
 // TestGuestToken_EmbedOriginEnforcement).
 func TestGuestToken_Sharing_AllowedOriginsRoundTrip(t *testing.T) {
 	requireGuestPrereqs(t)
@@ -638,29 +694,19 @@ func TestGuestToken_Sharing_AllowedOriginsRoundTrip(t *testing.T) {
 		"You are a test agent for allowed-origins verification.")
 
 	origins := []string{"https://docs.example.com", "http://localhost:3000"}
-	updated, err := clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-		ResourceId: agent.GetMetadata().GetId(),
-		Sharing: &agentv1.AgentSharing{
-			Enabled:        true,
-			AllowedOrigins: origins,
-		},
-	})
-	require.NoError(t, err)
-	assert.Equal(t, origins, updated.GetSpec().GetSharing().GetAllowedOrigins())
+	share := shareFor(agent, true)
+	share.Spec.AllowedOrigins = origins
+	applied := applyShare(t, ctx, clients, share)
+	assert.Equal(t, origins, applied.GetSpec().GetAllowedOrigins())
 
-	fetched, err := clients.AgentQuery.Get(ctx, &agentv1.AgentId{Value: agent.GetMetadata().GetId()})
-	require.NoError(t, err)
-	assert.Equal(t, origins, fetched.GetSpec().GetSharing().GetAllowedOrigins(),
+	fetched := canonicalShare(t, ctx, clients, agent)
+	assert.Equal(t, origins, fetched.GetSpec().GetAllowedOrigins(),
 		"allowed_origins must persist and round-trip")
 
 	// Malformed origins are rejected by shared proto validation.
-	_, err = clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-		ResourceId: agent.GetMetadata().GetId(),
-		Sharing: &agentv1.AgentSharing{
-			Enabled:        true,
-			AllowedOrigins: []string{"https://example.com/path"},
-		},
-	})
+	malformed := shareFor(agent, true)
+	malformed.Spec.AllowedOrigins = []string{"https://example.com/path"}
+	_, err := clients.AgentShareCommand.Apply(ctx, malformed)
 	require.Error(t, err, "an origin with a path must be rejected")
 	st, ok := status.FromError(err)
 	require.True(t, ok)
@@ -708,14 +754,9 @@ func TestGuestToken_EmbedOriginEnforcement(t *testing.T) {
 
 	setOrigins := func(origins ...string) {
 		t.Helper()
-		_, err := clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-			ResourceId: agent.GetMetadata().GetId(),
-			Sharing: &agentv1.AgentSharing{
-				Enabled:        true,
-				AllowedOrigins: origins,
-			},
-		})
-		require.NoError(t, err)
+		share := shareFor(agent, true)
+		share.Spec.AllowedOrigins = origins
+		applyShare(t, ctx, clients, share)
 	}
 
 	requireOriginRefusal := func(err error, when string) {
@@ -888,11 +929,7 @@ func TestGuestToken_EndToEnd_SkillCitedAnswer(t *testing.T) {
 				"You are a helpful assistant. Follow all skill instructions carefully.",
 				harness.WithSkillRef(skill.GetMetadata().GetSlug()),
 			)
-			_, err := clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-				ResourceId: agent.GetMetadata().GetId(),
-				Sharing:    &agentv1.AgentSharing{Enabled: true},
-			})
-			require.NoError(t, err, "enabling sharing should succeed")
+			applyShare(t, ctx, clients, shareFor(agent, true))
 
 			minted := mintGuestToken(t, ctx, clients,
 				agent.GetMetadata().GetOrg(), agent.GetMetadata().GetSlug(), "")

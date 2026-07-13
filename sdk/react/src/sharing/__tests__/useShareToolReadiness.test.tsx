@@ -8,11 +8,9 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { StigmerContext } from "../../context";
 import { DeploymentModeContext } from "../../deployment-mode";
 import { useShareToolReadiness } from "../useShareToolReadiness";
+import type { AgentShareDraft, SharingAudience } from "../useSaveAgentShare";
 
-function toolAgent(overrides?: {
-  mcpUsages?: boolean;
-  defaultInstanceId?: string;
-}): Agent {
+function toolAgent(overrides?: { mcpUsages?: boolean }): Agent {
   return create(AgentSchema, {
     metadata: { id: "agt_1", org: "acme", slug: "helper" },
     spec: {
@@ -22,23 +20,28 @@ function toolAgent(overrides?: {
           ? [{ mcpServerRef: { org: "acme", slug: "github" } }]
           : [],
     },
-    status: {
-      defaultInstanceId: overrides?.defaultInstanceId ?? "agi_1",
-    },
   });
 }
 
+function makeDraft(overrides?: {
+  enabled?: boolean;
+  audience?: SharingAudience;
+  environmentRefs?: { org: string; slug: string }[];
+}): AgentShareDraft {
+  return {
+    enabled: overrides?.enabled ?? true,
+    audience: overrides?.audience ?? "public",
+    allowedOrigins: [],
+    messages: { rateLimited: "", unavailable: "", conversationEnded: "" },
+    environmentRefs: overrides?.environmentRefs ?? [],
+  };
+}
+
 function mockStigmer(overrides: {
-  instanceEnvRefs?: { org: string; slug: string }[];
   envVisibility?: Record<string, ApiResourceVisibility>;
   envError?: boolean;
 }) {
   return {
-    agentInstance: {
-      get: vi.fn().mockResolvedValue({
-        spec: { environmentRefs: overrides.instanceEnvRefs ?? [] },
-      }),
-    },
     environment: {
       getByReference: vi.fn().mockImplementation(
         ({ slug }: { org: string; slug: string }) => {
@@ -70,20 +73,46 @@ function wrapper(client: unknown, mode: "cloud" | "local" = "cloud") {
   };
 }
 
+function envLookup(client: unknown) {
+  return (
+    client as { environment: { getByReference: ReturnType<typeof vi.fn> } }
+  ).environment.getByReference;
+}
+
 describe("useShareToolReadiness", () => {
+  it("reports needs-credentials when a tool-using share has no bindings — no lookups fire", async () => {
+    const client = mockStigmer({});
+    const { result } = renderHook(
+      () => useShareToolReadiness(toolAgent(), makeDraft()),
+      { wrapper: wrapper(client) },
+    );
+
+    // A tool-using agent with zero bound environments is broken for
+    // visitors BY CONSTRUCTION (guests receive credentials only from the
+    // share's bindings) — the hook says so instead of staying silent,
+    // and needs no server round-trip to know it.
+    expect(result.current).toEqual({ status: "needs-credentials" });
+    await waitFor(() => expect(envLookup(client)).not.toHaveBeenCalled());
+  });
+
   it("reports blocked with the private environment refs listed", async () => {
     const client = mockStigmer({
-      instanceEnvRefs: [
-        { org: "acme", slug: "private-creds" },
-        { org: "acme", slug: "shared-creds" },
-      ],
       envVisibility: {
         "shared-creds": ApiResourceVisibility.visibility_org,
       },
     });
 
     const { result } = renderHook(
-      () => useShareToolReadiness(toolAgent(), true),
+      () =>
+        useShareToolReadiness(
+          toolAgent(),
+          makeDraft({
+            environmentRefs: [
+              { org: "acme", slug: "private-creds" },
+              { org: "acme", slug: "shared-creds" },
+            ],
+          }),
+        ),
       { wrapper: wrapper(client) },
     );
 
@@ -97,14 +126,19 @@ describe("useShareToolReadiness", () => {
 
   it("reports ready when every bound environment is org-shared", async () => {
     const client = mockStigmer({
-      instanceEnvRefs: [{ org: "acme", slug: "shared-creds" }],
       envVisibility: {
         "shared-creds": ApiResourceVisibility.visibility_org,
       },
     });
 
     const { result } = renderHook(
-      () => useShareToolReadiness(toolAgent(), true),
+      () =>
+        useShareToolReadiness(
+          toolAgent(),
+          makeDraft({
+            environmentRefs: [{ org: "acme", slug: "shared-creds" }],
+          }),
+        ),
       { wrapper: wrapper(client) },
     );
 
@@ -112,13 +146,16 @@ describe("useShareToolReadiness", () => {
   });
 
   it("treats an unreadable environment ref as blocking", async () => {
-    const client = mockStigmer({
-      instanceEnvRefs: [{ org: "acme", slug: "deleted-env" }],
-      envError: true,
-    });
+    const client = mockStigmer({ envError: true });
 
     const { result } = renderHook(
-      () => useShareToolReadiness(toolAgent(), true),
+      () =>
+        useShareToolReadiness(
+          toolAgent(),
+          makeDraft({
+            environmentRefs: [{ org: "acme", slug: "deleted-env" }],
+          }),
+        ),
       { wrapper: wrapper(client) },
     );
 
@@ -133,50 +170,50 @@ describe("useShareToolReadiness", () => {
   it("is n/a for agents without MCP tools — no lookups fire", async () => {
     const client = mockStigmer({});
     const { result } = renderHook(
-      () => useShareToolReadiness(toolAgent({ mcpUsages: false }), true),
+      () =>
+        useShareToolReadiness(
+          toolAgent({ mcpUsages: false }),
+          makeDraft({
+            environmentRefs: [{ org: "acme", slug: "shared-creds" }],
+          }),
+        ),
       { wrapper: wrapper(client) },
     );
 
     expect(result.current).toEqual({ status: "na" });
-    await waitFor(() => {
-      expect(
-        (client as { agentInstance: { get: ReturnType<typeof vi.fn> } })
-          .agentInstance.get,
-      ).not.toHaveBeenCalled();
-    });
+    await waitFor(() => expect(envLookup(client)).not.toHaveBeenCalled());
   });
 
   it("is n/a when sharing is disabled", () => {
-    const client = mockStigmer({
-      instanceEnvRefs: [{ org: "acme", slug: "private-creds" }],
-    });
+    const client = mockStigmer({});
     const { result } = renderHook(
-      () => useShareToolReadiness(toolAgent(), false),
+      () => useShareToolReadiness(toolAgent(), makeDraft({ enabled: false })),
       { wrapper: wrapper(client) },
     );
 
+    expect(result.current).toEqual({ status: "na" });
+  });
+
+  it("is n/a for org-audience shares — bindings are public-audience only", () => {
+    const client = mockStigmer({});
+    const { result } = renderHook(
+      () => useShareToolReadiness(toolAgent(), makeDraft({ audience: "org" })),
+      { wrapper: wrapper(client) },
+    );
+
+    // Org-audience shares reject environment_refs at the proto boundary
+    // (member sessions carry no share linkage in Phase A), so there is
+    // no credential state to advise on.
     expect(result.current).toEqual({ status: "na" });
   });
 
   it("is n/a in local mode — no guest runtime, no secret gating", () => {
-    const client = mockStigmer({
-      instanceEnvRefs: [{ org: "acme", slug: "private-creds" }],
-    });
+    const client = mockStigmer({});
     const { result } = renderHook(
-      () => useShareToolReadiness(toolAgent(), true),
+      () => useShareToolReadiness(toolAgent(), makeDraft()),
       { wrapper: wrapper(client, "local") },
     );
 
     expect(result.current).toEqual({ status: "na" });
-  });
-
-  it("is n/a when the instance has no bound environments (no warning on a guess)", async () => {
-    const client = mockStigmer({ instanceEnvRefs: [] });
-    const { result } = renderHook(
-      () => useShareToolReadiness(toolAgent(), true),
-      { wrapper: wrapper(client) },
-    );
-
-    await waitFor(() => expect(result.current).toEqual({ status: "na" }));
   });
 });

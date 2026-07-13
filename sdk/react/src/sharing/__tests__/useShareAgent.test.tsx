@@ -29,7 +29,11 @@ function createMockStigmer(overrides: {
           isAuthorized: overrides.isAuthorized ?? true,
         }),
     },
-    agent: { updateSharing: vi.fn().mockResolvedValue({}) },
+    agentShare: {
+      getByAgent: vi.fn().mockResolvedValue({ totalCount: 0, items: [] }),
+      apply: vi.fn().mockResolvedValue({}),
+      rotateShareLink: vi.fn().mockResolvedValue({}),
+    },
     billing: { getOrCreateBillingAccount: vi.fn().mockResolvedValue(null) },
   } as never;
 }
@@ -53,7 +57,7 @@ const AGENT = {
     slug: "support-agent",
     name: "Support Agent",
   },
-  spec: { sharing: undefined },
+  spec: {},
 } as never;
 
 describe("useShareAgent", () => {

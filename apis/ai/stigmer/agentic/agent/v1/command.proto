@@ -56,54 +56,6 @@ service AgentCommandController {
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update agent visibility";
   }
 
-  // Update the sharing configuration of an existing agent.
-  //
-  // This is a targeted spec update — it only modifies spec.sharing, leaving
-  // the rest of the spec, metadata, and status untouched. Use this to enable
-  // or revoke anyone-with-link access to the agent's hosted chat without
-  // sending the entire agent resource (avoiding read-modify-write races).
-  //
-  // Sharing is a distinct consent from visibility: updateVisibility governs
-  // who can read the blueprint (marketplace), updateSharing governs who can
-  // chat with the runtime. Conversations over a shared link bill the owning
-  // organization's credits.
-  //
-  // @internal
-  // Authorization: Requires can_edit permission on the agent resource —
-  // the same bar as updateVisibility, since both broaden access.
-  // No FGA tuples are written on share; enforcement is app-level in the
-  // getSharedProfile handler (see AgentSharing in spec.proto).
-  rpc updateSharing(UpdateAgentSharingInput) returns (Agent) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent;
-    option (ai.stigmer.commons.rpc.config).permission = can_edit;
-    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update agent sharing";
-  }
-
-  // Rotate the share-link token of an existing agent.
-  //
-  // Generates a fresh server-side token for the agent's hosted chat link.
-  // The share URL becomes `/chat/<org>/<slug>?k=<token>` and the previous
-  // link (tokened or plain) stops working immediately — including for
-  // visitors mid-conversation. Use this to kill a leaked or over-shared
-  // public link without disabling sharing or renaming the agent.
-  //
-  // The token lives in status.share_link_token, so manifest applies never
-  // reset it. Rotation affects public-audience shares only; org-audience
-  // access is governed by live org membership instead.
-  //
-  // @internal
-  // Authorization: requires can_edit on the agent — the same bar as
-  // updateSharing, since both control shared-link access. The handler is
-  // the sole writer of status.share_link_token (server-generated entropy;
-  // clients never supply the token).
-  rpc rotateShareLink(RotateShareLinkInput) returns (Agent) {
-    option (ai.stigmer.commons.rpc.config).resource_kind = agent;
-    option (ai.stigmer.commons.rpc.config).permission = can_edit;
-    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
-    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to rotate agent share link";
-  }
-
   // Delete an agent.
   rpc delete(AgentId) returns (Agent) {
     option (ai.stigmer.commons.rpc.config).resource_kind = agent;

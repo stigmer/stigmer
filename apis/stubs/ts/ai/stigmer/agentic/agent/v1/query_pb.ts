@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AgentSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_api } from "./api_pb.js";
-import type { AgentIdSchema, GetDefaultAgentRequestSchema, GetSharedProfileRequestSchema, SharedAgentProfileSchema } from "./io_pb.js";
+import type { AgentIdSchema, GetDefaultAgentRequestSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_agent_v1_io } from "./io_pb.js";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agent/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MTKEBQoUQWdlbnRRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50SWQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiKsK4GCYIARAoIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIE0LgYARJrCgpnZXREZWZhdWx0EjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkdldERlZmF1bHRBZ2VudFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiBNC4GAESfwoQZ2V0U2hhcmVkUHJvZmlsZRI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5HZXRTaGFyZWRQcm9maWxlUmVxdWVzdBovLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5TaGFyZWRBZ2VudFByb2ZpbGUiBMi4GAESiAEKGWdldFNoYXJlZFByb2ZpbGVGb3JNZW1iZXISNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuU2hhcmVkQWdlbnRQcm9maWxlIgTQuBgBGgSg/ysoYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CidhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvcXVlcnkucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MTL4AgoUQWdlbnRRdWVyeUNvbnRyb2xsZXISewoDZ2V0EiQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50SWQaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiKsK4GCYIARAoIgV2YWx1ZSoZdW5hdXRob3JpemVkIHRvIGdldCBhZ2VudBJwCg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoiLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudCIE0LgYARJrCgpnZXREZWZhdWx0EjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkdldERlZmF1bHRBZ2VudFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuQWdlbnQiBNC4GAEaBKD/KyhiBnByb3RvMw", [file_ai_stigmer_agentic_agent_v1_api, file_ai_stigmer_agentic_agent_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * AgentQueryController handles read operations for AI agents.
@@ -69,71 +69,6 @@ export const AgentQueryController: GenService<{
     methodKind: "unary";
     input: typeof GetDefaultAgentRequestSchema;
     output: typeof AgentSchema;
-  },
-  /**
-   * Get the public profile of a shared agent by its org/slug reference.
-   *
-   * This is the resolution path for the hosted chat page: anonymous
-   * visitors (no Stigmer account, no token) resolve a shared link to the
-   * trimmed SharedAgentProfile — never the full Agent, whose spec carries
-   * the system prompt, environment declarations, and MCP wiring.
-   *
-   * Returns NOT_FOUND when the agent does not exist, is not shared
-   * (spec.sharing.enabled is false/unset), is shared with the org
-   * audience (spec.sharing.audience is org — anonymous callers must not be
-   * able to distinguish an org-internal share from a nonexistent agent; use
-   * getSharedProfileForMember instead), or the share link is locked and
-   * link_token does not match the agent's current
-   * status.share_link_token. The cases are deliberately
-   * indistinguishable so an unshared, revoked, or rotated agent URL leaks
-   * nothing — unlike getByReference, which returns PERMISSION_DENIED for
-   * an existing but unauthorized agent. Returns INVALID_ARGUMENT when org
-   * is empty: org+slug is the shared URL's identity, and cross-org slug
-   * matching on a public endpoint would enable enumeration.
-   *
-   * @internal
-   * Public by design (no authentication): enforcement is the app-level
-   * sharing gate in the handler, not FGA — see AgentSharing in spec.proto
-   * for why sharing writes no visibility tuples.
-   *
-   * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getSharedProfile
-   */
-  getSharedProfile: {
-    methodKind: "unary";
-    input: typeof GetSharedProfileRequestSchema;
-    output: typeof SharedAgentProfileSchema;
-  },
-  /**
-   * Get the profile of a shared agent as a signed-in organization member.
-   *
-   * This is the resolution path for the hosted chat page when an agent is
-   * shared with the org audience (spec.sharing.audience is org): the public
-   * getSharedProfile deliberately returns NOT_FOUND for such agents, so a
-   * signed-in member resolves the same trimmed SharedAgentProfile through
-   * this authenticated RPC instead. Also resolves public-audience shares,
-   * so an authenticated caller can use one resolution path for any share.
-   *
-   * Returns NOT_FOUND when the agent does not exist, is not shared, the
-   * caller is not a member of the owning organization, or the share is a
-   * public-audience share locked with a link token (this tokenless path
-   * must not reveal a killed link's profile) — the cases are deliberately
-   * indistinguishable so a share URL leaks nothing to non-members.
-   * Returns INVALID_ARGUMENT when org is empty.
-   *
-   * @internal
-   * Custom authorization in handler — requires authentication (not
-   * is_public), then an app-level organization#member FGA check for org
-   * shares. No standard resource_kind/permission config: the sharing gate
-   * is app-level by design (see AgentSharing in spec.proto), and membership
-   * is checked live on every call so revoked members lose access
-   * immediately.
-   *
-   * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getSharedProfileForMember
-   */
-  getSharedProfileForMember: {
-    methodKind: "unary";
-    input: typeof ApiResourceReferenceSchema;
-    output: typeof SharedAgentProfileSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_agent_v1_query, 0);

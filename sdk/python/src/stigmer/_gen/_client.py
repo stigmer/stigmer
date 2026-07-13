@@ -7,6 +7,7 @@ import grpc
 from ._agent import AgentClient
 from ._agentexecution import AgentExecutionClient
 from ._agentinstance import AgentInstanceClient
+from ._agentshare import AgentShareClient
 from ._apikey import ApiKeyClient
 from ._artifact import ArtifactClient
 from ._environment import EnvironmentClient
@@ -34,6 +35,7 @@ class GeneratedClient:
         self.agents = AgentClient(channel)
         self.agent_executions = AgentExecutionClient(channel)
         self.agent_instances = AgentInstanceClient(channel)
+        self.agent_shares = AgentShareClient(channel)
         self.api_keys = ApiKeyClient(channel)
         self.artifacts = ArtifactClient(channel)
         self.environments = EnvironmentClient(channel)

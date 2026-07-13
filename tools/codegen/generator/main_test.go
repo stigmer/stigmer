@@ -765,6 +765,7 @@ func TestTsClientFieldName(t *testing.T) {
 	}{
 		{"agentexecution", "agentExecution"},
 		{"agentinstance", "agentInstance"},
+		{"agentshare", "agentShare"},
 		{"executioncontext", "executionContext"},
 		{"mcpserver", "mcpServer"},
 		{"workflowexecution", "workflowExecution"},
@@ -931,6 +932,7 @@ func TestPyClientFieldName(t *testing.T) {
 	}{
 		{"agent", "agents"},
 		{"agentexecution", "agent_executions"},
+		{"agentshare", "agent_shares"},
 		{"mcpserver", "mcp_servers"},
 		{"apikey", "api_keys"},
 		{"skill", "skills"},

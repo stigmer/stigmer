@@ -4,6 +4,7 @@ import type { Transport } from "@connectrpc/connect";
 import { AgentClient } from "./agent.js";
 import { AgentExecutionClient } from "./agentexecution.js";
 import { AgentInstanceClient } from "./agentinstance.js";
+import { AgentShareClient } from "./agentshare.js";
 import { ApiKeyClient } from "./apikey.js";
 import { ArtifactClient } from "./artifact.js";
 import { EnvironmentClient } from "./environment.js";
@@ -28,6 +29,7 @@ export class GeneratedClient {
   readonly agent: AgentClient;
   readonly agentExecution: AgentExecutionClient;
   readonly agentInstance: AgentInstanceClient;
+  readonly agentShare: AgentShareClient;
   readonly apiKey: ApiKeyClient;
   readonly artifact: ArtifactClient;
   readonly environment: EnvironmentClient;
@@ -51,6 +53,7 @@ export class GeneratedClient {
     this.agent = new AgentClient(transport);
     this.agentExecution = new AgentExecutionClient(transport);
     this.agentInstance = new AgentInstanceClient(transport);
+    this.agentShare = new AgentShareClient(transport);
     this.apiKey = new ApiKeyClient(transport);
     this.artifact = new ArtifactClient(transport);
     this.environment = new EnvironmentClient(transport);
@@ -74,11 +77,13 @@ export class GeneratedClient {
 
 // Re-export all resource client types and input types.
 export { AgentClient } from "./agent.js";
-export { type AgentInput, type McpServerUsageInput, type ToolApprovalOverrideInput, type SubAgentInput, type McpAccessInput, type EnvVarDeclarationInput, type AgentSharingInput, type AgentSharingMessagesInput } from "./agent.js";
+export { type AgentInput, type McpServerUsageInput, type ToolApprovalOverrideInput, type SubAgentInput, type McpAccessInput, type EnvVarDeclarationInput } from "./agent.js";
 export { AgentExecutionClient } from "./agentexecution.js";
 export { type AgentExecutionInput, type ExecutionConfigInput, type ContextManagementConfigInput, type AttachmentInput } from "./agentexecution.js";
 export { AgentInstanceClient } from "./agentinstance.js";
 export { type AgentInstanceInput } from "./agentinstance.js";
+export { AgentShareClient } from "./agentshare.js";
+export { type AgentShareInput, type AgentShareMessagesInput } from "./agentshare.js";
 export { ApiKeyClient } from "./apikey.js";
 export { type ApiKeyInput } from "./apikey.js";
 export { ArtifactClient } from "./artifact.js";

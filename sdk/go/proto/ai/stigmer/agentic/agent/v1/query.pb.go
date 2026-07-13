@@ -26,14 +26,12 @@ var File_ai_stigmer_agentic_agent_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/agentic/agent/v1/query.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a$ai/stigmer/agentic/agent/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x84\x05\n" +
+	"'ai/stigmer/agentic/agent/v1/query.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a$ai/stigmer/agentic/agent/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xf8\x02\n" +
 	"\x14AgentQueryController\x12{\n" +
 	"\x03get\x12$.ai.stigmer.agentic.agent.v1.AgentId\x1a\".ai.stigmer.agentic.agent.v1.Agent\"*¸\x18&\b\x01\x10(\"\x05value*\x19unauthorized to get agent\x12p\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\".ai.stigmer.agentic.agent.v1.Agent\"\x04и\x18\x01\x12k\n" +
 	"\n" +
-	"getDefault\x123.ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest\x1a\".ai.stigmer.agentic.agent.v1.Agent\"\x04и\x18\x01\x12\x7f\n" +
-	"\x10getSharedProfile\x124.ai.stigmer.agentic.agent.v1.GetSharedProfileRequest\x1a/.ai.stigmer.agentic.agent.v1.SharedAgentProfile\"\x04ȸ\x18\x01\x12\x88\x01\n" +
-	"\x19getSharedProfileForMember\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a/.ai.stigmer.agentic.agent.v1.SharedAgentProfile\"\x04и\x18\x01\x1a\x04\xa0\xff+(B\x8b\x02\n" +
+	"getDefault\x123.ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest\x1a\".ai.stigmer.agentic.agent.v1.Agent\"\x04и\x18\x01\x1a\x04\xa0\xff+(B\x8b\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\n" +
 	"QueryProtoP\x01ZKgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
@@ -41,23 +39,17 @@ var file_ai_stigmer_agentic_agent_v1_query_proto_goTypes = []any{
 	(*AgentId)(nil),                          // 0: ai.stigmer.agentic.agent.v1.AgentId
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
 	(*GetDefaultAgentRequest)(nil),           // 2: ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest
-	(*GetSharedProfileRequest)(nil),          // 3: ai.stigmer.agentic.agent.v1.GetSharedProfileRequest
-	(*Agent)(nil),                            // 4: ai.stigmer.agentic.agent.v1.Agent
-	(*SharedAgentProfile)(nil),               // 5: ai.stigmer.agentic.agent.v1.SharedAgentProfile
+	(*Agent)(nil),                            // 3: ai.stigmer.agentic.agent.v1.Agent
 }
 var file_ai_stigmer_agentic_agent_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.agent.v1.AgentQueryController.get:input_type -> ai.stigmer.agentic.agent.v1.AgentId
 	1, // 1: ai.stigmer.agentic.agent.v1.AgentQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
 	2, // 2: ai.stigmer.agentic.agent.v1.AgentQueryController.getDefault:input_type -> ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest
-	3, // 3: ai.stigmer.agentic.agent.v1.AgentQueryController.getSharedProfile:input_type -> ai.stigmer.agentic.agent.v1.GetSharedProfileRequest
-	1, // 4: ai.stigmer.agentic.agent.v1.AgentQueryController.getSharedProfileForMember:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	4, // 5: ai.stigmer.agentic.agent.v1.AgentQueryController.get:output_type -> ai.stigmer.agentic.agent.v1.Agent
-	4, // 6: ai.stigmer.agentic.agent.v1.AgentQueryController.getByReference:output_type -> ai.stigmer.agentic.agent.v1.Agent
-	4, // 7: ai.stigmer.agentic.agent.v1.AgentQueryController.getDefault:output_type -> ai.stigmer.agentic.agent.v1.Agent
-	5, // 8: ai.stigmer.agentic.agent.v1.AgentQueryController.getSharedProfile:output_type -> ai.stigmer.agentic.agent.v1.SharedAgentProfile
-	5, // 9: ai.stigmer.agentic.agent.v1.AgentQueryController.getSharedProfileForMember:output_type -> ai.stigmer.agentic.agent.v1.SharedAgentProfile
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
+	3, // 3: ai.stigmer.agentic.agent.v1.AgentQueryController.get:output_type -> ai.stigmer.agentic.agent.v1.Agent
+	3, // 4: ai.stigmer.agentic.agent.v1.AgentQueryController.getByReference:output_type -> ai.stigmer.agentic.agent.v1.Agent
+	3, // 5: ai.stigmer.agentic.agent.v1.AgentQueryController.getDefault:output_type -> ai.stigmer.agentic.agent.v1.Agent
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

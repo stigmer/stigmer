@@ -12,7 +12,7 @@ function createMockStigmer(overrides: {
   getSharedProfileForMember?: (...args: unknown[]) => Promise<unknown>;
 } = {}) {
   return {
-    agent: {
+    agentShare: {
       getSharedProfile:
         overrides.getSharedProfile ?? vi.fn().mockResolvedValue(null),
       getSharedProfileForMember:

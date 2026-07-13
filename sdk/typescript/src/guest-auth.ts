@@ -26,8 +26,8 @@ export interface GuestIdStorage {
  *
  * Unlike {@link PlatformClientAuthConfig}, this carries **no
  * credentials** — `mintGuestToken` is a public RPC gated server-side
- * on the agent's `spec.sharing.enabled`. It is therefore safe to use
- * directly from a browser.
+ * on an enabled AgentShare at the given org/slug. It is therefore safe
+ * to use directly from a browser.
  *
  * @example
  * ```typescript
@@ -47,7 +47,11 @@ export interface GuestAuthConfig {
   /** Organization slug from the share URL. */
   readonly org: string;
 
-  /** Agent slug from the share URL. */
+  /**
+   * Share slug from the share URL. Defaults to the shared agent's slug
+   * when the owner never customized it, so existing links pass the
+   * agent's slug here unchanged.
+   */
   readonly slug: string;
 
   /**
@@ -67,21 +71,20 @@ export interface GuestAuthConfig {
    * embedding page's origin, discovered via `@stigmer/embed`'s
    * `resolveParentOrigin`) or directly in your own app
    * (`window.location.origin`). Leave unset on the unframed hosted
-   * page. The server validates it against the agent's
-   * `spec.sharing.allowed_origins` at mint (an empty list admits any
-   * origin) and refuses with `"permission-denied"` when the origin is
-   * not allowed.
+   * page. The server validates it against the share's
+   * `allowed_origins` at mint (an empty list admits any origin) and
+   * refuses with `"permission-denied"` when the origin is not allowed.
    */
   readonly embedOrigin?: string;
 
   /**
    * Share-link token from the URL's `?k=` parameter.
    *
-   * Required when the agent's share link has been locked with a
-   * rotatable token; harmless (ignored server-side) on plain links.
-   * On a locked link a missing or rotated-away token refuses the mint
-   * with `"not-found"` — deliberately indistinguishable from an agent
-   * that does not exist.
+   * Required when the share link has been locked with a rotatable
+   * token; harmless (ignored server-side) on plain links. On a locked
+   * link a missing or rotated-away token refuses the mint with
+   * `"not-found"` — deliberately indistinguishable from an agent that
+   * does not exist.
    */
   readonly linkToken?: string;
 }
@@ -287,10 +290,10 @@ function safeSetItem(storage: GuestIdStorage, key: string, value: string): void 
  * or embed.
  *
  * This is the browser-side counterpart of `createPlatformClientAuth`:
- * it involves **no credentials** — the server gates minting on the
- * agent's `spec.sharing.enabled` and issues a short-lived guest JWT
- * scoped to the sharing org. Pass {@link GuestAuth.getAccessToken} to
- * a `Stigmer` client and every request authenticates as this visitor.
+ * it involves **no credentials** — the server gates minting on an
+ * enabled AgentShare and issues a short-lived guest JWT scoped to the
+ * sharing org. Pass {@link GuestAuth.getAccessToken} to a `Stigmer`
+ * client and every request authenticates as this visitor.
  *
  * @example
  * ```typescript
@@ -323,7 +326,7 @@ export function createGuestAuth(config: GuestAuthConfig): GuestAuth {
   }
   if (!config.slug) {
     throw new Error(
-      "createGuestAuth: slug is required — the agent slug from the share URL",
+      "createGuestAuth: slug is required — the share slug from the share URL",
     );
   }
 

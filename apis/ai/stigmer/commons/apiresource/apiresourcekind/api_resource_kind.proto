@@ -419,6 +419,28 @@ enum ApiResourceKind {
     }
   }];
 
+  // Hosted chat link for an agent with its own audience, origins, and credentials.
+  agent_share = 46 [(kind_meta) = {
+    group: agentic
+    version: v1
+    name: "AgentShare"
+    display_name: "Agent Share"
+    id_prefix: "ash"
+    is_versioned: false
+    // Not searchable by design: a share is channel configuration reached
+    // through its agent's Share dialog, not a library artifact.
+    not_search_indexed: true
+    tier: open_source
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      grantable_roles: [
+        owner,
+        viewer
+      ]
+    }
+  }];
+
   // Agentic - Workflow orchestration
 
   // Multi-step orchestration defining how agents collaborate on a task.

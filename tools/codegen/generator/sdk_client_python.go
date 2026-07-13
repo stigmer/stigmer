@@ -104,6 +104,7 @@ func pyClientFieldName(resource string) string {
 		"agent":             "agents",
 		"agentexecution":    "agent_executions",
 		"agentinstance":     "agent_instances",
+		"agentshare":        "agent_shares",
 		"apikey":            "api_keys",
 		"environment":       "environments",
 		"executioncontext":  "execution_contexts",

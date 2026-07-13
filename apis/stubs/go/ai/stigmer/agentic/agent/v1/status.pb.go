@@ -32,29 +32,8 @@ type AgentStatus struct {
 	// and requires no additional configuration. Created automatically when the
 	// agent is created.
 	DefaultInstanceId string `protobuf:"bytes,1,opt,name=default_instance_id,json=defaultInstanceId,proto3" json:"default_instance_id,omitempty"`
-	// Rotatable token protecting the agent's public share link.
-	//
-	// Empty means the hosted chat link is the plain `/chat/<org>/<slug>` —
-	// the behavior of every share created before this field existed. When
-	// set, the link only resolves with the matching `?k=<token>` query
-	// parameter; the rotateShareLink RPC generates a fresh value, killing
-	// the old link immediately. Applies to public-audience shares only
-	// (org-audience access is governed by live membership instead).
-	//
-	// @internal
-	// Server-generated (rotateShareLink is the sole writer) and deliberately
-	// in status, not spec.sharing: status survives every apply/update
-	// verbatim in both editions, so a routine manifest apply can never wipe
-	// the token and silently fail open to the guessable URL. Enforced with
-	// the allowed_origins pattern — validated at guest mint, stamped into
-	// the guest JWT, and re-validated against this live value on every
-	// session/execution create, so rotation revokes live guest tokens on
-	// their next message. Not a security boundary: rate limits and the org
-	// credit cap remain the abuse controls; this is a traffic lever for
-	// over-shared links.
-	ShareLinkToken string `protobuf:"bytes,2,opt,name=share_link_token,json=shareLinkToken,proto3" json:"share_link_token,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *AgentStatus) Reset() {
@@ -101,22 +80,14 @@ func (x *AgentStatus) GetDefaultInstanceId() string {
 	return ""
 }
 
-func (x *AgentStatus) GetShareLinkToken() string {
-	if x != nil {
-		return x.ShareLinkToken
-	}
-	return ""
-}
-
 var File_ai_stigmer_agentic_agent_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/agent/v1/status.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\xaf\x01\n" +
+	"(ai/stigmer/agentic/agent/v1/status.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a+ai/stigmer/commons/apiresource/status.proto\"\x9d\x01\n" +
 	"\vAgentStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12.\n" +
-	"\x13default_instance_id\x18\x01 \x01(\tR\x11defaultInstanceId\x12(\n" +
-	"\x10share_link_token\x18\x02 \x01(\tR\x0eshareLinkTokenB\x8d\x02\n" +
+	"\x13default_instance_id\x18\x01 \x01(\tR\x11defaultInstanceIdJ\x04\b\x02\x10\x03R\x10share_link_tokenB\x8d\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\vStatusProtoP\x01ZLgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var (

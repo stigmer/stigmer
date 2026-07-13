@@ -1,49 +1,71 @@
 "use client";
 
 import { useState } from "react";
-import { create } from "@bufbuild/protobuf";
+import { create, clone } from "@bufbuild/protobuf";
 import { ShareAgentDialog } from "@stigmer/react";
 import { samples } from "@stigmer/react/test";
 import { PreviewProvider } from "@scenar/preview/runtime";
 import { connectFixture } from "@scenar/preview/connect";
-import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
+import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
+import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
+import {
+  AgentShareSchema,
+  type AgentShare,
+} from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
+import { AgentShareListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
 import {
   BillingAccountSchema,
   CreditBalanceSchema,
 } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
-import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
-import type { UpdateAgentSharingInput } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { PreviewProviders } from "../../../../../../.scenar/providers";
 import { DemoDetailShell } from "../../shared/DemoDetailShell";
 
 const DEMO_ORG = "acme";
+const DEMO_SLUG = "support-agent";
 
 function buildDemoAgent() {
-  const agent = samples.agent({
-    name: "support-agent",
+  return samples.agent({
+    name: DEMO_SLUG,
     org: DEMO_ORG,
     description:
       "Handles customer support requests using company knowledge.",
   });
-  agent.spec = create(AgentSpecSchema, {
-    description: agent.spec!.description,
-    instructions: agent.spec!.instructions,
-    sharing: {
+}
+
+// Sharing lives in its own AgentShare resource (decision 011): the dialog
+// loads the agent's canonical share on open and applies changes to it.
+function buildDemoShare(): AgentShare {
+  return create(AgentShareSchema, {
+    metadata: {
+      id: "ash_demo",
+      org: DEMO_ORG,
+      slug: DEMO_SLUG,
+      name: DEMO_SLUG,
+    },
+    spec: {
+      agentRef: { org: DEMO_ORG, slug: DEMO_SLUG },
       enabled: true,
       allowedOrigins: ["https://acme.com"],
     },
   });
-  return agent;
 }
 
+// The demo share is module state so the apply fixture round-trips honestly:
+// the dialog adopts the server's returned share, and a reopen re-reads it.
+let demoShare = buildDemoShare();
+
 const previewFixtures = [
-  // Echo the submitted sharing config back on the agent — the dialog
-  // adopts the server's returned state, so the demo round-trips honestly.
-  connectFixture(AgentCommandController, "updateSharing", (input) => {
-    const agent = buildDemoAgent();
-    agent.spec!.sharing = (input as UpdateAgentSharingInput).sharing;
-    return agent;
+  connectFixture(AgentShareQueryController, "getByAgent", () =>
+    create(AgentShareListSchema, { totalCount: 1, items: [demoShare] }),
+  ),
+  // Echo the applied configuration back — apply is the dialog's single
+  // commit path (create-on-first-enable, update thereafter).
+  connectFixture(AgentShareCommandController, "apply", (input) => {
+    const applied = clone(AgentShareSchema, input as AgentShare);
+    applied.metadata!.id = "ash_demo";
+    demoShare = applied;
+    return applied;
   }),
   connectFixture(BillingCommandController, "getOrCreateBillingAccount", () =>
     create(BillingAccountSchema, {

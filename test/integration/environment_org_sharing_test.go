@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
+	agentsharev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
@@ -66,13 +67,14 @@ func createSecretEnvironment(t *testing.T, ctx context.Context, clients *harness
 	return env
 }
 
-// createToolAgentWithEnvRef builds the full tool-using shared-agent fixture:
-// an MCP server requiring t06EnvVar, a shared agent using it, and a
-// dedicated instance binding the given environment.
-func createToolAgentWithEnvRef(
-	t *testing.T, ctx context.Context, clients *harness.Clients,
-	env *environmentv1.Environment, nameSuffix string,
-) (*agentv1.Agent, *agentinstancev1.AgentInstance) {
+// createToolAgent builds a tool-using shared agent: an MCP server requiring
+// t06EnvVar and a publicly shared agent using it. No credential binding —
+// callers bind either through a dedicated instance
+// (createToolAgentWithEnvRef, the T06 path) or through the share's
+// environment_refs (the DD-011 channel binding).
+func createToolAgent(
+	t *testing.T, ctx context.Context, clients *harness.Clients, nameSuffix string,
+) *agentv1.Agent {
 	t.Helper()
 
 	mcpName := "test-t06-mcp-" + nameSuffix + "-" + uuid.New().String()[:8]
@@ -113,11 +115,19 @@ func createToolAgentWithEnvRef(
 		"You are a tool-using test agent for org-shared environment verification.",
 		harness.WithMcpServerUsage(mcpServer.GetMetadata().GetSlug()),
 	)
-	_, err = clients.AgentCommand.UpdateSharing(ctx, &agentv1.UpdateAgentSharingInput{
-		ResourceId: agent.GetMetadata().GetId(),
-		Sharing:    &agentv1.AgentSharing{Enabled: true},
-	})
-	require.NoError(t, err, "enabling sharing should succeed")
+	applyShare(t, ctx, clients, shareFor(agent, true))
+	return agent
+}
+
+// createToolAgentWithEnvRef builds the full T06 fixture: a tool-using shared
+// agent plus a dedicated instance binding the given environment.
+func createToolAgentWithEnvRef(
+	t *testing.T, ctx context.Context, clients *harness.Clients,
+	env *environmentv1.Environment, nameSuffix string,
+) (*agentv1.Agent, *agentinstancev1.AgentInstance) {
+	t.Helper()
+
+	agent := createToolAgent(t, ctx, clients, nameSuffix)
 
 	// A dedicated instance binds the environment — the owner's second consent
 	// (the first being the environment's visibility). The guest gate accepts
@@ -192,10 +202,16 @@ func guestSessionFor(
 
 // TestOrgSharedEnvironment_GuestToolCredentials is the T06 headline proof:
 // a guest running a tool-using shared agent fails closed while the bound
-// environment is private (with an error that names the environment and the
-// fix), succeeds once the owner shares the environment with the org, and
-// fails closed again the moment sharing is revoked — all on the same guest
-// token, proving the gate reads live state.
+// environment is private, succeeds once the owner shares the environment
+// with the org, and fails closed again the moment sharing is revoked — all
+// on the same guest token, proving the gate reads live state.
+//
+// The refusal a GUEST sees is deliberately the generic UNAVAILABLE copy:
+// the owner-facing diagnostic (missing variable, environment to share) names
+// internal proto fields and resource slugs, which must never reach an
+// anonymous visitor. The full diagnostic goes to the server log instead —
+// this is the session-12 leak fix, and the NotContains asserts below are
+// the standing guard against reintroducing it.
 func TestOrgSharedEnvironment_GuestToolCredentials(t *testing.T) {
 	requireGuestPrereqs(t)
 
@@ -209,19 +225,18 @@ func TestOrgSharedEnvironment_GuestToolCredentials(t *testing.T) {
 	guest, sessionID := guestSessionFor(t, ctx, clients, agent, instance.GetMetadata().GetId(), "guest-tools")
 
 	// 1. Private environment: the guest's message is refused synchronously
-	//    at create, and the error diagnoses — it names the missing variable
-	//    AND the environment to share.
+	//    at create with the generic copy — never the internal diagnostic.
 	_, err := guestCreateExecution(ctx, guest, sessionID, "private-env-attempt")
 	require.Error(t, err, "a private environment must block the guest's tool-using execution")
 	st, ok := status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.FailedPrecondition, st.Code())
-	assert.Contains(t, st.Message(), t06EnvVar,
-		"the refusal must name the missing variable")
-	assert.Contains(t, st.Message(), env.GetMetadata().GetSlug(),
-		"the refusal must name the environment that was not merged")
-	assert.Contains(t, st.Message(), "share it with the organization",
-		"the refusal must tell the owner the fix")
+	assert.Equal(t, defaultUnavailableCopy, st.Message(),
+		"a guest must see the generic unavailable copy, not the owner diagnostic")
+	assert.NotContains(t, st.Message(), t06EnvVar,
+		"the guest-visible refusal must never leak the missing variable name")
+	assert.NotContains(t, st.Message(), env.GetMetadata().GetSlug(),
+		"the guest-visible refusal must never leak the environment slug")
 
 	// 2. Owner shares the environment with the org: the SAME guest token's
 	//    next message goes through — the secrets merged, validation passed.
@@ -241,6 +256,76 @@ func TestOrgSharedEnvironment_GuestToolCredentials(t *testing.T) {
 	st, ok = status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.FailedPrecondition, st.Code())
+}
+
+// TestOrgSharedEnvironment_GuestToolCredentials_ViaShareRefs proves the
+// DD-011 credential channel end to end: the share's environment_refs — not
+// an instance binding — carry the tool credentials, so a guest chatting on
+// the agent's PRISTINE default instance gets a working tool-using agent.
+// This is the binding the Share dialog writes and the path that unblocks
+// tool-using agents behind a plain share link (the default instance is
+// system-managed and stays untouched). Removing the binding fails closed on
+// the guest's next message, proving the share — not the instance — is the
+// load-bearing consent.
+func TestOrgSharedEnvironment_GuestToolCredentials_ViaShareRefs(t *testing.T) {
+	requireGuestPrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	env := createSecretEnvironment(t, ctx, clients, "test-t06-share-refs")
+	setEnvironmentVisibility(t, ctx, clients, env.GetMetadata().GetId(), visOrgLevel)
+
+	agent := createToolAgent(t, ctx, clients, "share-refs")
+	envRef := &apiresource.ApiResourceReference{
+		Kind: apiresourcekind.ApiResourceKind_environment,
+		Org:  env.GetMetadata().GetOrg(),
+		Slug: env.GetMetadata().GetSlug(),
+	}
+
+	// 1. Phase A guardrail on the wire: environment_refs bind to
+	//    public-audience shares only (org members carry no share linkage, so
+	//    bound credentials would silently never apply). The message-level
+	//    CEL rule must reject the combination through the real backend, not
+	//    just in the OSS proto unit tests.
+	invalid := shareFor(agent, true)
+	invalid.Spec.Audience = agentsharev1.AgentShareAudience_agent_share_audience_org
+	invalid.Spec.EnvironmentRefs = []*apiresource.ApiResourceReference{envRef}
+	_, err := clients.AgentShareCommand.Apply(ctx, invalid)
+	require.Error(t, err, "env refs on an org-audience share must be rejected")
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.InvalidArgument, st.Code(),
+		"the audience/env-refs rule is proto-boundary validation (INVALID_ARGUMENT)")
+
+	// 2. Bind the credentials to the (public) share. The guest pins the
+	//    agent's system-managed DEFAULT instance — no instance binding
+	//    exists anywhere.
+	bound := shareFor(agent, true)
+	bound.Spec.EnvironmentRefs = []*apiresource.ApiResourceReference{envRef}
+	applyShare(t, ctx, clients, bound)
+
+	guest, sessionID := guestSessionFor(t, ctx, clients, agent,
+		agent.GetStatus().GetDefaultInstanceId(), "share-refs")
+
+	exec, err := guestCreateExecution(ctx, guest, sessionID, "share-bound-attempt")
+	require.NoError(t, err,
+		"share-bound credentials must satisfy MCP validation on the pristine default instance")
+	assert.Equal(t, harness.TestOrg, exec.GetMetadata().GetOrg())
+
+	// 3. Unbind: re-apply the share without the ref. The SAME guest token's
+	//    next message fails closed with the generic guest copy — the gate
+	//    reads the live share, and no credential lingers on the instance.
+	applyShare(t, ctx, clients, shareFor(agent, true))
+
+	_, err = guestCreateExecution(ctx, guest, sessionID, "unbound-attempt")
+	require.Error(t, err, "removing the share's env binding must block the very next guest message")
+	st, ok = status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.FailedPrecondition, st.Code())
+	assert.Equal(t, defaultUnavailableCopy, st.Message(),
+		"the guest refusal must be the generic copy, never the owner diagnostic")
 }
 
 // TestOrgSharedEnvironment_GuestCannotReadEnvironment pins the containment

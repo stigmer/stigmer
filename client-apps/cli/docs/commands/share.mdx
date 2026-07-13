@@ -1,7 +1,8 @@
-Share an Agent with anyone via a hosted link.
+Share an Agent via a hosted chat link.
 
-`stigmer share` turns an Agent into a public chat page that anyone with the
-link can use — no Stigmer account needed. It prints the hosted chat link and a
+`stigmer share` turns an Agent into a hosted chat page — for anyone with the
+link (no Stigmer account needed) or for signed-in members of your
+Organization. It prints the hosted chat link and, for public shares, a
 two-line embed snippet you can paste into any website. Visitors chat on the
 sharing Organization's credits.
 
@@ -12,6 +13,12 @@ sharing Organization's credits.
 ```bash
 # Share an Agent and print its public chat link + embed snippet
 stigmer share agent support-agent
+
+# Share with your Organization's members only
+stigmer share agent internal-helper --audience org
+
+# Reset a public link — the old link stops working immediately
+stigmer share agent support-agent --reset-link
 
 # Share, then open the chat page in your browser
 stigmer share agent acme-corp/support-agent --open
@@ -36,6 +43,28 @@ without another write.
 Any embed origins or visitor messages you configured in the console's Share
 dialog are preserved; the CLI only flips the sharing switch.
 
+### Share with your Organization only
+
+```bash
+stigmer share agent acme-corp/internal-helper --audience org
+```
+
+Only signed-in members of your Organization can chat; anyone else sees the
+same "not found" page as for an Agent that never existed. Omitting
+`--audience` preserves the share's current audience — a plain toggle never
+turns an org-members-only share back into a public one.
+
+### Reset a leaked public link
+
+```bash
+stigmer share agent acme-corp/support-agent --reset-link
+```
+
+Mints a fresh link carrying a secret key (`?k=<key>`) and kills the current
+one — including for visitors mid-conversation. Sharing stays on. Re-copy the
+embed snippet afterwards so your website keeps working. Resetting applies to
+public shares only; org-members-only access ends with membership instead.
+
 ### Revoke a shared link
 
 ```bash
@@ -48,13 +77,16 @@ kept for the next time you enable sharing.
 
 ## Notes
 
-- Anyone with the link can chat, and usage bills the sharing Organization's
-  credits. Public links can be forwarded and indexed by search engines — don't
-  share Agents that know confidential information.
+- Anyone with a public link can chat, and usage bills the sharing
+  Organization's credits. Public links can be forwarded and indexed by search
+  engines — don't share Agents that know confidential information.
 - Guest chat is served by Stigmer Cloud. Against a local backend the command
-  still records the sharing flag, but the local link won't serve visitors.
-- To restrict which websites may embed the Agent, or to customize visitor
-  messages, use the Share dialog in the web console.
+  still records the share, but the local link won't serve visitors.
+- To restrict which websites may embed the Agent, customize visitor messages,
+  or bind tool credentials, use the Share dialog in the web console.
+- Sharing is stored as its own AgentShare resource, separate from the Agent.
+  Manage it declaratively with `stigmer apply`, and inspect it with
+  `stigmer get agent-share <ref>`.
 
 {/* AUTO_SUBCOMMANDS */}
 
