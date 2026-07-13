@@ -11,6 +11,14 @@
 // status.share_link_token, since dropping it would unlock a deliberately
 // locked link — and strips the legacy bytes from the agent so the
 // conversion is self-marking (a second pass finds nothing to do).
+//
+// Retention: this backfill exists for external self-hosters upgrading a
+// SQLite database across the promotion — data we cannot survey. The cloud
+// edition deliberately ships no counterpart (its production data held only
+// throwaway demo shares at cutover, and a Mongock changeSet, once executed,
+// is permanent changelog history). Being bootstrap_state-gated Go code with
+// no such ledger, this package is safe to delete in a future release once
+// self-hoster adoption has cycled past the promotion.
 package migration
 
 import (
