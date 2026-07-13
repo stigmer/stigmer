@@ -119,7 +119,7 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	if err := harness.ProvisionTestBillingAccount(ctx, grpcConn, "session-routing-test-seed-credits"); err != nil {
+	if err := harness.ProvisionTestBillingAccount(ctx, grpcConn, harness.TestOrg, "session-routing-test-seed-credits"); err != nil {
 		suiteLogger.Warn("failed to provision test billing account", "error", err)
 	}
 
