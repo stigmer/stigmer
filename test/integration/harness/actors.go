@@ -143,21 +143,33 @@ func (a *Actors) Stranger() *Actor {
 // returns an Actor whose Clients authenticate as that identity.
 func (a *Actors) mintActor(name string, grant bool, role iamv1.IamRole) *Actor {
 	a.t.Helper()
-	ownerClients := NewClients(a.ownerConn)
+	return MintActorInOrg(a.t, a.ctx, a.ownerConn, a.grpcAddr, TestOrg, name, grant, role)
+}
 
-	opts := []PlatformClientOption{WithAutoProvision(true)}
+// MintActorInOrg provisions a fresh identity through a PlatformClient in the
+// given org and returns an Actor whose Clients authenticate as that identity.
+// The auto-grant (when requested) lands on the PlatformClient's owning org,
+// so the actor holds the role in THAT org and nothing anywhere else — which
+// is exactly what cross-tenant tests need to prove org-scoped authorization.
+// ownerConn must be authorized to create PlatformClients in the org (the
+// synthetic owner qualifies for any org it created).
+func MintActorInOrg(t *testing.T, ctx context.Context, ownerConn grpc.ClientConnInterface, grpcAddr, org, name string, grant bool, role iamv1.IamRole) *Actor {
+	t.Helper()
+	ownerClients := NewClients(ownerConn)
+
+	opts := []PlatformClientOption{WithAutoProvision(true), WithPlatformClientOrg(org)}
 	if grant {
 		opts = append(opts, WithAutoGrantOnOrg(true), WithAutoGrantRole(role))
 	}
-	creds := CreatePlatformClient(a.t, a.ctx, ownerClients, opts...)
+	creds := CreatePlatformClient(t, ctx, ownerClients, opts...)
 
 	userID := name + "-" + uuid.New().String()[:8]
-	token := MintUserToken(a.t, a.ctx, ownerClients, creds, userID)
+	token := MintUserToken(t, ctx, ownerClients, creds, userID)
 
-	conn := GRPCConnWithBearer(a.t, a.grpcAddr, token)
+	conn := GRPCConnWithBearer(t, grpcAddr, token)
 	return &Actor{
 		Name:      name,
-		AccountID: accountIDFromToken(a.t, token),
+		AccountID: accountIDFromToken(t, token),
 		Clients:   NewClients(conn),
 	}
 }

@@ -265,22 +265,22 @@ func SeedDefaultAgent(ctx context.Context, conn grpc.ClientConnInterface) error 
 	return err
 }
 
-// ProvisionTestBillingAccount creates a billing account for test-org and
-// seeds generous credits ($100) so agent/workflow executions do not hit the
-// balance gate. The idempotencyKey must be unique per suite to avoid
-// conflicts across concurrent test runs.
-func ProvisionTestBillingAccount(ctx context.Context, conn grpc.ClientConnInterface, idempotencyKey string) error {
+// ProvisionTestBillingAccount creates a billing account for the given org
+// and seeds generous credits ($100) so agent/workflow executions do not hit
+// the balance gate. The idempotencyKey must be unique per suite (and per
+// org) to avoid conflicts across concurrent test runs.
+func ProvisionTestBillingAccount(ctx context.Context, conn grpc.ClientConnInterface, org, idempotencyKey string) error {
 	billing := billingv1.NewBillingCommandControllerClient(conn)
 
 	_, err := billing.GetOrCreateBillingAccount(ctx, &billingv1.GetOrCreateBillingAccountInput{
-		OrgId: TestOrg,
+		OrgId: org,
 	})
 	if err != nil {
 		return fmt.Errorf("getOrCreateBillingAccount: %w", err)
 	}
 
 	_, err = billing.AdjustCredits(ctx, &billingv1.AdjustCreditsInput{
-		OrgId:          TestOrg,
+		OrgId:          org,
 		AmountMicros:   100_000_000, // $100 in micro-USD
 		Reason:         "integration test seed",
 		IdempotencyKey: idempotencyKey,
