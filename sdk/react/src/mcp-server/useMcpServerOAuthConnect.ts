@@ -11,32 +11,21 @@ import {
 import { useStigmer } from "../hooks.js";
 import { resolveDeclaredSystemEnvVars } from "../environment/systemEnvVars.js";
 import { toError } from "../internal/toError.js";
+import {
+  openOAuthPopup,
+  popupBlockedError,
+  waitForOAuthCallback,
+  closeOAuthPopup,
+} from "../internal/oauthPopup.js";
 
-/**
- * Message type posted by {@link OAuthCallbackHandler} to the opener window.
- *
- * @internal
- */
-export const OAUTH_CALLBACK_MESSAGE_TYPE = "stigmer:oauth:callback";
-
-/**
- * BroadcastChannel name used as a fallback when `window.opener` is severed
- * by `Cross-Origin-Opener-Policy` headers on the OAuth provider.
- *
- * @internal
- */
-export const OAUTH_BROADCAST_CHANNEL = "stigmer:oauth:broadcast";
-
-/**
- * Shape of the `postMessage` payload sent from the OAuth callback popup.
- *
- * @internal
- */
-export interface OAuthCallbackMessage {
-  readonly type: typeof OAUTH_CALLBACK_MESSAGE_TYPE;
-  readonly code: string;
-  readonly state: string;
-}
+// Re-exported for compatibility: these constants and the message type now
+// live in the shared popup machinery (internal/oauthPopup.ts) because the
+// channel-install flow uses the same callback contract.
+export {
+  OAUTH_CALLBACK_MESSAGE_TYPE,
+  OAUTH_BROADCAST_CHANNEL,
+  type OAuthCallbackMessage,
+} from "../internal/oauthPopup.js";
 
 /** Progress phases of the OAuth connect flow. */
 export type OAuthConnectPhase =
@@ -78,10 +67,6 @@ export interface UseMcpServerOAuthConnectReturn {
   readonly clearError: () => void;
 }
 
-const POPUP_WIDTH = 600;
-const POPUP_HEIGHT = 700;
-const POPUP_CALLBACK_TIMEOUT_MS = 120_000;
-
 /**
  * Action hook that orchestrates the full OAuth popup flow for MCP servers.
  *
@@ -95,6 +80,9 @@ const POPUP_CALLBACK_TIMEOUT_MS = 120_000;
  * The popup is opened **synchronously** before the `initiateOAuthConnect`
  * RPC to avoid browser popup blockers. A blank page is shown briefly
  * while the RPC resolves, then the popup navigates to the auth URL.
+ *
+ * Popup plumbing (callback wait, COOP fallbacks, cancellation) lives in
+ * the shared `internal/oauthPopup.ts` machinery.
  *
  * @example
  * ```tsx
@@ -134,7 +122,7 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
     if (cleanupRef.current || popupRef.current) {
       cancelledRef.current = true;
       cleanupRef.current?.();
-      closePopup(popupRef.current);
+      closeOAuthPopup(popupRef.current);
       popupRef.current = null;
       cleanupRef.current = null;
     }
@@ -150,19 +138,9 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
 
       cleanupRef.current?.();
 
-      const left = window.screenX + (window.outerWidth - POPUP_WIDTH) / 2;
-      const top = window.screenY + (window.outerHeight - POPUP_HEIGHT) / 2;
-      const popup = window.open(
-        "about:blank",
-        "stigmer_oauth",
-        `width=${POPUP_WIDTH},height=${POPUP_HEIGHT},left=${left},top=${top},popup=yes`,
-      );
-
+      const popup = openOAuthPopup();
       if (!popup) {
-        const blocked = new Error(
-          "Your browser blocked the authentication popup. " +
-            "Please allow popups for this site and try again.",
-        );
+        const blocked = popupBlockedError();
         setError(blocked);
         setPhase("idle");
         throw blocked;
@@ -226,7 +204,7 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
         if (!cancelledRef.current) {
           setError(wrapped);
           setPhase("idle");
-          closePopup(popup);
+          closeOAuthPopup(popup);
         }
         cancelledRef.current = false;
         throw wrapped;
@@ -245,144 +223,4 @@ export function useMcpServerOAuthConnect(): UseMcpServerOAuthConnectReturn {
     error,
     clearError,
   };
-}
-
-// ---------------------------------------------------------------------------
-// Popup callback listener
-// ---------------------------------------------------------------------------
-
-/**
- * Grace period (ms) after `popup.closed` is first detected before treating
- * it as a user-initiated close.
- *
- * Only used when BroadcastChannel is unavailable. When BC is available,
- * `popup.closed` polling is skipped entirely because COOP providers
- * (e.g. Sentry, GitHub) sever the opener reference on cross-origin
- * navigation, making `popup.closed` permanently `true` while the popup
- * is still active. The overall {@link POPUP_CALLBACK_TIMEOUT_MS} serves
- * as the safety net for abandoned flows instead.
- */
-const POPUP_CLOSED_GRACE_MS = 5_000;
-
-function waitForOAuthCallback(
-  popup: Window,
-  expectedState: string,
-  onDispose: (dispose: () => void) => void,
-): Promise<{ code: string; state: string }> {
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    let timeoutId: ReturnType<typeof setTimeout>;
-    let pollId: ReturnType<typeof setInterval>;
-    let bc: BroadcastChannel | null = null;
-    let hasBroadcastChannel = false;
-
-    function cleanup() {
-      if (timeoutId) clearTimeout(timeoutId);
-      if (pollId) clearInterval(pollId);
-      window.removeEventListener("message", onMessage);
-      try { bc?.close(); } catch { /* ignore */ }
-    }
-
-    function settle(
-      outcome: { code: string; state: string } | Error,
-    ) {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      if (outcome instanceof Error) {
-        reject(outcome);
-      } else {
-        resolve(outcome);
-      }
-    }
-
-    onDispose(() => {
-      settle(new Error("OAuth flow was cancelled."));
-      closePopup(popup);
-    });
-
-    function validateAndSettle(data: OAuthCallbackMessage | undefined) {
-      if (data?.type !== OAUTH_CALLBACK_MESSAGE_TYPE) return;
-
-      if (data.state !== expectedState) {
-        settle(
-          new Error(
-            "OAuth state mismatch — the callback did not match the " +
-              "initiated flow. Please try again.",
-          ),
-        );
-        return;
-      }
-
-      if (!data.code) {
-        settle(new Error("No authorization code received from the OAuth provider."));
-        return;
-      }
-
-      settle({ code: data.code, state: data.state });
-    }
-
-    function onMessage(event: MessageEvent) {
-      if (event.origin !== window.location.origin) return;
-      validateAndSettle(event.data as OAuthCallbackMessage | undefined);
-    }
-
-    window.addEventListener("message", onMessage);
-
-    // BroadcastChannel — works even when COOP severs window.opener.
-    try {
-      bc = new BroadcastChannel(OAUTH_BROADCAST_CHANNEL);
-      hasBroadcastChannel = true;
-      bc.onmessage = (event: MessageEvent) => {
-        validateAndSettle(event.data as OAuthCallbackMessage | undefined);
-      };
-    } catch {
-      // BroadcastChannel unsupported — rely on postMessage only.
-    }
-
-    timeoutId = setTimeout(() => {
-      settle(
-        new Error(
-          "OAuth authentication timed out. Ensure your callback page " +
-            "renders <OAuthCallbackHandler /> from @stigmer/react at " +
-            "the URL configured as your OAuth redirect URI.",
-        ),
-      );
-      closePopup(popup);
-    }, POPUP_CALLBACK_TIMEOUT_MS);
-
-    // When BroadcastChannel is available, skip popup.closed polling.
-    // COOP providers (Sentry, GitHub, etc.) sever the opener reference
-    // on cross-origin navigation, making popup.closed permanently true
-    // while the popup is still active. BroadcastChannel reliably
-    // delivers the callback regardless of COOP; the overall timeout
-    // above catches abandoned flows.
-    //
-    // When BroadcastChannel is NOT available (legacy browsers), fall
-    // back to popup.closed polling with a short grace period — it is
-    // the only signal we have in that degraded path.
-    let popupClosedAt: number | null = null;
-
-    pollId = setInterval(() => {
-      if (hasBroadcastChannel) return;
-
-      if (popup.closed) {
-        if (popupClosedAt === null) {
-          popupClosedAt = Date.now();
-        } else if (Date.now() - popupClosedAt > POPUP_CLOSED_GRACE_MS) {
-          settle(new Error("The authentication window was closed before completing sign-in."));
-        }
-      } else {
-        popupClosedAt = null;
-      }
-    }, 500);
-  });
-}
-
-function closePopup(popup: Window | null) {
-  try {
-    popup?.close();
-  } catch {
-    // Cross-origin popup may throw on close — safe to ignore.
-  }
 }

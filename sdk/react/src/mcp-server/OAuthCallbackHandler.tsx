@@ -5,8 +5,8 @@ import { cn } from "@stigmer/theme";
 import {
   OAUTH_CALLBACK_MESSAGE_TYPE,
   OAUTH_BROADCAST_CHANNEL,
-} from "./useMcpServerOAuthConnect.js";
-import type { OAuthCallbackMessage } from "./useMcpServerOAuthConnect.js";
+} from "../internal/oauthPopup.js";
+import type { OAuthCallbackMessage } from "../internal/oauthPopup.js";
 
 /** Parameters extracted from the OAuth callback URL. */
 export interface OAuthCallbackParams {
