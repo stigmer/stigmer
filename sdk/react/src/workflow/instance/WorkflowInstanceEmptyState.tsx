@@ -1,10 +1,10 @@
 "use client";
 
-import { cn } from "@stigmer/theme";
+import { EmptyState } from "../../empty-state/EmptyState.js";
 
 /** Props for {@link WorkflowInstanceEmptyState}. */
 export interface WorkflowInstanceEmptyStateProps {
-  /** Called when the user clicks "Create Instance". */
+  /** Called when the user clicks "Create instance". */
   readonly onCreateClick?: () => void;
   /** Additional CSS class names. */
   readonly className?: string;
@@ -15,62 +15,43 @@ export interface WorkflowInstanceEmptyStateProps {
  *
  * Communicates the value proposition of workflow instances without
  * mentioning the platform-managed default instance (implementation detail).
+ *
+ * A thin composition over the shared {@link EmptyState} primitive: only the
+ * icon and copy are specific to workflow instances.
  */
 export function WorkflowInstanceEmptyState({
   onCreateClick,
   className,
 }: WorkflowInstanceEmptyStateProps) {
   return (
-    <div
-      className={cn(
-        "flex flex-col items-center justify-center py-12 px-6 text-center",
-        className,
-      )}
-    >
-      <div className="mb-4 rounded-full bg-muted p-3">
-        <LayersIcon />
-      </div>
-
-      <h3 className="text-sm font-semibold text-foreground mb-1">
-        No instances yet
-      </h3>
-
-      <p className="text-sm text-muted-foreground max-w-sm mb-6">
-        Create instances to run this workflow with different configurations
-        and access controls. Each instance binds environments (credentials,
-        secrets, settings) and can be shared independently.
-      </p>
-
-      {onCreateClick && (
-        <button
-          type="button"
-          onClick={onCreateClick}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5",
-            "text-sm font-medium",
-            "bg-primary text-primary-foreground",
-            "hover:bg-primary/90",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-          )}
-        >
-          <PlusIcon />
-          Create Instance
-        </button>
-      )}
-    </div>
+    <EmptyState
+      variant="first-use"
+      icon={<LayersIcon />}
+      title="No instances yet"
+      description={
+        "Create instances to run this workflow with different configurations " +
+        "and access controls. Each instance binds environments (credentials, " +
+        "secrets, settings) and can be shared independently."
+      }
+      action={
+        onCreateClick
+          ? { label: "Create instance", onClick: onCreateClick, icon: <PlusIcon /> }
+          : undefined
+      }
+      className={className}
+    />
   );
 }
 
 function LayersIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+    <svg width="24" height="24" viewBox="0 0 20 20" fill="none" aria-hidden="true">
       <path
         d="M10 2L2 6l8 4 8-4-8-4zM2 10l8 4 8-4M2 14l8 4 8-4"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="text-muted-foreground"
       />
     </svg>
   );
@@ -78,8 +59,8 @@ function LayersIcon() {
 
 function PlusIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      <path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <path d="M6 2v8M2 6h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }

@@ -28,7 +28,7 @@ from ai.stigmer.commons.rpc import pagination_pb2 as ai_dot_stigmer_dot_commons_
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/ai/stigmer/agentic/workflowinstance/v1/io.proto\x12&ai.stigmer.agentic.workflowinstance.v1\x1a\x30\x61i/stigmer/agentic/workflowinstance/v1/api.proto\x1a\x31\x61i/stigmer/agentic/workflowinstance/v1/spec.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\"2\n\x12WorkflowInstanceId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x8f\x01\n%GetWorkflowInstancesByWorkflowRequest\x12\'\n\x0bworkflow_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nworkflowId\x12=\n\tpage_info\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\"\xce\x01\n\x1eUpdateExecutionVisibilityInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\x12\x82\x01\n\x14\x65xecution_visibility\x18\x02 \x01(\x0e\x32\x43.ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibilityB\n\xbaH\x07\x82\x01\x04\x10\x01 \x00R\x13\x65xecutionVisibility\"\x8b\x01\n\x14WorkflowInstanceList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12R\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x38.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceR\x07\x65ntriesB\xf2\x01\n*com.ai.stigmer.agentic.workflowinstance.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02&Ai.Stigmer.Agentic.Workflowinstance.V1\xca\x02&Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\xe2\x02\x32\x41i\\Stigmer\\Agentic\\Workflowinstance\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Workflowinstance::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/ai/stigmer/agentic/workflowinstance/v1/io.proto\x12&ai.stigmer.agentic.workflowinstance.v1\x1a\x30\x61i/stigmer/agentic/workflowinstance/v1/api.proto\x1a\x31\x61i/stigmer/agentic/workflowinstance/v1/spec.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\"2\n\x12WorkflowInstanceId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xa1\x01\n%GetWorkflowInstancesByWorkflowRequest\x12\'\n\x0bworkflow_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nworkflowId\x12=\n\tpage_info\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x12\x10\n\x03org\x18\x03 \x01(\tR\x03org\"\xce\x01\n\x1eUpdateExecutionVisibilityInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\x12\x82\x01\n\x14\x65xecution_visibility\x18\x02 \x01(\x0e\x32\x43.ai.stigmer.agentic.workflowinstance.v1.WorkflowExecutionVisibilityB\n\xbaH\x07\x82\x01\x04\x10\x01 \x00R\x13\x65xecutionVisibility\"\x8b\x01\n\x14WorkflowInstanceList\x12\x1f\n\x0btotal_pages\x18\x01 \x01(\x05R\ntotalPages\x12R\n\x07\x65ntries\x18\x02 \x03(\x0b\x32\x38.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceR\x07\x65ntriesB\xf2\x01\n*com.ai.stigmer.agentic.workflowinstance.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAW\xaa\x02&Ai.Stigmer.Agentic.Workflowinstance.V1\xca\x02&Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\xe2\x02\x32\x41i\\Stigmer\\Agentic\\Workflowinstance\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Workflowinstance::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -47,9 +47,9 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_WORKFLOWINSTANCEID']._serialized_start=262
   _globals['_WORKFLOWINSTANCEID']._serialized_end=312
   _globals['_GETWORKFLOWINSTANCESBYWORKFLOWREQUEST']._serialized_start=315
-  _globals['_GETWORKFLOWINSTANCESBYWORKFLOWREQUEST']._serialized_end=458
-  _globals['_UPDATEEXECUTIONVISIBILITYINPUT']._serialized_start=461
-  _globals['_UPDATEEXECUTIONVISIBILITYINPUT']._serialized_end=667
-  _globals['_WORKFLOWINSTANCELIST']._serialized_start=670
-  _globals['_WORKFLOWINSTANCELIST']._serialized_end=809
+  _globals['_GETWORKFLOWINSTANCESBYWORKFLOWREQUEST']._serialized_end=476
+  _globals['_UPDATEEXECUTIONVISIBILITYINPUT']._serialized_start=479
+  _globals['_UPDATEEXECUTIONVISIBILITYINPUT']._serialized_end=685
+  _globals['_WORKFLOWINSTANCELIST']._serialized_start=688
+  _globals['_WORKFLOWINSTANCELIST']._serialized_end=827
 # @@protoc_insertion_point(module_scope)

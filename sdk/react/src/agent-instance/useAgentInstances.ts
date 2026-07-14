@@ -21,11 +21,18 @@ export interface UseAgentInstancesReturn {
 }
 
 /**
- * Data hook that fetches all instances for a specific agent.
+ * Data hook that fetches instances for a specific agent.
  *
  * Wraps `stigmer.agentInstance.getByAgent()` with loading and error
  * state management. Used on the Agent detail page "Instances" tab to
  * show environment-bound deployments of the agent blueprint.
+ *
+ * Pass `org` to scope the list to one organization's instances — the
+ * org-context view a console tab needs. Permissions alone cannot provide
+ * this scope: a member of several orgs can view all of their orgs'
+ * instances of the agent, so the unscoped list merges them. The server
+ * applies the scope (it only ever narrows the permission-bounded view);
+ * omit `org` for the full permission-bounded list.
  *
  * Pass `null` as `agentId` to skip fetching (stable no-op).
  *
@@ -35,11 +42,12 @@ export interface UseAgentInstancesReturn {
  *
  * @example
  * ```tsx
- * const { instances, isLoading } = useAgentInstances(agent.metadata?.id);
+ * const { instances, isLoading } = useAgentInstances(agent.metadata?.id, viewerOrg);
  * ```
  */
 export function useAgentInstances(
   agentId: string | null | undefined,
+  org?: string,
 ): UseAgentInstancesReturn {
   const stigmer = useStigmer();
 
@@ -48,6 +56,7 @@ export function useAgentInstances(
         const resp = await stigmer.agentInstance.getByAgent(
           create(GetAgentInstancesByAgentRequestSchema, {
             agentId,
+            org: org ?? "",
           }),
         );
         return resp.items ? [...resp.items] : [];
@@ -60,7 +69,7 @@ export function useAgentInstances(
     isRefetching,
     error,
     refetch,
-  } = useFetch<readonly AgentInstance[]>(fetchFn, [agentId, stigmer], []);
+  } = useFetch<readonly AgentInstance[]>(fetchFn, [agentId, org, stigmer], []);
 
   return { instances, isLoading, isRefetching, error, refetch };
 }

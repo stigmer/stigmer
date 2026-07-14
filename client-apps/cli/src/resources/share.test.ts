@@ -73,11 +73,16 @@ function fakeClient(
       },
     },
     agentShare: {
-      async getByAgent() {
-        return {
-          totalCount: currentShare ? 1 : 0,
-          items: currentShare ? [currentShare] : [],
-        };
+      // Mirrors the server's org scope: a non-empty request org returns
+      // only that org's shares (the contract resolveCanonicalShare relies
+      // on to never surface another org's channel).
+      async getByAgent(input: { org?: string }) {
+        const items =
+          currentShare &&
+          (!input.org || currentShare.metadata.org === input.org)
+            ? [currentShare]
+            : [];
+        return { totalCount: items.length, items };
       },
       async apply(input: AgentShareInput) {
         if (opts.failWith) throw opts.failWith;

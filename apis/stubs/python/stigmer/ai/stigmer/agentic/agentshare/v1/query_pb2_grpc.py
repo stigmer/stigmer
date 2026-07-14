@@ -73,7 +73,8 @@ class AgentShareQueryControllerServicer(object):
 
     def getByAgent(self, request, context):
         """Get all shares of a specific agent.
-        Returns only shares the caller has access to.
+        Returns only shares the caller has access to, optionally scoped to
+        one organization via the request's org field.
 
         This is how the Share dialog and CLI resolve an agent's existing
         share regardless of its slug (a renamed share keeps working).

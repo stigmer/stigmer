@@ -16,6 +16,8 @@ export interface EmptyStateAction {
   readonly label: string;
   /** Click handler. */
   readonly onClick: () => void;
+  /** Optional leading icon (e.g. a plus glyph on create CTAs). */
+  readonly icon?: ReactNode;
 }
 
 /** Options for the {@link useEmptyState} behavior hook. */

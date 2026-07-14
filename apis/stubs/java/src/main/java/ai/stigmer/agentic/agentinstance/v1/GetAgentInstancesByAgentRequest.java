@@ -33,6 +33,7 @@ private static final long serialVersionUID = 0L;
   }
   private GetAgentInstancesByAgentRequest() {
     agentId_ = "";
+    org_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -139,6 +140,75 @@ private static final long serialVersionUID = 0L;
     return pageInfo_ == null ? ai.stigmer.commons.rpc.PageInfo.getDefaultInstance() : pageInfo_;
   }
 
+  public static final int ORG_FIELD_NUMBER = 3;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object org_ = "";
+  /**
+   * <pre>
+   * Organization slug to scope the results to.
+   *
+   * When set, only instances whose metadata.org matches are returned — the
+   * org-context view a console tab needs. When empty, results are bounded
+   * only by the caller's view permissions, which for a member of several
+   * organizations spans all of them.
+   *
+   * &#64;internal
+   * Optional by design: the OSS server resolves an agent's default instance
+   * through this RPC with no org (downstream/agentinstance client), and
+   * pre-existing callers rely on the permission-bounded behavior. Filtering
+   * happens in the query/list step of each edition's handler.
+   * </pre>
+   *
+   * <code>string org = 3 [json_name = "org"];</code>
+   * @return The org.
+   */
+  @java.lang.Override
+  public java.lang.String getOrg() {
+    java.lang.Object ref = org_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      org_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Organization slug to scope the results to.
+   *
+   * When set, only instances whose metadata.org matches are returned — the
+   * org-context view a console tab needs. When empty, results are bounded
+   * only by the caller's view permissions, which for a member of several
+   * organizations spans all of them.
+   *
+   * &#64;internal
+   * Optional by design: the OSS server resolves an agent's default instance
+   * through this RPC with no org (downstream/agentinstance client), and
+   * pre-existing callers rely on the permission-bounded behavior. Filtering
+   * happens in the query/list step of each edition's handler.
+   * </pre>
+   *
+   * <code>string org = 3 [json_name = "org"];</code>
+   * @return The bytes for org.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getOrgBytes() {
+    java.lang.Object ref = org_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      org_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -159,6 +229,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(2, getPageInfo());
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, org_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -174,6 +247,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(2, getPageInfo());
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, org_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -197,6 +273,8 @@ private static final long serialVersionUID = 0L;
       if (!getPageInfo()
           .equals(other.getPageInfo())) return false;
     }
+    if (!getOrg()
+        .equals(other.getOrg())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -214,6 +292,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + PAGE_INFO_FIELD_NUMBER;
       hash = (53 * hash) + getPageInfo().hashCode();
     }
+    hash = (37 * hash) + ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getOrg().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -361,6 +441,7 @@ private static final long serialVersionUID = 0L;
         pageInfoBuilder_.dispose();
         pageInfoBuilder_ = null;
       }
+      org_ = "";
       return this;
     }
 
@@ -404,6 +485,9 @@ private static final long serialVersionUID = 0L;
             : pageInfoBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.org_ = org_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -426,6 +510,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasPageInfo()) {
         mergePageInfo(other.getPageInfo());
+      }
+      if (!other.getOrg().isEmpty()) {
+        org_ = other.org_;
+        bitField0_ |= 0x00000004;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -465,6 +554,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
+            case 26: {
+              org_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -729,6 +823,153 @@ private static final long serialVersionUID = 0L;
         pageInfo_ = null;
       }
       return pageInfoBuilder_;
+    }
+
+    private java.lang.Object org_ = "";
+    /**
+     * <pre>
+     * Organization slug to scope the results to.
+     *
+     * When set, only instances whose metadata.org matches are returned — the
+     * org-context view a console tab needs. When empty, results are bounded
+     * only by the caller's view permissions, which for a member of several
+     * organizations spans all of them.
+     *
+     * &#64;internal
+     * Optional by design: the OSS server resolves an agent's default instance
+     * through this RPC with no org (downstream/agentinstance client), and
+     * pre-existing callers rely on the permission-bounded behavior. Filtering
+     * happens in the query/list step of each edition's handler.
+     * </pre>
+     *
+     * <code>string org = 3 [json_name = "org"];</code>
+     * @return The org.
+     */
+    public java.lang.String getOrg() {
+      java.lang.Object ref = org_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        org_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Organization slug to scope the results to.
+     *
+     * When set, only instances whose metadata.org matches are returned — the
+     * org-context view a console tab needs. When empty, results are bounded
+     * only by the caller's view permissions, which for a member of several
+     * organizations spans all of them.
+     *
+     * &#64;internal
+     * Optional by design: the OSS server resolves an agent's default instance
+     * through this RPC with no org (downstream/agentinstance client), and
+     * pre-existing callers rely on the permission-bounded behavior. Filtering
+     * happens in the query/list step of each edition's handler.
+     * </pre>
+     *
+     * <code>string org = 3 [json_name = "org"];</code>
+     * @return The bytes for org.
+     */
+    public com.google.protobuf.ByteString
+        getOrgBytes() {
+      java.lang.Object ref = org_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        org_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Organization slug to scope the results to.
+     *
+     * When set, only instances whose metadata.org matches are returned — the
+     * org-context view a console tab needs. When empty, results are bounded
+     * only by the caller's view permissions, which for a member of several
+     * organizations spans all of them.
+     *
+     * &#64;internal
+     * Optional by design: the OSS server resolves an agent's default instance
+     * through this RPC with no org (downstream/agentinstance client), and
+     * pre-existing callers rely on the permission-bounded behavior. Filtering
+     * happens in the query/list step of each edition's handler.
+     * </pre>
+     *
+     * <code>string org = 3 [json_name = "org"];</code>
+     * @param value The org to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOrg(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      org_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Organization slug to scope the results to.
+     *
+     * When set, only instances whose metadata.org matches are returned — the
+     * org-context view a console tab needs. When empty, results are bounded
+     * only by the caller's view permissions, which for a member of several
+     * organizations spans all of them.
+     *
+     * &#64;internal
+     * Optional by design: the OSS server resolves an agent's default instance
+     * through this RPC with no org (downstream/agentinstance client), and
+     * pre-existing callers rely on the permission-bounded behavior. Filtering
+     * happens in the query/list step of each edition's handler.
+     * </pre>
+     *
+     * <code>string org = 3 [json_name = "org"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOrg() {
+      org_ = getDefaultInstance().getOrg();
+      bitField0_ = (bitField0_ & ~0x00000004);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Organization slug to scope the results to.
+     *
+     * When set, only instances whose metadata.org matches are returned — the
+     * org-context view a console tab needs. When empty, results are bounded
+     * only by the caller's view permissions, which for a member of several
+     * organizations spans all of them.
+     *
+     * &#64;internal
+     * Optional by design: the OSS server resolves an agent's default instance
+     * through this RPC with no org (downstream/agentinstance client), and
+     * pre-existing callers rely on the permission-bounded behavior. Filtering
+     * happens in the query/list step of each edition's handler.
+     * </pre>
+     *
+     * <code>string org = 3 [json_name = "org"];</code>
+     * @param value The bytes for org to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOrgBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      org_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest)

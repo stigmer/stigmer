@@ -1005,6 +1005,53 @@ func TestAgentShareController_GetByAgent(t *testing.T) {
 			t.Errorf("expected an empty list for a nonexistent agent, got %d", list.GetTotalCount())
 		}
 	})
+
+	// The org scope keeps each org's console tab on its own channels: a
+	// caller who can see several orgs' shares of the same agent asks for
+	// one org and gets exactly that org's rows.
+	t.Run("org scopes the list to one org's shares", func(t *testing.T) {
+		agent := makeAgentPublic(t, tc,
+			createTestAgentInOrg(t, tc, "Org Scoped List Agent", "provider-org"))
+		createTestShare(t, tc, agent, true)
+
+		crossOrg := shareFor(agent, true)
+		crossOrg.Metadata.Org = "consumer-org"
+		crossOrg.Spec.AgentRef.Org = agent.GetMetadata().GetOrg()
+		if _, err := tc.shares.Create(shareCtx(), crossOrg); err != nil {
+			t.Fatalf("cross-org share Create failed: %v", err)
+		}
+
+		cases := []struct {
+			name    string
+			org     string
+			want    int
+			wantOrg string
+		}{
+			{"empty org keeps the permission-bounded view", "", 2, ""},
+			{"provider org sees only its own share", "provider-org", 1, "provider-org"},
+			{"consumer org sees only its cross-org share", "consumer-org", 1, "consumer-org"},
+			{"unrelated org sees nothing", "bystander-org", 0, ""},
+		}
+		for _, tt := range cases {
+			t.Run(tt.name, func(t *testing.T) {
+				list, err := tc.shares.GetByAgent(shareCtx(), &agentsharev1.GetAgentSharesByAgentRequest{
+					AgentId: agent.GetMetadata().GetId(),
+					Org:     tt.org,
+				})
+				if err != nil {
+					t.Fatalf("GetByAgent failed: %v", err)
+				}
+				if int(list.GetTotalCount()) != tt.want {
+					t.Fatalf("org %q: expected %d shares, got %d", tt.org, tt.want, list.GetTotalCount())
+				}
+				for _, item := range list.GetItems() {
+					if tt.wantOrg != "" && item.GetMetadata().GetOrg() != tt.wantOrg {
+						t.Errorf("org %q: leaked a share from org %q", tt.org, item.GetMetadata().GetOrg())
+					}
+				}
+			})
+		}
+	})
 }
 
 func TestAgentShareController_Apply(t *testing.T) {

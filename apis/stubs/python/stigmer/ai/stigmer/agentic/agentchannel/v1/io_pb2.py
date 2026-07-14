@@ -27,7 +27,7 @@ from ai.stigmer.commons.rpc import pagination_pb2 as ai_dot_stigmer_dot_commons_
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/agentchannel/v1/io.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a,ai/stigmer/agentic/agentchannel/v1/api.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\".\n\x0e\x41gentChannelId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x82\x01\n\x1eGetAgentChannelsByAgentRequest\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12=\n\tpage_info\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\"{\n\x10\x41gentChannelList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12\x46\n\x05items\x18\x02 \x03(\x0b\x32\x30.ai.stigmer.agentic.agentchannel.v1.AgentChannelR\x05items\"\x91\x02\n\x18ListAgentChannelsRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12`\n\x06labels\x18\x02 \x03(\x0b\x32H.ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest.LabelsEntryR\x06labels\x12=\n\tpage_info\x18\x03 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"F\n\x1bInitiateChannelInstallInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\"a\n\x1cInitiateChannelInstallOutput\x12+\n\x11\x61uthorization_url\x18\x01 \x01(\tR\x10\x61uthorizationUrl\x12\x14\n\x05state\x18\x02 \x01(\tR\x05state\"\x80\x01\n\x1b\x43ompleteChannelInstallInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\x12\x1c\n\x05state\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05state\x12\x1a\n\x04\x63ode\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04\x63odeB\xde\x01\n&com.ai.stigmer.agentic.agentchannel.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/agentchannel/v1/io.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a,ai/stigmer/agentic/agentchannel/v1/api.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\".\n\x0e\x41gentChannelId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x94\x01\n\x1eGetAgentChannelsByAgentRequest\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12=\n\tpage_info\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x12\x10\n\x03org\x18\x03 \x01(\tR\x03org\"{\n\x10\x41gentChannelList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12\x46\n\x05items\x18\x02 \x03(\x0b\x32\x30.ai.stigmer.agentic.agentchannel.v1.AgentChannelR\x05items\"\x91\x02\n\x18ListAgentChannelsRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12`\n\x06labels\x18\x02 \x03(\x0b\x32H.ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest.LabelsEntryR\x06labels\x12=\n\tpage_info\x18\x03 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"F\n\x1bInitiateChannelInstallInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\"a\n\x1cInitiateChannelInstallOutput\x12+\n\x11\x61uthorization_url\x18\x01 \x01(\tR\x10\x61uthorizationUrl\x12\x14\n\x05state\x18\x02 \x01(\tR\x05state\"\x80\x01\n\x1b\x43ompleteChannelInstallInput\x12\'\n\x0bresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nresourceId\x12\x1c\n\x05state\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05state\x12\x1a\n\x04\x63ode\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04\x63odeB\xde\x01\n&com.ai.stigmer.agentic.agentchannel.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -54,17 +54,17 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_AGENTCHANNELID']._serialized_start=199
   _globals['_AGENTCHANNELID']._serialized_end=245
   _globals['_GETAGENTCHANNELSBYAGENTREQUEST']._serialized_start=248
-  _globals['_GETAGENTCHANNELSBYAGENTREQUEST']._serialized_end=378
-  _globals['_AGENTCHANNELLIST']._serialized_start=380
-  _globals['_AGENTCHANNELLIST']._serialized_end=503
-  _globals['_LISTAGENTCHANNELSREQUEST']._serialized_start=506
-  _globals['_LISTAGENTCHANNELSREQUEST']._serialized_end=779
-  _globals['_LISTAGENTCHANNELSREQUEST_LABELSENTRY']._serialized_start=722
-  _globals['_LISTAGENTCHANNELSREQUEST_LABELSENTRY']._serialized_end=779
-  _globals['_INITIATECHANNELINSTALLINPUT']._serialized_start=781
-  _globals['_INITIATECHANNELINSTALLINPUT']._serialized_end=851
-  _globals['_INITIATECHANNELINSTALLOUTPUT']._serialized_start=853
-  _globals['_INITIATECHANNELINSTALLOUTPUT']._serialized_end=950
-  _globals['_COMPLETECHANNELINSTALLINPUT']._serialized_start=953
-  _globals['_COMPLETECHANNELINSTALLINPUT']._serialized_end=1081
+  _globals['_GETAGENTCHANNELSBYAGENTREQUEST']._serialized_end=396
+  _globals['_AGENTCHANNELLIST']._serialized_start=398
+  _globals['_AGENTCHANNELLIST']._serialized_end=521
+  _globals['_LISTAGENTCHANNELSREQUEST']._serialized_start=524
+  _globals['_LISTAGENTCHANNELSREQUEST']._serialized_end=797
+  _globals['_LISTAGENTCHANNELSREQUEST_LABELSENTRY']._serialized_start=740
+  _globals['_LISTAGENTCHANNELSREQUEST_LABELSENTRY']._serialized_end=797
+  _globals['_INITIATECHANNELINSTALLINPUT']._serialized_start=799
+  _globals['_INITIATECHANNELINSTALLINPUT']._serialized_end=869
+  _globals['_INITIATECHANNELINSTALLOUTPUT']._serialized_start=871
+  _globals['_INITIATECHANNELINSTALLOUTPUT']._serialized_end=968
+  _globals['_COMPLETECHANNELINSTALLINPUT']._serialized_start=971
+  _globals['_COMPLETECHANNELINSTALLINPUT']._serialized_end=1099
 # @@protoc_insertion_point(module_scope)

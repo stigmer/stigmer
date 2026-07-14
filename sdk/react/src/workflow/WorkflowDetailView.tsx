@@ -77,6 +77,13 @@ export interface WorkflowDetailViewProps {
    */
   readonly onExecutionClick?: (executionId: string) => void;
   /**
+   * The viewer's active organization slug, feeding the Instances tab:
+   * it scopes the list to this org's instances of the workflow, so a
+   * member of several orgs sees the current org context only. Omit to
+   * default to the workflow's own org.
+   */
+  readonly viewerOrg?: string;
+  /**
    * Called when the user clicks "Create Instance" in the Instances tab.
    * Opens the create instance dialog.
    */
@@ -157,6 +164,7 @@ export function WorkflowDetailView({
   onTabChange,
   defaultTab,
   onExecutionClick,
+  viewerOrg,
   onCreateInstanceClick,
   onInstanceClick,
   onInstanceRunClick,
@@ -300,6 +308,7 @@ export function WorkflowDetailView({
         workflowId={meta?.id ?? ""}
         defaultInstanceId={workflow?.status?.defaultInstanceId}
         org={org}
+        viewerOrg={viewerOrg}
         onCreateClick={onCreateInstanceClick}
         onInstanceClick={onInstanceClick}
         onRunClick={onInstanceRunClick}

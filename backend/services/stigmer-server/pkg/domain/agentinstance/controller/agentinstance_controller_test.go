@@ -362,6 +362,90 @@ func TestAgentInstanceController_Delete(t *testing.T) {
 	})
 }
 
+func TestAgentInstanceController_GetByAgent(t *testing.T) {
+	controller, store := setupTestController(t)
+	defer store.Close()
+
+	newInstance := func(name, org, agentId string) *agentinstancev1.AgentInstance {
+		return &agentinstancev1.AgentInstance{
+			ApiVersion: "agentic.stigmer.ai/v1",
+			Kind:       "AgentInstance",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: name,
+				Org:  org,
+			},
+			Spec: &agentinstancev1.AgentInstanceSpec{
+				AgentId:     agentId,
+				Description: "Instance for get-by-agent tests",
+			},
+		}
+	}
+
+	// One agent with instances in two orgs (the cross-org marketplace
+	// case), plus an unrelated agent's instance that must never appear.
+	for _, inst := range []*agentinstancev1.AgentInstance{
+		newInstance("Home Org Instance", "home-org", "agt-scoped"),
+		newInstance("Consumer Org Instance", "consumer-org", "agt-scoped"),
+		newInstance("Unrelated Instance", "home-org", "agt-other"),
+	} {
+		if _, err := controller.Create(contextWithAgentInstanceKind(), inst); err != nil {
+			t.Fatalf("Create failed for %s: %v", inst.Metadata.Name, err)
+		}
+	}
+
+	t.Run("filters by agent_id", func(t *testing.T) {
+		list, err := controller.GetByAgent(contextWithAgentInstanceKind(), &agentinstancev1.GetAgentInstancesByAgentRequest{
+			AgentId: "agt-scoped",
+		})
+		if err != nil {
+			t.Fatalf("GetByAgent failed: %v", err)
+		}
+		if list.GetTotalCount() != 2 {
+			t.Fatalf("expected both orgs' instances, got %d", list.GetTotalCount())
+		}
+		for _, inst := range list.GetItems() {
+			if inst.GetSpec().GetAgentId() != "agt-scoped" {
+				t.Errorf("leaked an instance of agent %q", inst.GetSpec().GetAgentId())
+			}
+		}
+	})
+
+	// The org scope keeps each org's console tab on its own instances: a
+	// caller who can see several orgs' instances of the same agent asks
+	// for one org and gets exactly that org's rows.
+	t.Run("org scopes the list to one org's instances", func(t *testing.T) {
+		cases := []struct {
+			name    string
+			org     string
+			want    int
+			wantOrg string
+		}{
+			{"home org sees only its own instance", "home-org", 1, "home-org"},
+			{"consumer org sees only its own instance", "consumer-org", 1, "consumer-org"},
+			{"unrelated org sees nothing", "bystander-org", 0, ""},
+		}
+		for _, tt := range cases {
+			t.Run(tt.name, func(t *testing.T) {
+				list, err := controller.GetByAgent(contextWithAgentInstanceKind(), &agentinstancev1.GetAgentInstancesByAgentRequest{
+					AgentId: "agt-scoped",
+					Org:     tt.org,
+				})
+				if err != nil {
+					t.Fatalf("GetByAgent failed: %v", err)
+				}
+				if int(list.GetTotalCount()) != tt.want {
+					t.Fatalf("org %q: expected %d instances, got %d", tt.org, tt.want, list.GetTotalCount())
+				}
+				for _, inst := range list.GetItems() {
+					if tt.wantOrg != "" && inst.GetMetadata().GetOrg() != tt.wantOrg {
+						t.Errorf("org %q: leaked an instance from org %q", tt.org, inst.GetMetadata().GetOrg())
+					}
+				}
+			})
+		}
+	})
+}
+
 func TestAgentInstanceController_UpdateVisibility(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()

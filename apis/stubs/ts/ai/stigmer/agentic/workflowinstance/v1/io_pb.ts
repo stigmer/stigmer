@@ -22,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflowinstance/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_workflowinstance_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dpbnN0YW5jZS92MS9pby5wcm90bxImYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEiKwoSV29ya2Zsb3dJbnN0YW5jZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEieQolR2V0V29ya2Zsb3dJbnN0YW5jZXNCeVdvcmtmbG93UmVxdWVzdBIbCgt3b3JrZmxvd19pZBgBIAEoCUIGukgDyAEBEjMKCXBhZ2VfaW5mbxgCIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8irAEKHlVwZGF0ZUV4ZWN1dGlvblZpc2liaWxpdHlJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEm0KFGV4ZWN1dGlvbl92aXNpYmlsaXR5GAIgASgOMkMuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEuV29ya2Zsb3dFeGVjdXRpb25WaXNpYmlsaXR5Qgq6SAeCAQQQASAAInYKFFdvcmtmbG93SW5zdGFuY2VMaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEkkKB2VudHJpZXMYAiADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0luc3RhbmNlYgZwcm90bzM", [file_ai_stigmer_agentic_workflowinstance_v1_api, file_ai_stigmer_agentic_workflowinstance_v1_spec, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dpbnN0YW5jZS92MS9pby5wcm90bxImYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93aW5zdGFuY2UudjEiKwoSV29ya2Zsb3dJbnN0YW5jZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEihgEKJUdldFdvcmtmbG93SW5zdGFuY2VzQnlXb3JrZmxvd1JlcXVlc3QSGwoLd29ya2Zsb3dfaWQYASABKAlCBrpIA8gBARIzCglwYWdlX2luZm8YAiABKAsyIC5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlBhZ2VJbmZvEgsKA29yZxgDIAEoCSKsAQoeVXBkYXRlRXhlY3V0aW9uVmlzaWJpbGl0eUlucHV0EhsKC3Jlc291cmNlX2lkGAEgASgJQga6SAPIAQESbQoUZXhlY3V0aW9uX3Zpc2liaWxpdHkYAiABKA4yQy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MS5Xb3JrZmxvd0V4ZWN1dGlvblZpc2liaWxpdHlCCrpIB4IBBBABIAAidgoUV29ya2Zsb3dJbnN0YW5jZUxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSSQoHZW50cmllcxgCIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2luc3RhbmNlLnYxLldvcmtmbG93SW5zdGFuY2ViBnByb3RvMw", [file_ai_stigmer_agentic_workflowinstance_v1_api, file_ai_stigmer_agentic_workflowinstance_v1_spec, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
 
 /**
  * WorkflowInstanceId wraps a workflow instance identifier.
@@ -78,6 +78,23 @@ export type GetWorkflowInstancesByWorkflowRequest = Message<"ai.stigmer.agentic.
    * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 2;
    */
   pageInfo?: PageInfo;
+
+  /**
+   * Organization slug to scope the results to.
+   *
+   * When set, only instances whose metadata.org matches are returned — the
+   * org-context view a console tab needs. When empty, results are bounded
+   * only by the caller's view permissions, which for a member of several
+   * organizations spans all of them.
+   *
+   * @internal
+   * Optional by design: pre-existing callers rely on the permission-bounded
+   * behavior. Filtering happens in the query/list step of each edition's
+   * handler, never client-side.
+   *
+   * @generated from field: string org = 3;
+   */
+  org: string;
 };
 
 /**

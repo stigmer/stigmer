@@ -10,6 +10,8 @@ import {
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { toast } from "../feedback/toast.js";
+import { Button } from "../button/Button.js";
+import { EmptyState } from "../empty-state/EmptyState.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
@@ -30,9 +32,10 @@ export interface AgentShareListProps {
   /** The agent whose shares are managed. */
   readonly agent: Agent;
   /**
-   * The viewer's active organization slug. A share created from this
-   * list lands in this org — its URL, billing, and credentials belong
-   * to it (a **cross-org share** when it differs from the agent's org,
+   * The viewer's active organization slug. Scopes the list to this
+   * org's channels of the agent, and a share created from this list
+   * lands in this org — its URL, billing, and credentials belong to it
+   * (a **cross-org share** when it differs from the agent's org,
    * decision 013). Omit to default to the agent's own org.
    */
   readonly viewerOrg?: string;
@@ -52,10 +55,11 @@ export interface AgentShareListProps {
  * agent analog of {@link AgentInstanceList}, rendered in the agent
  * detail view's Shares tab.
  *
- * Lists every share the viewer can see (the server FGA-filters
- * `getByAgent`, so each org's members see their own org's channels and
- * never another org's — decision 013), with per-row copy link, edit,
- * pause/resume, reset link, and delete. Creation goes through the same
+ * Lists the viewer's active org's channels of the agent: `viewerOrg`
+ * scopes the `getByAgent` call server-side, so a member of several orgs
+ * sees exactly the current org context's channels — never a merged list
+ * of every org's (decision 013 amendment). Per-row actions: copy link,
+ * edit, pause/resume, reset link, delete. Creation goes through the same
  * {@link ShareAgentDialog} and always lands in the viewer's active org;
  * the create bar mirrors the server's via
  * {@link useCanCreateAgentShare}, so the button never appears to a user
@@ -74,7 +78,13 @@ export function AgentShareList({
   className,
 }: AgentShareListProps) {
   const agentId = agent.metadata?.id ?? "";
-  const { shares, isLoading, error, refetch } = useAgentShares(agentId);
+  // Scope the list to the org whose context the viewer is in; when the
+  // host passes no viewerOrg the scope falls back to the agent's own org
+  // (the same-org owner flow), matching where creation would land.
+  const { shares, isLoading, error, refetch } = useAgentShares(
+    agentId,
+    viewerOrg || (agent.metadata?.org ?? ""),
+  );
   const { allowed: canCreate, shareOrg } = useCanCreateAgentShare(
     agent,
     viewerOrg,
@@ -142,20 +152,14 @@ export function AgentShareList({
               {shares.length} {shares.length === 1 ? "share" : "shares"}
             </h3>
             {canCreate && (
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="xs"
+                icon={<PlusIcon />}
                 onClick={() => setEditor({ mode: "create" })}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-md px-2.5 py-1",
-                  "text-xs font-medium",
-                  "border border-border text-foreground",
-                  "hover:bg-accent-hover",
-                  "focus:outline-none focus:ring-2 focus:ring-ring",
-                )}
               >
-                <PlusIcon />
                 Create share
-              </button>
+              </Button>
             )}
           </div>
 
@@ -428,30 +432,21 @@ function ShareEmptyState({
   readonly onCreateClick: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center gap-2 py-12 text-center">
-      <ShareIcon className="size-10 text-muted-foreground-faint" />
-      <p className="text-sm font-medium text-muted-foreground">No shares yet</p>
-      <p className="max-w-sm text-xs text-muted-foreground-subtle">
-        A share gives this agent a hosted chat link you can send or embed —
-        each share is its own channel with its own audience, embed origins,
-        and tool credentials.
-      </p>
-      {canCreate && (
-        <button
-          type="button"
-          onClick={onCreateClick}
-          className={cn(
-            "mt-2 inline-flex items-center gap-1 rounded-md px-3 py-1.5",
-            "text-xs font-medium",
-            "bg-primary text-primary-foreground hover:bg-primary-hover",
-            "focus:outline-none focus:ring-2 focus:ring-ring",
-          )}
-        >
-          <PlusIcon />
-          Create share
-        </button>
-      )}
-    </div>
+    <EmptyState
+      variant="first-use"
+      icon={<ShareIcon className="size-10" />}
+      title="No shares yet"
+      description={
+        "A share gives this agent a hosted chat link you can send or embed — " +
+        "each share is its own channel with its own audience, embed origins, " +
+        "and tool credentials."
+      }
+      action={
+        canCreate
+          ? { label: "Create share", onClick: onCreateClick, icon: <PlusIcon /> }
+          : undefined
+      }
+    />
   );
 }
 

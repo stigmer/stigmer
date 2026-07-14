@@ -138,11 +138,13 @@ export interface AgentDetailViewProps {
    */
   readonly buildShareUrl?: (org: string, slug: string) => string;
   /**
-   * The viewer's active organization slug, feeding the Shares tab: a
-   * share created there lands in this org — its URL, billing, and
-   * credentials — which for another org's marketplace-public agent is a
-   * **cross-org share** (decision 013). Omit to default share creation
-   * to the agent's own org.
+   * The viewer's active organization slug, feeding the Shares and
+   * Instances tabs. It scopes both lists to this org's rows (a member
+   * of several orgs sees the current org context only), and a share
+   * created in the Shares tab lands in this org — its URL, billing,
+   * and credentials — which for another org's marketplace-public agent
+   * is a **cross-org share** (decision 013). Omit to default to the
+   * agent's own org.
    */
   readonly viewerOrg?: string;
   /**
@@ -391,6 +393,7 @@ export function AgentDetailView({
         agentId={meta?.id ?? ""}
         defaultInstanceId={agent.status?.defaultInstanceId}
         org={org}
+        viewerOrg={viewerOrg}
         onCreateClick={onCreateInstanceClick}
         onInstanceClick={onInstanceClick}
         onStartSessionClick={onInstanceStartSessionClick}

@@ -62,25 +62,25 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "workflowinstance/v1/spec.proto\032\'ai/stigm" +
       "er/commons/rpc/pagination.proto\032\033buf/val" +
       "idate/validate.proto\"2\n\022WorkflowInstance" +
-      "Id\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\217\001\n%Get" +
+      "Id\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\241\001\n%Get" +
       "WorkflowInstancesByWorkflowRequest\022\'\n\013wo" +
       "rkflow_id\030\001 \001(\tB\006\272H\003\310\001\001R\nworkflowId\022=\n\tp" +
       "age_info\030\002 \001(\0132 .ai.stigmer.commons.rpc." +
-      "PageInfoR\010pageInfo\"\316\001\n\036UpdateExecutionVi" +
-      "sibilityInput\022\'\n\013resource_id\030\001 \001(\tB\006\272H\003\310" +
-      "\001\001R\nresourceId\022\202\001\n\024execution_visibility\030" +
-      "\002 \001(\0162C.ai.stigmer.agentic.workflowinsta" +
-      "nce.v1.WorkflowExecutionVisibilityB\n\272H\007\202" +
-      "\001\004\020\001 \000R\023executionVisibility\"\213\001\n\024Workflow" +
-      "InstanceList\022\037\n\013total_pages\030\001 \001(\005R\ntotal" +
-      "Pages\022R\n\007entries\030\002 \003(\01328.ai.stigmer.agen" +
-      "tic.workflowinstance.v1.WorkflowInstance" +
-      "R\007entriesB\306\001B\007IoProtoP\001\242\002\004ASAW\252\002&Ai.Stig" +
-      "mer.Agentic.Workflowinstance.V1\312\002&Ai\\Sti" +
-      "gmer\\Agentic\\Workflowinstance\\V1\342\0022Ai\\St" +
-      "igmer\\Agentic\\Workflowinstance\\V1\\GPBMet" +
-      "adata\352\002*Ai::Stigmer::Agentic::Workflowin" +
-      "stance::V1b\006proto3"
+      "PageInfoR\010pageInfo\022\020\n\003org\030\003 \001(\tR\003org\"\316\001\n" +
+      "\036UpdateExecutionVisibilityInput\022\'\n\013resou" +
+      "rce_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId\022\202\001\n\024exe" +
+      "cution_visibility\030\002 \001(\0162C.ai.stigmer.age" +
+      "ntic.workflowinstance.v1.WorkflowExecuti" +
+      "onVisibilityB\n\272H\007\202\001\004\020\001 \000R\023executionVisib" +
+      "ility\"\213\001\n\024WorkflowInstanceList\022\037\n\013total_" +
+      "pages\030\001 \001(\005R\ntotalPages\022R\n\007entries\030\002 \003(\013" +
+      "28.ai.stigmer.agentic.workflowinstance.v" +
+      "1.WorkflowInstanceR\007entriesB\306\001B\007IoProtoP" +
+      "\001\242\002\004ASAW\252\002&Ai.Stigmer.Agentic.Workflowin" +
+      "stance.V1\312\002&Ai\\Stigmer\\Agentic\\Workflowi" +
+      "nstance\\V1\342\0022Ai\\Stigmer\\Agentic\\Workflow" +
+      "instance\\V1\\GPBMetadata\352\002*Ai::Stigmer::A" +
+      "gentic::Workflowinstance::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -101,7 +101,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflowinstance_v1_GetWorkflowInstancesByWorkflowRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowinstance_v1_GetWorkflowInstancesByWorkflowRequest_descriptor,
-        new java.lang.String[] { "WorkflowId", "PageInfo", });
+        new java.lang.String[] { "WorkflowId", "PageInfo", "Org", });
     internal_static_ai_stigmer_agentic_workflowinstance_v1_UpdateExecutionVisibilityInput_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_workflowinstance_v1_UpdateExecutionVisibilityInput_fieldAccessorTable = new

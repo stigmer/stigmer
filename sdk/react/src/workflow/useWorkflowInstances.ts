@@ -21,21 +21,27 @@ export interface UseWorkflowInstancesReturn {
 }
 
 /**
- * Data hook that fetches all instances for a specific workflow.
+ * Data hook that fetches instances for a specific workflow.
  *
  * Wraps `stigmer.workflowInstance.getByWorkflow()` with loading
  * and error state management. Used on the Workflow detail page
  * "Instances" tab to show environment-bound deployments.
  *
+ * Pass `org` to scope the list to one organization's instances — the
+ * org-context view a console tab needs. The server applies the scope
+ * (it only ever narrows the permission-bounded view); omit `org` for
+ * the full permission-bounded list.
+ *
  * Pass `null` as `workflowId` to skip fetching (stable no-op).
  *
  * @example
  * ```tsx
- * const { instances, isLoading } = useWorkflowInstances(workflow.metadata?.id);
+ * const { instances, isLoading } = useWorkflowInstances(workflow.metadata?.id, viewerOrg);
  * ```
  */
 export function useWorkflowInstances(
   workflowId: string | null | undefined,
+  org?: string,
 ): UseWorkflowInstancesReturn {
   const stigmer = useStigmer();
 
@@ -44,6 +50,7 @@ export function useWorkflowInstances(
         const resp = await stigmer.workflowInstance.getByWorkflow(
           create(GetWorkflowInstancesByWorkflowRequestSchema, {
             workflowId,
+            org: org ?? "",
           }),
         );
         return resp.entries ? [...resp.entries] : [];
@@ -56,7 +63,7 @@ export function useWorkflowInstances(
     isRefetching,
     error,
     refetch,
-  } = useFetch<readonly WorkflowInstance[]>(fetchFn, [workflowId, stigmer], []);
+  } = useFetch<readonly WorkflowInstance[]>(fetchFn, [workflowId, org, stigmer], []);
 
   return { instances, isLoading, isRefetching, error, refetch };
 }

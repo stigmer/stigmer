@@ -112,7 +112,7 @@ AgentShare agentShare = client.agentShares().get(id);
 
 ### getByAgent
 
-Get all shares of a specific agent. Returns only shares the caller has access to.
+Get all shares of a specific agent. Returns only shares the caller has access to, optionally scoped to one organization via the request's org field.
 
 This is how the Share dialog and CLI resolve an agent's existing share regardless of its slug (a renamed share keeps working).
 
@@ -122,6 +122,7 @@ This is how the Share dialog and CLI resolve an agent's existing share regardles
 const result = await stigmer.agentShare.getByAgent({
   agentId: "...",
   pageInfo: {},
+  org: "...",
 });
 ```
 </Tab>
@@ -130,6 +131,7 @@ const result = await stigmer.agentShare.getByAgent({
 result, err := client.AgentShare.GetByAgent(ctx, &stigmer.GetAgentSharesByAgentRequest{
   AgentId:  "...",
   PageInfo: &stigmer.PageInfoInput{},
+  Org:      "...",
 })
 ```
 </Tab>
@@ -138,6 +140,7 @@ result, err := client.AgentShare.GetByAgent(ctx, &stigmer.GetAgentSharesByAgentR
 result = client.agent_shares.get_by_agent(GetAgentSharesByAgentRequest(
     agent_id="...",
     page_info=None,
+    org="...",
 ))
 ```
 </Tab>
@@ -146,6 +149,7 @@ result = client.agent_shares.get_by_agent(GetAgentSharesByAgentRequest(
 AgentShareList result = client.agentShares().getByAgent(GetAgentSharesByAgentRequest.builder()
     .agentId("...")
     .pageInfo(null)
+    .org("...")
     .build());
 ```
 </Tab>
@@ -732,6 +736,7 @@ Input for retrieving all shares of a specific agent.
   type={{
     agentId: { type: "string", description: "Identifier of the agent whose shares to retrieve.", required: true },
     pageInfo: { type: "PageInfoInput", description: "Pagination options." },
+    org: { type: "string", description: "Organization slug to scope the results to." },
   }}
 />
 

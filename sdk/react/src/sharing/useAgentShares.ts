@@ -26,33 +26,39 @@ export interface UseAgentSharesReturn {
 }
 
 /**
- * Data hook that loads all of an agent's {@link AgentShare} resources —
- * the channels carrying its hosted-chat configuration (audience, allowed
+ * Data hook that loads an agent's {@link AgentShare} resources — the
+ * channels carrying its hosted-chat configuration (audience, allowed
  * origins, visitor messages, tool credentials, link token).
  *
  * Sharing is channel configuration, not agent behavior (decision 011):
  * an agent can carry N shares, each with its own URL, billing org, and
- * credentials (decision 011 D3 + decision 013 cross-org shares). This
- * hook returns the full list; the server already scopes it to shares the
- * caller can view (FGA-filtered in cloud, unfiltered in the single-user
- * OSS edition), so a viewer sees their own org's channels and never
- * another org's.
+ * credentials (decision 011 D3 + decision 013 cross-org shares).
+ *
+ * Pass `org` to scope the list to one organization's channels — the
+ * org-context view a console tab needs. Permissions alone cannot provide
+ * this scope: a member of several orgs can view all of their orgs'
+ * channels of the agent, so the unscoped list merges them. The server
+ * applies the scope (it only ever narrows the permission-bounded view);
+ * omit `org` for the full permission-bounded list.
  *
  * Pass an empty `agentId` to skip fetching (stable no-op) — useful
  * while the agent is still loading.
  *
  * @example
  * ```tsx
- * const { shares, isLoading, refetch } = useAgentShares(agent?.metadata?.id ?? "");
+ * const { shares, isLoading, refetch } = useAgentShares(
+ *   agent?.metadata?.id ?? "",
+ *   viewerOrg,
+ * );
  * ```
  */
-export function useAgentShares(agentId: string): UseAgentSharesReturn {
+export function useAgentShares(agentId: string, org?: string): UseAgentSharesReturn {
   const stigmer = useStigmer();
 
   const fetchFn = agentId
     ? async () => {
         const result = await stigmer.agentShare.getByAgent(
-          create(GetAgentSharesByAgentRequestSchema, { agentId }),
+          create(GetAgentSharesByAgentRequestSchema, { agentId, org: org ?? "" }),
         );
         return result.items;
       }
@@ -60,7 +66,7 @@ export function useAgentShares(agentId: string): UseAgentSharesReturn {
 
   const { data: shares, isLoading, isRefetching, error, refetch } = useFetch(
     fetchFn,
-    [agentId, stigmer],
+    [agentId, org, stigmer],
     [] as AgentShare[],
   );
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
+import { Button } from "../button/Button.js";
 import { useEmptyState } from "./useEmptyState.js";
 import type { EmptyStateProps } from "./types.js";
 
@@ -71,19 +72,16 @@ export function EmptyState({
       {children
         ? <div className="mt-1">{children}</div>
         : action && (
-          <button
-            type="button"
+          <Button
+            // A retry after an error is a recovery affordance, not the
+            // view's call to action — outline keeps it appropriately quiet.
+            variant={variant === "error" ? "outline" : "primary"}
+            icon={action.icon}
             onClick={action.onClick}
-            className={cn(
-              "mt-1 inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium",
-              variant === "error"
-                ? "border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
-                : "bg-primary text-primary-foreground hover:bg-primary-hover",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            )}
+            className="mt-1"
           >
             {action.label}
-          </button>
+          </Button>
         )}
     </div>
   );

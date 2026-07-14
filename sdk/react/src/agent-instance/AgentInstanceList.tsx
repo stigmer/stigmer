@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useAgentInstances } from "./useAgentInstances.js";
+import { Button } from "../button/Button.js";
 import { useEnvironmentList } from "../environment/useEnvironmentList.js";
 import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl.js";
 import { PermissionGate } from "../iam-policy/PermissionGate.js";
@@ -19,8 +20,19 @@ export interface AgentInstanceListProps {
   readonly agentId: string;
   /** The default instance ID (from agent.status.defaultInstanceId) — filtered out of the list. */
   readonly defaultInstanceId?: string;
-  /** Organization slug (needed for environment resolution and create flow). */
+  /**
+   * The AGENT's organization slug (needed for environment resolution
+   * and the create flow). Not the list scope — that is `viewerOrg`,
+   * which differs from `org` when viewing another org's agent.
+   */
   readonly org: string;
+  /**
+   * The viewer's active organization slug. Scopes the list to this
+   * org's instances of the agent, so a member of several orgs sees
+   * exactly the current org context's instances. Omit to default to
+   * the agent's own org.
+   */
+  readonly viewerOrg?: string;
   /** Called when the user wants to create a new instance. */
   readonly onCreateClick?: () => void;
   /** Called when the user clicks an instance row (opens detail). */
@@ -53,6 +65,7 @@ export function AgentInstanceList({
   agentId,
   defaultInstanceId,
   org,
+  viewerOrg,
   onCreateClick,
   onInstanceClick,
   onStartSessionClick,
@@ -60,7 +73,13 @@ export function AgentInstanceList({
   refreshKey,
   className,
 }: AgentInstanceListProps) {
-  const { instances, isLoading, error, refetch } = useAgentInstances(agentId);
+  // Scope the list to the org whose context the viewer is in; when the
+  // host passes no viewerOrg the scope falls back to the agent's own org
+  // (the same-org owner flow).
+  const { instances, isLoading, error, refetch } = useAgentInstances(
+    agentId,
+    viewerOrg || org,
+  );
   const { environments } = useEnvironmentList(org);
 
   // Refetch when refreshKey changes (signals external mutation like create/delete)
@@ -108,27 +127,21 @@ export function AgentInstanceList({
           {userInstances.length} {userInstances.length === 1 ? "instance" : "instances"}
         </h3>
         {onCreateClick && (
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="xs"
+            icon={<PlusIcon />}
             onClick={onCreateClick}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-md px-2.5 py-1",
-              "text-xs font-medium",
-              "border border-border text-foreground",
-              "hover:bg-accent-hover",
-              "focus:outline-none focus:ring-2 focus:ring-ring",
-            )}
           >
-            <PlusIcon />
-            Create
-          </button>
+            Create instance
+          </Button>
         )}
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/50">
+            <tr className="border-b border-border bg-muted-subtle">
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Environments</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Visibility</th>
@@ -289,7 +302,7 @@ function LoadingSkeleton() {
   return (
     <div className="space-y-2 py-4">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="h-12 rounded-md bg-muted/50 animate-pulse" />
+        <div key={i} className="h-12 animate-pulse rounded-md bg-muted-faint" />
       ))}
     </div>
   );

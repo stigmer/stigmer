@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentshare/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agentshare_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEiJQoMQWdlbnRTaGFyZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEibQocR2V0QWdlbnRTaGFyZXNCeUFnZW50UmVxdWVzdBIYCghhZ2VudF9pZBgBIAEoCUIGukgDyAEBEjMKCXBhZ2VfaW5mbxgCIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8iYgoOQWdlbnRTaGFyZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSOwoFaXRlbXMYAiADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlIugBChZMaXN0QWdlbnRTaGFyZXNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARJUCgZsYWJlbHMYAiADKAsyRC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5MaXN0QWdlbnRTaGFyZXNSZXF1ZXN0LkxhYmVsc0VudHJ5EjMKCXBhZ2VfaW5mbxgDIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASIzChRSb3RhdGVTaGFyZUxpbmtJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBIlIKF0dldFNoYXJlZFByb2ZpbGVSZXF1ZXN0EgsKA29yZxgBIAEoCRIMCgRzbHVnGAIgASgJEhwKCmxpbmtfdG9rZW4YAyABKAlCCLpIBXIDGIABIoEBChJTaGFyZWRBZ2VudFByb2ZpbGUSCwoDb3JnGAEgASgJEgwKBHNsdWcYAiABKAkSDAoEbmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIQCghpY29uX3VybBgFIAEoCRIbChNkZWZhdWx0X2luc3RhbmNlX2lkGAYgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9pby5wcm90bxIgYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEiJQoMQWdlbnRTaGFyZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiegocR2V0QWdlbnRTaGFyZXNCeUFnZW50UmVxdWVzdBIYCghhZ2VudF9pZBgBIAEoCUIGukgDyAEBEjMKCXBhZ2VfaW5mbxgCIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8SCwoDb3JnGAMgASgJImIKDkFnZW50U2hhcmVMaXN0EhMKC3RvdGFsX2NvdW50GAEgASgFEjsKBWl0ZW1zGAIgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZSLoAQoWTGlzdEFnZW50U2hhcmVzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESVAoGbGFiZWxzGAIgAygLMkQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuTGlzdEFnZW50U2hhcmVzUmVxdWVzdC5MYWJlbHNFbnRyeRIzCglwYWdlX2luZm8YAyABKAsyIC5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlBhZ2VJbmZvGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiMwoUUm90YXRlU2hhcmVMaW5rSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBASJSChdHZXRTaGFyZWRQcm9maWxlUmVxdWVzdBILCgNvcmcYASABKAkSDAoEc2x1ZxgCIAEoCRIcCgpsaW5rX3Rva2VuGAMgASgJQgi6SAVyAxiAASKBAQoSU2hhcmVkQWdlbnRQcm9maWxlEgsKA29yZxgBIAEoCRIMCgRzbHVnGAIgASgJEgwKBG5hbWUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSEAoIaWNvbl91cmwYBSABKAkSGwoTZGVmYXVsdF9pbnN0YW5jZV9pZBgGIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentshare_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
 
 /**
  * AgentShareId wraps an agent share identifier.
@@ -57,6 +57,24 @@ export type GetAgentSharesByAgentRequest = Message<"ai.stigmer.agentic.agentshar
    * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 2;
    */
   pageInfo?: PageInfo;
+
+  /**
+   * Organization slug to scope the results to.
+   *
+   * When set, only shares whose metadata.org matches are returned — the
+   * org-context view a console tab needs. When empty, results are bounded
+   * only by the caller's view permissions, which for a member of several
+   * organizations spans all of them.
+   *
+   * @internal
+   * Optional by design: the field must stay empty-tolerant because
+   * pre-existing callers (and cross-org administrative flows) rely on the
+   * permission-bounded behavior. Filtering happens in the query/list step
+   * of each edition's handler, never client-side.
+   *
+   * @generated from field: string org = 3;
+   */
+  org: string;
 };
 
 /**

@@ -697,6 +697,86 @@ func TestCrossOrgShare_AgentDeleteLifecycle(t *testing.T) {
 		"a new share pins the NEW agent — recreating the channel is a deliberate act")
 }
 
+// TestCrossOrgShare_GetByAgentOrgScope pins the org parameter on
+// getByAgent (the decision 013 amendment): the org scope NARROWS the view
+// to one org's channels of an agent and never widens it past what the
+// caller may see. This is the contract the console's Shares tab relies on —
+// a member of several orgs viewing the tab in org X sees org X's channels
+// only, not a merged list of every org's channels badged cross-org.
+func TestCrossOrgShare_GetByAgentOrgScope(t *testing.T) {
+	requireGuestPrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	peer := peerOrg(t, ctx)
+
+	agent := harness.CreateAgent(t, ctx, clients, "t10-getbyagent-scope",
+		"You are a public agent for getByAgent org-scope verification.")
+	makeAgentPublic(t, ctx, clients, agent.GetMetadata().GetId())
+	agentID := agent.GetMetadata().GetId()
+
+	homeShare := applyShare(t, ctx, clients, shareFor(agent, true))
+	peerShare := applyCrossOrgShare(t, ctx, peer.Admin.Clients, crossOrgShareFor(agent, peer.OrgID, true))
+
+	getByAgent := func(t *testing.T, c *harness.Clients, org string) *agentsharev1.AgentShareList {
+		t.Helper()
+		list, err := c.AgentShareQuery.GetByAgent(ctx, &agentsharev1.GetAgentSharesByAgentRequest{
+			AgentId: agentID,
+			Org:     org,
+		})
+		require.NoError(t, err, "getByAgent(org=%q) should succeed", org)
+		return list
+	}
+
+	// Every row of an org-scoped response belongs to that org — the
+	// invariant that holds regardless of what the caller may see.
+	requireAllInOrg := func(t *testing.T, list *agentsharev1.AgentShareList, org string) {
+		t.Helper()
+		for _, item := range list.GetItems() {
+			assert.Equal(t, org, item.GetMetadata().GetOrg(),
+				"an org-scoped list must never leak another org's share")
+		}
+	}
+
+	t.Run("each_org_sees_exactly_its_own_channel", func(t *testing.T) {
+		homeList := getByAgent(t, clients, harness.TestOrg)
+		requireAllInOrg(t, homeList, harness.TestOrg)
+		require.Len(t, homeList.GetItems(), 1)
+		assert.Equal(t, homeShare.GetMetadata().GetId(), homeList.GetItems()[0].GetMetadata().GetId())
+
+		peerList := getByAgent(t, peer.Admin.Clients, peer.OrgID)
+		requireAllInOrg(t, peerList, peer.OrgID)
+		require.Len(t, peerList.GetItems(), 1)
+		assert.Equal(t, peerShare.GetMetadata().GetId(), peerList.GetItems()[0].GetMetadata().GetId())
+	})
+
+	t.Run("org_scope_narrows_the_unscoped_view", func(t *testing.T) {
+		unscopedIds := map[string]bool{}
+		for _, item := range getByAgent(t, peer.Admin.Clients, "").GetItems() {
+			unscopedIds[item.GetMetadata().GetId()] = true
+		}
+		for _, item := range getByAgent(t, peer.Admin.Clients, peer.OrgID).GetItems() {
+			assert.True(t, unscopedIds[item.GetMetadata().GetId()],
+				"the org scope must be a pure narrowing of the unscoped view")
+		}
+	})
+
+	t.Run("org_scope_never_widens_past_authorization", func(t *testing.T) {
+		// Org B's admin naming org A does not gain org A's channel: the
+		// filter composes with the permission bound, it never replaces it.
+		crossList := getByAgent(t, peer.Admin.Clients, harness.TestOrg)
+		requireAllInOrg(t, crossList, harness.TestOrg)
+		for _, item := range crossList.GetItems() {
+			assert.NotEqual(t, peerShare.GetMetadata().GetId(), item.GetMetadata().GetId())
+		}
+
+		assert.Empty(t, getByAgent(t, peer.Admin.Clients, "t10-no-such-org").GetItems(),
+			"an org with no channels of this agent yields an empty list")
+	})
+}
+
 // createT10Environment creates an org-shared environment holding the T10
 // tool credential in the given org, cleaned up on test exit. Born with org
 // visibility: runtime-resolvable for any execution in that org (T06), which

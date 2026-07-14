@@ -1179,6 +1179,10 @@ export type { TabsProps, TabItem } from "./tabs/index.js";
 export { Switch } from "./switch/index.js";
 export type { SwitchProps } from "./switch/index.js";
 
+// Button — shared action primitive (variants for the console's action tiers)
+export { Button } from "./button/index.js";
+export type { ButtonProps, ButtonSize, ButtonVariant } from "./button/index.js";
+
 // Resource Detail — headless hooks, action bar, and composed shell for resource detail pages
 export {
   useCopyResource,

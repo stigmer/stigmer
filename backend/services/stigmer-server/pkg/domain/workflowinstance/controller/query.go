@@ -117,7 +117,8 @@ func (c *WorkflowInstanceController) buildGetByWorkflowPipeline() *pipeline.Pipe
 // This step:
 // 1. Reads workflow_id from request
 // 2. Lists all workflow instances from repository
-// 3. Filters by workflow_id (in-memory)
+// 3. Filters by workflow_id (in-memory), and by metadata.org when the
+//    request carries an org (contract parity with Cloud's org scoping)
 // 4. Stores filtered list in context
 //
 // Note: In OSS, we filter in-memory after loading all instances. This is acceptable
@@ -167,10 +168,15 @@ func (s *loadByWorkflowStep) Execute(ctx *pipeline.RequestContext[*workflowinsta
 			continue
 		}
 
-		// Filter by workflow_id
-		if instance.GetSpec().GetWorkflowId() == workflowID {
-			filteredInstances = append(filteredInstances, instance)
+		if instance.GetSpec().GetWorkflowId() != workflowID {
+			continue
 		}
+		// Org scope: a multi-org caller asking for one org's instances must
+		// not see another org's instances of the same workflow.
+		if request.GetOrg() != "" && instance.GetMetadata().GetOrg() != request.GetOrg() {
+			continue
+		}
+		filteredInstances = append(filteredInstances, instance)
 	}
 
 	log.Info().

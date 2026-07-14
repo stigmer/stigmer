@@ -13,7 +13,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// GetByAgent retrieves all shares of a specific agent.
+// GetByAgent retrieves all shares of a specific agent, optionally scoped
+// to one organization via the request's org field.
 //
 // This is how the Share dialog and CLI resolve an agent's existing share
 // regardless of its slug: a share whose slug diverged from the agent's
@@ -22,9 +23,12 @@ import (
 // Pipeline Steps:
 //  1. ValidateProto - Validate proto field constraints
 //  2. LoadSharesByAgent - Resolve the agent, filter shares by agent_ref
+//     (and by metadata.org when the request carries an org)
 //
 // Note: Unlike Stigmer Cloud, OSS excludes authorization filtering
-// (no multi-user auth - returns all of the agent's shares).
+// (no multi-user auth - returns all of the agent's shares). The org
+// filter is contract parity, not authorization: both editions must
+// answer an org-scoped request identically.
 func (c *AgentShareController) GetByAgent(ctx context.Context, req *agentsharev1.GetAgentSharesByAgentRequest) (*agentsharev1.AgentShareList, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, req)
 
@@ -92,9 +96,15 @@ func (s *loadSharesByAgentStep) Execute(ctx *pipeline.RequestContext[*agentshare
 		}
 
 		ref := share.GetSpec().GetAgentRef()
-		if ref.GetOrg() == agentOrg && ref.GetSlug() == agentSlug {
-			shares = append(shares, share)
+		if ref.GetOrg() != agentOrg || ref.GetSlug() != agentSlug {
+			continue
 		}
+		// Org scope: a multi-org caller asking for one org's channels must
+		// not see another org's cross-org shares of the same agent.
+		if req.GetOrg() != "" && share.GetMetadata().GetOrg() != req.GetOrg() {
+			continue
+		}
+		shares = append(shares, share)
 	}
 
 	ctx.Set(shareListKey, &agentsharev1.AgentShareList{

@@ -43,7 +43,8 @@ type AgentShareQueryControllerClient interface {
 	// and organization-level visibility permissions.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*AgentShare, error)
 	// Get all shares of a specific agent.
-	// Returns only shares the caller has access to.
+	// Returns only shares the caller has access to, optionally scoped to
+	// one organization via the request's org field.
 	//
 	// This is how the Share dialog and CLI resolve an agent's existing
 	// share regardless of its slug (a renamed share keeps working).
@@ -188,7 +189,8 @@ type AgentShareQueryControllerServer interface {
 	// and organization-level visibility permissions.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*AgentShare, error)
 	// Get all shares of a specific agent.
-	// Returns only shares the caller has access to.
+	// Returns only shares the caller has access to, optionally scoped to
+	// one organization via the request's org field.
 	//
 	// This is how the Share dialog and CLI resolve an agent's existing
 	// share regardless of its slug (a renamed share keeps working).

@@ -179,9 +179,10 @@ export async function shareAgent(
  * slug equals the agent's (the server's default on create), else the
  * first entry in that org, else null when the agent has never been shared
  * there. Mirrors the web dialog's selection so both surfaces manage the
- * same row. The org filter is what keeps each org on its own channel
+ * same row. The org scope is what keeps each org on its own channel
  * (decision 013): an agent may be shared in N orgs, and toggling here
- * must never edit another org's share.
+ * must never edit another org's share. The server applies the scope via
+ * the request's org field.
  */
 async function resolveCanonicalShare(
   client: Stigmer,
@@ -191,15 +192,13 @@ async function resolveCanonicalShare(
   const result = await client.agentShare.getByAgent(
     create(GetAgentSharesByAgentRequestSchema, {
       agentId: agent.metadata?.id ?? "",
+      org: shareOrg,
     }),
   );
   const agentSlug = agent.metadata?.slug ?? "";
-  const inOrg = result.items.filter(
-    (share) => share.metadata?.org === shareOrg,
-  );
   return (
-    inOrg.find((share) => share.metadata?.slug === agentSlug) ??
-    inOrg[0] ??
+    result.items.find((share) => share.metadata?.slug === agentSlug) ??
+    result.items[0] ??
     null
   );
 }

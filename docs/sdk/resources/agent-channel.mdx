@@ -113,6 +113,7 @@ This is how the agent's integrations surface and CLI resolve an agent's existing
 const result = await stigmer.agentchannel.getByAgent({
   agentId: "...",
   pageInfo: {},
+  org: "...",
 });
 ```
 </Tab>
@@ -121,6 +122,7 @@ const result = await stigmer.agentchannel.getByAgent({
 result, err := client.AgentChannel.GetByAgent(ctx, &stigmer.GetAgentChannelsByAgentRequest{
   AgentId:  "...",
   PageInfo: &stigmer.PageInfoInput{},
+  Org:      "...",
 })
 ```
 </Tab>
@@ -129,6 +131,7 @@ result, err := client.AgentChannel.GetByAgent(ctx, &stigmer.GetAgentChannelsByAg
 result = client.agentchannels.get_by_agent(GetAgentChannelsByAgentRequest(
     agent_id="...",
     page_info=None,
+    org="...",
 ))
 ```
 </Tab>
@@ -137,6 +140,7 @@ result = client.agentchannels.get_by_agent(GetAgentChannelsByAgentRequest(
 AgentChannelList result = client.agentchannels().getByAgent(GetAgentChannelsByAgentRequest.builder()
     .agentId("...")
     .pageInfo(null)
+    .org("...")
     .build());
 ```
 </Tab>
@@ -640,6 +644,7 @@ Input for retrieving all channels of a specific agent.
   type={{
     agentId: { type: "string", description: "Identifier of the agent whose channels to retrieve.", required: true },
     pageInfo: { type: "PageInfoInput", description: "Pagination options." },
+    org: { type: "string", description: "Organization slug to scope the results to." },
   }}
 />
 

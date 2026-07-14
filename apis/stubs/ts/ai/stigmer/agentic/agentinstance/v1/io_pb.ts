@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentinstance/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agentinstance_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRpbnN0YW5jZS92MS9pby5wcm90bxIjYWkuc3RpZ21lci5hZ2VudGljLmFnZW50aW5zdGFuY2UudjEiKAoPQWdlbnRJbnN0YW5jZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEicAofR2V0QWdlbnRJbnN0YW5jZXNCeUFnZW50UmVxdWVzdBIYCghhZ2VudF9pZBgBIAEoCUIGukgDyAEBEjMKCXBhZ2VfaW5mbxgCIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8iawoRQWdlbnRJbnN0YW5jZUxpc3QSEwoLdG90YWxfY291bnQYASABKAUSQQoFaXRlbXMYAiADKAsyMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRpbnN0YW5jZS52MS5BZ2VudEluc3RhbmNlIvEBChlMaXN0QWdlbnRJbnN0YW5jZXNSZXF1ZXN0EhQKA29yZxgBIAEoCUIHukgEcgIQARJaCgZsYWJlbHMYAiADKAsySi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRpbnN0YW5jZS52MS5MaXN0QWdlbnRJbnN0YW5jZXNSZXF1ZXN0LkxhYmVsc0VudHJ5EjMKCXBhZ2VfaW5mbxgDIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AWIGcHJvdG8z", [file_ai_stigmer_agentic_agentinstance_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRpbnN0YW5jZS92MS9pby5wcm90bxIjYWkuc3RpZ21lci5hZ2VudGljLmFnZW50aW5zdGFuY2UudjEiKAoPQWdlbnRJbnN0YW5jZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEifQofR2V0QWdlbnRJbnN0YW5jZXNCeUFnZW50UmVxdWVzdBIYCghhZ2VudF9pZBgBIAEoCUIGukgDyAEBEjMKCXBhZ2VfaW5mbxgCIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8SCwoDb3JnGAMgASgJImsKEUFnZW50SW5zdGFuY2VMaXN0EhMKC3RvdGFsX2NvdW50GAEgASgFEkEKBWl0ZW1zGAIgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50aW5zdGFuY2UudjEuQWdlbnRJbnN0YW5jZSLxAQoZTGlzdEFnZW50SW5zdGFuY2VzUmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAESWgoGbGFiZWxzGAIgAygLMkouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50aW5zdGFuY2UudjEuTGlzdEFnZW50SW5zdGFuY2VzUmVxdWVzdC5MYWJlbHNFbnRyeRIzCglwYWdlX2luZm8YAyABKAsyIC5haS5zdGlnbWVyLmNvbW1vbnMucnBjLlBhZ2VJbmZvGi0KC0xhYmVsc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFiBnByb3RvMw", [file_ai_stigmer_agentic_agentinstance_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
 
 /**
  * AgentInstanceId wraps an agent instance identifier.
@@ -57,6 +57,24 @@ export type GetAgentInstancesByAgentRequest = Message<"ai.stigmer.agentic.agenti
    * @generated from field: ai.stigmer.commons.rpc.PageInfo page_info = 2;
    */
   pageInfo?: PageInfo;
+
+  /**
+   * Organization slug to scope the results to.
+   *
+   * When set, only instances whose metadata.org matches are returned — the
+   * org-context view a console tab needs. When empty, results are bounded
+   * only by the caller's view permissions, which for a member of several
+   * organizations spans all of them.
+   *
+   * @internal
+   * Optional by design: the OSS server resolves an agent's default instance
+   * through this RPC with no org (downstream/agentinstance client), and
+   * pre-existing callers rely on the permission-bounded behavior. Filtering
+   * happens in the query/list step of each edition's handler.
+   *
+   * @generated from field: string org = 3;
+   */
+  org: string;
 };
 
 /**

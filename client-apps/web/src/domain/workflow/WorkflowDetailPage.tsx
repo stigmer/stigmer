@@ -18,6 +18,7 @@ import {
   useElkLayoutEngine,
   ConfirmDialog,
   useBreadcrumbOverride,
+  useActiveOrgSlug,
   type DetailAction,
   type AdditionalTab,
 } from "@stigmer/react";
@@ -53,7 +54,11 @@ export function WorkflowDetailPageInner({
   );
   const { yaml: initialYaml } = useWorkflowYaml(org, slug);
   const { workflow } = useWorkflow(org, slug);
-  const { instances } = useWorkflowInstances(workflow?.metadata?.id);
+  const viewerOrg = useActiveOrgSlug();
+  // Scoped to the active org so the run dialog's instance picker offers
+  // the same rows as the Instances tab (falls back to the workflow's org
+  // when no org context is active).
+  const { instances } = useWorkflowInstances(workflow?.metadata?.id, viewerOrg || org);
   const [showRunDialog, setShowRunDialog] = useState(false);
   const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
   const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
@@ -214,6 +219,7 @@ export function WorkflowDetailPageInner({
         <WorkflowDetailView
           org={org}
           slug={slug}
+          viewerOrg={viewerOrg}
           onResourceLoad={handleResourceLoad}
           editable
           primaryAction={primaryAction}

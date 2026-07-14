@@ -161,6 +161,7 @@ Returns a paginated list of instances that reference the given workflow ID.
 const result = await stigmer.workflowInstance.getByWorkflow({
   workflowId: "...",
   pageInfo: {},
+  org: "...",
 });
 ```
 </Tab>
@@ -169,6 +170,7 @@ const result = await stigmer.workflowInstance.getByWorkflow({
 result, err := client.WorkflowInstance.GetByWorkflow(ctx, &stigmer.GetWorkflowInstancesByWorkflowRequest{
   WorkflowId: "...",
   PageInfo:   &stigmer.PageInfoInput{},
+  Org:        "...",
 })
 ```
 </Tab>
@@ -177,6 +179,7 @@ result, err := client.WorkflowInstance.GetByWorkflow(ctx, &stigmer.GetWorkflowIn
 result = client.workflow_instances.get_by_workflow(GetWorkflowInstancesByWorkflowRequest(
     workflow_id="...",
     page_info=None,
+    org="...",
 ))
 ```
 </Tab>
@@ -185,6 +188,7 @@ result = client.workflow_instances.get_by_workflow(GetWorkflowInstancesByWorkflo
 WorkflowInstanceList result = client.workflowInstances().getByWorkflow(GetWorkflowInstancesByWorkflowRequest.builder()
     .workflowId("...")
     .pageInfo(null)
+    .org("...")
     .build());
 ```
 </Tab>
@@ -586,6 +590,7 @@ GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific work
   type={{
     workflowId: { type: "string", description: "Workflow template ID to filter by.", required: true },
     pageInfo: { type: "PageInfoInput", description: "Pagination options for result set control." },
+    org: { type: "string", description: "Organization slug to scope the results to." },
   }}
 />
 

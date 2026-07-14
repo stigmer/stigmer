@@ -16,12 +16,14 @@ class AgentShareId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class GetAgentSharesByAgentRequest(_message.Message):
-    __slots__ = ("agent_id", "page_info")
+    __slots__ = ("agent_id", "page_info", "org")
     AGENT_ID_FIELD_NUMBER: _ClassVar[int]
     PAGE_INFO_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     agent_id: str
     page_info: _pagination_pb2.PageInfo
-    def __init__(self, agent_id: _Optional[str] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ...) -> None: ...
+    org: str
+    def __init__(self, agent_id: _Optional[str] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ..., org: _Optional[str] = ...) -> None: ...
 
 class AgentShareList(_message.Message):
     __slots__ = ("total_count", "items")

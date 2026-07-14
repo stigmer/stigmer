@@ -59,7 +59,48 @@ describe("useAgentShares", () => {
     expect(result.current.shares).toEqual([share]);
     expect(result.current.error).toBeNull();
     expect(getByAgent).toHaveBeenCalledWith(
-      expect.objectContaining({ agentId: "agt_1" }),
+      expect.objectContaining({ agentId: "agt_1", org: "" }),
+    );
+  });
+
+  it("threads the org scope into the request", async () => {
+    // The org scope belongs in the RPC, never client-side filtering: the
+    // server narrows a multi-org member's view to one org's channels.
+    const getByAgent = vi
+      .fn()
+      .mockResolvedValue({ totalCount: 0, items: [] });
+    const client = createMockStigmer({ getByAgent });
+
+    const { result } = renderHook(() => useAgentShares("agt_1", "acme"), {
+      wrapper: wrapper(client),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(getByAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ agentId: "agt_1", org: "acme" }),
+    );
+  });
+
+  it("refetches when the org scope changes", async () => {
+    const getByAgent = vi
+      .fn()
+      .mockResolvedValue({ totalCount: 0, items: [] });
+    const client = createMockStigmer({ getByAgent });
+
+    const { result, rerender } = renderHook(
+      ({ org }: { org: string }) => useAgentShares("agt_1", org),
+      { wrapper: wrapper(client), initialProps: { org: "acme" } },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(getByAgent).toHaveBeenCalledTimes(1);
+
+    // Switching org context must re-query — a stale other-org list is
+    // exactly the bug the scope exists to prevent.
+    rerender({ org: "consumer-org" });
+    await waitFor(() => expect(getByAgent).toHaveBeenCalledTimes(2));
+    expect(getByAgent).toHaveBeenLastCalledWith(
+      expect.objectContaining({ agentId: "agt_1", org: "consumer-org" }),
     );
   });
 

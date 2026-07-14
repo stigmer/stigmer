@@ -109,6 +109,7 @@ Get all instances of a specific agent template. Returns only instances the calle
 const result = await stigmer.agentInstance.getByAgent({
   agentId: "...",
   pageInfo: {},
+  org: "...",
 });
 ```
 </Tab>
@@ -117,6 +118,7 @@ const result = await stigmer.agentInstance.getByAgent({
 result, err := client.AgentInstance.GetByAgent(ctx, &stigmer.GetAgentInstancesByAgentRequest{
   AgentId:  "...",
   PageInfo: &stigmer.PageInfoInput{},
+  Org:      "...",
 })
 ```
 </Tab>
@@ -125,6 +127,7 @@ result, err := client.AgentInstance.GetByAgent(ctx, &stigmer.GetAgentInstancesBy
 result = client.agent_instances.get_by_agent(GetAgentInstancesByAgentRequest(
     agent_id="...",
     page_info=None,
+    org="...",
 ))
 ```
 </Tab>
@@ -133,6 +136,7 @@ result = client.agent_instances.get_by_agent(GetAgentInstancesByAgentRequest(
 AgentInstanceList result = client.agentInstances().getByAgent(GetAgentInstancesByAgentRequest.builder()
     .agentId("...")
     .pageInfo(null)
+    .org("...")
     .build());
 ```
 </Tab>
@@ -563,6 +567,7 @@ Input for retrieving all instances deployed from a specific agent.
   type={{
     agentId: { type: "string", description: "Identifier of the agent whose instances to retrieve.", required: true },
     pageInfo: { type: "PageInfoInput", description: "Pagination options." },
+    org: { type: "string", description: "Organization slug to scope the results to." },
   }}
 />
 

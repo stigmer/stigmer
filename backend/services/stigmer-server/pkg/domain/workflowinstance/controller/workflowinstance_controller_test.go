@@ -771,4 +771,39 @@ func TestWorkflowInstanceController_GetByWorkflow(t *testing.T) {
 			t.Error("Expected error when workflow_id is empty")
 		}
 	})
+
+	// The org scope on the request keeps the RPC contract uniform with the
+	// agent share/instance siblings. For workflow instances the filter is
+	// belt-and-braces — ValidateSameOrgBusinessRule pins every instance to
+	// its workflow's org — but the contract must still answer an org-scoped
+	// request correctly: matching org returns the rows, any other org
+	// returns nothing.
+	t.Run("org scopes the list to the requested org", func(t *testing.T) {
+		parentWorkflow := createTestWorkflow(t, controllers, "org-scoped-workflow", "")
+
+		cases := []struct {
+			name string
+			org  string
+			want int
+		}{
+			// The workflow's auto-created default instance lives in test-org.
+			{"empty org keeps the unscoped view", "", 1},
+			{"matching org sees its instances", "test-org", 1},
+			{"unrelated org sees nothing", "bystander-org", 0},
+		}
+		for _, tt := range cases {
+			t.Run(tt.name, func(t *testing.T) {
+				list, err := controllers.workflowInstance.GetByWorkflow(contextWithWorkflowInstanceKind(), &workflowinstancev1.GetWorkflowInstancesByWorkflowRequest{
+					WorkflowId: parentWorkflow.Metadata.Id,
+					Org:        tt.org,
+				})
+				if err != nil {
+					t.Fatalf("GetByWorkflow failed: %v", err)
+				}
+				if len(list.Entries) != tt.want {
+					t.Fatalf("org %q: expected %d instances, got %d", tt.org, tt.want, len(list.Entries))
+				}
+			})
+		}
+	})
 }

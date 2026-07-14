@@ -56,4 +56,44 @@ public interface GetAgentChannelsByAgentRequestOrBuilder extends
    * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 2 [json_name = "pageInfo"];</code>
    */
   ai.stigmer.commons.rpc.PageInfoOrBuilder getPageInfoOrBuilder();
+
+  /**
+   * <pre>
+   * Organization slug to scope the results to.
+   *
+   * When set, only channels whose metadata.org matches are returned — the
+   * org-context view a console tab needs. When empty, results are bounded
+   * only by the caller's view permissions, which for a member of several
+   * organizations spans all of them.
+   *
+   * &#64;internal
+   * Mirrors the org scoping on the sibling getByAgent/getByWorkflow
+   * requests (agent shares, agent instances, workflow instances). Handlers
+   * implementing this RPC must apply the filter in their query/list step.
+   * </pre>
+   *
+   * <code>string org = 3 [json_name = "org"];</code>
+   * @return The org.
+   */
+  java.lang.String getOrg();
+  /**
+   * <pre>
+   * Organization slug to scope the results to.
+   *
+   * When set, only channels whose metadata.org matches are returned — the
+   * org-context view a console tab needs. When empty, results are bounded
+   * only by the caller's view permissions, which for a member of several
+   * organizations spans all of them.
+   *
+   * &#64;internal
+   * Mirrors the org scoping on the sibling getByAgent/getByWorkflow
+   * requests (agent shares, agent instances, workflow instances). Handlers
+   * implementing this RPC must apply the filter in their query/list step.
+   * </pre>
+   *
+   * <code>string org = 3 [json_name = "org"];</code>
+   * @return The bytes for org.
+   */
+  com.google.protobuf.ByteString
+      getOrgBytes();
 }

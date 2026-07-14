@@ -12,7 +12,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// GetByAgent retrieves all agent instances for a specific agent.
+// GetByAgent retrieves all agent instances for a specific agent, optionally
+// scoped to one organization via the request's org field.
 //
 // This handler lists all instances that belong to the specified agent template.
 // In OSS (local usage), all instances are returned without authorization filtering.
@@ -20,10 +21,14 @@ import (
 // Pipeline Steps:
 // 1. ValidateProto - Validate proto field constraints
 // 2. LoadByAgent - Load all instances for the specified agent
+//    (filtered by metadata.org when the request carries an org)
 //
 // Note: Unlike Stigmer Cloud, OSS excludes:
 // - Authorization filtering (no multi-user auth - returns all instances)
 // - TransformResponse step (no response transformations)
+//
+// The org filter is contract parity, not authorization: both editions must
+// answer an org-scoped request identically.
 func (c *AgentInstanceController) GetByAgent(ctx context.Context, req *agentinstancev1.GetAgentInstancesByAgentRequest) (*agentinstancev1.AgentInstanceList, error) {
 	// Create request context with the request
 	reqCtx := pipeline.NewRequestContext(ctx, req)
@@ -100,9 +105,15 @@ func (s *loadByAgentStep) Execute(ctx *pipeline.RequestContext[*agentinstancev1.
 			continue
 		}
 
-		if instance.GetSpec().GetAgentId() == agentId {
-			instances = append(instances, instance)
+		if instance.GetSpec().GetAgentId() != agentId {
+			continue
 		}
+		// Org scope: a multi-org caller asking for one org's instances must
+		// not see another org's instances of the same agent.
+		if req.GetOrg() != "" && instance.GetMetadata().GetOrg() != req.GetOrg() {
+			continue
+		}
+		instances = append(instances, instance)
 	}
 
 	// Build response list

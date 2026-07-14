@@ -200,6 +200,25 @@ describe("useAgentInstances", () => {
     expect(result.current.instances).toHaveLength(2);
     expect(result.current.instances[0]?.metadata?.id).toBe("ain-1");
     expect(mockGetByAgent).toHaveBeenCalledTimes(1);
+    expect(mockGetByAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ agentId: "agent-001", org: "" }),
+    );
+  });
+
+  it("threads the org scope into the request", async () => {
+    // The org scope belongs in the RPC, never client-side filtering: the
+    // server narrows a multi-org member's view to one org's instances.
+    mockGetByAgent.mockResolvedValueOnce({ items: [], totalCount: 0 });
+
+    const { result } = renderHook(
+      () => useAgentInstances("agent-001", "acme"),
+      { wrapper: createWrapper(makeMockClient()) },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(mockGetByAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ agentId: "agent-001", org: "acme" }),
+    );
   });
 
   it("does not fetch when agentId is null", async () => {

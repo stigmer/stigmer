@@ -17,12 +17,14 @@ class WorkflowInstanceId(_message.Message):
     def __init__(self, value: _Optional[str] = ...) -> None: ...
 
 class GetWorkflowInstancesByWorkflowRequest(_message.Message):
-    __slots__ = ("workflow_id", "page_info")
+    __slots__ = ("workflow_id", "page_info", "org")
     WORKFLOW_ID_FIELD_NUMBER: _ClassVar[int]
     PAGE_INFO_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     workflow_id: str
     page_info: _pagination_pb2.PageInfo
-    def __init__(self, workflow_id: _Optional[str] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ...) -> None: ...
+    org: str
+    def __init__(self, workflow_id: _Optional[str] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ..., org: _Optional[str] = ...) -> None: ...
 
 class UpdateExecutionVisibilityInput(_message.Message):
     __slots__ = ("resource_id", "execution_visibility")
