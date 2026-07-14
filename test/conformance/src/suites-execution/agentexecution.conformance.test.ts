@@ -26,8 +26,10 @@
 // One-call session bootstrap (stigmer/stigmer#249): create may carry
 // spec.session_spec — the full shape of the session to auto-create (workspace,
 // harness, execution_target) alongside the first message. The bootstrap
-// describe block below asserts the forwarding, the resolution precedence, the
-// single-source-of-truth clearing, and the two validation negatives.
+// describe block below asserts the forwarding, the resolution precedence, and
+// the single-source-of-truth clearing; the validation negatives live in the
+// CRUD-level suite (suites/agentexecution.conformance.test.ts) so they also
+// gate the cloud edition.
 //
 // Covered in a sibling file (kept separate because it needs the MCP tool
 // fixture and approval choreography, and this file is already large):
@@ -630,40 +632,9 @@ describe("AgentExecution conformance — one-call session bootstrap (session_spe
     expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
   });
 
-  it("rejects session_id and session_spec together (InvalidArgument)", async () => {
-    const { org } = await target.provisionTenancy();
-    // Validation fires before any resource resolution, so fake ids suffice.
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.create(
-          makeAgentExecution({
-            org,
-            name: uniqueName("aex-bootstrap-exclusive"),
-            sessionId: "ses_existing",
-            sessionSpec: { agentInstanceId: "ain_1" },
-          }),
-        ),
-      Code.InvalidArgument,
-      "create with both session_id and session_spec",
-    );
-  });
-
-  it("rejects a session_spec carrying harness_state_id (InvalidArgument — server-owned field)", async () => {
-    const { org } = await target.provisionTenancy();
-    // harness_state_id is engine-owned conversation continuity state; a
-    // caller-supplied value would fake state on a brand-new session and trip
-    // the immutability sentinel.
-    await expectGrpcCode(
-      () =>
-        clients.agentExecutionCommand.create(
-          makeAgentExecution({
-            org,
-            name: uniqueName("aex-bootstrap-hstate"),
-            sessionSpec: { agentInstanceId: "ain_1", harnessStateId: "thread-forged" },
-          }),
-        ),
-      Code.InvalidArgument,
-      "create with a session_spec carrying harness_state_id",
-    );
-  });
+  // The two validation negatives (session_id+session_spec mutual exclusion, and
+  // the harness_state_id server-owned-field guard) live in the CRUD-level suite
+  // (suites/agentexecution.conformance.test.ts): they need no engine, and only
+  // src/suites/** runs against the cloud edition — moving them there is what
+  // gates cloud on the shared validation contract. Do not re-add them here.
 });
