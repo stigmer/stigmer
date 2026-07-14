@@ -17,6 +17,8 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 
 import { type Agent, AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
+import { type AgentChannel, AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
 import { type AgentInstance, AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
 import { type AgentShare, AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
@@ -124,6 +126,15 @@ export const APPLY_HANDLERS: ReadonlyMap<ApiResourceKind, ApplyHandler> = new Ma
       displayName: "Agent Share",
       schema: AgentShareSchema,
       apply: (c, m) => c(AgentShareCommandController).apply(m as AgentShare),
+    },
+  ],
+  [
+    ApiResourceKind.agent_channel,
+    {
+      kind: ApiResourceKind.agent_channel,
+      displayName: "Agent Channel",
+      schema: AgentChannelSchema,
+      apply: (c, m) => c(AgentChannelCommandController).apply(m as AgentChannel),
     },
   ],
   [

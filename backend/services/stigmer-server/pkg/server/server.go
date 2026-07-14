@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	agentchannelv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentchannel/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	agentsharev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1"
@@ -34,6 +35,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	agentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agent/controller"
+	agentchannelcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentchannel/controller"
 	agentexecutioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/controller"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/controller"
@@ -311,6 +313,13 @@ func Run() error {
 	agentsharev1.RegisterAgentShareQueryControllerServer(grpcServer, agentShareController)
 
 	log.Info().Msg("Registered AgentShare controllers")
+
+	// Create and register AgentChannel controller
+	agentChannelController := agentchannelcontroller.NewAgentChannelController(store)
+	agentchannelv1.RegisterAgentChannelCommandControllerServer(grpcServer, agentChannelController)
+	agentchannelv1.RegisterAgentChannelQueryControllerServer(grpcServer, agentChannelController)
+
+	log.Info().Msg("Registered AgentChannel controllers")
 
 	// Register AgentExecution controller (created earlier for Temporal worker dependency)
 	agentexecutionv1.RegisterAgentExecutionCommandControllerServer(grpcServer, agentExecutionController)

@@ -1,5 +1,6 @@
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { describe, expect, it } from "vitest";
+import { APPLY_HANDLERS } from "../resources/apply/handlers.js";
 import { defaultRegistry } from "./registry.js";
 import { Verb } from "./verbs.js";
 
@@ -19,8 +20,18 @@ describe("registry — alias resolution", () => {
     ["wfl", ApiResourceKind.workflow],
     ["org", ApiResourceKind.organization],
     ["oapp", ApiResourceKind.oauth_app],
+    ["agentchannel", ApiResourceKind.agent_channel],
+    ["agent-channel", ApiResourceKind.agent_channel],
+    ["agent_channel", ApiResourceKind.agent_channel],
+    ["AgentChannel", ApiResourceKind.agent_channel],
+    ["agentchannels", ApiResourceKind.agent_channel],
+    ["ach", ApiResourceKind.agent_channel],
   ])("resolves %s -> kind", (alias, kind) => {
     expect(registry.getByAlias(alias)?.kind).toBe(kind);
+  });
+
+  it("agent_channel does not steal the agent alias (multi-word first-word guard)", () => {
+    expect(registry.getByAlias("agent")?.kind).toBe(ApiResourceKind.agent);
   });
 
   it("resolution is case-insensitive", () => {
@@ -61,6 +72,15 @@ describe("registry — verb support matrix", () => {
     expect(registry.supportsVerb(ApiResourceKind.workflow_instance, Verb.List)).toBe(false);
   });
 
+  it("agent_channel supports the declarative verbs, matching agent_share", () => {
+    for (const v of [Verb.Apply, Verb.Get, Verb.List, Verb.Delete]) {
+      expect(registry.supportsVerb(ApiResourceKind.agent_channel, v)).toBe(true);
+    }
+    // The install flow is console-driven and cloud-only — never a CLI verb.
+    expect(registry.supportsVerb(ApiResourceKind.agent_channel, Verb.Run)).toBe(false);
+    expect(registry.supportsVerb(ApiResourceKind.agent_channel, Verb.Search)).toBe(false);
+  });
+
   it("typesForVerb(get) includes the core read kinds", () => {
     const kinds = new Set(registry.typesForVerb(Verb.Get).map((t) => t.kind));
     expect(kinds).toContain(ApiResourceKind.agent);
@@ -75,6 +95,16 @@ describe("registry — completeness", () => {
       expect(info.name).not.toBe("");
       expect(info.singular).toBe(info.name.toLowerCase());
       expect(info.aliases.length).toBeGreaterThan(0);
+    }
+  });
+
+  // The apply verb dispatches through an explicit handler registry, not
+  // the kind registry — a kind can advertise Apply in the verb matrix yet
+  // fail at dispatch if its handler entry is missing. Pin the wiring for
+  // the kinds whose apply path the declarative flow depends on.
+  it("every declarative kind with an Apply verb intent has an apply handler", () => {
+    for (const kind of [ApiResourceKind.agent_share, ApiResourceKind.agent_channel]) {
+      expect(APPLY_HANDLERS.get(kind), `apply handler missing for kind ${kind}`).toBeDefined();
     }
   });
 });
