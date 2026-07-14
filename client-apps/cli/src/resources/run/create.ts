@@ -1,5 +1,4 @@
-// Resource creation for the run path: AgentExecution, the workspace Session it
-// may need, and WorkflowExecution.
+// Resource creation for the run path: AgentExecution and WorkflowExecution.
 //
 // Ports the Go CLI's run_create.go. We build the full proto messages and drive
 // the generated command controllers directly — the Wave-2 fidelity rule (see
@@ -19,8 +18,6 @@ import {
   ExecutionConfigSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { ExecutionValue } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
-import { type Session, SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import {
@@ -44,6 +41,10 @@ export type ControllerFn = <Desc extends DescService>(service: Desc) => Client<D
  * Inputs for creating an agent execution. At least one of agentId/sessionId
  * must be set: agentId-only starts a new backend-managed session, sessionId
  * threads a follow-up, both pins the agent within an existing session.
+ *
+ * workspaceEntries ride the one-call bootstrap (spec.session_spec,
+ * stigmer/stigmer#249) and shape the auto-created session; they are mutually
+ * exclusive with sessionId (a session's workspace is fixed at creation).
  */
 export interface CreateAgentExecutionInput {
   readonly agentId?: string;
@@ -53,6 +54,7 @@ export interface CreateAgentExecutionInput {
   readonly runtimeEnv: RuntimeEnv;
   readonly attachments: readonly Attachment[];
   readonly workspaceFileRefs: readonly string[];
+  readonly workspaceEntries: readonly WorkspaceEntry[];
   readonly model: string;
   readonly mode: RunMode;
   readonly autoApproveAll: boolean;
@@ -75,37 +77,16 @@ export async function createAgentExecution(
       autoApproveAll: input.autoApproveAll,
       sessionId: input.sessionId ?? "",
       agentId: input.agentId ?? "",
+      // Subject is left empty: the server defaults its sentinel and the async
+      // title activity replaces it, same as any auto-created session.
+      sessionSpec:
+        input.workspaceEntries.length > 0
+          ? create(SessionSpecSchema, { workspaceEntries: [...input.workspaceEntries] })
+          : undefined,
       executionConfig: buildExecutionConfig(input.model, input.mode),
     }),
   });
   return controller(AgentExecutionCommandController).create(execution);
-}
-
-/** Inputs for creating a workspace-bearing session. */
-export interface CreateSessionInput {
-  readonly agentInstanceId: string;
-  readonly orgId: string;
-  readonly workspaceEntries: readonly WorkspaceEntry[];
-}
-
-/**
- * Create a session with explicit workspace entries. Mirrors Go's
- * createSessionForAgent: the backend's auto-create flow has no workspace
- * passthrough, so the CLI creates the session itself. The "Auto-created session"
- * subject matches the backend sentinel, so the async title activity replaces it.
- */
-export async function createSessionForAgent(controller: ControllerFn, input: CreateSessionInput): Promise<Session> {
-  const session = create(SessionSchema, {
-    apiVersion: API_VERSION,
-    kind: "Session",
-    metadata: create(ApiResourceMetadataSchema, { name: `session-${Date.now()}`, org: input.orgId }),
-    spec: create(SessionSpecSchema, {
-      agentInstanceId: input.agentInstanceId,
-      subject: "Auto-created session",
-      workspaceEntries: [...input.workspaceEntries],
-    }),
-  });
-  return controller(SessionCommandController).create(session);
 }
 
 /** Inputs for creating a workflow execution. */

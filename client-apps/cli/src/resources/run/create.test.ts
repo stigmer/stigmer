@@ -1,16 +1,17 @@
 // Unit tests for run-path resource creation: full-proto field mapping, the
 // message default, ExecutionConfig presence/contents, runtime-env conversion,
-// and session/workflow shapes. The controller is faked to capture the exact
-// proto sent to the RPC.
+// the one-call session_spec bootstrap, and the workflow shape. The controller
+// is faked to capture the exact proto sent to the RPC.
 
 import { describe, expect, it } from "vitest";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { create } from "@bufbuild/protobuf";
 import {
-  type ControllerFn,
-  createAgentExecution,
-  createSessionForAgent,
-  createWorkflowExecution,
-} from "./create.js";
+  LocalPathSourceSchema,
+  WorkspaceEntrySchema,
+  WorkspaceSourceSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import { type ControllerFn, createAgentExecution, createWorkflowExecution } from "./create.js";
 
 // Returns a controller whose every RPC echoes the request back, and records the
 // last message sent. `create` is the only RPC the run path calls.
@@ -36,6 +37,7 @@ describe("createAgentExecution", () => {
       runtimeEnv: { FOO: { value: "bar", isSecret: false }, TOKEN: { value: "s", isSecret: true } },
       attachments: [],
       workspaceFileRefs: ["src/a.ts"],
+      workspaceEntries: [],
       model: "claude",
       mode: "plan",
       autoApproveAll: true,
@@ -62,6 +64,7 @@ describe("createAgentExecution", () => {
       runtimeEnv: {},
       attachments: [],
       workspaceFileRefs: [],
+      workspaceEntries: [],
       model: "",
       mode: "",
       autoApproveAll: false,
@@ -79,6 +82,7 @@ describe("createAgentExecution", () => {
       runtimeEnv: {},
       attachments: [],
       workspaceFileRefs: [],
+      workspaceEntries: [],
       model: "m",
       mode: "agent",
       autoApproveAll: false,
@@ -86,19 +90,51 @@ describe("createAgentExecution", () => {
     expect(exec.spec?.sessionId).toBe("ses_1");
     expect(exec.spec?.executionConfig?.interactionMode).toBe(InteractionMode.UNSPECIFIED);
   });
-});
 
-describe("createSessionForAgent", () => {
-  it("builds a session with the auto-created subject and instance id", async () => {
-    const { fn } = fakeController();
-    const session = await createSessionForAgent(fn, {
-      agentInstanceId: "ain_1",
-      orgId: "acme",
-      workspaceEntries: [],
+  it("embeds workspace entries as session_spec (one-call bootstrap) with an empty subject", async () => {
+    const entry = create(WorkspaceEntrySchema, {
+      name: "repo",
+      source: create(WorkspaceSourceSchema, {
+        source: { case: "localPath", value: create(LocalPathSourceSchema, { path: "/home/user/repo" }) },
+      }),
     });
-    expect(session.kind).toBe("Session");
-    expect(session.spec?.agentInstanceId).toBe("ain_1");
-    expect(session.spec?.subject).toBe("Auto-created session");
+
+    const { fn } = fakeController();
+    const exec = await createAgentExecution(fn, {
+      agentId: "agt_1",
+      orgId: "acme",
+      message: "hi",
+      runtimeEnv: {},
+      attachments: [],
+      workspaceFileRefs: [],
+      workspaceEntries: [entry],
+      model: "",
+      mode: "",
+      autoApproveAll: false,
+    });
+
+    expect(exec.spec?.sessionId).toBe("");
+    expect(exec.spec?.sessionSpec?.workspaceEntries).toEqual([entry]);
+    // Subject stays empty so the server defaults its sentinel and the async
+    // title activity generates a real one.
+    expect(exec.spec?.sessionSpec?.subject).toBe("");
+  });
+
+  it("omits session_spec when there are no workspace entries", async () => {
+    const { fn } = fakeController();
+    const exec = await createAgentExecution(fn, {
+      agentId: "agt_1",
+      orgId: "acme",
+      message: "hi",
+      runtimeEnv: {},
+      attachments: [],
+      workspaceFileRefs: [],
+      workspaceEntries: [],
+      model: "",
+      mode: "",
+      autoApproveAll: false,
+    });
+    expect(exec.spec?.sessionSpec).toBeUndefined();
   });
 });
 
