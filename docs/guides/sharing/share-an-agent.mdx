@@ -18,19 +18,37 @@ send the link, and embed the chat on your own website.
 
 <DemoShareAgentDialog />
 
-## Turn on sharing
+## Create a share
 
 1. Open your Agent in the web console under **Library → Agents**.
-2. Open the actions menu (⋯) and choose **Share**.
-3. Turn on the sharing switch.
+2. Open the **Shares** tab — or choose **Share** from the actions menu (⋯),
+   which takes you there.
+3. Click **Create share**, keep the suggested name and slug (or pick your own),
+   and confirm.
 
-The dialog shows the chat link as soon as sharing is on. The link has the form:
+The link is live the moment the share is created. It has the form:
 
 ```
-https://app.stigmer.ai/chat/<org>/<agent>
+https://app.stigmer.ai/chat/<org>/<slug>
 ```
 
-Click **Copy** to copy the link, or **Open** to try it yourself.
+The slug is the share's own — it defaults to the Agent's, and it can't be
+changed after creation. Click **Copy** to copy the link, or **Open** to try it
+yourself.
+
+## Manage your shares
+
+The **Shares** tab lists every share of the Agent you can see, with its link,
+audience, and status. An Agent can carry several shares — say, one for your docs
+site and one for a partner — and each is its own channel with its own link,
+audience, embed origins, visitor messages, and tool credentials. You see your
+own Organization's shares; another Organization's shares of the same Agent are
+theirs, not yours.
+
+From the row you can copy the link, **Edit** the share (the dialog), **Pause**
+or **Resume** it, **Reset link** on public shares, and **Delete** it. Pausing
+stops the link immediately while keeping the configuration; deleting removes the
+share and its configuration for good.
 
 ## Choose who can chat
 
@@ -157,9 +175,11 @@ share needs no reset, because access ends with membership.
 
 ## Turn off sharing
 
-Turn the toggle off to revoke the link. The public page stops working
-immediately — visitors see the same "not found" page as for an Agent that never
-existed.
+Turn the switch off in the dialog — or click **Pause** in the **Shares** tab —
+to revoke the link. The public page stops working immediately — visitors see the
+same "not found" page as for an Agent that never existed. Pausing keeps the
+share's configuration for when you resume; **Delete** in the Shares tab removes
+the share entirely.
 
 ## Share a public Agent from another Organization
 
@@ -173,14 +193,14 @@ your Organization's credits with anyone on the internet, so it is an admin-level
 decision.
 
 1. Open the public Agent in the web console — for example, from the Marketplace.
-2. Open the actions menu (⋯) and choose **Create share link**.
-3. The dialog opens with your Organization as the sharing Organization. Turn on
-   the sharing switch and copy your link.
+2. Open the **Shares** tab and click **Create share**. The dialog names your
+   Organization as the one that owns — and pays for — the new share.
+3. Confirm the name and slug, create the share, and copy your link.
 
 The link carries your Organization, not the Agent owner's:
 
 ```
-https://app.stigmer.ai/chat/<your-org>/<agent>
+https://app.stigmer.ai/chat/<your-org>/<slug>
 ```
 
 A share of another Organization's Agent works like your own public share, with

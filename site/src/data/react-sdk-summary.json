@@ -215,7 +215,7 @@
       "title": "Sharing",
       "description": "Hooks and components for turning an agent into a hosted, shareable chat link and embed.",
       "hooks": 7,
-      "components": 2
+      "components": 3
     },
     {
       "slug": "skill",

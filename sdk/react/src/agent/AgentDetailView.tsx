@@ -17,8 +17,7 @@ import { agentToInput } from "./internal/agentToInput.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
-import { useShareAgent } from "../sharing/useShareAgent.js";
-import { useCreateExternalShareLink } from "../sharing/useCreateExternalShareLink.js";
+import { AgentShareList } from "../sharing/AgentShareList.js";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell.js";
 import { Section } from "../resource-detail/Section.js";
 import { useDetailTabs } from "../resource-detail/useDetailTabs.js";
@@ -38,6 +37,7 @@ const INSTRUCTIONS_COLLAPSED_HEIGHT = "12rem";
 
 const OVERVIEW_TAB: TabItem = { id: "overview", label: "Overview" };
 const INSTANCES_TAB: TabItem = { id: "instances", label: "Instances" };
+const SHARES_TAB: TabItem = { id: "shares", label: "Shares" };
 const DEPENDENCIES_TAB: TabItem = { id: "dependencies", label: "Dependencies" };
 
 /** Props for {@link AgentDetailView}. */
@@ -130,21 +130,19 @@ export interface AgentDetailViewProps {
    */
   readonly onCreateInstanceClick?: () => void;
   /**
-   * Builds the absolute public chat URL shown in the Share dialog.
+   * Builds the absolute public chat URL for shares in the Shares tab.
    * The host application owns URL construction — its configured public
    * origin may differ from the rendering origin (e.g. the desktop app).
-   * When omitted, the dialog falls back to the relative
+   * When omitted, share links fall back to the relative
    * `/chat/<org>/<slug>` path.
    */
   readonly buildShareUrl?: (org: string, slug: string) => string;
   /**
-   * The viewer's active organization slug. When it differs from the
-   * agent's org and the agent is marketplace-public, the kebab gains a
-   * "Create share link" action — the viewer org's own share of this
-   * agent (decision 013): its URL, billing, and credentials, against the
-   * agent org's live blueprint. Omit to disable the cross-org entry
-   * (the same-org Share action is unaffected — it gates on agent
-   * `can_edit`, not on this prop).
+   * The viewer's active organization slug, feeding the Shares tab: a
+   * share created there lands in this org — its URL, billing, and
+   * credentials — which for another org's marketplace-public agent is a
+   * **cross-org share** (decision 013). Omit to default share creation
+   * to the agent's own org.
    */
   readonly viewerOrg?: string;
   /**
@@ -265,8 +263,8 @@ export function AgentDetailView({
   const builtInTabs = useMemo<readonly TabItem[]>(
     () =>
       noDeps
-        ? [OVERVIEW_TAB, INSTANCES_TAB]
-        : [OVERVIEW_TAB, INSTANCES_TAB, DEPENDENCIES_TAB],
+        ? [OVERVIEW_TAB, INSTANCES_TAB, SHARES_TAB]
+        : [OVERVIEW_TAB, INSTANCES_TAB, SHARES_TAB, DEPENDENCIES_TAB],
     [noDeps],
   );
 
@@ -328,27 +326,6 @@ export function AgentDetailView({
       : undefined,
   });
 
-  // Share — the sibling consent to Manage access: visibility governs who
-  // can read the blueprint; sharing governs who can chat with the running
-  // agent (billed to the owning org). Same null-until-ready contract.
-  const share = useShareAgent({
-    agent,
-    buildShareUrl,
-    onSharingChanged: refetch,
-  });
-
-  // Cross-org "Create share link" (decision 013) — the marketplace entry
-  // for another org's public agent. Mutually exclusive with the Share
-  // action above by construction (same-org gates on can_edit; this one
-  // requires viewerOrg != agent org), so both fold into the actions
-  // array unconditionally.
-  const externalShare = useCreateExternalShareLink({
-    agent,
-    viewerOrg: viewerOrg ?? "",
-    buildShareUrl,
-    onSharingChanged: refetch,
-  });
-
   if (isLoading) return <LoadingSkeleton className={className} />;
   if (error)
     return <ErrorMessage error={error} retry={refetch} className={className} />;
@@ -387,15 +364,23 @@ export function AgentDetailView({
     <VisibilityBadge visibility={meta.visibility} />
   ) : undefined;
 
-  // Share (or its cross-org sibling) precedes Manage access within the
-  // "sharing" group.
-  const injectedActions = [share.action, externalShare.action, access.action].filter(
+  // Share — the sibling consent to Manage access: visibility governs who
+  // can read the blueprint; sharing governs who can chat with the running
+  // agent (billed to the org that owns each share). Pure navigation to
+  // the Shares tab, so it renders unconditionally (like the tab itself);
+  // all capability gating lives in the tab, next to its affordances.
+  const shareAction: DetailAction = {
+    id: "share",
+    label: "Share",
+    group: "sharing",
+    onAction: () => effectiveOnTabChange(SHARES_TAB.id),
+  };
+
+  // Share precedes Manage access within the "sharing" group.
+  const injectedActions = [shareAction, access.action].filter(
     (a): a is NonNullable<typeof a> => a != null,
   );
-  const mergedActions =
-    injectedActions.length > 0
-      ? [...(actions ?? []), ...injectedActions]
-      : actions;
+  const mergedActions = [...(actions ?? []), ...injectedActions];
 
   let tabContent: React.ReactNode;
   if (activeAdditionalTab) {
@@ -411,6 +396,14 @@ export function AgentDetailView({
         onStartSessionClick={onInstanceStartSessionClick}
         onDeleteClick={onInstanceDeleteClick}
         refreshKey={instancesRefreshKey}
+      />
+    );
+  } else if (effectiveActiveTab === "shares") {
+    tabContent = (
+      <AgentShareList
+        agent={agent}
+        viewerOrg={viewerOrg}
+        buildShareUrl={buildShareUrl}
       />
     );
   } else if (effectiveActiveTab === "dependencies" && tree) {
@@ -451,8 +444,6 @@ export function AgentDetailView({
         {tabContent}
       </ResourceDetailShell>
       {access.dialog}
-      {share.dialog}
-      {externalShare.dialog}
     </>
   );
 }

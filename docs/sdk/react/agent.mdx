@@ -465,7 +465,7 @@ All visual properties flow through `--stgm-*` design tokens.
     actions: { type: "readonly DetailAction[]", description: "Secondary actions rendered in the kebab overflow menu. Typically: Copy ID, Copy slug, Export JSON, Duplicate, Delete." },
     activeTab: { type: "string", description: "Controlled active tab ID. When provided together with `onTabChange`, the component operates in controlled mode — the consumer owns tab state. When omitted, the component manages its own internal tab state." },
     additionalTabs: { type: "readonly AdditionalTab[]", description: "Additional tabs to render alongside the built-in \"Overview\" tab. When provided (with at least one entry), a tab bar appears. When omitted or empty, no tab bar is shown (single-tab suppression).  Each entry provides both the tab metadata and the content to render. The SDK manages the tab switching logic internally." },
-    buildShareUrl: { type: "(org: string, slug: string) => string", description: "Builds the absolute public chat URL shown in the Share dialog. The host application owns URL construction — its configured public origin may differ from the rendering origin (e.g. the desktop app). When omitted, the dialog falls back to the relative `/chat/<org>/<slug>` path." },
+    buildShareUrl: { type: "(org: string, slug: string) => string", description: "Builds the absolute public chat URL for shares in the Shares tab. The host application owns URL construction — its configured public origin may differ from the rendering origin (e.g. the desktop app). When omitted, share links fall back to the relative `/chat/<org>/<slug>` path." },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     defaultTab: { type: "string", description: "Default active tab ID when in uncontrolled mode." },
     editable: { type: "boolean", description: "When `true`, fields on the detail view become click-to-edit. Each field saves independently via `stigmer.agent.update()`." },
@@ -482,7 +482,7 @@ All visual properties flow through `--stgm-*` design tokens.
     org: { type: "string", description: "Organization slug that owns the agent.", required: true },
     primaryAction: { type: "DetailAction", description: "Primary action rendered as a visible button in the header area. Typically \"Edit\" for agent detail pages.", typeDescriptionLink: "/docs/sdk/react/resource-detail#detailaction" },
     slug: { type: "string", description: "Agent slug (URL-friendly identifier unique within the org).", required: true },
-    viewerOrg: { type: "string", description: "The viewer's active organization slug. When it differs from the agent's org and the agent is marketplace-public, the kebab gains a \"Create share link\" action — the viewer org's own share of this agent (decision 013): its URL, billing, and credentials, against the agent org's live blueprint. Omit to disable the cross-org entry (the same-org Share action is unaffected — it gates on agent `can_edit`, not on this prop)." },
+    viewerOrg: { type: "string", description: "The viewer's active organization slug, feeding the Shares tab: a share created there lands in this org — its URL, billing, and credentials — which for another org's marketplace-public agent is a **cross-org share** (decision 013). Omit to default share creation to the agent's own org." },
   }}
 />
 

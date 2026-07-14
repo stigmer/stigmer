@@ -31,8 +31,8 @@ interface AgentDetailPageInnerProps {
 export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
   const router = useRouter();
   const { setLabel } = useBreadcrumbOverride();
-  // The viewer's own org — enables "Create share link" on other orgs'
-  // marketplace-public agents (the cross-org share entry, decision 013).
+  // The viewer's own org — shares created from the Shares tab land in it
+  // (a cross-org share when it differs from the agent's org, decision 013).
   const viewerOrg = useActiveOrgSlug();
   const { navigateToDetail } = useLibraryNavigation();
   const [resourceId, setResourceId] = useState<string | null>(null);

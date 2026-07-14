@@ -985,17 +985,19 @@ export type {
 } from "./invitation/index.js";
 
 // Sharing — shared-agent public profile, the anonymous-visitor chat organism,
-// and the owner-side Share experience (dialog, kebab hook, AgentShare hooks).
+// and the owner-side Share experience (Shares tab list, dialog, AgentShare hooks).
 export {
   useSharedAgentProfile,
   SharedAgentChat,
+  draftFromShare,
   sharingAudienceFromProto,
-  useAgentShare,
+  useAgentShares,
+  useCanCreateAgentShare,
   useSaveAgentShare,
+  useDeleteAgentShare,
   useRotateShareLink,
   ShareAgentDialog,
-  useShareAgent,
-  useCreateExternalShareLink,
+  AgentShareList,
   useShareToolReadiness,
   validateOrigin,
   MAX_ALLOWED_ORIGINS,
@@ -1004,16 +1006,16 @@ export type {
   UseSharedAgentProfileOptions,
   UseSharedAgentProfileReturn,
   SharedAgentChatProps,
+  AgentShareCreateIdentity,
   AgentShareDraft,
   SharingAudience,
-  UseAgentShareReturn,
+  UseAgentSharesReturn,
+  UseCanCreateAgentShareReturn,
   UseSaveAgentShareReturn,
+  UseDeleteAgentShareReturn,
   UseRotateShareLinkReturn,
   ShareAgentDialogProps,
-  UseShareAgentArgs,
-  UseShareAgentReturn,
-  UseCreateExternalShareLinkArgs,
-  UseCreateExternalShareLinkReturn,
+  AgentShareListProps,
   ShareToolReadiness,
 } from "./sharing/index.js";
 

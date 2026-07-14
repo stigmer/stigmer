@@ -7,12 +7,10 @@ import { samples } from "@stigmer/react/test";
 import { PreviewProvider } from "@scenar/preview/runtime";
 import { connectFixture } from "@scenar/preview/connect";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
-import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/query_pb";
 import {
   AgentShareSchema,
   type AgentShare,
 } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
-import { AgentShareListSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
 import { BillingCommandController } from "@stigmer/protos/ai/stigmer/billing/v1/command_pb";
 import {
   BillingAccountSchema,
@@ -34,7 +32,7 @@ function buildDemoAgent() {
 }
 
 // Sharing lives in its own AgentShare resource (decision 011): the dialog
-// loads the agent's canonical share on open and applies changes to it.
+// edits exactly the share it is given and applies changes to it.
 function buildDemoShare(): AgentShare {
   return create(AgentShareSchema, {
     metadata: {
@@ -56,11 +54,8 @@ function buildDemoShare(): AgentShare {
 let demoShare = buildDemoShare();
 
 const previewFixtures = [
-  connectFixture(AgentShareQueryController, "getByAgent", () =>
-    create(AgentShareListSchema, { totalCount: 1, items: [demoShare] }),
-  ),
   // Echo the applied configuration back — apply is the dialog's single
-  // commit path (create-on-first-enable, update thereafter).
+  // commit path.
   connectFixture(AgentShareCommandController, "apply", (input) => {
     const applied = clone(AgentShareSchema, input as AgentShare);
     applied.metadata!.id = "ash_demo";
@@ -88,6 +83,7 @@ export function ShareAgentDialogDemo() {
               open
               onOpenChange={setOpen}
               agent={buildDemoAgent()}
+              share={demoShare}
               buildShareUrl={(org, slug) =>
                 `https://app.stigmer.ai/chat/${org}/${slug}`
               }

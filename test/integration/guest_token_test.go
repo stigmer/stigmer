@@ -74,9 +74,10 @@ func applyShare(t *testing.T, ctx context.Context, clients *harness.Clients, sha
 }
 
 // canonicalShare resolves the agent's canonical share: slug-match-else-first,
-// the same selection rule production clients use (React useAgentShare, CLI
-// share.ts). Rotation and share updates need this because callers hold the
-// agent id, not the share id — the same reason production added getByAgent.
+// the same selection rule the CLI uses (share.ts; the console's Shares tab
+// lists all shares instead of picking one). Rotation and share updates need
+// this because callers hold the agent id, not the share id — the same reason
+// production added getByAgent.
 func canonicalShare(t *testing.T, ctx context.Context, clients *harness.Clients, agent *agentv1.Agent) *agentsharev1.AgentShare {
 	t.Helper()
 	list, err := clients.AgentShareQuery.GetByAgent(ctx, &agentsharev1.GetAgentSharesByAgentRequest{

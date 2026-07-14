@@ -7,121 +7,134 @@ description: Hooks and components for turning an agent into a hosted, shareable 
 
 ## Hooks
 
-### useAgentShare
+### useAgentShares
 
-Data hook that loads an agent's canonical `AgentShare` — the
-resource carrying the hosted-chat channel configuration (audience,
-allowed origins, visitor messages, tool credentials, link token).
+Data hook that loads all of an agent's `AgentShare` resources —
+the channels carrying its hosted-chat configuration (audience, allowed
+origins, visitor messages, tool credentials, link token).
 
 Sharing is channel configuration, not agent behavior (decision 011):
-it lives in its own resource, so reading the agent alone can never
-tell whether it is shared. This hook is how owner-side surfaces (the
-Share dialog) resolve that state.
+an agent can carry N shares, each with its own URL, billing org, and
+credentials (decision 011 D3 + decision 013 cross-org shares). This
+hook returns the full list; the server already scopes it to shares the
+caller can view (FGA-filtered in cloud, unfiltered in the single-user
+OSS edition), so a viewer sees their own org's channels and never
+another org's.
 
-`shareOrg` scopes resolution to one sharing org's channel and defaults
-to the agent's own org (the owner's share). Pass the viewer's org to
-manage a **cross-org share** — the viewer's own channel of another
-org's marketplace-public agent (decision 013).
-
-Pass `null` for `agent` to skip fetching (stable no-op) — useful
-while the agent is still loading. A resolved `null` share means the
-agent has never been shared in `shareOrg`; the first save creates the
-share.
+Pass an empty `agentId` to skip fetching (stable no-op) — useful
+while the agent is still loading.
 
 **Signature**
 
 ```tsx
-function useAgentShare(agent: Agent | null, shareOrg?: string): UseAgentShareReturn
+function useAgentShares(agentId: string): UseAgentSharesReturn
 ```
 
 <TypeTable
   type={{
-    agent: { type: "Agent | null", description: "", required: true },
-    shareOrg: { type: "string", description: "" },
+    agentId: { type: "string", description: "", required: true },
   }}
 />
 
-**Returns** — `UseAgentShareReturn`
+**Returns** — `UseAgentSharesReturn`
 
 <TypeTable
   type={{
     error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
     isLoading: { type: "boolean", description: "`true` while the initial fetch or a refetch is in flight." },
     isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
-    refetch: { type: "() => void", description: "Discard cached data and re-fetch the share from the server." },
-    share: { type: "AgentShare | null", description: "The agent's canonical share, or `null` while loading, on error, or when the agent has never been shared. `share === null && !isLoading && !error` means \"no share exists yet\" — the first save creates it." },
+    refetch: { type: "() => void", description: "Discard cached data and re-fetch the shares from the server." },
+    shares: { type: "readonly AgentShare[]", description: "Every share of the agent visible to the caller, in server order. Empty while loading, on error, or when the agent has never been shared — `shares.length === 0 && !isLoading && !error` means \"no shares exist yet\"." },
   }}
 />
 
 ```tsx
-const { share, isLoading } = useAgentShare(agent);
-
-if (isLoading) return <Spinner />;
-const enabled = share?.spec?.enabled ?? false;
+const { shares, isLoading, refetch } = useAgentShares(agent?.metadata?.id ?? "");
 ```
 
 
-### useCreateExternalShareLink
+### useCanCreateAgentShare
 
-The marketplace entry for **cross-org shares** (decision 013): a
-"Create share link" action on another org's marketplace-public agent
-that opens the same [`ShareAgentDialog`](#shareagentdialog) with the share org set to
-the viewer's own org. The resulting share is the viewer org's channel —
-its URL (`/chat/<viewer-org>/<slug>`), its billing, its credential
-bindings — while the agent blueprint stays live in its own org.
+Mirrors the server's AgentShare create bar so create affordances never
+appear to a user whose create would be refused:
 
-The gate mirrors the server's create bar so the action never appears
-to a user whose create would be refused:
-
-- the agent lives in another org and is `visibility_public` — the
-  origin org's implicit consent (D1); the agent-side `can_execute`
-  half of the bar is granted to every authenticated account on public
-  agents by the `allow_public` wildcard, so visibility is its exact
-  client-side proxy;
-- the viewer holds `can_create_agent_share` in their own org (D2's
-  org-side half — admin-level, since a public share spends that org's
-  credits on the open internet). The org check uses the org slug as
-  the resource id: an Organization's id equals its slug
+- **Same-org** (`shareOrg` equals the agent's org): agent `can_edit` —
+  the exact permission the create/apply handlers enforce on the
+  referenced agent.
+- **Cross-org** (decision 013 D2, two-sided): the agent must be
+  `visibility_public` — the origin org's implicit consent (D1), and
+  the client-side proxy for the `can_execute`-via-`allow_public` half
+  of the bar — and the viewer must hold `can_create_agent_share` in
+  their own org (admin-level: a public share spends that org's credits
+  on the open internet). The org check uses the org slug as the
+  resource id — an Organization's id equals its slug
   (ApiResourceMetadata.id).
 
-The same-org Share entry ([`useShareAgent`](#useshareagent), gated on agent
-`can_edit`) and this one are mutually exclusive by construction — at
-most one renders for any viewer/agent pair — so hosts can inject both
-unconditionally.
+On the OSS edition [`useCheckPermission`](/docs/sdk/react/iam-policy#usecheckpermission) degrades to allowed
+(no IAM service), matching the backend's documented no-op
+authorization (decision 011 D4).
+
+Pass `null` for `agent` while it loads — `allowed` stays `false` so
+no affordance flashes before the gate can be evaluated.
 
 **Signature**
 
 ```tsx
-function useCreateExternalShareLink(options: UseCreateExternalShareLinkArgs): UseCreateExternalShareLinkReturn
+function useCanCreateAgentShare(agent: Agent | null, viewerOrg?: string): UseCanCreateAgentShareReturn
 ```
 
 <TypeTable
   type={{
-    options: { type: "UseCreateExternalShareLinkArgs", description: "", required: true },
+    agent: { type: "Agent | null", description: "The agent to share, or `null` while loading.", required: true },
+    viewerOrg: { type: "string", description: "The viewer's active org. Empty/omitted means the                   agent's own org (the same-org owner flow)." },
   }}
 />
 
-**Returns** — `UseCreateExternalShareLinkReturn`
+**Returns** — `UseCanCreateAgentShareReturn`
 
 <TypeTable
   type={{
-    action: { type: "DetailAction | null", description: "A ready-to-spread DetailAction for a kebab/overflow menu, or `null` when the entry does not apply: agent still loading, same-org (or no) viewer org, agent not marketplace-public, or the viewer lacks `can_create_agent_share` in their own org. Lives in the `\"sharing\"` group, like its same-org sibling." },
-    dialog: { type: "ReactNode", description: "The ShareAgentDialog node — render it once in the host tree." },
-    isOpen: { type: "boolean", description: "Whether the dialog is currently open." },
-    open: { type: "() => void", description: "Imperatively open the dialog." },
+    allowed: { type: "boolean", description: "Whether the viewer may create a share of this agent in `shareOrg`." },
+    isCrossOrg: { type: "boolean", description: "Whether creating in `shareOrg` would be a cross-org share (decision 013)." },
+    shareOrg: { type: "string", description: "The org that would own the new share — the viewer's org when set, else the agent's own. The share's URL, billing, and credential bindings all belong to this org." },
+  }}
+/>
+
+
+### useDeleteAgentShare
+
+Mutation hook that deletes an `AgentShare` resource.
+
+Wraps `stigmer.agentShare.delete()` (authorized by the share's
+`can_delete`) with loading/error state. The caller is responsible for
+post-delete UI updates (e.g. refreshing the share list) and for
+confirming the destructive action — the delete-vs-pause distinction
+belongs in the confirmation copy.
+
+**Signature**
+
+```tsx
+function useDeleteAgentShare(): UseDeleteAgentShareReturn
+```
+
+**Returns** — `UseDeleteAgentShareReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    deleteShare: { type: "(id: string) => Promise<AgentShare>", description: "Delete an agent share by ID. Returns the deleted resource.  Deleting a share is full teardown (decision 011 D1): its hosted link dies immediately — including for visitors mid-conversation — and its configuration (origins, messages, credential bindings, link token) is gone. To stop serving while keeping the configuration, save the share with `enabled: false` instead (a config-preserving pause via useSaveAgentShare)." },
+    error: { type: "Error | null", description: "Error from the last failed delete, or `null` when healthy." },
+    isDeleting: { type: "boolean", description: "`true` while the delete request is in flight." },
   }}
 />
 
 ```tsx
-const externalShare = useCreateExternalShareLink({
-  agent,
-  viewerOrg: activeOrgSlug,
-  buildShareUrl,
-  onSharingChanged: refetch,
-});
-// ...
-<ResourceDetailShell actions={[...actions, externalShare.action].filter(Boolean)} ... />
-{externalShare.dialog}
+const { deleteShare, isDeleting } = useDeleteAgentShare();
+
+const handleDelete = async () => {
+  await deleteShare(share.metadata.id);
+  refetch(); // refresh the share list
+};
 ```
 
 
@@ -179,26 +192,27 @@ const updated = await rotateShareLink();
 
 ### useSaveAgentShare
 
-Behavior hook that persists an agent's canonical share configuration.
+Behavior hook that persists an agent share's configuration.
 
 Commits via `stigmer.agentShare.apply()` — an idempotent upsert keyed
 on the share's `(org, slug)` identity — so one code path serves both
-the first enable (creates the share; the server authorizes on the
-referenced agent's `can_edit`) and every later edit. There is
-deliberately no create/update branching: the share slug is unique per
-org and defaults to the agent's slug, which makes apply-by-identity
-exact, and the generated `AgentShareInput` carries no `metadata.id`
-for an update to route by anyway.
+creation (the server authorizes on the referenced agent's `can_edit`)
+and every later edit. There is deliberately no create/update
+branching: the share slug is unique per org, which makes
+apply-by-identity exact, and the generated `AgentShareInput` carries
+no `metadata.id` for an update to route by anyway. A create that
+collides on `(org, slug)` rejects with an already-exists error rather
+than touching the existing share.
 
 Disabling is a save with `enabled: false` — a config-preserving pause
 (decision 011 D1). Deleting the share is a separate, destructive
-operation this hook does not perform.
+operation ([`useDeleteAgentShare`](#usedeleteagentshare)).
 
-`shareOrg` selects which org's channel a first save creates and
-defaults to the agent's own org. Pass the viewer's org to create a
-**cross-org share** (decision 013) — the server then authorizes on the
-public agent's `can_execute` plus `can_create_agent_share` in the
-sharing org, and bills that org.
+`shareOrg` selects which org owns a created share and defaults to the
+agent's own org. Pass the viewer's org to create a **cross-org
+share** (decision 013) — the server then authorizes on the public
+agent's `can_execute` plus `can_create_agent_share` in the sharing
+org, and bills that org.
 
 Pass `null` for `agent` to produce a stable no-op (useful while the
 agent is still loading).
@@ -222,65 +236,15 @@ function useSaveAgentShare(agent: Agent | null, shareOrg?: string): UseSaveAgent
   type={{
     error: { type: "Error | null", description: "The last error from the RPC, or `null`." },
     isPending: { type: "boolean", description: "`true` while the RPC is in flight." },
-    save: { type: "(draft: AgentShareDraft, current: AgentShare | null) => Promise<AgentShare | undefined>", description: "Persist the complete share configuration. Resolves with the persisted AgentShare — adopt it as the new baseline (its `status.shareLinkToken` carries the live link token).  `current` is the share being edited, or `null` when the agent has never been shared — the save then creates the canonical share." },
+    save: { type: "(draft: AgentShareDraft, current: AgentShare | null, createIdentity?: AgentShareCreateIdentity) => Promise<AgentShare | undefined>", description: "Persist the complete share configuration. Resolves with the persisted AgentShare — adopt it as the new baseline (its `status.shareLinkToken` carries the live link token).  `current` is the share being edited, or `null` to create one — named by `createIdentity` when given, else the server's defaults (the agent's own name and slug)." },
   }}
 />
 
 ```tsx
-const { share } = useAgentShare(agent);
 const { save, isPending } = useSaveAgentShare(agent);
 
-const persisted = await save({ ...draft, enabled: true }, share);
+const persisted = await save({ ...draftFromShare(share), enabled: true }, share);
 // persisted.status.shareLinkToken is the live link token
-```
-
-
-### useShareAgent
-
-Wires the Share dialog to a kebab/overflow menu — the same trigger
-shape as [`useManageAccess`](/docs/sdk/react/access#usemanageaccess), its conceptual sibling: Manage access
-governs who can *read* the blueprint; Share governs who can *chat* with
-the running agent (billed to the owning org).
-
-Owns the open-state and the `can_edit` gate — the same permission the
-AgentShare create/apply handlers enforce on the referenced agent, so
-the action never appears to a user whose changes would be rejected.
-Returns a `null` action while the agent is loading or the user cannot
-edit, so the host can unconditionally fold `action` into its actions
-array.
-
-**Signature**
-
-```tsx
-function useShareAgent(options: UseShareAgentArgs): UseShareAgentReturn
-```
-
-<TypeTable
-  type={{
-    options: { type: "UseShareAgentArgs", description: "", required: true },
-  }}
-/>
-
-**Returns** — `UseShareAgentReturn`
-
-<TypeTable
-  type={{
-    action: { type: "DetailAction | null", description: "A ready-to-spread DetailAction for a kebab/overflow menu, or `null` when the agent is unavailable or the user lacks `can_edit`. Lives in the `\"sharing\"` group, beside \"Manage access\"." },
-    dialog: { type: "ReactNode", description: "The ShareAgentDialog node — render it once in the host tree." },
-    isOpen: { type: "boolean", description: "Whether the dialog is currently open." },
-    open: { type: "() => void", description: "Imperatively open the dialog." },
-  }}
-/>
-
-```tsx
-const share = useShareAgent({
-  agent,
-  buildShareUrl: (org, slug) => `${appOrigin}/chat/${org}/${slug}`,
-  onSharingChanged: refetch,
-});
-// ...
-<ResourceDetailShell actions={share.action ? [...actions, share.action] : actions} ... />
-{share.dialog}
 ```
 
 
@@ -391,30 +355,67 @@ function useShareToolReadiness(agent: Agent, draft: AgentShareDraft): ShareToolR
 
 ## Components
 
+### AgentShareList
+
+Management surface for an agent's `AgentShare` channels — the
+agent analog of [`AgentInstanceList`](/docs/sdk/react/agent-instance#agentinstancelist), rendered in the agent
+detail view's Shares tab.
+
+Lists every share the viewer can see (the server FGA-filters
+`getByAgent`, so each org's members see their own org's channels and
+never another org's — decision 013), with per-row copy link, edit,
+pause/resume, reset link, and delete. Creation goes through the same
+[`ShareAgentDialog`](#shareagentdialog) and always lands in the viewer's active org;
+the create bar mirrors the server's via
+[`useCanCreateAgentShare`](#usecancreateagentshare), so the button never appears to a user
+whose create would be refused.
+
+Self-contained: owns its dialog, its confirmation prompts, and its
+refetch-after-mutation — hosts render it with just the agent and the
+URL builder.
+
+This is an SDK component (DD-001) — embeddable by platform builders.
+
+**Props** — `AgentShareListProps`
+
+<TypeTable
+  type={{
+    agent: { type: "Agent", description: "The agent whose shares are managed.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
+    buildShareUrl: { type: "(org: string, slug: string) => string", description: "Builds the absolute public chat URL for a share. The host application owns URL construction (its configured public origin may differ from the rendering origin — e.g. the desktop app). When omitted, links fall back to the relative `/chat/<org>/<slug>`." },
+    className: { type: "string", description: "Additional CSS class names." },
+    viewerOrg: { type: "string", description: "The viewer's active organization slug. A share created from this list lands in this org — its URL, billing, and credentials belong to it (a **cross-org share** when it differs from the agent's org, decision 013). Omit to default to the agent's own org." },
+  }}
+/>
+
+
 ### ShareAgentDialog
 
-The Share dialog for an agent: toggle sharing, copy the hosted chat
-link, copy an embeddable snippet, manage allowed embed origins, bind
-tool credentials for visitors, customize visitor refusal messages,
-and discover the PlatformClient SDK path.
+The Share dialog for one agent share: create it (name/slug step), then
+toggle serving, copy the hosted chat link, copy an embeddable snippet,
+manage allowed embed origins, bind tool credentials for visitors,
+customize visitor refusal messages, and discover the PlatformClient
+SDK path.
 
 Sharing is a distinct consent from marketplace visibility: visibility
 governs who can *read* the blueprint; sharing governs who can *chat*
-with the running agent — billed to the owning org. The dialog states
-who pays next to the toggle so enabling sharing never surprises.
+with the running agent — billed to the org that owns the share. The
+dialog states who pays before creation and next to the toggle, so
+sharing never surprises.
 
-Sharing lives in its own **AgentShare resource** (decision 011), so
-the dialog loads the agent's canonical share when it opens and every
-save is an idempotent `apply` of the complete configuration — the
-first enable creates the share, later edits update it, one code path
-(see [`useSaveAgentShare`](#usesaveagentshare)). The local draft is refreshed from
-every returned share, so the dialog never drifts from the server.
+Sharing lives in its own **AgentShare resource** (decision 011), and
+an agent can carry N shares — each its own channel with its own URL,
+audience, origins, credentials, and link token (D3). The dialog edits
+exactly the share it is given; it never resolves "the" share of an
+agent. Every save is an idempotent `apply` of the complete
+configuration ([`useSaveAgentShare`](#usesaveagentshare)), and the local draft is
+refreshed from every returned share, so the dialog never drifts from
+the server.
 
 Built on the native `<dialog>` element for focus trapping and escape
 handling, matching the SDK's modal convention ([`ManageAccessDialog`](/docs/sdk/react/access#manageaccessdialog)).
 All visual properties flow through `--stgm-*` design tokens.
 
-Most hosts mount it via [`useShareAgent`](#useshareagent) (a kebab-menu action).
+Most hosts mount it via [`AgentShareList`](#agentsharelist) (the Shares tab).
 Render it directly only when you own the open-state.
 
 **Props** — `ShareAgentDialogProps`
@@ -425,9 +426,10 @@ Render it directly only when you own the open-state.
     buildShareUrl: { type: "(org: string, slug: string) => string", description: "Builds the absolute public chat URL for the shared agent. The host application owns URL construction (its configured public origin may differ from the rendering origin — e.g. the desktop app). When omitted, falls back to the relative path `/chat/<org>/<slug>`." },
     modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — no `showModal()`, no backdrop, no focus trap. For embedding the dialog in a constrained surface (documentation demos, visual tests). Interactive hosts keep the default." },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should open or close.", required: true },
-    onSharingChanged: { type: "() => void", description: "Called after any sharing change is persisted. Hosts typically pass the agent data hook's `refetch`." },
+    onSharingChanged: { type: "() => void", description: "Called after any sharing change is persisted. Hosts typically pass the share list's `refetch`." },
     open: { type: "boolean", description: "Whether the dialog is open.", required: true },
-    shareOrg: { type: "string", description: "The org that owns (and pays for) the share. Defaults to the agent's own org — the owner's channel. Pass the viewer's org to manage a **cross-org share** of another org's marketplace-public agent (decision 013): the share, its billing, its credentials, and its hosted URL all belong to this org, while the agent stays live in its own. Cross-org shares are public-audience only, so the audience selector is hidden in that mode." },
+    share: { type: "AgentShare | null", description: "The exact share to edit. When omitted, the dialog opens in **create mode**: a name/slug step creates a new share in `shareOrg`, then the dialog becomes its editor. The share's identity is immutable once created (decision 011 D2) — edit mode never renames." },
+    shareOrg: { type: "string", description: "The org that owns (and pays for) a share created by this dialog. Defaults to the agent's own org — the owner's channel. Pass the viewer's org to create a **cross-org share** of another org's marketplace-public agent (decision 013): the share, its billing, its credentials, and its hosted URL all belong to this org, while the agent stays live in its own. Cross-org shares are public-audience only, so the audience selector is hidden in that mode. Ignored in edit mode — an existing share knows its org." },
   }}
 />
 
@@ -486,6 +488,20 @@ const client = useMemo(
 
 ## Types
 
+### AgentShareCreateIdentity
+
+Identity for a share being created: its display name and URL slug in
+the sharing org's namespace. Only consulted when `current` is `null`
+— an existing share's identity is immutable (decision 011 D2).
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "Display name for the new share.", required: true },
+    slug: { type: "string", description: "URL slug for the new share — appears in `/chat/<org>/<slug>`.", required: true },
+  }}
+/>
+
+
 ### AgentShareDraft
 
 A complete share configuration to persist.
@@ -507,6 +523,24 @@ every save verbatim.)
     messages: { type: "{ conversationEnded: string; rateLimited: string; unavailable: string }", description: "Owner-customized visitor refusal copy. Empty strings mean platform defaults.", required: true },
   }}
 />
+
+
+### draftFromShare
+
+Projects a share into the editable [`AgentShareDraft`](#agentsharedraft) — the
+single constructor for the full-spec drafts every save requires.
+`null` (no share yet) seeds the same defaults the server would apply
+on first create.
+
+Shared by the Share dialog (draft seeding) and the share list's
+pause/resume toggle, so a toggle rebuilds the complete spec with only
+`enabled` flipped and can never wipe origins, messages, or credential
+bindings — the fails-closed posture [`AgentShareDraft`](#agentsharedraft) exists to
+enforce.
+
+```tsx
+function draftFromShare(share: AgentShare | null): AgentShareDraft
+```
 
 
 ### ShareToolReadiness
@@ -545,35 +579,6 @@ explicit audience is an anyone-with-link share).
 ```tsx
 function sharingAudienceFromProto(audience: AgentShareAudience | undefined): SharingAudience
 ```
-
-
-### UseCreateExternalShareLinkArgs
-
-Arguments for [`useCreateExternalShareLink`](#usecreateexternalsharelink).
-
-<TypeTable
-  type={{
-    agent: { type: "Agent | null", description: "The agent to share, or `null` while it is still loading. When `null`, UseCreateExternalShareLinkReturn.action is `null` and the dialog renders nothing — safe to call before the resource is ready.", required: true },
-    buildShareUrl: { type: "(org: string, slug: string) => string", description: "Builds the absolute public chat URL for the shared agent. Same contract as useShareAgent: the host application owns URL construction. When omitted, the dialog falls back to the relative `/chat/<org>/<slug>`." },
-    label: { type: "string", description: "Menu-item label." },
-    onSharingChanged: { type: "() => void", description: "Called after any sharing change is persisted." },
-    viewerOrg: { type: "string", description: "The viewer's own organization — the org that would own the external share, pay for its traffic, and host its URL. When empty or equal to the agent's org, the action is `null` (the same-org Share entry from useShareAgent covers that case).", required: true },
-  }}
-/>
-
-
-### UseShareAgentArgs
-
-Arguments for [`useShareAgent`](#useshareagent).
-
-<TypeTable
-  type={{
-    agent: { type: "Agent | null", description: "The agent whose sharing is managed, or `null` while it is still loading. When `null`, UseShareAgentReturn.action is `null` and the dialog renders nothing — safe to call before the resource is ready.", required: true },
-    buildShareUrl: { type: "(org: string, slug: string) => string", description: "Builds the absolute public chat URL for the shared agent. The host application owns URL construction (its configured public origin may differ from the rendering origin — e.g. the desktop app). When omitted, the dialog falls back to the relative `/chat/<org>/<slug>`." },
-    label: { type: "string", description: "Menu-item label." },
-    onSharingChanged: { type: "() => void", description: "Called after any sharing change is persisted. Hosts typically pass the agent data hook's `refetch`." },
-  }}
-/>
 
 
 ### UseSharedAgentProfileOptions
