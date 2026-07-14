@@ -34,6 +34,10 @@ specifying a Harness, it uses native.
   [Runners](/docs/concepts/runners) pick up work,
   [approval flows](/docs/concepts/approval-flows) gate tool calls, and
   [Skills](/docs/concepts/skills) inject domain knowledge.
+- Shell command execution on local Workspaces through the `execute` tool.
+  Commands run on the host machine attached to the runner, and every command
+  goes through the same approval gate as other mutating tools. Plan mode
+  (read-only Sessions) does not expose shell execution.
 
 The native Harness is the right choice for most workloads. It gives you the
 widest model catalog and the deepest platform integration.

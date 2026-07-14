@@ -11,11 +11,15 @@
  * - Filter parent MCP tools: no reconnection overhead, stateless servers are the norm
  * - Prompt injection for skills: FilesystemBackend incompatible with native skills field
  * - Built-in explore/shell subagents use prompt-based tool restriction
+ * - Built-in general-purpose replaces deepagents' auto-injected one (which carries
+ *   no approval gate — see deepagents-profiles.ts for the suppression half)
+ * - Sub-agent backends are shell-capable outside plan mode (issue #248), mirroring
+ *   the parent's backend selection in setup.ts
  * - Invalid configurations are logged and skipped (graceful degradation)
  * - Empty subagent list returns null (no subagents configured)
  */
 
-import { createDeepAgent, FilesystemBackend } from "deepagents";
+import { createDeepAgent, FilesystemBackend, LocalShellBackend, DEFAULT_GENERAL_PURPOSE_DESCRIPTION, DEFAULT_SUBAGENT_PROMPT } from "deepagents";
 import type { CompiledSubAgent } from "deepagents";
 import type { StructuredTool } from "@langchain/core/tools";
 import type { RunnableConfig } from "@langchain/core/runnables";
@@ -26,7 +30,7 @@ import type { SubAgent, McpServerUsage } from "@stigmer/protos/ai/stigmer/agenti
 import type { WorkspaceBackend } from "../../shared/workspace/types.js";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
-import { CasCaptureFilesystemBackend } from "./cas-capture-backend.js";
+import { createCasCaptureBackend } from "./cas-capture-backend.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
 import type { CostCapMiddleware, StigmerMiddleware } from "../../middleware/index.js";
 import { createThinkTool } from "../../middleware/index.js";
@@ -44,7 +48,11 @@ import {
 // Built-in subagent types and prompts
 // =========================================================================
 
-export const BUILTIN_SUBAGENT_TYPES: ReadonlySet<string> = new Set(["explore", "shell"]);
+export const BUILTIN_SUBAGENT_TYPES: ReadonlySet<string> = new Set([
+  "explore",
+  "shell",
+  "general-purpose",
+]);
 
 const EXPLORE_SYSTEM_PROMPT = `\
 You are an exploration specialist. Your ONLY job is to explore codebases \
@@ -159,6 +167,13 @@ export interface SubagentTransformOptions {
    * model name string is passed to deepagents directly.
    */
   readonly modelFactory?: (modelName: string) => Promise<BaseChatModel>;
+  /**
+   * Per-execution env for the sub-agent `execute` tool, snapshotted in setup
+   * (see shell-env.ts). Presence is the single switch for shell capability:
+   * undefined (plan mode) compiles sub-agents onto non-shell filesystem
+   * backends, exactly like the parent's backend selection.
+   */
+  readonly shellEnv?: Record<string, string>;
 }
 
 // =========================================================================
@@ -166,18 +181,28 @@ export interface SubagentTransformOptions {
 // =========================================================================
 
 /**
- * Create built-in explore and shell subagent specifications.
+ * Create built-in explore, shell, and general-purpose subagent specifications.
  *
- * Built-in subagents receive:
- * - The full deepagents built-in tool set (from FilesystemBackend) restricted via prompt
+ * explore and shell receive:
+ * - The full deepagents built-in tool set restricted via prompt
  * - Purpose-built system prompts with explicit scope boundaries
  * - No skills, no MCP tools, no parent prompt inheritance
+ *
+ * general-purpose is the gated replacement for the sub-agent deepagents would
+ * otherwise auto-inject WITHOUT our approval gate (suppressed process-wide in
+ * deepagents-profiles.ts; supplying our own under the same name is the
+ * documented override path). It uses deepagents' own description/prompt so the
+ * model's delegation behavior is unchanged, and receives the parent's MCP tools
+ * for capability parity with the injected original. Conscious simplification:
+ * the parent's skills prompt is NOT inherited — a sub-agent needing skills
+ * should be declared explicitly in the Agent spec.
  *
  * Returns an empty array if no workspace is configured (subagents need
  * workspace tools to be useful).
  */
 export function createBuiltinSubagents(
   hasWorkspace: boolean,
+  parentMcpTools: readonly StructuredTool[] = [],
 ): TransformedSubagent[] {
   if (!hasWorkspace) {
     return [];
@@ -185,7 +210,17 @@ export function createBuiltinSubagents(
 
   const result: TransformedSubagent[] = [];
 
-  for (const subagentType of ["explore", "shell"] as const) {
+  for (const subagentType of ["explore", "shell", "general-purpose"] as const) {
+    if (subagentType === "general-purpose") {
+      result.push({
+        name: "general-purpose",
+        description: DEFAULT_GENERAL_PURPOSE_DESCRIPTION,
+        systemPrompt: DEFAULT_SUBAGENT_PROMPT + RESPONSE_RULES,
+        tools: [...parentMcpTools],
+      });
+      continue;
+    }
+
     const prompt = BUILTIN_PROMPTS.get(subagentType);
     const description = BUILTIN_DESCRIPTIONS.get(subagentType);
     if (!prompt || !description) continue;
@@ -409,10 +444,50 @@ export function resolveSubagentSkillPrompt(
 // =========================================================================
 
 /**
+ * Select a sub-agent's deepagents backend, mirroring the parent's selection in
+ * setup.ts along two independent axes:
+ *
+ * - CAS observation (capture mode): when a shared observer is supplied, the
+ *   backend records pre-turn bytes of CAS-owned paths so the sub-agent's
+ *   gitignored writes fold into the parent turn's change set (DD-19). Without
+ *   one, writes stay on the classic gitignored deny-gate.
+ * - Shell capability (issue #248): when `shellEnv` is present the backend
+ *   implements deepagents' sandbox protocol so the `execute` tool exists
+ *   (approval-gated by the sub-agent's own middleware). Absent (plan mode),
+ *   the backend is filesystem-only — read-only by construction, matching the
+ *   parent.
+ */
+async function buildSubagentBackend(opts: {
+  readonly workspaceRootDir: string;
+  readonly casObserver?: CasCaptureObserver;
+  readonly shellEnv?: Record<string, string>;
+}): Promise<FilesystemBackend> {
+  if (opts.casObserver) {
+    return createCasCaptureBackend({
+      rootDir: opts.workspaceRootDir,
+      observer: opts.casObserver,
+      shellEnv: opts.shellEnv,
+    });
+  }
+
+  if (opts.shellEnv === undefined) {
+    return new FilesystemBackend({ rootDir: opts.workspaceRootDir });
+  }
+
+  const shellBackend = new LocalShellBackend({
+    rootDir: opts.workspaceRootDir,
+    env: opts.shellEnv,
+  });
+  await shellBackend.initialize();
+  return shellBackend;
+}
+
+/**
  * Compile transformed subagent specifications into CompiledSubAgent instances.
  *
  * Each subagent gets:
- * - Its own agent graph (via createDeepAgent with FilesystemBackend sharing the workspace)
+ * - Its own agent graph sharing the parent's workspace root (shell-capable
+ *   outside plan mode; see {@link buildSubagentBackend})
  * - Per-subagent middleware (loop detection, budget, truncation, cost cap view)
  * - Concurrency gating via shared SubAgentGate
  */
@@ -426,6 +501,8 @@ export async function compileSubagents(
     /** Shared CAS observer (capture mode only); see {@link SubagentTransformOptions.casObserver}. */
     readonly casObserver?: CasCaptureObserver;
     readonly modelFactory?: (modelName: string) => Promise<BaseChatModel>;
+    /** Shell env for `execute`; see {@link SubagentTransformOptions.shellEnv}. */
+    readonly shellEnv?: Record<string, string>;
   },
 ): Promise<CompiledSubAgent[]> {
   if (transformed.length === 0) return [];
@@ -453,15 +530,7 @@ export async function compileSubagents(
       // no-proxy paths).
       const model = opts.modelFactory ? await opts.modelFactory(modelName) : modelName;
 
-      // Capture mode: a CAS-observing backend wired to the shared observer, so
-      // the sub-agent's gitignored writes are captured (same class the parent
-      // uses). Otherwise the plain backend + classic gitignored deny-gate.
-      const backend = opts.casObserver
-        ? new CasCaptureFilesystemBackend(
-            { rootDir: opts.workspaceRootDir },
-            { observer: opts.casObserver },
-          )
-        : new FilesystemBackend({ rootDir: opts.workspaceRootDir });
+      const backend = await buildSubagentBackend(opts);
 
       const agentGraph = await createDeepAgent({
         model,
@@ -469,7 +538,6 @@ export async function compileSubagents(
         tools: spec.tools.length > 0 ? spec.tools : undefined,
         middleware: middleware as unknown[],
         backend,
-        generalPurposeAgent: false,
       } as Parameters<typeof createDeepAgent>[0]);
 
       const gatedRunnable = gate.wrapRunnable(
@@ -507,7 +575,7 @@ export async function compileSubagents(
  * Transform proto SubAgents and compile into CompiledSubAgent instances.
  *
  * This is the main entry point called from setup.ts. It orchestrates:
- * 1. Built-in subagent creation (explore + shell)
+ * 1. Built-in subagent creation (explore, shell, general-purpose)
  * 2. Per-subagent transformation (proto → TransformedSubagent)
  * 3. MCP tool filtering per subagent
  * 4. Skill resolution and prompt injection (Session 2)
@@ -531,6 +599,7 @@ export async function transformAndCompileSubagents(
     parentHasNativeThinking,
     costCap,
     modelFactory,
+    shellEnv,
   } = options;
 
   if (subAgents.length === 0 && !workspaceBackend.rootDir) {
@@ -543,7 +612,10 @@ export async function transformAndCompileSubagents(
   );
 
   // Step 1: Create built-in subagents
-  const builtins = createBuiltinSubagents(!!workspaceBackend.rootDir);
+  const builtins = createBuiltinSubagents(
+    !!workspaceBackend.rootDir,
+    parentMcpTools,
+  );
 
   // Step 1b: Batch fetch all skills referenced by subagents
   const allSkillRefs = collectAllSkillRefs(subAgents);
@@ -645,6 +717,7 @@ export async function transformAndCompileSubagents(
     workspaceRootDir: workspaceBackend.rootDir,
     casObserver,
     modelFactory,
+    shellEnv,
   });
 
   if (compiled.length === 0) {

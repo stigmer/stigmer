@@ -195,6 +195,11 @@ export async function createStigmerRunnerManager(
 ): Promise<StigmerRunnerManager> {
   validateManagerOptions(options);
 
+  const { registerStigmerDeepagentsProfiles } = await import(
+    "./activities/execute-deep-agent/deepagents-profiles.js"
+  );
+  registerStigmerDeepagentsProfiles();
+
   // `tokenRef` holds the control-plane token (the host's durable credential,
   // e.g. the desktop's Auth0 token) and is shared with activity clients via
   // config.stigmerTokenRef. The proxy credential (x-stigmer-auth) is managed
