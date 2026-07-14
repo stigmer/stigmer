@@ -482,7 +482,7 @@ All visual properties flow through `--stgm-*` design tokens.
     org: { type: "string", description: "Organization slug that owns the agent.", required: true },
     primaryAction: { type: "DetailAction", description: "Primary action rendered as a visible button in the header area. Typically \"Edit\" for agent detail pages.", typeDescriptionLink: "/docs/sdk/react/resource-detail#detailaction" },
     slug: { type: "string", description: "Agent slug (URL-friendly identifier unique within the org).", required: true },
-    viewerOrg: { type: "string", description: "The viewer's active organization slug, feeding the Shares tab: a share created there lands in this org — its URL, billing, and credentials — which for another org's marketplace-public agent is a **cross-org share** (decision 013). Omit to default share creation to the agent's own org." },
+    viewerOrg: { type: "string", description: "The viewer's active organization slug, feeding the Shares and Instances tabs. It scopes both lists to this org's rows (a member of several orgs sees the current org context only), and a share created in the Shares tab lands in this org — its URL, billing, and credentials — which for another org's marketplace-public agent is a **cross-org share** (decision 013). Omit to default to the agent's own org." },
   }}
 />
 

@@ -50,6 +50,13 @@
       "components": 7
     },
     {
+      "slug": "button",
+      "title": "button",
+      "description": "",
+      "hooks": 0,
+      "components": 1
+    },
+    {
       "slug": "composer",
       "title": "Composer",
       "description": "The unified message input with model selection, workspace, and attachments.",

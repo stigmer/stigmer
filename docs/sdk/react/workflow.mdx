@@ -1278,23 +1278,29 @@ const { instance, isLoading } = useWorkflowInstance(selectedInstanceId);
 
 ### useWorkflowInstances
 
-Data hook that fetches all instances for a specific workflow.
+Data hook that fetches instances for a specific workflow.
 
 Wraps `stigmer.workflowInstance.getByWorkflow()` with loading
 and error state management. Used on the Workflow detail page
 "Instances" tab to show environment-bound deployments.
+
+Pass `org` to scope the list to one organization's instances — the
+org-context view a console tab needs. The server applies the scope
+(it only ever narrows the permission-bounded view); omit `org` for
+the full permission-bounded list.
 
 Pass `null` as `workflowId` to skip fetching (stable no-op).
 
 **Signature**
 
 ```tsx
-function useWorkflowInstances(workflowId: string | null | undefined): UseWorkflowInstancesReturn
+function useWorkflowInstances(workflowId: string | null | undefined, org?: string): UseWorkflowInstancesReturn
 ```
 
 <TypeTable
   type={{
     workflowId: { type: "string | null | undefined", description: "", required: true },
+    org: { type: "string", description: "" },
   }}
 />
 
@@ -1311,7 +1317,7 @@ function useWorkflowInstances(workflowId: string | null | undefined): UseWorkflo
 />
 
 ```tsx
-const { instances, isLoading } = useWorkflowInstances(workflow.metadata?.id);
+const { instances, isLoading } = useWorkflowInstances(workflow.metadata?.id, viewerOrg);
 ```
 
 
@@ -1622,6 +1628,7 @@ All visual properties flow through `--stgm-*` design tokens.
     org: { type: "string", description: "Organization slug that owns the workflow.", required: true },
     primaryAction: { type: "DetailAction", description: "Primary action rendered as a visible button in the header area.", typeDescriptionLink: "/docs/sdk/react/resource-detail#detailaction" },
     slug: { type: "string", description: "Workflow slug (URL-friendly identifier unique within the org).", required: true },
+    viewerOrg: { type: "string", description: "The viewer's active organization slug, feeding the Instances tab: it scopes the list to this org's instances of the workflow, so a member of several orgs sees the current org context only. Omit to default to the workflow's own org." },
   }}
 />
 
@@ -1687,12 +1694,15 @@ Empty state shown in the Instances tab when no user-created instances exist.
 Communicates the value proposition of workflow instances without
 mentioning the platform-managed default instance (implementation detail).
 
+A thin composition over the shared `EmptyState` primitive: only the
+icon and copy are specific to workflow instances.
+
 **Props** — `WorkflowInstanceEmptyStateProps`
 
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names." },
-    onCreateClick: { type: "() => void", description: "Called when the user clicks \"Create Instance\"." },
+    onCreateClick: { type: "() => void", description: "Called when the user clicks \"Create instance\"." },
   }}
 />
 
@@ -1714,8 +1724,9 @@ This is an SDK component (DD-001) — embeddable by platform builders.
     onDeleteClick: { type: "(instance: WorkflowInstance) => void", description: "Called when the user clicks \"Delete\" on an instance." },
     onInstanceClick: { type: "(instance: WorkflowInstance) => void", description: "Called when the user clicks an instance row." },
     onRunClick: { type: "(instance: WorkflowInstance) => void", description: "Called when the user clicks \"Run\" on an instance." },
-    org: { type: "string", description: "Organization slug (needed for environment resolution and create flow).", required: true },
+    org: { type: "string", description: "The WORKFLOW's organization slug (needed for environment resolution and the create flow). Not the list scope — that is `viewerOrg`, which differs from `org` when viewing another org's workflow.", required: true },
     refreshKey: { type: "number", description: "Increment this value to trigger a refetch of the instance list. Useful after creating or deleting an instance externally." },
+    viewerOrg: { type: "string", description: "The viewer's active organization slug. Scopes the list to this org's instances of the workflow, so a member of several orgs sees exactly the current org context's instances. Omit to default to the workflow's own org." },
     workflowId: { type: "string", description: "Workflow resource ID to list instances for.", required: true },
   }}
 />

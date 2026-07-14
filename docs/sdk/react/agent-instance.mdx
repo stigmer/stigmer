@@ -105,11 +105,18 @@ const { agentInstances, isLoading } = useAgentInstanceList("acme", {
 
 ### useAgentInstances
 
-Data hook that fetches all instances for a specific agent.
+Data hook that fetches instances for a specific agent.
 
 Wraps `stigmer.agentInstance.getByAgent()` with loading and error
 state management. Used on the Agent detail page "Instances" tab to
 show environment-bound deployments of the agent blueprint.
+
+Pass `org` to scope the list to one organization's instances — the
+org-context view a console tab needs. Permissions alone cannot provide
+this scope: a member of several orgs can view all of their orgs'
+instances of the agent, so the unscoped list merges them. The server
+applies the scope (it only ever narrows the permission-bounded view);
+omit `org` for the full permission-bounded list.
 
 Pass `null` as `agentId` to skip fetching (stable no-op).
 
@@ -120,12 +127,13 @@ entries live under `items` (unlike WorkflowInstance, which uses
 **Signature**
 
 ```tsx
-function useAgentInstances(agentId: string | null | undefined): UseAgentInstancesReturn
+function useAgentInstances(agentId: string | null | undefined, org?: string): UseAgentInstancesReturn
 ```
 
 <TypeTable
   type={{
     agentId: { type: "string | null | undefined", description: "", required: true },
+    org: { type: "string", description: "" },
   }}
 />
 
@@ -142,7 +150,7 @@ function useAgentInstances(agentId: string | null | undefined): UseAgentInstance
 />
 
 ```tsx
-const { instances, isLoading } = useAgentInstances(agent.metadata?.id);
+const { instances, isLoading } = useAgentInstances(agent.metadata?.id, viewerOrg);
 ```
 
 
@@ -377,12 +385,15 @@ the platform-managed default instance (an implementation detail). For
 agents, an instance is a reusable, environment-bound deployment you can
 start sessions against — and share with your team.
 
+A thin composition over the shared `EmptyState` primitive: only the
+icon and copy are specific to agent instances.
+
 **Props** — `AgentInstanceEmptyStateProps`
 
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names." },
-    onCreateClick: { type: "() => void", description: "Called when the user clicks \"Create Instance\"." },
+    onCreateClick: { type: "() => void", description: "Called when the user clicks \"Create instance\"." },
   }}
 />
 
@@ -410,8 +421,9 @@ This is an SDK component (DD-001) — embeddable by platform builders.
     onDeleteClick: { type: "(instance: AgentInstance) => void", description: "Called when the user clicks \"Delete\" on an instance." },
     onInstanceClick: { type: "(instance: AgentInstance) => void", description: "Called when the user clicks an instance row (opens detail)." },
     onStartSessionClick: { type: "(instance: AgentInstance) => void", description: "Called when the user clicks \"Start session\" on an instance." },
-    org: { type: "string", description: "Organization slug (needed for environment resolution and create flow).", required: true },
+    org: { type: "string", description: "The AGENT's organization slug (needed for environment resolution and the create flow). Not the list scope — that is `viewerOrg`, which differs from `org` when viewing another org's agent.", required: true },
     refreshKey: { type: "number", description: "Increment this value to trigger a refetch of the instance list. Useful after creating or deleting an instance externally." },
+    viewerOrg: { type: "string", description: "The viewer's active organization slug. Scopes the list to this org's instances of the agent, so a member of several orgs sees exactly the current org context's instances. Omit to default to the agent's own org." },
   }}
 />
 
