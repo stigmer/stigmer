@@ -25,6 +25,7 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/session"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/proto"
 )
 
 // Context keys for inter-step communication
@@ -32,6 +33,12 @@ const (
 	DefaultInstanceIDKey = "default_instance_id"
 	CreatedSessionIDKey  = "created_session_id"
 )
+
+// autoCreatedSessionSubject is the sentinel subject written on auto-created
+// sessions. The GenerateSessionSubject activity replaces it with an
+// LLM-generated title; display paths filter it (see PENDING_SUBJECT in
+// sdk/typescript/src/session.ts and ResolvedSubject in the Go CLI).
+const autoCreatedSessionSubject = "Auto-created session"
 
 // Create creates a new agent execution using the pipeline framework
 //
@@ -110,7 +117,12 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 // The default agent is a platform-level concept: an agent in the stigmer org
 // labeled stigmer.ai/default-agent: "true" with visibility_public.
 //
-// If session_id or agent_id is already provided, this step is a no-op.
+// If session_id, agent_id, or session_spec.agent_instance_id is already
+// provided, this step is a no-op. The session_spec case matters: a one-call
+// bootstrap with an explicit instance needs no default-agent lookup, and
+// resolving one anyway would stamp the default agent's ID onto
+// execution.spec.agent_id — misleading metadata pointing at an agent the
+// session does not run against.
 type resolveDefaultAgentStep struct {
 	store store.Store
 }
@@ -127,8 +139,9 @@ func (s *resolveDefaultAgentStep) Execute(ctx *pipeline.RequestContext[*agentexe
 	execution := ctx.Input()
 	sessionID := execution.GetSpec().GetSessionId()
 	agentID := execution.GetSpec().GetAgentId()
+	specInstanceID := execution.GetSpec().GetSessionSpec().GetAgentInstanceId()
 
-	if sessionID != "" || agentID != "" {
+	if sessionID != "" || agentID != "" || specInstanceID != "" {
 		return nil
 	}
 
@@ -184,18 +197,22 @@ func (s *resolveDefaultAgentStep) Execute(ctx *pipeline.RequestContext[*agentexe
 	return nil
 }
 
-// ensureSessionOrAgentResolvedStep asserts the post-condition that a session or
-// agent reference has been resolved by the time the pipeline reaches this point.
+// ensureSessionOrAgentResolvedStep asserts the post-condition that a session,
+// agent, or embedded-session-spec instance reference has been resolved by the
+// time the pipeline reaches this point.
 //
 // This is an invariant guard, NOT input validation. "Neither session_id nor
 // agent_id" is a valid request shape (session-first UX); ResolveDefaultAgent
 // runs first and guarantees one of two outcomes: it resolves a reference onto
 // newState, or it returns an error (NotFound / FailedPrecondition) that
-// short-circuits the pipeline before this step runs. Reaching this step with
-// neither set is therefore a server-side programming error (e.g. a future step
-// reordering that moves resolution after this guard), not bad client input —
-// hence Internal, not InvalidArgument. This mirrors the invariant-guard idiom in
-// the shared pipeline steps (steps/slug.go, steps/duplicate.go).
+// short-circuits the pipeline before this step runs. A one-call bootstrap
+// (session_spec with an explicit agent_instance_id) is the third valid
+// resolution — the session target is fully specified without either ID.
+// Reaching this step with none of the three set is therefore a server-side
+// programming error (e.g. a future step reordering that moves resolution after
+// this guard), not bad client input — hence Internal, not InvalidArgument.
+// This mirrors the invariant-guard idiom in the shared pipeline steps
+// (steps/slug.go, steps/duplicate.go).
 //
 // Note the deliberate divergence from WorkflowExecution's validateWorkflowOrInstanceStep,
 // which correctly returns InvalidArgument: WorkflowExecution has no "resolve
@@ -216,14 +233,16 @@ func (s *ensureSessionOrAgentResolvedStep) Execute(ctx *pipeline.RequestContext[
 	execution := ctx.NewState()
 	sessionID := execution.GetSpec().GetSessionId()
 	agentID := execution.GetSpec().GetAgentId()
+	specInstanceID := execution.GetSpec().GetSessionSpec().GetAgentInstanceId()
 
 	hasSessionID := sessionID != ""
 	hasAgentID := agentID != ""
+	hasSpecInstanceID := specInstanceID != ""
 
-	if !hasSessionID && !hasAgentID {
-		log.Error().Msg("Invariant violated: neither session_id nor agent_id resolved after ResolveDefaultAgent")
+	if !hasSessionID && !hasAgentID && !hasSpecInstanceID {
+		log.Error().Msg("Invariant violated: no session, agent, or session_spec instance reference resolved after ResolveDefaultAgent")
 		return grpclib.InternalError(
-			fmt.Errorf("neither session_id nor agent_id set after ResolveDefaultAgent"),
+			fmt.Errorf("neither session_id, agent_id, nor session_spec.agent_instance_id set after ResolveDefaultAgent"),
 			"execution target not resolved",
 		)
 	}
@@ -231,6 +250,7 @@ func (s *ensureSessionOrAgentResolvedStep) Execute(ctx *pipeline.RequestContext[
 	log.Debug().
 		Bool("has_session_id", hasSessionID).
 		Bool("has_agent_id", hasAgentID).
+		Bool("has_session_spec_instance_id", hasSpecInstanceID).
 		Msg("Session or agent reference resolved")
 
 	return nil
@@ -239,12 +259,14 @@ func (s *ensureSessionOrAgentResolvedStep) Execute(ctx *pipeline.RequestContext[
 // createDefaultInstanceIfNeededStep creates default agent instance if agent doesn't have one
 //
 // This step:
-// 1. Skips if session_id is provided (no need for agent operations)
-// 2. Loads agent by agent_id
-// 3. Checks if agent has default_instance_id in status
-// 4. If missing, creates default instance (similar to AgentCreateHandler)
-// 5. Updates agent status with default_instance_id
-// 6. Stores default_instance_id in context for next step
+//  1. Skips if session_id is provided (no need for agent operations), or if
+//     session_spec carries an explicit agent_instance_id (the one-call
+//     bootstrap already names the instance the session runs against)
+//  2. Loads agent by agent_id
+//  3. Checks if agent has default_instance_id in status
+//  4. If missing, creates default instance (similar to AgentCreateHandler)
+//  5. Updates agent status with default_instance_id
+//  6. Stores default_instance_id in context for next step
 type createDefaultInstanceIfNeededStep struct {
 	agentClient         *agent.Client
 	agentInstanceClient *agentinstance.Client
@@ -277,6 +299,15 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 		log.Debug().
 			Str("session_id", sessionID).
 			Msg("Session ID already provided, skipping default instance check")
+		return nil
+	}
+
+	// If the embedded session spec names an instance, the session target is
+	// fully specified — no agent load or default-instance creation needed.
+	if specInstanceID := execution.GetSpec().GetSessionSpec().GetAgentInstanceId(); specInstanceID != "" {
+		log.Debug().
+			Str("agent_instance_id", specInstanceID).
+			Msg("session_spec carries an explicit agent instance, skipping default instance check")
 		return nil
 	}
 
@@ -388,11 +419,18 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 // createSessionIfNeededStep creates session if session_id is not provided
 //
 // This step:
-// 1. Skips if session_id is provided
-// 2. Gets default_instance_id from context (set by previous step)
-// 3. Uses the caller's org from execution metadata for session ownership
-// 4. Creates session with default instance ID
-// 5. Updates execution request with created session_id
+//  1. Skips if session_id is provided
+//  2. Builds the new session's spec: a caller-provided session_spec (one-call
+//     bootstrap, stigmer/stigmer#249) is forwarded so the auto-created session
+//     carries workspace_entries, harness, execution_target, etc.; otherwise
+//     the session gets the minimal default spec
+//  3. Fills agent_instance_id from context (set by previous step) when the
+//     spec does not name one, and defaults the subject sentinel when empty
+//  4. Uses the caller's org from execution metadata for session ownership
+//  5. Creates the session and updates the execution request with its ID
+//  6. Clears session_spec on the execution: the Session resource is the single
+//     source of truth for session configuration, so the persisted execution
+//     never carries a second copy that could drift
 type createSessionIfNeededStep struct {
 	sessionClient *session.Client
 }
@@ -420,24 +458,37 @@ func (s *createSessionIfNeededStep) Execute(ctx *pipeline.RequestContext[*agente
 		return nil
 	}
 
+	callerSpec := execution.GetSpec().GetSessionSpec()
+
 	log.Info().
 		Str("agent_id", agentID).
+		Bool("has_session_spec", callerSpec != nil).
 		Msg("Session ID not provided, auto-creating session")
 
-	// 1. Get default_instance_id from context (set by previous step)
-	defaultInstanceID, ok := ctx.Get(DefaultInstanceIDKey).(string)
-	if !ok || defaultInstanceID == "" {
-		log.Error().
-			Str("agent_id", agentID).
-			Msg("DEFAULT_INSTANCE_ID not found in context")
-		return fmt.Errorf("default instance ID not found in context")
+	// 1. Resolve the agent instance when the caller's spec does not name one.
+	// The previous step (CreateDefaultInstanceIfNeeded) resolved it and only
+	// skips when the spec carries an explicit instance, so the context key is
+	// present exactly when it is needed.
+	defaultInstanceID := ""
+	if callerSpec.GetAgentInstanceId() == "" {
+		resolved, ok := ctx.Get(DefaultInstanceIDKey).(string)
+		if !ok || resolved == "" {
+			log.Error().
+				Str("agent_id", agentID).
+				Msg("DEFAULT_INSTANCE_ID not found in context")
+			return fmt.Errorf("default instance ID not found in context")
+		}
+		defaultInstanceID = resolved
+
+		log.Debug().
+			Str("default_instance_id", defaultInstanceID).
+			Msg("Using default instance from context for session creation")
 	}
 
-	log.Debug().
-		Str("default_instance_id", defaultInstanceID).
-		Msg("Using default instance from context for session creation")
+	// 2. Build the new session's spec from the caller's spec plus defaults.
+	sessionSpec := buildAutoCreateSessionSpec(callerSpec, defaultInstanceID)
 
-	// 2. Determine session org: use the caller's org from the execution metadata,
+	// 3. Determine session org: use the caller's org from the execution metadata,
 	// not the agent's org. This ensures sessions are owned by the caller even when
 	// using a cross-org public agent (e.g., the platform default assistant).
 	orgID := ctx.NewState().GetMetadata().GetOrg()
@@ -445,25 +496,19 @@ func (s *createSessionIfNeededStep) Execute(ctx *pipeline.RequestContext[*agente
 		orgID = ctx.Input().GetMetadata().GetOrg()
 	}
 
-	// 3. Build session request with default instance
-	sessionMetadataBuilder := &apiresource.ApiResourceMetadata{
-		Name: fmt.Sprintf("session-%d", time.Now().UnixMilli()), // Auto-generated name
-		Org:  orgID,                                             // All resources belong to an org
-	}
-
 	sessionRequest := &sessionv1.Session{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Session",
-		Metadata:   sessionMetadataBuilder,
-		Spec: &sessionv1.SessionSpec{
-			AgentInstanceId: defaultInstanceID,
-			Subject:         "Auto-created session",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: fmt.Sprintf("session-%d", time.Now().UnixMilli()), // Auto-generated name
+			Org:  orgID,                                             // All resources belong to an org
 		},
+		Spec: sessionSpec,
 	}
 
 	log.Debug().
 		Str("agent_id", agentID).
-		Str("instance_id", defaultInstanceID).
+		Str("instance_id", sessionSpec.GetAgentInstanceId()).
 		Msg("Built session request")
 
 	// 4. Create session via in-process gRPC (single source of truth)
@@ -481,14 +526,19 @@ func (s *createSessionIfNeededStep) Execute(ctx *pipeline.RequestContext[*agente
 	log.Info().
 		Str("session_id", sessionID).
 		Str("agent_id", agentID).
-		Str("instance_id", defaultInstanceID).
+		Str("instance_id", sessionSpec.GetAgentInstanceId()).
 		Msg("Successfully auto-created session")
 
-	// 5. Update execution request with created session_id
+	// 5. Update execution request with created session_id, and clear the
+	// embedded spec: the Session resource created above is the single source
+	// of truth for session configuration, so the persisted execution record
+	// must not carry a second copy that could drift as the session evolves
+	// (see AgentExecutionSpec.session_spec proto docs).
 	if execution.Spec == nil {
 		execution.Spec = &agentexecutionv1.AgentExecutionSpec{}
 	}
 	execution.Spec.SessionId = sessionID
+	execution.Spec.SessionSpec = nil
 
 	ctx.SetNewState(execution)
 
@@ -500,6 +550,32 @@ func (s *createSessionIfNeededStep) Execute(ctx *pipeline.RequestContext[*agente
 		Msg("Updated execution request with session_id")
 
 	return nil
+}
+
+// buildAutoCreateSessionSpec builds the spec for an auto-created session.
+//
+// A caller-provided spec (the one-call bootstrap, stigmer/stigmer#249) is
+// cloned and forwarded so the session carries workspace_entries, harness,
+// execution_target, MCP servers, and skills from a single create call; the
+// clone keeps the execution request untouched while defaults are filled in.
+// A nil callerSpec yields the minimal default spec (the pre-bootstrap
+// auto-create behavior).
+//
+// defaultInstanceID is applied only when the caller's spec does not name an
+// instance; an empty subject gets the sentinel so the GenerateSessionSubject
+// activity titles bootstrapped sessions exactly as it does auto-created ones.
+func buildAutoCreateSessionSpec(callerSpec *sessionv1.SessionSpec, defaultInstanceID string) *sessionv1.SessionSpec {
+	spec := &sessionv1.SessionSpec{}
+	if callerSpec != nil {
+		spec = proto.Clone(callerSpec).(*sessionv1.SessionSpec)
+	}
+	if spec.AgentInstanceId == "" {
+		spec.AgentInstanceId = defaultInstanceID
+	}
+	if spec.Subject == "" {
+		spec.Subject = autoCreatedSessionSubject
+	}
+	return spec
 }
 
 // setInitialPhaseStep sets the execution phase to PENDING

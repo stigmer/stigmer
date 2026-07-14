@@ -954,11 +954,11 @@ func TestEmitToProtoField(t *testing.T) {
 }
 
 // ============================================================================
-// B2: TestEmitOneofToProto
+// B2: TestEmitOneofMemberToProto
 // ============================================================================
 
-func TestEmitOneofToProto(t *testing.T) {
-	t.Run("generates_wrapper_struct", func(t *testing.T) {
+func TestEmitOneofMemberToProto(t *testing.T) {
+	t.Run("generates_guarded_wrapper_assignment", func(t *testing.T) {
 		f := &FieldSchema{
 			Name: "Stdio", JsonName: "stdio", ProtoField: "stdio",
 			Type:       TypeSpec{Kind: "message", MessageType: "StdioServerConfig"},
@@ -974,13 +974,44 @@ func TestEmitOneofToProto(t *testing.T) {
 			},
 		}
 		var buf bytes.Buffer
-		emitOneofToProto(&buf, f, "mcpv1", "McpServerSpec", typeMap)
+		emitOneofMemberToProto(&buf, f, "mcpv1", "McpServerSpec", "resource.Spec", typeMap)
 		got := buf.String()
 
-		mustContain(t, got, `resource.Spec.ServerType = &mcpv1.McpServerSpec_Stdio{`)
-		mustContain(t, got, `Stdio: &mcpv1.StdioServerConfig{`)
-		mustContain(t, got, `Command: i.Stdio.Command,`)
-		mustContain(t, got, `Args: i.Stdio.Args,`)
+		mustContain(t, got, `if i.Stdio != nil {`)
+		mustContain(t, got, `m := &mcpv1.StdioServerConfig{}`)
+		mustContain(t, got, `m.Command = i.Stdio.Command`)
+		mustContain(t, got, `m.Args = i.Stdio.Args`)
+		mustContain(t, got, `resource.Spec.ServerType = &mcpv1.McpServerSpec_Stdio{Stdio: m}`)
+	})
+
+	t.Run("synthetic_oneof_member_field_gets_presence_pointer", func(t *testing.T) {
+		// GitRepoSource.depth is proto3 optional (synthetic oneof "_depth"):
+		// the proto field is *int32. The zero value must stay absent so the
+		// server default (shallow clone) applies; non-zero is set by pointer.
+		f := &FieldSchema{
+			Name: "GitRepo", JsonName: "gitRepo", ProtoField: "git_repo",
+			Type:       TypeSpec{Kind: "message", MessageType: "GitRepoSource"},
+			OneofGroup: "source",
+		}
+		typeMap := map[string]*TypeSchema{
+			"GitRepoSource": {
+				Name: "GitRepoSource",
+				Fields: []*FieldSchema{
+					field("Url", "url", "url", TypeSpec{Kind: "string"}),
+					{Name: "Depth", JsonName: "depth", ProtoField: "depth",
+						Type: TypeSpec{Kind: "int32"}, OneofGroup: "_depth"},
+				},
+			},
+		}
+		var buf bytes.Buffer
+		emitOneofMemberToProto(&buf, f, "sessionv1", "WorkspaceSource", "p", typeMap)
+		got := buf.String()
+
+		mustContain(t, got, `m.Url = i.GitRepo.Url`)
+		mustContain(t, got, `if i.GitRepo.Depth != 0 {`)
+		mustContain(t, got, `v := i.GitRepo.Depth`)
+		mustContain(t, got, `m.Depth = &v`)
+		mustContain(t, got, `p.Source = &sessionv1.WorkspaceSource_GitRepo{GitRepo: m}`)
 	})
 
 	t.Run("type_not_found_no_output", func(t *testing.T) {
@@ -990,7 +1021,7 @@ func TestEmitOneofToProto(t *testing.T) {
 			OneofGroup: "some_group",
 		}
 		var buf bytes.Buffer
-		emitOneofToProto(&buf, f, "testv1", "TestSpec", map[string]*TypeSchema{})
+		emitOneofMemberToProto(&buf, f, "testv1", "TestSpec", "resource.Spec", map[string]*TypeSchema{})
 		got := buf.String()
 
 		if got != "" {
@@ -1109,6 +1140,8 @@ func TestEmitNestedToProto(t *testing.T) {
 	})
 
 	t.Run("skip_oneof_field", func(t *testing.T) {
+		// A field that is itself a oneof member is handled inline by
+		// emitOneofMemberToProto at its container; no standalone toProto.
 		f := &FieldSchema{
 			Name: "Stdio", JsonName: "stdio", ProtoField: "stdio",
 			Type:       TypeSpec{Kind: "message", MessageType: "StdioConfig"},
@@ -1124,6 +1157,50 @@ func TestEmitNestedToProto(t *testing.T) {
 		if buf.String() != "" {
 			t.Errorf("expected no output for oneof field, got:\n%s", buf.String())
 		}
+	})
+
+	t.Run("nested_message_with_oneof_members_assigns_wrapper", func(t *testing.T) {
+		// The WorkspaceSource shape: a nested message whose only fields are
+		// oneof members. The emitted toProto must assign the oneof wrapper —
+		// silently dropping the member produced an empty proto and broke the
+		// one-call session bootstrap for Go SDK users (stigmer/stigmer#249).
+		f := field("Source", "source", "source",
+			TypeSpec{Kind: "message", MessageType: "WorkspaceSource"})
+		typeMap := map[string]*TypeSchema{
+			"WorkspaceSource": {
+				Name: "WorkspaceSource",
+				Fields: []*FieldSchema{
+					{Name: "GitRepo", JsonName: "gitRepo", ProtoField: "git_repo",
+						Type:       TypeSpec{Kind: "message", MessageType: "GitRepoSource"},
+						OneofGroup: "source"},
+					{Name: "LocalPath", JsonName: "localPath", ProtoField: "local_path",
+						Type:       TypeSpec{Kind: "message", MessageType: "LocalPathSource"},
+						OneofGroup: "source"},
+				},
+			},
+			"GitRepoSource": {
+				Name: "GitRepoSource",
+				Fields: []*FieldSchema{
+					field("Url", "url", "url", TypeSpec{Kind: "string"}),
+				},
+			},
+			"LocalPathSource": {
+				Name: "LocalPathSource",
+				Fields: []*FieldSchema{
+					field("Path", "path", "path", TypeSpec{Kind: "string"}),
+				},
+			},
+		}
+		emitted := make(map[string]bool)
+		var buf bytes.Buffer
+		emitNestedToProto(&buf, f, "sessionv1", typeMap, emitted, "SessionSpec", make(map[string]bool))
+		got := buf.String()
+
+		mustContain(t, got, `func (i *WorkspaceSourceInput) toProto() *sessionv1.WorkspaceSource`)
+		mustContain(t, got, `if i.GitRepo != nil {`)
+		mustContain(t, got, `p.Source = &sessionv1.WorkspaceSource_GitRepo{GitRepo: m}`)
+		mustContain(t, got, `if i.LocalPath != nil {`)
+		mustContain(t, got, `p.Source = &sessionv1.WorkspaceSource_LocalPath{LocalPath: m}`)
 	})
 
 	t.Run("skip_already_emitted", func(t *testing.T) {

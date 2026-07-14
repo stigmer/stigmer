@@ -16,13 +16,15 @@ public interface AgentExecutionSpecOrBuilder extends
    *
    * Resolution priority (enforced in handler pipeline):
    * 1. session_id provided     -&gt; use existing session
-   * 2. agent_id provided       -&gt; auto-create session using agent's default instance
-   * 3. neither provided        -&gt; resolve platform default agent (label
+   * 2. session_spec provided   -&gt; auto-create session from the embedded spec
+   * 3. agent_id provided       -&gt; auto-create session using agent's default instance
+   * 4. neither provided        -&gt; resolve platform default agent (label
    * stigmer.ai/default-agent + visibility_public), then auto-create session
    *
-   * Both may be set — when both are present, session_id is used for session
-   * resolution and agent_id is preserved as metadata for downstream consumers
-   * (e.g., session subject generation).
+   * session_id and agent_id may both be set — when both are present, session_id
+   * is used for session resolution and agent_id is preserved as metadata for
+   * downstream consumers (e.g., session subject generation). session_id and
+   * session_spec are mutually exclusive.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -35,13 +37,15 @@ public interface AgentExecutionSpecOrBuilder extends
    *
    * Resolution priority (enforced in handler pipeline):
    * 1. session_id provided     -&gt; use existing session
-   * 2. agent_id provided       -&gt; auto-create session using agent's default instance
-   * 3. neither provided        -&gt; resolve platform default agent (label
+   * 2. session_spec provided   -&gt; auto-create session from the embedded spec
+   * 3. agent_id provided       -&gt; auto-create session using agent's default instance
+   * 4. neither provided        -&gt; resolve platform default agent (label
    * stigmer.ai/default-agent + visibility_public), then auto-create session
    *
-   * Both may be set — when both are present, session_id is used for session
-   * resolution and agent_id is preserved as metadata for downstream consumers
-   * (e.g., session subject generation).
+   * session_id and agent_id may both be set — when both are present, session_id
+   * is used for session resolution and agent_id is preserved as metadata for
+   * downstream consumers (e.g., session subject generation). session_id and
+   * session_spec are mutually exclusive.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -93,6 +97,114 @@ public interface AgentExecutionSpecOrBuilder extends
    */
   com.google.protobuf.ByteString
       getAgentIdBytes();
+
+  /**
+   * <pre>
+   * Spec for the session to auto-create when session_id is empty (optional).
+   *
+   * This is the one-call session bootstrap: a single create carries the full
+   * session shape (workspace_entries, harness, execution_target, MCP servers,
+   * skills) together with the first message, so embedders do not need to
+   * orchestrate session.create followed by agentExecution.create. The created
+   * session's ID is returned on the persisted execution's session_id.
+   *
+   * Fields that must be set at session-creation time and are immutable once
+   * an execution has run — harness and execution_target — can only reach an
+   * auto-created session through this field.
+   *
+   * When session_spec.agent_instance_id is set, the session runs against that
+   * instance and agent_id must not also be resolved from it. When empty, the
+   * normal resolution applies: agent_id's default instance, or the platform
+   * default agent when agent_id is also empty.
+   *
+   * Mutually exclusive with session_id. session_spec.harness_state_id must be
+   * empty — it is server-owned harness continuity state, created by the runner
+   * after the first execution.
+   *
+   * &#64;internal
+   * The Session resource created from this spec is the single source of truth
+   * for session configuration. The handler clears this field after the session
+   * is created (before persist), so the execution record never carries a
+   * second copy of session config that could drift as the session evolves.
+   * Extends the existing auto-create path in createSessionIfNeededStep rather
+   * than adding a parallel one (stigmer/stigmer#249).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
+   * @return Whether the sessionSpec field is set.
+   */
+  boolean hasSessionSpec();
+  /**
+   * <pre>
+   * Spec for the session to auto-create when session_id is empty (optional).
+   *
+   * This is the one-call session bootstrap: a single create carries the full
+   * session shape (workspace_entries, harness, execution_target, MCP servers,
+   * skills) together with the first message, so embedders do not need to
+   * orchestrate session.create followed by agentExecution.create. The created
+   * session's ID is returned on the persisted execution's session_id.
+   *
+   * Fields that must be set at session-creation time and are immutable once
+   * an execution has run — harness and execution_target — can only reach an
+   * auto-created session through this field.
+   *
+   * When session_spec.agent_instance_id is set, the session runs against that
+   * instance and agent_id must not also be resolved from it. When empty, the
+   * normal resolution applies: agent_id's default instance, or the platform
+   * default agent when agent_id is also empty.
+   *
+   * Mutually exclusive with session_id. session_spec.harness_state_id must be
+   * empty — it is server-owned harness continuity state, created by the runner
+   * after the first execution.
+   *
+   * &#64;internal
+   * The Session resource created from this spec is the single source of truth
+   * for session configuration. The handler clears this field after the session
+   * is created (before persist), so the execution record never carries a
+   * second copy of session config that could drift as the session evolves.
+   * Extends the existing auto-create path in createSessionIfNeededStep rather
+   * than adding a parallel one (stigmer/stigmer#249).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
+   * @return The sessionSpec.
+   */
+  ai.stigmer.agentic.session.v1.SessionSpec getSessionSpec();
+  /**
+   * <pre>
+   * Spec for the session to auto-create when session_id is empty (optional).
+   *
+   * This is the one-call session bootstrap: a single create carries the full
+   * session shape (workspace_entries, harness, execution_target, MCP servers,
+   * skills) together with the first message, so embedders do not need to
+   * orchestrate session.create followed by agentExecution.create. The created
+   * session's ID is returned on the persisted execution's session_id.
+   *
+   * Fields that must be set at session-creation time and are immutable once
+   * an execution has run — harness and execution_target — can only reach an
+   * auto-created session through this field.
+   *
+   * When session_spec.agent_instance_id is set, the session runs against that
+   * instance and agent_id must not also be resolved from it. When empty, the
+   * normal resolution applies: agent_id's default instance, or the platform
+   * default agent when agent_id is also empty.
+   *
+   * Mutually exclusive with session_id. session_spec.harness_state_id must be
+   * empty — it is server-owned harness continuity state, created by the runner
+   * after the first execution.
+   *
+   * &#64;internal
+   * The Session resource created from this spec is the single source of truth
+   * for session configuration. The handler clears this field after the session
+   * is created (before persist), so the execution record never carries a
+   * second copy of session config that could drift as the session evolves.
+   * Extends the existing auto-create path in createSessionIfNeededStep rather
+   * than adding a parallel one (stigmer/stigmer#249).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
+   */
+  ai.stigmer.agentic.session.v1.SessionSpecOrBuilder getSessionSpecOrBuilder();
 
   /**
    * <pre>

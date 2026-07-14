@@ -22,6 +22,12 @@ spec:
     model_name: "claude-sonnet-4-6"
 ```
 
+Instead of `session_id`, a create may carry `session_spec` — the full shape of a
+session to auto-create (workspace entries, harness, execution target). This is
+the one-call bootstrap: the server creates the session and dispatches the first
+message in a single request, and the created session's ID is returned on the
+execution's `session_id`.
+
 ## Client Access
 
 <SDKTabs>
@@ -609,6 +615,7 @@ const agentExecution = await stigmer.agentExecution.create({
   labels: {},
   sessionId: "...",
   agentId: "...",
+  sessionSpec: {},
   message: "...",
   executionConfig: {},
   runtimeEnv: {},
@@ -631,6 +638,7 @@ agentExecution, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecution
   Labels:                map[string]string{},
   SessionId:             "...",
   AgentId:               "...",
+  SessionSpec:           &stigmer.SessionSpecInput{},
   Message:               "...",
   ExecutionConfig:       &stigmer.ExecutionConfigInput{},
   RuntimeEnv:            map[string]string{},
@@ -653,6 +661,7 @@ agent_execution = client.agent_executions.create(AgentExecutionInput(
     labels={},
     session_id="...",
     agent_id="...",
+    session_spec=None,
     message="...",
     execution_config=None,
     runtime_env={},
@@ -675,6 +684,7 @@ AgentExecution agentExecution = client.agentExecutions().create(AgentExecutionIn
     .labels(Map.of())
     .sessionId("...")
     .agentId("...")
+    .sessionSpec(null)
     .message("...")
     .executionConfig(null)
     .runtimeEnv(Map.of())
@@ -708,6 +718,7 @@ const agentExecution = await stigmer.agentExecution.update({
   labels: {},
   sessionId: "...",
   agentId: "...",
+  sessionSpec: {},
   message: "...",
   executionConfig: {},
   runtimeEnv: {},
@@ -730,6 +741,7 @@ agentExecution, err := client.AgentExecution.Update(ctx, &stigmer.AgentExecution
   Labels:                map[string]string{},
   SessionId:             "...",
   AgentId:               "...",
+  SessionSpec:           &stigmer.SessionSpecInput{},
   Message:               "...",
   ExecutionConfig:       &stigmer.ExecutionConfigInput{},
   RuntimeEnv:            map[string]string{},
@@ -752,6 +764,7 @@ agent_execution = client.agent_executions.update(AgentExecutionInput(
     labels={},
     session_id="...",
     agent_id="...",
+    session_spec=None,
     message="...",
     execution_config=None,
     runtime_env={},
@@ -774,6 +787,7 @@ AgentExecution agentExecution = client.agentExecutions().update(AgentExecutionIn
     .labels(Map.of())
     .sessionId("...")
     .agentId("...")
+    .sessionSpec(null)
     .message("...")
     .executionConfig(null)
     .runtimeEnv(Map.of())
@@ -1271,6 +1285,7 @@ Input for creating or updating an Agent Execution.
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     sessionId: { type: "string", description: "Session ID this execution belongs to (optional)." },
     agentId: { type: "string", description: "Agent ID (optional)." },
+    sessionSpec: { type: "SessionSpecInput", description: "Spec for the session to auto-create when session_id is empty (optional).", typeDescriptionLink: "#sessionspecinput" },
     message: { type: "string", description: "User input message that triggers this execution." },
     executionConfig: { type: "ExecutionConfigInput", description: "Optional execution-time configuration overrides.", typeDescriptionLink: "#executionconfiginput" },
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Runtime environment variables and secrets (execution-scoped).", typeDescriptionLink: "#envvarinput" },
@@ -1281,6 +1296,108 @@ Input for creating or updating an Agent Execution.
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on." },
     activityTaskQueue: { type: "string", description: "Explicit Temporal task queue override for activity routing." },
     supersedesExecutionId: { type: "string", description: "ID of the execution this one supersedes via edit-and-resubmit (optional)." },
+  }}
+/>
+
+### SessionSpecInput
+
+SessionSpec defines the configurable properties of a session.
+
+<TypeTable
+  type={{
+    agentInstanceId: { type: "string", description: "Agent instance this session runs against." },
+    subject: { type: "string", description: "Conversation title for UI display." },
+    harnessStateId: { type: "string", description: "Harness-specific state identifier for conversation continuity." },
+    metadata: { type: "Record<string, string>", description: "Custom key-value pairs for client-specific information." },
+    workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries for this session.", typeDescriptionLink: "#workspaceentryinput" },
+    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers to make available in this session.", typeDescriptionLink: "#mcpserverusageinput" },
+    skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context.", typeDescriptionLink: "#resourceref" },
+    harness: { type: "Harness", description: "Execution harness for this session.", typeDescriptionLink: "#harness" },
+    cursorMode: { type: "CursorMode", description: "Cursor SDK agent mode for this session.", typeDescriptionLink: "#cursormode" },
+    executionTarget: { type: "ExecutionTarget", description: "Where session activities are executed — local client or cloud sandbox.", typeDescriptionLink: "#executiontarget" },
+  }}
+/>
+
+### WorkspaceEntryInput
+
+WorkspaceEntry pairs a WorkspaceSource with a human-readable name, forming an addressable unit within a session's workspace.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "Short identifier for this workspace entry." },
+    source: { type: "WorkspaceSourceInput", description: "The source that provides this entry's content.", typeDescriptionLink: "#workspacesourceinput", required: true },
+  }}
+/>
+
+### WorkspaceSourceInput
+
+WorkspaceSource defines where the workspace content comes from.
+
+<TypeTable
+  type={{
+    gitRepo: { type: "GitRepoSourceInput", description: "Clone a git repository as the workspace source.", typeDescriptionLink: "#gitreposourceinput" },
+    localPath: { type: "LocalPathSourceInput", description: "Use an existing local directory as the workspace source.", typeDescriptionLink: "#localpathsourceinput" },
+  }}
+/>
+
+### GitRepoSourceInput
+
+GitRepoSource provisions a workspace by cloning a git repository.
+
+<TypeTable
+  type={{
+    url: { type: "string", description: "HTTPS clone URL for the repository.", required: true },
+    branch: { type: "string", description: "Branch to clone." },
+    commit: { type: "string", description: "Commit SHA to checkout after cloning." },
+    depth: { type: "number", description: "Number of commits to include in the clone history." },
+    writeBackMode: { type: "GitWriteBackMode", description: "Controls whether the platform creates a branch and pull request from the agent's file changes.", typeDescriptionLink: "#gitwritebackmode" },
+  }}
+/>
+
+### LocalPathSourceInput
+
+LocalPathSource uses an existing directory on the host filesystem as the workspace.
+
+<TypeTable
+  type={{
+    path: { type: "string", description: "Absolute path to an existing directory on the host filesystem." },
+  }}
+/>
+
+### McpServerUsageInput
+
+McpServerUsage declares that this agent uses a McpServer resource.
+
+<TypeTable
+  type={{
+    mcpServerRef: { type: "ResourceRef", description: "Reference to the McpServer resource.", typeDescriptionLink: "#resourceref", required: true },
+    enabledTools: { type: "string[]", description: "Tools to enable from this MCP server for this agent." },
+    toolApprovalOverrides: { type: "ToolApprovalOverrideInput[]", description: "Override approval requirements for specific tools.", typeDescriptionLink: "#toolapprovaloverrideinput" },
+  }}
+/>
+
+### ResourceRef
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### ToolApprovalOverrideInput
+
+ToolApprovalOverride allows per-agent customization of approval requirements.
+
+<TypeTable
+  type={{
+    toolName: { type: "string", description: "Name of the tool to override." },
+    requiresApproval: { type: "boolean", description: "Whether this tool requires approval for this agent." },
+    message: { type: "string", description: "Custom approval message shown to the reviewer." },
   }}
 />
 
@@ -2584,6 +2701,41 @@ WorkspaceWriteBackPhase tracks the progress of a single workspace write-back thr
 | `WORKSPACE_WRITE_BACK_PUSHED` | The branch was pushed to the remote repository. |
 | `WORKSPACE_WRITE_BACK_PR_CREATED` | A pull request was created on the remote repository. |
 | `WORKSPACE_WRITE_BACK_FAILED` | The write-back failed at some step. |
+
+### Harness
+
+Harness identifies the execution engine that processes agent activities for a session.
+
+| Value | Description |
+|-------|-------------|
+| `HARNESS_NATIVE` | Stigmer's native execution engine. |
+| `HARNESS_CURSOR` | Cursor SDK execution engine. |
+
+### CursorMode
+
+CursorMode selects the Cursor SDK agent type for sessions using HARNESS_CURSOR.
+
+| Value | Description |
+|-------|-------------|
+| `CURSOR_MODE_LOCAL` | Local Cursor agent created with a local cwd configuration. |
+| `CURSOR_MODE_CLOUD` | Cloud Cursor agent created with a cloud repos configuration. |
+
+### ExecutionTarget
+
+ExecutionTarget specifies where session activities are executed.
+
+| Value | Description |
+|-------|-------------|
+| `EXECUTION_TARGET_LOCAL` | Client's embedded runner handles activities. |
+| `EXECUTION_TARGET_CLOUD` | Server provisions a cloud sandbox for execution. |
+
+### GitWriteBackMode
+
+GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.
+
+| Value | Description |
+|-------|-------------|
+| `GIT_WRITE_BACK_BRANCH_AND_PR` | Create a branch and pull request from the agent's file changes after execution completes. |
 
 ### InteractionMode
 

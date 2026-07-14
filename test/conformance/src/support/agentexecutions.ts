@@ -13,6 +13,7 @@ import type { MessageInitShape } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { ConformanceClients } from "../harness/clients";
 import type { McpToolFixture } from "../harness/mcp-server";
 import type { MockLlmProxy } from "../harness/mock-llm";
@@ -30,6 +31,9 @@ export interface AgentExecutionOptions {
   // session_id (existing session). At least one is required for a hermetic run.
   agentId?: string;
   sessionId?: string;
+  // Spec for the auto-created session (spec.session_spec) — the one-call
+  // bootstrap (stigmer/stigmer#249). Mutually exclusive with sessionId.
+  sessionSpec?: MessageInitShape<typeof SessionSpecSchema>;
   // The user message that triggers the run; must be non-empty (proto min_len=1).
   message?: string;
   // Runtime bypass of all tool-approval gates (spec.auto_approve_all). Omitted =
@@ -52,6 +56,7 @@ export function makeAgentExecution(opts: AgentExecutionOptions): MessageInitShap
     spec: {
       ...(opts.agentId !== undefined ? { agentId: opts.agentId } : {}),
       ...(opts.sessionId !== undefined ? { sessionId: opts.sessionId } : {}),
+      ...(opts.sessionSpec !== undefined ? { sessionSpec: opts.sessionSpec } : {}),
       message: opts.message ?? "Say hello.",
       ...(opts.autoApproveAll !== undefined ? { autoApproveAll: opts.autoApproveAll } : {}),
       ...(opts.runtimeEnv !== undefined ? { runtimeEnv: makeExecutionValues(opts.runtimeEnv) } : {}),

@@ -211,8 +211,10 @@ func (i *SubAgentInput) toProto() *agentv1.SubAgent {
 	for _, item := range i.McpAccess {
 		p.McpAccess = append(p.McpAccess, item.toProto())
 	}
-	for _, item := range i.SkillRefs {
-		p.SkillRefs = append(p.SkillRefs, item.toProto())
+	for _, r := range i.SkillRefs {
+		ref := r.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_skill
+		p.SkillRefs = append(p.SkillRefs, ref)
 	}
 	p.ModelOverride = i.ModelOverride
 	return p

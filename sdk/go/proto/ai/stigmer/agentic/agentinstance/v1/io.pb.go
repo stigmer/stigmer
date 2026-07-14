@@ -75,7 +75,20 @@ type GetAgentInstancesByAgentRequest struct {
 	// Identifier of the agent whose instances to retrieve.
 	AgentId string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	// Pagination options.
-	PageInfo      *rpc.PageInfo `protobuf:"bytes,2,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
+	PageInfo *rpc.PageInfo `protobuf:"bytes,2,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
+	// Organization slug to scope the results to.
+	//
+	// When set, only instances whose metadata.org matches are returned — the
+	// org-context view a console tab needs. When empty, results are bounded
+	// only by the caller's view permissions, which for a member of several
+	// organizations spans all of them.
+	//
+	// @internal
+	// Optional by design: the OSS server resolves an agent's default instance
+	// through this RPC with no org (downstream/agentinstance client), and
+	// pre-existing callers rely on the permission-bounded behavior. Filtering
+	// happens in the query/list step of each edition's handler.
+	Org           string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -122,6 +135,13 @@ func (x *GetAgentInstancesByAgentRequest) GetPageInfo() *rpc.PageInfo {
 		return x.PageInfo
 	}
 	return nil
+}
+
+func (x *GetAgentInstancesByAgentRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
 }
 
 // Response containing a paginated list of agent instances.
@@ -252,10 +272,11 @@ const file_ai_stigmer_agentic_agentinstance_v1_io_proto_rawDesc = "" +
 	"\n" +
 	",ai/stigmer/agentic/agentinstance/v1/io.proto\x12#ai.stigmer.agentic.agentinstance.v1\x1a-ai/stigmer/agentic/agentinstance/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"/\n" +
 	"\x0fAgentInstanceId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x83\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x95\x01\n" +
 	"\x1fGetAgentInstancesByAgentRequest\x12!\n" +
 	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x12=\n" +
-	"\tpage_info\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\"~\n" +
+	"\tpage_info\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\x12\x10\n" +
+	"\x03org\x18\x03 \x01(\tR\x03org\"~\n" +
 	"\x11AgentInstanceList\x12\x1f\n" +
 	"\vtotal_count\x18\x01 \x01(\x05R\n" +
 	"totalCount\x12H\n" +

@@ -83,32 +83,6 @@ type SessionInput struct {
 	ExecutionTarget  sessionv1.ExecutionTarget
 }
 
-// WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
-type WorkspaceEntryInput struct {
-	Name   string
-	Source *WorkspaceSourceInput
-}
-
-// WorkspaceSourceInput is the SDK input type for WorkspaceSource.
-type WorkspaceSourceInput struct {
-	GitRepo   *GitRepoSourceInput
-	LocalPath *LocalPathSourceInput
-}
-
-// GitRepoSourceInput is the SDK input type for GitRepoSource.
-type GitRepoSourceInput struct {
-	Url           string
-	Branch        string
-	Commit        string
-	Depth         int32
-	WriteBackMode sessionv1.GitWriteBackMode
-}
-
-// LocalPathSourceInput is the SDK input type for LocalPathSource.
-type LocalPathSourceInput struct {
-	Path string
-}
-
 func (i *SessionInput) toProto() *sessionv1.Session {
 	resource := &sessionv1.Session{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -143,19 +117,6 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 	return resource
 }
 
-func (i *WorkspaceEntryInput) toProto() *sessionv1.WorkspaceEntry {
-	p := &sessionv1.WorkspaceEntry{}
-	p.Name = i.Name
-	if i.Source != nil {
-		p.Source = i.Source.toProto()
-	}
-	return p
-}
-
-func (i *WorkspaceSourceInput) toProto() *sessionv1.WorkspaceSource {
-	return &sessionv1.WorkspaceSource{}
-}
-
 // SessionInputFromProto creates a SessionInput from a proto Session resource.
 func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 	if p == nil {
@@ -187,47 +148,5 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		input.CursorMode = s.GetCursorMode()
 		input.ExecutionTarget = s.GetExecutionTarget()
 	}
-	return input
-}
-
-func workspaceEntryInputFromProto(p *sessionv1.WorkspaceEntry) *WorkspaceEntryInput {
-	if p == nil {
-		return nil
-	}
-	input := &WorkspaceEntryInput{}
-	input.Name = p.GetName()
-	input.Source = workspaceSourceInputFromProto(p.GetSource())
-	return input
-}
-
-func workspaceSourceInputFromProto(p *sessionv1.WorkspaceSource) *WorkspaceSourceInput {
-	if p == nil {
-		return nil
-	}
-	input := &WorkspaceSourceInput{}
-	input.GitRepo = gitRepoSourceInputFromProto(p.GetGitRepo())
-	input.LocalPath = localPathSourceInputFromProto(p.GetLocalPath())
-	return input
-}
-
-func gitRepoSourceInputFromProto(p *sessionv1.GitRepoSource) *GitRepoSourceInput {
-	if p == nil {
-		return nil
-	}
-	input := &GitRepoSourceInput{}
-	input.Url = p.GetUrl()
-	input.Branch = p.GetBranch()
-	input.Commit = p.GetCommit()
-	input.Depth = p.GetDepth()
-	input.WriteBackMode = p.GetWriteBackMode()
-	return input
-}
-
-func localPathSourceInputFromProto(p *sessionv1.LocalPathSource) *LocalPathSourceInput {
-	if p == nil {
-		return nil
-	}
-	input := &LocalPathSourceInput{}
-	input.Path = p.GetPath()
 	return input
 }

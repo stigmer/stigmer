@@ -2,6 +2,8 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.agent.v1.McpServerUsage;
+import ai.stigmer.agentic.agent.v1.ToolApprovalOverride;
 import ai.stigmer.agentic.agentexecution.v1.AgentExecution;
 import ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec;
 import ai.stigmer.agentic.agentexecution.v1.Attachment;
@@ -9,8 +11,18 @@ import ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig;
 import ai.stigmer.agentic.agentexecution.v1.ExecutionConfig;
 import ai.stigmer.agentic.agentexecution.v1.InteractionMode;
 import ai.stigmer.agentic.executioncontext.v1.ExecutionValue;
+import ai.stigmer.agentic.session.v1.CursorMode;
+import ai.stigmer.agentic.session.v1.ExecutionTarget;
+import ai.stigmer.agentic.session.v1.GitRepoSource;
+import ai.stigmer.agentic.session.v1.GitWriteBackMode;
+import ai.stigmer.agentic.session.v1.Harness;
+import ai.stigmer.agentic.session.v1.LocalPathSource;
+import ai.stigmer.agentic.session.v1.SessionSpec;
+import ai.stigmer.agentic.session.v1.WorkspaceEntry;
+import ai.stigmer.agentic.session.v1.WorkspaceSource;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import com.google.protobuf.Struct;
 
 /** Input for creating/updating a AgentExecution. */
@@ -22,6 +34,7 @@ public final class AgentExecutionInput {
     private final ApiResourceVisibility visibility;
     private final String sessionId;
     private final String agentId;
+    private final SessionSpecInput sessionSpec;
     private final String message;
     private final ExecutionConfigInput executionConfig;
     private final java.util.Map<String, EnvVarInput> runtimeEnv;
@@ -41,6 +54,7 @@ public final class AgentExecutionInput {
         this.visibility = builder.visibility;
         this.sessionId = builder.sessionId;
         this.agentId = builder.agentId;
+        this.sessionSpec = builder.sessionSpec;
         this.message = builder.message;
         this.executionConfig = builder.executionConfig;
         this.runtimeEnv = builder.runtimeEnv;
@@ -60,6 +74,9 @@ public final class AgentExecutionInput {
         }
         if (this.agentId != null) {
             spec.setAgentId(this.agentId);
+        }
+        if (this.sessionSpec != null) {
+            spec.setSessionSpec(this.sessionSpec.toProto());
         }
         if (this.message != null) {
             spec.setMessage(this.message);
@@ -126,6 +143,7 @@ public final class AgentExecutionInput {
         private ApiResourceVisibility visibility;
         private String sessionId;
         private String agentId;
+        private SessionSpecInput sessionSpec;
         private String message;
         private ExecutionConfigInput executionConfig;
         private java.util.Map<String, EnvVarInput> runtimeEnv;
@@ -146,6 +164,7 @@ public final class AgentExecutionInput {
         public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder sessionId(String sessionId) { this.sessionId = sessionId; return this; }
         public Builder agentId(String agentId) { this.agentId = agentId; return this; }
+        public Builder sessionSpec(SessionSpecInput sessionSpec) { this.sessionSpec = sessionSpec; return this; }
         public Builder message(String message) { this.message = message; return this; }
         public Builder executionConfig(ExecutionConfigInput executionConfig) { this.executionConfig = executionConfig; return this; }
         public Builder runtimeEnv(java.util.Map<String, EnvVarInput> runtimeEnv) { this.runtimeEnv = runtimeEnv; return this; }
@@ -158,6 +177,348 @@ public final class AgentExecutionInput {
         public Builder supersedesExecutionId(String supersedesExecutionId) { this.supersedesExecutionId = supersedesExecutionId; return this; }
 
         public AgentExecutionInput build() { return new AgentExecutionInput(this); }
+    }
+
+    /** SDK input type for SessionSpec. */
+    public static final class SessionSpecInput {
+        private final String agentInstanceId;
+        private final String subject;
+        private final String harnessStateId;
+        private final java.util.Map<String, String> metadata;
+        private final java.util.List<WorkspaceEntryInput> workspaceEntries;
+        private final java.util.List<McpServerUsageInput> mcpServerUsages;
+        private final java.util.List<ResourceRef> skillRefs;
+        private final Harness harness;
+        private final CursorMode cursorMode;
+        private final ExecutionTarget executionTarget;
+
+        private SessionSpecInput(Builder builder) {
+            this.agentInstanceId = builder.agentInstanceId;
+            this.subject = builder.subject;
+            this.harnessStateId = builder.harnessStateId;
+            this.metadata = builder.metadata;
+            this.workspaceEntries = builder.workspaceEntries;
+            this.mcpServerUsages = builder.mcpServerUsages;
+            this.skillRefs = builder.skillRefs;
+            this.harness = builder.harness;
+            this.cursorMode = builder.cursorMode;
+            this.executionTarget = builder.executionTarget;
+        }
+
+        SessionSpec toProto() {
+            SessionSpec.Builder builder = SessionSpec.newBuilder();
+            if (this.agentInstanceId != null) {
+                builder.setAgentInstanceId(this.agentInstanceId);
+            }
+            if (this.subject != null) {
+                builder.setSubject(this.subject);
+            }
+            if (this.harnessStateId != null) {
+                builder.setHarnessStateId(this.harnessStateId);
+            }
+            if (this.metadata != null && !this.metadata.isEmpty()) {
+                builder.putAllMetadata(this.metadata);
+            }
+            if (this.workspaceEntries != null) {
+                for (WorkspaceEntryInput item : this.workspaceEntries) {
+                    builder.addWorkspaceEntries(item.toProto());
+                }
+            }
+            if (this.mcpServerUsages != null) {
+                for (McpServerUsageInput item : this.mcpServerUsages) {
+                    builder.addMcpServerUsages(item.toProto());
+                }
+            }
+            if (this.skillRefs != null) {
+                for (ResourceRef item : this.skillRefs) {
+                    builder.addSkillRefs(item.toProto().toBuilder()
+                        .setKind(ApiResourceKind.skill).build());
+                }
+            }
+            if (this.harness != null) {
+                builder.setHarness(this.harness);
+            }
+            if (this.cursorMode != null) {
+                builder.setCursorMode(this.cursorMode);
+            }
+            if (this.executionTarget != null) {
+                builder.setExecutionTarget(this.executionTarget);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String agentInstanceId;
+            private String subject;
+            private String harnessStateId;
+            private java.util.Map<String, String> metadata;
+            private java.util.List<WorkspaceEntryInput> workspaceEntries;
+            private java.util.List<McpServerUsageInput> mcpServerUsages;
+            private java.util.List<ResourceRef> skillRefs;
+            private Harness harness;
+            private CursorMode cursorMode;
+            private ExecutionTarget executionTarget;
+
+            private Builder() {}
+
+            public Builder agentInstanceId(String agentInstanceId) { this.agentInstanceId = agentInstanceId; return this; }
+            public Builder subject(String subject) { this.subject = subject; return this; }
+            public Builder harnessStateId(String harnessStateId) { this.harnessStateId = harnessStateId; return this; }
+            public Builder metadata(java.util.Map<String, String> metadata) { this.metadata = metadata; return this; }
+            public Builder workspaceEntries(java.util.List<WorkspaceEntryInput> workspaceEntries) { this.workspaceEntries = workspaceEntries; return this; }
+            public Builder mcpServerUsages(java.util.List<McpServerUsageInput> mcpServerUsages) { this.mcpServerUsages = mcpServerUsages; return this; }
+            public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
+            public Builder harness(Harness harness) { this.harness = harness; return this; }
+            public Builder cursorMode(CursorMode cursorMode) { this.cursorMode = cursorMode; return this; }
+            public Builder executionTarget(ExecutionTarget executionTarget) { this.executionTarget = executionTarget; return this; }
+
+            public SessionSpecInput build() { return new SessionSpecInput(this); }
+        }
+    }
+
+    /** SDK input type for WorkspaceEntry. */
+    public static final class WorkspaceEntryInput {
+        private final String name;
+        private final WorkspaceSourceInput source;
+
+        private WorkspaceEntryInput(Builder builder) {
+            this.name = builder.name;
+            this.source = builder.source;
+        }
+
+        WorkspaceEntry toProto() {
+            WorkspaceEntry.Builder builder = WorkspaceEntry.newBuilder();
+            if (this.name != null) {
+                builder.setName(this.name);
+            }
+            if (this.source != null) {
+                builder.setSource(this.source.toProto());
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String name;
+            private WorkspaceSourceInput source;
+
+            private Builder() {}
+
+            public Builder name(String name) { this.name = name; return this; }
+            public Builder source(WorkspaceSourceInput source) { this.source = source; return this; }
+
+            public WorkspaceEntryInput build() { return new WorkspaceEntryInput(this); }
+        }
+    }
+
+    /** SDK input type for WorkspaceSource. */
+    public static final class WorkspaceSourceInput {
+        private final GitRepoSourceInput gitRepo;
+        private final LocalPathSourceInput localPath;
+
+        private WorkspaceSourceInput(Builder builder) {
+            this.gitRepo = builder.gitRepo;
+            this.localPath = builder.localPath;
+        }
+
+        WorkspaceSource toProto() {
+            WorkspaceSource.Builder builder = WorkspaceSource.newBuilder();
+            if (this.gitRepo != null) {
+                builder.setGitRepo(this.gitRepo.toProto());
+            }
+            if (this.localPath != null) {
+                builder.setLocalPath(this.localPath.toProto());
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private GitRepoSourceInput gitRepo;
+            private LocalPathSourceInput localPath;
+
+            private Builder() {}
+
+            public Builder gitRepo(GitRepoSourceInput gitRepo) { this.gitRepo = gitRepo; return this; }
+            public Builder localPath(LocalPathSourceInput localPath) { this.localPath = localPath; return this; }
+
+            public WorkspaceSourceInput build() { return new WorkspaceSourceInput(this); }
+        }
+    }
+
+    /** SDK input type for GitRepoSource. */
+    public static final class GitRepoSourceInput {
+        private final String url;
+        private final String branch;
+        private final String commit;
+        private final int depth;
+        private final GitWriteBackMode writeBackMode;
+
+        private GitRepoSourceInput(Builder builder) {
+            this.url = builder.url;
+            this.branch = builder.branch;
+            this.commit = builder.commit;
+            this.depth = builder.depth;
+            this.writeBackMode = builder.writeBackMode;
+        }
+
+        GitRepoSource toProto() {
+            GitRepoSource.Builder builder = GitRepoSource.newBuilder();
+            if (this.url != null) {
+                builder.setUrl(this.url);
+            }
+            if (this.branch != null) {
+                builder.setBranch(this.branch);
+            }
+            if (this.commit != null) {
+                builder.setCommit(this.commit);
+            }
+            builder.setDepth(this.depth);
+            if (this.writeBackMode != null) {
+                builder.setWriteBackMode(this.writeBackMode);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String url;
+            private String branch;
+            private String commit;
+            private int depth;
+            private GitWriteBackMode writeBackMode;
+
+            private Builder() {}
+
+            public Builder url(String url) { this.url = url; return this; }
+            public Builder branch(String branch) { this.branch = branch; return this; }
+            public Builder commit(String commit) { this.commit = commit; return this; }
+            public Builder depth(int depth) { this.depth = depth; return this; }
+            public Builder writeBackMode(GitWriteBackMode writeBackMode) { this.writeBackMode = writeBackMode; return this; }
+
+            public GitRepoSourceInput build() { return new GitRepoSourceInput(this); }
+        }
+    }
+
+    /** SDK input type for LocalPathSource. */
+    public static final class LocalPathSourceInput {
+        private final String path;
+
+        private LocalPathSourceInput(Builder builder) {
+            this.path = builder.path;
+        }
+
+        LocalPathSource toProto() {
+            LocalPathSource.Builder builder = LocalPathSource.newBuilder();
+            if (this.path != null) {
+                builder.setPath(this.path);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String path;
+
+            private Builder() {}
+
+            public Builder path(String path) { this.path = path; return this; }
+
+            public LocalPathSourceInput build() { return new LocalPathSourceInput(this); }
+        }
+    }
+
+    /** SDK input type for McpServerUsage. */
+    public static final class McpServerUsageInput {
+        private final ResourceRef mcpServerRef;
+        private final java.util.List<String> enabledTools;
+        private final java.util.List<ToolApprovalOverrideInput> toolApprovalOverrides;
+
+        private McpServerUsageInput(Builder builder) {
+            this.mcpServerRef = builder.mcpServerRef;
+            this.enabledTools = builder.enabledTools;
+            this.toolApprovalOverrides = builder.toolApprovalOverrides;
+        }
+
+        McpServerUsage toProto() {
+            McpServerUsage.Builder builder = McpServerUsage.newBuilder();
+            if (this.mcpServerRef != null && this.mcpServerRef.hasIdentifier()) {
+                builder.setMcpServerRef(this.mcpServerRef.toProto().toBuilder()
+                    .setKind(ApiResourceKind.mcp_server).build());
+            }
+            if (this.enabledTools != null) {
+                builder.addAllEnabledTools(this.enabledTools);
+            }
+            if (this.toolApprovalOverrides != null) {
+                for (ToolApprovalOverrideInput item : this.toolApprovalOverrides) {
+                    builder.addToolApprovalOverrides(item.toProto());
+                }
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private ResourceRef mcpServerRef;
+            private java.util.List<String> enabledTools;
+            private java.util.List<ToolApprovalOverrideInput> toolApprovalOverrides;
+
+            private Builder() {}
+
+            public Builder mcpServerRef(ResourceRef mcpServerRef) { this.mcpServerRef = mcpServerRef; return this; }
+            public Builder enabledTools(java.util.List<String> enabledTools) { this.enabledTools = enabledTools; return this; }
+            public Builder toolApprovalOverrides(java.util.List<ToolApprovalOverrideInput> toolApprovalOverrides) { this.toolApprovalOverrides = toolApprovalOverrides; return this; }
+
+            public McpServerUsageInput build() { return new McpServerUsageInput(this); }
+        }
+    }
+
+    /** SDK input type for ToolApprovalOverride. */
+    public static final class ToolApprovalOverrideInput {
+        private final String toolName;
+        private final boolean requiresApproval;
+        private final String message;
+
+        private ToolApprovalOverrideInput(Builder builder) {
+            this.toolName = builder.toolName;
+            this.requiresApproval = builder.requiresApproval;
+            this.message = builder.message;
+        }
+
+        ToolApprovalOverride toProto() {
+            ToolApprovalOverride.Builder builder = ToolApprovalOverride.newBuilder();
+            if (this.toolName != null) {
+                builder.setToolName(this.toolName);
+            }
+            builder.setRequiresApproval(this.requiresApproval);
+            if (this.message != null) {
+                builder.setMessage(this.message);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String toolName;
+            private boolean requiresApproval;
+            private String message;
+
+            private Builder() {}
+
+            public Builder toolName(String toolName) { this.toolName = toolName; return this; }
+            public Builder requiresApproval(boolean requiresApproval) { this.requiresApproval = requiresApproval; return this; }
+            public Builder message(String message) { this.message = message; return this; }
+
+            public ToolApprovalOverrideInput build() { return new ToolApprovalOverrideInput(this); }
+        }
     }
 
     /** SDK input type for ExecutionConfig. */

@@ -79,6 +79,7 @@ go_test(
     name = "controller_test",
     srcs = [
         "agentexecution_controller_test.go",
+        "create_session_bootstrap_test.go",
         "create_target_resolution_test.go",
         "get_artifact_content_test.go",
         "get_artifact_download_url_test.go",
@@ -98,10 +99,12 @@ go_test(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
+        "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/libs/go/grpc/request/pipeline",
+        "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
         "//backend/libs/go/store/sqlite",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/approval",

@@ -2333,6 +2333,201 @@
       ]
     },
     {
+      "name": "Harness",
+      "description": "Harness identifies the execution engine that processes agent activities\n for a session.\n\n Each harness corresponds to a different Temporal activity type registered\n by the runner daemon. The harness determines:\n - Which tools the agent has access to\n - How conversation state is managed (Stigmer checkpoints vs engine-native)\n - Which LLM models are available\n - Billing tier and cost structure\n\n HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.",
+      "protoType": "ai.stigmer.agentic.session.v1.Harness",
+      "values": [
+        {
+          "name": "HARNESS_NATIVE",
+          "number": 1,
+          "description": "Stigmer's native execution engine.\n\n Stigmer-managed checkpoints, custom tools, sandbox isolation,\n pause/resume, and full HITL approval flow."
+        },
+        {
+          "name": "HARNESS_CURSOR",
+          "number": 2,
+          "description": "Cursor SDK execution engine.\n\n Cursor-managed conversation state, Cursor built-in tools + MCP,\n both local and cloud runtimes. Premium billing tier."
+        }
+      ]
+    },
+    {
+      "name": "CursorMode",
+      "description": "CursorMode selects the Cursor SDK agent type for sessions using\n HARNESS_CURSOR.\n\n Determined once at session creation based on workspace entries and never\n changed mid-session. Switching would lose Cursor-side conversation state\n because local agents (agent- prefix) and cloud agents (bc- prefix) maintain\n separate, incompatible conversation stores.\n\n Ignored when harness is not HARNESS_CURSOR.\n\n @internal\n Mode selection logic (when feature flag STIGMER_CURSOR_CLOUD_MODE_ENABLED\n is true):\n   - All workspace entries are GitRepoSource -\u003e CURSOR_MODE_CLOUD\n   - Any workspace entry is LocalPathSource  -\u003e CURSOR_MODE_LOCAL\n   - Feature flag disabled                   -\u003e CURSOR_MODE_LOCAL (forced)\n\n When UNSPECIFIED on an existing session, the runner treats it as LOCAL\n for backward compatibility with sessions created before this field existed.",
+      "protoType": "ai.stigmer.agentic.session.v1.CursorMode",
+      "values": [
+        {
+          "name": "CURSOR_MODE_LOCAL",
+          "number": 1,
+          "description": "Local Cursor agent created with a local cwd configuration.\n\n Works with any workspace source (git or local path). Conversation\n state is carried by the Cursor SDK's native local store, which the\n runner persists on the durable workspace volume so Agent.resume()\n survives pod restart and snapshot restore."
+        },
+        {
+          "name": "CURSOR_MODE_CLOUD",
+          "number": 2,
+          "description": "Cloud Cursor agent created with a cloud repos configuration.\n\n Requires all workspace entries to be GitRepoSource (HTTPS URLs).\n Cursor natively manages conversation state for cloud agents.\n Feature-flagged — requires STIGMER_CURSOR_CLOUD_MODE_ENABLED."
+        }
+      ]
+    },
+    {
+      "name": "ExecutionTarget",
+      "description": "ExecutionTarget specifies where session activities are executed.\n\n Determines whether the runner that processes agent activities lives on the\n client's machine (desktop app or CLI) or in a cloud-provisioned sandbox.\n Set at session creation time and immutable once an execution has run —\n workspace state may not be portable between local and cloud environments.\n\n @internal\n The control plane uses this field in dispatch to decide whether to route\n activities to a client-polled per-session queue (LOCAL) or provision a\n cloud sandbox (CLOUD). Both use task queues named \"session:{session_id}\".\n The difference is who provides the runner: the client (LOCAL) or the\n server (CLOUD).",
+      "protoType": "ai.stigmer.agentic.session.v1.ExecutionTarget",
+      "values": [
+        {
+          "name": "EXECUTION_TARGET_LOCAL",
+          "number": 1,
+          "description": "Client's embedded runner handles activities.\n\n Desktop app or CLI spawns a local runner process that polls the\n session's task queue. No server-side provisioning needed."
+        },
+        {
+          "name": "EXECUTION_TARGET_CLOUD",
+          "number": 2,
+          "description": "Server provisions a cloud sandbox for execution.\n\n The control plane triggers EnsureSessionSandbox to create an isolated\n environment with a runner polling the session's task queue."
+        }
+      ]
+    },
+    {
+      "name": "GitWriteBackMode",
+      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.\n\n @internal\n The platform enables write-back by default when credentials are\n available. Users can override this per-session by setting an\n explicit mode. The agent never sees or controls this setting.",
+      "protoType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
+      "values": [
+        {
+          "name": "GIT_WRITE_BACK_BRANCH_AND_PR",
+          "number": 1,
+          "description": "Create a branch and pull request from the agent's file changes after execution completes.\n\n @internal\n The platform automatically detects uncommitted changes via git diff,\n creates a branch (stigmer/{execution_id_short}), commits all changes,\n pushes the branch to the remote, and creates a pull request targeting\n the original branch. The write-back outcome is recorded in\n AgentExecutionStatus.workspace_write_backs."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": "External tool server connected via the Model Context Protocol."
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": "Configured deployment of an agent with environment-specific overrides."
+        },
+        {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
+        },
+        {
+          "name": "agent_channel",
+          "number": 47,
+          "description": "Connection binding an agent to an external messaging platform workspace."
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": "Configured deployment of a workflow with environment-specific bindings."
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": "User-owned runtime context for managing execution state."
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Aggregate root grouping related resources for lifecycle management."
+        }
+      ]
+    },
+    {
       "name": "InteractionMode",
       "description": "InteractionMode controls the agent's behavioral posture for an execution.\n\n Determines what the agent is allowed to do — analysis only, or full\n read-write access. Mode is set per-execution via ExecutionConfig and\n does not carry over between executions.\n\n Enforcement:\n - Native harness (LangGraph): tool-level enforcement — write tools are\n   removed from the tool set in PLAN mode.\n - Cursor harness: best-effort via system prompt injection. The Cursor SDK\n   does not expose a mode parameter, so the agent is instructed not to\n   make changes. When the SDK adds native mode support, the prompt-based\n   approach will be replaced.",
       "protoType": "ai.stigmer.agentic.agentexecution.v1.InteractionMode",

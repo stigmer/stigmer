@@ -77,7 +77,7 @@
           "inputFullType": "ai.stigmer.agentic.agentshare.v1.GetAgentSharesByAgentRequest",
           "outputType": "AgentShareList",
           "outputFullType": "ai.stigmer.agentic.agentshare.v1.AgentShareList",
-          "description": "Get all shares of a specific agent.\n Returns only shares the caller has access to.\n\n This is how the Share dialog and CLI resolve an agent's existing\n share regardless of its slug (a renamed share keeps working).\n\n @internal\n Authorization is handled in-handler: FGA-filtered in cloud, unrestricted\n in OSS (single-user edition)."
+          "description": "Get all shares of a specific agent.\n Returns only shares the caller has access to, optionally scoped to\n one organization via the request's org field.\n\n This is how the Share dialog and CLI resolve an agent's existing\n share regardless of its slug (a renamed share keeps working).\n\n @internal\n Authorization is handled in-handler: FGA-filtered in cloud, unrestricted\n in OSS (single-user edition)."
         },
         {
           "name": "List",
@@ -245,6 +245,16 @@
             "messageType": "PageInfo"
           },
           "description": "Pagination options.",
+          "required": false
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the results to.\n\n When set, only shares whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.\n\n @internal\n Optional by design: the field must stay empty-tolerant because\n pre-existing callers (and cross-org administrative flows) rely on the\n permission-bounded behavior. Filtering happens in the query/list step\n of each edition's handler, never client-side.",
           "required": false
         }
       ]

@@ -198,23 +198,19 @@ func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
 	resource.Spec.Description = i.Description
 	resource.Spec.IconUrl = i.IconUrl
 	if i.Stdio != nil {
-		resource.Spec.ServerType = &mcpserverv1.McpServerSpec_Stdio{
-			Stdio: &mcpserverv1.StdioServerConfig{
-				Command:    i.Stdio.Command,
-				Args:       i.Stdio.Args,
-				WorkingDir: i.Stdio.WorkingDir,
-			},
-		}
+		m := &mcpserverv1.StdioServerConfig{}
+		m.Command = i.Stdio.Command
+		m.Args = i.Stdio.Args
+		m.WorkingDir = i.Stdio.WorkingDir
+		resource.Spec.ServerType = &mcpserverv1.McpServerSpec_Stdio{Stdio: m}
 	}
 	if i.Http != nil {
-		resource.Spec.ServerType = &mcpserverv1.McpServerSpec_Http{
-			Http: &mcpserverv1.HttpServerConfig{
-				Url:            i.Http.Url,
-				Headers:        i.Http.Headers,
-				QueryParams:    i.Http.QueryParams,
-				TimeoutSeconds: i.Http.TimeoutSeconds,
-			},
-		}
+		m := &mcpserverv1.HttpServerConfig{}
+		m.Url = i.Http.Url
+		m.Headers = i.Http.Headers
+		m.QueryParams = i.Http.QueryParams
+		m.TimeoutSeconds = i.Http.TimeoutSeconds
+		resource.Spec.ServerType = &mcpserverv1.McpServerSpec_Http{Http: m}
 	}
 	resource.Spec.DefaultEnabledTools = i.DefaultEnabledTools
 	if len(i.Env) > 0 {

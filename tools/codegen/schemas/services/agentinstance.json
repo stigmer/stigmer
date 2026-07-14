@@ -158,6 +158,16 @@
           },
           "description": "Pagination options.",
           "required": false
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the results to.\n\n When set, only instances whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.\n\n @internal\n Optional by design: the OSS server resolves an agent's default instance\n through this RPC with no org (downstream/agentinstance client), and\n pre-existing callers rely on the permission-bounded behavior. Filtering\n happens in the query/list step of each edition's handler.",
+          "required": false
         }
       ]
     },

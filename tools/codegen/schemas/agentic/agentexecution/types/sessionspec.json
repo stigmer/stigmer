@@ -1,0 +1,142 @@
+{
+  "name": "SessionSpec",
+  "description": "SessionSpec defines the configurable properties of a session.\n\n @internal\n This is the \"Execution\" layer — ephemeral runtime against an AgentInstance.\n The overview.md file provides the SDK-facing description and example YAML.",
+  "protoType": "ai.stigmer.agentic.session.v1.SessionSpec",
+  "protoFile": "apis/ai/stigmer/agentic/session/v1/spec.proto",
+  "fields": [
+    {
+      "name": "AgentInstanceId",
+      "jsonName": "agentInstanceId",
+      "protoField": "agent_instance_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Agent instance this session runs against.\n\n @internal\n When empty, the backend resolves the platform default agent\n (labeled stigmer.ai/default-agent: \"true\" with visibility_public)\n and auto-creates a default instance if needed.",
+      "required": false
+    },
+    {
+      "name": "Subject",
+      "jsonName": "subject",
+      "protoField": "subject",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Conversation title for UI display.",
+      "required": false
+    },
+    {
+      "name": "HarnessStateId",
+      "jsonName": "harnessStateId",
+      "protoField": "harness_state_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Harness-specific state identifier for conversation continuity.\n\n Populated after the first execution completes; empty until then.\n Each harness uses this field differently:\n\n - NATIVE: LangGraph thread ID, derived deterministically as\n   \"thread-{session_id}\" by the EnsureThread activity. Stored here\n   so the immutability sentinel works uniformly across harnesses.\n\n - CURSOR: Cursor SDK agent ID (e.g., \"agent-xxx\" or \"bc-xxx\")\n   returned by Agent.create(). Used for Agent.resume() on\n   subsequent executions.\n\n @internal\n Also serves as the immutability sentinel: when non-empty, the\n session's harness and cursor_mode cannot be changed — each harness\n owns its conversation state independently.",
+      "required": false
+    },
+    {
+      "name": "Metadata",
+      "jsonName": "metadata",
+      "protoField": "metadata",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "Custom key-value pairs for client-specific information.",
+      "required": false
+    },
+    {
+      "name": "WorkspaceEntries",
+      "jsonName": "workspaceEntries",
+      "protoField": "workspace_entries",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "WorkspaceEntry"
+        }
+      },
+      "description": "Workspace entries for this session.\n\n Each entry pairs a name with a source (git repo or local path), forming\n a multi-root workspace. Entries are provisioned on the first execution;\n subsequent executions reuse the same workspace.\n\n When empty, the session uses an empty workspace directory.",
+      "required": false
+    },
+    {
+      "name": "McpServerUsages",
+      "jsonName": "mcpServerUsages",
+      "protoField": "mcp_server_usages",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "McpServerUsage"
+        }
+      },
+      "description": "MCP servers to make available in this session.\n\n Augments the agent's tool set for this specific conversation without\n modifying the agent blueprint. Each usage references an McpServer\n resource.\n\n @internal\n Merge semantics: session-level usages are union'd with agent-level usages.\n If both reference the same MCP server slug, the session-level entry takes\n precedence (enables per-session tool restriction or expansion). The agent\n runner merges these with the agent's mcp_server_usages when constructing\n the execution graph.",
+      "required": false
+    },
+    {
+      "name": "SkillRefs",
+      "jsonName": "skillRefs",
+      "protoField": "skill_refs",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "Skills to inject into this session's context.\n\n Provides domain-specific knowledge for this specific conversation without\n modifying the agent blueprint. Each reference points to a Skill resource\n whose content is added to the agent's context alongside agent-level skills.\n\n @internal\n Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.",
+      "required": false,
+      "referenceKind": 43
+    },
+    {
+      "name": "Harness",
+      "jsonName": "harness",
+      "protoField": "harness",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.session.v1.Harness",
+        "enumValues": [
+          "HARNESS_NATIVE",
+          "HARNESS_CURSOR"
+        ]
+      },
+      "description": "Execution harness for this session.\n\n Determines which Temporal activity type is dispatched when an\n AgentExecution is created in this session:\n - NATIVE (default): ExecuteDeepAgent activity -\u003e Stigmer unified runner\n - CURSOR: ExecuteCursor activity -\u003e TypeScript/Cursor SDK worker\n\n The harness affects which tools the agent has, how conversation state\n is managed, available models, and billing tier. Once set and an execution\n has run, the harness is immutable — changing it would break conversation\n continuity since each harness owns its own state.\n\n When unspecified, defaults to HARNESS_NATIVE.",
+      "required": false
+    },
+    {
+      "name": "CursorMode",
+      "jsonName": "cursorMode",
+      "protoField": "cursor_mode",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.session.v1.CursorMode",
+        "enumValues": [
+          "CURSOR_MODE_LOCAL",
+          "CURSOR_MODE_CLOUD"
+        ]
+      },
+      "description": "Cursor SDK agent mode for this session.\n\n Determines whether the Cursor agent runs locally (Agent.create with\n local.cwd) or in the cloud (Agent.create with cloud.repos). Set once\n at session creation based on workspace entries and never changed —\n switching mid-session would lose Cursor-side conversation state.\n\n Only meaningful when harness == HARNESS_CURSOR. Ignored for other\n harness types.\n\n @internal\n Set by the cursor-runner on the first execution when cursor_mode is\n UNSPECIFIED. The workflow reads it back on subsequent executions to\n route to the correct Agent.create / Agent.resume path.\n\n When UNSPECIFIED on an existing CURSOR session, the runner defaults\n to LOCAL for backward compatibility.",
+      "required": false
+    },
+    {
+      "name": "ExecutionTarget",
+      "jsonName": "executionTarget",
+      "protoField": "execution_target",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.session.v1.ExecutionTarget",
+        "enumValues": [
+          "EXECUTION_TARGET_LOCAL",
+          "EXECUTION_TARGET_CLOUD"
+        ]
+      },
+      "description": "Where session activities are executed — local client or cloud sandbox.\n\n Determines dispatch routing: LOCAL means the client's embedded runner\n (desktop app or CLI) polls the session's task queue; CLOUD means the\n server provisions a sandbox with a runner.\n\n Set by the client at session creation:\n - Desktop/CLI set LOCAL (they run an embedded runner)\n - Web console sets CLOUD (or UNSPECIFIED → server defaults to CLOUD)\n - Customer SDK sets whatever fits their architecture\n\n Immutable once an execution has run — workspace state may not be\n portable between local and cloud environments.",
+      "required": false
+    }
+  ]
+}

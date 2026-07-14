@@ -8,7 +8,9 @@ import (
 
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -169,6 +171,7 @@ type AgentExecutionInput struct {
 	Visibility            apiresource.ApiResourceVisibility
 	SessionId             string
 	AgentId               string
+	SessionSpec           *SessionSpecInput
 	Message               string
 	ExecutionConfig       *ExecutionConfigInput
 	RuntimeEnv            map[string]EnvVarInput
@@ -179,6 +182,46 @@ type AgentExecutionInput struct {
 	WorkspaceFileRefs     []string
 	ActivityTaskQueue     string
 	SupersedesExecutionId string
+}
+
+// SessionSpecInput is the SDK input type for SessionSpec.
+type SessionSpecInput struct {
+	AgentInstanceId  string
+	Subject          string
+	HarnessStateId   string
+	Metadata         map[string]string
+	WorkspaceEntries []*WorkspaceEntryInput
+	McpServerUsages  []*McpServerUsageInput
+	SkillRefs        []ResourceRef
+	Harness          sessionv1.Harness
+	CursorMode       sessionv1.CursorMode
+	ExecutionTarget  sessionv1.ExecutionTarget
+}
+
+// WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
+type WorkspaceEntryInput struct {
+	Name   string
+	Source *WorkspaceSourceInput
+}
+
+// WorkspaceSourceInput is the SDK input type for WorkspaceSource.
+type WorkspaceSourceInput struct {
+	GitRepo   *GitRepoSourceInput
+	LocalPath *LocalPathSourceInput
+}
+
+// GitRepoSourceInput is the SDK input type for GitRepoSource.
+type GitRepoSourceInput struct {
+	Url           string
+	Branch        string
+	Commit        string
+	Depth         int32
+	WriteBackMode sessionv1.GitWriteBackMode
+}
+
+// LocalPathSourceInput is the SDK input type for LocalPathSource.
+type LocalPathSourceInput struct {
+	Path string
 }
 
 // ExecutionConfigInput is the SDK input type for ExecutionConfig.
@@ -225,6 +268,9 @@ func (i *AgentExecutionInput) toProto() *agentexecutionv1.AgentExecution {
 	}
 	resource.Spec.SessionId = i.SessionId
 	resource.Spec.AgentId = i.AgentId
+	if i.SessionSpec != nil {
+		resource.Spec.SessionSpec = i.SessionSpec.toProto()
+	}
 	resource.Spec.Message = i.Message
 	if i.ExecutionConfig != nil {
 		resource.Spec.ExecutionConfig = i.ExecutionConfig.toProto()
@@ -245,6 +291,60 @@ func (i *AgentExecutionInput) toProto() *agentexecutionv1.AgentExecution {
 	resource.Spec.ActivityTaskQueue = i.ActivityTaskQueue
 	resource.Spec.SupersedesExecutionId = i.SupersedesExecutionId
 	return resource
+}
+
+func (i *SessionSpecInput) toProto() *sessionv1.SessionSpec {
+	p := &sessionv1.SessionSpec{}
+	p.AgentInstanceId = i.AgentInstanceId
+	p.Subject = i.Subject
+	p.HarnessStateId = i.HarnessStateId
+	p.Metadata = i.Metadata
+	for _, item := range i.WorkspaceEntries {
+		p.WorkspaceEntries = append(p.WorkspaceEntries, item.toProto())
+	}
+	for _, item := range i.McpServerUsages {
+		p.McpServerUsages = append(p.McpServerUsages, item.toProto())
+	}
+	for _, r := range i.SkillRefs {
+		ref := r.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_skill
+		p.SkillRefs = append(p.SkillRefs, ref)
+	}
+	p.Harness = i.Harness
+	p.CursorMode = i.CursorMode
+	p.ExecutionTarget = i.ExecutionTarget
+	return p
+}
+
+func (i *WorkspaceEntryInput) toProto() *sessionv1.WorkspaceEntry {
+	p := &sessionv1.WorkspaceEntry{}
+	p.Name = i.Name
+	if i.Source != nil {
+		p.Source = i.Source.toProto()
+	}
+	return p
+}
+
+func (i *WorkspaceSourceInput) toProto() *sessionv1.WorkspaceSource {
+	p := &sessionv1.WorkspaceSource{}
+	if i.GitRepo != nil {
+		m := &sessionv1.GitRepoSource{}
+		m.Url = i.GitRepo.Url
+		m.Branch = i.GitRepo.Branch
+		m.Commit = i.GitRepo.Commit
+		if i.GitRepo.Depth != 0 {
+			v := i.GitRepo.Depth
+			m.Depth = &v
+		}
+		m.WriteBackMode = i.GitRepo.WriteBackMode
+		p.Source = &sessionv1.WorkspaceSource_GitRepo{GitRepo: m}
+	}
+	if i.LocalPath != nil {
+		m := &sessionv1.LocalPathSource{}
+		m.Path = i.LocalPath.Path
+		p.Source = &sessionv1.WorkspaceSource_LocalPath{LocalPath: m}
+	}
+	return p
 }
 
 func (i *ExecutionConfigInput) toProto() *agentexecutionv1.ExecutionConfig {
@@ -299,6 +399,7 @@ func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExec
 	if s := p.GetSpec(); s != nil {
 		input.SessionId = s.GetSessionId()
 		input.AgentId = s.GetAgentId()
+		input.SessionSpec = sessionSpecInputFromProto(s.GetSessionSpec())
 		input.Message = s.GetMessage()
 		input.ExecutionConfig = executionConfigInputFromProto(s.GetExecutionConfig())
 		if len(s.GetRuntimeEnv()) > 0 {
@@ -317,6 +418,72 @@ func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExec
 		input.ActivityTaskQueue = s.GetActivityTaskQueue()
 		input.SupersedesExecutionId = s.GetSupersedesExecutionId()
 	}
+	return input
+}
+
+func sessionSpecInputFromProto(p *sessionv1.SessionSpec) *SessionSpecInput {
+	if p == nil {
+		return nil
+	}
+	input := &SessionSpecInput{}
+	input.AgentInstanceId = p.GetAgentInstanceId()
+	input.Subject = p.GetSubject()
+	input.HarnessStateId = p.GetHarnessStateId()
+	input.Metadata = p.GetMetadata()
+	for _, item := range p.GetWorkspaceEntries() {
+		input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))
+	}
+	for _, item := range p.GetMcpServerUsages() {
+		input.McpServerUsages = append(input.McpServerUsages, mcpServerUsageInputFromProto(item))
+	}
+	for _, r := range p.GetSkillRefs() {
+		input.SkillRefs = append(input.SkillRefs, resourceRefFromProto(r))
+	}
+	input.Harness = p.GetHarness()
+	input.CursorMode = p.GetCursorMode()
+	input.ExecutionTarget = p.GetExecutionTarget()
+	return input
+}
+
+func workspaceEntryInputFromProto(p *sessionv1.WorkspaceEntry) *WorkspaceEntryInput {
+	if p == nil {
+		return nil
+	}
+	input := &WorkspaceEntryInput{}
+	input.Name = p.GetName()
+	input.Source = workspaceSourceInputFromProto(p.GetSource())
+	return input
+}
+
+func workspaceSourceInputFromProto(p *sessionv1.WorkspaceSource) *WorkspaceSourceInput {
+	if p == nil {
+		return nil
+	}
+	input := &WorkspaceSourceInput{}
+	input.GitRepo = gitRepoSourceInputFromProto(p.GetGitRepo())
+	input.LocalPath = localPathSourceInputFromProto(p.GetLocalPath())
+	return input
+}
+
+func gitRepoSourceInputFromProto(p *sessionv1.GitRepoSource) *GitRepoSourceInput {
+	if p == nil {
+		return nil
+	}
+	input := &GitRepoSourceInput{}
+	input.Url = p.GetUrl()
+	input.Branch = p.GetBranch()
+	input.Commit = p.GetCommit()
+	input.Depth = p.GetDepth()
+	input.WriteBackMode = p.GetWriteBackMode()
+	return input
+}
+
+func localPathSourceInputFromProto(p *sessionv1.LocalPathSource) *LocalPathSourceInput {
+	if p == nil {
+		return nil
+	}
+	input := &LocalPathSourceInput{}
+	input.Path = p.GetPath()
 	return input
 }
 

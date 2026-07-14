@@ -111,9 +111,8 @@ func (i *AgentChannelInput) toProto() *agentchannelv1.AgentChannel {
 	}
 	resource.Spec.Enabled = i.Enabled
 	if i.Slack != nil {
-		resource.Spec.ProviderConfig = &agentchannelv1.AgentChannelSpec_Slack{
-			Slack: &agentchannelv1.SlackChannelConfig{},
-		}
+		m := &agentchannelv1.SlackChannelConfig{}
+		resource.Spec.ProviderConfig = &agentchannelv1.AgentChannelSpec_Slack{Slack: m}
 	}
 	return resource
 }

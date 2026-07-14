@@ -6,6 +6,7 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
@@ -60,6 +61,14 @@ func newExecution(sessionID, agentID string) *agentexecutionv1.AgentExecution {
 	}
 }
 
+// newBootstrapExecution builds an AgentExecution carrying an embedded
+// session_spec (the one-call bootstrap shape, stigmer/stigmer#249).
+func newBootstrapExecution(agentID string, sessionSpec *sessionv1.SessionSpec) *agentexecutionv1.AgentExecution {
+	execution := newExecution("", agentID)
+	execution.Spec.SessionSpec = sessionSpec
+	return execution
+}
+
 // TestEnsureSessionOrAgentResolvedStep verifies the post-resolution invariant guard:
 // a resolved reference passes; an unresolved one is an Internal invariant violation
 // (never InvalidArgument — see issue #196).
@@ -67,21 +76,27 @@ func TestEnsureSessionOrAgentResolvedStep(t *testing.T) {
 	step := newEnsureSessionOrAgentResolvedStep()
 
 	tests := []struct {
-		name      string
-		sessionID string
-		agentID   string
-		wantErr   bool
-		wantCode  codes.Code
+		name           string
+		sessionID      string
+		agentID        string
+		specInstanceID string
+		wantErr        bool
+		wantCode       codes.Code
 	}{
 		{name: "session_id resolved -> pass", sessionID: "ses_1"},
 		{name: "agent_id resolved -> pass", agentID: "agt_1"},
 		{name: "both resolved -> pass", sessionID: "ses_1", agentID: "agt_1"},
-		{name: "neither resolved -> Internal invariant violation", wantErr: true, wantCode: codes.Internal},
+		{name: "session_spec instance resolved -> pass", specInstanceID: "inst_1"},
+		{name: "none resolved -> Internal invariant violation", wantErr: true, wantCode: codes.Internal},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			reqCtx := pipeline.NewRequestContext(context.Background(), newExecution(tt.sessionID, tt.agentID))
+			execution := newExecution(tt.sessionID, tt.agentID)
+			if tt.specInstanceID != "" {
+				execution.Spec.SessionSpec = &sessionv1.SessionSpec{AgentInstanceId: tt.specInstanceID}
+			}
+			reqCtx := pipeline.NewRequestContext(context.Background(), execution)
 
 			err := step.Execute(reqCtx)
 
@@ -159,4 +174,40 @@ func TestResolveDefaultAgentStep(t *testing.T) {
 			t.Errorf("expected agent_id to remain 'agt_explicit', got %q", got)
 		}
 	})
+
+	t.Run("session_spec instance provided -> no-op even with a seeded default agent", func(t *testing.T) {
+		// A one-call bootstrap naming an explicit instance must NOT resolve
+		// the platform default agent: doing so would stamp the default
+		// agent's ID onto execution.spec.agent_id — misleading metadata
+		// pointing at an agent the session does not run against.
+		s := newStore(t)
+		seedDefaultAgent(t, s, "agt_default", apiresource.ApiResourceVisibility_visibility_public)
+		step := newResolveDefaultAgentStep(s)
+		reqCtx := pipeline.NewRequestContext(context.Background(),
+			newBootstrapExecution("", &sessionv1.SessionSpec{AgentInstanceId: "inst_explicit"}))
+
+		if err := step.Execute(reqCtx); err != nil {
+			t.Fatalf("expected no-op to succeed, got %v", err)
+		}
+		if got := reqCtx.NewState().GetSpec().GetAgentId(); got != "" {
+			t.Errorf("expected agent_id to stay empty for an instance-carrying bootstrap, got %q", got)
+		}
+	})
+}
+
+// TestCreateDefaultInstanceIfNeededStep_SkipsForBootstrapInstance verifies the
+// one-call bootstrap skip: when session_spec names an instance, the step must
+// return before any agent lookup. The nil clients prove it — reaching the
+// lookup would panic.
+func TestCreateDefaultInstanceIfNeededStep_SkipsForBootstrapInstance(t *testing.T) {
+	step := newCreateDefaultInstanceIfNeededStep(nil, nil, nil)
+	reqCtx := pipeline.NewRequestContext(context.Background(),
+		newBootstrapExecution("", &sessionv1.SessionSpec{AgentInstanceId: "inst_explicit"}))
+
+	if err := step.Execute(reqCtx); err != nil {
+		t.Fatalf("expected skip to succeed, got %v", err)
+	}
+	if _, ok := reqCtx.Get(DefaultInstanceIDKey).(string); ok {
+		t.Error("expected no default instance to be resolved for an instance-carrying bootstrap")
+	}
 }

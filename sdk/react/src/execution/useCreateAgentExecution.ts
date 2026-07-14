@@ -2,17 +2,55 @@
 
 import { useCallback, useState } from "react";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { AttachmentInput, EnvVarInput } from "@stigmer/sdk";
+import type {
+  AttachmentInput,
+  EnvVarInput,
+  McpServerUsageInput,
+  ResourceRef,
+  WorkspaceEntryInput,
+} from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 import { toProtoInteractionMode } from "../composer/interaction-mode.js";
+import { toProtoHarness, type HarnessOption } from "../models/harness.js";
+import {
+  toProtoExecutionTarget,
+  type ExecutionTargetOption,
+} from "../session/execution-target.js";
 
-/** Input for {@link UseCreateAgentExecutionReturn.create}. */
-export interface CreateAgentExecutionInput {
+/**
+ * Spec for the session the server auto-creates on the one-call bootstrap
+ * path (maps to `AgentExecutionSpec.session_spec` in the proto).
+ *
+ * Carries the session shape — workspace, harness, execution target, MCP
+ * servers, skills — alongside the first message, so starting a session
+ * with a configured workspace is a single API call (stigmer/stigmer#249).
+ *
+ * When `agentInstanceId` is omitted, the server resolves the agent's
+ * default instance from the execution's `agentId` (creating the instance
+ * if missing), or falls back to the platform default agent.
+ */
+export interface BootstrapSessionSpec {
+  /** Agent instance the session runs against. Omit to let the server resolve it. */
+  readonly agentInstanceId?: string;
+  /** Initial conversation subject. Omit for an async LLM-generated title. */
+  readonly subject?: string;
+  /** Workspace source entries to attach to the session. */
+  readonly workspaceEntries?: WorkspaceEntryInput[];
+  /** MCP server configurations to include for tool access. */
+  readonly mcpServerUsages?: McpServerUsageInput[];
+  /** Skill references to enable for executions in this session. */
+  readonly skillRefs?: ResourceRef[];
+  /** Execution harness. Immutable after the first execution runs. */
+  readonly harness?: HarnessOption;
+  /** Where session activities execute. Immutable after the first execution runs. */
+  readonly executionTarget?: ExecutionTargetOption;
+}
+
+/** Fields shared by both variants of {@link CreateAgentExecutionInput}. */
+export interface SharedAgentExecutionFields {
   /** Organization slug that owns the session. */
   readonly org: string;
-  /** Session to create the execution within. */
-  readonly sessionId: string;
   /** User message that initiates the execution. */
   readonly message: string;
   /** Override the default model for this execution. */
@@ -106,11 +144,42 @@ export interface CreateAgentExecutionInput {
   readonly supersedesExecutionId?: string;
 }
 
+/**
+ * Input for {@link UseCreateAgentExecutionReturn.create}. Exactly one
+ * session strategy must be provided:
+ *
+ * - **`sessionId`** — Create the execution within an existing session.
+ * - **`sessionSpec`** — One-call bootstrap: the server creates a session
+ *   from the embedded spec and dispatches this execution in it. The new
+ *   session's ID is returned on {@link CreateAgentExecutionResult.sessionId}.
+ *
+ * Providing both is a type error (and an `INVALID_ARGUMENT` server-side).
+ */
+export type CreateAgentExecutionInput = SharedAgentExecutionFields &
+  (
+    | {
+        /** Session to create the execution within. */
+        readonly sessionId: string;
+        /** @internal Discriminant — excluded when `sessionId` is provided. */
+        readonly sessionSpec?: never;
+      }
+    | {
+        /** Spec for the session to auto-create (one-call bootstrap). */
+        readonly sessionSpec: BootstrapSessionSpec;
+        /** @internal Discriminant — excluded when `sessionSpec` is provided. */
+        readonly sessionId?: never;
+      }
+  );
+
 /** Resolved output of {@link UseCreateAgentExecutionReturn.create}. */
 export interface CreateAgentExecutionResult {
   /** Server-assigned identifier for the newly created execution. */
   readonly executionId: string;
-  /** Session the execution belongs to (echoed from input). */
+  /**
+   * Session the execution belongs to. On the `sessionId` path this echoes
+   * the input; on the `sessionSpec` bootstrap path it is the server-created
+   * session's ID.
+   */
   readonly sessionId: string;
 }
 
@@ -132,9 +201,12 @@ export interface UseCreateAgentExecutionReturn {
  * Behavior hook that wraps `agentExecution.create()` with loading/error
  * state.
  *
- * Maps 1:1 to the AgentExecution aggregate — a single run of an agent
- * within an existing session. Requires a `sessionId`; use
- * {@link useCreateSession} to create the session first.
+ * Maps 1:1 to the AgentExecution aggregate — a single run of an agent.
+ * Two session strategies are supported, mirroring the RPC contract:
+ * pass `sessionId` to execute within an existing session (use
+ * {@link useCreateSession} to create one), or pass `sessionSpec` to
+ * bootstrap a new session (workspace, harness, execution target) and
+ * dispatch the first message in a single call.
  *
  * Supports both secret delivery flows:
  *
@@ -162,6 +234,21 @@ export interface UseCreateAgentExecutionReturn {
  *   message: "Deploy to production",
  *   runtimeEnv: {
  *     CUSTOMER_API_KEY: { value: "cust_xyz...", isSecret: true },
+ *   },
+ * });
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // One-call bootstrap: session with a workspace + first message
+ * const { create } = useCreateAgentExecution();
+ * const { sessionId } = await create({
+ *   org: "acme",
+ *   message: "Customize the landing page",
+ *   sessionSpec: {
+ *     agentInstanceId: "ain_abc",
+ *     workspaceEntries: [{ name: "site", source: { localPath: { path: "/repos/site" } } }],
+ *     executionTarget: "local",
  *   },
  * });
  * ```
@@ -199,10 +286,27 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
             }
           : undefined;
 
+        const sessionSpec = input.sessionSpec
+          ? {
+              agentInstanceId: input.sessionSpec.agentInstanceId,
+              subject: input.sessionSpec.subject,
+              workspaceEntries: input.sessionSpec.workspaceEntries,
+              mcpServerUsages: input.sessionSpec.mcpServerUsages,
+              skillRefs: input.sessionSpec.skillRefs,
+              harness: input.sessionSpec.harness
+                ? toProtoHarness(input.sessionSpec.harness)
+                : undefined,
+              executionTarget: input.sessionSpec.executionTarget
+                ? toProtoExecutionTarget(input.sessionSpec.executionTarget)
+                : undefined,
+            }
+          : undefined;
+
         const execution = await stigmer.agentExecution.create({
           name: `execution-${Date.now()}`,
           org: input.org,
           sessionId: input.sessionId,
+          sessionSpec,
           agentId: input.agentId,
           message: input.message,
           executionConfig,
@@ -215,7 +319,9 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
 
         return {
           executionId: execution.metadata!.id,
-          sessionId: input.sessionId,
+          // On the bootstrap path the server assigns the session; trust the
+          // response first so both variants report the real session.
+          sessionId: execution.spec?.sessionId ?? input.sessionId ?? "",
         };
       } catch (err) {
         setError(toError(err));

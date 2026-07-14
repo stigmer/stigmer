@@ -94,7 +94,19 @@ type GetWorkflowInstancesByWorkflowRequest struct {
 	// Workflow template ID to filter by.
 	WorkflowId string `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
 	// Pagination options for result set control.
-	PageInfo      *rpc.PageInfo `protobuf:"bytes,2,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
+	PageInfo *rpc.PageInfo `protobuf:"bytes,2,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
+	// Organization slug to scope the results to.
+	//
+	// When set, only instances whose metadata.org matches are returned — the
+	// org-context view a console tab needs. When empty, results are bounded
+	// only by the caller's view permissions, which for a member of several
+	// organizations spans all of them.
+	//
+	// @internal
+	// Optional by design: pre-existing callers rely on the permission-bounded
+	// behavior. Filtering happens in the query/list step of each edition's
+	// handler, never client-side.
+	Org           string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -141,6 +153,13 @@ func (x *GetWorkflowInstancesByWorkflowRequest) GetPageInfo() *rpc.PageInfo {
 		return x.PageInfo
 	}
 	return nil
+}
+
+func (x *GetWorkflowInstancesByWorkflowRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
 }
 
 // UpdateExecutionVisibilityInput targets the run-observability setting of a
@@ -264,11 +283,12 @@ const file_ai_stigmer_agentic_workflowinstance_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"/ai/stigmer/agentic/workflowinstance/v1/io.proto\x12&ai.stigmer.agentic.workflowinstance.v1\x1a0ai/stigmer/agentic/workflowinstance/v1/api.proto\x1a1ai/stigmer/agentic/workflowinstance/v1/spec.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"2\n" +
 	"\x12WorkflowInstanceId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x8f\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xa1\x01\n" +
 	"%GetWorkflowInstancesByWorkflowRequest\x12'\n" +
 	"\vworkflow_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"workflowId\x12=\n" +
-	"\tpage_info\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\"\xce\x01\n" +
+	"\tpage_info\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\x12\x10\n" +
+	"\x03org\x18\x03 \x01(\tR\x03org\"\xce\x01\n" +
 	"\x1eUpdateExecutionVisibilityInput\x12'\n" +
 	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"resourceId\x12\x82\x01\n" +

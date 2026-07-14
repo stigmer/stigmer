@@ -104,7 +104,9 @@ export class Stigmer extends GeneratedClient {
   }
 
   /**
-   * Wrap `session.create/apply` so that the client-level
+   * Wrap `session.create/apply` — and the one-call bootstrap path on
+   * `agentExecution.create` (an embedded `sessionSpec` defines the
+   * session to auto-create) — so that the client-level
    * `defaultExecutionTarget` is applied when the per-call input
    * does not specify one.
    *
@@ -115,11 +117,20 @@ export class Stigmer extends GeneratedClient {
     const target = this.defaultExecutionTarget!;
     const origSessionCreate = this.session.create.bind(this.session);
     const origSessionApply = this.session.apply.bind(this.session);
+    const origExecutionCreate = this.agentExecution.create.bind(
+      this.agentExecution,
+    );
 
     this.session.create = (input) =>
       origSessionCreate(applySessionDefault(input, target));
     this.session.apply = (input) =>
       origSessionApply(applySessionDefault(input, target));
+    this.agentExecution.create = (input) =>
+      origExecutionCreate(
+        input.sessionSpec
+          ? { ...input, sessionSpec: applySessionDefault(input.sessionSpec, target) }
+          : input,
+      );
   }
 
   /**

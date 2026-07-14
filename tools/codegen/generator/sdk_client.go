@@ -942,9 +942,7 @@ func emitToProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap m
 		buf.WriteString("\t}\n")
 
 	case f.Type.Kind == "message" && f.OneofGroup != "":
-		fmt.Fprintf(buf, "\tif i.%s != nil {\n", f.Name)
-		emitOneofToProto(buf, f, alias, specName, typeMap)
-		buf.WriteString("\t}\n")
+		emitOneofMemberToProto(buf, f, alias, specName, "resource.Spec", typeMap)
 
 	case f.Type.Kind == "message":
 		fmt.Fprintf(buf, "\tif i.%s != nil {\n", f.Name)
@@ -1011,9 +1009,28 @@ func emitToProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap m
 	}
 }
 
-func emitOneofToProto(buf *bytes.Buffer, f *FieldSchema, alias, specName string, typeMap map[string]*TypeSchema) {
+// emitOneofMemberToProto writes the guarded assignment of one message-typed
+// oneof member onto its container's oneof field:
+//
+//	if i.<Member> != nil {
+//		m := &<alias>.<MemberType>{}
+//		m.<Field> = i.<Member>.<Field>
+//		...
+//		<dst>.<Group> = &<alias>.<Container>_<Member>{<Member>: m}
+//	}
+//
+// containerMsg is the Go name of the message declaring the oneof — the spec
+// for top-level oneofs (e.g. McpServerSpec_Stdio), the nested message for
+// oneofs inside nested types (e.g. WorkspaceSource_GitRepo).
+//
+// Member fields are copied directly (scalars, enums, maps). A member field in
+// a synthetic oneof (proto3 optional, group "_<field>") maps to a pointer on
+// the proto struct: the zero value is left absent (proto presence semantics)
+// and any other value is set via a pointer. Message-typed member fields are
+// not supported — no current schema has one.
+func emitOneofMemberToProto(buf *bytes.Buffer, f *FieldSchema, alias, containerMsg, dst string, typeMap map[string]*TypeSchema) {
 	protoField := goProtoFieldName(f.ProtoField)
-	oneofWrapper := specName + "_" + protoField
+	oneofWrapper := containerMsg + "_" + protoField
 	msgType := f.Type.MessageType
 
 	ts, ok := typeMap[msgType]
@@ -1021,17 +1038,52 @@ func emitOneofToProto(buf *bytes.Buffer, f *FieldSchema, alias, specName string,
 		return
 	}
 
-	// The oneof container field on the proto spec is named after the oneof
-	// group (e.g. "server_type" -> ServerType, "provider_config" ->
-	// ProviderConfig), not after any individual member field.
+	// The member type may live in a different proto package than the
+	// container; derive its alias from its own proto type when known.
+	memberAlias := alias
+	if ts.ProtoType != "" {
+		if derived := protoTypeToPackageAlias(ts.ProtoType); derived != "" {
+			memberAlias = derived
+		}
+	}
+
+	// The oneof container field on the proto message is named after the
+	// oneof group (e.g. "server_type" -> ServerType, "source" -> Source),
+	// not after any individual member field.
 	oneofContainer := goProtoFieldName(f.OneofGroup)
-	fmt.Fprintf(buf, "\t\tresource.Spec.%s = &%s.%s{\n", oneofContainer, alias, oneofWrapper)
-	fmt.Fprintf(buf, "\t\t\t%s: &%s.%s{\n", protoField, alias, msgType)
+	fmt.Fprintf(buf, "\tif i.%s != nil {\n", f.Name)
+	fmt.Fprintf(buf, "\t\tm := &%s.%s{}\n", memberAlias, msgType)
 	for _, field := range ts.Fields {
 		pf := goProtoFieldName(field.ProtoField)
-		fmt.Fprintf(buf, "\t\t\t\t%s: i.%s.%s,\n", pf, f.Name, field.Name)
+		if strings.HasPrefix(field.OneofGroup, "_") {
+			zero := goZeroValueForTypeSpec(&field.Type)
+			fmt.Fprintf(buf, "\t\tif i.%s.%s != %s {\n", f.Name, field.Name, zero)
+			fmt.Fprintf(buf, "\t\t\tv := i.%s.%s\n", f.Name, field.Name)
+			fmt.Fprintf(buf, "\t\t\tm.%s = &v\n", pf)
+			buf.WriteString("\t\t}\n")
+			continue
+		}
+		fmt.Fprintf(buf, "\t\tm.%s = i.%s.%s\n", pf, f.Name, field.Name)
 	}
-	buf.WriteString("\t\t\t},\n\t\t}\n")
+	fmt.Fprintf(buf, "\t\t%s.%s = &%s.%s{%s: m}\n", dst, oneofContainer, alias, oneofWrapper, protoField)
+	buf.WriteString("\t}\n")
+}
+
+// goZeroValueForTypeSpec returns the Go zero-value literal used to test
+// presence of a synthetic-oneof (proto3 optional) member field on an SDK
+// input struct, whose fields are plain (non-pointer) Go types.
+func goZeroValueForTypeSpec(ts *TypeSpec) string {
+	switch ts.Kind {
+	case "string":
+		if ts.EnumType != "" {
+			return "0"
+		}
+		return `""`
+	case "bool":
+		return "false"
+	default:
+		return "0"
+	}
 }
 
 func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap map[string]*TypeSchema, emitted map[string]bool, specName string, globalEmitted map[string]bool) {
@@ -1089,7 +1141,7 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 			needsImperative = true
 			break
 		}
-		if field.Type.Kind == "message" && field.OneofGroup == "" {
+		if field.Type.Kind == "message" {
 			needsImperative = true
 			break
 		}
@@ -1115,6 +1167,11 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 				buf.WriteString("\t\t}\n\t}\n")
 			} else if field.Type.Kind == "message" {
 				if field.OneofGroup != "" {
+					// Message-typed oneof member (e.g. WorkspaceSource's
+					// git_repo/local_path): emit the guarded wrapper
+					// assignment. Skipping it would silently drop the
+					// caller's value (stigmer/stigmer#249 review).
+					emitOneofMemberToProto(buf, field, protoAlias, msgName, "p", typeMap)
 					continue
 				}
 				if field.Type.MessageType == "ApiResourceReference" {
@@ -1134,9 +1191,21 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 					buf.WriteString("\t}\n")
 				}
 			} else if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message" {
-				fmt.Fprintf(buf, "\tfor _, item := range i.%s {\n", field.Name)
-				fmt.Fprintf(buf, "\t\tp.%s = append(p.%s, item.toProto())\n", pf, pf)
-				buf.WriteString("\t}\n")
+				// Mirror the spec-level array-of-ApiResourceReference handling:
+				// a declared reference_kind is stamped onto every element so
+				// callers only provide org/slug (the server validates kind).
+				if field.Type.ElementType.MessageType == "ApiResourceReference" && field.ReferenceKind != 0 {
+					enumName := apiResourceKindEnumNames[field.ReferenceKind]
+					fmt.Fprintf(buf, "\tfor _, r := range i.%s {\n", field.Name)
+					buf.WriteString("\t\tref := r.toProto()\n")
+					fmt.Fprintf(buf, "\t\tref.Kind = apiresourcekind.ApiResourceKind_%s\n", enumName)
+					fmt.Fprintf(buf, "\t\tp.%s = append(p.%s, ref)\n", pf, pf)
+					buf.WriteString("\t}\n")
+				} else {
+					fmt.Fprintf(buf, "\tfor _, item := range i.%s {\n", field.Name)
+					fmt.Fprintf(buf, "\t\tp.%s = append(p.%s, item.toProto())\n", pf, pf)
+					buf.WriteString("\t}\n")
+				}
 			} else {
 				fmt.Fprintf(buf, "\tp.%s = i.%s\n", pf, field.Name)
 			}

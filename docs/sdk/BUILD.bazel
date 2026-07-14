@@ -21,7 +21,7 @@ go_library(
     importpath = "github.com/stigmer/stigmer/docs/sdk",
     visibility = ["//visibility:public"],
     deps = [
-        "@com_github_stigmer_stigmer_sdk_go//gen/types",
+        "@com_github_stigmer_stigmer_sdk_go_v3//gen/types",
         "@org_golang_google_protobuf//types/known/durationpb",
         "@org_golang_google_protobuf//types/known/structpb",
         "@org_golang_google_protobuf//types/known/timestamppb",

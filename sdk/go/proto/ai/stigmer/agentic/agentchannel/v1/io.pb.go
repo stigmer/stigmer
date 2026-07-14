@@ -75,7 +75,19 @@ type GetAgentChannelsByAgentRequest struct {
 	// Identifier of the agent whose channels to retrieve.
 	AgentId string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	// Pagination options.
-	PageInfo      *rpc.PageInfo `protobuf:"bytes,2,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
+	PageInfo *rpc.PageInfo `protobuf:"bytes,2,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
+	// Organization slug to scope the results to.
+	//
+	// When set, only channels whose metadata.org matches are returned — the
+	// org-context view a console tab needs. When empty, results are bounded
+	// only by the caller's view permissions, which for a member of several
+	// organizations spans all of them.
+	//
+	// @internal
+	// Mirrors the org scoping on the sibling getByAgent/getByWorkflow
+	// requests (agent shares, agent instances, workflow instances). Handlers
+	// implementing this RPC must apply the filter in their query/list step.
+	Org           string `protobuf:"bytes,3,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -122,6 +134,13 @@ func (x *GetAgentChannelsByAgentRequest) GetPageInfo() *rpc.PageInfo {
 		return x.PageInfo
 	}
 	return nil
+}
+
+func (x *GetAgentChannelsByAgentRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
 }
 
 // Response containing a paginated list of agent channels.
@@ -426,10 +445,11 @@ const file_ai_stigmer_agentic_agentchannel_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"+ai/stigmer/agentic/agentchannel/v1/io.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a,ai/stigmer/agentic/agentchannel/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\".\n" +
 	"\x0eAgentChannelId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x82\x01\n" +
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x94\x01\n" +
 	"\x1eGetAgentChannelsByAgentRequest\x12!\n" +
 	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x12=\n" +
-	"\tpage_info\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\"{\n" +
+	"\tpage_info\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\x12\x10\n" +
+	"\x03org\x18\x03 \x01(\tR\x03org\"{\n" +
 	"\x10AgentChannelList\x12\x1f\n" +
 	"\vtotal_count\x18\x01 \x01(\x05R\n" +
 	"totalCount\x12F\n" +

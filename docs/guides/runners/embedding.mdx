@@ -107,6 +107,53 @@ The execution target decides who provides the runner. The SDK exposes it as
 When you leave `executionTarget` unset, the server resolves it from your
 deployment: cloud on Stigmer Cloud, local in an OSS deployment.
 
+## Start a session in one call
+
+The deep-link moment every embedder builds first — the user clicks one action
+and lands in a session that already has a workspace attached and the first
+message running — is a single API call. Pass `sessionSpec` on
+`agentExecution.create` and the server creates the session from that spec
+(workspace entries, harness, execution target, MCP servers, skills) and
+dispatches the message in the same request:
+
+```typescript
+import { ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+
+const execution = await stigmer.agentExecution.create({
+  name: `execution-${Date.now()}`,
+  org: "acme",
+  message: "Customize the landing page",
+  sessionSpec: {
+    agentInstanceId: "ain_abc123",
+    workspaceEntries: [
+      { name: "site", source: { localPath: { path: "/Users/me/site" } } },
+    ],
+    executionTarget: ExecutionTarget.LOCAL,
+  },
+});
+
+const sessionId = execution.spec!.sessionId; // the created session
+
+// Local target only: attach your runner's worker to the new session.
+await runnerAdapter.onSessionOpened(sessionId);
+```
+
+Notes on the contract:
+
+- `sessionSpec` and `sessionId` are mutually exclusive: define a new session or
+  reference an existing one, never both.
+- When `sessionSpec.agentInstanceId` is empty, the server resolves the agent's
+  default instance from `agentId` (creating the instance if missing), or falls
+  back to the platform default agent.
+- For the **local** target, attach the runner right after the call returns, as
+  shown. The order is safe: the execution's first activity waits on the
+  session's task queue for a worker (a 5-minute window), so the worker you
+  attach picks it up immediately.
+- In React you rarely write this by hand — `useNewSessionFlow` (and the
+  `NewSessionViewer` component built on it) submits through this one-call path
+  and handles the runner attach for you. `useCreateAgentExecution` accepts the
+  same `sessionSpec` input for custom flows.
+
 ## The RunnerAdapter
 
 When `executionTarget` is `"local"`, the SDK needs a way to tell your runner

@@ -12,7 +12,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Session ID this execution belongs to (optional).\n\n Resolution priority (enforced in handler pipeline):\n   1. session_id provided     -\u003e use existing session\n   2. agent_id provided       -\u003e auto-create session using agent's default instance\n   3. neither provided        -\u003e resolve platform default agent (label\n      stigmer.ai/default-agent + visibility_public), then auto-create session\n\n Both may be set — when both are present, session_id is used for session\n resolution and agent_id is preserved as metadata for downstream consumers\n (e.g., session subject generation).",
+      "description": "Session ID this execution belongs to (optional).\n\n Resolution priority (enforced in handler pipeline):\n   1. session_id provided     -\u003e use existing session\n   2. session_spec provided   -\u003e auto-create session from the embedded spec\n   3. agent_id provided       -\u003e auto-create session using agent's default instance\n   4. neither provided        -\u003e resolve platform default agent (label\n      stigmer.ai/default-agent + visibility_public), then auto-create session\n\n session_id and agent_id may both be set — when both are present, session_id\n is used for session resolution and agent_id is preserved as metadata for\n downstream consumers (e.g., session subject generation). session_id and\n session_spec are mutually exclusive.",
       "required": false
     },
     {
@@ -23,6 +23,17 @@
         "kind": "string"
       },
       "description": "Agent ID (optional).\n\n When absent along with session_id, the backend resolves the platform's\n public default agent — the agent labeled stigmer.ai/default-agent: \"true\"\n with visibility_public. This enables session-first UX where users start\n a conversation without choosing an agent.\n\n Both may be set — agent_id is preserved on the execution record even when\n session_id is present, so downstream consumers can access the agent\n without resolving through the session chain.\n\n When provided without session_id, a new session is auto-created using\n the agent's default instance ID.",
+      "required": false
+    },
+    {
+      "name": "SessionSpec",
+      "jsonName": "sessionSpec",
+      "protoField": "session_spec",
+      "type": {
+        "kind": "message",
+        "messageType": "SessionSpec"
+      },
+      "description": "Spec for the session to auto-create when session_id is empty (optional).\n\n This is the one-call session bootstrap: a single create carries the full\n session shape (workspace_entries, harness, execution_target, MCP servers,\n skills) together with the first message, so embedders do not need to\n orchestrate session.create followed by agentExecution.create. The created\n session's ID is returned on the persisted execution's session_id.\n\n Fields that must be set at session-creation time and are immutable once\n an execution has run — harness and execution_target — can only reach an\n auto-created session through this field.\n\n When session_spec.agent_instance_id is set, the session runs against that\n instance and agent_id must not also be resolved from it. When empty, the\n normal resolution applies: agent_id's default instance, or the platform\n default agent when agent_id is also empty.\n\n Mutually exclusive with session_id. session_spec.harness_state_id must be\n empty — it is server-owned harness continuity state, created by the runner\n after the first execution.\n\n @internal\n The Session resource created from this spec is the single source of truth\n for session configuration. The handler clears this field after the session\n is created (before persist), so the execution record never carries a\n second copy of session config that could drift as the session evolves.\n Extends the existing auto-create path in createSessionIfNeededStep rather\n than adding a parallel one (stigmer/stigmer#249).",
       "required": false
     },
     {

@@ -4,7 +4,7 @@ from ._bidi import BidiStream
 from ._client import GeneratedClient
 from ._agent import AgentClient, AgentInput, McpServerUsageInput, ToolApprovalOverrideInput, SubAgentInput, McpAccessInput, EnvVarDeclarationInput
 from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput
-from ._agentexecution import AgentExecutionClient, AgentExecutionInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput
+from ._agentexecution import AgentExecutionClient, AgentExecutionInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput
 from ._agentinstance import AgentInstanceClient, AgentInstanceInput
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
@@ -20,7 +20,7 @@ from ._oauthapp import OAuthAppClient, OAuthAppInput
 from ._organization import OrganizationClient, OrganizationInput
 from ._platformclient import PlatformClientClient, PlatformClientInput
 from ._project import ProjectClient, ProjectInput
-from ._session import SessionClient, SessionInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput
+from ._session import SessionClient, SessionInput
 from ._skill import SkillClient, SkillInput
 from ._workflow import WorkflowClient, WorkflowInput, WorkflowDocumentInput, WorkflowTaskInput, ExportInput, FlowControlInput, WorkflowBudgetInput
 from ._workflowexecution import WorkflowExecutionClient, WorkflowExecutionInput
@@ -58,6 +58,11 @@ __all__ = [
     "SlackChannelConfigInput",
     "AgentExecutionClient",
     "AgentExecutionInput",
+    "SessionSpecInput",
+    "WorkspaceEntryInput",
+    "WorkspaceSourceInput",
+    "GitRepoSourceInput",
+    "LocalPathSourceInput",
     "ExecutionConfigInput",
     "ContextManagementConfigInput",
     "AttachmentInput",
@@ -101,10 +106,6 @@ __all__ = [
     "ProjectInput",
     "SessionClient",
     "SessionInput",
-    "WorkspaceEntryInput",
-    "WorkspaceSourceInput",
-    "GitRepoSourceInput",
-    "LocalPathSourceInput",
     "SkillClient",
     "SkillInput",
     "WorkflowClient",

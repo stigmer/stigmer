@@ -85,13 +85,15 @@ private static final long serialVersionUID = 0L;
    *
    * Resolution priority (enforced in handler pipeline):
    * 1. session_id provided     -&gt; use existing session
-   * 2. agent_id provided       -&gt; auto-create session using agent's default instance
-   * 3. neither provided        -&gt; resolve platform default agent (label
+   * 2. session_spec provided   -&gt; auto-create session from the embedded spec
+   * 3. agent_id provided       -&gt; auto-create session using agent's default instance
+   * 4. neither provided        -&gt; resolve platform default agent (label
    * stigmer.ai/default-agent + visibility_public), then auto-create session
    *
-   * Both may be set — when both are present, session_id is used for session
-   * resolution and agent_id is preserved as metadata for downstream consumers
-   * (e.g., session subject generation).
+   * session_id and agent_id may both be set — when both are present, session_id
+   * is used for session resolution and agent_id is preserved as metadata for
+   * downstream consumers (e.g., session subject generation). session_id and
+   * session_spec are mutually exclusive.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -116,13 +118,15 @@ private static final long serialVersionUID = 0L;
    *
    * Resolution priority (enforced in handler pipeline):
    * 1. session_id provided     -&gt; use existing session
-   * 2. agent_id provided       -&gt; auto-create session using agent's default instance
-   * 3. neither provided        -&gt; resolve platform default agent (label
+   * 2. session_spec provided   -&gt; auto-create session from the embedded spec
+   * 3. agent_id provided       -&gt; auto-create session using agent's default instance
+   * 4. neither provided        -&gt; resolve platform default agent (label
    * stigmer.ai/default-agent + visibility_public), then auto-create session
    *
-   * Both may be set — when both are present, session_id is used for session
-   * resolution and agent_id is preserved as metadata for downstream consumers
-   * (e.g., session subject generation).
+   * session_id and agent_id may both be set — when both are present, session_id
+   * is used for session resolution and agent_id is preserved as metadata for
+   * downstream consumers (e.g., session subject generation). session_id and
+   * session_spec are mutually exclusive.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -214,6 +218,125 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int SESSION_SPEC_FIELD_NUMBER = 13;
+  private ai.stigmer.agentic.session.v1.SessionSpec sessionSpec_;
+  /**
+   * <pre>
+   * Spec for the session to auto-create when session_id is empty (optional).
+   *
+   * This is the one-call session bootstrap: a single create carries the full
+   * session shape (workspace_entries, harness, execution_target, MCP servers,
+   * skills) together with the first message, so embedders do not need to
+   * orchestrate session.create followed by agentExecution.create. The created
+   * session's ID is returned on the persisted execution's session_id.
+   *
+   * Fields that must be set at session-creation time and are immutable once
+   * an execution has run — harness and execution_target — can only reach an
+   * auto-created session through this field.
+   *
+   * When session_spec.agent_instance_id is set, the session runs against that
+   * instance and agent_id must not also be resolved from it. When empty, the
+   * normal resolution applies: agent_id's default instance, or the platform
+   * default agent when agent_id is also empty.
+   *
+   * Mutually exclusive with session_id. session_spec.harness_state_id must be
+   * empty — it is server-owned harness continuity state, created by the runner
+   * after the first execution.
+   *
+   * &#64;internal
+   * The Session resource created from this spec is the single source of truth
+   * for session configuration. The handler clears this field after the session
+   * is created (before persist), so the execution record never carries a
+   * second copy of session config that could drift as the session evolves.
+   * Extends the existing auto-create path in createSessionIfNeededStep rather
+   * than adding a parallel one (stigmer/stigmer#249).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
+   * @return Whether the sessionSpec field is set.
+   */
+  @java.lang.Override
+  public boolean hasSessionSpec() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * Spec for the session to auto-create when session_id is empty (optional).
+   *
+   * This is the one-call session bootstrap: a single create carries the full
+   * session shape (workspace_entries, harness, execution_target, MCP servers,
+   * skills) together with the first message, so embedders do not need to
+   * orchestrate session.create followed by agentExecution.create. The created
+   * session's ID is returned on the persisted execution's session_id.
+   *
+   * Fields that must be set at session-creation time and are immutable once
+   * an execution has run — harness and execution_target — can only reach an
+   * auto-created session through this field.
+   *
+   * When session_spec.agent_instance_id is set, the session runs against that
+   * instance and agent_id must not also be resolved from it. When empty, the
+   * normal resolution applies: agent_id's default instance, or the platform
+   * default agent when agent_id is also empty.
+   *
+   * Mutually exclusive with session_id. session_spec.harness_state_id must be
+   * empty — it is server-owned harness continuity state, created by the runner
+   * after the first execution.
+   *
+   * &#64;internal
+   * The Session resource created from this spec is the single source of truth
+   * for session configuration. The handler clears this field after the session
+   * is created (before persist), so the execution record never carries a
+   * second copy of session config that could drift as the session evolves.
+   * Extends the existing auto-create path in createSessionIfNeededStep rather
+   * than adding a parallel one (stigmer/stigmer#249).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
+   * @return The sessionSpec.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.SessionSpec getSessionSpec() {
+    return sessionSpec_ == null ? ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance() : sessionSpec_;
+  }
+  /**
+   * <pre>
+   * Spec for the session to auto-create when session_id is empty (optional).
+   *
+   * This is the one-call session bootstrap: a single create carries the full
+   * session shape (workspace_entries, harness, execution_target, MCP servers,
+   * skills) together with the first message, so embedders do not need to
+   * orchestrate session.create followed by agentExecution.create. The created
+   * session's ID is returned on the persisted execution's session_id.
+   *
+   * Fields that must be set at session-creation time and are immutable once
+   * an execution has run — harness and execution_target — can only reach an
+   * auto-created session through this field.
+   *
+   * When session_spec.agent_instance_id is set, the session runs against that
+   * instance and agent_id must not also be resolved from it. When empty, the
+   * normal resolution applies: agent_id's default instance, or the platform
+   * default agent when agent_id is also empty.
+   *
+   * Mutually exclusive with session_id. session_spec.harness_state_id must be
+   * empty — it is server-owned harness continuity state, created by the runner
+   * after the first execution.
+   *
+   * &#64;internal
+   * The Session resource created from this spec is the single source of truth
+   * for session configuration. The handler clears this field after the session
+   * is created (before persist), so the execution record never carries a
+   * second copy of session config that could drift as the session evolves.
+   * Extends the existing auto-create path in createSessionIfNeededStep rather
+   * than adding a parallel one (stigmer/stigmer#249).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.session.v1.SessionSpecOrBuilder getSessionSpecOrBuilder() {
+    return sessionSpec_ == null ? ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance() : sessionSpec_;
+  }
+
   public static final int MESSAGE_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
   private volatile java.lang.Object message_ = "";
@@ -276,7 +399,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasExecutionConfig() {
-    return ((bitField0_ & 0x00000001) != 0);
+    return ((bitField0_ & 0x00000002) != 0);
   }
   /**
    * <pre>
@@ -1075,7 +1198,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(message_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, message_);
     }
-    if (((bitField0_ & 0x00000001) != 0)) {
+    if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(4, getExecutionConfig());
     }
     com.google.protobuf.GeneratedMessage
@@ -1105,6 +1228,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(supersedesExecutionId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 12, supersedesExecutionId_);
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(13, getSessionSpec());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -1123,7 +1249,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(message_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, message_);
     }
-    if (((bitField0_ & 0x00000001) != 0)) {
+    if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(4, getExecutionConfig());
     }
@@ -1171,6 +1297,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(supersedesExecutionId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(12, supersedesExecutionId_);
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(13, getSessionSpec());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1190,6 +1320,11 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         .equals(other.getSessionId())) return false;
     if (!getAgentId()
         .equals(other.getAgentId())) return false;
+    if (hasSessionSpec() != other.hasSessionSpec()) return false;
+    if (hasSessionSpec()) {
+      if (!getSessionSpec()
+          .equals(other.getSessionSpec())) return false;
+    }
     if (!getMessage()
         .equals(other.getMessage())) return false;
     if (hasExecutionConfig() != other.hasExecutionConfig()) return false;
@@ -1228,6 +1363,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     hash = (53 * hash) + getSessionId().hashCode();
     hash = (37 * hash) + AGENT_ID_FIELD_NUMBER;
     hash = (53 * hash) + getAgentId().hashCode();
+    if (hasSessionSpec()) {
+      hash = (37 * hash) + SESSION_SPEC_FIELD_NUMBER;
+      hash = (53 * hash) + getSessionSpec().hashCode();
+    }
     hash = (37 * hash) + MESSAGE_FIELD_NUMBER;
     hash = (53 * hash) + getMessage().hashCode();
     if (hasExecutionConfig()) {
@@ -1414,6 +1553,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     private void maybeForceBuilderInitialization() {
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
+        internalGetSessionSpecFieldBuilder();
         internalGetExecutionConfigFieldBuilder();
         internalGetAttachmentsFieldBuilder();
       }
@@ -1424,6 +1564,11 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       bitField0_ = 0;
       sessionId_ = "";
       agentId_ = "";
+      sessionSpec_ = null;
+      if (sessionSpecBuilder_ != null) {
+        sessionSpecBuilder_.dispose();
+        sessionSpecBuilder_ = null;
+      }
       message_ = "";
       executionConfig_ = null;
       if (executionConfigBuilder_ != null) {
@@ -1440,7 +1585,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         attachments_ = null;
         attachmentsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000200);
       workspaceFileRefs_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
       activityTaskQueue_ = "";
@@ -1479,9 +1624,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec result) {
       if (attachmentsBuilder_ == null) {
-        if (((bitField0_ & 0x00000100) != 0)) {
+        if (((bitField0_ & 0x00000200) != 0)) {
           attachments_ = java.util.Collections.unmodifiableList(attachments_);
-          bitField0_ = (bitField0_ & ~0x00000100);
+          bitField0_ = (bitField0_ & ~0x00000200);
         }
         result.attachments_ = attachments_;
       } else {
@@ -1497,36 +1642,42 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.agentId_ = agentId_;
       }
+      int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.sessionSpec_ = sessionSpecBuilder_ == null
+            ? sessionSpec_
+            : sessionSpecBuilder_.build();
+        to_bitField0_ |= 0x00000001;
+      }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.message_ = message_;
       }
-      int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000008) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.executionConfig_ = executionConfigBuilder_ == null
             ? executionConfig_
             : executionConfigBuilder_.build();
-        to_bitField0_ |= 0x00000001;
-      }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.runtimeEnv_ = internalGetRuntimeEnv().build(RuntimeEnvDefaultEntryHolder.defaultEntry);
+        to_bitField0_ |= 0x00000002;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
-        result.callbackToken_ = callbackToken_;
+        result.runtimeEnv_ = internalGetRuntimeEnv().build(RuntimeEnvDefaultEntryHolder.defaultEntry);
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
-        result.autoApproveAll_ = autoApproveAll_;
+        result.callbackToken_ = callbackToken_;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.autoApproveAll_ = autoApproveAll_;
+      }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.parentWorkflowId_ = parentWorkflowId_;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         workspaceFileRefs_.makeImmutable();
         result.workspaceFileRefs_ = workspaceFileRefs_;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000800) != 0)) {
         result.activityTaskQueue_ = activityTaskQueue_;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
+      if (((from_bitField0_ & 0x00001000) != 0)) {
         result.supersedesExecutionId_ = supersedesExecutionId_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -1554,9 +1705,12 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         bitField0_ |= 0x00000002;
         onChanged();
       }
+      if (other.hasSessionSpec()) {
+        mergeSessionSpec(other.getSessionSpec());
+      }
       if (!other.getMessage().isEmpty()) {
         message_ = other.message_;
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       if (other.hasExecutionConfig()) {
@@ -1564,7 +1718,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       }
       internalGetMutableRuntimeEnv().mergeFrom(
           other.internalGetRuntimeEnv());
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       if (!other.getCallbackToken().isEmpty()) {
         setCallbackToken(other.getCallbackToken());
       }
@@ -1573,14 +1727,14 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       }
       if (!other.getParentWorkflowId().isEmpty()) {
         parentWorkflowId_ = other.parentWorkflowId_;
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000100;
         onChanged();
       }
       if (attachmentsBuilder_ == null) {
         if (!other.attachments_.isEmpty()) {
           if (attachments_.isEmpty()) {
             attachments_ = other.attachments_;
-            bitField0_ = (bitField0_ & ~0x00000100);
+            bitField0_ = (bitField0_ & ~0x00000200);
           } else {
             ensureAttachmentsIsMutable();
             attachments_.addAll(other.attachments_);
@@ -1593,7 +1747,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
             attachmentsBuilder_.dispose();
             attachmentsBuilder_ = null;
             attachments_ = other.attachments_;
-            bitField0_ = (bitField0_ & ~0x00000100);
+            bitField0_ = (bitField0_ & ~0x00000200);
             attachmentsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetAttachmentsFieldBuilder() : null;
@@ -1605,7 +1759,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (!other.workspaceFileRefs_.isEmpty()) {
         if (workspaceFileRefs_.isEmpty()) {
           workspaceFileRefs_ = other.workspaceFileRefs_;
-          bitField0_ |= 0x00000200;
+          bitField0_ |= 0x00000400;
         } else {
           ensureWorkspaceFileRefsIsMutable();
           workspaceFileRefs_.addAll(other.workspaceFileRefs_);
@@ -1614,12 +1768,12 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       }
       if (!other.getActivityTaskQueue().isEmpty()) {
         activityTaskQueue_ = other.activityTaskQueue_;
-        bitField0_ |= 0x00000400;
+        bitField0_ |= 0x00000800;
         onChanged();
       }
       if (!other.getSupersedesExecutionId().isEmpty()) {
         supersedesExecutionId_ = other.supersedesExecutionId_;
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00001000;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1660,14 +1814,14 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
             } // case 18
             case 26: {
               message_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000008;
               break;
             } // case 26
             case 34: {
               input.readMessage(
                   internalGetExecutionConfigFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000010;
               break;
             } // case 34
             case 42: {
@@ -1676,22 +1830,22 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
                   RuntimeEnvDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableRuntimeEnv().ensureBuilderMap().put(
                   runtimeEnv__.getKey(), runtimeEnv__.getValue());
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000020;
               break;
             } // case 42
             case 50: {
               callbackToken_ = input.readBytes();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000040;
               break;
             } // case 50
             case 56: {
               autoApproveAll_ = input.readBool();
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000080;
               break;
             } // case 56
             case 66: {
               parentWorkflowId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000100;
               break;
             } // case 66
             case 74: {
@@ -1714,14 +1868,21 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
             } // case 82
             case 90: {
               activityTaskQueue_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000800;
               break;
             } // case 90
             case 98: {
               supersedesExecutionId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000800;
+              bitField0_ |= 0x00001000;
               break;
             } // case 98
+            case 106: {
+              input.readMessage(
+                  internalGetSessionSpecFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 106
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1746,13 +1907,15 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      *
      * Resolution priority (enforced in handler pipeline):
      * 1. session_id provided     -&gt; use existing session
-     * 2. agent_id provided       -&gt; auto-create session using agent's default instance
-     * 3. neither provided        -&gt; resolve platform default agent (label
+     * 2. session_spec provided   -&gt; auto-create session from the embedded spec
+     * 3. agent_id provided       -&gt; auto-create session using agent's default instance
+     * 4. neither provided        -&gt; resolve platform default agent (label
      * stigmer.ai/default-agent + visibility_public), then auto-create session
      *
-     * Both may be set — when both are present, session_id is used for session
-     * resolution and agent_id is preserved as metadata for downstream consumers
-     * (e.g., session subject generation).
+     * session_id and agent_id may both be set — when both are present, session_id
+     * is used for session resolution and agent_id is preserved as metadata for
+     * downstream consumers (e.g., session subject generation). session_id and
+     * session_spec are mutually exclusive.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -1776,13 +1939,15 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      *
      * Resolution priority (enforced in handler pipeline):
      * 1. session_id provided     -&gt; use existing session
-     * 2. agent_id provided       -&gt; auto-create session using agent's default instance
-     * 3. neither provided        -&gt; resolve platform default agent (label
+     * 2. session_spec provided   -&gt; auto-create session from the embedded spec
+     * 3. agent_id provided       -&gt; auto-create session using agent's default instance
+     * 4. neither provided        -&gt; resolve platform default agent (label
      * stigmer.ai/default-agent + visibility_public), then auto-create session
      *
-     * Both may be set — when both are present, session_id is used for session
-     * resolution and agent_id is preserved as metadata for downstream consumers
-     * (e.g., session subject generation).
+     * session_id and agent_id may both be set — when both are present, session_id
+     * is used for session resolution and agent_id is preserved as metadata for
+     * downstream consumers (e.g., session subject generation). session_id and
+     * session_spec are mutually exclusive.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -1807,13 +1972,15 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      *
      * Resolution priority (enforced in handler pipeline):
      * 1. session_id provided     -&gt; use existing session
-     * 2. agent_id provided       -&gt; auto-create session using agent's default instance
-     * 3. neither provided        -&gt; resolve platform default agent (label
+     * 2. session_spec provided   -&gt; auto-create session from the embedded spec
+     * 3. agent_id provided       -&gt; auto-create session using agent's default instance
+     * 4. neither provided        -&gt; resolve platform default agent (label
      * stigmer.ai/default-agent + visibility_public), then auto-create session
      *
-     * Both may be set — when both are present, session_id is used for session
-     * resolution and agent_id is preserved as metadata for downstream consumers
-     * (e.g., session subject generation).
+     * session_id and agent_id may both be set — when both are present, session_id
+     * is used for session resolution and agent_id is preserved as metadata for
+     * downstream consumers (e.g., session subject generation). session_id and
+     * session_spec are mutually exclusive.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -1834,13 +2001,15 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      *
      * Resolution priority (enforced in handler pipeline):
      * 1. session_id provided     -&gt; use existing session
-     * 2. agent_id provided       -&gt; auto-create session using agent's default instance
-     * 3. neither provided        -&gt; resolve platform default agent (label
+     * 2. session_spec provided   -&gt; auto-create session from the embedded spec
+     * 3. agent_id provided       -&gt; auto-create session using agent's default instance
+     * 4. neither provided        -&gt; resolve platform default agent (label
      * stigmer.ai/default-agent + visibility_public), then auto-create session
      *
-     * Both may be set — when both are present, session_id is used for session
-     * resolution and agent_id is preserved as metadata for downstream consumers
-     * (e.g., session subject generation).
+     * session_id and agent_id may both be set — when both are present, session_id
+     * is used for session resolution and agent_id is preserved as metadata for
+     * downstream consumers (e.g., session subject generation). session_id and
+     * session_spec are mutually exclusive.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -1858,13 +2027,15 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      *
      * Resolution priority (enforced in handler pipeline):
      * 1. session_id provided     -&gt; use existing session
-     * 2. agent_id provided       -&gt; auto-create session using agent's default instance
-     * 3. neither provided        -&gt; resolve platform default agent (label
+     * 2. session_spec provided   -&gt; auto-create session from the embedded spec
+     * 3. agent_id provided       -&gt; auto-create session using agent's default instance
+     * 4. neither provided        -&gt; resolve platform default agent (label
      * stigmer.ai/default-agent + visibility_public), then auto-create session
      *
-     * Both may be set — when both are present, session_id is used for session
-     * resolution and agent_id is preserved as metadata for downstream consumers
-     * (e.g., session subject generation).
+     * session_id and agent_id may both be set — when both are present, session_id
+     * is used for session resolution and agent_id is preserved as metadata for
+     * downstream consumers (e.g., session subject generation). session_id and
+     * session_spec are mutually exclusive.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -2033,6 +2204,406 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       return this;
     }
 
+    private ai.stigmer.agentic.session.v1.SessionSpec sessionSpec_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.SessionSpec, ai.stigmer.agentic.session.v1.SessionSpec.Builder, ai.stigmer.agentic.session.v1.SessionSpecOrBuilder> sessionSpecBuilder_;
+    /**
+     * <pre>
+     * Spec for the session to auto-create when session_id is empty (optional).
+     *
+     * This is the one-call session bootstrap: a single create carries the full
+     * session shape (workspace_entries, harness, execution_target, MCP servers,
+     * skills) together with the first message, so embedders do not need to
+     * orchestrate session.create followed by agentExecution.create. The created
+     * session's ID is returned on the persisted execution's session_id.
+     *
+     * Fields that must be set at session-creation time and are immutable once
+     * an execution has run — harness and execution_target — can only reach an
+     * auto-created session through this field.
+     *
+     * When session_spec.agent_instance_id is set, the session runs against that
+     * instance and agent_id must not also be resolved from it. When empty, the
+     * normal resolution applies: agent_id's default instance, or the platform
+     * default agent when agent_id is also empty.
+     *
+     * Mutually exclusive with session_id. session_spec.harness_state_id must be
+     * empty — it is server-owned harness continuity state, created by the runner
+     * after the first execution.
+     *
+     * &#64;internal
+     * The Session resource created from this spec is the single source of truth
+     * for session configuration. The handler clears this field after the session
+     * is created (before persist), so the execution record never carries a
+     * second copy of session config that could drift as the session evolves.
+     * Extends the existing auto-create path in createSessionIfNeededStep rather
+     * than adding a parallel one (stigmer/stigmer#249).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
+     * @return Whether the sessionSpec field is set.
+     */
+    public boolean hasSessionSpec() {
+      return ((bitField0_ & 0x00000004) != 0);
+    }
+    /**
+     * <pre>
+     * Spec for the session to auto-create when session_id is empty (optional).
+     *
+     * This is the one-call session bootstrap: a single create carries the full
+     * session shape (workspace_entries, harness, execution_target, MCP servers,
+     * skills) together with the first message, so embedders do not need to
+     * orchestrate session.create followed by agentExecution.create. The created
+     * session's ID is returned on the persisted execution's session_id.
+     *
+     * Fields that must be set at session-creation time and are immutable once
+     * an execution has run — harness and execution_target — can only reach an
+     * auto-created session through this field.
+     *
+     * When session_spec.agent_instance_id is set, the session runs against that
+     * instance and agent_id must not also be resolved from it. When empty, the
+     * normal resolution applies: agent_id's default instance, or the platform
+     * default agent when agent_id is also empty.
+     *
+     * Mutually exclusive with session_id. session_spec.harness_state_id must be
+     * empty — it is server-owned harness continuity state, created by the runner
+     * after the first execution.
+     *
+     * &#64;internal
+     * The Session resource created from this spec is the single source of truth
+     * for session configuration. The handler clears this field after the session
+     * is created (before persist), so the execution record never carries a
+     * second copy of session config that could drift as the session evolves.
+     * Extends the existing auto-create path in createSessionIfNeededStep rather
+     * than adding a parallel one (stigmer/stigmer#249).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
+     * @return The sessionSpec.
+     */
+    public ai.stigmer.agentic.session.v1.SessionSpec getSessionSpec() {
+      if (sessionSpecBuilder_ == null) {
+        return sessionSpec_ == null ? ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance() : sessionSpec_;
+      } else {
+        return sessionSpecBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Spec for the session to auto-create when session_id is empty (optional).
+     *
+     * This is the one-call session bootstrap: a single create carries the full
+     * session shape (workspace_entries, harness, execution_target, MCP servers,
+     * skills) together with the first message, so embedders do not need to
+     * orchestrate session.create followed by agentExecution.create. The created
+     * session's ID is returned on the persisted execution's session_id.
+     *
+     * Fields that must be set at session-creation time and are immutable once
+     * an execution has run — harness and execution_target — can only reach an
+     * auto-created session through this field.
+     *
+     * When session_spec.agent_instance_id is set, the session runs against that
+     * instance and agent_id must not also be resolved from it. When empty, the
+     * normal resolution applies: agent_id's default instance, or the platform
+     * default agent when agent_id is also empty.
+     *
+     * Mutually exclusive with session_id. session_spec.harness_state_id must be
+     * empty — it is server-owned harness continuity state, created by the runner
+     * after the first execution.
+     *
+     * &#64;internal
+     * The Session resource created from this spec is the single source of truth
+     * for session configuration. The handler clears this field after the session
+     * is created (before persist), so the execution record never carries a
+     * second copy of session config that could drift as the session evolves.
+     * Extends the existing auto-create path in createSessionIfNeededStep rather
+     * than adding a parallel one (stigmer/stigmer#249).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
+     */
+    public Builder setSessionSpec(ai.stigmer.agentic.session.v1.SessionSpec value) {
+      if (sessionSpecBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        sessionSpec_ = value;
+      } else {
+        sessionSpecBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Spec for the session to auto-create when session_id is empty (optional).
+     *
+     * This is the one-call session bootstrap: a single create carries the full
+     * session shape (workspace_entries, harness, execution_target, MCP servers,
+     * skills) together with the first message, so embedders do not need to
+     * orchestrate session.create followed by agentExecution.create. The created
+     * session's ID is returned on the persisted execution's session_id.
+     *
+     * Fields that must be set at session-creation time and are immutable once
+     * an execution has run — harness and execution_target — can only reach an
+     * auto-created session through this field.
+     *
+     * When session_spec.agent_instance_id is set, the session runs against that
+     * instance and agent_id must not also be resolved from it. When empty, the
+     * normal resolution applies: agent_id's default instance, or the platform
+     * default agent when agent_id is also empty.
+     *
+     * Mutually exclusive with session_id. session_spec.harness_state_id must be
+     * empty — it is server-owned harness continuity state, created by the runner
+     * after the first execution.
+     *
+     * &#64;internal
+     * The Session resource created from this spec is the single source of truth
+     * for session configuration. The handler clears this field after the session
+     * is created (before persist), so the execution record never carries a
+     * second copy of session config that could drift as the session evolves.
+     * Extends the existing auto-create path in createSessionIfNeededStep rather
+     * than adding a parallel one (stigmer/stigmer#249).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
+     */
+    public Builder setSessionSpec(
+        ai.stigmer.agentic.session.v1.SessionSpec.Builder builderForValue) {
+      if (sessionSpecBuilder_ == null) {
+        sessionSpec_ = builderForValue.build();
+      } else {
+        sessionSpecBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Spec for the session to auto-create when session_id is empty (optional).
+     *
+     * This is the one-call session bootstrap: a single create carries the full
+     * session shape (workspace_entries, harness, execution_target, MCP servers,
+     * skills) together with the first message, so embedders do not need to
+     * orchestrate session.create followed by agentExecution.create. The created
+     * session's ID is returned on the persisted execution's session_id.
+     *
+     * Fields that must be set at session-creation time and are immutable once
+     * an execution has run — harness and execution_target — can only reach an
+     * auto-created session through this field.
+     *
+     * When session_spec.agent_instance_id is set, the session runs against that
+     * instance and agent_id must not also be resolved from it. When empty, the
+     * normal resolution applies: agent_id's default instance, or the platform
+     * default agent when agent_id is also empty.
+     *
+     * Mutually exclusive with session_id. session_spec.harness_state_id must be
+     * empty — it is server-owned harness continuity state, created by the runner
+     * after the first execution.
+     *
+     * &#64;internal
+     * The Session resource created from this spec is the single source of truth
+     * for session configuration. The handler clears this field after the session
+     * is created (before persist), so the execution record never carries a
+     * second copy of session config that could drift as the session evolves.
+     * Extends the existing auto-create path in createSessionIfNeededStep rather
+     * than adding a parallel one (stigmer/stigmer#249).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
+     */
+    public Builder mergeSessionSpec(ai.stigmer.agentic.session.v1.SessionSpec value) {
+      if (sessionSpecBuilder_ == null) {
+        if (((bitField0_ & 0x00000004) != 0) &&
+          sessionSpec_ != null &&
+          sessionSpec_ != ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance()) {
+          getSessionSpecBuilder().mergeFrom(value);
+        } else {
+          sessionSpec_ = value;
+        }
+      } else {
+        sessionSpecBuilder_.mergeFrom(value);
+      }
+      if (sessionSpec_ != null) {
+        bitField0_ |= 0x00000004;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Spec for the session to auto-create when session_id is empty (optional).
+     *
+     * This is the one-call session bootstrap: a single create carries the full
+     * session shape (workspace_entries, harness, execution_target, MCP servers,
+     * skills) together with the first message, so embedders do not need to
+     * orchestrate session.create followed by agentExecution.create. The created
+     * session's ID is returned on the persisted execution's session_id.
+     *
+     * Fields that must be set at session-creation time and are immutable once
+     * an execution has run — harness and execution_target — can only reach an
+     * auto-created session through this field.
+     *
+     * When session_spec.agent_instance_id is set, the session runs against that
+     * instance and agent_id must not also be resolved from it. When empty, the
+     * normal resolution applies: agent_id's default instance, or the platform
+     * default agent when agent_id is also empty.
+     *
+     * Mutually exclusive with session_id. session_spec.harness_state_id must be
+     * empty — it is server-owned harness continuity state, created by the runner
+     * after the first execution.
+     *
+     * &#64;internal
+     * The Session resource created from this spec is the single source of truth
+     * for session configuration. The handler clears this field after the session
+     * is created (before persist), so the execution record never carries a
+     * second copy of session config that could drift as the session evolves.
+     * Extends the existing auto-create path in createSessionIfNeededStep rather
+     * than adding a parallel one (stigmer/stigmer#249).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
+     */
+    public Builder clearSessionSpec() {
+      bitField0_ = (bitField0_ & ~0x00000004);
+      sessionSpec_ = null;
+      if (sessionSpecBuilder_ != null) {
+        sessionSpecBuilder_.dispose();
+        sessionSpecBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Spec for the session to auto-create when session_id is empty (optional).
+     *
+     * This is the one-call session bootstrap: a single create carries the full
+     * session shape (workspace_entries, harness, execution_target, MCP servers,
+     * skills) together with the first message, so embedders do not need to
+     * orchestrate session.create followed by agentExecution.create. The created
+     * session's ID is returned on the persisted execution's session_id.
+     *
+     * Fields that must be set at session-creation time and are immutable once
+     * an execution has run — harness and execution_target — can only reach an
+     * auto-created session through this field.
+     *
+     * When session_spec.agent_instance_id is set, the session runs against that
+     * instance and agent_id must not also be resolved from it. When empty, the
+     * normal resolution applies: agent_id's default instance, or the platform
+     * default agent when agent_id is also empty.
+     *
+     * Mutually exclusive with session_id. session_spec.harness_state_id must be
+     * empty — it is server-owned harness continuity state, created by the runner
+     * after the first execution.
+     *
+     * &#64;internal
+     * The Session resource created from this spec is the single source of truth
+     * for session configuration. The handler clears this field after the session
+     * is created (before persist), so the execution record never carries a
+     * second copy of session config that could drift as the session evolves.
+     * Extends the existing auto-create path in createSessionIfNeededStep rather
+     * than adding a parallel one (stigmer/stigmer#249).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.SessionSpec.Builder getSessionSpecBuilder() {
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return internalGetSessionSpecFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Spec for the session to auto-create when session_id is empty (optional).
+     *
+     * This is the one-call session bootstrap: a single create carries the full
+     * session shape (workspace_entries, harness, execution_target, MCP servers,
+     * skills) together with the first message, so embedders do not need to
+     * orchestrate session.create followed by agentExecution.create. The created
+     * session's ID is returned on the persisted execution's session_id.
+     *
+     * Fields that must be set at session-creation time and are immutable once
+     * an execution has run — harness and execution_target — can only reach an
+     * auto-created session through this field.
+     *
+     * When session_spec.agent_instance_id is set, the session runs against that
+     * instance and agent_id must not also be resolved from it. When empty, the
+     * normal resolution applies: agent_id's default instance, or the platform
+     * default agent when agent_id is also empty.
+     *
+     * Mutually exclusive with session_id. session_spec.harness_state_id must be
+     * empty — it is server-owned harness continuity state, created by the runner
+     * after the first execution.
+     *
+     * &#64;internal
+     * The Session resource created from this spec is the single source of truth
+     * for session configuration. The handler clears this field after the session
+     * is created (before persist), so the execution record never carries a
+     * second copy of session config that could drift as the session evolves.
+     * Extends the existing auto-create path in createSessionIfNeededStep rather
+     * than adding a parallel one (stigmer/stigmer#249).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
+     */
+    public ai.stigmer.agentic.session.v1.SessionSpecOrBuilder getSessionSpecOrBuilder() {
+      if (sessionSpecBuilder_ != null) {
+        return sessionSpecBuilder_.getMessageOrBuilder();
+      } else {
+        return sessionSpec_ == null ?
+            ai.stigmer.agentic.session.v1.SessionSpec.getDefaultInstance() : sessionSpec_;
+      }
+    }
+    /**
+     * <pre>
+     * Spec for the session to auto-create when session_id is empty (optional).
+     *
+     * This is the one-call session bootstrap: a single create carries the full
+     * session shape (workspace_entries, harness, execution_target, MCP servers,
+     * skills) together with the first message, so embedders do not need to
+     * orchestrate session.create followed by agentExecution.create. The created
+     * session's ID is returned on the persisted execution's session_id.
+     *
+     * Fields that must be set at session-creation time and are immutable once
+     * an execution has run — harness and execution_target — can only reach an
+     * auto-created session through this field.
+     *
+     * When session_spec.agent_instance_id is set, the session runs against that
+     * instance and agent_id must not also be resolved from it. When empty, the
+     * normal resolution applies: agent_id's default instance, or the platform
+     * default agent when agent_id is also empty.
+     *
+     * Mutually exclusive with session_id. session_spec.harness_state_id must be
+     * empty — it is server-owned harness continuity state, created by the runner
+     * after the first execution.
+     *
+     * &#64;internal
+     * The Session resource created from this spec is the single source of truth
+     * for session configuration. The handler clears this field after the session
+     * is created (before persist), so the execution record never carries a
+     * second copy of session config that could drift as the session evolves.
+     * Extends the existing auto-create path in createSessionIfNeededStep rather
+     * than adding a parallel one (stigmer/stigmer#249).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13 [json_name = "sessionSpec"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.session.v1.SessionSpec, ai.stigmer.agentic.session.v1.SessionSpec.Builder, ai.stigmer.agentic.session.v1.SessionSpecOrBuilder> 
+        internalGetSessionSpecFieldBuilder() {
+      if (sessionSpecBuilder_ == null) {
+        sessionSpecBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.session.v1.SessionSpec, ai.stigmer.agentic.session.v1.SessionSpec.Builder, ai.stigmer.agentic.session.v1.SessionSpecOrBuilder>(
+                getSessionSpec(),
+                getParentForChildren(),
+                isClean());
+        sessionSpec_ = null;
+      }
+      return sessionSpecBuilder_;
+    }
+
     private java.lang.Object message_ = "";
     /**
      * <pre>
@@ -2091,7 +2662,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       message_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -2106,7 +2677,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder clearMessage() {
       message_ = getDefaultInstance().getMessage();
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000008);
       onChanged();
       return this;
     }
@@ -2125,7 +2696,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       message_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -2143,7 +2714,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * @return Whether the executionConfig field is set.
      */
     public boolean hasExecutionConfig() {
-      return ((bitField0_ & 0x00000008) != 0);
+      return ((bitField0_ & 0x00000010) != 0);
     }
     /**
      * <pre>
@@ -2178,7 +2749,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       } else {
         executionConfigBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -2197,7 +2768,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       } else {
         executionConfigBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -2211,7 +2782,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder mergeExecutionConfig(ai.stigmer.agentic.agentexecution.v1.ExecutionConfig value) {
       if (executionConfigBuilder_ == null) {
-        if (((bitField0_ & 0x00000008) != 0) &&
+        if (((bitField0_ & 0x00000010) != 0) &&
           executionConfig_ != null &&
           executionConfig_ != ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.getDefaultInstance()) {
           getExecutionConfigBuilder().mergeFrom(value);
@@ -2222,7 +2793,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         executionConfigBuilder_.mergeFrom(value);
       }
       if (executionConfig_ != null) {
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       return this;
@@ -2236,7 +2807,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
      */
     public Builder clearExecutionConfig() {
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000010);
       executionConfig_ = null;
       if (executionConfigBuilder_ != null) {
         executionConfigBuilder_.dispose();
@@ -2254,7 +2825,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.ExecutionConfig execution_config = 4 [json_name = "executionConfig"];</code>
      */
     public ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.Builder getExecutionConfigBuilder() {
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       onChanged();
       return internalGetExecutionConfigFieldBuilder().getBuilder();
     }
@@ -2324,7 +2895,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (runtimeEnv_ == null) {
         runtimeEnv_ = new com.google.protobuf.MapFieldBuilder<>(runtimeEnvConverter);
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       onChanged();
       return runtimeEnv_;
     }
@@ -2414,7 +2985,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       return runtimeEnvConverter.build(map.get(key));
     }
     public Builder clearRuntimeEnv() {
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000020);
       internalGetMutableRuntimeEnv().clear();
       return this;
     }
@@ -2442,7 +3013,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     @java.lang.Deprecated
     public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
         getMutableRuntimeEnv() {
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       return internalGetMutableRuntimeEnv().ensureMessageMap();
     }
     /**
@@ -2463,7 +3034,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableRuntimeEnv().ensureBuilderMap()
           .put(key, value);
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       return this;
     }
     /**
@@ -2486,7 +3057,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       }
       internalGetMutableRuntimeEnv().ensureBuilderMap()
           .putAll(values);
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       return this;
     }
     /**
@@ -2648,7 +3219,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder setCallbackToken(com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       callbackToken_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -2715,7 +3286,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearCallbackToken() {
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000040);
       callbackToken_ = getDefaultInstance().getCallbackToken();
       onChanged();
       return this;
@@ -2780,7 +3351,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder setAutoApproveAll(boolean value) {
 
       autoApproveAll_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }
@@ -2810,7 +3381,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearAutoApproveAll() {
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000080);
       autoApproveAll_ = false;
       onChanged();
       return this;
@@ -2937,7 +3508,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       parentWorkflowId_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -2973,7 +3544,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder clearParentWorkflowId() {
       parentWorkflowId_ = getDefaultInstance().getParentWorkflowId();
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000100);
       onChanged();
       return this;
     }
@@ -3013,7 +3584,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       parentWorkflowId_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -3021,9 +3592,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     private java.util.List<ai.stigmer.agentic.agentexecution.v1.Attachment> attachments_ =
       java.util.Collections.emptyList();
     private void ensureAttachmentsIsMutable() {
-      if (!((bitField0_ & 0x00000100) != 0)) {
+      if (!((bitField0_ & 0x00000200) != 0)) {
         attachments_ = new java.util.ArrayList<ai.stigmer.agentic.agentexecution.v1.Attachment>(attachments_);
-        bitField0_ |= 0x00000100;
+        bitField0_ |= 0x00000200;
        }
     }
 
@@ -3360,7 +3931,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder clearAttachments() {
       if (attachmentsBuilder_ == null) {
         attachments_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000100);
+        bitField0_ = (bitField0_ & ~0x00000200);
         onChanged();
       } else {
         attachmentsBuilder_.clear();
@@ -3556,7 +4127,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         attachmentsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agentexecution.v1.Attachment, ai.stigmer.agentic.agentexecution.v1.Attachment.Builder, ai.stigmer.agentic.agentexecution.v1.AttachmentOrBuilder>(
                 attachments_,
-                ((bitField0_ & 0x00000100) != 0),
+                ((bitField0_ & 0x00000200) != 0),
                 getParentForChildren(),
                 isClean());
         attachments_ = null;
@@ -3570,7 +4141,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (!workspaceFileRefs_.isModifiable()) {
         workspaceFileRefs_ = new com.google.protobuf.LazyStringArrayList(workspaceFileRefs_);
       }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
     }
     /**
      * <pre>
@@ -3751,7 +4322,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.set(index, value);
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -3792,7 +4363,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.add(value);
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -3833,7 +4404,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       ensureWorkspaceFileRefsIsMutable();
       com.google.protobuf.AbstractMessageLite.Builder.addAll(
           values, workspaceFileRefs_);
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -3871,7 +4442,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     public Builder clearWorkspaceFileRefs() {
       workspaceFileRefs_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
-      bitField0_ = (bitField0_ & ~0x00000200);;
+      bitField0_ = (bitField0_ & ~0x00000400);;
       onChanged();
       return this;
     }
@@ -3913,7 +4484,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       checkByteStringIsUtf8(value);
       ensureWorkspaceFileRefsIsMutable();
       workspaceFileRefs_.add(value);
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -4027,7 +4598,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       activityTaskQueue_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -4059,7 +4630,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder clearActivityTaskQueue() {
       activityTaskQueue_ = getDefaultInstance().getActivityTaskQueue();
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000800);
       onChanged();
       return this;
     }
@@ -4095,7 +4666,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       activityTaskQueue_ = value;
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }
@@ -4221,7 +4792,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       supersedesExecutionId_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -4257,7 +4828,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      */
     public Builder clearSupersedesExecutionId() {
       supersedesExecutionId_ = getDefaultInstance().getSupersedesExecutionId();
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00001000);
       onChanged();
       return this;
     }
@@ -4297,7 +4868,7 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       supersedesExecutionId_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }

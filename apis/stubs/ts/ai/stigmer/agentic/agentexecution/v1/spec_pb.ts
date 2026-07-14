@@ -8,6 +8,8 @@ import type { InteractionMode } from "./enum_pb.js";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb.js";
 import type { ExecutionValue } from "../../executioncontext/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_executioncontext_v1_spec } from "../../executioncontext/v1/spec_pb.js";
+import type { SessionSpec } from "../../session/v1/spec_pb.js";
+import { file_ai_stigmer_agentic_session_v1_spec } from "../../session/v1/spec_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
 import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
 import type { JsonObject, Message } from "@bufbuild/protobuf";
@@ -16,7 +18,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvc3BlYy5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIt8EChJBZ2VudEV4ZWN1dGlvblNwZWMSEgoKc2Vzc2lvbl9pZBgBIAEoCRIQCghhZ2VudF9pZBgCIAEoCRIYCgdtZXNzYWdlGAMgASgJQge6SARyAhABEk8KEGV4ZWN1dGlvbl9jb25maWcYBCABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRXhlY3V0aW9uQ29uZmlnEl0KC3J1bnRpbWVfZW52GAUgAygLMkguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3BlYy5SdW50aW1lRW52RW50cnkSFgoOY2FsbGJhY2tfdG9rZW4YBiABKAwSGAoQYXV0b19hcHByb3ZlX2FsbBgHIAEoCBIaChJwYXJlbnRfd29ya2Zsb3dfaWQYCCABKAkSRQoLYXR0YWNobWVudHMYCSADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXR0YWNobWVudBIbChN3b3Jrc3BhY2VfZmlsZV9yZWZzGAogAygJEhsKE2FjdGl2aXR5X3Rhc2tfcXVldWUYCyABKAkSHwoXc3VwZXJzZWRlc19leGVjdXRpb25faWQYDCABKAkaaQoPUnVudGltZUVudkVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4ASL9AgoPRXhlY3V0aW9uQ29uZmlnEhIKCm1vZGVsX25hbWUYASABKAkSWQoSY29udGV4dF9tYW5hZ2VtZW50GAIgASgLMj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNvbnRleHRNYW5hZ2VtZW50Q29uZmlnEhcKD21heF90b29sX3JvdW5kcxgDIAEoBRIdChVtYXhfdG9vbF9yZXN1bHRfY2hhcnMYBCABKAUSFAoMbWF4X2Nvc3RfdXNkGAUgASgBElkKEGludGVyYWN0aW9uX21vZGUYBiABKA4yNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuSW50ZXJhY3Rpb25Nb2RlQgi6SAWCAQIQARI5ChhzdHJ1Y3R1cmVkX291dHB1dF9zY2hlbWEYByABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EhcKD2J1aWxkX2Zyb21fcGxhbhgIIAEoCCKKAQoXQ29udGV4dE1hbmFnZW1lbnRDb25maWcSHQoVZGlzYWJsZV9zdW1tYXJpemF0aW9uGAEgASgIEikKGGN1c3RvbV90cmlnZ2VyX3RocmVzaG9sZBgCIAEoBUIHukgEGgIoABIlChRjdXN0b21fdGFyZ2V0X3Rva2VucxgDIAEoBUIHukgEGgIoACKUAQoKQXR0YWNobWVudBIZCghmaWxlbmFtZRgBIAEoCUIHukgEcgIQARIcCgtzdG9yYWdlX2tleRgCIAEoCUIHukgEcgIQARISCgptb3VudF9wYXRoGAMgASgJEhQKDGNvbnRlbnRfdHlwZRgEIAEoCRIPCgdleHRyYWN0GAUgASgIEhIKCmxvY2FsX3BhdGgYBiABKAliBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_executioncontext_v1_spec, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvc3BlYy5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxItwIChJBZ2VudEV4ZWN1dGlvblNwZWMSEgoKc2Vzc2lvbl9pZBgBIAEoCRIQCghhZ2VudF9pZBgCIAEoCRJACgxzZXNzaW9uX3NwZWMYDSABKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYxIYCgdtZXNzYWdlGAMgASgJQge6SARyAhABEk8KEGV4ZWN1dGlvbl9jb25maWcYBCABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRXhlY3V0aW9uQ29uZmlnEl0KC3J1bnRpbWVfZW52GAUgAygLMkguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3BlYy5SdW50aW1lRW52RW50cnkSFgoOY2FsbGJhY2tfdG9rZW4YBiABKAwSGAoQYXV0b19hcHByb3ZlX2FsbBgHIAEoCBIaChJwYXJlbnRfd29ya2Zsb3dfaWQYCCABKAkSRQoLYXR0YWNobWVudHMYCSADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXR0YWNobWVudBIbChN3b3Jrc3BhY2VfZmlsZV9yZWZzGAogAygJEhsKE2FjdGl2aXR5X3Rhc2tfcXVldWUYCyABKAkSHwoXc3VwZXJzZWRlc19leGVjdXRpb25faWQYDCABKAkaaQoPUnVudGltZUVudkVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4ATq4A7pItAMaywEKIWFnZW50X2V4ZWN1dGlvbi5zZXNzaW9uX2V4Y2x1c2l2ZRJyc2Vzc2lvbl9pZCBhbmQgc2Vzc2lvbl9zcGVjIGFyZSBtdXR1YWxseSBleGNsdXNpdmUg4oCUIHJlZmVyZW5jZSBhbiBleGlzdGluZyBzZXNzaW9uIG9yIGRlZmluZSBhIG5ldyBvbmUsIG5vdCBib3RoGjIhKHRoaXMuc2Vzc2lvbl9pZCAhPSAnJyAmJiBoYXModGhpcy5zZXNzaW9uX3NwZWMpKRrjAQoqYWdlbnRfZXhlY3V0aW9uLnNlc3Npb25fc3BlY19oYXJuZXNzX3N0YXRlEnBzZXNzaW9uX3NwZWMuaGFybmVzc19zdGF0ZV9pZCBtdXN0IGJlIGVtcHR5IOKAlCBoYXJuZXNzIHN0YXRlIGlzIGNyZWF0ZWQgYnkgdGhlIHJ1bm5lciBhZnRlciB0aGUgZmlyc3QgZXhlY3V0aW9uGkMhaGFzKHRoaXMuc2Vzc2lvbl9zcGVjKSB8fCB0aGlzLnNlc3Npb25fc3BlYy5oYXJuZXNzX3N0YXRlX2lkID09ICcnIv0CCg9FeGVjdXRpb25Db25maWcSEgoKbW9kZWxfbmFtZRgBIAEoCRJZChJjb250ZXh0X21hbmFnZW1lbnQYAiABKAsyPS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ29udGV4dE1hbmFnZW1lbnRDb25maWcSFwoPbWF4X3Rvb2xfcm91bmRzGAMgASgFEh0KFW1heF90b29sX3Jlc3VsdF9jaGFycxgEIAEoBRIUCgxtYXhfY29zdF91c2QYBSABKAESWQoQaW50ZXJhY3Rpb25fbW9kZRgGIAEoDjI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5JbnRlcmFjdGlvbk1vZGVCCLpIBYIBAhABEjkKGHN0cnVjdHVyZWRfb3V0cHV0X3NjaGVtYRgHIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFwoPYnVpbGRfZnJvbV9wbGFuGAggASgIIooBChdDb250ZXh0TWFuYWdlbWVudENvbmZpZxIdChVkaXNhYmxlX3N1bW1hcml6YXRpb24YASABKAgSKQoYY3VzdG9tX3RyaWdnZXJfdGhyZXNob2xkGAIgASgFQge6SAQaAigAEiUKFGN1c3RvbV90YXJnZXRfdG9rZW5zGAMgASgFQge6SAQaAigAIpQBCgpBdHRhY2htZW50EhkKCGZpbGVuYW1lGAEgASgJQge6SARyAhABEhwKC3N0b3JhZ2Vfa2V5GAIgASgJQge6SARyAhABEhIKCm1vdW50X3BhdGgYAyABKAkSFAoMY29udGVudF90eXBlGAQgASgJEg8KB2V4dHJhY3QYBSABKAgSEgoKbG9jYWxfcGF0aBgGIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_executioncontext_v1_spec, file_ai_stigmer_agentic_session_v1_spec, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * AgentExecutionSpec contains only user-provided inputs for triggering an execution.
@@ -30,13 +32,15 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    *
    * Resolution priority (enforced in handler pipeline):
    *   1. session_id provided     -> use existing session
-   *   2. agent_id provided       -> auto-create session using agent's default instance
-   *   3. neither provided        -> resolve platform default agent (label
+   *   2. session_spec provided   -> auto-create session from the embedded spec
+   *   3. agent_id provided       -> auto-create session using agent's default instance
+   *   4. neither provided        -> resolve platform default agent (label
    *      stigmer.ai/default-agent + visibility_public), then auto-create session
    *
-   * Both may be set — when both are present, session_id is used for session
-   * resolution and agent_id is preserved as metadata for downstream consumers
-   * (e.g., session subject generation).
+   * session_id and agent_id may both be set — when both are present, session_id
+   * is used for session resolution and agent_id is preserved as metadata for
+   * downstream consumers (e.g., session subject generation). session_id and
+   * session_spec are mutually exclusive.
    *
    * @generated from field: string session_id = 1;
    */
@@ -60,6 +64,40 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    * @generated from field: string agent_id = 2;
    */
   agentId: string;
+
+  /**
+   * Spec for the session to auto-create when session_id is empty (optional).
+   *
+   * This is the one-call session bootstrap: a single create carries the full
+   * session shape (workspace_entries, harness, execution_target, MCP servers,
+   * skills) together with the first message, so embedders do not need to
+   * orchestrate session.create followed by agentExecution.create. The created
+   * session's ID is returned on the persisted execution's session_id.
+   *
+   * Fields that must be set at session-creation time and are immutable once
+   * an execution has run — harness and execution_target — can only reach an
+   * auto-created session through this field.
+   *
+   * When session_spec.agent_instance_id is set, the session runs against that
+   * instance and agent_id must not also be resolved from it. When empty, the
+   * normal resolution applies: agent_id's default instance, or the platform
+   * default agent when agent_id is also empty.
+   *
+   * Mutually exclusive with session_id. session_spec.harness_state_id must be
+   * empty — it is server-owned harness continuity state, created by the runner
+   * after the first execution.
+   *
+   * @internal
+   * The Session resource created from this spec is the single source of truth
+   * for session configuration. The handler clears this field after the session
+   * is created (before persist), so the execution record never carries a
+   * second copy of session config that could drift as the session evolves.
+   * Extends the existing auto-create path in createSessionIfNeededStep rather
+   * than adding a parallel one (stigmer/stigmer#249).
+   *
+   * @generated from field: ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13;
+   */
+  sessionSpec?: SessionSpec;
 
   /**
    * User input message that triggers this execution.

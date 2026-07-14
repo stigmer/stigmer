@@ -145,7 +145,9 @@ Manages all the state required to configure and submit a new session:
 model selection (with localStorage persistence), agent resolution,
 MCP server/skill selection, workspace entries, and session
 variables. On submission, creates the session and its first execution
-in sequence, then notifies the consumer via `onSessionCreated`.
+with a single one-call bootstrap RPC (`agentExecution.create` with an
+embedded session spec), then notifies the consumer via
+`onSessionCreated`.
 
 This hook is framework-agnostic — it works identically in Next.js,
 Vite, Tauri, or any React environment. Navigation, toast notifications,
@@ -181,7 +183,7 @@ function useNewSessionFlow(options: UseNewSessionFlowOptions): UseNewSessionFlow
     setResolution: { type: "(r: AgentResolution | null) => void", description: "Update the agent resolution." },
     setSkillRefs: { type: "(refs: ResourceRef[]) => void", description: "Update skill references." },
     skillRefs: { type: "ResourceRef[]", description: "Active skill references." },
-    submit: { type: "(message: string, model?: string, context?: SessionComposerSubmitContext) => Promise<void>", description: "Create a session with the first execution.  Composes all managed state (agent, workspace, MCP servers, skills, model, session variables) into the session and execution creation RPCs, then calls `onSessionCreated` on success.  The `model` parameter overrides `modelId` for this submission only (used when SessionComposer passes a per-message model selection)." },
+    submit: { type: "(message: string, model?: string, context?: SessionComposerSubmitContext) => Promise<void>", description: "Create a session with the first execution.  Composes all managed state (agent, workspace, MCP servers, skills, model, session variables) into a single bootstrap RPC — `agentExecution.create` with an embedded session spec — then calls `onSessionCreated` on success.  The `model` parameter overrides `modelId` for this submission only (used when SessionComposer passes a per-message model selection)." },
     submitError: { type: "string | null", description: "Human-readable error from the last failed submission, or `null`." },
     workspace: { type: "UseWorkspaceEntriesReturn", description: "Workspace entries manager (git repos and local paths).", typeDescriptionLink: "/docs/sdk/react/workspace#useworkspaceentriesreturn" },
   }}

@@ -15,3 +15,9 @@ spec:
   execution_config:
     model_name: "claude-sonnet-4-6"
 ```
+
+Instead of `session_id`, a create may carry `session_spec` — the full shape of a
+session to auto-create (workspace entries, harness, execution target). This is
+the one-call bootstrap: the server creates the session and dispatches the first
+message in a single request, and the created session's ID is returned on the
+execution's `session_id`.

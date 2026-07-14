@@ -84,7 +84,7 @@ export { type AgentInput, type McpServerUsageInput, type ToolApprovalOverrideInp
 export { AgentChannelClient } from "./agentchannel.js";
 export { type AgentChannelInput, type SlackChannelConfigInput } from "./agentchannel.js";
 export { AgentExecutionClient } from "./agentexecution.js";
-export { type AgentExecutionInput, type ExecutionConfigInput, type ContextManagementConfigInput, type AttachmentInput } from "./agentexecution.js";
+export { type AgentExecutionInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type ExecutionConfigInput, type ContextManagementConfigInput, type AttachmentInput } from "./agentexecution.js";
 export { AgentInstanceClient } from "./agentinstance.js";
 export { type AgentInstanceInput } from "./agentinstance.js";
 export { AgentShareClient } from "./agentshare.js";
@@ -116,7 +116,7 @@ export { type PlatformClientInput } from "./platformclient.js";
 export { ProjectClient } from "./project.js";
 export { type ProjectInput } from "./project.js";
 export { SessionClient } from "./session.js";
-export { type SessionInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput } from "./session.js";
+export { type SessionInput } from "./session.js";
 export { SkillClient } from "./skill.js";
 export { type SkillInput } from "./skill.js";
 export { WorkflowClient } from "./workflow.js";

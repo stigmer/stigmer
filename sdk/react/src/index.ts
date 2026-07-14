@@ -336,8 +336,10 @@ export {
   getArtifactRenderMode,
 } from "./execution/index.js";
 export type {
+  BootstrapSessionSpec,
   CreateAgentExecutionInput,
   CreateAgentExecutionResult,
+  SharedAgentExecutionFields,
   UseCreateAgentExecutionReturn,
   UseExecutionStreamReturn,
   UseAgentExecutionActionsOptions,

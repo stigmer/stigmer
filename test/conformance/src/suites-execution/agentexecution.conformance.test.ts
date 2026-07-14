@@ -23,6 +23,12 @@
 //   unresolved), not input validation — so it is unreachable by black-box input here.
 // - The query analogue of listByWorkflow is listBySession (filter by spec.session_id).
 //
+// One-call session bootstrap (stigmer/stigmer#249): create may carry
+// spec.session_spec — the full shape of the session to auto-create (workspace,
+// harness, execution_target) alongside the first message. The bootstrap
+// describe block below asserts the forwarding, the resolution precedence, the
+// single-source-of-truth clearing, and the two validation negatives.
+//
 // Covered in a sibling file (kept separate because it needs the MCP tool
 // fixture and approval choreography, and this file is already large):
 // - submitApproval / HITL tool approval -> agentexecution-approval.conformance.test.ts.
@@ -31,8 +37,12 @@
 // is recorded as a conscious deferral in DD-009, not shipped as a thin partial):
 // - recover happy path (needs a genuinely FAILED execution);
 // - usage reports, artifact download/content, subscribe streaming, sub-agents.
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
@@ -514,6 +524,146 @@ describe("AgentExecution conformance — create negative paths", () => {
         }),
       Code.NotFound,
       "create with neither session nor agent",
+    );
+  });
+});
+
+describe("AgentExecution conformance — one-call session bootstrap (session_spec)", () => {
+  // Provision an agent and return both ids: the bootstrap tests need the
+  // default instance to name it explicitly in session_spec.
+  async function provisionAgentWithInstance(org: string): Promise<{ agentId: string; instanceId: string }> {
+    const agent = await clients.agentCommand.create(makeAgent({ org, name: uniqueName("agent") }));
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
+    const instanceId = agent.status?.defaultInstanceId;
+    if (instanceId === undefined || instanceId === "") {
+      throw new Error("agent create did not provision a default instance");
+    }
+    return { agentId: agent.metadata!.id, instanceId };
+  }
+
+  it("creates the session from session_spec and dispatches the first message in one call", async () => {
+    const { org } = await target.provisionTenancy();
+    const { instanceId } = await provisionAgentWithInstance(org);
+
+    // A real local directory so the runner can provision the workspace.
+    const workspaceDir = mkdtempSync(join(tmpdir(), "stigmer-bootstrap-"));
+    writeFileSync(join(workspaceDir, "README.md"), "# bootstrap\n");
+
+    mock.enqueue(anthropicText("Done."));
+    // No agent_id: an instance-carrying session_spec is a complete session
+    // target on its own. This also proves the default-agent lookup is skipped —
+    // this target seeds no platform default agent, so a reached lookup would
+    // fail the create with NotFound.
+    const created = await clients.agentExecutionCommand.create(
+      makeAgentExecution({
+        org,
+        name: uniqueName("aex-bootstrap"),
+        sessionSpec: {
+          agentInstanceId: instanceId,
+          subject: "Bootstrap conformance",
+          workspaceEntries: [
+            { name: "project", source: { source: { case: "localPath", value: { path: workspaceDir } } } },
+          ],
+          harness: Harness.NATIVE,
+        },
+      }),
+    );
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
+    const sessionId = created.spec?.sessionId;
+    expect(sessionId, "create should record the bootstrapped session's id").toBeTruthy();
+    fixtures.defer(() => clients.sessionCommand.delete({ value: sessionId! }));
+
+    // Single source of truth: the Session resource owns the config, so the
+    // execution must not retain the embedded spec copy — and an
+    // instance-carrying bootstrap must not stamp any agent id.
+    expect(created.spec?.sessionSpec, "session_spec is cleared on the returned execution").toBeUndefined();
+    expect(created.spec?.agentId, "agent_id stays empty for an instance-carrying bootstrap").toBe("");
+
+    const persisted = await clients.agentExecutionQuery.get({ value: created.metadata!.id });
+    expect(persisted.spec?.sessionSpec, "session_spec is cleared on the persisted execution").toBeUndefined();
+
+    // The created session carries the full bootstrap shape.
+    const session = await clients.sessionQuery.get({ value: sessionId! });
+    expect(session.spec?.agentInstanceId).toBe(instanceId);
+    expect(session.spec?.subject, "a caller-provided subject survives (no sentinel override)").toBe(
+      "Bootstrap conformance",
+    );
+    expect(session.spec?.harness).toBe(Harness.NATIVE);
+    expect(session.spec?.workspaceEntries).toHaveLength(1);
+    expect(session.spec?.workspaceEntries?.[0]?.name).toBe("project");
+    expect(session.spec?.workspaceEntries?.[0]?.source?.source).toEqual({
+      case: "localPath",
+      value: expect.objectContaining({ path: workspaceDir }),
+    });
+
+    // The first message runs to completion in the bootstrapped session.
+    const final = await awaitTerminal(clients, created.metadata!.id);
+    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  });
+
+  it("fills the agent's default instance when session_spec names none (agent_id resolution)", async () => {
+    const { org } = await target.provisionTenancy();
+    const { agentId, instanceId } = await provisionAgentWithInstance(org);
+
+    mock.enqueue(anthropicText("Done."));
+    const created = await clients.agentExecutionCommand.create(
+      makeAgentExecution({
+        org,
+        name: uniqueName("aex-bootstrap-resolve"),
+        agentId,
+        sessionSpec: { subject: "Resolved bootstrap" },
+      }),
+    );
+    fixtures.defer(() => clients.agentExecutionCommand.delete({ value: created.metadata!.id }));
+    const sessionId = created.spec?.sessionId;
+    expect(sessionId, "create should record the bootstrapped session's id").toBeTruthy();
+    fixtures.defer(() => clients.sessionCommand.delete({ value: sessionId! }));
+
+    // agent_id drove the resolution, so it is preserved as execution metadata.
+    expect(created.spec?.agentId).toBe(agentId);
+
+    const session = await clients.sessionQuery.get({ value: sessionId! });
+    expect(session.spec?.agentInstanceId, "server fills the agent's default instance").toBe(instanceId);
+    expect(session.spec?.subject).toBe("Resolved bootstrap");
+
+    const final = await awaitTerminal(clients, created.metadata!.id);
+    expect(final.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+  });
+
+  it("rejects session_id and session_spec together (InvalidArgument)", async () => {
+    const { org } = await target.provisionTenancy();
+    // Validation fires before any resource resolution, so fake ids suffice.
+    await expectGrpcCode(
+      () =>
+        clients.agentExecutionCommand.create(
+          makeAgentExecution({
+            org,
+            name: uniqueName("aex-bootstrap-exclusive"),
+            sessionId: "ses_existing",
+            sessionSpec: { agentInstanceId: "ain_1" },
+          }),
+        ),
+      Code.InvalidArgument,
+      "create with both session_id and session_spec",
+    );
+  });
+
+  it("rejects a session_spec carrying harness_state_id (InvalidArgument — server-owned field)", async () => {
+    const { org } = await target.provisionTenancy();
+    // harness_state_id is engine-owned conversation continuity state; a
+    // caller-supplied value would fake state on a brand-new session and trip
+    // the immutability sentinel.
+    await expectGrpcCode(
+      () =>
+        clients.agentExecutionCommand.create(
+          makeAgentExecution({
+            org,
+            name: uniqueName("aex-bootstrap-hstate"),
+            sessionSpec: { agentInstanceId: "ain_1", harnessStateId: "thread-forged" },
+          }),
+        ),
+      Code.InvalidArgument,
+      "create with a session_spec carrying harness_state_id",
     );
   });
 });

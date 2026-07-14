@@ -427,9 +427,12 @@ if (ctx.hasContextInfo) {
 Behavior hook that wraps `agentExecution.create()` with loading/error
 state.
 
-Maps 1:1 to the AgentExecution aggregate — a single run of an agent
-within an existing session. Requires a `sessionId`; use
-[`useCreateSession`](/docs/sdk/react/session#usecreatesession) to create the session first.
+Maps 1:1 to the AgentExecution aggregate — a single run of an agent.
+Two session strategies are supported, mirroring the RPC contract:
+pass `sessionId` to execute within an existing session (use
+[`useCreateSession`](/docs/sdk/react/session#usecreatesession) to create one), or pass `sessionSpec` to
+bootstrap a new session (workspace, harness, execution target) and
+dispatch the first message in a single call.
 
 Supports both secret delivery flows:
 
@@ -472,6 +475,20 @@ await create({
   message: "Deploy to production",
   runtimeEnv: {
     CUSTOMER_API_KEY: { value: "cust_xyz...", isSecret: true },
+  },
+});
+```
+
+```tsx
+// One-call bootstrap: session with a workspace + first message
+const { create } = useCreateAgentExecution();
+const { sessionId } = await create({
+  org: "acme",
+  message: "Customize the landing page",
+  sessionSpec: {
+    agentInstanceId: "ain_abc",
+    workspaceEntries: [{ name: "site", source: { localPath: { path: "/repos/site" } } }],
+    executionTarget: "local",
   },
 });
 ```
@@ -2106,6 +2123,32 @@ rendering logic based on file type.
 - `"text"` — monospace plain text with line numbers
 
 
+### BootstrapSessionSpec
+
+Spec for the session the server auto-creates on the one-call bootstrap
+path (maps to `AgentExecutionSpec.session_spec` in the proto).
+
+Carries the session shape — workspace, harness, execution target, MCP
+servers, skills — alongside the first message, so starting a session
+with a configured workspace is a single API call (stigmer/stigmer#249).
+
+When `agentInstanceId` is omitted, the server resolves the agent's
+default instance from the execution's `agentId` (creating the instance
+if missing), or falls back to the platform default agent.
+
+<TypeTable
+  type={{
+    agentInstanceId: { type: "string", description: "Agent instance the session runs against. Omit to let the server resolve it." },
+    executionTarget: { type: "ExecutionTargetOption", description: "Where session activities execute. Immutable after the first execution runs.", typeDescriptionLink: "/docs/sdk/react/session#executiontargetoption" },
+    harness: { type: "HarnessOption", description: "Execution harness. Immutable after the first execution runs.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
+    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
+    skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for executions in this session." },
+    subject: { type: "string", description: "Initial conversation subject. Omit for an async LLM-generated title." },
+    workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace source entries to attach to the session." },
+  }}
+/>
+
+
 ### changeForRowPath
 
 The captured change a transcript row's file path refers to, or `null`. The
@@ -2211,25 +2254,15 @@ Matches the thresholds documented in context.proto (ContextInfo.utilization_perc
 
 ### CreateAgentExecutionInput
 
-Input for `UseCreateAgentExecutionReturn.create`.
+Input for `UseCreateAgentExecutionReturn.create`. Exactly one
+session strategy must be provided:
 
-<TypeTable
-  type={{
-    agentId: { type: "string", description: "Explicit agent ID. When omitted, uses the session's agent instance." },
-    attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments injected into the agent sandbox.  Each entry must include a `storageKey` obtained from `agentExecution.uploadAttachment()`. The agent can read attached files from their mount paths (default `/inputs/{filename}`)." },
-    autoApproveAll: { type: "boolean", description: "Auto-approve every tool call for this execution.  When `true`, the human-in-the-loop approval gate is bypassed and no tool waits for approval. When `false` (default), mutating/destructive tools require approval per the configured policies. Maps to `AgentExecutionSpec.auto_approve_all` in the proto." },
-    buildFromPlan: { type: "boolean", description: "Marks this execution as a Build-from-plan turn: the user approved a plan from a prior Plan-mode execution and asked the agent to implement it. The runner injects the implement-plan directive (pointing at the attached approved plan when present); the thread hides the turn's machine-written message entirely — the plan card above it is the visible cause. Surfaces without that treatment (the CLI, history) show the message text as-is.  Maps to `ExecutionConfig.build_from_plan` in the proto." },
-    interactionMode: { type: "\"agent\" | \"plan\"", description: "Interaction mode for this execution.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations.  Maps to `ExecutionConfig.interaction_mode` in the proto." },
-    message: { type: "string", description: "User message that initiates the execution.", required: true },
-    modelName: { type: "string", description: "Override the default model for this execution." },
-    org: { type: "string", description: "Organization slug that owns the session.", required: true },
-    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped secrets and configuration (Execution Flow).  Values are injected into the agent sandbox for this execution only and deleted when the execution completes. They take the highest merge priority, overriding both Environment values and agent defaults.  Use this for B2B integrations where per-call credentials are injected at runtime, or for one-off secrets that should not persist.  For persistent credentials that are reused across executions, use the Environment Flow instead (store secrets in an Environment resource and bind them via an AgentInstance)." },
-    sessionId: { type: "string", description: "Session to create the execution within.", required: true },
-    structuredOutputSchema: { type: "JsonObject", description: "JSON Schema that the agent's final output must conform to.  When set, the runner enforces structured output: - Native harness: ToolStrategy adds an extract tool; agent must call it - Cursor harness: prompt injection + 3-tier extraction fallback  The validated data is returned in `execution.status.structuredOutput`." },
-    supersedesExecutionId: { type: "string", description: "ID of the execution this one supersedes via edit-and-resubmit.  Set when the user stopped an in-flight turn, edited its message, and resubmitted. Chat threads hide the superseded execution so the edited message replaces the original in place; history surfaces keep the full record. Maps to `AgentExecutionSpec.supersedes_execution_id`.  Display-level only — the runner does not rewind model context." },
-    workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on.  These are lightweight \"attention\" signals — the agent reads the files directly from the workspace filesystem. No upload, no injection. Populated by the drag-to-reference feature in SessionComposer." },
-  }}
-/>
+- **`sessionId`** — Create the execution within an existing session.
+- **`sessionSpec`** — One-call bootstrap: the server creates a session
+  from the embedded spec and dispatches this execution in it. The new
+  session's ID is returned on `CreateAgentExecutionResult.sessionId`.
+
+Providing both is a type error (and an `INVALID_ARGUMENT` server-side).
 
 
 ### CreateAgentExecutionResult
@@ -2239,7 +2272,7 @@ Resolved output of `UseCreateAgentExecutionReturn.create`.
 <TypeTable
   type={{
     executionId: { type: "string", description: "Server-assigned identifier for the newly created execution.", required: true },
-    sessionId: { type: "string", description: "Session the execution belongs to (echoed from input).", required: true },
+    sessionId: { type: "string", description: "Session the execution belongs to. On the `sessionId` path this echoes the input; on the `sessionSpec` bootstrap path it is the server-created session's ID.", required: true },
   }}
 />
 
@@ -3303,6 +3336,28 @@ Props for [`SetupProgress`](#setupprogress).
     isAwaitingResponse: { type: "boolean", description: "When `true`, the execution has moved past `PENDING` into `IN_PROGRESS` but the agent has not yet produced any AI messages. Renders a static \"Thinking\\u2026\" label instead of the setup phase sequence or server-reported phase." },
     serverPhase: { type: "string", description: "Server-reported setup phase label from `AgentExecutionStatus.setup_progress.current_phase`.  When non-empty, rendered directly — the timer-based fallback is bypassed.  When absent or empty (older backends that don't emit setup progress), the component falls back to the time-based step sequence derived from `workspaceEntries`." },
     workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec. When git-sourced entries are present, the fallback indicator shows workspace-specific messaging (e.g. \"Setting up workspace...\")." },
+  }}
+/>
+
+
+### SharedAgentExecutionFields
+
+Fields shared by both variants of [`CreateAgentExecutionInput`](#createagentexecutioninput).
+
+<TypeTable
+  type={{
+    agentId: { type: "string", description: "Explicit agent ID. When omitted, uses the session's agent instance." },
+    attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments injected into the agent sandbox.  Each entry must include a `storageKey` obtained from `agentExecution.uploadAttachment()`. The agent can read attached files from their mount paths (default `/inputs/{filename}`)." },
+    autoApproveAll: { type: "boolean", description: "Auto-approve every tool call for this execution.  When `true`, the human-in-the-loop approval gate is bypassed and no tool waits for approval. When `false` (default), mutating/destructive tools require approval per the configured policies. Maps to `AgentExecutionSpec.auto_approve_all` in the proto." },
+    buildFromPlan: { type: "boolean", description: "Marks this execution as a Build-from-plan turn: the user approved a plan from a prior Plan-mode execution and asked the agent to implement it. The runner injects the implement-plan directive (pointing at the attached approved plan when present); the thread hides the turn's machine-written message entirely — the plan card above it is the visible cause. Surfaces without that treatment (the CLI, history) show the message text as-is.  Maps to `ExecutionConfig.build_from_plan` in the proto." },
+    interactionMode: { type: "\"agent\" | \"plan\"", description: "Interaction mode for this execution.  - `\"agent\"` (default): full tool access. - `\"plan\"`: read-only analysis, no file mutations.  Maps to `ExecutionConfig.interaction_mode` in the proto." },
+    message: { type: "string", description: "User message that initiates the execution.", required: true },
+    modelName: { type: "string", description: "Override the default model for this execution." },
+    org: { type: "string", description: "Organization slug that owns the session.", required: true },
+    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped secrets and configuration (Execution Flow).  Values are injected into the agent sandbox for this execution only and deleted when the execution completes. They take the highest merge priority, overriding both Environment values and agent defaults.  Use this for B2B integrations where per-call credentials are injected at runtime, or for one-off secrets that should not persist.  For persistent credentials that are reused across executions, use the Environment Flow instead (store secrets in an Environment resource and bind them via an AgentInstance)." },
+    structuredOutputSchema: { type: "JsonObject", description: "JSON Schema that the agent's final output must conform to.  When set, the runner enforces structured output: - Native harness: ToolStrategy adds an extract tool; agent must call it - Cursor harness: prompt injection + 3-tier extraction fallback  The validated data is returned in `execution.status.structuredOutput`." },
+    supersedesExecutionId: { type: "string", description: "ID of the execution this one supersedes via edit-and-resubmit.  Set when the user stopped an in-flight turn, edited its message, and resubmitted. Chat threads hide the superseded execution so the edited message replaces the original in place; history surfaces keep the full record. Maps to `AgentExecutionSpec.supersedes_execution_id`.  Display-level only — the runner does not rewind model context." },
+    workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on.  These are lightweight \"attention\" signals — the agent reads the files directly from the workspace filesystem. No upload, no injection. Populated by the drag-to-reference feature in SessionComposer." },
   }}
 />
 

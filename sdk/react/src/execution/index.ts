@@ -1,7 +1,9 @@
 export { useCreateAgentExecution } from "./useCreateAgentExecution.js";
 export type {
+  BootstrapSessionSpec,
   CreateAgentExecutionInput,
   CreateAgentExecutionResult,
+  SharedAgentExecutionFields,
   UseCreateAgentExecutionReturn,
 } from "./useCreateAgentExecution.js";
 

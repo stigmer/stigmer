@@ -15,9 +15,11 @@ from ai.stigmer.agentic.agentexecution.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as executioncontext_spec_pb2
+from ai.stigmer.agentic.session.v1 import spec_pb2 as session_spec_pb2
 
 from ._errors import wrap_error
-from ._types import EnvVarInput
+from ._types import EnvVarInput, ResourceRef
+from ._agent import McpServerUsageInput, ToolApprovalOverrideInput
 
 
 class AgentExecutionClient:
@@ -178,6 +180,7 @@ class AgentExecutionInput:
     visibility: int = 0
     session_id: str = ""
     agent_id: str = ""
+    session_spec: SessionSpecInput | None = None
     message: str = ""
     execution_config: ExecutionConfigInput | None = None
     runtime_env: dict[str, EnvVarInput] = field(default_factory=dict)
@@ -200,6 +203,8 @@ class AgentExecutionInput:
             activity_task_queue=self.activity_task_queue,
             supersedes_execution_id=self.supersedes_execution_id,
         )
+        if self.session_spec is not None:
+            spec.session_spec.CopyFrom(self.session_spec._to_proto())
         if self.execution_config is not None:
             spec.execution_config.CopyFrom(self.execution_config._to_proto())
         for k, v in self.runtime_env.items():
@@ -226,6 +231,109 @@ class AgentExecutionInput:
             metadata=metadata,
             spec=spec,
         )
+
+
+@dataclass
+class SessionSpecInput:
+    """SDK input type for SessionSpec."""
+
+    agent_instance_id: str = ""
+    subject: str = ""
+    harness_state_id: str = ""
+    metadata: dict[str, str] = field(default_factory=dict)
+    workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
+    mcp_server_usages: list[McpServerUsageInput] = field(default_factory=list)
+    skill_refs: list[ResourceRef] = field(default_factory=list)
+    harness: int = 0
+    cursor_mode: int = 0
+    execution_target: int = 0
+
+    def _to_proto(self) -> session_spec_pb2.SessionSpec:
+        msg = session_spec_pb2.SessionSpec(
+            agent_instance_id=self.agent_instance_id,
+            subject=self.subject,
+            harness_state_id=self.harness_state_id,
+            harness=self.harness,
+            cursor_mode=self.cursor_mode,
+            execution_target=self.execution_target,
+        )
+        if self.metadata:
+            msg.metadata.update(self.metadata)
+        for item in self.workspace_entries:
+            msg.workspace_entries.append(item._to_proto())
+        for item in self.mcp_server_usages:
+            msg.mcp_server_usages.append(item._to_proto())
+        for ref in self.skill_refs:
+            _ref = ref._to_proto()
+            _ref.kind = 43
+            msg.skill_refs.append(_ref)
+        return msg
+
+
+@dataclass
+class WorkspaceEntryInput:
+    """SDK input type for WorkspaceEntry."""
+
+    source: WorkspaceSourceInput | None
+    name: str = ""
+
+    def _to_proto(self) -> session_spec_pb2.WorkspaceEntry:
+        msg = session_spec_pb2.WorkspaceEntry(
+            name=self.name,
+        )
+        if self.source is not None:
+            msg.source.CopyFrom(self.source._to_proto())
+        return msg
+
+
+@dataclass
+class WorkspaceSourceInput:
+    """SDK input type for WorkspaceSource."""
+
+    git_repo: GitRepoSourceInput | None = None
+    local_path: LocalPathSourceInput | None = None
+
+    def _to_proto(self) -> session_spec_pb2.WorkspaceSource:
+        msg = session_spec_pb2.WorkspaceSource()
+        if self.git_repo is not None:
+            msg.git_repo.CopyFrom(self.git_repo._to_proto())
+        if self.local_path is not None:
+            msg.local_path.CopyFrom(self.local_path._to_proto())
+        return msg
+
+
+@dataclass
+class GitRepoSourceInput:
+    """SDK input type for GitRepoSource."""
+
+    url: str
+    branch: str = ""
+    commit: str = ""
+    depth: int = 0
+    write_back_mode: int = 0
+
+    def _to_proto(self) -> session_spec_pb2.GitRepoSource:
+        msg = session_spec_pb2.GitRepoSource(
+            url=self.url,
+            branch=self.branch,
+            commit=self.commit,
+            depth=self.depth,
+            write_back_mode=self.write_back_mode,
+        )
+        return msg
+
+
+@dataclass
+class LocalPathSourceInput:
+    """SDK input type for LocalPathSource."""
+
+    path: str = ""
+
+    def _to_proto(self) -> session_spec_pb2.LocalPathSource:
+        msg = session_spec_pb2.LocalPathSource(
+            path=self.path,
+        )
+        return msg
 
 
 @dataclass

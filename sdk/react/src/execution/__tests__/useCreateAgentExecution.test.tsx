@@ -3,6 +3,7 @@ import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { Harness, ExecutionTarget } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { useCreateAgentExecution } from "../useCreateAgentExecution";
 
@@ -81,6 +82,97 @@ describe("useCreateAgentExecution — executionConfig mapping", () => {
     });
 
     expect(mockCreate.mock.calls[0][0].executionConfig).toBeUndefined();
+  });
+});
+
+describe("useCreateAgentExecution — one-call session bootstrap (sessionSpec)", () => {
+  it("converts harness and executionTarget options to proto enums", async () => {
+    const { result } = renderHook(() => useCreateAgentExecution(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    await act(async () => {
+      await result.current.create({
+        org: "acme",
+        message: "Customize the landing page",
+        sessionSpec: {
+          agentInstanceId: "ain-1",
+          workspaceEntries: [
+            { name: "site", source: { localPath: { path: "/repos/site" } } },
+          ],
+          harness: "native",
+          executionTarget: "local",
+        },
+      });
+    });
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    const input = mockCreate.mock.calls[0][0];
+    expect(input.sessionId).toBeUndefined();
+    expect(input.sessionSpec).toMatchObject({
+      agentInstanceId: "ain-1",
+      harness: Harness.NATIVE,
+      executionTarget: ExecutionTarget.LOCAL,
+    });
+    expect(input.sessionSpec.workspaceEntries).toEqual([
+      { name: "site", source: { localPath: { path: "/repos/site" } } },
+    ]);
+  });
+
+  it("leaves harness and executionTarget undefined when not chosen (server decides)", async () => {
+    const { result } = renderHook(() => useCreateAgentExecution(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    await act(async () => {
+      await result.current.create({
+        org: "acme",
+        message: "Hello",
+        sessionSpec: { agentInstanceId: "ain-1" },
+      });
+    });
+
+    const input = mockCreate.mock.calls[0][0];
+    expect(input.sessionSpec.harness).toBeUndefined();
+    expect(input.sessionSpec.executionTarget).toBeUndefined();
+  });
+
+  it("returns the server-assigned session id from the bootstrap response", async () => {
+    mockCreate.mockResolvedValueOnce({
+      metadata: { id: "aex-1" },
+      spec: { sessionId: "ses-created" },
+    });
+    const { result } = renderHook(() => useCreateAgentExecution(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    let created: { executionId: string; sessionId: string } | undefined;
+    await act(async () => {
+      created = await result.current.create({
+        org: "acme",
+        message: "Hello",
+        sessionSpec: { agentInstanceId: "ain-1" },
+      });
+    });
+
+    expect(created).toEqual({ executionId: "aex-1", sessionId: "ses-created" });
+  });
+
+  it("echoes the input session id on the existing-session path", async () => {
+    const { result } = renderHook(() => useCreateAgentExecution(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    let created: { executionId: string; sessionId: string } | undefined;
+    await act(async () => {
+      created = await result.current.create({
+        org: "acme",
+        sessionId: "ses-1",
+        message: "Hello",
+      });
+    });
+
+    expect(created).toEqual({ executionId: "aex-1", sessionId: "ses-1" });
   });
 });
 

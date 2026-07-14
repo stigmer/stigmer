@@ -4,23 +4,37 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 import "ai/stigmer/agentic/executioncontext/v1/spec.proto";
+import "ai/stigmer/agentic/session/v1/spec.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
 // AgentExecutionSpec contains only user-provided inputs for triggering an execution.
 // All execution results and state live in AgentExecutionStatus (in api.proto).
 message AgentExecutionSpec {
+  option (buf.validate.message).cel = {
+    id: "agent_execution.session_exclusive"
+    message: "session_id and session_spec are mutually exclusive — reference an existing session or define a new one, not both"
+    expression: "!(this.session_id != '' && has(this.session_spec))"
+  };
+  option (buf.validate.message).cel = {
+    id: "agent_execution.session_spec_harness_state"
+    message: "session_spec.harness_state_id must be empty — harness state is created by the runner after the first execution"
+    expression: "!has(this.session_spec) || this.session_spec.harness_state_id == ''"
+  };
+
   // Session ID this execution belongs to (optional).
   //
   // Resolution priority (enforced in handler pipeline):
   //   1. session_id provided     -> use existing session
-  //   2. agent_id provided       -> auto-create session using agent's default instance
-  //   3. neither provided        -> resolve platform default agent (label
+  //   2. session_spec provided   -> auto-create session from the embedded spec
+  //   3. agent_id provided       -> auto-create session using agent's default instance
+  //   4. neither provided        -> resolve platform default agent (label
   //      stigmer.ai/default-agent + visibility_public), then auto-create session
   //
-  // Both may be set — when both are present, session_id is used for session
-  // resolution and agent_id is preserved as metadata for downstream consumers
-  // (e.g., session subject generation).
+  // session_id and agent_id may both be set — when both are present, session_id
+  // is used for session resolution and agent_id is preserved as metadata for
+  // downstream consumers (e.g., session subject generation). session_id and
+  // session_spec are mutually exclusive.
   string session_id = 1;
 
   // Agent ID (optional).
@@ -37,6 +51,36 @@ message AgentExecutionSpec {
   // When provided without session_id, a new session is auto-created using
   // the agent's default instance ID.
   string agent_id = 2;
+
+  // Spec for the session to auto-create when session_id is empty (optional).
+  //
+  // This is the one-call session bootstrap: a single create carries the full
+  // session shape (workspace_entries, harness, execution_target, MCP servers,
+  // skills) together with the first message, so embedders do not need to
+  // orchestrate session.create followed by agentExecution.create. The created
+  // session's ID is returned on the persisted execution's session_id.
+  //
+  // Fields that must be set at session-creation time and are immutable once
+  // an execution has run — harness and execution_target — can only reach an
+  // auto-created session through this field.
+  //
+  // When session_spec.agent_instance_id is set, the session runs against that
+  // instance and agent_id must not also be resolved from it. When empty, the
+  // normal resolution applies: agent_id's default instance, or the platform
+  // default agent when agent_id is also empty.
+  //
+  // Mutually exclusive with session_id. session_spec.harness_state_id must be
+  // empty — it is server-owned harness continuity state, created by the runner
+  // after the first execution.
+  //
+  // @internal
+  // The Session resource created from this spec is the single source of truth
+  // for session configuration. The handler clears this field after the session
+  // is created (before persist), so the execution record never carries a
+  // second copy of session config that could drift as the session evolves.
+  // Extends the existing auto-create path in createSessionIfNeededStep rather
+  // than adding a parallel one (stigmer/stigmer#249).
+  ai.stigmer.agentic.session.v1.SessionSpec session_spec = 13;
 
   // User input message that triggers this execution.
   // Each execution represents one user message and the agent's response.

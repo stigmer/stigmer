@@ -2,9 +2,10 @@
 
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
-import { type EnvVarInput } from "./types.js";
+import { type ResourceRef, type EnvVarInput } from "./types.js";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { ToolApprovalOverrideSchema, McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -12,8 +13,11 @@ import { AgentExecutionIdSchema, AgentExecutionUpdateStatusInputSchema, UpdateSt
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
 import { AgentExecutionSpecSchema, ContextManagementConfigSchema, ExecutionConfigSchema, AttachmentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
+import { Harness, CursorMode, ExecutionTarget, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { ApiResourceIdSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceIdSchema, ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on agentexecution resources. */
@@ -176,6 +180,7 @@ export interface AgentExecutionInput {
   visibility?: ApiResourceVisibility;
   sessionId?: string;
   agentId?: string;
+  sessionSpec?: SessionSpecInput;
   message?: string;
   executionConfig?: ExecutionConfigInput;
   runtimeEnv?: Record<string, EnvVarInput>;
@@ -186,6 +191,60 @@ export interface AgentExecutionInput {
   workspaceFileRefs?: string[];
   activityTaskQueue?: string;
   supersedesExecutionId?: string;
+}
+
+/** SDK input type for SessionSpec. */
+export interface SessionSpecInput {
+  agentInstanceId?: string;
+  subject?: string;
+  harnessStateId?: string;
+  metadata?: Record<string, string>;
+  workspaceEntries?: WorkspaceEntryInput[];
+  mcpServerUsages?: McpServerUsageInput[];
+  skillRefs?: ResourceRef[];
+  harness?: Harness;
+  cursorMode?: CursorMode;
+  executionTarget?: ExecutionTarget;
+}
+
+/** SDK input type for WorkspaceEntry. */
+export interface WorkspaceEntryInput {
+  name?: string;
+  source: WorkspaceSourceInput;
+}
+
+/** SDK input type for WorkspaceSource. */
+export interface WorkspaceSourceInput {
+  gitRepo?: GitRepoSourceInput;
+  localPath?: LocalPathSourceInput;
+}
+
+/** SDK input type for GitRepoSource. */
+export interface GitRepoSourceInput {
+  url: string;
+  branch?: string;
+  commit?: string;
+  depth?: number;
+  writeBackMode?: GitWriteBackMode;
+}
+
+/** SDK input type for LocalPathSource. */
+export interface LocalPathSourceInput {
+  path?: string;
+}
+
+/** SDK input type for McpServerUsage. */
+export interface McpServerUsageInput {
+  mcpServerRef: ResourceRef;
+  enabledTools?: string[];
+  toolApprovalOverrides?: ToolApprovalOverrideInput[];
+}
+
+/** SDK input type for ToolApprovalOverride. */
+export interface ToolApprovalOverrideInput {
+  toolName?: string;
+  requiresApproval?: boolean;
+  message?: string;
 }
 
 /** SDK input type for ExecutionConfig. */
@@ -215,6 +274,70 @@ export interface AttachmentInput {
   contentType?: string;
   extract?: boolean;
   localPath?: string;
+}
+
+function buildGitRepoSourceProto(input: GitRepoSourceInput) {
+  return Object.assign(create(GitRepoSourceSchema), stripUndefined({
+    url: input.url,
+    branch: input.branch,
+    commit: input.commit,
+    depth: input.depth,
+    writeBackMode: input.writeBackMode,
+  }));
+}
+
+function buildLocalPathSourceProto(input: LocalPathSourceInput) {
+  return Object.assign(create(LocalPathSourceSchema), stripUndefined({
+    path: input.path,
+  }));
+}
+
+function buildWorkspaceSourceProto(input: WorkspaceSourceInput) {
+  const msg = create(WorkspaceSourceSchema);
+  if (input.gitRepo) {
+    msg.source = { case: "gitRepo", value: buildGitRepoSourceProto(input.gitRepo) };
+  } else if (input.localPath) {
+    msg.source = { case: "localPath", value: buildLocalPathSourceProto(input.localPath) };
+  }
+  return msg;
+}
+
+function buildWorkspaceEntryProto(input: WorkspaceEntryInput) {
+  const msg = create(WorkspaceEntrySchema);
+  if (input.name !== undefined) msg.name = input.name;
+  if (input.source) msg.source = buildWorkspaceSourceProto(input.source);
+  return msg;
+}
+
+function buildToolApprovalOverrideProto(input: ToolApprovalOverrideInput) {
+  return Object.assign(create(ToolApprovalOverrideSchema), stripUndefined({
+    toolName: input.toolName,
+    requiresApproval: input.requiresApproval,
+    message: input.message,
+  }));
+}
+
+function buildMcpServerUsageProto(input: McpServerUsageInput) {
+  const msg = create(McpServerUsageSchema);
+  if (input.mcpServerRef?.slug || input.mcpServerRef?.org) msg.mcpServerRef = create(ApiResourceReferenceSchema, { ...input.mcpServerRef, kind: 44 });
+  if (input.enabledTools) msg.enabledTools = input.enabledTools;
+  if (input.toolApprovalOverrides) msg.toolApprovalOverrides = input.toolApprovalOverrides.map(buildToolApprovalOverrideProto);
+  return msg;
+}
+
+function buildSessionSpecProto(input: SessionSpecInput) {
+  const msg = create(SessionSpecSchema);
+  if (input.agentInstanceId !== undefined) msg.agentInstanceId = input.agentInstanceId;
+  if (input.subject !== undefined) msg.subject = input.subject;
+  if (input.harnessStateId !== undefined) msg.harnessStateId = input.harnessStateId;
+  if (input.metadata) Object.assign(msg.metadata, input.metadata);
+  if (input.workspaceEntries) msg.workspaceEntries = input.workspaceEntries.map(buildWorkspaceEntryProto);
+  if (input.mcpServerUsages) msg.mcpServerUsages = input.mcpServerUsages.map(buildMcpServerUsageProto);
+  if (input.skillRefs) msg.skillRefs = input.skillRefs.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 43 }));
+  if (input.harness !== undefined) msg.harness = input.harness;
+  if (input.cursorMode !== undefined) msg.cursorMode = input.cursorMode;
+  if (input.executionTarget !== undefined) msg.executionTarget = input.executionTarget;
+  return msg;
 }
 
 function buildContextManagementConfigProto(input: ContextManagementConfigInput) {
@@ -250,6 +373,7 @@ function buildAttachmentProto(input: AttachmentInput) {
 }
 
 export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecution {
+  const sessionSpec = input.sessionSpec ? buildSessionSpecProto(input.sessionSpec) : undefined;
   const executionConfig = input.executionConfig ? buildExecutionConfigProto(input.executionConfig) : undefined;
   let runtimeEnv;
   if (input.runtimeEnv) {
@@ -270,6 +394,7 @@ export function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecu
     spec: Object.assign(create(AgentExecutionSpecSchema), stripUndefined({
       sessionId: input.sessionId,
       agentId: input.agentId,
+      sessionSpec,
       message: input.message,
       executionConfig,
       runtimeEnv,

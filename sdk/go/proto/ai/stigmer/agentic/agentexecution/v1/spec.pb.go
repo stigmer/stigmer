@@ -8,7 +8,8 @@ package agentexecutionv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
+	v11 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -32,13 +33,15 @@ type AgentExecutionSpec struct {
 	//
 	// Resolution priority (enforced in handler pipeline):
 	//  1. session_id provided     -> use existing session
-	//  2. agent_id provided       -> auto-create session using agent's default instance
-	//  3. neither provided        -> resolve platform default agent (label
+	//  2. session_spec provided   -> auto-create session from the embedded spec
+	//  3. agent_id provided       -> auto-create session using agent's default instance
+	//  4. neither provided        -> resolve platform default agent (label
 	//     stigmer.ai/default-agent + visibility_public), then auto-create session
 	//
-	// Both may be set — when both are present, session_id is used for session
-	// resolution and agent_id is preserved as metadata for downstream consumers
-	// (e.g., session subject generation).
+	// session_id and agent_id may both be set — when both are present, session_id
+	// is used for session resolution and agent_id is preserved as metadata for
+	// downstream consumers (e.g., session subject generation). session_id and
+	// session_spec are mutually exclusive.
 	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	// Agent ID (optional).
 	//
@@ -54,6 +57,35 @@ type AgentExecutionSpec struct {
 	// When provided without session_id, a new session is auto-created using
 	// the agent's default instance ID.
 	AgentId string `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	// Spec for the session to auto-create when session_id is empty (optional).
+	//
+	// This is the one-call session bootstrap: a single create carries the full
+	// session shape (workspace_entries, harness, execution_target, MCP servers,
+	// skills) together with the first message, so embedders do not need to
+	// orchestrate session.create followed by agentExecution.create. The created
+	// session's ID is returned on the persisted execution's session_id.
+	//
+	// Fields that must be set at session-creation time and are immutable once
+	// an execution has run — harness and execution_target — can only reach an
+	// auto-created session through this field.
+	//
+	// When session_spec.agent_instance_id is set, the session runs against that
+	// instance and agent_id must not also be resolved from it. When empty, the
+	// normal resolution applies: agent_id's default instance, or the platform
+	// default agent when agent_id is also empty.
+	//
+	// Mutually exclusive with session_id. session_spec.harness_state_id must be
+	// empty — it is server-owned harness continuity state, created by the runner
+	// after the first execution.
+	//
+	// @internal
+	// The Session resource created from this spec is the single source of truth
+	// for session configuration. The handler clears this field after the session
+	// is created (before persist), so the execution record never carries a
+	// second copy of session config that could drift as the session evolves.
+	// Extends the existing auto-create path in createSessionIfNeededStep rather
+	// than adding a parallel one (stigmer/stigmer#249).
+	SessionSpec *v1.SessionSpec `protobuf:"bytes,13,opt,name=session_spec,json=sessionSpec,proto3" json:"session_spec,omitempty"`
 	// User input message that triggers this execution.
 	// Each execution represents one user message and the agent's response.
 	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
@@ -65,7 +97,7 @@ type AgentExecutionSpec struct {
 	// Use case: B2B integrations where secrets are injected at runtime (e.g., Plant & Cloud).
 	// These values are stored in ExecutionContext and deleted when execution completes.
 	// Merge priority: Agent defaults < Environment < runtime_env (highest)
-	RuntimeEnv map[string]*v1.ExecutionValue `protobuf:"bytes,5,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	RuntimeEnv map[string]*v11.ExecutionValue `protobuf:"bytes,5,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Callback token for async activity completion (optional).
 	//
 	// When a workflow invokes an agent, this token enables the workflow to
@@ -302,6 +334,13 @@ func (x *AgentExecutionSpec) GetAgentId() string {
 	return ""
 }
 
+func (x *AgentExecutionSpec) GetSessionSpec() *v1.SessionSpec {
+	if x != nil {
+		return x.SessionSpec
+	}
+	return nil
+}
+
 func (x *AgentExecutionSpec) GetMessage() string {
 	if x != nil {
 		return x.Message
@@ -316,7 +355,7 @@ func (x *AgentExecutionSpec) GetExecutionConfig() *ExecutionConfig {
 	return nil
 }
 
-func (x *AgentExecutionSpec) GetRuntimeEnv() map[string]*v1.ExecutionValue {
+func (x *AgentExecutionSpec) GetRuntimeEnv() map[string]*v11.ExecutionValue {
 	if x != nil {
 		return x.RuntimeEnv
 	}
@@ -846,11 +885,13 @@ var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa0\x06\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xaa\n" +
+	"\n" +
 	"\x12AgentExecutionSpec\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n" +
-	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12!\n" +
+	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12M\n" +
+	"\fsession_spec\x18\r \x01(\v2*.ai.stigmer.agentic.session.v1.SessionSpecR\vsessionSpec\x12!\n" +
 	"\amessage\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\amessage\x12`\n" +
 	"\x10execution_config\x18\x04 \x01(\v25.ai.stigmer.agentic.agentexecution.v1.ExecutionConfigR\x0fexecutionConfig\x12i\n" +
 	"\vruntime_env\x18\x05 \x03(\v2H.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntryR\n" +
@@ -865,7 +906,9 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x17supersedes_execution_id\x18\f \x01(\tR\x15supersedesExecutionId\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
-	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"\x82\x04\n" +
+	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01:\xb8\x03\xbaH\xb4\x03\x1a\xcb\x01\n" +
+	"!agent_execution.session_exclusive\x12rsession_id and session_spec are mutually exclusive — reference an existing session or define a new one, not both\x1a2!(this.session_id != '' && has(this.session_spec))\x1a\xe3\x01\n" +
+	"*agent_execution.session_spec_harness_state\x12psession_spec.harness_state_id must be empty — harness state is created by the runner after the first execution\x1aC!has(this.session_spec) || this.session_spec.harness_state_id == ''\"\x82\x04\n" +
 	"\x0fExecutionConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x12l\n" +
@@ -913,23 +956,25 @@ var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_goTypes = []any{
 	(*ContextManagementConfig)(nil), // 2: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
 	(*Attachment)(nil),              // 3: ai.stigmer.agentic.agentexecution.v1.Attachment
 	nil,                             // 4: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
-	(InteractionMode)(0),            // 5: ai.stigmer.agentic.agentexecution.v1.InteractionMode
-	(*structpb.Struct)(nil),         // 6: google.protobuf.Struct
-	(*v1.ExecutionValue)(nil),       // 7: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(*v1.SessionSpec)(nil),          // 5: ai.stigmer.agentic.session.v1.SessionSpec
+	(InteractionMode)(0),            // 6: ai.stigmer.agentic.agentexecution.v1.InteractionMode
+	(*structpb.Struct)(nil),         // 7: google.protobuf.Struct
+	(*v11.ExecutionValue)(nil),      // 8: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.execution_config:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
-	4, // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.runtime_env:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
-	3, // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.attachments:type_name -> ai.stigmer.agentic.agentexecution.v1.Attachment
-	2, // 3: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
-	5, // 4: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.interaction_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.InteractionMode
-	6, // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.structured_output_schema:type_name -> google.protobuf.Struct
-	7, // 6: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	5, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
+	1, // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.execution_config:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
+	4, // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.runtime_env:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
+	3, // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.attachments:type_name -> ai.stigmer.agentic.agentexecution.v1.Attachment
+	2, // 4: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
+	6, // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.interaction_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.InteractionMode
+	7, // 6: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.structured_output_schema:type_name -> google.protobuf.Struct
+	8, // 7: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() }

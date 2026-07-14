@@ -10,8 +10,8 @@ import { DEFAULT_HARNESS, type HarnessOption } from "../models/harness.js";
 import { useWorkspaceEntries, type UseWorkspaceEntriesReturn } from "../workspace/index.js";
 import { useSessionVariables, type UseSessionVariablesReturn } from "../execution/useSessionVariables.js";
 import type { SessionComposerSubmitContext } from "../composer/index.js";
+import { useStigmer } from "../hooks.js";
 import { withTimeout } from "../internal/withTimeout.js";
-import { useCreateSession } from "./useCreateSession.js";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution.js";
 import type { ExecutionTargetOption } from "./execution-target.js";
 import { useExecutionTarget } from "../execution-target-context.js";
@@ -140,8 +140,9 @@ export interface UseNewSessionFlowReturn {
    * Create a session with the first execution.
    *
    * Composes all managed state (agent, workspace, MCP servers, skills,
-   * model, session variables) into the session and execution
-   * creation RPCs, then calls `onSessionCreated` on success.
+   * model, session variables) into a single bootstrap RPC —
+   * `agentExecution.create` with an embedded session spec — then calls
+   * `onSessionCreated` on success.
    *
    * The `model` parameter overrides `modelId` for this submission only
    * (used when SessionComposer passes a per-message model selection).
@@ -160,7 +161,9 @@ export interface UseNewSessionFlowReturn {
  * model selection (with localStorage persistence), agent resolution,
  * MCP server/skill selection, workspace entries, and session
  * variables. On submission, creates the session and its first execution
- * in sequence, then notifies the consumer via `onSessionCreated`.
+ * with a single one-call bootstrap RPC (`agentExecution.create` with an
+ * embedded session spec), then notifies the consumer via
+ * `onSessionCreated`.
  *
  * This hook is framework-agnostic — it works identically in Next.js,
  * Vite, Tauri, or any React environment. Navigation, toast notifications,
@@ -210,8 +213,8 @@ export function useNewSessionFlow(
     return defaultHarness ?? DEFAULT_HARNESS;
   });
 
+  const stigmer = useStigmer();
   const { getModel, isLoading: isModelsLoading } = useModelRegistry({ harness });
-  const { create: createSession } = useCreateSession();
   const { create: createExecution } = useCreateAgentExecution();
   // Guests cannot read the org default agent (and must never run it) —
   // `null` puts the hook in its stable no-op mode, and the submit path
@@ -296,8 +299,7 @@ export function useNewSessionFlow(
           ? await resolveExecutionRuntimeEnv(getRuntimeEnv, context?.runtimeEnv)
           : context?.runtimeEnv;
 
-        const sessionFields = {
-          org,
+        const sessionSpecBase = {
           workspaceEntries: workspace.hasEntries
             ? workspace.toInput()
             : undefined,
@@ -317,19 +319,21 @@ export function useNewSessionFlow(
           workspaceFileRefs: context?.workspaceFileRefs,
         };
 
-        let sessionId: string;
+        // Resolve which agent the bootstrapped session runs against: an
+        // explicit instance when one is known, otherwise an agent ID the
+        // server resolves to its default instance (creating it if missing).
+        let agentInstanceId: string | undefined;
+        let agentId: string | undefined;
 
         if (agentRef && resolution) {
           if (resolution.mode === "saved") {
-            ({ sessionId } = await createSession({
-              ...sessionFields,
-              agentInstanceId: resolution.instanceId,
-            }));
+            agentInstanceId = resolution.instanceId;
           } else {
-            ({ sessionId } = await createSession({
-              ...sessionFields,
-              agentRef,
-            }));
+            // Slug reference → agent ID; the server handles instance
+            // resolution, including auto-creating a missing default
+            // instance (which a client-side lookup cannot).
+            const agent = await stigmer.agent.getByReference(agentRef);
+            agentId = agent.metadata!.id;
           }
         } else if (isGuest) {
           // Fail closed: a guest session is only ever created against the
@@ -360,30 +364,27 @@ export function useNewSessionFlow(
               );
             }
           }
-          ({ sessionId } = await createSession({
-            ...sessionFields,
-            agentInstanceId: resolvedInstanceId,
-          }));
+          agentInstanceId = resolvedInstanceId;
         }
 
-        // Local execution: attach the session's runner worker before creating
-        // the first execution. The session view (useSessionConversation) owns
-        // the steady-state lifecycle, but it is not mounted yet — navigation
-        // happens after onSessionCreated below — so without this eager attach
-        // the first execution would have no poller until the view mounts.
+        // One-call bootstrap: the embedded session spec and the first
+        // message travel in a single create — the server creates the
+        // session and dispatches the execution atomically.
+        const { sessionId } = await createExecution({
+          ...executionFields,
+          agentId,
+          sessionSpec: { ...sessionSpecBase, agentInstanceId },
+        });
+
+        // Local execution: attach the session's runner worker now that the
+        // session ID is known. The session view (useSessionConversation)
+        // owns the steady-state lifecycle, but it is not mounted yet —
+        // navigation happens after onSessionCreated below. Attaching after
+        // the create is safe: the first activity waits on the session's
+        // task queue for a worker (5-minute ScheduleToStart window), so the
+        // worker attached here picks it up immediately.
         if (adapter && executionTarget === "local") {
           await adapter.onSessionOpened(sessionId);
-        }
-
-        try {
-          await createExecution({ ...executionFields, sessionId });
-        } catch (err) {
-          // The first execution failed and the session view will not mount,
-          // so detach the worker we just attached to avoid leaking it.
-          if (adapter && executionTarget === "local") {
-            adapter.onSessionClosed(sessionId).catch(() => {});
-          }
-          throw err;
         }
 
         sessionVariables.clear();
@@ -414,7 +415,7 @@ export function useNewSessionFlow(
       isDefaultAgentLoading,
       defaultAgentError,
       waitForDefaultAgent,
-      createSession,
+      stigmer.agent,
       createExecution,
       sessionVariables,
       onSessionCreated,

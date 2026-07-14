@@ -16,6 +16,7 @@ from ai.stigmer.commons.apiresource import metadata_pb2
 from ._errors import wrap_error
 from ._types import ResourceRef
 from ._agent import McpServerUsageInput, ToolApprovalOverrideInput
+from ._agentexecution import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
 
 
 class SessionClient:
@@ -129,70 +130,4 @@ class SessionInput:
             metadata=metadata,
             spec=spec,
         )
-
-
-@dataclass
-class WorkspaceEntryInput:
-    """SDK input type for WorkspaceEntry."""
-
-    source: WorkspaceSourceInput | None
-    name: str = ""
-
-    def _to_proto(self) -> spec_pb2.WorkspaceEntry:
-        msg = spec_pb2.WorkspaceEntry(
-            name=self.name,
-        )
-        if self.source is not None:
-            msg.source.CopyFrom(self.source._to_proto())
-        return msg
-
-
-@dataclass
-class WorkspaceSourceInput:
-    """SDK input type for WorkspaceSource."""
-
-    git_repo: GitRepoSourceInput | None = None
-    local_path: LocalPathSourceInput | None = None
-
-    def _to_proto(self) -> spec_pb2.WorkspaceSource:
-        msg = spec_pb2.WorkspaceSource()
-        if self.git_repo is not None:
-            msg.git_repo.CopyFrom(self.git_repo._to_proto())
-        if self.local_path is not None:
-            msg.local_path.CopyFrom(self.local_path._to_proto())
-        return msg
-
-
-@dataclass
-class GitRepoSourceInput:
-    """SDK input type for GitRepoSource."""
-
-    url: str
-    branch: str = ""
-    commit: str = ""
-    depth: int = 0
-    write_back_mode: int = 0
-
-    def _to_proto(self) -> spec_pb2.GitRepoSource:
-        msg = spec_pb2.GitRepoSource(
-            url=self.url,
-            branch=self.branch,
-            commit=self.commit,
-            depth=self.depth,
-            write_back_mode=self.write_back_mode,
-        )
-        return msg
-
-
-@dataclass
-class LocalPathSourceInput:
-    """SDK input type for LocalPathSource."""
-
-    path: str = ""
-
-    def _to_proto(self) -> spec_pb2.LocalPathSource:
-        msg = spec_pb2.LocalPathSource(
-            path=self.path,
-        )
-        return msg
 

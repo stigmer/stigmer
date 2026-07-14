@@ -7,16 +7,9 @@ import type { ModelRegistryState } from "../../models/ModelRegistryContext";
 import { ExecutionTargetContext } from "../../execution-target-context";
 import { RunnerAdapterContext } from "../../runner-adapter";
 import type { RunnerAdapter } from "../../runner-adapter";
-import type { UseCreateSessionReturn } from "../useCreateSession";
-
-const mockCreateSession = vi.fn<UseCreateSessionReturn["create"]>();
-vi.mock("../useCreateSession", () => ({
-  useCreateSession: () => ({
-    create: mockCreateSession,
-    isCreating: false,
-    error: null,
-    clearError: vi.fn(),
-  }),
+const mockGetByReference = vi.fn();
+vi.mock("../../hooks", () => ({
+  useStigmer: () => ({ agent: { getByReference: mockGetByReference } }),
 }));
 
 const mockCreateExecution = vi.fn();
@@ -127,8 +120,10 @@ describe("useNewSessionFlow", () => {
     };
     mockDefaultAgent.isLoading = false;
     mockDefaultAgent.error = null;
-    mockCreateSession.mockResolvedValue({ sessionId: "sess-new" });
-    mockCreateExecution.mockResolvedValue({});
+    mockCreateExecution.mockResolvedValue({
+      executionId: "exec-new",
+      sessionId: "sess-new",
+    });
   });
 
   afterEach(() => {
@@ -296,8 +291,8 @@ describe("useNewSessionFlow", () => {
     });
   });
 
-  describe("submit with harness", () => {
-    it("passes harness field to createSession", async () => {
+  describe("submit — one-call bootstrap", () => {
+    it("creates the execution with an embedded sessionSpec in a single call", async () => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
@@ -305,12 +300,27 @@ describe("useNewSessionFlow", () => {
         await result.current.submit("Hello");
       });
 
-      expect(mockCreateSession).toHaveBeenCalledOnce();
-      const sessionInput = mockCreateSession.mock.calls[0][0];
-      expect(sessionInput.harness).toBe("native");
+      expect(mockCreateExecution).toHaveBeenCalledOnce();
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.message).toBe("Hello");
+      expect(execInput.sessionSpec).toBeDefined();
+      expect(execInput.sessionSpec.agentInstanceId).toBe("default-inst");
+      expect(execInput.sessionId).toBeUndefined();
     });
 
-    it("passes cursor harness to createSession after switching", async () => {
+    it("passes harness in the sessionSpec", async () => {
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.sessionSpec.harness).toBe("native");
+    });
+
+    it("passes cursor harness in the sessionSpec after switching", async () => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
@@ -320,11 +330,11 @@ describe("useNewSessionFlow", () => {
         await result.current.submit("Hello");
       });
 
-      const sessionInput = mockCreateSession.mock.calls[0][0];
-      expect(sessionInput.harness).toBe("cursor");
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.sessionSpec.harness).toBe("cursor");
     });
 
-    it("calls onSessionCreated on success", async () => {
+    it("calls onSessionCreated with the server-assigned session id", async () => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
@@ -336,7 +346,7 @@ describe("useNewSessionFlow", () => {
     });
 
     it("sets submitError and calls onError on failure", async () => {
-      mockCreateSession.mockRejectedValueOnce(new Error("RPC fail"));
+      mockCreateExecution.mockRejectedValueOnce(new Error("RPC fail"));
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
@@ -360,8 +370,48 @@ describe("useNewSessionFlow", () => {
     });
   });
 
+  describe("submit — agent resolution strategies", () => {
+    it("uses the saved resolution's instance directly (no agent lookup)", async () => {
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      act(() => {
+        result.current.setAgentRef({ org: "acme", slug: "reviewer" });
+        result.current.setResolution({ mode: "saved", instanceId: "saved-inst" });
+      });
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockGetByReference).not.toHaveBeenCalled();
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.sessionSpec.agentInstanceId).toBe("saved-inst");
+      expect(execInput.agentId).toBeUndefined();
+    });
+
+    it("resolves a non-saved agentRef to agentId and lets the server pick the instance", async () => {
+      mockGetByReference.mockResolvedValueOnce({ metadata: { id: "agt-resolved" } });
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      act(() => {
+        result.current.setAgentRef({ org: "acme", slug: "reviewer" });
+        result.current.setResolution({ mode: "direct" });
+      });
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(mockGetByReference).toHaveBeenCalledWith({ org: "acme", slug: "reviewer" });
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.agentId).toBe("agt-resolved");
+      // The server resolves (and if needed creates) the default instance.
+      expect(execInput.sessionSpec.agentInstanceId).toBeUndefined();
+    });
+  });
+
   describe("submit with executionTarget", () => {
-    it("passes executionTarget to createSession when provided", async () => {
+    it("passes executionTarget in the sessionSpec when provided", async () => {
       const opts = { ...defaultOptions(), executionTarget: "local" as const };
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
 
@@ -369,9 +419,9 @@ describe("useNewSessionFlow", () => {
         await result.current.submit("Hello");
       });
 
-      expect(mockCreateSession).toHaveBeenCalledOnce();
-      const sessionInput = mockCreateSession.mock.calls[0][0];
-      expect(sessionInput.executionTarget).toBe("local");
+      expect(mockCreateExecution).toHaveBeenCalledOnce();
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.sessionSpec.executionTarget).toBe("local");
     });
 
     it("does not include executionTarget when not provided", async () => {
@@ -382,9 +432,9 @@ describe("useNewSessionFlow", () => {
         await result.current.submit("Hello");
       });
 
-      expect(mockCreateSession).toHaveBeenCalledOnce();
-      const sessionInput = mockCreateSession.mock.calls[0][0];
-      expect(sessionInput.executionTarget).toBeUndefined();
+      expect(mockCreateExecution).toHaveBeenCalledOnce();
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.sessionSpec.executionTarget).toBeUndefined();
     });
 
     it("uses context executionTarget when per-hook option is omitted", async () => {
@@ -395,9 +445,9 @@ describe("useNewSessionFlow", () => {
         await result.current.submit("Hello");
       });
 
-      expect(mockCreateSession).toHaveBeenCalledOnce();
-      const sessionInput = mockCreateSession.mock.calls[0][0];
-      expect(sessionInput.executionTarget).toBe("local");
+      expect(mockCreateExecution).toHaveBeenCalledOnce();
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.sessionSpec.executionTarget).toBe("local");
     });
 
     it("per-hook executionTarget option overrides context", async () => {
@@ -408,14 +458,14 @@ describe("useNewSessionFlow", () => {
         await result.current.submit("Hello");
       });
 
-      expect(mockCreateSession).toHaveBeenCalledOnce();
-      const sessionInput = mockCreateSession.mock.calls[0][0];
-      expect(sessionInput.executionTarget).toBe("local");
+      expect(mockCreateExecution).toHaveBeenCalledOnce();
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.sessionSpec.executionTarget).toBe("local");
     });
   });
 
-  describe("submit — local runner worker (eager attach)", () => {
-    it("attaches the worker before creating the first execution", async () => {
+  describe("submit — local runner worker (post-create attach)", () => {
+    it("attaches the worker after the bootstrap create returns the session id", async () => {
       const adapter = createMockAdapter();
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), {
@@ -430,10 +480,12 @@ describe("useNewSessionFlow", () => {
       expect(adapter.onSessionOpened).toHaveBeenCalledWith("sess-new");
       expect(adapter.onSessionClosed).not.toHaveBeenCalled();
 
-      // The worker must be polling before the first execution exists.
+      // The session ID only exists after the one-call create, so the attach
+      // follows it. This is safe: the first activity waits on the session's
+      // task queue for a worker (5-minute ScheduleToStart window).
       const openedOrder = adapter.onSessionOpened.mock.invocationCallOrder[0];
       const execOrder = mockCreateExecution.mock.invocationCallOrder[0];
-      expect(openedOrder).toBeLessThan(execOrder);
+      expect(execOrder).toBeLessThan(openedOrder);
     });
 
     it("does not attach a worker when the target is cloud", async () => {
@@ -450,7 +502,7 @@ describe("useNewSessionFlow", () => {
       expect(adapter.onSessionOpened).not.toHaveBeenCalled();
     });
 
-    it("detaches the worker when the first execution fails (no leak)", async () => {
+    it("never attaches a worker when the bootstrap create fails (no leak)", async () => {
       const adapter = createMockAdapter();
       mockCreateExecution.mockRejectedValueOnce(new Error("execution boom"));
       const opts = defaultOptions();
@@ -462,10 +514,29 @@ describe("useNewSessionFlow", () => {
         await result.current.submit("Hello");
       });
 
-      expect(adapter.onSessionOpened).toHaveBeenCalledWith("sess-new");
-      expect(adapter.onSessionClosed).toHaveBeenCalledWith("sess-new");
+      // The create failed before a session existed, so there is no worker
+      // to attach — and therefore nothing to compensate/detach.
+      expect(adapter.onSessionOpened).not.toHaveBeenCalled();
+      expect(adapter.onSessionClosed).not.toHaveBeenCalled();
       expect(result.current.submitError).not.toBeNull();
       expect(opts.onError).toHaveBeenCalled();
+    });
+
+    it("surfaces an attach failure without navigating", async () => {
+      const adapter = createMockAdapter();
+      adapter.onSessionOpened.mockRejectedValueOnce(new Error("runner down"));
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), {
+        wrapper: createWrapper("local", adapter),
+      });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      expect(result.current.submitError).not.toBeNull();
+      expect(opts.onError).toHaveBeenCalled();
+      expect(opts.onSessionCreated).not.toHaveBeenCalled();
     });
   });
 
@@ -528,7 +599,6 @@ describe("useNewSessionFlow", () => {
       });
 
       // No orphan session, no execution — the failure is fully pre-flight.
-      expect(mockCreateSession).not.toHaveBeenCalled();
       expect(mockCreateExecution).not.toHaveBeenCalled();
       expect(result.current.submitError).toContain("token mint failed");
       expect(opts.onError).toHaveBeenCalled();
@@ -587,7 +657,7 @@ describe("useNewSessionFlow", () => {
         await result.current.submit("Hello");
       });
 
-      expect(mockCreateSession.mock.calls[0][0].harness).toBe("cursor");
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.harness).toBe("cursor");
     });
   });
 
@@ -607,8 +677,8 @@ describe("useNewSessionFlow", () => {
       });
 
       expect(mockDefaultAgent.waitForResolution).toHaveBeenCalledOnce();
-      expect(mockCreateSession).toHaveBeenCalledOnce();
-      expect(mockCreateSession.mock.calls[0][0].agentInstanceId).toBe("awaited-inst");
+      expect(mockCreateExecution).toHaveBeenCalledOnce();
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.agentInstanceId).toBe("awaited-inst");
       expect(opts.onSessionCreated).toHaveBeenCalledWith("sess-new");
       expect(result.current.submitError).toBeNull();
     });
@@ -630,7 +700,7 @@ describe("useNewSessionFlow", () => {
 
       expect(result.current.submitError).toBeTruthy();
       expect(opts.onError).toHaveBeenCalled();
-      expect(mockCreateSession).not.toHaveBeenCalled();
+      expect(mockCreateExecution).not.toHaveBeenCalled();
     });
 
     it("surfaces timeout error when fetch never resolves", async () => {
@@ -661,7 +731,7 @@ describe("useNewSessionFlow", () => {
 
       expect(result.current.submitError).toContain("did not load in time");
       expect(opts.onError).toHaveBeenCalled();
-      expect(mockCreateSession).not.toHaveBeenCalled();
+      expect(mockCreateExecution).not.toHaveBeenCalled();
 
       vi.useRealTimers();
     });
@@ -680,7 +750,7 @@ describe("useNewSessionFlow", () => {
 
       expect(result.current.submitError).toContain("Failed to load default agent");
       expect(opts.onError).toHaveBeenCalled();
-      expect(mockCreateSession).not.toHaveBeenCalled();
+      expect(mockCreateExecution).not.toHaveBeenCalled();
       expect(mockDefaultAgent.waitForResolution).not.toHaveBeenCalled();
     });
   });
@@ -711,8 +781,8 @@ describe("useNewSessionFlow", () => {
         await result.current.submit("Hello");
       });
 
-      expect(mockCreateSession).toHaveBeenCalledOnce();
-      expect(mockCreateSession.mock.calls[0][0].agentInstanceId).toBe("shared-inst");
+      expect(mockCreateExecution).toHaveBeenCalledOnce();
+      expect(mockCreateExecution.mock.calls[0][0].sessionSpec.agentInstanceId).toBe("shared-inst");
       expect(opts.onSessionCreated).toHaveBeenCalledWith("sess-new");
     });
 
@@ -726,7 +796,6 @@ describe("useNewSessionFlow", () => {
         await result.current.submit("Hello");
       });
 
-      expect(mockCreateSession).not.toHaveBeenCalled();
       expect(mockCreateExecution).not.toHaveBeenCalled();
       expect(result.current.submitError).toContain("still loading");
       expect(opts.onError).toHaveBeenCalled();

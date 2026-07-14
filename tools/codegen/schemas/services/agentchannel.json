@@ -313,6 +313,16 @@
           },
           "description": "Pagination options.",
           "required": false
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the results to.\n\n When set, only channels whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.\n\n @internal\n Mirrors the org scoping on the sibling getByAgent/getByWorkflow\n requests (agent shares, agent instances, workflow instances). Handlers\n implementing this RPC must apply the filter in their query/list step.",
+          "required": false
         }
       ]
     },
