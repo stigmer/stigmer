@@ -7,7 +7,7 @@
 package agentchannelv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -326,8 +326,8 @@ const file_ai_stigmer_agentic_agentchannel_v1_status_proto_rawDesc = "" +
 	"'agent_channel_install_state_unspecified\x10\x00\x12\x13\n" +
 	"\x0fpending_install\x10\x01\x12\r\n" +
 	"\tinstalled\x10\x02\x12\v\n" +
-	"\arevoked\x10\x03B\xbd\x02\n" +
-	"&com.ai.stigmer.agentic.agentchannel.v1B\vStatusProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
+	"\arevoked\x10\x03B\xc0\x02\n" +
+	"&com.ai.stigmer.agentic.agentchannel.v1B\vStatusProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agentchannel_v1_status_proto_rawDescOnce sync.Once

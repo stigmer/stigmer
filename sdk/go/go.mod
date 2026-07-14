@@ -1,4 +1,4 @@
-module github.com/stigmer/stigmer/sdk/go
+module github.com/stigmer/stigmer/sdk/go/v3
 
 go 1.25.6
 

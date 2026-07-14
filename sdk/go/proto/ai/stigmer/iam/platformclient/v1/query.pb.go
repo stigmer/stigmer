@@ -7,8 +7,8 @@
 package platformclientv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -30,9 +30,9 @@ const file_ai_stigmer_iam_platformclient_v1_query_proto_rawDesc = "" +
 	"\x1dPlatformClientQueryController\x12\x9d\x01\n" +
 	"\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a0.ai.stigmer.iam.platformclient.v1.PlatformClient\"5¸\x181\b\x01\x10\x17\"\x05value*$unauthorized to view platform client\x12~\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a0.ai.stigmer.iam.platformclient.v1.PlatformClient\"\x04и\x18\x01\x12\xca\x01\n" +
-	"\tlistByOrg\x12?.ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput\x1a1.ai.stigmer.iam.platformclient.v1.PlatformClients\"I¸\x18E\b\x01\x10\x1e\"\x03org*:unauthorized to list platform clients in this organization\x1a\x04\xa0\xff+\x17B\xb2\x02\n" +
+	"\tlistByOrg\x12?.ai.stigmer.iam.platformclient.v1.ListPlatformClientsByOrgInput\x1a1.ai.stigmer.iam.platformclient.v1.PlatformClients\"I¸\x18E\b\x01\x10\x1e\"\x03org*:unauthorized to list platform clients in this organization\x1a\x04\xa0\xff+\x17B\xb5\x02\n" +
 	"$com.ai.stigmer.iam.platformclient.v1B\n" +
-	"QueryProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
+	"QueryProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
 
 var file_ai_stigmer_iam_platformclient_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId

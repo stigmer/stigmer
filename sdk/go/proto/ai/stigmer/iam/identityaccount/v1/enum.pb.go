@@ -106,8 +106,8 @@ const file_ai_stigmer_iam_identityaccount_v1_enum_proto_rawDesc = "" +
 	"\x06direct\x10\x01\x12\r\n" +
 	"\tfederated\x10\x02\x12\v\n" +
 	"\amachine\x10\x03\x12\x13\n" +
-	"\x0fplatform_client\x10\x04B\xb8\x02\n" +
-	"%com.ai.stigmer.iam.identityaccount.v1B\tEnumProtoP\x01Z[github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
+	"\x0fplatform_client\x10\x04B\xbb\x02\n" +
+	"%com.ai.stigmer.iam.identityaccount.v1B\tEnumProtoP\x01Z^github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_identityaccount_v1_enum_proto_rawDescOnce sync.Once

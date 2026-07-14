@@ -74,8 +74,8 @@ const file_ai_stigmer_agentic_workflow_v1_io_proto_rawDesc = "" +
 	"'ai/stigmer/agentic/workflow/v1/io.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a\x1bbuf/validate/validate.proto\"*\n" +
 	"\n" +
 	"WorkflowId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05valueB\x9d\x02\n" +
-	"\"com.ai.stigmer.agentic.workflow.v1B\aIoProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05valueB\xa0\x02\n" +
+	"\"com.ai.stigmer.agentic.workflow.v1B\aIoProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_workflow_v1_io_proto_rawDescOnce sync.Once

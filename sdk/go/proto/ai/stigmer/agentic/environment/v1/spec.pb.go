@@ -252,8 +252,8 @@ const file_ai_stigmer_agentic_environment_v1_spec_proto_rawDesc = "" +
 	"\x11EnvVarDeclaration\x12\x1b\n" +
 	"\tis_secret\x18\x01 \x01(\bR\bisSecret\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1a\n" +
-	"\boptional\x18\x03 \x01(\bR\boptionalB\xb4\x02\n" +
-	"%com.ai.stigmer.agentic.environment.v1B\tSpecProtoP\x01ZWgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1;environmentv1\xa2\x02\x04ASAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3"
+	"\boptional\x18\x03 \x01(\bR\boptionalB\xb7\x02\n" +
+	"%com.ai.stigmer.agentic.environment.v1B\tSpecProtoP\x01ZZgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1;environmentv1\xa2\x02\x04ASAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_environment_v1_spec_proto_rawDescOnce sync.Once

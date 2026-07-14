@@ -8,7 +8,7 @@ package tasks
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -215,8 +215,8 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_transform_proto_rawDesc = "" +
 	"\x1cTRANSFORM_ENGINE_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13TRANSFORM_ENGINE_JQ\x10\x01\x12\x1c\n" +
 	"\x18TRANSFORM_ENGINE_JSONATA\x10\x02\x12\x1d\n" +
-	"\x19TRANSFORM_ENGINE_TEMPLATE\x10\x03B\xc0\x02\n" +
-	"(com.ai.stigmer.agentic.workflow.v1.tasksB\x0eTransformProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
+	"\x19TRANSFORM_ENGINE_TEMPLATE\x10\x03B\xc3\x02\n" +
+	"(com.ai.stigmer.agentic.workflow.v1.tasksB\x0eTransformProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_workflow_v1_tasks_transform_proto_rawDescOnce sync.Once

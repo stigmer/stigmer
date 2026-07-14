@@ -7,8 +7,8 @@
 package apikeyv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
@@ -31,9 +31,9 @@ const file_ai_stigmer_iam_apikey_v1_query_proto_rawDesc = "" +
 	"\x15ApiKeyQueryController\x12z\n" +
 	"\x03get\x12\".ai.stigmer.iam.apikey.v1.ApiKeyId\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"-¸\x18)\b\x01\x10\f\"\x05value*\x1cunauthorized to view api key\x12\\\n" +
 	"\fgetByKeyHash\x12$.ai.stigmer.iam.apikey.v1.ApiKeyHash\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"\x04и\x18\x01\x12J\n" +
-	"\afindAll\x12\x16.google.protobuf.Empty\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"\x04и\x18\x01\x1a\x04\xa0\xff+\fB\xfa\x01\n" +
+	"\afindAll\x12\x16.google.protobuf.Empty\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"\x04и\x18\x01\x1a\x04\xa0\xff+\fB\xfd\x01\n" +
 	"\x1ccom.ai.stigmer.iam.apikey.v1B\n" +
-	"QueryProtoP\x01ZIgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
+	"QueryProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
 
 var file_ai_stigmer_iam_apikey_v1_query_proto_goTypes = []any{
 	(*ApiKeyId)(nil),      // 0: ai.stigmer.iam.apikey.v1.ApiKeyId

@@ -8,7 +8,7 @@ package agentchannelv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -451,8 +451,8 @@ const file_ai_stigmer_agentic_agentchannel_v1_io_proto_rawDesc = "" +
 	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"resourceId\x12\x1c\n" +
 	"\x05state\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05state\x12\x1a\n" +
-	"\x04code\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04codeB\xb9\x02\n" +
-	"&com.ai.stigmer.agentic.agentchannel.v1B\aIoProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
+	"\x04code\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04codeB\xbc\x02\n" +
+	"&com.ai.stigmer.agentic.agentchannel.v1B\aIoProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agentchannel_v1_io_proto_rawDescOnce sync.Once

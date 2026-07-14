@@ -634,8 +634,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_context_proto_rawDesc = "" +
 	"\x1bsummarization_target_tokens\x18\x04 \x01(\x05R\x19summarizationTargetTokens\x123\n" +
 	"\x15summarization_enabled\x18\x05 \x01(\bR\x14summarizationEnabled\x12k\n" +
 	"\x14summarization_events\x18\x06 \x03(\v28.ai.stigmer.agentic.agentexecution.v1.SummarizationEventR\x13summarizationEvents\x12/\n" +
-	"\x13utilization_percent\x18\a \x01(\x02R\x12utilizationPercentB\xcc\x02\n" +
-	"(com.ai.stigmer.agentic.agentexecution.v1B\fContextProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
+	"\x13utilization_percent\x18\a \x01(\x02R\x12utilizationPercentB\xcf\x02\n" +
+	"(com.ai.stigmer.agentic.agentexecution.v1B\fContextProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agentexecution_v1_context_proto_rawDescOnce sync.Once

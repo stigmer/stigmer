@@ -7,8 +7,8 @@
 package agentsharev1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,8 +32,8 @@ const file_ai_stigmer_agentic_agentshare_v1_command_proto_rawDesc = "" +
 	"\x06create\x12,.ai.stigmer.agentic.agentshare.v1.AgentShare\x1a,.ai.stigmer.agentic.agentshare.v1.AgentShare\"\x04и\x18\x01\x12\x9f\x01\n" +
 	"\x06update\x12,.ai.stigmer.agentic.agentshare.v1.AgentShare\x1a,.ai.stigmer.agentic.agentshare.v1.AgentShare\"9¸\x185\b\x02\x10.\"\vmetadata.id*\"unauthorized to update agent share\x12\xb7\x01\n" +
 	"\x0frotateShareLink\x126.ai.stigmer.agentic.agentshare.v1.RotateShareLinkInput\x1a,.ai.stigmer.agentic.agentshare.v1.AgentShare\">¸\x18:\b\x02\x10.\"\vresource_id*'unauthorized to rotate agent share link\x12\x9b\x01\n" +
-	"\x06delete\x12..ai.stigmer.agentic.agentshare.v1.AgentShareId\x1a,.ai.stigmer.agentic.agentshare.v1.AgentShare\"3¸\x18/\b\x03\x10.\"\x05value*\"unauthorized to delete agent share\x1a\x04\xa0\xff+.B\xb0\x02\n" +
-	"$com.ai.stigmer.agentic.agentshare.v1B\fCommandProtoP\x01ZUgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentshare/v1;agentsharev1\xa2\x02\x04ASAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3"
+	"\x06delete\x12..ai.stigmer.agentic.agentshare.v1.AgentShareId\x1a,.ai.stigmer.agentic.agentshare.v1.AgentShare\"3¸\x18/\b\x03\x10.\"\x05value*\"unauthorized to delete agent share\x1a\x04\xa0\xff+.B\xb3\x02\n" +
+	"$com.ai.stigmer.agentic.agentshare.v1B\fCommandProtoP\x01ZXgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentshare/v1;agentsharev1\xa2\x02\x04ASAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_agentshare_v1_command_proto_goTypes = []any{
 	(*AgentShare)(nil),           // 0: ai.stigmer.agentic.agentshare.v1.AgentShare

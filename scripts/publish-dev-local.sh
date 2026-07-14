@@ -335,6 +335,6 @@ fi
 if want python; then
   echo "Python (TestPyPI): pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ --pre 'stigmer==${PY_VERSION}'"
 fi
-echo "Go SDK:            go get github.com/stigmer/stigmer/sdk/go@$(git rev-parse --abbrev-ref HEAD)"
+echo "Go SDK:            go get github.com/stigmer/stigmer/sdk/go/v3@$(git rev-parse --abbrev-ref HEAD)"
 echo ""
 ok "Done."

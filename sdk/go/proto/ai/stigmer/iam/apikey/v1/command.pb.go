@@ -7,8 +7,8 @@
 package apikeyv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -30,8 +30,8 @@ const file_ai_stigmer_iam_apikey_v1_command_proto_rawDesc = "" +
 	"\x17ApiKeyCommandController\x12R\n" +
 	"\x06create\x12 .ai.stigmer.iam.apikey.v1.ApiKey\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"\x04и\x18\x01\x12\x83\x01\n" +
 	"\x06update\x12 .ai.stigmer.iam.apikey.v1.ApiKey\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"5¸\x181\b\x02\x10\f\"\vmetadata.id*\x1eunauthorized to update api key\x12\x7f\n" +
-	"\x06delete\x12\".ai.stigmer.iam.apikey.v1.ApiKeyId\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"/¸\x18+\b\x03\x10\f\"\x05value*\x1eunauthorized to delete api key\x1a\x04\xa0\xff+\fB\xfc\x01\n" +
-	"\x1ccom.ai.stigmer.iam.apikey.v1B\fCommandProtoP\x01ZIgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
+	"\x06delete\x12\".ai.stigmer.iam.apikey.v1.ApiKeyId\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"/¸\x18+\b\x03\x10\f\"\x05value*\x1eunauthorized to delete api key\x1a\x04\xa0\xff+\fB\xff\x01\n" +
+	"\x1ccom.ai.stigmer.iam.apikey.v1B\fCommandProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
 
 var file_ai_stigmer_iam_apikey_v1_command_proto_goTypes = []any{
 	(*ApiKey)(nil),   // 0: ai.stigmer.iam.apikey.v1.ApiKey

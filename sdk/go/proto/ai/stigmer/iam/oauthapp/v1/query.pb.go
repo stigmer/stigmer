@@ -7,8 +7,8 @@
 package oauthappv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -30,9 +30,9 @@ const file_ai_stigmer_iam_oauthapp_v1_query_proto_rawDesc = "" +
 	"\x17OAuthAppQueryController\x12\x8b\x01\n" +
 	"\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a$.ai.stigmer.iam.oauthapp.v1.OAuthApp\"/¸\x18+\b\x01\x10\x16\"\x05value*\x1eunauthorized to view oauth app\x12r\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a$.ai.stigmer.iam.oauthapp.v1.OAuthApp\"\x04и\x18\x01\x12\xac\x01\n" +
-	"\tlistByOrg\x123.ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput\x1a%.ai.stigmer.iam.oauthapp.v1.OAuthApps\"C¸\x18?\b\x01\x10\x1e\"\x03org*4unauthorized to list oauth apps in this organization\x1a\x04\xa0\xff+\x16B\x88\x02\n" +
+	"\tlistByOrg\x123.ai.stigmer.iam.oauthapp.v1.ListOAuthAppsByOrgInput\x1a%.ai.stigmer.iam.oauthapp.v1.OAuthApps\"C¸\x18?\b\x01\x10\x1e\"\x03org*4unauthorized to list oauth apps in this organization\x1a\x04\xa0\xff+\x16B\x8b\x02\n" +
 	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\n" +
-	"QueryProtoP\x01ZMgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
+	"QueryProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
 
 var file_ai_stigmer_iam_oauthapp_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId

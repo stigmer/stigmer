@@ -7,8 +7,8 @@
 package organizationv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
@@ -32,9 +32,9 @@ const file_ai_stigmer_tenancy_organization_v1_query_proto_rawDesc = "" +
 	"\x03get\x122.ai.stigmer.tenancy.organization.v1.OrganizationId\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"2¸\x18.\b\x01\x10\x1e\"\x05value*!unauthorized to view organization\x12{\n" +
 	"\x04find\x127.ai.stigmer.commons.apiresource.FindApiResourcesRequest\x1a4.ai.stigmer.tenancy.organization.v1.OrganizationList\"\x04и\x18\x01\x12f\n" +
 	"\x13findMyOrganizations\x12\x16.google.protobuf.Empty\x1a1.ai.stigmer.tenancy.organization.v1.Organizations\"\x04и\x18\x01\x12\x8c\x01\n" +
-	"\x12getByExternalOrgId\x12>.ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"\x04и\x18\x01\x1a\x04\xa0\xff+\x1eB\xbc\x02\n" +
+	"\x12getByExternalOrgId\x12>.ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup\x1a0.ai.stigmer.tenancy.organization.v1.Organization\"\x04и\x18\x01\x1a\x04\xa0\xff+\x1eB\xbf\x02\n" +
 	"&com.ai.stigmer.tenancy.organization.v1B\n" +
-	"QueryProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
+	"QueryProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var file_ai_stigmer_tenancy_organization_v1_query_proto_goTypes = []any{
 	(*OrganizationId)(nil),                      // 0: ai.stigmer.tenancy.organization.v1.OrganizationId

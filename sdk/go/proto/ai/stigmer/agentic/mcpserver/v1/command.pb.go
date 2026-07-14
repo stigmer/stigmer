@@ -7,8 +7,8 @@
 package mcpserverv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -38,8 +38,8 @@ const file_ai_stigmer_agentic_mcpserver_v1_command_proto_rawDesc = "" +
 	"\x14completeOAuthConnect\x12:.ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectInput\x1a;.ai.stigmer.agentic.mcpserver.v1.CompleteOAuthConnectOutput\"N¸\x18J\b\x16\x10,\"\rmcp_server_id*5unauthorized to complete oauth connect for mcp server\x12\xc8\x01\n" +
 	"\x0fdisconnectOAuth\x125.ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthInput\x1a6.ai.stigmer.agentic.mcpserver.v1.DisconnectOAuthOutput\"F¸\x18B\b\x16\x10,\"\vresource_id*/unauthorized to disconnect oauth for mcp server\x12\xb8\x01\n" +
 	"\x0esetOrgOAuthApp\x124.ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppInput\x1a5.ai.stigmer.agentic.mcpserver.v1.SetOrgOAuthAppOutput\"9¸\x185\b\x17\x10\x1e\"\x03org**unauthorized to set org oauth app override\x12\xc4\x01\n" +
-	"\x11deleteOrgOAuthApp\x127.ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput\x1a8.ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput\"<¸\x188\b\x17\x10\x1e\"\x03org*-unauthorized to delete org oauth app override\x1a\x04\xa0\xff+,B\xa9\x02\n" +
-	"#com.ai.stigmer.agentic.mcpserver.v1B\fCommandProtoP\x01ZSgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
+	"\x11deleteOrgOAuthApp\x127.ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppInput\x1a8.ai.stigmer.agentic.mcpserver.v1.DeleteOrgOAuthAppOutput\"<¸\x188\b\x17\x10\x1e\"\x03org*-unauthorized to delete org oauth app override\x1a\x04\xa0\xff+,B\xac\x02\n" +
+	"#com.ai.stigmer.agentic.mcpserver.v1B\fCommandProtoP\x01ZVgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_mcpserver_v1_command_proto_goTypes = []any{
 	(*McpServer)(nil),                          // 0: ai.stigmer.agentic.mcpserver.v1.McpServer

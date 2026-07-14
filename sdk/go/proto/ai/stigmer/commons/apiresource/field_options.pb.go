@@ -7,7 +7,7 @@
 package apiresource
 
 import (
-	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
@@ -120,8 +120,8 @@ const file_ai_stigmer_commons_apiresource_field_options_proto_rawDesc = "" +
 	"\ris_expression\x12\x1d.google.protobuf.FieldOptions\x18\xdb\xc0\x05 \x01(\bR\fisExpression:\x87\x01\n" +
 	"\x0ereference_kind\x12\x1d.google.protobuf.FieldOptions\x18\xdc\xc0\x05 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\rreferenceKind:M\n" +
 	"\x10discriminated_by\x12\x1d.google.protobuf.FieldOptions\x18\xdd\xc0\x05 \x01(\tR\x0fdiscriminatedBy\x88\x01\x01:U\n" +
-	"\x13discriminator_value\x12\x1f.google.protobuf.MessageOptions\x18\xbd\xc1\x05 \x01(\tR\x12discriminatorValue\x88\x01\x01B\x9b\x02\n" +
-	"\"com.ai.stigmer.commons.apiresourceB\x11FieldOptionsProtoP\x01ZFgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
+	"\x13discriminator_value\x12\x1f.google.protobuf.MessageOptions\x18\xbd\xc1\x05 \x01(\tR\x12discriminatorValue\x88\x01\x01B\x9e\x02\n" +
+	"\"com.ai.stigmer.commons.apiresourceB\x11FieldOptionsProtoP\x01ZIgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var file_ai_stigmer_commons_apiresource_field_options_proto_goTypes = []any{
 	(*descriptorpb.FieldOptions)(nil),    // 0: google.protobuf.FieldOptions

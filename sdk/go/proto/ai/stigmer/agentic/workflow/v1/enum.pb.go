@@ -371,8 +371,8 @@ const file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDesc = "" +
 	"\"budget_exceeded_policy_unspecified\x10\x00\x12\x1d\n" +
 	"\x19budget_exceeded_terminate\x10\x01\x12 \n" +
 	"\x1cbudget_exceeded_human_review\x10\x02\x12\x18\n" +
-	"\x14budget_exceeded_warn\x10\x03B\x9f\x02\n" +
-	"\"com.ai.stigmer.agentic.workflow.v1B\tEnumProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
+	"\x14budget_exceeded_warn\x10\x03B\xa2\x02\n" +
+	"\"com.ai.stigmer.agentic.workflow.v1B\tEnumProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_workflow_v1_enum_proto_rawDescOnce sync.Once

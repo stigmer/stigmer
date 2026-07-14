@@ -1,6 +1,6 @@
 package stigmer
 
-import "github.com/stigmer/stigmer/sdk/go/internal/gen"
+import "github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 
 // Error is the structured error type returned by all SDK operations.
 type Error = gen.Error

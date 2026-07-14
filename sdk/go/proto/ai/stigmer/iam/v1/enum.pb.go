@@ -302,8 +302,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
 	"\x06member\x10\x03\x12\n" +
 	"\n" +
-	"\x06viewer\x10\x04B\xca\x01\n" +
-	"\x15com.ai.stigmer.iam.v1B\tEnumProtoP\x01Z?github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/v1;iamv1\xa2\x02\x03ASI\xaa\x02\x11Ai.Stigmer.Iam.V1\xca\x02\x11Ai\\Stigmer\\Iam\\V1\xe2\x02\x1dAi\\Stigmer\\Iam\\V1\\GPBMetadata\xea\x02\x14Ai::Stigmer::Iam::V1b\x06proto3"
+	"\x06viewer\x10\x04B\xcd\x01\n" +
+	"\x15com.ai.stigmer.iam.v1B\tEnumProtoP\x01ZBgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1;iamv1\xa2\x02\x03ASI\xaa\x02\x11Ai.Stigmer.Iam.V1\xca\x02\x11Ai\\Stigmer\\Iam\\V1\xe2\x02\x1dAi\\Stigmer\\Iam\\V1\\GPBMetadata\xea\x02\x14Ai::Stigmer::Iam::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_v1_enum_proto_rawDescOnce sync.Once

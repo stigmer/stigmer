@@ -7,8 +7,8 @@
 package skillv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -31,8 +31,8 @@ const file_ai_stigmer_agentic_skill_v1_command_proto_rawDesc = "" +
 	"\x04push\x12-.ai.stigmer.agentic.skill.v1.PushSkillRequest\x1a\".ai.stigmer.agentic.skill.v1.Skill\">¸\x18:\b\t\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\xc3\x01\n" +
 	"\x19pushFromExecutionArtifact\x12B.ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest\x1a\".ai.stigmer.agentic.skill.v1.Skill\">¸\x18:\b\t\x10\x1e\"\x03org*/unauthorized to push skill in this organization\x12\xad\x01\n" +
 	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a\".ai.stigmer.agentic.skill.v1.Skill\">¸\x18:\b\x02\x10+\"\vresource_id*'unauthorized to update skill visibility\x12\x81\x01\n" +
-	"\x06delete\x12$.ai.stigmer.agentic.skill.v1.SkillId\x1a\".ai.stigmer.agentic.skill.v1.Skill\"-¸\x18)\b\x03\x10+\"\x05value*\x1cunauthorized to delete skill\x1a\x04\xa0\xff++B\x8d\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.skill.v1B\fCommandProtoP\x01ZKgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
+	"\x06delete\x12$.ai.stigmer.agentic.skill.v1.SkillId\x1a\".ai.stigmer.agentic.skill.v1.Skill\"-¸\x18)\b\x03\x10+\"\x05value*\x1cunauthorized to delete skill\x1a\x04\xa0\xff++B\x90\x02\n" +
+	"\x1fcom.ai.stigmer.agentic.skill.v1B\fCommandProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_skill_v1_command_proto_goTypes = []any{
 	(*PushSkillRequest)(nil),                      // 0: ai.stigmer.agentic.skill.v1.PushSkillRequest

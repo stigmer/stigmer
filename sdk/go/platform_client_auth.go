@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/stigmer/stigmer/sdk/go/internal/gen"
-	"github.com/stigmer/stigmer/sdk/go/internal/transport"
-	platformclientv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/platformclient/v1"
+	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
+	"github.com/stigmer/stigmer/sdk/go/v3/internal/transport"
+	platformclientv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )

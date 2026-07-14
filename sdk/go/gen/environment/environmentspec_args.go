@@ -4,7 +4,7 @@
 package environment
 
 import (
-	environmentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
+	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
 )
 
 // EnvironmentArgs contains the configuration arguments for creating a Environment.

@@ -7,7 +7,7 @@
 package projectv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -179,8 +179,8 @@ const file_ai_stigmer_tenancy_project_v1_status_proto_rawDesc = "" +
 	"\adeleted\x18\x03 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\adeleted\"\xbe\x01\n" +
 	"\rProjectStatus\x12e\n" +
 	"\x13last_reconciliation\x18\x01 \x01(\v24.ai.stigmer.tenancy.project.v1.ReconciliationSummaryR\x12lastReconciliation\x12F\n" +
-	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\x9a\x02\n" +
-	"!com.ai.stigmer.tenancy.project.v1B\vStatusProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1;projectv1\xa2\x02\x04ASTP\xaa\x02\x1dAi.Stigmer.Tenancy.Project.V1\xca\x02\x1dAi\\Stigmer\\Tenancy\\Project\\V1\xe2\x02)Ai\\Stigmer\\Tenancy\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Tenancy::Project::V1b\x06proto3"
+	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\x9d\x02\n" +
+	"!com.ai.stigmer.tenancy.project.v1B\vStatusProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/project/v1;projectv1\xa2\x02\x04ASTP\xaa\x02\x1dAi.Stigmer.Tenancy.Project.V1\xca\x02\x1dAi\\Stigmer\\Tenancy\\Project\\V1\xe2\x02)Ai\\Stigmer\\Tenancy\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Tenancy::Project::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_tenancy_project_v1_status_proto_rawDescOnce sync.Once

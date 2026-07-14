@@ -7,8 +7,8 @@
 package iampolicyv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -37,9 +37,9 @@ const file_ai_stigmer_iam_iampolicy_v1_query_proto_rawDesc = "" +
 	"\x1dlistResourceAccessByPrincipal\x124.ai.stigmer.iam.iampolicy.v1.ListResourceAccessInput\x1a:.ai.stigmer.iam.iampolicy.v1.ResourceAccessByPrincipalList\",¸\x18(\b\x05*$unauthorized to view resource access\x12\xb3\x01\n" +
 	"\x19getPrincipalResourceRoles\x123.ai.stigmer.iam.iampolicy.v1.PrincipalResourceInput\x1a3.ai.stigmer.iam.iampolicy.v1.PrincipalResourceRoles\",¸\x18(\b\x05*$unauthorized to view principal roles\x12\xa7\x01\n" +
 	"\x12getPrincipalsCount\x124.ai.stigmer.iam.iampolicy.v1.GetPrincipalsCountInput\x1a,.ai.stigmer.iam.iampolicy.v1.PrincipalsCount\"-¸\x18)\b\x05*%unauthorized to view principals count\x1a\x04\xa0\xff+\n" +
-	"B\x8f\x02\n" +
+	"B\x92\x02\n" +
 	"\x1fcom.ai.stigmer.iam.iampolicy.v1B\n" +
-	"QueryProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/iampolicy/v1;iampolicyv1\xa2\x02\x04ASII\xaa\x02\x1bAi.Stigmer.Iam.Iampolicy.V1\xca\x02\x1bAi\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Iam::Iampolicy::V1b\x06proto3"
+	"QueryProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/iampolicy/v1;iampolicyv1\xa2\x02\x04ASII\xaa\x02\x1bAi.Stigmer.Iam.Iampolicy.V1\xca\x02\x1bAi\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Iam::Iampolicy::V1b\x06proto3"
 
 var file_ai_stigmer_iam_iampolicy_v1_query_proto_goTypes = []any{
 	(*IamPolicyId)(nil),                     // 0: ai.stigmer.iam.iampolicy.v1.IamPolicyId

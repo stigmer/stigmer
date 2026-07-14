@@ -97,8 +97,8 @@ const file_ai_stigmer_agentic_artifact_v1_enum_proto_rawDesc = "" +
 	"\x19storage_state_unspecified\x10\x00\x12\x19\n" +
 	"\x15storage_state_pending\x10\x01\x12\x18\n" +
 	"\x14storage_state_stored\x10\x02\x12\x19\n" +
-	"\x15storage_state_deleted\x10\x03B\x9f\x02\n" +
-	"\"com.ai.stigmer.agentic.artifact.v1B\tEnumProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/artifact/v1;artifactv1\xa2\x02\x04ASAA\xaa\x02\x1eAi.Stigmer.Agentic.Artifact.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Artifact\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Artifact::V1b\x06proto3"
+	"\x15storage_state_deleted\x10\x03B\xa2\x02\n" +
+	"\"com.ai.stigmer.agentic.artifact.v1B\tEnumProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/artifact/v1;artifactv1\xa2\x02\x04ASAA\xaa\x02\x1eAi.Stigmer.Agentic.Artifact.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Artifact\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Artifact::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_artifact_v1_enum_proto_rawDescOnce sync.Once

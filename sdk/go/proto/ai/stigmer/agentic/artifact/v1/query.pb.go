@@ -7,8 +7,8 @@
 package artifactv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,9 +32,9 @@ const file_ai_stigmer_agentic_artifact_v1_query_proto_rawDesc = "" +
 	"\x0flistByExecution\x12?.ai.stigmer.agentic.artifact.v1.ListArtifactsByExecutionRequest\x1a,.ai.stigmer.agentic.artifact.v1.ArtifactList\"\x04и\x18\x01\x12\xa5\x01\n" +
 	"\x0egetDownloadUrl\x12*.ai.stigmer.agentic.artifact.v1.ArtifactId\x1a3.ai.stigmer.agentic.artifact.v1.ArtifactDownloadUrl\"2¸\x18.\b\x01\x107\"\x05value*!unauthorized to download artifact\x12\xc1\x01\n" +
 	"\n" +
-	"getContent\x129.ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest\x1a:.ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse\"<¸\x188\b\x01\x107\"\vartifact_id*%unauthorized to read artifact content\x1a\x04\xa0\xff+7B\xa0\x02\n" +
+	"getContent\x129.ai.stigmer.agentic.artifact.v1.GetArtifactContentRequest\x1a:.ai.stigmer.agentic.artifact.v1.GetArtifactContentResponse\"<¸\x188\b\x01\x107\"\vartifact_id*%unauthorized to read artifact content\x1a\x04\xa0\xff+7B\xa3\x02\n" +
 	"\"com.ai.stigmer.agentic.artifact.v1B\n" +
-	"QueryProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/artifact/v1;artifactv1\xa2\x02\x04ASAA\xaa\x02\x1eAi.Stigmer.Agentic.Artifact.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Artifact\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Artifact::V1b\x06proto3"
+	"QueryProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/artifact/v1;artifactv1\xa2\x02\x04ASAA\xaa\x02\x1eAi.Stigmer.Agentic.Artifact.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Artifact\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Artifact::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_artifact_v1_query_proto_goTypes = []any{
 	(*ArtifactId)(nil),                      // 0: ai.stigmer.agentic.artifact.v1.ArtifactId

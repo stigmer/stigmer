@@ -7,8 +7,8 @@
 package invitationv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -30,8 +30,8 @@ const file_ai_stigmer_iam_invitation_v1_command_proto_rawDesc = "" +
 	"\x1bInvitationCommandController\x12\xac\x01\n" +
 	"\x06create\x12(.ai.stigmer.iam.invitation.v1.Invitation\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"N¸\x18J\b\x04\x10\x1e\"\fmetadata.org*6unauthorized to create invitation in this organization\x12d\n" +
 	"\x06revoke\x12*.ai.stigmer.iam.invitation.v1.InvitationId\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"\x04и\x18\x01\x12m\n" +
-	"\x06redeem\x123.ai.stigmer.iam.invitation.v1.RedeemInvitationInput\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"\x04и\x18\x01\x1a\x04\xa0\xff+\x14B\x98\x02\n" +
-	" com.ai.stigmer.iam.invitation.v1B\fCommandProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/invitation/v1;invitationv1\xa2\x02\x04ASII\xaa\x02\x1cAi.Stigmer.Iam.Invitation.V1\xca\x02\x1cAi\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3"
+	"\x06redeem\x123.ai.stigmer.iam.invitation.v1.RedeemInvitationInput\x1a(.ai.stigmer.iam.invitation.v1.Invitation\"\x04и\x18\x01\x1a\x04\xa0\xff+\x14B\x9b\x02\n" +
+	" com.ai.stigmer.iam.invitation.v1B\fCommandProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/invitation/v1;invitationv1\xa2\x02\x04ASII\xaa\x02\x1cAi.Stigmer.Iam.Invitation.V1\xca\x02\x1cAi\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3"
 
 var file_ai_stigmer_iam_invitation_v1_command_proto_goTypes = []any{
 	(*Invitation)(nil),            // 0: ai.stigmer.iam.invitation.v1.Invitation

@@ -7,8 +7,8 @@
 package workflowexecutionv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -35,9 +35,9 @@ const file_ai_stigmer_agentic_workflowexecution_v1_query_proto_rawDesc = "" +
 	"\vgetEventLog\x12;.ai.stigmer.agentic.workflowexecution.v1.GetEventLogRequest\x1a<.ai.stigmer.agentic.workflowexecution.v1.GetEventLogResponse\"H¸\x18D\b\x01\x104\"\fexecution_id*0unauthorized to get workflow execution event log\x12\xe5\x01\n" +
 	"\x0fsubscribeEvents\x12?.ai.stigmer.agentic.workflowexecution.v1.SubscribeEventsRequest\x1a?.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent\"N¸\x18J\b\x01\x104\"\fexecution_id*6unauthorized to subscribe to workflow execution events0\x01\x12\x9b\x01\n" +
 	"\x13getExecutionSummary\x12C.ai.stigmer.agentic.workflowexecution.v1.GetExecutionSummaryRequest\x1a9.ai.stigmer.agentic.workflowexecution.v1.ExecutionSummary\"\x04и\x18\x01\x12\xa1\x01\n" +
-	"\x14listPendingApprovals\x12D.ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest\x1a=.ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList\"\x04и\x18\x01\x1a\x04\xa0\xff+4B\xdf\x02\n" +
+	"\x14listPendingApprovals\x12D.ai.stigmer.agentic.workflowexecution.v1.ListPendingApprovalsRequest\x1a=.ai.stigmer.agentic.workflowexecution.v1.PendingApprovalsList\"\x04и\x18\x01\x1a\x04\xa0\xff+4B\xe2\x02\n" +
 	"+com.ai.stigmer.agentic.workflowexecution.v1B\n" +
-	"QueryProtoP\x01Zcgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
+	"QueryProtoP\x01Zfgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_workflowexecution_v1_query_proto_goTypes = []any{
 	(*WorkflowExecutionId)(nil),                     // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionId

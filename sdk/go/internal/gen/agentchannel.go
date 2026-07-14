@@ -5,9 +5,9 @@ package gen
 import (
 	"context"
 
-	agentchannelv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentchannel/v1"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	agentchannelv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
 )
 
@@ -111,7 +111,7 @@ func (i *AgentChannelInput) toProto() *agentchannelv1.AgentChannel {
 	}
 	resource.Spec.Enabled = i.Enabled
 	if i.Slack != nil {
-		resource.Spec.ServerType = &agentchannelv1.AgentChannelSpec_Slack{
+		resource.Spec.ProviderConfig = &agentchannelv1.AgentChannelSpec_Slack{
 			Slack: &agentchannelv1.SlackChannelConfig{},
 		}
 	}

@@ -370,8 +370,8 @@ const file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc = "" +
 	"\x06commit\x18\x03 \x01(\tR\x06commit\x12\"\n" +
 	"\x05depth\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00H\x00R\x05depth\x88\x01\x01\x12W\n" +
 	"\x0fwrite_back_mode\x18\x05 \x01(\x0e2/.ai.stigmer.agentic.session.v1.GitWriteBackModeR\rwriteBackModeB\b\n" +
-	"\x06_depthB\x9d\x02\n" +
-	"!com.ai.stigmer.agentic.session.v1B\x0eWorkspaceProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
+	"\x06_depthB\xa0\x02\n" +
+	"!com.ai.stigmer.agentic.session.v1B\x0eWorkspaceProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescOnce sync.Once

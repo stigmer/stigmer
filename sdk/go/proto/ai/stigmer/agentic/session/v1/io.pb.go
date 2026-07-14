@@ -380,8 +380,8 @@ const file_ai_stigmer_agentic_session_v1_io_proto_rawDesc = "" +
 	"page_token\x18\x03 \x01(\tR\tpageToken\"O\n" +
 	"\x1bUpdateSessionSubjectRequest\x12\x16\n" +
 	"\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x18\n" +
-	"\asubject\x18\x02 \x01(\tR\asubjectB\x96\x02\n" +
-	"!com.ai.stigmer.agentic.session.v1B\aIoProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
+	"\asubject\x18\x02 \x01(\tR\asubjectB\x99\x02\n" +
+	"!com.ai.stigmer.agentic.session.v1B\aIoProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_session_v1_io_proto_rawDescOnce sync.Once

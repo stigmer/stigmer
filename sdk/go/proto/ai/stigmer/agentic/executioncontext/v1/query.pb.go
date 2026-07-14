@@ -7,8 +7,8 @@
 package executioncontextv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -30,9 +30,9 @@ const file_ai_stigmer_agentic_executioncontext_v1_query_proto_rawDesc = "" +
 	"\x1fExecutionContextQueryController\x12\x81\x01\n" +
 	"\x03get\x12:.ai.stigmer.agentic.executioncontext.v1.ExecutionContextId\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04и\x18\x01\x12\x86\x01\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04и\x18\x01\x12\x9c\x01\n" +
-	"\x10getByExecutionId\x12H.ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04и\x18\x01\x1a\x04\xa0\xff+6B\xd8\x02\n" +
+	"\x10getByExecutionId\x12H.ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput\x1a8.ai.stigmer.agentic.executioncontext.v1.ExecutionContext\"\x04и\x18\x01\x1a\x04\xa0\xff+6B\xdb\x02\n" +
 	"*com.ai.stigmer.agentic.executioncontext.v1B\n" +
-	"QueryProtoP\x01Zagithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1;executioncontextv1\xa2\x02\x04ASAE\xaa\x02&Ai.Stigmer.Agentic.Executioncontext.V1\xca\x02&Ai\\Stigmer\\Agentic\\Executioncontext\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Executioncontext\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Executioncontext::V1b\x06proto3"
+	"QueryProtoP\x01Zdgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1;executioncontextv1\xa2\x02\x04ASAE\xaa\x02&Ai.Stigmer.Agentic.Executioncontext.V1\xca\x02&Ai\\Stigmer\\Agentic\\Executioncontext\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Executioncontext\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Executioncontext::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_executioncontext_v1_query_proto_goTypes = []any{
 	(*ExecutionContextId)(nil),               // 0: ai.stigmer.agentic.executioncontext.v1.ExecutionContextId

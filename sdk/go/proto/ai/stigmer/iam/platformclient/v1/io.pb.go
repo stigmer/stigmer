@@ -238,8 +238,8 @@ const file_ai_stigmer_iam_platformclient_v1_io_proto_rawDesc = "" +
 	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\"\x9e\x01\n" +
 	"\x1cPlatformClientCreateResponse\x12Y\n" +
 	"\x0fplatform_client\x18\x01 \x01(\v20.ai.stigmer.iam.platformclient.v1.PlatformClientR\x0eplatformClient\x12#\n" +
-	"\rclient_secret\x18\x02 \x01(\tR\fclientSecretB\xaf\x02\n" +
-	"$com.ai.stigmer.iam.platformclient.v1B\aIoProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
+	"\rclient_secret\x18\x02 \x01(\tR\fclientSecretB\xb2\x02\n" +
+	"$com.ai.stigmer.iam.platformclient.v1B\aIoProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_platformclient_v1_io_proto_rawDescOnce sync.Once

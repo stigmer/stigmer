@@ -7,8 +7,8 @@
 package oauthappv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -31,8 +31,8 @@ const file_ai_stigmer_iam_oauthapp_v1_command_proto_rawDesc = "" +
 	"\x05apply\x12$.ai.stigmer.iam.oauthapp.v1.OAuthApp\x1a$.ai.stigmer.iam.oauthapp.v1.OAuthApp\x12\xa3\x01\n" +
 	"\x06create\x12$.ai.stigmer.iam.oauthapp.v1.OAuthApp\x1a$.ai.stigmer.iam.oauthapp.v1.OAuthApp\"M¸\x18I\b\x17\x10\x1e\"\fmetadata.org*5unauthorized to create oauth app in this organization\x12\x8d\x01\n" +
 	"\x06update\x12$.ai.stigmer.iam.oauthapp.v1.OAuthApp\x1a$.ai.stigmer.iam.oauthapp.v1.OAuthApp\"7¸\x183\b\x02\x10\x16\"\vmetadata.id* unauthorized to update oauth app\x12\x9f\x01\n" +
-	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a$.ai.stigmer.iam.oauthapp.v1.OAuthApp\"7¸\x183\b\x03\x10\x16\"\vresource_id* unauthorized to delete oauth app\x1a\x04\xa0\xff+\x16B\x8a\x02\n" +
-	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\fCommandProtoP\x01ZMgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
+	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a$.ai.stigmer.iam.oauthapp.v1.OAuthApp\"7¸\x183\b\x03\x10\x16\"\vresource_id* unauthorized to delete oauth app\x1a\x04\xa0\xff+\x16B\x8d\x02\n" +
+	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\fCommandProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
 
 var file_ai_stigmer_iam_oauthapp_v1_command_proto_goTypes = []any{
 	(*OAuthApp)(nil), // 0: ai.stigmer.iam.oauthapp.v1.OAuthApp

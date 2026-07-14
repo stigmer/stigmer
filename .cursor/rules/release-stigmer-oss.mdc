@@ -114,6 +114,8 @@ The `sdk/go` and `mcp-server` tags get short messages; the main `v*` tag gets th
 
 > **Important**: The main `v*` tag MUST use `--cleanup=verbatim` because the release notes contain Markdown headings (`##`, `###`) which git's default `strip` cleanup treats as comments and silently removes.
 
+> **Go SDK module path (SIV)**: The Go SDK is a v2+ module, so `sdk/go/go.mod` declares the major-version suffix in its path (`module github.com/stigmer/stigmer/sdk/go/v3`) and consumers import `github.com/stigmer/stigmer/sdk/go/v3`. The `sdk/go/vX.Y.Z` tag name is already correct for this layout — Go strips the `/v3` suffix when resolving the repo subdirectory, so **do not** rename the tag to `sdk/go/v3/vX.Y.Z` or move the module into an `sdk/go/v3/` directory. When the major version bumps (v3 → v4), update the module path suffix and all internal import paths accordingly.
+
 ### 7. Push Tags
 
 ```bash

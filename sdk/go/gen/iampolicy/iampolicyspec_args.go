@@ -4,7 +4,7 @@
 package iampolicy
 
 import (
-	iampolicyv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/iampolicy/v1"
+	iampolicyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/iampolicy/v1"
 )
 
 // IamPolicyArgs contains the configuration arguments for creating a IamPolicy.

@@ -3,8 +3,8 @@ package stigmer
 import (
 	"context"
 
-	"github.com/stigmer/stigmer/sdk/go/internal/gen"
-	githubv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/platform/github/v1"
+	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
+	githubv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/platform/github/v1"
 	"google.golang.org/grpc"
 )
 

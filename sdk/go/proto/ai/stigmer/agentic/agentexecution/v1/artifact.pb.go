@@ -205,8 +205,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_artifact_proto_rawDesc = "" +
 	"expires_at\x18\b \x01(\tR\texpiresAt\x12\x18\n" +
 	"\aentries\x18\t \x03(\tR\aentries\x12!\n" +
 	"\fcontent_hash\x18\n" +
-	" \x01(\tR\vcontentHashB\xcd\x02\n" +
-	"(com.ai.stigmer.agentic.agentexecution.v1B\rArtifactProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
+	" \x01(\tR\vcontentHashB\xd0\x02\n" +
+	"(com.ai.stigmer.agentic.agentexecution.v1B\rArtifactProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agentexecution_v1_artifact_proto_rawDescOnce sync.Once

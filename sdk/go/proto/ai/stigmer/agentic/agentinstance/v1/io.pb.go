@@ -8,7 +8,7 @@ package agentinstancev1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -266,8 +266,8 @@ const file_ai_stigmer_agentic_agentinstance_v1_io_proto_rawDesc = "" +
 	"\tpage_info\x18\x03 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\xc0\x02\n" +
-	"'com.ai.stigmer.agentic.agentinstance.v1B\aIoProtoP\x01Z[github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentinstance/v1;agentinstancev1\xa2\x02\x04ASAA\xaa\x02#Ai.Stigmer.Agentic.Agentinstance.V1\xca\x02#Ai\\Stigmer\\Agentic\\Agentinstance\\V1\xe2\x02/Ai\\Stigmer\\Agentic\\Agentinstance\\V1\\GPBMetadata\xea\x02'Ai::Stigmer::Agentic::Agentinstance::V1b\x06proto3"
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\xc3\x02\n" +
+	"'com.ai.stigmer.agentic.agentinstance.v1B\aIoProtoP\x01Z^github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentinstance/v1;agentinstancev1\xa2\x02\x04ASAA\xaa\x02#Ai.Stigmer.Agentic.Agentinstance.V1\xca\x02#Ai\\Stigmer\\Agentic\\Agentinstance\\V1\xe2\x02/Ai\\Stigmer\\Agentic\\Agentinstance\\V1\\GPBMetadata\xea\x02'Ai::Stigmer::Agentic::Agentinstance::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agentinstance_v1_io_proto_rawDescOnce sync.Once

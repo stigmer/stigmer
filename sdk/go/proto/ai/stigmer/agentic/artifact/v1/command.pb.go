@@ -7,8 +7,8 @@
 package artifactv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -29,8 +29,8 @@ const file_ai_stigmer_agentic_artifact_v1_command_proto_rawDesc = "" +
 	",ai/stigmer/agentic/artifact/v1/command.proto\x12\x1eai.stigmer.agentic.artifact.v1\x1a(ai/stigmer/agentic/artifact/v1/api.proto\x1a'ai/stigmer/agentic/artifact/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xa6\x02\n" +
 	"\x19ArtifactCommandController\x12m\n" +
 	"\x06create\x123.ai.stigmer.agentic.artifact.v1.CreateArtifactInput\x1a(.ai.stigmer.agentic.artifact.v1.Artifact\"\x04и\x18\x01\x12\x93\x01\n" +
-	"\x06delete\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a(.ai.stigmer.agentic.artifact.v1.Artifact\"0¸\x18,\b\x02\x107\"\x05value*\x1funauthorized to delete artifact\x1a\x04\xa0\xff+7B\xa2\x02\n" +
-	"\"com.ai.stigmer.agentic.artifact.v1B\fCommandProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/artifact/v1;artifactv1\xa2\x02\x04ASAA\xaa\x02\x1eAi.Stigmer.Agentic.Artifact.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Artifact\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Artifact::V1b\x06proto3"
+	"\x06delete\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a(.ai.stigmer.agentic.artifact.v1.Artifact\"0¸\x18,\b\x02\x107\"\x05value*\x1funauthorized to delete artifact\x1a\x04\xa0\xff+7B\xa5\x02\n" +
+	"\"com.ai.stigmer.agentic.artifact.v1B\fCommandProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/artifact/v1;artifactv1\xa2\x02\x04ASAA\xaa\x02\x1eAi.Stigmer.Agentic.Artifact.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Artifact\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Artifact::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_artifact_v1_command_proto_goTypes = []any{
 	(*CreateArtifactInput)(nil),       // 0: ai.stigmer.agentic.artifact.v1.CreateArtifactInput

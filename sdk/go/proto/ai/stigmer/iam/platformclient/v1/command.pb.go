@@ -7,8 +7,8 @@
 package platformclientv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -31,8 +31,8 @@ const file_ai_stigmer_iam_platformclient_v1_command_proto_rawDesc = "" +
 	"\x06create\x120.ai.stigmer.iam.platformclient.v1.PlatformClient\x1a>.ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse\"S¸\x18O\b\x18\x10\x1e\"\fmetadata.org*;unauthorized to create platform client in this organization\x12\xab\x01\n" +
 	"\x06update\x120.ai.stigmer.iam.platformclient.v1.PlatformClient\x1a0.ai.stigmer.iam.platformclient.v1.PlatformClient\"=¸\x189\b\x02\x10\x17\"\vmetadata.id*&unauthorized to update platform client\x12\xb1\x01\n" +
 	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a0.ai.stigmer.iam.platformclient.v1.PlatformClient\"=¸\x189\b\x03\x10\x17\"\vresource_id*&unauthorized to delete platform client\x12\xc2\x01\n" +
-	"\frotateSecret\x122.ai.stigmer.iam.platformclient.v1.PlatformClientId\x1a>.ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse\">¸\x18:\b\x02\x10\x17\"\x05value*-unauthorized to rotate platform client secret\x1a\x04\xa0\xff+\x17B\xb4\x02\n" +
-	"$com.ai.stigmer.iam.platformclient.v1B\fCommandProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
+	"\frotateSecret\x122.ai.stigmer.iam.platformclient.v1.PlatformClientId\x1a>.ai.stigmer.iam.platformclient.v1.PlatformClientCreateResponse\">¸\x18:\b\x02\x10\x17\"\x05value*-unauthorized to rotate platform client secret\x1a\x04\xa0\xff+\x17B\xb7\x02\n" +
+	"$com.ai.stigmer.iam.platformclient.v1B\fCommandProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
 
 var file_ai_stigmer_iam_platformclient_v1_command_proto_goTypes = []any{
 	(*PlatformClient)(nil),                     // 0: ai.stigmer.iam.platformclient.v1.PlatformClient

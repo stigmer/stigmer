@@ -8,7 +8,7 @@ package iampolicyv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -180,8 +180,8 @@ const file_ai_stigmer_iam_iampolicy_v1_api_proto_rawDesc = "" +
 	"\x04spec\x18\x04 \x01(\v2*.ai.stigmer.iam.iampolicy.v1.IamPolicySpecR\x04spec\x12D\n" +
 	"\x06status\x18\x05 \x01(\v2,.ai.stigmer.iam.iampolicy.v1.IamPolicyStatusR\x06status\"Y\n" +
 	"\x0fIamPolicyStatus\x12F\n" +
-	"\x05audit\x18\x01 \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\x8d\x02\n" +
-	"\x1fcom.ai.stigmer.iam.iampolicy.v1B\bApiProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/iampolicy/v1;iampolicyv1\xa2\x02\x04ASII\xaa\x02\x1bAi.Stigmer.Iam.Iampolicy.V1\xca\x02\x1bAi\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Iam::Iampolicy::V1b\x06proto3"
+	"\x05audit\x18\x01 \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\x90\x02\n" +
+	"\x1fcom.ai.stigmer.iam.iampolicy.v1B\bApiProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/iampolicy/v1;iampolicyv1\xa2\x02\x04ASII\xaa\x02\x1bAi.Stigmer.Iam.Iampolicy.V1\xca\x02\x1bAi\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Iam::Iampolicy::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_iampolicy_v1_api_proto_rawDescOnce sync.Once

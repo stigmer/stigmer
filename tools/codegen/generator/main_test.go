@@ -66,12 +66,12 @@ func TestProtoTypeToGoImportPath(t *testing.T) {
 		{
 			"ai.stigmer.agentic.agent.v1.McpServerUsage",
 			sdkProtoPrefix,
-			"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1",
+			"github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1",
 		},
 		{
 			"ai.stigmer.commons.apiresource.ApiResourceReference",
 			sdkProtoPrefix,
-			"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource",
+			"github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource",
 		},
 		{
 			"ai.stigmer.agentic.session.v1.Session",
@@ -491,11 +491,11 @@ func TestDeriveGoImportPath(t *testing.T) {
 	}{
 		{
 			"ai.stigmer.agentic.agent.v1",
-			"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1",
+			"github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1",
 		},
 		{
 			"ai.stigmer.commons.apiresource",
-			"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource",
+			"github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource",
 		},
 	}
 

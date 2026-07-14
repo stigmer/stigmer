@@ -8,7 +8,7 @@ package platformclientv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -425,9 +425,9 @@ const file_ai_stigmer_iam_platformclient_v1_token_proto_rawDesc = "" +
 	"\x0fguest_cookie_id\x18\x04 \x01(\tR\rguestCookieId2\xb4\x02\n" +
 	"\x1dPlatformClientTokenController\x12\x86\x01\n" +
 	"\rmintUserToken\x126.ai.stigmer.iam.platformclient.v1.MintUserTokenRequest\x1a7.ai.stigmer.iam.platformclient.v1.MintUserTokenResponse\"\x04ȸ\x18\x01\x12\x89\x01\n" +
-	"\x0emintGuestToken\x127.ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest\x1a8.ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse\"\x04ȸ\x18\x01B\xb2\x02\n" +
+	"\x0emintGuestToken\x127.ai.stigmer.iam.platformclient.v1.MintGuestTokenRequest\x1a8.ai.stigmer.iam.platformclient.v1.MintGuestTokenResponse\"\x04ȸ\x18\x01B\xb5\x02\n" +
 	"$com.ai.stigmer.iam.platformclient.v1B\n" +
-	"TokenProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
+	"TokenProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_platformclient_v1_token_proto_rawDescOnce sync.Once

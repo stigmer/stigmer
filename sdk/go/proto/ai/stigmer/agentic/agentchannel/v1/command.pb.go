@@ -7,8 +7,8 @@
 package agentchannelv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -33,8 +33,8 @@ const file_ai_stigmer_agentic_agentchannel_v1_command_proto_rawDesc = "" +
 	"\x06update\x120.ai.stigmer.agentic.agentchannel.v1.AgentChannel\x1a0.ai.stigmer.agentic.agentchannel.v1.AgentChannel\";¸\x187\b\x02\x10/\"\vmetadata.id*$unauthorized to update agent channel\x12\xd2\x01\n" +
 	"\x0finitiateInstall\x12?.ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput\x1a@.ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput\"<¸\x188\b\x02\x10/\"\vresource_id*%unauthorized to install agent channel\x12\xc2\x01\n" +
 	"\x0fcompleteInstall\x12?.ai.stigmer.agentic.agentchannel.v1.CompleteChannelInstallInput\x1a0.ai.stigmer.agentic.agentchannel.v1.AgentChannel\"<¸\x188\b\x02\x10/\"\vresource_id*%unauthorized to install agent channel\x12\xa5\x01\n" +
-	"\x06delete\x122.ai.stigmer.agentic.agentchannel.v1.AgentChannelId\x1a0.ai.stigmer.agentic.agentchannel.v1.AgentChannel\"5¸\x181\b\x03\x10/\"\x05value*$unauthorized to delete agent channel\x1a\x04\xa0\xff+/B\xbe\x02\n" +
-	"&com.ai.stigmer.agentic.agentchannel.v1B\fCommandProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
+	"\x06delete\x122.ai.stigmer.agentic.agentchannel.v1.AgentChannelId\x1a0.ai.stigmer.agentic.agentchannel.v1.AgentChannel\"5¸\x181\b\x03\x10/\"\x05value*$unauthorized to delete agent channel\x1a\x04\xa0\xff+/B\xc1\x02\n" +
+	"&com.ai.stigmer.agentic.agentchannel.v1B\fCommandProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_agentchannel_v1_command_proto_goTypes = []any{
 	(*AgentChannel)(nil),                 // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannel

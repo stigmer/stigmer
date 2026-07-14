@@ -3469,8 +3469,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	",AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_24H\x10\x01\x12/\n" +
 	"+AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_7D\x10\x02\x120\n" +
 	",AGENT_EXECUTION_SUMMARY_TIME_WINDOW_LAST_30D\x10\x03\x120\n" +
-	",AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME\x10\x04B\xc7\x02\n" +
-	"(com.ai.stigmer.agentic.agentexecution.v1B\aIoProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
+	",AGENT_EXECUTION_SUMMARY_TIME_WINDOW_ALL_TIME\x10\x04B\xca\x02\n" +
+	"(com.ai.stigmer.agentic.agentexecution.v1B\aIoProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDescOnce sync.Once

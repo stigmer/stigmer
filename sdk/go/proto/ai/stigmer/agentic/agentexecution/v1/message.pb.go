@@ -940,8 +940,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"\x06inline\x18\x01 \x01(\tH\x00R\x06inline\x12K\n" +
 	"\x03ref\x18\x02 \x01(\v27.ai.stigmer.agentic.agentexecution.v1.ToolCallOutputRefH\x00R\x03ref\x12\x1b\n" +
 	"\tis_binary\x18\x03 \x01(\bR\bisBinaryB\x06\n" +
-	"\x04bodyB\xcc\x02\n" +
-	"(com.ai.stigmer.agentic.agentexecution.v1B\fMessageProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
+	"\x04bodyB\xcf\x02\n" +
+	"(com.ai.stigmer.agentic.agentexecution.v1B\fMessageProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDescOnce sync.Once

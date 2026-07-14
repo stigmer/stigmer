@@ -407,8 +407,8 @@ const file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc = "" +
 	"delivering\x10\x02\x12\r\n" +
 	"\tdelivered\x10\x03\x12\n" +
 	"\n" +
-	"\x06failed\x10\x04B\xbf\x02\n" +
-	"&com.ai.stigmer.agentic.agentchannel.v1B\rDeliveryProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
+	"\x06failed\x10\x04B\xc2\x02\n" +
+	"&com.ai.stigmer.agentic.agentchannel.v1B\rDeliveryProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDescOnce sync.Once

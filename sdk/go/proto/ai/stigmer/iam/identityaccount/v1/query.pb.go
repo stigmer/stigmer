@@ -7,8 +7,8 @@
 package identityaccountv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
@@ -36,9 +36,9 @@ const file_ai_stigmer_iam_identityaccount_v1_query_proto_rawDesc = "" +
 	"\n" +
 	"getByIdpId\x12(.ai.stigmer.iam.identityaccount.v1.IdpId\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"5¸\x181\b\x01\x10\v\"\x05value*$unauthorized to get identity account\x12\xcb\x01\n" +
 	"\x10getByExternalSub\x124.ai.stigmer.iam.identityaccount.v1.ExternalSubLookup\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"M¸\x18I\b\x15\x10\x1e\"\x03org*>unauthorized to look up identity accounts in this organization\x12\xa9\x01\n" +
-	"\fgetActorInfo\x124.ai.stigmer.iam.identityaccount.v1.IdentityAccountId\x1a5.ai.stigmer.commons.apiresource.ApiResourceAuditActor\",¸\x18(\b\x01\x10\v*\"unauthorized to look up actor info\x1a\x04\xa0\xff+\vB\xb9\x02\n" +
+	"\fgetActorInfo\x124.ai.stigmer.iam.identityaccount.v1.IdentityAccountId\x1a5.ai.stigmer.commons.apiresource.ApiResourceAuditActor\",¸\x18(\b\x01\x10\v*\"unauthorized to look up actor info\x1a\x04\xa0\xff+\vB\xbc\x02\n" +
 	"%com.ai.stigmer.iam.identityaccount.v1B\n" +
-	"QueryProtoP\x01Z[github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
+	"QueryProtoP\x01Z^github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 
 var file_ai_stigmer_iam_identityaccount_v1_query_proto_goTypes = []any{
 	(*IdentityAccountId)(nil),                 // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccountId

@@ -8,7 +8,7 @@ package iampolicyv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityaccount/v1"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -1532,8 +1532,8 @@ const file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDesc = "" +
 	"\x0eprincipal_kind\x18\x02 \x01(\tB\n" +
 	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\rprincipalKind\"'\n" +
 	"\x0fPrincipalsCount\x12\x14\n" +
-	"\x05count\x18\x01 \x01(\x05R\x05countB\x8c\x02\n" +
-	"\x1fcom.ai.stigmer.iam.iampolicy.v1B\aIoProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/iampolicy/v1;iampolicyv1\xa2\x02\x04ASII\xaa\x02\x1bAi.Stigmer.Iam.Iampolicy.V1\xca\x02\x1bAi\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Iam::Iampolicy::V1b\x06proto3"
+	"\x05count\x18\x01 \x01(\x05R\x05countB\x8f\x02\n" +
+	"\x1fcom.ai.stigmer.iam.iampolicy.v1B\aIoProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/iampolicy/v1;iampolicyv1\xa2\x02\x04ASII\xaa\x02\x1bAi.Stigmer.Iam.Iampolicy.V1\xca\x02\x1bAi\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Iam::Iampolicy::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_iampolicy_v1_io_proto_rawDescOnce sync.Once

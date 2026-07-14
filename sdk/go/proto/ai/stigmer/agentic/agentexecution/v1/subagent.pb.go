@@ -211,8 +211,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_rawDesc = "" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
-	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.agentexecution.v1.TodoItemR\x05value:\x028\x01B\xcd\x02\n" +
-	"(com.ai.stigmer.agentic.agentexecution.v1B\rSubagentProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
+	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.agentexecution.v1.TodoItemR\x05value:\x028\x01B\xd0\x02\n" +
+	"(com.ai.stigmer.agentic.agentexecution.v1B\rSubagentProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_rawDescOnce sync.Once

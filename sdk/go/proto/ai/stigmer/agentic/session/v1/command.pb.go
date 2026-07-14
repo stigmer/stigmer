@@ -7,8 +7,8 @@
 package sessionv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,8 +32,8 @@ const file_ai_stigmer_agentic_session_v1_command_proto_rawDesc = "" +
 	"\x06create\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\"K¸\x18G\b\b\x10\x1e\"\fmetadata.org*3unauthorized to create session in this organization\x12\x8f\x01\n" +
 	"\x06update\x12&.ai.stigmer.agentic.session.v1.Session\x1a&.ai.stigmer.agentic.session.v1.Session\"5¸\x181\b\x02\x10*\"\vmetadata.id*\x1eunauthorized to update session\x12\xa9\x01\n" +
 	"\rupdateSubject\x12:.ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest\x1a&.ai.stigmer.agentic.session.v1.Session\"4¸\x180\b\x02\x10*\"\x02id*&unauthorized to update session subject\x12\x8b\x01\n" +
-	"\x06delete\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\"/¸\x18+\b\x03\x10*\"\x05value*\x1eunauthorized to delete session\x1a\x04\xa0\xff+*B\x9b\x02\n" +
-	"!com.ai.stigmer.agentic.session.v1B\fCommandProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
+	"\x06delete\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\"/¸\x18+\b\x03\x10*\"\x05value*\x1eunauthorized to delete session\x1a\x04\xa0\xff+*B\x9e\x02\n" +
+	"!com.ai.stigmer.agentic.session.v1B\fCommandProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_session_v1_command_proto_goTypes = []any{
 	(*Session)(nil),                     // 0: ai.stigmer.agentic.session.v1.Session

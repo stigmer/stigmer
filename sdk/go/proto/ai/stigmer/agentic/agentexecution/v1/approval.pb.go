@@ -974,8 +974,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\apayload\"\x85\x01\n" +
 	"\x13ApprovalEventStream\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12K\n" +
-	"\x06events\x18\x02 \x03(\v23.ai.stigmer.agentic.agentexecution.v1.ApprovalEventR\x06eventsB\xcd\x02\n" +
-	"(com.ai.stigmer.agentic.agentexecution.v1B\rApprovalProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
+	"\x06events\x18\x02 \x03(\v23.ai.stigmer.agentic.agentexecution.v1.ApprovalEventR\x06eventsB\xd0\x02\n" +
+	"(com.ai.stigmer.agentic.agentexecution.v1B\rApprovalProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDescOnce sync.Once

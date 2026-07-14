@@ -8,7 +8,7 @@ package organizationv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -241,8 +241,8 @@ const file_ai_stigmer_tenancy_organization_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x05value\"\xbf\x01\n" +
 	"\x1aOrganizationExternalLookup\x12p\n" +
 	"\x15identity_provider_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceB\x06\xbaH\x03\xc8\x01\x01R\x13identityProviderRef\x12/\n" +
-	"\x0fexternal_org_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\rexternalOrgIdB\xb9\x02\n" +
-	"&com.ai.stigmer.tenancy.organization.v1B\aIoProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
+	"\x0fexternal_org_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\rexternalOrgIdB\xbc\x02\n" +
+	"&com.ai.stigmer.tenancy.organization.v1B\aIoProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_tenancy_organization_v1_io_proto_rawDescOnce sync.Once

@@ -7,8 +7,8 @@
 package agentchannelv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,9 +32,9 @@ const file_ai_stigmer_agentic_agentchannel_v1_query_proto_rawDesc = "" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a0.ai.stigmer.agentic.agentchannel.v1.AgentChannel\"\x04и\x18\x01\x12\x8c\x01\n" +
 	"\n" +
 	"getByAgent\x12B.ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest\x1a4.ai.stigmer.agentic.agentchannel.v1.AgentChannelList\"\x04и\x18\x01\x12\x80\x01\n" +
-	"\x04list\x12<.ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest\x1a4.ai.stigmer.agentic.agentchannel.v1.AgentChannelList\"\x04и\x18\x01\x1a\x04\xa0\xff+/B\xbc\x02\n" +
+	"\x04list\x12<.ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest\x1a4.ai.stigmer.agentic.agentchannel.v1.AgentChannelList\"\x04и\x18\x01\x1a\x04\xa0\xff+/B\xbf\x02\n" +
 	"&com.ai.stigmer.agentic.agentchannel.v1B\n" +
-	"QueryProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
+	"QueryProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_agentchannel_v1_query_proto_goTypes = []any{
 	(*AgentChannelId)(nil),                   // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannelId

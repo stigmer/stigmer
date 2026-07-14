@@ -203,8 +203,8 @@ const file_ai_stigmer_iam_iampolicy_v1_spec_proto_rawDesc = "" +
 	"\xc8\x01\x01r\x05\x10\x01\x18\x80\x02R\x04kind\x12\x1d\n" +
 	"\x02id\x18\x02 \x01(\tB\r\xbaH\n" +
 	"\xc8\x01\x01r\x05\x10\x01\x18\x80\x02R\x02id\x12$\n" +
-	"\brelation\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\brelationB\x8e\x02\n" +
-	"\x1fcom.ai.stigmer.iam.iampolicy.v1B\tSpecProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/iampolicy/v1;iampolicyv1\xa2\x02\x04ASII\xaa\x02\x1bAi.Stigmer.Iam.Iampolicy.V1\xca\x02\x1bAi\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Iam::Iampolicy::V1b\x06proto3"
+	"\brelation\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\brelationB\x91\x02\n" +
+	"\x1fcom.ai.stigmer.iam.iampolicy.v1B\tSpecProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/iampolicy/v1;iampolicyv1\xa2\x02\x04ASII\xaa\x02\x1bAi.Stigmer.Iam.Iampolicy.V1\xca\x02\x1bAi\\Stigmer\\Iam\\Iampolicy\\V1\xe2\x02'Ai\\Stigmer\\Iam\\Iampolicy\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Iam::Iampolicy::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_iampolicy_v1_spec_proto_rawDescOnce sync.Once

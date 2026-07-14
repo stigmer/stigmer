@@ -7,8 +7,8 @@
 package workflowv1
 
 import (
-	serverless "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1/serverless"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	serverless "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1/serverless"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -131,8 +131,8 @@ const file_ai_stigmer_agentic_workflow_v1_status_proto_rawDesc = "" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12.\n" +
 	"\x13default_instance_id\x18\x01 \x01(\tR\x11defaultInstanceId\x12\x8d\x01\n" +
 	"\x1eserverless_workflow_validation\x18\x02 \x01(\v2G.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidationR\x1cserverlessWorkflowValidation\x12!\n" +
-	"\fversion_hash\x18\x03 \x01(\tR\vversionHashB\xa1\x02\n" +
-	"\"com.ai.stigmer.agentic.workflow.v1B\vStatusProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
+	"\fversion_hash\x18\x03 \x01(\tR\vversionHashB\xa4\x02\n" +
+	"\"com.ai.stigmer.agentic.workflow.v1B\vStatusProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_workflow_v1_status_proto_rawDescOnce sync.Once

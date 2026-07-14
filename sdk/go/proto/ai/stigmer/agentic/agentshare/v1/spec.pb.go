@@ -8,7 +8,7 @@ package agentsharev1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -362,8 +362,8 @@ const file_ai_stigmer_agentic_agentshare_v1_spec_proto_rawDesc = "" +
 	"\x12AgentShareAudience\x12$\n" +
 	" agent_share_audience_unspecified\x10\x00\x12\x1f\n" +
 	"\x1bagent_share_audience_public\x10\x01\x12\x1c\n" +
-	"\x18agent_share_audience_org\x10\x02B\xad\x02\n" +
-	"$com.ai.stigmer.agentic.agentshare.v1B\tSpecProtoP\x01ZUgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentshare/v1;agentsharev1\xa2\x02\x04ASAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3"
+	"\x18agent_share_audience_org\x10\x02B\xb0\x02\n" +
+	"$com.ai.stigmer.agentic.agentshare.v1B\tSpecProtoP\x01ZXgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentshare/v1;agentsharev1\xa2\x02\x04ASAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agentshare_v1_spec_proto_rawDescOnce sync.Once

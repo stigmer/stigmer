@@ -9,8 +9,8 @@
 package workflowinstancev1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,9 +32,9 @@ const file_ai_stigmer_agentic_workflowinstance_v1_query_proto_rawDesc = "" +
 	"\x1fWorkflowInstanceQueryController\x12\xb3\x01\n" +
 	"\x03get\x12:.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId\x1a8.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance\"6¸\x182\b\x01\x103\"\x05value*%unauthorized to get workflow instance\x12\xa2\x01\n" +
 	"\rgetByWorkflow\x12M.ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest\x1a<.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList\"\x04и\x18\x01\x12\x86\x01\n" +
-	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a8.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance\"\x04и\x18\x01\x1a\x04\xa0\xff+3B\xd8\x02\n" +
+	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a8.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance\"\x04и\x18\x01\x1a\x04\xa0\xff+3B\xdb\x02\n" +
 	"*com.ai.stigmer.agentic.workflowinstance.v1B\n" +
-	"QueryProtoP\x01Zagithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowinstance/v1;workflowinstancev1\xa2\x02\x04ASAW\xaa\x02&Ai.Stigmer.Agentic.Workflowinstance.V1\xca\x02&Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Workflowinstance::V1b\x06proto3"
+	"QueryProtoP\x01Zdgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowinstance/v1;workflowinstancev1\xa2\x02\x04ASAW\xaa\x02&Ai.Stigmer.Agentic.Workflowinstance.V1\xca\x02&Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Workflowinstance::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_workflowinstance_v1_query_proto_goTypes = []any{
 	(*WorkflowInstanceId)(nil),                    // 0: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId

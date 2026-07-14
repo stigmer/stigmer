@@ -8,7 +8,7 @@ package tasks
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -524,8 +524,8 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_eval_proto_rawDesc = "" +
 	"\x1dEVAL_SCORING_MODE_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eEVAL_PASS_FAIL\x10\x01\x12\x16\n" +
 	"\x12EVAL_NUMERIC_SCORE\x10\x02\x12\x17\n" +
-	"\x13EVAL_MULTI_CRITERIA\x10\x03B\xbb\x02\n" +
-	"(com.ai.stigmer.agentic.workflow.v1.tasksB\tEvalProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
+	"\x13EVAL_MULTI_CRITERIA\x10\x03B\xbe\x02\n" +
+	"(com.ai.stigmer.agentic.workflow.v1.tasksB\tEvalProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_workflow_v1_tasks_eval_proto_rawDescOnce sync.Once

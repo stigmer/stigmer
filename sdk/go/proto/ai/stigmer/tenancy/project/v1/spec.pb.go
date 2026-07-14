@@ -7,7 +7,7 @@
 package projectv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -145,8 +145,8 @@ const file_ai_stigmer_tenancy_project_v1_spec_proto_rawDesc = "" +
 	"\ventry_point\x18\x01 \x01(\tR\n" +
 	"entryPoint\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12N\n" +
-	"\amembers\x18\x03 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\amembersB\x98\x02\n" +
-	"!com.ai.stigmer.tenancy.project.v1B\tSpecProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1;projectv1\xa2\x02\x04ASTP\xaa\x02\x1dAi.Stigmer.Tenancy.Project.V1\xca\x02\x1dAi\\Stigmer\\Tenancy\\Project\\V1\xe2\x02)Ai\\Stigmer\\Tenancy\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Tenancy::Project::V1b\x06proto3"
+	"\amembers\x18\x03 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\amembersB\x9b\x02\n" +
+	"!com.ai.stigmer.tenancy.project.v1B\tSpecProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/project/v1;projectv1\xa2\x02\x04ASTP\xaa\x02\x1dAi.Stigmer.Tenancy.Project.V1\xca\x02\x1dAi\\Stigmer\\Tenancy\\Project\\V1\xe2\x02)Ai\\Stigmer\\Tenancy\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Tenancy::Project::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_tenancy_project_v1_spec_proto_rawDescOnce sync.Once

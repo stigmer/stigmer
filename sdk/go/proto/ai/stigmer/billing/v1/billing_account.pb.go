@@ -480,8 +480,8 @@ const file_ai_stigmer_billing_v1_billing_account_proto_rawDesc = "" +
 	"\x16recharge_amount_micros\x18\x03 \x01(\x03R\x14rechargeAmountMicros\x12,\n" +
 	"\x12monthly_cap_micros\x18\x04 \x01(\x03R\x10monthlyCapMicros\x12?\n" +
 	"\x1ccurrent_month_charged_micros\x18\x05 \x01(\x03R\x19currentMonthChargedMicros\x12#\n" +
-	"\rcurrent_month\x18\a \x01(\tR\fcurrentMonthB\xf0\x01\n" +
-	"\x19com.ai.stigmer.billing.v1B\x13BillingAccountProtoP\x01ZGgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
+	"\rcurrent_month\x18\a \x01(\tR\fcurrentMonthB\xf3\x01\n" +
+	"\x19com.ai.stigmer.billing.v1B\x13BillingAccountProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_v1_billing_account_proto_rawDescOnce sync.Once

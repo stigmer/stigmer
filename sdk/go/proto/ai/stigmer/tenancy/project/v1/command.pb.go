@@ -7,8 +7,8 @@
 package projectv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,8 +32,8 @@ const file_ai_stigmer_tenancy_project_v1_command_proto_rawDesc = "" +
 	"\x06create\x12&.ai.stigmer.tenancy.project.v1.Project\x1a&.ai.stigmer.tenancy.project.v1.Project\"K¸\x18G\b\n" +
 	"\x10\x1e\"\fmetadata.org*3unauthorized to create project in this organization\x12\x8f\x01\n" +
 	"\x06update\x12&.ai.stigmer.tenancy.project.v1.Project\x1a&.ai.stigmer.tenancy.project.v1.Project\"5¸\x181\b\x02\x10<\"\vmetadata.id*\x1eunauthorized to update project\x12\x8b\x01\n" +
-	"\x06delete\x12(.ai.stigmer.tenancy.project.v1.ProjectId\x1a&.ai.stigmer.tenancy.project.v1.Project\"/¸\x18+\b\x03\x10<\"\x05value*\x1eunauthorized to delete project\x1a\x04\xa0\xff+<B\x9b\x02\n" +
-	"!com.ai.stigmer.tenancy.project.v1B\fCommandProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1;projectv1\xa2\x02\x04ASTP\xaa\x02\x1dAi.Stigmer.Tenancy.Project.V1\xca\x02\x1dAi\\Stigmer\\Tenancy\\Project\\V1\xe2\x02)Ai\\Stigmer\\Tenancy\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Tenancy::Project::V1b\x06proto3"
+	"\x06delete\x12(.ai.stigmer.tenancy.project.v1.ProjectId\x1a&.ai.stigmer.tenancy.project.v1.Project\"/¸\x18+\b\x03\x10<\"\x05value*\x1eunauthorized to delete project\x1a\x04\xa0\xff+<B\x9e\x02\n" +
+	"!com.ai.stigmer.tenancy.project.v1B\fCommandProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/project/v1;projectv1\xa2\x02\x04ASTP\xaa\x02\x1dAi.Stigmer.Tenancy.Project.V1\xca\x02\x1dAi\\Stigmer\\Tenancy\\Project\\V1\xe2\x02)Ai\\Stigmer\\Tenancy\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Tenancy::Project::V1b\x06proto3"
 
 var file_ai_stigmer_tenancy_project_v1_command_proto_goTypes = []any{
 	(*Project)(nil),   // 0: ai.stigmer.tenancy.project.v1.Project

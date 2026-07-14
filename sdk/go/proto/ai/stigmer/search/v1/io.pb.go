@@ -8,9 +8,9 @@ package searchv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
-	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -546,8 +546,8 @@ const file_ai_stigmer_search_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x14\n" +
 	"\x05score\x18\f \x01(\x02R\x05score\x12\x19\n" +
-	"\bicon_url\x18\r \x01(\tR\aiconUrlB\xdd\x01\n" +
-	"\x18com.ai.stigmer.search.v1B\aIoProtoP\x01ZEgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1;searchv1\xa2\x02\x03ASS\xaa\x02\x14Ai.Stigmer.Search.V1\xca\x02\x14Ai\\Stigmer\\Search\\V1\xe2\x02 Ai\\Stigmer\\Search\\V1\\GPBMetadata\xea\x02\x17Ai::Stigmer::Search::V1b\x06proto3"
+	"\bicon_url\x18\r \x01(\tR\aiconUrlB\xe0\x01\n" +
+	"\x18com.ai.stigmer.search.v1B\aIoProtoP\x01ZHgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1;searchv1\xa2\x02\x03ASS\xaa\x02\x14Ai.Stigmer.Search.V1\xca\x02\x14Ai\\Stigmer\\Search\\V1\xe2\x02 Ai\\Stigmer\\Search\\V1\\GPBMetadata\xea\x02\x17Ai::Stigmer::Search::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_search_v1_io_proto_rawDescOnce sync.Once

@@ -6,9 +6,9 @@ import (
 	"context"
 	"time"
 
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	invitationv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/invitation/v1"
-	iamv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	invitationv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/invitation/v1"
+	iamv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

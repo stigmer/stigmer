@@ -85,8 +85,8 @@ const execution = await stigmer.agentExecution.create({
     go: {
       label: "Go",
       installPrefix: "$",
-      install: "go get github.com/stigmer/stigmer/sdk/go",
-      code: `import stigmer "github.com/stigmer/stigmer/sdk/go"
+      install: "go get github.com/stigmer/stigmer/sdk/go/v3",
+      code: `import stigmer "github.com/stigmer/stigmer/sdk/go/v3"
 
 client, _ := stigmer.NewClient("sk_...")
 defer client.Close()

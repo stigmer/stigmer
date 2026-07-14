@@ -7,7 +7,7 @@
 package billingv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -31,9 +31,9 @@ const file_ai_stigmer_billing_v1_query_proto_rawDesc = "" +
 	"\x10getCreditBalance\x12,.ai.stigmer.billing.v1.GetCreditBalanceInput\x1a$.ai.stigmer.billing.v1.CreditBalance\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xb1\x01\n" +
 	"\x0fgetCreditLedger\x12+.ai.stigmer.billing.v1.GetCreditLedgerInput\x1a+.ai.stigmer.billing.v1.CreditLedgerResponse\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xc3\x01\n" +
 	"\x15getBillingUsageReport\x121.ai.stigmer.billing.v1.GetBillingUsageReportInput\x1a1.ai.stigmer.billing.v1.BillingUsageReportResponse\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xc9\x01\n" +
-	"\x17getCustomerModelPricing\x123.ai.stigmer.billing.v1.GetCustomerModelPricingInput\x1a3.ai.stigmer.billing.v1.CustomerModelPricingResponse\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organizationB\xe7\x01\n" +
+	"\x17getCustomerModelPricing\x123.ai.stigmer.billing.v1.GetCustomerModelPricingInput\x1a3.ai.stigmer.billing.v1.CustomerModelPricingResponse\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organizationB\xea\x01\n" +
 	"\x19com.ai.stigmer.billing.v1B\n" +
-	"QueryProtoP\x01ZGgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
+	"QueryProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var file_ai_stigmer_billing_v1_query_proto_goTypes = []any{
 	(*GetBillingAccountInput)(nil),       // 0: ai.stigmer.billing.v1.GetBillingAccountInput

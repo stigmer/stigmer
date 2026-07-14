@@ -10,7 +10,7 @@ package workflowinstancev1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -236,8 +236,8 @@ const file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_rawDesc = "" +
 	"\x1bWorkflowExecutionVisibility\x12-\n" +
 	")workflow_execution_visibility_unspecified\x10\x00\x12)\n" +
 	"%workflow_execution_visibility_private\x10\x01\x12.\n" +
-	"*workflow_execution_visibility_organization\x10\x02B\xd7\x02\n" +
-	"*com.ai.stigmer.agentic.workflowinstance.v1B\tSpecProtoP\x01Zagithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowinstance/v1;workflowinstancev1\xa2\x02\x04ASAW\xaa\x02&Ai.Stigmer.Agentic.Workflowinstance.V1\xca\x02&Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Workflowinstance::V1b\x06proto3"
+	"*workflow_execution_visibility_organization\x10\x02B\xda\x02\n" +
+	"*com.ai.stigmer.agentic.workflowinstance.v1B\tSpecProtoP\x01Zdgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowinstance/v1;workflowinstancev1\xa2\x02\x04ASAW\xaa\x02&Ai.Stigmer.Agentic.Workflowinstance.V1\xca\x02&Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Workflowinstance::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_rawDescOnce sync.Once

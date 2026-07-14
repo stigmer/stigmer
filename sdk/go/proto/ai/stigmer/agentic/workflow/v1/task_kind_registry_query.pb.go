@@ -26,8 +26,8 @@ const file_ai_stigmer_agentic_workflow_v1_task_kind_registry_query_proto_rawDesc
 	"\n" +
 	"=ai/stigmer/agentic/workflow/v1/task_kind_registry_query.proto\x12\x1eai.stigmer.agentic.workflow.v1\x1a9ai/stigmer/agentic/workflow/v1/task_kind_descriptor.proto2\xb2\x01\n" +
 	"\x1fTaskKindRegistryQueryController\x12\x8e\x01\n" +
-	"\x13getTaskKindRegistry\x12:.ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryRequest\x1a;.ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryResponseB\xb0\x02\n" +
-	"\"com.ai.stigmer.agentic.workflow.v1B\x1aTaskKindRegistryQueryProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
+	"\x13getTaskKindRegistry\x12:.ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryRequest\x1a;.ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryResponseB\xb3\x02\n" +
+	"\"com.ai.stigmer.agentic.workflow.v1B\x1aTaskKindRegistryQueryProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_workflow_v1_task_kind_registry_query_proto_goTypes = []any{
 	(*GetTaskKindRegistryRequest)(nil),  // 0: ai.stigmer.agentic.workflow.v1.GetTaskKindRegistryRequest

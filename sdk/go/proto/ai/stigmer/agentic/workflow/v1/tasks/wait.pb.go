@@ -8,7 +8,7 @@ package tasks
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -244,8 +244,8 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_wait_proto_rawDesc = "" +
 	"\x0eWaitTaskConfig\x12L\n" +
 	"\bduration\x18\x01 \x01(\v2..ai.stigmer.agentic.workflow.v1.tasks.DurationH\x00R\bduration\x122\n" +
 	"\x05until\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\x05until:\b\xea\x8b,\x04waitB\v\n" +
-	"\twait_typeB\xbb\x02\n" +
-	"(com.ai.stigmer.agentic.workflow.v1.tasksB\tWaitProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
+	"\twait_typeB\xbe\x02\n" +
+	"(com.ai.stigmer.agentic.workflow.v1.tasksB\tWaitProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_workflow_v1_tasks_wait_proto_rawDescOnce sync.Once

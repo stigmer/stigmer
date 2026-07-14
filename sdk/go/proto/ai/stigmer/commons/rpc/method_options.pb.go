@@ -71,8 +71,8 @@ const file_ai_stigmer_commons_rpc_method_options_proto_rawDesc = "" +
 	"+ai/stigmer/commons/rpc/method_options.proto\x12\x16ai.stigmer.commons.rpc\x1a1ai/stigmer/commons/rpc/authorization_config.proto\x1a google/protobuf/descriptor.proto:h\n" +
 	"\x06config\x12\x1e.google.protobuf.MethodOptions\x18\x88\x87\x03 \x01(\v2..ai.stigmer.commons.rpc.RpcAuthorizationConfigR\x06config:=\n" +
 	"\tis_public\x12\x1e.google.protobuf.MethodOptions\x18\x89\x87\x03 \x01(\bR\bisPublic:T\n" +
-	"\x15is_skip_authorization\x12\x1e.google.protobuf.MethodOptions\x18\x8a\x87\x03 \x01(\bR\x13isSkipAuthorizationB\xec\x01\n" +
-	"\x1acom.ai.stigmer.commons.rpcB\x12MethodOptionsProtoP\x01Z>github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc\xa2\x02\x04ASCR\xaa\x02\x16Ai.Stigmer.Commons.Rpc\xca\x02\x16Ai\\Stigmer\\Commons\\Rpc\xe2\x02\"Ai\\Stigmer\\Commons\\Rpc\\GPBMetadata\xea\x02\x19Ai::Stigmer::Commons::Rpcb\x06proto3"
+	"\x15is_skip_authorization\x12\x1e.google.protobuf.MethodOptions\x18\x8a\x87\x03 \x01(\bR\x13isSkipAuthorizationB\xef\x01\n" +
+	"\x1acom.ai.stigmer.commons.rpcB\x12MethodOptionsProtoP\x01ZAgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc\xa2\x02\x04ASCR\xaa\x02\x16Ai.Stigmer.Commons.Rpc\xca\x02\x16Ai\\Stigmer\\Commons\\Rpc\xe2\x02\"Ai\\Stigmer\\Commons\\Rpc\\GPBMetadata\xea\x02\x19Ai::Stigmer::Commons::Rpcb\x06proto3"
 
 var file_ai_stigmer_commons_rpc_method_options_proto_goTypes = []any{
 	(*descriptorpb.MethodOptions)(nil), // 0: google.protobuf.MethodOptions

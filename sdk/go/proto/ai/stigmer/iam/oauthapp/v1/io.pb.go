@@ -172,8 +172,8 @@ const file_ai_stigmer_iam_oauthapp_v1_io_proto_rawDesc = "" +
 	"\tOAuthApps\x12>\n" +
 	"\aentries\x18\x01 \x03(\v2$.ai.stigmer.iam.oauthapp.v1.OAuthAppR\aentries\"4\n" +
 	"\x17ListOAuthAppsByOrgInput\x12\x19\n" +
-	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03orgB\x85\x02\n" +
-	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\aIoProtoP\x01ZMgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03orgB\x88\x02\n" +
+	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\aIoProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_oauthapp_v1_io_proto_rawDescOnce sync.Once

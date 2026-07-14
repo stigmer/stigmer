@@ -2,7 +2,7 @@
 
 package stigmer
 
-import "github.com/stigmer/stigmer/sdk/go/internal/gen"
+import "github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 
 // Resource clients -- one per API resource.
 type AgentClient = gen.AgentClient

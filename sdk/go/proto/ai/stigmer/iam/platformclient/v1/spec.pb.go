@@ -7,8 +7,8 @@
 package platformclientv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	v1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/v1"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -244,8 +244,8 @@ const file_ai_stigmer_iam_platformclient_v1_spec_proto_rawDesc = "" +
 	"\x17auto_provision_accounts\x18\x06 \x01(\bR\x15autoProvisionAccounts\x12)\n" +
 	"\x11auto_grant_on_org\x18\a \x01(\bR\x0eautoGrantOnOrg\x12B\n" +
 	"\x0fauto_grant_role\x18\b \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\rautoGrantRole\x12'\n" +
-	"\x0fallowed_origins\x18\t \x03(\tR\x0eallowedOriginsB\xb1\x02\n" +
-	"$com.ai.stigmer.iam.platformclient.v1B\tSpecProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
+	"\x0fallowed_origins\x18\t \x03(\tR\x0eallowedOriginsB\xb4\x02\n" +
+	"$com.ai.stigmer.iam.platformclient.v1B\tSpecProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_platformclient_v1_spec_proto_rawDescOnce sync.Once

@@ -74,8 +74,8 @@ const file_ai_stigmer_tenancy_project_v1_io_proto_rawDesc = "" +
 	"\n" +
 	"&ai/stigmer/tenancy/project/v1/io.proto\x12\x1dai.stigmer.tenancy.project.v1\x1a\x1bbuf/validate/validate.proto\")\n" +
 	"\tProjectId\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05valueB\x96\x02\n" +
-	"!com.ai.stigmer.tenancy.project.v1B\aIoProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1;projectv1\xa2\x02\x04ASTP\xaa\x02\x1dAi.Stigmer.Tenancy.Project.V1\xca\x02\x1dAi\\Stigmer\\Tenancy\\Project\\V1\xe2\x02)Ai\\Stigmer\\Tenancy\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Tenancy::Project::V1b\x06proto3"
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05valueB\x99\x02\n" +
+	"!com.ai.stigmer.tenancy.project.v1B\aIoProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/project/v1;projectv1\xa2\x02\x04ASTP\xaa\x02\x1dAi.Stigmer.Tenancy.Project.V1\xca\x02\x1dAi\\Stigmer\\Tenancy\\Project\\V1\xe2\x02)Ai\\Stigmer\\Tenancy\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Tenancy::Project::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_tenancy_project_v1_io_proto_rawDescOnce sync.Once

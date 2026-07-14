@@ -7,8 +7,8 @@
 package sessionv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -30,9 +30,9 @@ const file_ai_stigmer_agentic_session_v1_query_proto_rawDesc = "" +
 	"\x16SessionQueryController\x12\x85\x01\n" +
 	"\x03get\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\",¸\x18(\b\x01\x10*\"\x05value*\x1bunauthorized to get session\x12l\n" +
 	"\x04list\x122.ai.stigmer.agentic.session.v1.ListSessionsRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04и\x18\x01\x12\x8a\x01\n" +
-	"\x13listByAgentInstance\x12A.ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04и\x18\x01\x1a\x04\xa0\xff+*B\x99\x02\n" +
+	"\x13listByAgentInstance\x12A.ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04и\x18\x01\x1a\x04\xa0\xff+*B\x9c\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\n" +
-	"QueryProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
+	"QueryProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_session_v1_query_proto_goTypes = []any{
 	(*SessionId)(nil),                          // 0: ai.stigmer.agentic.session.v1.SessionId

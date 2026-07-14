@@ -140,7 +140,7 @@ See [mcp-server/README.md](mcp-server/README.md) for IDE configuration (Cursor, 
 
 | SDK | Install | Reference |
 |-----|---------|-----------|
-| **Go** | `go get github.com/stigmer/stigmer/sdk/go` | [Reference](https://stigmer.ai/docs/sdk/go) |
+| **Go** | `go get github.com/stigmer/stigmer/sdk/go/v3` | [Reference](https://stigmer.ai/docs/sdk/go) |
 | **TypeScript** | `npm install @stigmer/sdk` | [Reference](https://stigmer.ai/docs/sdk/typescript) |
 | **Python** | `pip install stigmer` | [Reference](https://stigmer.ai/docs/sdk/python) |
 | **Java** | Maven: `ai.stigmer:stigmer-java` | [Reference](https://stigmer.ai/docs/sdk/java) |
