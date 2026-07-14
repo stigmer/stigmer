@@ -102,6 +102,14 @@ export interface StigmerProviderProps {
   /**
    * Additional CSS class names applied to the scoping container element.
    * The container always includes the `stgm` class for style isolation.
+   *
+   * This is a **theming channel, not a layout channel**: the class is
+   * mirrored onto the portal container on `document.body` (see #182) so
+   * that token overrides scoped to it reach portaled surfaces (popovers,
+   * dialogs, menus). Layout styles passed here would therefore also size
+   * that off-tree element. To style the in-tree container alone — e.g.
+   * the fixed-height embedding recipe (#260) — target the stable
+   * `.stgm[data-stgm-root]` selector from host CSS instead.
    */
   readonly className?: string;
   /**
@@ -179,6 +187,30 @@ const EMPTY_REVIEW_RENDERERS: ReviewRenderers = {};
  * `@stigmer/react/styles.css` get isolated styles that do not
  * leak into the host application.
  *
+ * **Sizing.** The container ships with no layout styling — it sizes
+ * to its content, so document-flow embeddings need nothing. For
+ * fixed-height embeddings (docked panes, split layouts), where
+ * height-filling components like `SessionViewer` need a CSS
+ * percentage-height chain to reach them, opt in from host CSS via
+ * the stable `data-stgm-root` selector (#260):
+ *
+ * ```css
+ * .stgm[data-stgm-root] {
+ *   height: 100%;
+ *   min-height: 0;
+ * }
+ * ```
+ *
+ * This is deliberately not an SDK default: `height: 100%` resolves
+ * against flexed sizes under flex-item parents (a `flex-1` content
+ * column makes it balloon even in a content-sized page), so only
+ * the host — which knows its layout — can apply it safely.
+ *
+ * Two stable selector hooks are part of the public contract:
+ * `data-stgm-root` marks the in-tree container (and only it);
+ * `data-stgm-portal` marks the portal container appended to
+ * `document.body` for portaled surfaces.
+ *
  * The `colorMode` prop controls dark/light appearance via a
  * `data-stgm-color-mode` attribute on the scoping container.
  * Host applications pass their theme state directly — no ancestor
@@ -232,8 +264,18 @@ export function StigmerProvider({
                 <TaskKindRegistryContext.Provider value={taskKindRegistryState}>
                   <ReviewRendererContext.Provider value={reviewRenderers ?? EMPTY_REVIEW_RENDERERS}>
                     <PortalContainerContext.Provider value={portalContainer}>
+                      {/*
+                        The in-tree scoping container. `data-stgm-root` is a
+                        stable public selector — the documented seam for hosts
+                        to style THIS element only (e.g. the fixed-height
+                        embedding recipe, #260). It must never be mirrored
+                        onto the portal container, whose own `data-stgm-portal`
+                        marker keeps host in-tree-only CSS away from the
+                        off-tree element.
+                      */}
                       <div
                         className={scope.className}
+                        data-stgm-root=""
                         data-stgm-color-mode={scope.colorMode}
                       >
                         {children}

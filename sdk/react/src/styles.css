@@ -158,6 +158,20 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* The provider's in-tree container ([data-stgm-root]) ships with NO
+     layout styling — deliberately (#260, DD-019). A default
+     `height: 100%` looks benign ("resolves to auto under auto-height
+     parents") but is not: when the container's parent is a flex item
+     (e.g. a `flex-1` prose column), flexbox treats the item's flexed
+     size as definite for percentage resolution, and the container
+     balloons to it even in a fully content-sized page. Fixed-height
+     embedders instead opt in from host CSS, where the layout is known:
+
+       .stgm[data-stgm-root] { height: 100%; min-height: 0; }
+
+     `data-stgm-root` is the stable public selector for exactly this.
+     Do not add sizing rules for it here. */
+
   @keyframes stgm-fade-in-up {
     from {
       opacity: 0;

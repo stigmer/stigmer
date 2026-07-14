@@ -91,4 +91,35 @@ describe("StigmerProvider theme scope", () => {
     expect(portal.getAttribute("data-stgm-color-mode")).toBe("dark");
     expect(portal.className).toBe(inTree.className);
   });
+
+  /**
+   * Regression test for #260: the two scope containers must stay
+   * distinguishable via their stable marker attributes. `data-stgm-root`
+   * is the documented in-tree-only styling seam (e.g. the fixed-height
+   * embedding recipe); if it ever leaked onto the portal container, host
+   * CSS targeting the seam would size a stray element at the end of
+   * `document.body`.
+   */
+  it("marks the in-tree container with data-stgm-root and the portal with data-stgm-portal, never both", () => {
+    render(
+      <StigmerProvider client={makeClient()}>
+        <div data-testid="scope-child" />
+      </StigmerProvider>,
+    );
+
+    const child = document.querySelector('[data-testid="scope-child"]');
+    const inTree = child?.closest(".stgm") as HTMLElement | null;
+    const portal = document.body.querySelector(
+      "[data-stgm-portal]",
+    ) as HTMLElement | null;
+
+    expect(inTree).not.toBeNull();
+    expect(portal).not.toBeNull();
+
+    expect(inTree!.hasAttribute("data-stgm-root")).toBe(true);
+    expect(inTree!.hasAttribute("data-stgm-portal")).toBe(false);
+
+    expect(portal!.hasAttribute("data-stgm-portal")).toBe(true);
+    expect(portal!.hasAttribute("data-stgm-root")).toBe(false);
+  });
 });
