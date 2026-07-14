@@ -1,0 +1,96 @@
+---
+description: Action rule to wrap up a fixed-but-not-yet-merged GitHub issue — post a "what was done" comment, wire auto-close to the PR merge (Closes #N), note next-release availability, and label it. Does NOT close the issue directly.
+alwaysApply: false
+---
+
+# Rule: Wrap Up GitHub Issue
+
+Purpose: When a fix for an issue is implemented but **not yet merged**, wrap up the
+issue without closing it — post a comment describing what was done, wire it to
+**auto-close when the fix merges to `main`**, state that it ships in the **next
+release**, and set labels. Uses the `gh` CLI.
+
+Usage: Invoke explicitly as `@wrap-up-github-issue` (e.g. "wrap up issue #248").
+
+## When to use this vs. `@github-issue-triage`
+
+- **This rule** — the fix is in a PR/branch that hasn't merged. The issue stays
+  **open** and closes itself on merge. Use during session wrap-up.
+- **`@github-issue-triage` (Mode 2 "resolve")** — the fix has already shipped and
+  you want to close the issue **now** (and notify Discord). Do not use this rule
+  to close issues manually.
+
+## Cross-repo scope
+
+GitHub issues are tracked in the **Stigmer OSS** repo (`stigmer/stigmer`). Pass
+`--repo stigmer/stigmer` to every `gh` call so it works regardless of the current
+working directory.
+
+## Execution
+
+### Step 1: Gather context
+
+- Issue number `N` (from the user).
+- The fix's PR (`gh pr list --repo stigmer/stigmer --head <branch> --json number,url,body,state`)
+  or, if no PR exists yet, the branch/commit that carries the fix.
+- The reporter and their original suggestions: `gh issue view N --repo stigmer/stigmer --json title,author,body,comments,state,labels`.
+  If already closed, report it and stop.
+
+### Step 2: Wire the auto-close (Closes #N)
+
+GitHub auto-closes an issue when a PR whose body/title contains a closing keyword
+(`Closes`/`Fixes`/`Resolves #N`) merges into the default branch. Ensure that keyword exists:
+
+- **PR exists but lacks the keyword** — add it to the PR body:
+  `gh pr edit <pr> --repo stigmer/stigmer --body "<existing body>\n\nCloses #N"`
+- **No PR yet** — put `Closes #N` in the fix **commit footer** now, and when the PR
+  is opened (e.g. via `@create-stigmer-oss-pull-request`) confirm the body carries
+  it. The PR body is the reliable trigger under squash-merge, so always land it there.
+- Never close the issue with `gh issue close` in this rule — the merge does it.
+
+### Step 3: Draft and post the comment
+
+The comment MUST:
+1. **State what was done** — a short summary of the fix and a link to the PR.
+2. **Explain it stays open + auto-closes** — "leaving this open; it will close
+   automatically when #<PR> merges to `main`."
+3. **Note next-release availability** — "and ships in the next Stigmer release."
+4. **Address the reporter's suggestions + credit them** — if they proposed
+   approaches, name which were taken/deferred and why; thank them specifically.
+   (Same ethos as `@github-issue-triage`; a thoughtful report earns a thoughtful reply.)
+
+Present the draft for approval, then post with:
+```
+gh issue comment N --repo stigmer/stigmer --body "<approved comment>"
+```
+
+Template:
+```markdown
+Fixed in #<PR> — leaving this open; it will **close automatically when #<PR>
+merges to `main`**, and ships in the next Stigmer release.
+
+### What's fixed
+- <one or more bullets: the change and where it lives>
+
+<Address the reporter's suggestions: what was chosen, what was deferred and why.>
+Thanks @<reporter> for <specific contribution — the report, analysis, repro>.
+```
+
+### Step 4: Label
+
+- Add `status: in-progress` (work is landing but not deployed). Keep the existing
+  type/component/priority labels; add the issue's suggested labels if missing.
+- Do NOT add `status: to-be-deployed` here — that belongs after merge (the resolve
+  flow / deploy tracking owns it).
+```
+gh issue edit N --repo stigmer/stigmer --add-label "status: in-progress"
+```
+
+## Important notes
+
+- **Never close the issue directly** — the whole point is deferring closure to merge.
+- **The keyword must be in the PR body**, not only a commit message, to survive squash-merge.
+- **Always credit the reporter** and address their suggestions explicitly.
+- Report the issue URL, PR URL, and confirm the auto-close linkage when done.
+
+@docs/vocabulary.md
