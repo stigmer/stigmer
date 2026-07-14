@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentchannel.v1;
+
+import "ai/stigmer/commons/apiresource/field_options.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "buf/validate/validate.proto";
+
+// AgentChannelSpec defines the configurable properties of an agent channel.
+//
+// The spec is deliberately small: which agent serves the channel, whether
+// serving is enabled, and which provider the channel targets. Workspace
+// identity and credentials are produced by the install flow and live in
+// status — a declarative apply can never clobber them.
+//
+// @internal
+// P1: the provider arms carry only genuinely user-declarable fields. For
+// the multi-tenant Slack app everything concrete (team_id, bot_user_id,
+// scopes, credentials env) is OAuth-observed → status. Owner-customizable
+// refusal copy (the AgentShareMessages analog) is deliberately deferred:
+// platform-default copy lives in the deliverer (decision 006); adding a
+// messages block later is a non-breaking change.
+message AgentChannelSpec {
+  // Reference to the agent this channel serves.
+  //
+  // @internal
+  // Invariant (enforced in create/update/apply handlers of both editions,
+  // mirroring AgentShare's Phase A rule): agent_ref.org must equal
+  // metadata.org — the connection-owning org is the billing org and
+  // provider credentials resolve in that org (decision 004; T06 invariant).
+  ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [
+    (ai.stigmer.commons.apiresource.reference_kind) = agent,
+    (buf.validate.field).required = true,
+    (buf.validate.field).cel = {
+      id: "agent_ref.kind"
+      message: "agent_ref must reference a resource with kind=agent"
+      expression: "this.kind == 40"
+    }
+  ];
+
+  // Whether serving traffic on this channel is enabled.
+  //
+  // Disabling is a config-preserving pause: the connection keeps its
+  // install state and credentials, but inbound events are refused until
+  // re-enabled. Delete the channel instead for a full teardown.
+  //
+  // @internal
+  // Decision 001 D-d. Pause must never drop the install: re-installing a
+  // Slack app to re-auth is painful. The per-turn gate re-reads this live
+  // (decision 003), so disabling takes effect on the next message.
+  bool enabled = 2;
+
+  // Provider this channel connects to. Exactly one must be specified.
+  //
+  // @internal
+  // Decision 001: provider variance is config-shaped, not lifecycle-shaped
+  // — one kind, a validated oneof (McpServerSpec.server_type precedent).
+  // Adding WhatsApp (T05) extends this oneof; it touches zero kinds.
+  oneof provider_config {
+    option (buf.validate.oneof).required = true;
+
+    // Slack workspace connection (multi-tenant Stigmer Slack app).
+    SlackChannelConfig slack = 3;
+  }
+}
+
+// SlackChannelConfig selects Slack as the channel provider.
+//
+// Empty in v1 by design: with the multi-tenant Stigmer Slack app there is
+// nothing for the user to declare before installing — workspace identity,
+// bot user, and granted scopes are observed during the OAuth install and
+// recorded in status. Future user-tunable Slack behavior lands here.
+//
+// @internal
+// P1. An empty message is set explicitly in manifests (`slack: {}`),
+// satisfying the required oneof. Do not add OAuth-observed facts here —
+// that is the spec-clobbering bug class decision 004 rejected.
+message SlackChannelConfig {}

@@ -5,6 +5,7 @@ package stigmer
 import (
 	"github.com/stigmer/stigmer/sdk/go/internal/gen"
 	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+	agentchannelv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentchannel/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentinstance/v1"
 	agentsharev1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentshare/v1"
@@ -31,6 +32,11 @@ import (
 // AgentInputFromProto creates a AgentInput from a proto Agent resource.
 func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 	return gen.AgentInputFromProto(p)
+}
+
+// AgentChannelInputFromProto creates a AgentChannelInput from a proto AgentChannel resource.
+func AgentChannelInputFromProto(p *agentchannelv1.AgentChannel) *AgentChannelInput {
+	return gen.AgentChannelInputFromProto(p)
 }
 
 // AgentExecutionInputFromProto creates a AgentExecutionInput from a proto AgentExecution resource.

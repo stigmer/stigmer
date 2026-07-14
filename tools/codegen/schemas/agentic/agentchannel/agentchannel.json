@@ -1,0 +1,46 @@
+{
+  "name": "AgentChannelSpec",
+  "kind": "AGENT_CHANNEL_SPEC",
+  "description": "AgentChannelSpec defines the configurable properties of an agent channel.\n\n The spec is deliberately small: which agent serves the channel, whether\n serving is enabled, and which provider the channel targets. Workspace\n identity and credentials are produced by the install flow and live in\n status — a declarative apply can never clobber them.\n\n @internal\n P1: the provider arms carry only genuinely user-declarable fields. For\n the multi-tenant Slack app everything concrete (team_id, bot_user_id,\n scopes, credentials env) is OAuth-observed → status. Owner-customizable\n refusal copy (the AgentShareMessages analog) is deliberately deferred:\n platform-default copy lives in the deliverer (decision 006); adding a\n messages block later is a non-breaking change.",
+  "protoType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec",
+  "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/spec.proto",
+  "fields": [
+    {
+      "name": "AgentRef",
+      "jsonName": "agentRef",
+      "protoField": "agent_ref",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "Reference to the agent this channel serves.\n\n @internal\n Invariant (enforced in create/update/apply handlers of both editions,\n mirroring AgentShare's Phase A rule): agent_ref.org must equal\n metadata.org — the connection-owning org is the billing org and\n provider credentials resolve in that org (decision 004; T06 invariant).",
+      "required": true,
+      "referenceKind": 40,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Enabled",
+      "jsonName": "enabled",
+      "protoField": "enabled",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether serving traffic on this channel is enabled.\n\n Disabling is a config-preserving pause: the connection keeps its\n install state and credentials, but inbound events are refused until\n re-enabled. Delete the channel instead for a full teardown.\n\n @internal\n Decision 001 D-d. Pause must never drop the install: re-installing a\n Slack app to re-auth is painful. The per-turn gate re-reads this live\n (decision 003), so disabling takes effect on the next message.",
+      "required": false
+    },
+    {
+      "name": "Slack",
+      "jsonName": "slack",
+      "protoField": "slack",
+      "type": {
+        "kind": "message",
+        "messageType": "SlackChannelConfig"
+      },
+      "description": "Slack workspace connection (multi-tenant Stigmer Slack app).",
+      "required": false,
+      "oneofGroup": "provider_config"
+    }
+  ]
+}

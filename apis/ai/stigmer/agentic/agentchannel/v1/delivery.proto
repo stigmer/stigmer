@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentchannel.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// ChannelDelivery tracks the delivery of one agent reply to one external
+// conversation.
+//
+// @internal
+// Infrastructure-only. Not a public API resource — no kind, no apiVersion,
+// no CRUD RPCs, no FGA (the OAuthGrant / ExecutionReservation pattern).
+// Stored in an internal Mongo collection with a hand-written repo;
+// decision 002's correctness backbone. Created at webhook time in the same
+// motion as the Session/AgentExecution; claimed atomically by the delivery
+// worker (status-guarded findAndModify, the atomicIncrementConsumed idiom);
+// swept by a Temporal Schedule for executions whose terminal write raced
+// or bypassed the hook.
+message ChannelDelivery {
+  // Unique delivery identifier.
+  string delivery_id = 1;
+
+  // AgentChannel connection this delivery belongs to.
+  string agent_channel_id = 2;
+
+  // Organization that owns the connection (billing org).
+  // Denormalized from the channel so sweep/worker paths never join.
+  string org = 3;
+
+  // AgentExecution whose terminal result this delivery carries.
+  string execution_id = 4;
+
+  // Session the execution belongs to (conversation continuity + audit).
+  string session_id = 5;
+
+  // Provider-neutral conversation key (decision 005: the DM thread
+  // timestamp or the mention thread_ts, per mapping).
+  string conversation_key = 6;
+
+  // External user key (e.g. Slack user id) the reply is for.
+  string external_user_key = 7;
+
+  // Delivery lifecycle status.
+  ChannelDeliveryStatus status = 8;
+
+  // Number of delivery attempts made.
+  int32 attempts = 9;
+
+  // Last delivery error, empty unless a delivery attempt failed.
+  string last_error = 10;
+
+  // Idempotency key for outbound provider calls (stable across retries).
+  string idempotency_key = 11;
+
+  // Provider-specific context needed to deliver the reply.
+  oneof delivery_context {
+    // Slack delivery context.
+    SlackDeliveryContext slack = 12;
+  }
+
+  // When the delivery record was created (webhook time).
+  google.protobuf.Timestamp created_at = 13;
+
+  // When the record was last transitioned.
+  google.protobuf.Timestamp updated_at = 14;
+
+  // Earliest time of the next delivery attempt (backoff schedule).
+  google.protobuf.Timestamp next_attempt_at = 15;
+}
+
+// ChannelDeliveryStatus is the delivery record lifecycle.
+//
+// @internal
+// pending -> delivering is the atomic claim (single winner across
+// replicas). delivering -> delivered | pending (retry, with backoff via
+// next_attempt_at) | failed (dead-lettered after max attempts).
+enum ChannelDeliveryStatus {
+  // Default value when no status is set.
+  channel_delivery_status_unspecified = 0;
+
+  // Awaiting the execution's terminal phase, or awaiting (re)claim.
+  pending = 1;
+
+  // Claimed by a delivery worker; provider I/O in flight.
+  delivering = 2;
+
+  // Reply delivered to the provider.
+  delivered = 3;
+
+  // Dead-lettered after exhausting attempts; last_error records why.
+  failed = 4;
+}
+
+// SlackDeliveryContext carries what the Slack deliverer needs to post or
+// update the reply.
+message SlackDeliveryContext {
+  // Slack channel (conversation) id the reply posts to.
+  string channel_id = 1;
+
+  // Thread timestamp to reply under; empty for plain DM replies.
+  string thread_ts = 2;
+
+  // Timestamp of the placeholder ("thinking") message to chat.update.
+  //
+  // @internal
+  // Set on the @mention and degraded-DM paths only (decision 008); the
+  // Assistant DM path uses assistant.threads.setStatus and carries no
+  // placeholder timestamp.
+  string placeholder_ts = 3;
+}

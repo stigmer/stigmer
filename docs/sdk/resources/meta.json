@@ -2,6 +2,7 @@
   "title": "Resources",
   "pages": [
     "agent",
+    "agent-channel",
     "agent-execution",
     "agent-instance",
     "agent-share",
