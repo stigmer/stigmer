@@ -38,6 +38,59 @@ Portaled surfaces (dropdowns, dialogs, tooltips) render into a container on
 `document.body` that carries the same theme class and color-mode attribute,
 so they stay themed even though they render outside your DOM subtree.
 
+The two containers are distinguishable through stable, documented marker
+attributes: the in-tree scope carries `data-stgm-root`, the portal
+container carries `data-stgm-portal`. You can rely on both in host CSS.
+
+## Sizing and fixed-height embedding
+
+The in-tree scope ships with **no layout styling** — it sizes to its
+content, so mounting the provider in a normally-scrolling page needs
+nothing.
+
+Fixed-height embeddings (a docked conversation pane, a split layout, an
+IDE-style panel) are different: height-filling components like
+`SessionViewer` root at `height: 100%` and need an unbroken
+percentage-height chain from your definite-height region down to them.
+The scope element sits in that chain, so opt it in from your CSS via the
+stable `data-stgm-root` selector:
+
+```css
+.stgm[data-stgm-root] {
+  height: 100%;
+  min-height: 0;
+}
+```
+
+Then give the provider a definite-height ancestor and the conversation
+fills the pane, with the transcript scrolling internally:
+
+```tsx
+<div style={{ height: 480, overflow: "hidden" }}>
+  <StigmerProvider client={client} preset="monochrome" colorMode="dark">
+    <SessionViewer sessionId={sessionId} org={org} audience="endUser" />
+  </StigmerProvider>
+</div>
+```
+
+`min-height: 0` matters when the scope is a flex or grid child: without
+it the browser refuses to shrink the scope below its content, and
+internal scrolling never engages.
+
+Two things to know:
+
+- **This is opt-in by design, not an SDK default.** `height: 100%` is
+  not benign in arbitrary layouts — under a flex-item parent (a `flex-1`
+  content column, for instance) the browser resolves percentages against
+  the flexed size and the scope balloons to it, even in a content-sized
+  page. Only you know your layout; scope the rule to the embeddings that
+  need it.
+- **The provider's `className` prop is the wrong tool for layout.** It is
+  a *theming* channel, mirrored onto the portal container on
+  `document.body` so token overrides reach portaled surfaces — layout
+  styles passed there would also size that off-tree element. Target
+  `.stgm[data-stgm-root]` for the in-tree container alone.
+
 ## Set the color mode
 
 Pass `colorMode` to `StigmerProvider`:

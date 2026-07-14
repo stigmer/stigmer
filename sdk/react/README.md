@@ -61,7 +61,7 @@ Three things are required:
 | `executionTarget` | `"local" \| "cloud"` | No | Default execution target for sessions and workflow executions created in this provider. Omit to let the server decide. See [Local Execution](#local-execution). |
 | `runnerAdapter` | `RunnerAdapter` | No | Runner lifecycle adapter, required when `executionTarget` is `"local"`. Omit for cloud. See [Local Execution](#local-execution). |
 | `preset` | `ThemePresetId` | No | Built-in theme preset to apply. Omit for the default Stigmer palette. |
-| `className` | `string` | No | Additional CSS classes on the scoping container. |
+| `className` | `string` | No | Additional CSS classes for theming. Applied to the scoping container *and* mirrored onto the portal container, so token overrides reach portaled surfaces — not a layout channel (see [Style Isolation](#style-isolation)). |
 
 ### `useStigmer()` Hook
 
@@ -197,6 +197,21 @@ Returns `"light"` or `"dark"` — never `"system"`. The provider resolves `"syst
 - **Token namespacing.** All design tokens use the `--stgm-*` prefix. No collision with host application CSS variables.
 
 This means you can mount `<StigmerProvider>` inside a sidebar, modal, or any section of your page and Stigmer's styles stay contained.
+
+### Sizing
+
+The scoping container ships with no layout styling — it sizes to its content, so document-flow embeddings need nothing. For fixed-height embeddings (docked panes, split layouts), height-filling components like `SessionViewer` need a percentage-height chain to reach them; opt the container into that chain from host CSS:
+
+```css
+.stgm[data-stgm-root] {
+  height: 100%;
+  min-height: 0;
+}
+```
+
+This is opt-in rather than an SDK default because `height: 100%` is not safe in arbitrary layouts (under a `flex-1` parent it resolves against the flexed size and balloons) — only the host knows its layout.
+
+Two marker attributes are stable public selectors: `data-stgm-root` on the in-tree container, `data-stgm-portal` on the portal container appended to `document.body`. See the [theming guide](../../docs/sdk/theme/theming.mdx) for the full sizing and embedding reference.
 
 ## Local Execution
 

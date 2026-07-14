@@ -214,6 +214,30 @@ CSS reset and design tokens. External consumers importing
 `@stigmer/react/styles.css` get isolated styles that do not
 leak into the host application.
 
+**Sizing.** The container ships with no layout styling — it sizes
+to its content, so document-flow embeddings need nothing. For
+fixed-height embeddings (docked panes, split layouts), where
+height-filling components like `SessionViewer` need a CSS
+percentage-height chain to reach them, opt in from host CSS via
+the stable `data-stgm-root` selector (#260):
+
+```css
+.stgm[data-stgm-root] {
+  height: 100%;
+  min-height: 0;
+}
+```
+
+This is deliberately not an SDK default: `height: 100%` resolves
+against flexed sizes under flex-item parents (a `flex-1` content
+column makes it balloon even in a content-sized page), so only
+the host — which knows its layout — can apply it safely.
+
+Two stable selector hooks are part of the public contract:
+`data-stgm-root` marks the in-tree container (and only it);
+`data-stgm-portal` marks the portal container appended to
+`document.body` for portaled surfaces.
+
 The `colorMode` prop controls dark/light appearance via a
 `data-stgm-color-mode` attribute on the scoping container.
 Host applications pass their theme state directly — no ancestor
@@ -228,7 +252,7 @@ for custom styling.
 <TypeTable
   type={{
     children: { type: "ReactNode", description: "React children rendered inside the provider scope.", required: true },
-    className: { type: "string", description: "Additional CSS class names applied to the scoping container element. The container always includes the `stgm` class for style isolation." },
+    className: { type: "string", description: "Additional CSS class names applied to the scoping container element. The container always includes the `stgm` class for style isolation.  This is a **theming channel, not a layout channel**: the class is mirrored onto the portal container on `document.body` (see #182) so that token overrides scoped to it reach portaled surfaces (popovers, dialogs, menus). Layout styles passed here would therefore also size that off-tree element. To style the in-tree container alone — e.g. the fixed-height embedding recipe (#260) — target the stable `.stgm[data-stgm-root]` selector from host CSS instead." },
     client: { type: "Stigmer", description: "A configured Stigmer client instance.", required: true },
     colorMode: { type: "ColorMode", description: "Controls the color mode for all descendant Stigmer components.  - `\"light\"` — light design tokens (default). - `\"dark\"`  — dark design tokens. - `\"system\"` — follows the user's OS preference via   `prefers-color-scheme`. Resolved to `\"light\"` or `\"dark\"`   before reaching CSS or React context.  The resolved value is set as `data-stgm-color-mode` on the scoping container and exposed via useColorMode. Host applications pass their own theme state directly — no ancestor CSS class conventions are required.", typeDescriptionLink: "#colormode" },
     deploymentMode: { type: "DeploymentMode", description: "Deployment mode of the connected Stigmer backend.  - `\"local\"` — local Go CLI server (OSS). Cloud-only resources   (API keys, IAM, identity management) are unavailable. - `\"cloud\"` — Stigmer Cloud. All resources are available.  Defaults to `\"cloud\"` so existing consumers see no change. The Stigmer Console derives this from the API URL hostname. Platform builders pass it based on their deployment context.", typeDescriptionLink: "#deploymentmode" },
