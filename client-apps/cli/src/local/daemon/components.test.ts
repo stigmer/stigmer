@@ -47,6 +47,21 @@ describe("buildRunnerEnv", () => {
     expect(withKey.STIGMER_ACTIVITY_ROUTING).toBe("session");
   });
 
+  it("forwards LLM provider keys only when set, resolved value winning over the base env", () => {
+    const bare = buildRunnerEnv(config, {});
+    expect(bare.ANTHROPIC_API_KEY).toBeUndefined();
+    expect(bare.OPENAI_API_KEY).toBeUndefined();
+
+    // The contract value is authoritative: the launcher already applied the
+    // env > config precedence, so whatever sits in the child's base env must
+    // not override the resolved key.
+    const env = buildRunnerEnv(
+      { ...config, anthropicApiKey: "sk-ant-resolved" },
+      { ANTHROPIC_API_KEY: "sk-ant-other" },
+    );
+    expect(env.ANTHROPIC_API_KEY).toBe("sk-ant-resolved");
+  });
+
   // The regression guard for the queue bug: the server dispatches to, and the
   // runner polls, the exact same queue.
   it("pins the runner's poll queue to the server's dispatch queue", () => {

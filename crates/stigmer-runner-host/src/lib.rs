@@ -31,8 +31,13 @@
 //!     temporal_namespace: None,
 //!     stigmer_token: Some("stigmer_token".into()),
 //!     cursor_api_key: None,
+//!     // BYOK direct mode (self-managed, no proxy): pass the provider keys here
+//!     // instead of priming your own process env before start().
+//!     anthropic_api_key: None,
+//!     openai_api_key: None,
 //!     workspace_root_dir: None,
 //!     proxy_endpoint: Some("https://api.stigmer.ai".into()),
+//!     extra_env: Default::default(),
 //! })
 //! .await?;
 //! host.add_session("ses_abc123").await?;

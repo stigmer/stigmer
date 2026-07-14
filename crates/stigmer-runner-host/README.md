@@ -21,13 +21,16 @@ host.start(RunnerConfig {
     // resolves a relative entry against the working directory, which is `/` for a
     // GUI app. A path that does not resolve fails fast with `RunnerEntryNotFound`.
     runner_entry: "/path/to/resources/runner/dist/main.js".into(),
-    temporal_address: "localhost:7233".into(),
+    temporal_address: Some("localhost:7233".into()),
     stigmer_endpoint: "http://localhost:7234".into(),
     temporal_namespace: None,
     stigmer_token: None,
     cursor_api_key: None,
+    anthropic_api_key: None,
+    openai_api_key: None,
     workspace_root_dir: None,
     proxy_endpoint: None,
+    extra_env: Default::default(),
 })
 .await?;
 
@@ -39,6 +42,29 @@ host.stop().await?;
 
 The crate does not bundle the Node runner; point `node_binary` + `runner_entry` at an
 installed `@stigmer/runner`.
+
+## LLM credentials (BYOK / direct mode)
+
+The runner resolves model credentials in one of two modes, decided by `proxy_endpoint`:
+
+- **Proxy mode** (`proxy_endpoint: Some(..)`) — model traffic routes through the Stigmer
+  proxy, which injects provider keys server-side. The runner authenticates with
+  `stigmer_token`; do not pass provider keys. This is how the Stigmer desktop app runs
+  against Stigmer Cloud.
+- **Direct mode** (`proxy_endpoint: None`) — the runner calls the providers itself with
+  keys you supply: `anthropic_api_key` and/or `openai_api_key` for the native harness,
+  `cursor_api_key` for the Cursor harness. Without them, executions fail at model-call
+  time with `LLM_MISSING_API_KEY`.
+
+Pass credentials through these typed fields, not by mutating your own process
+environment before `start()` — the spawn env is composed from the config, so the typed
+fields are the supported channel (and the only discoverable one).
+
+`extra_env` forwards any additional environment to the spawned runner (for example
+`LOG_LEVEL`, or `STIGMER_RUNNER_HITL_SECRET` to pin a HITL fingerprint key across
+replicas). Keys the host owns — everything the crate composes itself, including the
+credential vars above — are **reserved**: `start()` rejects them with
+`ReservedEnvKey`, pointing at the typed field to use instead.
 
 ## Tauri binding
 

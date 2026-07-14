@@ -99,6 +99,10 @@ impl RunnerHost {
         // would surface much later as an opaque EOF/serde error on the `ready` line,
         // long after the real cause.
         validate_runner_entry(&config.runner_entry)?;
+        // Fail fast on extra_env entries that shadow host-owned keys, for the same
+        // reason: a silently-clobbered STIGMER_TOKEN or TEMPORAL_NAMESPACE would
+        // surface as a confusing runtime failure far from the misconfiguration.
+        validate_extra_env(&config)?;
 
         let mut cmd = Command::new(&config.node_binary);
         cmd.arg(&config.runner_entry);
@@ -417,6 +421,25 @@ fn negotiate_ready(line: &str) -> Result<u32, RunnerHostError> {
     }
 }
 
+/// Env keys `extra_env` may not set: every key [`build_env`] can emit. Each has a typed
+/// `RunnerConfig` field (or, for `STIGMER_RUNNER_MODE` / `NODE_TLS_REJECT_UNAUTHORIZED`,
+/// is derived by the host), so an `extra_env` entry could only shadow or contradict it.
+/// The `reserved_env_covers_everything_build_env_emits` test keeps this list and
+/// `build_env` from drifting apart.
+const RESERVED_ENV_KEYS: &[&str] = &[
+    "STIGMER_RUNNER_MODE",
+    "STIGMER_BACKEND_ENDPOINT",
+    "TEMPORAL_SERVICE_ADDRESS",
+    "TEMPORAL_NAMESPACE",
+    "STIGMER_TOKEN",
+    "CURSOR_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "WORKSPACE_ROOT_DIR",
+    "STIGMER_PROXY_ENDPOINT",
+    "NODE_TLS_REJECT_UNAUTHORIZED",
+];
+
 /// Build the environment the runner subprocess inherits from a [`RunnerConfig`].
 ///
 /// Pure and total (no process, no I/O) so the env mapping is unit-testable. The
@@ -424,6 +447,9 @@ fn negotiate_ready(line: &str) -> Result<u32, RunnerHostError> {
 /// only when the host provides an address: omitting it is the token-only
 /// embedding path, where the runner self-discovers Temporal from the control
 /// plane using `STIGMER_TOKEN`.
+///
+/// Assumes `extra_env` passed [`validate_extra_env`], so appending it cannot
+/// duplicate a key emitted above.
 fn build_env(config: &RunnerConfig) -> Vec<(String, String)> {
     let mut env: Vec<(String, String)> = vec![
         ("STIGMER_RUNNER_MODE".to_string(), "manager".to_string()),
@@ -445,6 +471,12 @@ fn build_env(config: &RunnerConfig) -> Vec<(String, String)> {
     if let Some(key) = &config.cursor_api_key {
         env.push(("CURSOR_API_KEY".to_string(), key.clone()));
     }
+    if let Some(key) = &config.anthropic_api_key {
+        env.push(("ANTHROPIC_API_KEY".to_string(), key.clone()));
+    }
+    if let Some(key) = &config.openai_api_key {
+        env.push(("OPENAI_API_KEY".to_string(), key.clone()));
+    }
     if let Some(dir) = &config.workspace_root_dir {
         env.push(("WORKSPACE_ROOT_DIR".to_string(), dir.clone()));
     }
@@ -457,7 +489,31 @@ fn build_env(config: &RunnerConfig) -> Vec<(String, String)> {
         }
     }
 
+    // Sorted so the child env is deterministic (HashMap iteration order is not).
+    let mut extra: Vec<(String, String)> = config
+        .extra_env
+        .iter()
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .collect();
+    extra.sort_by(|(a, _), (b, _)| a.cmp(b));
+    env.extend(extra);
+
     env
+}
+
+/// Reject `extra_env` keys the host owns, before anything is spawned.
+///
+/// Reserved keys are always rejected — even when the current config would not emit them
+/// (e.g. `STIGMER_TOKEN` with `stigmer_token: None`) — because each has a typed field
+/// that is the one discoverable way to set it. Silently accepting the env spelling would
+/// recreate the undocumented side channel this crate exists to replace (issue #250).
+fn validate_extra_env(config: &RunnerConfig) -> Result<(), RunnerHostError> {
+    for key in config.extra_env.keys() {
+        if RESERVED_ENV_KEYS.contains(&key.as_str()) {
+            return Err(RunnerHostError::ReservedEnvKey { key: key.clone() });
+        }
+    }
+    Ok(())
 }
 
 /// Ensure the runner entry points at a file that exists before we hand it to `node`.
@@ -611,8 +667,11 @@ mod tests {
             temporal_namespace: None,
             stigmer_token: Some("tok".to_string()),
             cursor_api_key: None,
+            anthropic_api_key: None,
+            openai_api_key: None,
             workspace_root_dir: None,
             proxy_endpoint: None,
+            extra_env: std::collections::HashMap::new(),
         }
     }
 
@@ -642,6 +701,114 @@ mod tests {
             env_value(&env, "TEMPORAL_SERVICE_ADDRESS"),
             Some("temporal.example:7233")
         );
+    }
+
+    #[test]
+    fn build_env_sets_llm_provider_keys_only_when_provided() {
+        // BYOK direct mode (issue #250): the typed fields must land as the exact env
+        // vars the runner's model client reads, and stay absent otherwise.
+        let env = build_env(&minimal_config());
+        assert_eq!(env_value(&env, "ANTHROPIC_API_KEY"), None);
+        assert_eq!(env_value(&env, "OPENAI_API_KEY"), None);
+
+        let mut config = minimal_config();
+        config.anthropic_api_key = Some("sk-ant-test".to_string());
+        config.openai_api_key = Some("sk-oai-test".to_string());
+        let env = build_env(&config);
+        assert_eq!(env_value(&env, "ANTHROPIC_API_KEY"), Some("sk-ant-test"));
+        assert_eq!(env_value(&env, "OPENAI_API_KEY"), Some("sk-oai-test"));
+    }
+
+    #[test]
+    fn build_env_appends_extra_env_sorted_by_key() {
+        let mut config = minimal_config();
+        config.extra_env = [
+            ("LOG_LEVEL".to_string(), "debug".to_string()),
+            ("A_CUSTOM_VAR".to_string(), "1".to_string()),
+        ]
+        .into_iter()
+        .collect();
+
+        let env = build_env(&config);
+
+        assert_eq!(env_value(&env, "LOG_LEVEL"), Some("debug"));
+        assert_eq!(env_value(&env, "A_CUSTOM_VAR"), Some("1"));
+        // Deterministic ordering: extras come after the host-owned block, sorted.
+        let tail: Vec<&str> = env.iter().rev().take(2).map(|(k, _)| k.as_str()).collect();
+        assert_eq!(tail, vec!["LOG_LEVEL", "A_CUSTOM_VAR"]);
+    }
+
+    #[test]
+    fn every_reserved_key_is_rejected_in_extra_env() {
+        for key in RESERVED_ENV_KEYS {
+            let mut config = minimal_config();
+            config.extra_env = [(key.to_string(), "x".to_string())].into_iter().collect();
+
+            match validate_extra_env(&config).unwrap_err() {
+                RunnerHostError::ReservedEnvKey { key: rejected } => {
+                    assert_eq!(&rejected, key)
+                }
+                other => panic!("expected ReservedEnvKey for {key}, got {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn reserved_key_error_points_at_the_typed_field() {
+        // The rejection must be actionable: an embedder who reached for the env
+        // spelling is told which RunnerConfig field to use instead.
+        let mut config = minimal_config();
+        config.extra_env = [("ANTHROPIC_API_KEY".to_string(), "sk".to_string())]
+            .into_iter()
+            .collect();
+
+        let message = validate_extra_env(&config).unwrap_err().to_string();
+        assert!(
+            message.contains("anthropic_api_key"),
+            "error must name the typed field: {message}"
+        );
+    }
+
+    #[test]
+    fn non_reserved_extra_env_passes_validation() {
+        // STIGMER_RUNNER_HITL_SECRET is the documented way to pin a HITL fingerprint
+        // key across replicas — a deliberate extra_env use case, not a reserved key.
+        let mut config = minimal_config();
+        config.extra_env = [("STIGMER_RUNNER_HITL_SECRET".to_string(), "s".to_string())]
+            .into_iter()
+            .collect();
+        assert!(validate_extra_env(&config).is_ok());
+    }
+
+    #[test]
+    fn reserved_env_covers_everything_build_env_emits() {
+        // Honesty check (same spirit as the IPC golden fixtures): populate every
+        // config field so build_env emits its full vocabulary, then require each
+        // emitted key to be reserved. Adding a var to build_env without reserving
+        // it fails here — the guard cannot silently rot.
+        let config = RunnerConfig {
+            node_binary: "node".to_string(),
+            runner_entry: "main.js".to_string(),
+            temporal_address: Some("temporal.example:7233".to_string()),
+            stigmer_endpoint: "https://api.stigmer.ai".to_string(),
+            temporal_namespace: Some("ns".to_string()),
+            stigmer_token: Some("tok".to_string()),
+            cursor_api_key: Some("ck".to_string()),
+            anthropic_api_key: Some("ak".to_string()),
+            openai_api_key: Some("ok".to_string()),
+            workspace_root_dir: Some("/tmp/ws".to_string()),
+            // https so the derived NODE_TLS_REJECT_UNAUTHORIZED is emitted too.
+            proxy_endpoint: Some("https://proxy.example".to_string()),
+            extra_env: std::collections::HashMap::new(),
+        };
+
+        for (key, _) in build_env(&config) {
+            assert!(
+                RESERVED_ENV_KEYS.contains(&key.as_str()),
+                "build_env emits `{key}` but RESERVED_ENV_KEYS does not reserve it; \
+                 an extra_env entry could silently shadow it"
+            );
+        }
     }
 
     #[test]

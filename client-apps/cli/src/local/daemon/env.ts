@@ -17,6 +17,8 @@ export const DaemonEnvVar = {
   RunnerEntry: "STIGMER_RUNNER_ENTRY",
   RunnerAppDir: "STIGMER_RUNNER_APP_DIR",
   CursorApiKey: "CURSOR_API_KEY",
+  AnthropicApiKey: "ANTHROPIC_API_KEY",
+  OpenAiApiKey: "OPENAI_API_KEY",
   ActivityRouting: "STIGMER_ACTIVITY_ROUTING",
 } as const;
 
@@ -38,6 +40,8 @@ export interface DaemonConfig {
   serverBin: string;
   runner?: RunnerLaunch;
   cursorApiKey?: string;
+  anthropicApiKey?: string;
+  openaiApiKey?: string;
   activityRouting?: string;
 }
 
@@ -51,6 +55,12 @@ export interface DaemonEnvInputs {
   noWeb: boolean;
   serverBin: string;
   runner?: RunnerLaunch;
+  // LLM provider key resolved by the launcher (env > config file). Must be written
+  // into the daemon env explicitly: unlike a shell-exported key, a key persisted by
+  // `stigmer setup` exists only in the config file and would otherwise never reach
+  // the runner. Only the effective provider's key is set.
+  anthropicApiKey?: string;
+  openaiApiKey?: string;
 }
 
 /**
@@ -72,6 +82,8 @@ export function buildDaemonEnv(inputs: DaemonEnvInputs, base: NodeJS.ProcessEnv 
     env[DaemonEnvVar.RunnerEntry] = inputs.runner.entryPath;
     env[DaemonEnvVar.RunnerAppDir] = inputs.runner.appDir;
   }
+  if (inputs.anthropicApiKey !== undefined) env[DaemonEnvVar.AnthropicApiKey] = inputs.anthropicApiKey;
+  if (inputs.openaiApiKey !== undefined) env[DaemonEnvVar.OpenAiApiKey] = inputs.openaiApiKey;
   return env;
 }
 
@@ -93,6 +105,8 @@ export function readDaemonConfig(env: NodeJS.ProcessEnv = process.env): DaemonCo
     serverBin: required(env, DaemonEnvVar.ServerBin),
     runner: serverOnly ? undefined : runner,
     cursorApiKey: nonEmpty(env[DaemonEnvVar.CursorApiKey]),
+    anthropicApiKey: nonEmpty(env[DaemonEnvVar.AnthropicApiKey]),
+    openaiApiKey: nonEmpty(env[DaemonEnvVar.OpenAiApiKey]),
     activityRouting: nonEmpty(env[DaemonEnvVar.ActivityRouting]),
   };
 }

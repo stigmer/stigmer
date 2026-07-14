@@ -37,11 +37,11 @@ supply depends on your deployment. The table below is the minimal surface for
 each audience; the full list lives in the runner README
 (`backend/services/runner/README.md`), under its configuration reference.
 
-| Your situation                                   | Stigmer token        | Backend endpoint      | Temporal address        | Cursor key                |
-| ------------------------------------------------ | -------------------- | --------------------- | ----------------------- | ------------------------- |
-| **Cloud, cloud execution** (no embedding)        | Pass to the SDK only | Platform-managed      | Platform-managed        | Platform-managed          |
-| **Cloud, embedded local execution** (desktop)    | Required             | Required (your Cloud) | Discovered (token)      | Not needed (proxied)      |
-| **Self-managed (OSS or self-hosted full stack)** | Optional             | Defaults to localhost | Discovered or localhost | Required (Cursor harness) |
+| Your situation                                   | Stigmer token        | Backend endpoint      | Temporal address        | Cursor key                | LLM provider keys         |
+| ------------------------------------------------ | -------------------- | --------------------- | ----------------------- | ------------------------- | ------------------------- |
+| **Cloud, cloud execution** (no embedding)        | Pass to the SDK only | Platform-managed      | Platform-managed        | Platform-managed          | Platform-managed          |
+| **Cloud, embedded local execution** (desktop)    | Required             | Required (your Cloud) | Discovered (token)      | Not needed (proxied)      | Not needed (proxied)      |
+| **Self-managed (OSS or self-hosted full stack)** | Optional             | Defaults to localhost | Discovered or localhost | Required (Cursor harness) | Required (native harness) |
 
 How to read each row:
 
@@ -59,11 +59,16 @@ How to read each row:
 - **Self-managed.** You run your own Temporal and Stigmer Server. In the default
   `MODE=local`, `TEMPORAL_SERVICE_ADDRESS` defaults to `localhost:7233` and
   `STIGMER_BACKEND_ENDPOINT` to `http://localhost:7234`. `STIGMER_TOKEN` is
-  optional because a local server has no auth, and you pass `CURSOR_API_KEY`
-  directly for the Cursor harness. A **managed self-hosted** deployment, where
-  you run the full Stigmer stack on your own infrastructure with Stigmer
-  support, uses this same surface — point the endpoints at your hosts instead of
-  localhost.
+  optional because a local server has no auth. Credentials are **bring your
+  own**: you pass `CURSOR_API_KEY` directly for the Cursor harness, and
+  `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` for the native harness (there is no
+  proxy to inject them — an execution that needs a missing key fails with
+  `LLM_MISSING_API_KEY`). The Rust host crate exposes all three as typed config
+  fields (`cursor_api_key`, `anthropic_api_key`, `openai_api_key`), so an
+  embedder never has to prime its own process environment. A **managed
+  self-hosted** deployment, where you run the full Stigmer stack on your own
+  infrastructure with Stigmer support, uses this same surface — point the
+  endpoints at your hosts instead of localhost.
 
 ## Temporal self-discovery
 
@@ -307,9 +312,16 @@ host.start(RunnerConfig {
     stigmer_endpoint: "https://api.stigmer.ai".into(),
     temporal_namespace: None,
     stigmer_token: Some("stigmer_token".into()),
+    // Credentials for direct (BYOK) mode. With a proxy_endpoint set, leave all
+    // three None — the proxy injects the real keys server-side.
     cursor_api_key: None,
+    anthropic_api_key: None,
+    openai_api_key: None,
     workspace_root_dir: None,
     proxy_endpoint: Some("https://api.stigmer.ai".into()),
+    // Additional env for the runner (e.g. LOG_LEVEL). Keys the host composes
+    // itself, including the credential vars above, are reserved and rejected.
+    extra_env: Default::default(),
 })
 .await?;
 

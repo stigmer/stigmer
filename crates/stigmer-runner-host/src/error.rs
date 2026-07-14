@@ -21,6 +21,12 @@ pub enum RunnerHostError {
     )]
     RunnerEntryNotFound { entry: String, cwd: String },
 
+    #[error(
+        "extra_env key `{key}` is reserved: the host owns it{hint}",
+        hint = typed_field_hint(.key)
+    )]
+    ReservedEnvKey { key: String },
+
     #[error("failed to spawn runner process: {0}")]
     Spawn(#[source] std::io::Error),
 
@@ -55,5 +61,22 @@ impl RunnerHostError {
             std::io::ErrorKind::BrokenPipe,
             format!("failed to capture runner {which}"),
         ))
+    }
+}
+
+// Points a rejected reserved key at the typed `RunnerConfig` field that sets it, so the
+// error is actionable without reading crate source.
+fn typed_field_hint(key: &str) -> &'static str {
+    match key {
+        "ANTHROPIC_API_KEY" => "; use the `anthropic_api_key` field instead",
+        "OPENAI_API_KEY" => "; use the `openai_api_key` field instead",
+        "STIGMER_TOKEN" => "; use the `stigmer_token` field instead",
+        "CURSOR_API_KEY" => "; use the `cursor_api_key` field instead",
+        "TEMPORAL_SERVICE_ADDRESS" => "; use the `temporal_address` field instead",
+        "TEMPORAL_NAMESPACE" => "; use the `temporal_namespace` field instead",
+        "STIGMER_BACKEND_ENDPOINT" => "; use the `stigmer_endpoint` field instead",
+        "WORKSPACE_ROOT_DIR" => "; use the `workspace_root_dir` field instead",
+        "STIGMER_PROXY_ENDPOINT" => "; use the `proxy_endpoint` field instead",
+        _ => "",
     }
 }
