@@ -30,6 +30,7 @@ func tsProtoFieldName(protoField string) string {
 // tsClientFieldName converts a resource name to a client field name.
 func tsClientFieldName(resource string) string {
 	replacements := map[string]string{
+		"agentchannel":      "agentChannel",
 		"agentexecution":    "agentExecution",
 		"agentinstance":     "agentInstance",
 		"agentshare":        "agentShare",

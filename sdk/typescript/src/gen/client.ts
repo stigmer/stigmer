@@ -28,7 +28,7 @@ import { WorkflowInstanceClient } from "./workflowinstance.js";
 /** Aggregate client with all resource-specific sub-clients. */
 export class GeneratedClient {
   readonly agent: AgentClient;
-  readonly agentchannel: AgentChannelClient;
+  readonly agentChannel: AgentChannelClient;
   readonly agentExecution: AgentExecutionClient;
   readonly agentInstance: AgentInstanceClient;
   readonly agentShare: AgentShareClient;
@@ -53,7 +53,7 @@ export class GeneratedClient {
 
   constructor(transport: Transport) {
     this.agent = new AgentClient(transport);
-    this.agentchannel = new AgentChannelClient(transport);
+    this.agentChannel = new AgentChannelClient(transport);
     this.agentExecution = new AgentExecutionClient(transport);
     this.agentInstance = new AgentInstanceClient(transport);
     this.agentShare = new AgentShareClient(transport);
