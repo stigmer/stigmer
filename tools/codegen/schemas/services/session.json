@@ -411,6 +411,11 @@
           "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
         },
         {
+          "name": "agent_channel",
+          "number": 47,
+          "description": "Connection binding an agent to an external messaging platform workspace."
+        },
+        {
           "name": "workflow",
           "number": 50,
           "description": "Multi-step orchestration defining how agents collaborate on a task."

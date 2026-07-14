@@ -8,7 +8,7 @@ package identityaccountv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -192,8 +192,8 @@ const file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDesc = "" +
 	"pictureUrl\x12,\n" +
 	"\x12is_machine_account\x18\x06 \x01(\bR\x10isMachineAccount\x12o\n" +
 	"\x11provisioning_mode\x18\a \x01(\x0e2B.ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningModeR\x10provisioningMode\x12h\n" +
-	"\x15identity_provider_ref\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRefB\xb8\x02\n" +
-	"%com.ai.stigmer.iam.identityaccount.v1B\tSpecProtoP\x01Z[github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
+	"\x15identity_provider_ref\x18\b \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRefB\xbb\x02\n" +
+	"%com.ai.stigmer.iam.identityaccount.v1B\tSpecProtoP\x01Z^github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_identityaccount_v1_spec_proto_rawDescOnce sync.Once

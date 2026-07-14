@@ -50,7 +50,7 @@ The Stigmer SDK follows a **"Synthesis Model"** architecture:
 **Installation**:
 
 ```bash
-go get github.com/stigmer/stigmer/sdk/go
+go get github.com/stigmer/stigmer/sdk/go/v3
 ```
 
 **Quick Example**:
@@ -59,9 +59,9 @@ go get github.com/stigmer/stigmer/sdk/go
 package main
 
 import (
-    "github.com/stigmer/stigmer/sdk/go/agent"
-    "github.com/stigmer/stigmer/sdk/go/skill"
-    "github.com/stigmer/stigmer/sdk/go/stigmer"
+    "github.com/stigmer/stigmer/sdk/go/v3/agent"
+    "github.com/stigmer/stigmer/sdk/go/v3/skill"
+    "github.com/stigmer/stigmer/sdk/go/v3/stigmer"
 )
 
 func main() {

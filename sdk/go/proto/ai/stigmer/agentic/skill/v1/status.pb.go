@@ -8,7 +8,7 @@ package skillv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -294,8 +294,8 @@ const file_ai_stigmer_agentic_skill_v1_status_proto_rawDesc = "" +
 	"\x17SKILL_STATE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15SKILL_STATE_UPLOADING\x10\x01\x12\x15\n" +
 	"\x11SKILL_STATE_READY\x10\x02\x12\x16\n" +
-	"\x12SKILL_STATE_FAILED\x10\x03B\x8c\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.skill.v1B\vStatusProtoP\x01ZKgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
+	"\x12SKILL_STATE_FAILED\x10\x03B\x8f\x02\n" +
+	"\x1fcom.ai.stigmer.agentic.skill.v1B\vStatusProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_skill_v1_status_proto_rawDescOnce sync.Once

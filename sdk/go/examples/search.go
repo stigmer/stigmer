@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	stigmer "github.com/stigmer/stigmer/sdk/go"
+	stigmer "github.com/stigmer/stigmer/sdk/go/v3"
 )
 
 func CrossResourceSearch() {

@@ -8,7 +8,7 @@ package identityproviderv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/v1"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -406,8 +406,8 @@ const file_ai_stigmer_iam_identityprovider_v1_spec_proto_rawDesc = "" +
 	"\x11auto_grant_on_org\x18\n" +
 	" \x01(\bR\x0eautoGrantOnOrg\x12B\n" +
 	"\x0fauto_grant_role\x18\v \x01(\x0e2\x1a.ai.stigmer.iam.v1.IamRoleR\rautoGrantRole\x122\n" +
-	"\x10tenant_org_claim\x18\f \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x0etenantOrgClaimB\xbf\x02\n" +
-	"&com.ai.stigmer.iam.identityprovider.v1B\tSpecProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
+	"\x10tenant_org_claim\x18\f \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x0etenantOrgClaimB\xc2\x02\n" +
+	"&com.ai.stigmer.iam.identityprovider.v1B\tSpecProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_identityprovider_v1_spec_proto_rawDescOnce sync.Once

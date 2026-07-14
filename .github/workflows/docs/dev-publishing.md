@@ -244,8 +244,8 @@ pre = true
 The Go SDK is consumed by module path. Prod uses a tag; dev uses your branch:
 
 ```bash
-go get github.com/stigmer/stigmer/sdk/go@v3.0.0      # prod
-go get github.com/stigmer/stigmer/sdk/go@my-branch   # dev
+go get github.com/stigmer/stigmer/sdk/go/v3@v3.0.0      # prod
+go get github.com/stigmer/stigmer/sdk/go/v3@my-branch   # dev
 ```
 
 ### Rust (no publish — git dependency)

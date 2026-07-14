@@ -7,8 +7,8 @@
 package projectv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -29,9 +29,9 @@ const file_ai_stigmer_tenancy_project_v1_query_proto_rawDesc = "" +
 	")ai/stigmer/tenancy/project/v1/query.proto\x12\x1dai.stigmer.tenancy.project.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a'ai/stigmer/tenancy/project/v1/api.proto\x1a&ai/stigmer/tenancy/project/v1/io.proto2\x9c\x02\n" +
 	"\x16ProjectQueryController\x12\x85\x01\n" +
 	"\x03get\x12(.ai.stigmer.tenancy.project.v1.ProjectId\x1a&.ai.stigmer.tenancy.project.v1.Project\",¸\x18(\b\x01\x10<\"\x05value*\x1bunauthorized to get project\x12t\n" +
-	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a&.ai.stigmer.tenancy.project.v1.Project\"\x04и\x18\x01\x1a\x04\xa0\xff+<B\x99\x02\n" +
+	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a&.ai.stigmer.tenancy.project.v1.Project\"\x04и\x18\x01\x1a\x04\xa0\xff+<B\x9c\x02\n" +
 	"!com.ai.stigmer.tenancy.project.v1B\n" +
-	"QueryProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1;projectv1\xa2\x02\x04ASTP\xaa\x02\x1dAi.Stigmer.Tenancy.Project.V1\xca\x02\x1dAi\\Stigmer\\Tenancy\\Project\\V1\xe2\x02)Ai\\Stigmer\\Tenancy\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Tenancy::Project::V1b\x06proto3"
+	"QueryProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/project/v1;projectv1\xa2\x02\x04ASTP\xaa\x02\x1dAi.Stigmer.Tenancy.Project.V1\xca\x02\x1dAi\\Stigmer\\Tenancy\\Project\\V1\xe2\x02)Ai\\Stigmer\\Tenancy\\Project\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Tenancy::Project::V1b\x06proto3"
 
 var file_ai_stigmer_tenancy_project_v1_query_proto_goTypes = []any{
 	(*ProjectId)(nil),                        // 0: ai.stigmer.tenancy.project.v1.ProjectId

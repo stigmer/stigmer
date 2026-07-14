@@ -571,7 +571,7 @@ jobs:
             echo "## Go SDK / Rust crate (no publish needed — use a git ref)"
             echo '```bash'
             echo "# Go:"
-            echo "go get github.com/stigmer/stigmer/sdk/go@$REF_NAME"
+            echo "go get github.com/stigmer/stigmer/sdk/go/v3@$REF_NAME"
             echo "# Rust (Cargo.toml):"
             echo "# stigmer-runner-host = { git = \"https://github.com/stigmer/stigmer\", branch = \"$REF_NAME\" }"
             echo '```'

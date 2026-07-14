@@ -7,8 +7,8 @@
 package agentinstancev1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,9 +32,9 @@ const file_ai_stigmer_agentic_agentinstance_v1_query_proto_rawDesc = "" +
 	"\n" +
 	"getByAgent\x12D.ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest\x1a6.ai.stigmer.agentic.agentinstance.v1.AgentInstanceList\"\x04и\x18\x01\x12\x80\x01\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"\x04и\x18\x01\x12\x84\x01\n" +
-	"\x04list\x12>.ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest\x1a6.ai.stigmer.agentic.agentinstance.v1.AgentInstanceList\"\x04и\x18\x01\x1a\x04\xa0\xff+-B\xc3\x02\n" +
+	"\x04list\x12>.ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest\x1a6.ai.stigmer.agentic.agentinstance.v1.AgentInstanceList\"\x04и\x18\x01\x1a\x04\xa0\xff+-B\xc6\x02\n" +
 	"'com.ai.stigmer.agentic.agentinstance.v1B\n" +
-	"QueryProtoP\x01Z[github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentinstance/v1;agentinstancev1\xa2\x02\x04ASAA\xaa\x02#Ai.Stigmer.Agentic.Agentinstance.V1\xca\x02#Ai\\Stigmer\\Agentic\\Agentinstance\\V1\xe2\x02/Ai\\Stigmer\\Agentic\\Agentinstance\\V1\\GPBMetadata\xea\x02'Ai::Stigmer::Agentic::Agentinstance::V1b\x06proto3"
+	"QueryProtoP\x01Z^github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentinstance/v1;agentinstancev1\xa2\x02\x04ASAA\xaa\x02#Ai.Stigmer.Agentic.Agentinstance.V1\xca\x02#Ai\\Stigmer\\Agentic\\Agentinstance\\V1\xe2\x02/Ai\\Stigmer\\Agentic\\Agentinstance\\V1\\GPBMetadata\xea\x02'Ai::Stigmer::Agentic::Agentinstance::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_agentinstance_v1_query_proto_goTypes = []any{
 	(*AgentInstanceId)(nil),                  // 0: ai.stigmer.agentic.agentinstance.v1.AgentInstanceId

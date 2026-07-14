@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentchannel.v1;
+
+import "ai/stigmer/agentic/agentchannel/v1/api.proto";
+import "ai/stigmer/commons/rpc/pagination.proto";
+import "buf/validate/validate.proto";
+
+// AgentChannelId wraps an agent channel identifier.
+message AgentChannelId {
+  // Unique identifier of the agent channel.
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// Input for retrieving all channels of a specific agent.
+message GetAgentChannelsByAgentRequest {
+  // Identifier of the agent whose channels to retrieve.
+  string agent_id = 1 [(buf.validate.field).required = true];
+
+  // Pagination options.
+  ai.stigmer.commons.rpc.PageInfo page_info = 2;
+}
+
+// Response containing a paginated list of agent channels.
+message AgentChannelList {
+  // Total number of agent channels matching the query.
+  int32 total_count = 1;
+
+  // Agent channels in the current page.
+  repeated AgentChannel items = 2;
+}
+
+// Input for listing agent channels within an organization.
+message ListAgentChannelsRequest {
+  // Organization slug to scope the listing.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Filter by metadata labels. AND semantics: all labels must match.
+  map<string, string> labels = 2;
+
+  // Pagination options.
+  ai.stigmer.commons.rpc.PageInfo page_info = 3;
+}
+
+// Input for starting a provider install flow.
+message InitiateChannelInstallInput {
+  // ID of the agent channel to install.
+  string resource_id = 1 [(buf.validate.field).required = true];
+}
+
+// Output of the initiate-install RPC.
+//
+// The caller redirects the user to authorization_url; the provider
+// redirects back to the console, which completes the install with the
+// completeInstall RPC.
+message InitiateChannelInstallOutput {
+  // Provider authorization URL to redirect the installing user to
+  // (for Slack: the "Add to Slack" consent screen).
+  string authorization_url = 1;
+
+  // Single-use opaque state parameter bound to this install attempt.
+  //
+  // @internal
+  // Persisted server-side (PendingOAuthStateDocument pattern) and consumed
+  // atomically by completeInstall; expired or replayed states are rejected.
+  string state = 2;
+}
+
+// Input for completing a provider install flow.
+//
+// Carries the state and authorization code the provider's consent
+// redirect delivered to the console.
+message CompleteChannelInstallInput {
+  // ID of the agent channel being installed.
+  string resource_id = 1 [(buf.validate.field).required = true];
+
+  // Single-use state parameter issued by initiateInstall.
+  string state = 2 [(buf.validate.field).required = true];
+
+  // Authorization code returned by the provider's consent screen.
+  string code = 3 [(buf.validate.field).required = true];
+}

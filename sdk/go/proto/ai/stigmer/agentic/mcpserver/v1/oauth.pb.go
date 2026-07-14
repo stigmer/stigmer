@@ -329,9 +329,9 @@ const file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDesc = "" +
 	"\rresource_kind\x18\x02 \x01(\tR\fresourceKind\x12\x15\n" +
 	"\x06org_id\x18\x03 \x01(\tR\x05orgId\x12 \n" +
 	"\foauth_app_id\x18\x04 \x01(\tR\n" +
-	"oauthAppIdB\xa7\x02\n" +
+	"oauthAppIdB\xaa\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\n" +
-	"OauthProtoP\x01ZSgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
+	"OauthProtoP\x01ZVgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_mcpserver_v1_oauth_proto_rawDescOnce sync.Once

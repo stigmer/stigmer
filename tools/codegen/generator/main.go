@@ -966,13 +966,13 @@ func newGenContextForResourceArgs(packageName string, sharedTypes []*TypeSchema)
 	return ctx
 }
 
-const sdkProtoPrefix = "github.com/stigmer/stigmer/sdk/go/proto"
+const sdkProtoPrefix = "github.com/stigmer/stigmer/sdk/go/v3/proto"
 
 // protoTypeToGoImportPath converts a proto type namespace to a Go import path
 // using the given module prefix.
 // Example with sdkProtoPrefix:
 //
-//	"ai.stigmer.agentic.agent.v1.McpServerUsage" -> "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+//	"ai.stigmer.agentic.agent.v1.McpServerUsage" -> "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
 func protoTypeToGoImportPath(protoType, prefix string) string {
 	parts := strings.Split(protoType, ".")
 	if len(parts) < 4 {
@@ -1514,7 +1514,7 @@ func (c *genContext) genFromProtoField(w *bytes.Buffer, field *FieldSchema) {
 			typeName := field.Type.ValueType.MessageType
 			if _, isShared := c.sharedTypes[typeName]; isShared && c.packageName != "types" {
 				typeName = "types." + typeName
-				c.addImport("github.com/stigmer/stigmer/sdk/go/gen/types")
+				c.addImport("github.com/stigmer/stigmer/sdk/go/v3/gen/types")
 			}
 			fmt.Fprintf(w, "\t\tc.%s = make(map[string]*%s)\n", field.Name, typeName)
 			fmt.Fprintf(w, "\t\tfor k, v := range val.GetStructValue().GetFields() {\n")
@@ -1541,7 +1541,7 @@ func (c *genContext) genFromProtoField(w *bytes.Buffer, field *FieldSchema) {
 			typeName := field.Type.MessageType
 			if _, isShared := c.sharedTypes[typeName]; isShared && c.packageName != "types" {
 				typeName = "types." + typeName
-				c.addImport("github.com/stigmer/stigmer/sdk/go/gen/types")
+				c.addImport("github.com/stigmer/stigmer/sdk/go/v3/gen/types")
 			}
 			fmt.Fprintf(w, "\t\tc.%s = &%s{}\n", field.Name, typeName)
 			fmt.Fprintf(w, "\t\tif err := c.%s.FromProto(val.GetStructValue()); err != nil {\n", field.Name)
@@ -1575,7 +1575,7 @@ func (c *genContext) genFromProtoField(w *bytes.Buffer, field *FieldSchema) {
 				typeName := elementType.MessageType
 				if _, isShared := c.sharedTypes[typeName]; isShared && c.packageName != "types" {
 					typeName = "types." + typeName
-					c.addImport("github.com/stigmer/stigmer/sdk/go/gen/types")
+					c.addImport("github.com/stigmer/stigmer/sdk/go/v3/gen/types")
 				}
 				fmt.Fprintf(w, "\t\tc.%s = make([]*%s, 0)\n", field.Name, typeName)
 				fmt.Fprintf(w, "\t\tfor _, v := range val.GetListValue().GetValues() {\n")
@@ -1775,7 +1775,7 @@ func (c *genContext) goType(typeSpec TypeSpec) string {
 
 			// Fall back to gen/types package
 			if c.packageName != "types" {
-				c.addImport("github.com/stigmer/stigmer/sdk/go/gen/types")
+				c.addImport("github.com/stigmer/stigmer/sdk/go/v3/gen/types")
 			}
 			// Reference shared type from types package
 			if c.packageName == "types" {

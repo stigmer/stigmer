@@ -271,9 +271,9 @@ const file_ai_stigmer_agentic_skill_v1_synth_proto_rawDesc = "" +
 	"\x03Git\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x10\n" +
 	"\x03ref\x18\x02 \x01(\tR\x03ref\x12\x16\n" +
-	"\x06subdir\x18\x03 \x01(\tR\x06subdirB\x8b\x02\n" +
+	"\x06subdir\x18\x03 \x01(\tR\x06subdirB\x8e\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.skill.v1B\n" +
-	"SynthProtoP\x01ZKgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
+	"SynthProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_skill_v1_synth_proto_rawDescOnce sync.Once

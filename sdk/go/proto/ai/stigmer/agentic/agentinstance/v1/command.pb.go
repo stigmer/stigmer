@@ -7,8 +7,8 @@
 package agentinstancev1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -32,8 +32,8 @@ const file_ai_stigmer_agentic_agentinstance_v1_command_proto_rawDesc = "" +
 	"\x06create\x122.ai.stigmer.agentic.agentinstance.v1.AgentInstance\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"\x04и\x18\x01\x12\xae\x01\n" +
 	"\x06update\x122.ai.stigmer.agentic.agentinstance.v1.AgentInstance\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"<¸\x188\b\x02\x10-\"\vmetadata.id*%unauthorized to update agent instance\x12\xc6\x01\n" +
 	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"G¸\x18C\b\x02\x10-\"\vresource_id*0unauthorized to update agent instance visibility\x12\xaa\x01\n" +
-	"\x06delete\x124.ai.stigmer.agentic.agentinstance.v1.AgentInstanceId\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"6¸\x182\b\x03\x10-\"\x05value*%unauthorized to delete agent instance\x1a\x04\xa0\xff+-B\xc5\x02\n" +
-	"'com.ai.stigmer.agentic.agentinstance.v1B\fCommandProtoP\x01Z[github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentinstance/v1;agentinstancev1\xa2\x02\x04ASAA\xaa\x02#Ai.Stigmer.Agentic.Agentinstance.V1\xca\x02#Ai\\Stigmer\\Agentic\\Agentinstance\\V1\xe2\x02/Ai\\Stigmer\\Agentic\\Agentinstance\\V1\\GPBMetadata\xea\x02'Ai::Stigmer::Agentic::Agentinstance::V1b\x06proto3"
+	"\x06delete\x124.ai.stigmer.agentic.agentinstance.v1.AgentInstanceId\x1a2.ai.stigmer.agentic.agentinstance.v1.AgentInstance\"6¸\x182\b\x03\x10-\"\x05value*%unauthorized to delete agent instance\x1a\x04\xa0\xff+-B\xc8\x02\n" +
+	"'com.ai.stigmer.agentic.agentinstance.v1B\fCommandProtoP\x01Z^github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentinstance/v1;agentinstancev1\xa2\x02\x04ASAA\xaa\x02#Ai.Stigmer.Agentic.Agentinstance.V1\xca\x02#Ai\\Stigmer\\Agentic\\Agentinstance\\V1\xe2\x02/Ai\\Stigmer\\Agentic\\Agentinstance\\V1\\GPBMetadata\xea\x02'Ai::Stigmer::Agentic::Agentinstance::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_agentinstance_v1_command_proto_goTypes = []any{
 	(*AgentInstance)(nil),                     // 0: ai.stigmer.agentic.agentinstance.v1.AgentInstance

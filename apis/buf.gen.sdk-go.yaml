@@ -12,7 +12,7 @@ managed:
     - file_option: optimize_for
       value: SPEED
     - file_option: go_package_prefix
-      value: github.com/stigmer/stigmer/sdk/go/proto
+      value: github.com/stigmer/stigmer/sdk/go/v3/proto
 # Local plugins (no buf.build round-trip). Pinned binaries are installed into
 # .tools/bin by the `go-stubs-tools` Make target; versions are kept in sync with
 # the GO_PROTOC_GEN_* variables in the Makefile so output stays byte-identical.

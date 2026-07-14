@@ -8,8 +8,8 @@ package identityaccountv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -805,8 +805,8 @@ const file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDesc = "" +
 	"\x03org\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x03org\x12h\n" +
 	"\x15identity_provider_ref\x18\x02 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12)\n" +
 	"\fexternal_sub\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\vexternalSub\x12%\n" +
-	"\x0edelete_account\x18\x04 \x01(\bR\rdeleteAccountB\xb6\x02\n" +
-	"%com.ai.stigmer.iam.identityaccount.v1B\aIoProtoP\x01Z[github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
+	"\x0edelete_account\x18\x04 \x01(\bR\rdeleteAccountB\xb9\x02\n" +
+	"%com.ai.stigmer.iam.identityaccount.v1B\aIoProtoP\x01Z^github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_identityaccount_v1_io_proto_rawDescOnce sync.Once

@@ -5,7 +5,7 @@ Go client library for the [Stigmer](https://stigmer.ai) platform API.
 ## Install
 
 ```bash
-go get github.com/stigmer/stigmer/sdk/go
+go get github.com/stigmer/stigmer/sdk/go/v3
 ```
 
 ## Quick Start
@@ -18,7 +18,7 @@ import (
     "fmt"
     "log"
 
-    stigmer "github.com/stigmer/stigmer/sdk/go"
+    stigmer "github.com/stigmer/stigmer/sdk/go/v3"
 )
 
 func main() {

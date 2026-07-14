@@ -7,7 +7,7 @@
 package searchv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -27,9 +27,9 @@ const file_ai_stigmer_search_v1_query_proto_rawDesc = "" +
 	"\n" +
 	" ai/stigmer/search/v1/query.proto\x12\x14ai.stigmer.search.v1\x1a+ai/stigmer/commons/rpc/method_options.proto\x1a\x1dai/stigmer/search/v1/io.proto2j\n" +
 	"\rSearchService\x12Y\n" +
-	"\x06search\x12#.ai.stigmer.search.v1.SearchRequest\x1a$.ai.stigmer.search.v1.SearchResponse\"\x04и\x18\x01B\xe0\x01\n" +
+	"\x06search\x12#.ai.stigmer.search.v1.SearchRequest\x1a$.ai.stigmer.search.v1.SearchResponse\"\x04и\x18\x01B\xe3\x01\n" +
 	"\x18com.ai.stigmer.search.v1B\n" +
-	"QueryProtoP\x01ZEgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1;searchv1\xa2\x02\x03ASS\xaa\x02\x14Ai.Stigmer.Search.V1\xca\x02\x14Ai\\Stigmer\\Search\\V1\xe2\x02 Ai\\Stigmer\\Search\\V1\\GPBMetadata\xea\x02\x17Ai::Stigmer::Search::V1b\x06proto3"
+	"QueryProtoP\x01ZHgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1;searchv1\xa2\x02\x03ASS\xaa\x02\x14Ai.Stigmer.Search.V1\xca\x02\x14Ai\\Stigmer\\Search\\V1\xe2\x02 Ai\\Stigmer\\Search\\V1\\GPBMetadata\xea\x02\x17Ai::Stigmer::Search::V1b\x06proto3"
 
 var file_ai_stigmer_search_v1_query_proto_goTypes = []any{
 	(*SearchRequest)(nil),  // 0: ai.stigmer.search.v1.SearchRequest

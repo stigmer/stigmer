@@ -8,7 +8,7 @@ package agentexecutionv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -622,8 +622,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
 	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.agentexecution.v1.TodoItemR\x05value:\x028\x01\"4\n" +
 	"\rSetupProgress\x12#\n" +
-	"\rcurrent_phase\x18\x01 \x01(\tR\fcurrentPhaseB\xc8\x02\n" +
-	"(com.ai.stigmer.agentic.agentexecution.v1B\bApiProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
+	"\rcurrent_phase\x18\x01 \x01(\tR\fcurrentPhaseB\xcb\x02\n" +
+	"(com.ai.stigmer.agentic.agentexecution.v1B\bApiProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDescOnce sync.Once

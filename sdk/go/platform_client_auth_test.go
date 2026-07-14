@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stigmer/stigmer/sdk/go/internal/gen"
+	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 )
 
 func TestNewPlatformClientAuth_MissingClientID(t *testing.T) {

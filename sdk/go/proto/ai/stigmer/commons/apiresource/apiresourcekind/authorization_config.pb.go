@@ -7,7 +7,7 @@
 package apiresourcekind
 
 import (
-	v1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/v1"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -593,8 +593,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_p
 	"\x1dOWNER_ATTRIBUTION_TYPE_DIRECT\x10\x01\x12$\n" +
 	" OWNER_ATTRIBUTION_TYPE_INHERITED\x10\x02\x12\x1f\n" +
 	"\x1bOWNER_ATTRIBUTION_TYPE_SELF\x10\x03\x12\x1f\n" +
-	"\x1bOWNER_ATTRIBUTION_TYPE_NONE\x10\x04B\x84\x03\n" +
-	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x18AuthorizationConfigProtoP\x01ZVgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
+	"\x1bOWNER_ATTRIBUTION_TYPE_NONE\x10\x04B\x87\x03\n" +
+	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x18AuthorizationConfigProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
 
 var (
 	file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDescOnce sync.Once

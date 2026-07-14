@@ -303,8 +303,8 @@ const file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDesc = "" +
 	"\"VENDOR_APPROVAL_STATUS_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eVENDOR_APPROVAL_STATUS_PENDING\x10\x01\x12#\n" +
 	"\x1fVENDOR_APPROVAL_STATUS_APPROVED\x10\x02\x12#\n" +
-	"\x1fVENDOR_APPROVAL_STATUS_REJECTED\x10\x03B\x87\x02\n" +
-	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\tSpecProtoP\x01ZMgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
+	"\x1fVENDOR_APPROVAL_STATUS_REJECTED\x10\x03B\x8a\x02\n" +
+	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\tSpecProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_oauthapp_v1_spec_proto_rawDescOnce sync.Once

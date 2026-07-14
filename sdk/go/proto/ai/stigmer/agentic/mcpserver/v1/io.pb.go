@@ -8,7 +8,7 @@ package mcpserverv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -1283,8 +1283,8 @@ const file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDesc = "" +
 	"\x1fOAUTH_CONNECTION_HEALTH_HEALTHY\x10\x01\x12)\n" +
 	"%OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED\x10\x02\x125\n" +
 	"1OAUTH_CONNECTION_HEALTH_TOKEN_EXPIRED_REFRESHABLE\x10\x03\x12$\n" +
-	" OAUTH_CONNECTION_HEALTH_NO_GRANT\x10\x04B\xa4\x02\n" +
-	"#com.ai.stigmer.agentic.mcpserver.v1B\aIoProtoP\x01ZSgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
+	" OAUTH_CONNECTION_HEALTH_NO_GRANT\x10\x04B\xa7\x02\n" +
+	"#com.ai.stigmer.agentic.mcpserver.v1B\aIoProtoP\x01ZVgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_mcpserver_v1_io_proto_rawDescOnce sync.Once

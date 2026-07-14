@@ -114,8 +114,8 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_common_proto_rawDesc = "" +
 	"\x1dON_INVALID_POLICY_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fON_INVALID_FAIL\x10\x01\x12\x14\n" +
 	"\x10ON_INVALID_RETRY\x10\x02\x12\x17\n" +
-	"\x13ON_INVALID_FALLBACK\x10\x03B\xbd\x02\n" +
-	"(com.ai.stigmer.agentic.workflow.v1.tasksB\vCommonProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
+	"\x13ON_INVALID_FALLBACK\x10\x03B\xc0\x02\n" +
+	"(com.ai.stigmer.agentic.workflow.v1.tasksB\vCommonProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_workflow_v1_tasks_common_proto_rawDescOnce sync.Once

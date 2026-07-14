@@ -7,8 +7,8 @@
 package environmentv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -31,9 +31,9 @@ const file_ai_stigmer_agentic_environment_v1_query_proto_rawDesc = "" +
 	"\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a..ai.stigmer.agentic.environment.v1.Environment\"0¸\x18,\b\x01\x105\"\x05value*\x1funauthorized to get environment\x12|\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a..ai.stigmer.agentic.environment.v1.Environment\"\x04и\x18\x01\x12\xd2\x01\n" +
 	"\x0egetSecretValue\x12>.ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput\x1a3.ai.stigmer.agentic.environment.v1.EnvironmentValue\"K¸\x18G\b\x10\x105\"\x0eenvironment_id*1unauthorized to read secret values (creator-only)\x12|\n" +
-	"\x04list\x12:.ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest\x1a2.ai.stigmer.agentic.environment.v1.EnvironmentList\"\x04и\x18\x01\x1a\x04\xa0\xff+5B\xb5\x02\n" +
+	"\x04list\x12:.ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest\x1a2.ai.stigmer.agentic.environment.v1.EnvironmentList\"\x04и\x18\x01\x1a\x04\xa0\xff+5B\xb8\x02\n" +
 	"%com.ai.stigmer.agentic.environment.v1B\n" +
-	"QueryProtoP\x01ZWgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1;environmentv1\xa2\x02\x04ASAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3"
+	"QueryProtoP\x01ZZgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1;environmentv1\xa2\x02\x04ASAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_environment_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId

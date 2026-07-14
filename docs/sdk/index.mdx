@@ -23,7 +23,7 @@ npm install @stigmer/sdk
 </Tab>
 <Tab value="Go">
 ```bash
-go get github.com/stigmer/stigmer/sdk/go
+go get github.com/stigmer/stigmer/sdk/go/v3
 ```
 </Tab>
 <Tab value="Python">
@@ -110,7 +110,7 @@ Provide exactly one of `apiKey` or `getAccessToken`, not both.
 </Tab>
 <Tab value="Go">
 ```go
-import stigmer "github.com/stigmer/stigmer/sdk/go"
+import stigmer "github.com/stigmer/stigmer/sdk/go/v3"
 
 client, err := stigmer.NewClient(os.Getenv("STIGMER_API_KEY"))
 if err != nil {
@@ -274,7 +274,7 @@ helpers to check common error conditions without inspecting codes directly.
 | Language | Error type | Import |
 |----------|-----------|--------|
 | TypeScript | `StigmerError` | `@stigmer/sdk` |
-| Go | `*stigmer.Error` | `github.com/stigmer/stigmer/sdk/go` |
+| Go | `*stigmer.Error` | `github.com/stigmer/stigmer/sdk/go/v3` |
 | Python | `StigmerError` | `stigmer` |
 | Java | `StigmerException` | `ai.stigmer.sdk.gen` |
 

@@ -4,8 +4,8 @@
 package agentexecution
 
 import (
-	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
-	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
+	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
 )
 
 // AgentExecutionArgs contains the configuration arguments for creating a AgentExecution.

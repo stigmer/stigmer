@@ -127,8 +127,8 @@ const file_ai_stigmer_agentic_skill_v1_spec_proto_rawDesc = "" +
 	"\bskill_md\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\askillMd\x12-\n" +
 	"\x03tag\x18\x02 \x01(\tB\x1b\xbaH\x18r\x162\x14^$|^[a-zA-Z0-9._-]+$R\x03tag\x126\n" +
 	"\x04name\x18\x03 \x01(\tB\"\xbaH\x1fr\x1d2\x1b^[a-z0-9]+([.-][a-z0-9]+)*$R\x04name\x12 \n" +
-	"\vdescription\x18\x05 \x01(\tR\vdescriptionJ\x04\b\x04\x10\x05B\x8a\x02\n" +
-	"\x1fcom.ai.stigmer.agentic.skill.v1B\tSpecProtoP\x01ZKgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
+	"\vdescription\x18\x05 \x01(\tR\vdescriptionJ\x04\b\x04\x10\x05B\x8d\x02\n" +
+	"\x1fcom.ai.stigmer.agentic.skill.v1B\tSpecProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_skill_v1_spec_proto_rawDescOnce sync.Once

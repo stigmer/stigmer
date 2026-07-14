@@ -3,34 +3,40 @@
 package stigmer
 
 import (
-	"github.com/stigmer/stigmer/sdk/go/internal/gen"
-	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
-	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
-	agentinstancev1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentinstance/v1"
-	agentsharev1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentshare/v1"
-	artifactv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/artifact/v1"
-	environmentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
-	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
-	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
-	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
-	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
-	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
-	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
-	workflowinstancev1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowinstance/v1"
-	apikeyv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/apikey/v1"
-	iampolicyv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/iampolicy/v1"
-	identityaccountv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityaccount/v1"
-	identityproviderv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityprovider/v1"
-	invitationv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/invitation/v1"
-	oauthappv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/oauthapp/v1"
-	platformclientv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/platformclient/v1"
-	organizationv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
-	projectv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1"
+	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
+	agentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agent/v1"
+	agentchannelv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
+	agentinstancev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentinstance/v1"
+	agentsharev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentshare/v1"
+	artifactv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/artifact/v1"
+	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
+	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
+	skillv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1"
+	workflowv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowexecution/v1"
+	workflowinstancev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowinstance/v1"
+	apikeyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/apikey/v1"
+	iampolicyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/iampolicy/v1"
+	identityaccountv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1"
+	identityproviderv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityprovider/v1"
+	invitationv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/invitation/v1"
+	oauthappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1"
+	platformclientv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1"
+	organizationv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1"
+	projectv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/project/v1"
 )
 
 // AgentInputFromProto creates a AgentInput from a proto Agent resource.
 func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 	return gen.AgentInputFromProto(p)
+}
+
+// AgentChannelInputFromProto creates a AgentChannelInput from a proto AgentChannel resource.
+func AgentChannelInputFromProto(p *agentchannelv1.AgentChannel) *AgentChannelInput {
+	return gen.AgentChannelInputFromProto(p)
 }
 
 // AgentExecutionInputFromProto creates a AgentExecutionInput from a proto AgentExecution resource.

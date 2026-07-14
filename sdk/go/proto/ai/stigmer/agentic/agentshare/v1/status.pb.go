@@ -7,7 +7,7 @@
 package agentsharev1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -132,8 +132,8 @@ const file_ai_stigmer_agentic_agentshare_v1_status_proto_rawDesc = "" +
 	"\x10AgentShareStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12(\n" +
 	"\x10share_link_token\x18\x01 \x01(\tR\x0eshareLinkToken\x12\x19\n" +
-	"\bagent_id\x18\x02 \x01(\tR\aagentIdB\xaf\x02\n" +
-	"$com.ai.stigmer.agentic.agentshare.v1B\vStatusProtoP\x01ZUgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentshare/v1;agentsharev1\xa2\x02\x04ASAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3"
+	"\bagent_id\x18\x02 \x01(\tR\aagentIdB\xb2\x02\n" +
+	"$com.ai.stigmer.agentic.agentshare.v1B\vStatusProtoP\x01ZXgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentshare/v1;agentsharev1\xa2\x02\x04ASAA\xaa\x02 Ai.Stigmer.Agentic.Agentshare.V1\xca\x02 Ai\\Stigmer\\Agentic\\Agentshare\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Agentshare\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Agentshare::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agentshare_v1_status_proto_rawDescOnce sync.Once

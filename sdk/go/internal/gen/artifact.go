@@ -5,8 +5,8 @@ package gen
 import (
 	"context"
 
-	artifactv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/artifact/v1"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	artifactv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/artifact/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
 )
 

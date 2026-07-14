@@ -330,8 +330,8 @@ const file_ai_stigmer_agentic_session_v1_enum_proto_rawDesc = "" +
 	"CursorMode\x12\x1b\n" +
 	"\x17CURSOR_MODE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11CURSOR_MODE_LOCAL\x10\x01\x12\x15\n" +
-	"\x11CURSOR_MODE_CLOUD\x10\x02B\x98\x02\n" +
-	"!com.ai.stigmer.agentic.session.v1B\tEnumProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
+	"\x11CURSOR_MODE_CLOUD\x10\x02B\x9b\x02\n" +
+	"!com.ai.stigmer.agentic.session.v1B\tEnumProtoP\x01ZRgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_session_v1_enum_proto_rawDescOnce sync.Once

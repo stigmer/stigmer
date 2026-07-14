@@ -7,8 +7,8 @@
 package agentexecutionv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -39,8 +39,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_command_proto_rawDesc = "" +
 	"\arecover\x12@.ai.stigmer.agentic.agentexecution.v1.RecoverAgentExecutionInput\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"5¸\x181\b\x02\x10)\"\x02id*'unauthorized to recover agent execution\x12\xb2\x01\n" +
 	"\x05pause\x12>.ai.stigmer.agentic.agentexecution.v1.PauseAgentExecutionInput\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"3¸\x18/\b\x02\x10)\"\x02id*%unauthorized to pause agent execution\x12\xb5\x01\n" +
 	"\x06resume\x12?.ai.stigmer.agentic.agentexecution.v1.ResumeAgentExecutionInput\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"4¸\x180\b\x02\x10)\"\x02id*&unauthorized to resume agent execution\x12\x97\x01\n" +
-	"\x10uploadAttachment\x12=.ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest\x1a>.ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse\"\x04и\x18\x01\x1a\x04\xa0\xff+)B\xcc\x02\n" +
-	"(com.ai.stigmer.agentic.agentexecution.v1B\fCommandProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
+	"\x10uploadAttachment\x12=.ai.stigmer.agentic.agentexecution.v1.UploadAttachmentRequest\x1a>.ai.stigmer.agentic.agentexecution.v1.UploadAttachmentResponse\"\x04и\x18\x01\x1a\x04\xa0\xff+)B\xcf\x02\n" +
+	"(com.ai.stigmer.agentic.agentexecution.v1B\fCommandProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_agentexecution_v1_command_proto_goTypes = []any{
 	(*AgentExecution)(nil),                  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution

@@ -7,8 +7,8 @@
 package mcpserverv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -31,9 +31,9 @@ const file_ai_stigmer_agentic_mcpserver_v1_query_proto_rawDesc = "" +
 	"\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"0¸\x18,\b\x01\x10,\"\x05value*\x1funauthorized to view mcp server\x12x\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"\x04и\x18\x01\x12\xd5\x01\n" +
 	"\x13getOAuthGrantStatus\x129.ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusInput\x1a:.ai.stigmer.agentic.mcpserver.v1.GetOAuthGrantStatusOutput\"G¸\x18C\b\x01\x10,\"\vresource_id*0unauthorized to view oauth status for mcp server\x12\xc1\x01\n" +
-	"\x0egetOrgOAuthApp\x124.ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput\x1a5.ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput\"B¸\x18>\b\x01\x10,\"\vresource_id*+unauthorized to view org oauth app override\x1a\x04\xa0\xff+,B\xa7\x02\n" +
+	"\x0egetOrgOAuthApp\x124.ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppInput\x1a5.ai.stigmer.agentic.mcpserver.v1.GetOrgOAuthAppOutput\"B¸\x18>\b\x01\x10,\"\vresource_id*+unauthorized to view org oauth app override\x1a\x04\xa0\xff+,B\xaa\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\n" +
-	"QueryProtoP\x01ZSgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
+	"QueryProtoP\x01ZVgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_mcpserver_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId

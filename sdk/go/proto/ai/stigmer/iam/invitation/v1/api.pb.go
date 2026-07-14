@@ -8,7 +8,7 @@ package invitationv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -281,8 +281,8 @@ const file_ai_stigmer_iam_invitation_v1_api_proto_rawDesc = "" +
 	"\x14InvitationRedemption\x12.\n" +
 	"\x13identity_account_id\x18\x01 \x01(\tR\x11identityAccountId\x12;\n" +
 	"\vredeemed_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"redeemedAtB\x94\x02\n" +
-	" com.ai.stigmer.iam.invitation.v1B\bApiProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/invitation/v1;invitationv1\xa2\x02\x04ASII\xaa\x02\x1cAi.Stigmer.Iam.Invitation.V1\xca\x02\x1cAi\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3"
+	"redeemedAtB\x97\x02\n" +
+	" com.ai.stigmer.iam.invitation.v1B\bApiProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/invitation/v1;invitationv1\xa2\x02\x04ASII\xaa\x02\x1cAi.Stigmer.Iam.Invitation.V1\xca\x02\x1cAi\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_invitation_v1_api_proto_rawDescOnce sync.Once

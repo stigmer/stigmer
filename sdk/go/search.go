@@ -3,10 +3,10 @@ package stigmer
 import (
 	"context"
 
-	"github.com/stigmer/stigmer/sdk/go/internal/gen"
-	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
-	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
-	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
+	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
 )
 

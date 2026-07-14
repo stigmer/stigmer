@@ -143,8 +143,8 @@ const file_ai_stigmer_commons_rpc_pagination_proto_rawDesc = "" +
 	"\x0eGooglePageInfo\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x12\n" +
-	"\x04size\x18\x02 \x01(\x05R\x04sizeB\xe9\x01\n" +
-	"\x1acom.ai.stigmer.commons.rpcB\x0fPaginationProtoP\x01Z>github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc\xa2\x02\x04ASCR\xaa\x02\x16Ai.Stigmer.Commons.Rpc\xca\x02\x16Ai\\Stigmer\\Commons\\Rpc\xe2\x02\"Ai\\Stigmer\\Commons\\Rpc\\GPBMetadata\xea\x02\x19Ai::Stigmer::Commons::Rpcb\x06proto3"
+	"\x04size\x18\x02 \x01(\x05R\x04sizeB\xec\x01\n" +
+	"\x1acom.ai.stigmer.commons.rpcB\x0fPaginationProtoP\x01ZAgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc\xa2\x02\x04ASCR\xaa\x02\x16Ai.Stigmer.Commons.Rpc\xca\x02\x16Ai\\Stigmer\\Commons\\Rpc\xe2\x02\"Ai\\Stigmer\\Commons\\Rpc\\GPBMetadata\xea\x02\x19Ai::Stigmer::Commons::Rpcb\x06proto3"
 
 var (
 	file_ai_stigmer_commons_rpc_pagination_proto_rawDescOnce sync.Once

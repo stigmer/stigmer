@@ -17,8 +17,8 @@ package workflowexecutionv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -1084,8 +1084,8 @@ const file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc = "" +
 	"costMicros\x12!\n" +
 	"\finput_tokens\x18\r \x01(\x03R\vinputTokens\x12#\n" +
 	"\routput_tokens\x18\x0e \x01(\x03R\foutputTokens\x12\x17\n" +
-	"\aui_hint\x18\x0f \x01(\tR\x06uiHintB\xdd\x02\n" +
-	"+com.ai.stigmer.agentic.workflowexecution.v1B\bApiProtoP\x01Zcgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
+	"\aui_hint\x18\x0f \x01(\tR\x06uiHintB\xe0\x02\n" +
+	"+com.ai.stigmer.agentic.workflowexecution.v1B\bApiProtoP\x01Zfgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDescOnce sync.Once

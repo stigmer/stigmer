@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentchannel.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+import "google/protobuf/timestamp.proto";
+
+// AgentChannelStatus contains system-managed state for an agent channel.
+//
+// @internal
+// Server-owned per decision 001 D-e / decision 004: install facts and the
+// credentials reference survive every apply/update verbatim (the
+// share_link_token precedent), so a routine manifest apply can never
+// clobber an install or leak a secret. Secrets themselves NEVER appear
+// here — the bot token lives encrypted in the referenced managed
+// Environment; status is readable by anyone with can_view.
+message AgentChannelStatus {
+  // Install lifecycle of the provider connection.
+  AgentChannelInstallState install_state = 1;
+
+  // Provider-specific install facts observed during the install flow.
+  //
+  // @internal
+  // Populated by the install completion path (sole writer). The arm always
+  // matches spec.provider_config's case.
+  oneof provider_status {
+    // Slack workspace install facts.
+    SlackInstallStatus slack = 2;
+  }
+
+  // ID of the system-managed Environment holding this connection's
+  // provider credentials (e.g. the Slack bot token).
+  //
+  // @internal
+  // Decision 004: created via ManagedEnvironmentService in the
+  // connection's org (stigmer.ai/managed=true), non-secret grant metadata
+  // in the resource-agnostic OAuthGrant document. The webhook receiver and
+  // delivery worker resolve the token through this reference — never from
+  // the channel resource itself.
+  string credentials_environment_id = 3;
+
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+}
+
+// AgentChannelInstallState tracks the provider install lifecycle.
+//
+// This is deliberately distinct from spec.enabled: enabled is the owner's
+// serving switch; install_state is the observed state of the provider
+// connection. Traffic is served only when installed AND enabled.
+enum AgentChannelInstallState {
+  // Default value when no state is set.
+  agent_channel_install_state_unspecified = 0;
+
+  // The channel exists but the provider install has not completed.
+  // No traffic is served in this state regardless of spec.enabled.
+  pending_install = 1;
+
+  // The provider install completed; credentials are stored and the
+  // channel serves traffic while spec.enabled is true.
+  installed = 2;
+
+  // The provider revoked the installation (e.g. the Slack app was
+  // uninstalled from the workspace or tokens were revoked). The channel
+  // configuration survives; re-installing returns it to installed.
+  revoked = 3;
+}
+
+// SlackInstallStatus holds the facts observed when the Stigmer Slack app
+// was installed into a workspace.
+message SlackInstallStatus {
+  // Slack workspace (team) ID, e.g. "T0123ABCD".
+  //
+  // @internal
+  // The inbound routing key: the webhook receiver resolves the
+  // AgentChannel from the event payload's team_id. One INSTALLED channel
+  // per workspace, enforced by a partial-unique index on installed rows
+  // (decision 007).
+  string team_id = 1;
+
+  // Human-readable workspace name at install time.
+  string team_name = 2;
+
+  // Bot user ID minted by the install, e.g. "U0456EFGH".
+  // The identity the agent posts as; also how @mentions are recognized.
+  string bot_user_id = 3;
+
+  // OAuth scopes granted to the installation.
+  repeated string granted_scopes = 4;
+
+  // Slack user ID of the person who performed the install.
+  string installer_slack_user_id = 5;
+
+  // When the install completed.
+  google.protobuf.Timestamp installed_at = 6;
+}

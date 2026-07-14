@@ -7,8 +7,8 @@
 package workflowexecutionv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -41,8 +41,8 @@ const file_ai_stigmer_agentic_workflowexecution_v1_command_proto_rawDesc = "" +
 	"\tterminate\x12H.ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\":¸\x186\b\x02\x104\"\x02id*,unauthorized to terminate workflow execution\x12\xc7\x01\n" +
 	"\arecover\x12F.ai.stigmer.agentic.workflowexecution.v1.RecoverWorkflowExecutionInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"8¸\x184\b\x02\x104\"\x02id**unauthorized to recover workflow execution\x12\xc1\x01\n" +
 	"\x05pause\x12D.ai.stigmer.agentic.workflowexecution.v1.PauseWorkflowExecutionInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"6¸\x182\b\x02\x104\"\x02id*(unauthorized to pause workflow execution\x12\xc4\x01\n" +
-	"\x06resume\x12E.ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"7¸\x183\b\x02\x104\"\x02id*)unauthorized to resume workflow execution\x1a\x04\xa0\xff+4B\xe1\x02\n" +
-	"+com.ai.stigmer.agentic.workflowexecution.v1B\fCommandProtoP\x01Zcgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
+	"\x06resume\x12E.ai.stigmer.agentic.workflowexecution.v1.ResumeWorkflowExecutionInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"7¸\x183\b\x02\x104\"\x02id*)unauthorized to resume workflow execution\x1a\x04\xa0\xff+4B\xe4\x02\n" +
+	"+com.ai.stigmer.agentic.workflowexecution.v1B\fCommandProtoP\x01Zfgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_workflowexecution_v1_command_proto_goTypes = []any{
 	(*WorkflowExecution)(nil),                  // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution

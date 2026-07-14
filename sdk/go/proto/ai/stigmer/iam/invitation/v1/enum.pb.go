@@ -98,8 +98,8 @@ const file_ai_stigmer_iam_invitation_v1_enum_proto_rawDesc = "" +
 	"\x06active\x10\x01\x12\v\n" +
 	"\aexpired\x10\x02\x12\v\n" +
 	"\arevoked\x10\x03\x12\x12\n" +
-	"\x0efully_redeemed\x10\x04B\x95\x02\n" +
-	" com.ai.stigmer.iam.invitation.v1B\tEnumProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/invitation/v1;invitationv1\xa2\x02\x04ASII\xaa\x02\x1cAi.Stigmer.Iam.Invitation.V1\xca\x02\x1cAi\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3"
+	"\x0efully_redeemed\x10\x04B\x98\x02\n" +
+	" com.ai.stigmer.iam.invitation.v1B\tEnumProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/invitation/v1;invitationv1\xa2\x02\x04ASII\xaa\x02\x1cAi.Stigmer.Iam.Invitation.V1\xca\x02\x1cAi\\Stigmer\\Iam\\Invitation\\V1\xe2\x02(Ai\\Stigmer\\Iam\\Invitation\\V1\\GPBMetadata\xea\x02 Ai::Stigmer::Iam::Invitation::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_invitation_v1_enum_proto_rawDescOnce sync.Once

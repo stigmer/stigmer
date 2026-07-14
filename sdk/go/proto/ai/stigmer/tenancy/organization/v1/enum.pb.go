@@ -87,8 +87,8 @@ const file_ai_stigmer_tenancy_organization_v1_enum_proto_rawDesc = "" +
 	"\x0eManagementMode\x12\x1f\n" +
 	"\x1bmanagement_mode_unspecified\x10\x00\x12\x10\n" +
 	"\fself_managed\x10\x01\x12\x14\n" +
-	"\x10platform_managed\x10\x02B\xbb\x02\n" +
-	"&com.ai.stigmer.tenancy.organization.v1B\tEnumProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
+	"\x10platform_managed\x10\x02B\xbe\x02\n" +
+	"&com.ai.stigmer.tenancy.organization.v1B\tEnumProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_tenancy_organization_v1_enum_proto_rawDescOnce sync.Once

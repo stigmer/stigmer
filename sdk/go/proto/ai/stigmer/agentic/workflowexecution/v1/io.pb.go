@@ -8,7 +8,7 @@ package workflowexecutionv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
@@ -2814,8 +2814,8 @@ const file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDesc = "" +
 	"\x1cSUMMARY_TIME_WINDOW_LAST_24H\x10\x01\x12\x1f\n" +
 	"\x1bSUMMARY_TIME_WINDOW_LAST_7D\x10\x02\x12 \n" +
 	"\x1cSUMMARY_TIME_WINDOW_LAST_30D\x10\x03\x12 \n" +
-	"\x1cSUMMARY_TIME_WINDOW_ALL_TIME\x10\x04B\xdc\x02\n" +
-	"+com.ai.stigmer.agentic.workflowexecution.v1B\aIoProtoP\x01Zcgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
+	"\x1cSUMMARY_TIME_WINDOW_ALL_TIME\x10\x04B\xdf\x02\n" +
+	"+com.ai.stigmer.agentic.workflowexecution.v1B\aIoProtoP\x01Zfgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_workflowexecution_v1_io_proto_rawDescOnce sync.Once

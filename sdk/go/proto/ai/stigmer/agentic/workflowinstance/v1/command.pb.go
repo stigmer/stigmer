@@ -9,8 +9,8 @@
 package workflowinstancev1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -35,8 +35,8 @@ const file_ai_stigmer_agentic_workflowinstance_v1_command_proto_rawDesc = "" +
 	"\x06update\x128.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance\x1a8.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance\"?¸\x18;\b\x02\x103\"\vmetadata.id*(unauthorized to update workflow instance\x12\xcf\x01\n" +
 	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a8.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance\"J¸\x18F\b\x02\x103\"\vresource_id*3unauthorized to update workflow instance visibility\x12\xf3\x01\n" +
 	"\x19updateExecutionVisibility\x12F.ai.stigmer.agentic.workflowinstance.v1.UpdateExecutionVisibilityInput\x1a8.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance\"T¸\x18P\b\x04\x103\"\vresource_id*=unauthorized to update workflow instance execution visibility\x12\xb9\x01\n" +
-	"\x06delete\x12:.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId\x1a8.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance\"9¸\x185\b\x03\x103\"\x05value*(unauthorized to delete workflow instance\x1a\x04\xa0\xff+3B\xda\x02\n" +
-	"*com.ai.stigmer.agentic.workflowinstance.v1B\fCommandProtoP\x01Zagithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowinstance/v1;workflowinstancev1\xa2\x02\x04ASAW\xaa\x02&Ai.Stigmer.Agentic.Workflowinstance.V1\xca\x02&Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Workflowinstance::V1b\x06proto3"
+	"\x06delete\x12:.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId\x1a8.ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance\"9¸\x185\b\x03\x103\"\x05value*(unauthorized to delete workflow instance\x1a\x04\xa0\xff+3B\xdd\x02\n" +
+	"*com.ai.stigmer.agentic.workflowinstance.v1B\fCommandProtoP\x01Zdgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowinstance/v1;workflowinstancev1\xa2\x02\x04ASAW\xaa\x02&Ai.Stigmer.Agentic.Workflowinstance.V1\xca\x02&Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Workflowinstance::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_workflowinstance_v1_command_proto_goTypes = []any{
 	(*WorkflowInstance)(nil),                  // 0: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance

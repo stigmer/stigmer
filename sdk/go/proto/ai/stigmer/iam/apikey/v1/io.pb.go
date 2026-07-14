@@ -171,8 +171,8 @@ const file_ai_stigmer_iam_apikey_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"*\n" +
 	"\n" +
 	"ApiKeyHash\x12\x1c\n" +
-	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05valueB\xf7\x01\n" +
-	"\x1ccom.ai.stigmer.iam.apikey.v1B\aIoProtoP\x01ZIgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
+	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05valueB\xfa\x01\n" +
+	"\x1ccom.ai.stigmer.iam.apikey.v1B\aIoProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_apikey_v1_io_proto_rawDescOnce sync.Once

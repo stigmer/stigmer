@@ -5,6 +5,7 @@ from __future__ import annotations
 import grpc
 
 from ._agent import AgentClient
+from ._agentchannel import AgentChannelClient
 from ._agentexecution import AgentExecutionClient
 from ._agentinstance import AgentInstanceClient
 from ._agentshare import AgentShareClient
@@ -33,6 +34,7 @@ class GeneratedClient:
 
     def __init__(self, channel: grpc.Channel) -> None:
         self.agents = AgentClient(channel)
+        self.agentchannels = AgentChannelClient(channel)
         self.agent_executions = AgentExecutionClient(channel)
         self.agent_instances = AgentInstanceClient(channel)
         self.agent_shares = AgentShareClient(channel)

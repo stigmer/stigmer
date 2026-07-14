@@ -8,7 +8,7 @@ package tasks
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -162,8 +162,8 @@ const file_ai_stigmer_agentic_workflow_v1_tasks_switch_proto_rawDesc = "" +
 	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x04name\x12\x12\n" +
 	"\x04when\x18\x02 \x01(\tR\x04when\x12\x1e\n" +
 	"\x04then\x18\x03 \x01(\tB\n" +
-	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x04thenB\xbd\x02\n" +
-	"(com.ai.stigmer.agentic.workflow.v1.tasksB\vSwitchProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
+	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\x04thenB\xc0\x02\n" +
+	"(com.ai.stigmer.agentic.workflow.v1.tasksB\vSwitchProtoP\x01ZOgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1/tasks\xa2\x02\x06ASAWVT\xaa\x02$Ai.Stigmer.Agentic.Workflow.V1.Tasks\xca\x02$Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\xe2\x020Ai\\Stigmer\\Agentic\\Workflow\\V1\\Tasks\\GPBMetadata\xea\x02)Ai::Stigmer::Agentic::Workflow::V1::Tasksb\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_workflow_v1_tasks_switch_proto_rawDescOnce sync.Once

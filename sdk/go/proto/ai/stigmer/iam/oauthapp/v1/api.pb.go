@@ -8,7 +8,7 @@ package oauthappv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -151,8 +151,8 @@ const file_ai_stigmer_iam_oauthapp_v1_api_proto_rawDesc = "" +
 	"\bOAuthAppR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12<\n" +
 	"\x04spec\x18\x04 \x01(\v2(.ai.stigmer.iam.oauthapp.v1.OAuthAppSpecR\x04spec\x12N\n" +
-	"\x06status\x18\x05 \x01(\v26.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\x86\x02\n" +
-	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\bApiProtoP\x01ZMgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
+	"\x06status\x18\x05 \x01(\v26.ai.stigmer.commons.apiresource.ApiResourceAuditStatusR\x06statusB\x89\x02\n" +
+	"\x1ecom.ai.stigmer.iam.oauthapp.v1B\bApiProtoP\x01ZPgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1;oauthappv1\xa2\x02\x04ASIO\xaa\x02\x1aAi.Stigmer.Iam.Oauthapp.V1\xca\x02\x1aAi\\Stigmer\\Iam\\Oauthapp\\V1\xe2\x02&Ai\\Stigmer\\Iam\\Oauthapp\\V1\\GPBMetadata\xea\x02\x1eAi::Stigmer::Iam::Oauthapp::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_oauthapp_v1_api_proto_rawDescOnce sync.Once

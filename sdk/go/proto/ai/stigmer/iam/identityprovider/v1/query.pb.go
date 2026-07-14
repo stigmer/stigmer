@@ -7,8 +7,8 @@
 package identityproviderv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -31,9 +31,9 @@ const file_ai_stigmer_iam_identityprovider_v1_query_proto_rawDesc = "" +
 	"\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"7¸\x183\b\x01\x10\x15\"\x05value*&unauthorized to view identity provider\x12\x82\x01\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a4.ai.stigmer.iam.identityprovider.v1.IdentityProvider\"\x04и\x18\x01\x12\xd4\x01\n" +
 	"\tlistByOrg\x12C.ai.stigmer.iam.identityprovider.v1.ListIdentityProvidersByOrgInput\x1a5.ai.stigmer.iam.identityprovider.v1.IdentityProviders\"K¸\x18G\b\x01\x10\x1e\"\x03org*<unauthorized to list identity providers in this organization\x12\x86\x01\n" +
-	"\x0egetSsoProvider\x129.ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup\x1a3.ai.stigmer.iam.identityprovider.v1.SsoProviderInfo\"\x04и\x18\x01\x1a\x04\xa0\xff+\x15B\xc0\x02\n" +
+	"\x0egetSsoProvider\x129.ai.stigmer.iam.identityprovider.v1.OrganizationSsoLookup\x1a3.ai.stigmer.iam.identityprovider.v1.SsoProviderInfo\"\x04и\x18\x01\x1a\x04\xa0\xff+\x15B\xc3\x02\n" +
 	"&com.ai.stigmer.iam.identityprovider.v1B\n" +
-	"QueryProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
+	"QueryProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var file_ai_stigmer_iam_identityprovider_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId

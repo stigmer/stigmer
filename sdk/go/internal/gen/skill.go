@@ -5,11 +5,11 @@ package gen
 import (
 	"context"
 
-	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
-	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
-	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
+	skillv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
+	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
 )
 

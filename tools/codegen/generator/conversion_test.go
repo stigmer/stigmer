@@ -315,7 +315,7 @@ func TestGenFromProtoField_SharedTypeImport(t *testing.T) {
 	var buf bytes.Buffer
 	ctx.genFromProtoField(&buf, f)
 
-	if _, ok := ctx.imports["github.com/stigmer/stigmer/sdk/go/gen/types"]; !ok {
+	if _, ok := ctx.imports["github.com/stigmer/stigmer/sdk/go/v3/gen/types"]; !ok {
 		t.Error("shared type message should add types import")
 	}
 }
@@ -331,7 +331,7 @@ func TestGenFromProtoField_SharedMapMessageImport(t *testing.T) {
 	var buf bytes.Buffer
 	ctx.genFromProtoField(&buf, f)
 
-	if _, ok := ctx.imports["github.com/stigmer/stigmer/sdk/go/gen/types"]; !ok {
+	if _, ok := ctx.imports["github.com/stigmer/stigmer/sdk/go/v3/gen/types"]; !ok {
 		t.Error("shared type in map value should add types import")
 	}
 }

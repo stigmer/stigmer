@@ -7,8 +7,8 @@
 package mcpserverv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	v1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/oauthapp/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/oauthapp/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -633,8 +633,8 @@ const file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDesc = "" +
 	"\x1cOAUTH_APP_SOURCE_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19OAUTH_APP_SOURCE_PLATFORM\x10\x01\x12!\n" +
 	"\x1dOAUTH_APP_SOURCE_ORG_OVERRIDE\x10\x02\x12\x19\n" +
-	"\x15OAUTH_APP_SOURCE_NONE\x10\x03B\xa8\x02\n" +
-	"#com.ai.stigmer.agentic.mcpserver.v1B\vStatusProtoP\x01ZSgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
+	"\x15OAUTH_APP_SOURCE_NONE\x10\x03B\xab\x02\n" +
+	"#com.ai.stigmer.agentic.mcpserver.v1B\vStatusProtoP\x01ZVgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDescOnce sync.Once

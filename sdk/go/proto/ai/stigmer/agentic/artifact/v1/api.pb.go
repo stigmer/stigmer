@@ -30,7 +30,7 @@ package artifactv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -289,8 +289,8 @@ const file_ai_stigmer_agentic_artifact_v1_api_proto_rawDesc = "" +
 	"size_bytes\x18\x02 \x01(\x03R\tsizeBytes\x12Y\n" +
 	"\rstorage_state\x18\x03 \x01(\x0e24.ai.stigmer.agentic.artifact.v1.ArtifactStorageStateR\fstorageState\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x04 \x01(\tR\texpiresAtB\x9e\x02\n" +
-	"\"com.ai.stigmer.agentic.artifact.v1B\bApiProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/artifact/v1;artifactv1\xa2\x02\x04ASAA\xaa\x02\x1eAi.Stigmer.Agentic.Artifact.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Artifact\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Artifact::V1b\x06proto3"
+	"expires_at\x18\x04 \x01(\tR\texpiresAtB\xa1\x02\n" +
+	"\"com.ai.stigmer.agentic.artifact.v1B\bApiProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/artifact/v1;artifactv1\xa2\x02\x04ASAA\xaa\x02\x1eAi.Stigmer.Agentic.Artifact.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Artifact\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Artifact::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_artifact_v1_api_proto_rawDescOnce sync.Once

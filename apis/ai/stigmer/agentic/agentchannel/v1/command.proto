@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentchannel.v1;
+
+import "ai/stigmer/agentic/agentchannel/v1/api.proto";
+import "ai/stigmer/agentic/agentchannel/v1/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// AgentChannelCommandController handles write operations for agent channels.
+service AgentChannelCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent_channel;
+
+  // Create or update an agent channel.
+  //
+  // @internal
+  // The authorization and state-operation are determined depending on
+  // whether the channel is going to be created or updated, resolved as
+  // part of request execution. status is preserved verbatim (the install
+  // flow is its sole writer).
+  rpc apply(AgentChannel) returns (AgentChannel);
+
+  // Create an agent channel.
+  //
+  // Connecting an agent to a channel is a billing-affecting decision:
+  // conversations arriving over the channel consume the connection-owning
+  // organization's credits.
+  //
+  // @internal
+  // Authorization: requires can_edit on the REFERENCED AGENT
+  // (spec.agent_ref), checked in-handler — same bar as AgentShare create,
+  // since connecting a channel broadens who can chat with the agent
+  // runtime. Standard org-scoped create tuples (owner = creator) for the
+  // channel itself; no visibility tuples (channel admission is app-level).
+  // Invariant enforced here: metadata.org must equal spec.agent_ref.org.
+  // status.install_state is initialized to pending_install.
+  rpc create(AgentChannel) returns (AgentChannel) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // Update an existing agent channel.
+  //
+  // Replaces the spec wholesale. The slug, referenced agent, and provider
+  // arm are immutable; status (install facts, credential reference) is
+  // never touched by updates.
+  //
+  // @internal
+  // Authorization: requires can_edit permission on the agent channel.
+  // Provider-arm immutability (a slack channel cannot become whatsapp) is
+  // enforced in-handler: the install state, credentials, and delivery
+  // records are all provider-shaped.
+  rpc update(AgentChannel) returns (AgentChannel) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update agent channel";
+  }
+
+  // Start the provider install flow for an agent channel.
+  //
+  // Returns the provider authorization URL to redirect the installing
+  // user to, plus the single-use state that completeInstall verifies.
+  //
+  // @internal
+  // Authorization: requires can_edit on the agent channel — installing
+  // grants a workspace access to the agent runtime, the same bar as
+  // enabling. Generates and persists the single-use state (pending-state
+  // pattern from MCP OAuth). Cloud-first runtime: the OSS edition stores
+  // channel resources but returns FAILED_PRECONDITION here (documented
+  // posture, decision 001 D-g / T02 §0-b).
+  rpc initiateInstall(InitiateChannelInstallInput) returns (InitiateChannelInstallOutput) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to install agent channel";
+  }
+
+  // Complete the provider install flow for an agent channel.
+  //
+  // Called by the console after the provider's consent redirect, with the
+  // state from initiateInstall and the provider's authorization code. On
+  // success the channel's status carries the install facts and the
+  // channel begins serving (subject to spec.enabled).
+  //
+  // @internal
+  // Authorization: requires can_edit on the agent channel — the same bar
+  // as initiateInstall (the two halves of one flow). The handler consumes
+  // the state atomically, exchanges the code, stores credentials in the
+  // system-managed Environment, records the grant, and writes the status
+  // facts (sole writer). The OSS edition returns FAILED_PRECONDITION
+  // (documented posture, decision 001 D-g / T02 §0-b).
+  rpc completeInstall(CompleteChannelInstallInput) returns (AgentChannel) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to install agent channel";
+  }
+
+  // Delete an agent channel.
+  //
+  // Full teardown of the connection: inbound events for the workspace stop
+  // resolving, pending deliveries are abandoned, and the credentials
+  // environment is deleted with the grant. To pause serving while keeping
+  // the install, update the channel with enabled=false instead.
+  //
+  // @internal
+  // Authorization: requires can_delete permission on the agent channel.
+  // The referenced agent is untouched. Teardown cascade (managed env +
+  // grant deletion) mirrors McpServer disconnectOAuth.
+  rpc delete(AgentChannelId) returns (AgentChannel) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = agent_channel;
+    option (ai.stigmer.commons.rpc.config).permission = can_delete;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete agent channel";
+  }
+}

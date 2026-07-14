@@ -5,7 +5,7 @@ package gen
 
 import (
 	"encoding/json"
-	"github.com/stigmer/stigmer/sdk/go/gen/types"
+	"github.com/stigmer/stigmer/sdk/go/v3/gen/types"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 

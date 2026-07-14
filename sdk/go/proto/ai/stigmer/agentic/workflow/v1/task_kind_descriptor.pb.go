@@ -754,8 +754,8 @@ const file_ai_stigmer_agentic_workflow_v1_task_kind_descriptor_proto_rawDesc = "
 	"\x16TASK_FIELD_TYPE_STRUCT\x10\x06\x12\x1c\n" +
 	"\x18TASK_FIELD_TYPE_REPEATED\x10\a\x12\x17\n" +
 	"\x13TASK_FIELD_TYPE_MAP\x10\b\x12\x1b\n" +
-	"\x17TASK_FIELD_TYPE_MESSAGE\x10\tB\xad\x02\n" +
-	"\"com.ai.stigmer.agentic.workflow.v1B\x17TaskKindDescriptorProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
+	"\x17TASK_FIELD_TYPE_MESSAGE\x10\tB\xb0\x02\n" +
+	"\"com.ai.stigmer.agentic.workflow.v1B\x17TaskKindDescriptorProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_workflow_v1_task_kind_descriptor_proto_rawDescOnce sync.Once

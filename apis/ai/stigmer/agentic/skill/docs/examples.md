@@ -248,8 +248,8 @@ my-stigmer-project/
 package main
 
 import (
-    stigmer "github.com/stigmer/stigmer/sdk/go"
-    "github.com/stigmer/stigmer/sdk/go/skill"
+    stigmer "github.com/stigmer/stigmer/sdk/go/v3"
+    "github.com/stigmer/stigmer/sdk/go/v3/skill"
 )
 
 func main() {

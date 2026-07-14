@@ -29,7 +29,8 @@ import { backfillMcpServersIfNeeded } from "../../shared/connect-backfill.js";
 import { WorkspaceProvisioner } from "../../shared/workspace/provisioner.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
-import { CasCaptureFilesystemBackend } from "./cas-capture-backend.js";
+import { createCasCaptureBackend } from "./cas-capture-backend.js";
+import { buildShellEnv } from "./shell-env.js";
 import { CasCaptureObserver } from "./cas-capture-observer.js";
 import { isGitWorkTree, isPathCapturable } from "../../shared/filereview/git-substrate.js";
 import { deriveCaptureMode } from "../../shared/filereview/capture.js";
@@ -400,6 +401,8 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     await ensurePricingLoaded();
     const pricing = getModelPricing(modelName);
     const execConfig = execution.spec!.executionConfig;
+    const isPlanMode = execConfig?.interactionMode === InteractionMode.PLAN;
+    const shellEnv = isPlanMode ? undefined : buildShellEnv(envResult.mergedEnvVars);
 
     const toolServerMap = new Map<string, string>();
     if (mcpConnection) {
@@ -538,6 +541,9 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
             stigmerToken: config.stigmerToken ?? undefined,
             headerScope: { executionId },
           })).model,
+        // Presence of shellEnv is the shell-capability switch for sub-agent
+        // backends too (undefined in plan mode; see buildShellEnv above).
+        shellEnv,
       });
     }
 
@@ -556,7 +562,6 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     // first-match-wins with a permissive default, so a single deny-all-writes
     // rule is sufficient. (The Cursor harness enforces plan mode via its prompt
     // prefix; the native harness enforces it here.)
-    const isPlanMode = execConfig?.interactionMode === InteractionMode.PLAN;
     const planModePermissions: FilesystemPermission[] = [
       { operations: ["write"], paths: ["/**"], mode: "deny" },
     ];
@@ -567,10 +572,11 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     // bytes of every CAS-owned path — .gitignored paths in a git work tree, all
     // touched paths in a non-git one — so the boundary can capture them into CAS.
     // It is gate-independent, so it holds even under the global bypass.
-    const fileBackend = new CasCaptureFilesystemBackend(
-      { rootDir: workspaceBackend.rootDir },
-      { observer: casObserver },
-    );
+    const fileBackend = await createCasCaptureBackend({
+      rootDir: workspaceBackend.rootDir,
+      observer: casObserver,
+      shellEnv,
+    });
     const agentGraph = await createDeepAgent({
       model,
       checkpointer: checkpointer as any,

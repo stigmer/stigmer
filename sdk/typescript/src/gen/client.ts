@@ -2,6 +2,7 @@
 
 import type { Transport } from "@connectrpc/connect";
 import { AgentClient } from "./agent.js";
+import { AgentChannelClient } from "./agentchannel.js";
 import { AgentExecutionClient } from "./agentexecution.js";
 import { AgentInstanceClient } from "./agentinstance.js";
 import { AgentShareClient } from "./agentshare.js";
@@ -27,6 +28,7 @@ import { WorkflowInstanceClient } from "./workflowinstance.js";
 /** Aggregate client with all resource-specific sub-clients. */
 export class GeneratedClient {
   readonly agent: AgentClient;
+  readonly agentchannel: AgentChannelClient;
   readonly agentExecution: AgentExecutionClient;
   readonly agentInstance: AgentInstanceClient;
   readonly agentShare: AgentShareClient;
@@ -51,6 +53,7 @@ export class GeneratedClient {
 
   constructor(transport: Transport) {
     this.agent = new AgentClient(transport);
+    this.agentchannel = new AgentChannelClient(transport);
     this.agentExecution = new AgentExecutionClient(transport);
     this.agentInstance = new AgentInstanceClient(transport);
     this.agentShare = new AgentShareClient(transport);
@@ -78,6 +81,8 @@ export class GeneratedClient {
 // Re-export all resource client types and input types.
 export { AgentClient } from "./agent.js";
 export { type AgentInput, type McpServerUsageInput, type ToolApprovalOverrideInput, type SubAgentInput, type McpAccessInput, type EnvVarDeclarationInput } from "./agent.js";
+export { AgentChannelClient } from "./agentchannel.js";
+export { type AgentChannelInput, type SlackChannelConfigInput } from "./agentchannel.js";
 export { AgentExecutionClient } from "./agentexecution.js";
 export { type AgentExecutionInput, type ExecutionConfigInput, type ContextManagementConfigInput, type AttachmentInput } from "./agentexecution.js";
 export { AgentInstanceClient } from "./agentinstance.js";

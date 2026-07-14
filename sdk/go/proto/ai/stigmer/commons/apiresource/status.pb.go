@@ -283,8 +283,8 @@ const file_ai_stigmer_commons_apiresource_status_proto_rawDesc = "" +
 	"\x05event\x18\x05 \x01(\tR\x05event\"?\n" +
 	"\x15ApiResourceAuditActor\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
-	"\x06avatar\x18\x02 \x01(\tR\x06avatarB\x95\x02\n" +
-	"\"com.ai.stigmer.commons.apiresourceB\vStatusProtoP\x01ZFgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
+	"\x06avatar\x18\x02 \x01(\tR\x06avatarB\x98\x02\n" +
+	"\"com.ai.stigmer.commons.apiresourceB\vStatusProtoP\x01ZIgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (
 	file_ai_stigmer_commons_apiresource_status_proto_rawDescOnce sync.Once

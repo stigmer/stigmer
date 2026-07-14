@@ -8,7 +8,7 @@ package platformclientv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -210,8 +210,8 @@ const file_ai_stigmer_iam_platformclient_v1_api_proto_rawDesc = "" +
 	"\x14PlatformClientStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12<\n" +
 	"\flast_used_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"lastUsedAtB\xb0\x02\n" +
-	"$com.ai.stigmer.iam.platformclient.v1B\bApiProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
+	"lastUsedAtB\xb3\x02\n" +
+	"$com.ai.stigmer.iam.platformclient.v1B\bApiProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/platformclient/v1;platformclientv1\xa2\x02\x04ASIP\xaa\x02 Ai.Stigmer.Iam.Platformclient.V1\xca\x02 Ai\\Stigmer\\Iam\\Platformclient\\V1\xe2\x02,Ai\\Stigmer\\Iam\\Platformclient\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Iam::Platformclient::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_platformclient_v1_api_proto_rawDescOnce sync.Once

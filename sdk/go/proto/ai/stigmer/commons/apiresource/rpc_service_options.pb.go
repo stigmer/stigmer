@@ -7,7 +7,7 @@
 package apiresource
 
 import (
-	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
@@ -44,8 +44,8 @@ var File_ai_stigmer_commons_apiresource_rpc_service_options_proto protoreflect.F
 const file_ai_stigmer_commons_apiresource_rpc_service_options_proto_rawDesc = "" +
 	"\n" +
 	"8ai/stigmer/commons/apiresource/rpc_service_options.proto\x12\x1eai.stigmer.commons.apiresource\x1aFai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto\x1a google/protobuf/descriptor.proto:\x8e\x01\n" +
-	"\x11api_resource_kind\x12\x1f.google.protobuf.ServiceOptions\x18\xf4\xbf\x05 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x0fapiResourceKindB\xa0\x02\n" +
-	"\"com.ai.stigmer.commons.apiresourceB\x16RpcServiceOptionsProtoP\x01ZFgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
+	"\x11api_resource_kind\x12\x1f.google.protobuf.ServiceOptions\x18\xf4\xbf\x05 \x01(\x0e2?.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindR\x0fapiResourceKindB\xa3\x02\n" +
+	"\"com.ai.stigmer.commons.apiresourceB\x16RpcServiceOptionsProtoP\x01ZIgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var file_ai_stigmer_commons_apiresource_rpc_service_options_proto_goTypes = []any{
 	(*descriptorpb.ServiceOptions)(nil),  // 0: google.protobuf.ServiceOptions

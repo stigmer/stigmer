@@ -293,8 +293,8 @@ const file_ai_stigmer_agentic_artifact_v1_spec_proto_rawDesc = "" +
 	"\x12agent_execution_id\x18\x02 \x01(\tR\x10agentExecutionId\x12\x1b\n" +
 	"\ttask_name\x18\x03 \x01(\tR\btaskName\",\n" +
 	"\x0fRetentionPolicy\x12\x19\n" +
-	"\bttl_days\x18\x01 \x01(\x05R\attlDaysB\x9f\x02\n" +
-	"\"com.ai.stigmer.agentic.artifact.v1B\tSpecProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/artifact/v1;artifactv1\xa2\x02\x04ASAA\xaa\x02\x1eAi.Stigmer.Agentic.Artifact.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Artifact\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Artifact::V1b\x06proto3"
+	"\bttl_days\x18\x01 \x01(\x05R\attlDaysB\xa2\x02\n" +
+	"\"com.ai.stigmer.agentic.artifact.v1B\tSpecProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/artifact/v1;artifactv1\xa2\x02\x04ASAA\xaa\x02\x1eAi.Stigmer.Agentic.Artifact.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Artifact\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Artifact::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_artifact_v1_spec_proto_rawDescOnce sync.Once

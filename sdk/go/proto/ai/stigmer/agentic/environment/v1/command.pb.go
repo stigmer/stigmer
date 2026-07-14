@@ -7,8 +7,8 @@
 package environmentv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -35,8 +35,8 @@ const file_ai_stigmer_agentic_environment_v1_command_proto_rawDesc = "" +
 	"\x10updateVisibility\x125.ai.stigmer.commons.apiresource.UpdateVisibilityInput\x1a..ai.stigmer.agentic.environment.v1.Environment\"D¸\x18@\b\x02\x105\"\vresource_id*-unauthorized to update environment visibility\x12\xab\x01\n" +
 	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a..ai.stigmer.agentic.environment.v1.Environment\"9¸\x185\b\x02\x105\"\vresource_id*\"unauthorized to delete environment\x12\xcf\x01\n" +
 	"\x0fupdateVariables\x12D.ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest\x1a..ai.stigmer.agentic.environment.v1.Environment\"F¸\x18B\b\x02\x105\"\x0eenvironment_id*,unauthorized to update environment variables\x12\xcf\x01\n" +
-	"\x0fremoveVariables\x12D.ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest\x1a..ai.stigmer.agentic.environment.v1.Environment\"F¸\x18B\b\x02\x105\"\x0eenvironment_id*,unauthorized to remove environment variables\x1a\x04\xa0\xff+5B\xb7\x02\n" +
-	"%com.ai.stigmer.agentic.environment.v1B\fCommandProtoP\x01ZWgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1;environmentv1\xa2\x02\x04ASAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3"
+	"\x0fremoveVariables\x12D.ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest\x1a..ai.stigmer.agentic.environment.v1.Environment\"F¸\x18B\b\x02\x105\"\x0eenvironment_id*,unauthorized to remove environment variables\x1a\x04\xa0\xff+5B\xba\x02\n" +
+	"%com.ai.stigmer.agentic.environment.v1B\fCommandProtoP\x01ZZgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1;environmentv1\xa2\x02\x04ASAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_environment_v1_command_proto_goTypes = []any{
 	(*Environment)(nil),                        // 0: ai.stigmer.agentic.environment.v1.Environment

@@ -8,8 +8,8 @@ package billingv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
-	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
+	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -1834,8 +1834,8 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"#cache_read_price_micros_per_million\x18\t \x01(\x03R\x1ecacheReadPriceMicrosPerMillion\x12*\n" +
 	"\x11pricing_policy_id\x18\n" +
 	" \x01(\tR\x0fpricingPolicyId\x12.\n" +
-	"\x13markup_basis_points\x18\v \x01(\x05R\x11markupBasisPointsB\xe4\x01\n" +
-	"\x19com.ai.stigmer.billing.v1B\aIoProtoP\x01ZGgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
+	"\x13markup_basis_points\x18\v \x01(\x05R\x11markupBasisPointsB\xe7\x01\n" +
+	"\x19com.ai.stigmer.billing.v1B\aIoProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_v1_io_proto_rawDescOnce sync.Once

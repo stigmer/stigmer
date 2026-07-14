@@ -150,8 +150,8 @@ const file_ai_stigmer_iam_identityaccount_v1_webhook_proto_rawDesc = "" +
 	"\x02ip\x18\x06 \x01(\tR\x02ip\x12\x1d\n" +
 	"\n" +
 	"user_agent\x18\a \x01(\tR\tuserAgent\x12\x17\n" +
-	"\auser_id\x18\b \x01(\tR\x06userIdB\xbb\x02\n" +
-	"%com.ai.stigmer.iam.identityaccount.v1B\fWebhookProtoP\x01Z[github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
+	"\auser_id\x18\b \x01(\tR\x06userIdB\xbe\x02\n" +
+	"%com.ai.stigmer.iam.identityaccount.v1B\fWebhookProtoP\x01Z^github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_identityaccount_v1_webhook_proto_rawDescOnce sync.Once

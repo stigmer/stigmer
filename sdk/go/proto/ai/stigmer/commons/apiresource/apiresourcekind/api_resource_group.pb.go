@@ -167,8 +167,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_group_pro
 	"\atenancy\x10\x03\x1a!\xea\xbd,\x1d\n" +
 	"\x12tenancy.stigmer.ai\x12\aTenancy:\x88\x01\n" +
 	"\n" +
-	"group_meta\x12!.google.protobuf.EnumValueOptions\x18\xdd\xc7\x05 \x01(\v2D.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceGroupMetaR\tgroupMetaB\x81\x03\n" +
-	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x15ApiResourceGroupProtoP\x01ZVgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
+	"group_meta\x12!.google.protobuf.EnumValueOptions\x18\xdd\xc7\x05 \x01(\v2D.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceGroupMetaR\tgroupMetaB\x84\x03\n" +
+	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x15ApiResourceGroupProtoP\x01ZYgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
 
 var (
 	file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_group_proto_rawDescOnce sync.Once

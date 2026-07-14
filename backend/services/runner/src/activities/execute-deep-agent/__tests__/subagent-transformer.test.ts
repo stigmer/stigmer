@@ -53,10 +53,11 @@ function mockMcpUsage(slug: string): McpServerUsage {
 // =========================================================================
 
 describe("BUILTIN_SUBAGENT_TYPES", () => {
-  it("contains explore and shell", () => {
+  it("contains explore, shell, and general-purpose", () => {
     expect(BUILTIN_SUBAGENT_TYPES.has("explore")).toBe(true);
     expect(BUILTIN_SUBAGENT_TYPES.has("shell")).toBe(true);
-    expect(BUILTIN_SUBAGENT_TYPES.size).toBe(2);
+    expect(BUILTIN_SUBAGENT_TYPES.has("general-purpose")).toBe(true);
+    expect(BUILTIN_SUBAGENT_TYPES.size).toBe(3);
   });
 });
 
@@ -70,13 +71,14 @@ describe("createBuiltinSubagents", () => {
     expect(result).toEqual([]);
   });
 
-  it("creates explore and shell subagents when workspace exists", () => {
+  it("creates explore, shell, and general-purpose subagents when workspace exists", () => {
     const result = createBuiltinSubagents(true);
-    expect(result).toHaveLength(2);
+    expect(result).toHaveLength(3);
 
     const names = result.map((r) => r.name);
     expect(names).toContain("explore");
     expect(names).toContain("shell");
+    expect(names).toContain("general-purpose");
   });
 
   it("explore has read-only prompt with strict boundaries", () => {
@@ -470,6 +472,7 @@ describe("transformAndCompileSubagents", () => {
     const names = result!.map((r) => r.name);
     expect(names).toContain("explore");
     expect(names).toContain("shell");
+    expect(names).toContain("general-purpose");
 
     logSpy.mockRestore();
   });

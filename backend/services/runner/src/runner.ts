@@ -136,6 +136,11 @@ export async function createStigmerRunner(
 ): Promise<StigmerRunner> {
   validateOptions(options);
 
+  const { registerStigmerDeepagentsProfiles } = await import(
+    "./activities/execute-deep-agent/deepagents-profiles.js"
+  );
+  registerStigmerDeepagentsProfiles();
+
   const baseConfig = mapOptionsToConfig(options);
 
   // Install the Cursor SDK interceptors BEFORE resolving Temporal coordinates.

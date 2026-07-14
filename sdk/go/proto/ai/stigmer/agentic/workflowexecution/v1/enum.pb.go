@@ -435,8 +435,8 @@ const file_ai_stigmer_agentic_workflowexecution_v1_enum_proto_rawDesc = "" +
 	"\x17WORKFLOW_TASK_COMPLETED\x10\x03\x12\x18\n" +
 	"\x14WORKFLOW_TASK_FAILED\x10\x04\x12\x19\n" +
 	"\x15WORKFLOW_TASK_SKIPPED\x10\x05\x12\"\n" +
-	"\x1eWORKFLOW_TASK_WAITING_APPROVAL\x10\x06B\xde\x02\n" +
-	"+com.ai.stigmer.agentic.workflowexecution.v1B\tEnumProtoP\x01Zcgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
+	"\x1eWORKFLOW_TASK_WAITING_APPROVAL\x10\x06B\xe1\x02\n" +
+	"+com.ai.stigmer.agentic.workflowexecution.v1B\tEnumProtoP\x01Zfgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowexecution/v1;workflowexecutionv1\xa2\x02\x04ASAW\xaa\x02'Ai.Stigmer.Agentic.Workflowexecution.V1\xca\x02'Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\xe2\x023Ai\\Stigmer\\Agentic\\Workflowexecution\\V1\\GPBMetadata\xea\x02+Ai::Stigmer::Agentic::Workflowexecution::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_workflowexecution_v1_enum_proto_rawDescOnce sync.Once

@@ -8,7 +8,7 @@ package platformv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -513,8 +513,8 @@ const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\x17PlatformQueryController\x12n\n" +
 	"\rgetServerInfo\x12*.ai.stigmer.platform.v1.GetServerInfoInput\x1a+.ai.stigmer.platform.v1.GetServerInfoOutput\"\x04ȸ\x18\x01\x12\x8f\x01\n" +
 	"\x18getRunnerBootstrapConfig\x125.ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput\x1a6.ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput\"\x04и\x18\x01\x12\x83\x01\n" +
-	"\x14getRunnerScopedToken\x121.ai.stigmer.platform.v1.GetRunnerScopedTokenInput\x1a2.ai.stigmer.platform.v1.GetRunnerScopedTokenOutput\"\x04и\x18\x01B\xf3\x01\n" +
-	"\x1acom.ai.stigmer.platform.v1B\x0fServerInfoProtoP\x01ZIgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/platform/v1;platformv1\xa2\x02\x03ASP\xaa\x02\x16Ai.Stigmer.Platform.V1\xca\x02\x16Ai\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Platform::V1b\x06proto3"
+	"\x14getRunnerScopedToken\x121.ai.stigmer.platform.v1.GetRunnerScopedTokenInput\x1a2.ai.stigmer.platform.v1.GetRunnerScopedTokenOutput\"\x04и\x18\x01B\xf6\x01\n" +
+	"\x1acom.ai.stigmer.platform.v1B\x0fServerInfoProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/platform/v1;platformv1\xa2\x02\x03ASP\xaa\x02\x16Ai.Stigmer.Platform.V1\xca\x02\x16Ai\\Stigmer\\Platform\\V1\xe2\x02\"Ai\\Stigmer\\Platform\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Platform::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_platform_v1_server_info_proto_rawDescOnce sync.Once

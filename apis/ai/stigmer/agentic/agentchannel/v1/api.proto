@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentchannel.v1;
+
+import "ai/stigmer/agentic/agentchannel/v1/spec.proto";
+import "ai/stigmer/agentic/agentchannel/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// AgentChannel connects an agent to an external messaging platform so people can chat with it where they already work.
+//
+// A channel is a distribution channel like AgentShare, but for push-based
+// messaging platforms: the provider (Slack today) delivers user messages
+// to a Stigmer webhook, and Stigmer calls the provider's API to deliver
+// the agent's replies. The connection records which agent serves the
+// channel, whether serving is enabled, and provider selection; the
+// workspace identity and credential references produced by the install
+// flow live in status. Deleting the channel tears the connection down;
+// disabling pauses serving while preserving the install.
+//
+// @internal
+// Sibling of AgentShare (decision 001): one kind per target, provider
+// variance in spec.provider_config. metadata.org is the billing org
+// (decision 001 D-b). N channels per agent; the defaults resolver does
+// NOT default the slug to the agent slug (org+slug is unique and channels
+// are N-per-agent — P7), standard derive-from-name applies. The overview.md
+// file provides the SDK-facing description and example YAML.
+message AgentChannel {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'AgentChannel'];
+
+  // Resource metadata including name, organization, and labels.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // Configurable properties: referenced agent, enablement, and provider selection.
+  AgentChannelSpec spec = 4;
+
+  // System-managed state: install lifecycle, provider install facts, credential reference, and audit trail.
+  AgentChannelStatus status = 5;
+}

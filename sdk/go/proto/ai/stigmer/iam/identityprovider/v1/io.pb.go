@@ -371,8 +371,8 @@ const file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDesc = "" +
 	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\x12$\n" +
 	"\x0eoidc_client_id\x18\x02 \x01(\tR\foidcClientId\x12\x16\n" +
 	"\x06issuer\x18\x03 \x01(\tR\x06issuer\x12+\n" +
-	"\x11expected_audience\x18\x04 \x01(\tR\x10expectedAudienceB\xbd\x02\n" +
-	"&com.ai.stigmer.iam.identityprovider.v1B\aIoProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
+	"\x11expected_audience\x18\x04 \x01(\tR\x10expectedAudienceB\xc0\x02\n" +
+	"&com.ai.stigmer.iam.identityprovider.v1B\aIoProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityprovider/v1;identityproviderv1\xa2\x02\x04ASII\xaa\x02\"Ai.Stigmer.Iam.Identityprovider.V1\xca\x02\"Ai\\Stigmer\\Iam\\Identityprovider\\V1\xe2\x02.Ai\\Stigmer\\Iam\\Identityprovider\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Iam::Identityprovider::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_iam_identityprovider_v1_io_proto_rawDescOnce sync.Once

@@ -141,6 +141,22 @@ your Organization by setting its visibility to **Organization**:
 Environments never go beyond the Organization — there is no public or platform
 visibility for secrets.
 
+## How values resolve at runtime
+
+When an Agent runs, Stigmer merges the Environments attached to its Agent
+Instance into a single **ExecutionContext**. That merged map is what the runner
+uses at execution time. Different surfaces see different slices of it:
+
+| Surface                                            | What the Agent sees                                                                                                                                                      |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Shell commands** (native harness `execute` tool) | The runner's own process variables, minus runner-internal credentials, with ExecutionContext values overlaid on top. Overlay wins when a name exists in both.            |
+| **MCP stdio servers**                              | Only variables declared in the MCP server's `env_spec`, taken from ExecutionContext. If the server declares no env, the runner falls back to its full process variables. |
+
+Shell commands inherit `PATH` and other host settings from the runner so local
+CLIs work, while ExecutionContext supplies API keys and service URLs your Agent
+declares. Secrets marked `is_secret: true` are still redacted in logs and the UI
+regardless of which surface consumes them.
+
 ## What's next
 
 Environments organize secrets and configuration. But how are resources

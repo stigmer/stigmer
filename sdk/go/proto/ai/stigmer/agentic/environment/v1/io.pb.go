@@ -8,7 +8,7 @@ package environmentv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -395,8 +395,8 @@ const file_ai_stigmer_agentic_environment_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v23.ai.stigmer.agentic.environment.v1.EnvironmentValueR\x05value:\x028\x01\"q\n" +
 	"!RemoveEnvironmentVariablesRequest\x12.\n" +
 	"\x0eenvironment_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\renvironmentId\x12\x1c\n" +
-	"\x04keys\x18\x02 \x03(\tB\b\xbaH\x05\x92\x01\x02\b\x01R\x04keysB\xb2\x02\n" +
-	"%com.ai.stigmer.agentic.environment.v1B\aIoProtoP\x01ZWgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1;environmentv1\xa2\x02\x04ASAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3"
+	"\x04keys\x18\x02 \x03(\tB\b\xbaH\x05\x92\x01\x02\b\x01R\x04keysB\xb5\x02\n" +
+	"%com.ai.stigmer.agentic.environment.v1B\aIoProtoP\x01ZZgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1;environmentv1\xa2\x02\x04ASAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_environment_v1_io_proto_rawDescOnce sync.Once

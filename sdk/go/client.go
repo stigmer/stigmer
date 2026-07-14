@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/stigmer/stigmer/sdk/go/internal/gen"
-	"github.com/stigmer/stigmer/sdk/go/internal/transport"
-	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
+	"github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
+	"github.com/stigmer/stigmer/sdk/go/v3/internal/transport"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 )

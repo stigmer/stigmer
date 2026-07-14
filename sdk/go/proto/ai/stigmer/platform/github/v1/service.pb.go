@@ -8,7 +8,7 @@ package githubv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -280,8 +280,8 @@ const file_ai_stigmer_platform_github_v1_service_proto_rawDesc = "" +
 	"\x05scope\x18\x03 \x01(\tR\x05scope2\xb6\x02\n" +
 	"\rGitHubService\x12\x95\x01\n" +
 	"\x14getOAuthAuthorizeUrl\x12:.ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest\x1a;.ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse\"\x04и\x18\x01\x12\x8c\x01\n" +
-	"\x11exchangeOAuthCode\x127.ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest\x1a8.ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse\"\x04и\x18\x01B\x9a\x02\n" +
-	"!com.ai.stigmer.platform.github.v1B\fServiceProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/platform/github/v1;githubv1\xa2\x02\x04ASPG\xaa\x02\x1dAi.Stigmer.Platform.Github.V1\xca\x02\x1dAi\\Stigmer\\Platform\\Github\\V1\xe2\x02)Ai\\Stigmer\\Platform\\Github\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Platform::Github::V1b\x06proto3"
+	"\x11exchangeOAuthCode\x127.ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest\x1a8.ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse\"\x04и\x18\x01B\x9d\x02\n" +
+	"!com.ai.stigmer.platform.github.v1B\fServiceProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/platform/github/v1;githubv1\xa2\x02\x04ASPG\xaa\x02\x1dAi.Stigmer.Platform.Github.V1\xca\x02\x1dAi\\Stigmer\\Platform\\Github\\V1\xe2\x02)Ai\\Stigmer\\Platform\\Github\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Platform::Github::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_platform_github_v1_service_proto_rawDescOnce sync.Once

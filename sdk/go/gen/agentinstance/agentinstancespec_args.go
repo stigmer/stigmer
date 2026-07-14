@@ -4,7 +4,7 @@
 package agentinstance
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 )
 
 // AgentInstanceArgs contains the configuration arguments for creating a AgentInstance.

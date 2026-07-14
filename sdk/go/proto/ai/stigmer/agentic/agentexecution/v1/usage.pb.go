@@ -1804,9 +1804,9 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"!COST_CALCULATION_STATUS_ESTIMATED\x10\x02\x12+\n" +
 	"'COST_CALCULATION_STATUS_PRICE_NOT_FOUND\x10\x03\x12&\n" +
 	"\"COST_CALCULATION_STATUS_RECONCILED\x10\x04\x12+\n" +
-	"'COST_CALCULATION_STATUS_MANUAL_ADJUSTED\x10\x05B\xca\x02\n" +
+	"'COST_CALCULATION_STATUS_MANUAL_ADJUSTED\x10\x05B\xcd\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\n" +
-	"UsageProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
+	"UsageProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescOnce sync.Once

@@ -2,10 +2,11 @@
 
 package stigmer
 
-import "github.com/stigmer/stigmer/sdk/go/internal/gen"
+import "github.com/stigmer/stigmer/sdk/go/v3/internal/gen"
 
 // Resource clients -- one per API resource.
 type AgentClient = gen.AgentClient
+type AgentChannelClient = gen.AgentChannelClient
 type AgentExecutionClient = gen.AgentExecutionClient
 type AgentInstanceClient = gen.AgentInstanceClient
 type AgentShareClient = gen.AgentShareClient
@@ -35,6 +36,8 @@ type ToolApprovalOverrideInput = gen.ToolApprovalOverrideInput
 type SubAgentInput = gen.SubAgentInput
 type McpAccessInput = gen.McpAccessInput
 type EnvVarDeclarationInput = gen.EnvVarDeclarationInput
+type AgentChannelInput = gen.AgentChannelInput
+type SlackChannelConfigInput = gen.SlackChannelConfigInput
 type AgentExecutionInput = gen.AgentExecutionInput
 type ExecutionConfigInput = gen.ExecutionConfigInput
 type ContextManagementConfigInput = gen.ContextManagementConfigInput

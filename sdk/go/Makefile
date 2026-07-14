@@ -52,7 +52,7 @@ codegen-stubs: ## Generate proto stubs inside the SDK module
 	@$(MAKE) -C ../../apis go-stubs-tools
 	@cd ../../apis && buf generate --template buf.gen.sdk-go.yaml
 	@if [ -d "proto/github.com" ]; then \
-		mv proto/github.com/stigmer/stigmer/sdk/go/proto/* proto/ 2>/dev/null || true; \
+		mv proto/github.com/stigmer/stigmer/sdk/go/v3/proto/* proto/ 2>/dev/null || true; \
 		rm -rf proto/github.com; \
 	fi
 	@echo "Proto stubs generated in proto/"

@@ -592,8 +592,8 @@ const file_ai_stigmer_agentic_artifact_v1_io_proto_rawDesc = "" +
 	"ttlSeconds\x12\x1d\n" +
 	"\n" +
 	"size_bytes\x18\x03 \x01(\x03R\tsizeBytes\x12!\n" +
-	"\fcontent_type\x18\x04 \x01(\tR\vcontentTypeB\x9d\x02\n" +
-	"\"com.ai.stigmer.agentic.artifact.v1B\aIoProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/artifact/v1;artifactv1\xa2\x02\x04ASAA\xaa\x02\x1eAi.Stigmer.Agentic.Artifact.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Artifact\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Artifact::V1b\x06proto3"
+	"\fcontent_type\x18\x04 \x01(\tR\vcontentTypeB\xa0\x02\n" +
+	"\"com.ai.stigmer.agentic.artifact.v1B\aIoProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/artifact/v1;artifactv1\xa2\x02\x04ASAA\xaa\x02\x1eAi.Stigmer.Agentic.Artifact.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Artifact\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Artifact\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Artifact::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_artifact_v1_io_proto_rawDescOnce sync.Once

@@ -269,8 +269,8 @@ const file_ai_stigmer_billing_v1_policy_proto_rawDesc = "" +
 	"\x13markup_basis_points\x18\x04 \x01(\x05R\x11markupBasisPoints\x12\x14\n" +
 	"\x05model\x18\x05 \x01(\tR\x05model\x12\x18\n" +
 	"\aharness\x18\x06 \x01(\tR\aharness\x12\x1b\n" +
-	"\tcost_tier\x18\a \x01(\tR\bcostTierB\xe8\x01\n" +
-	"\x19com.ai.stigmer.billing.v1B\vPolicyProtoP\x01ZGgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
+	"\tcost_tier\x18\a \x01(\tR\bcostTierB\xeb\x01\n" +
+	"\x19com.ai.stigmer.billing.v1B\vPolicyProtoP\x01ZJgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_billing_v1_policy_proto_rawDescOnce sync.Once

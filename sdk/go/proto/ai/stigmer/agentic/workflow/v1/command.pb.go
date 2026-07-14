@@ -7,9 +7,9 @@
 package workflowv1
 
 import (
-	serverless "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1/serverless"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	serverless "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1/serverless"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -36,8 +36,8 @@ const file_ai_stigmer_agentic_workflow_v1_command_proto_rawDesc = "" +
 	"\x06delete\x12*.ai.stigmer.agentic.workflow.v1.WorkflowId\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\"0¸\x18,\b\x03\x102\"\x05value*\x1funauthorized to delete workflow\x12\xd1\x01\n" +
 	"\fvalidateSpec\x12(.ai.stigmer.agentic.workflow.v1.Workflow\x1aG.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation\"N¸\x18J\b\a\x10\x1e\"\fmetadata.org*6unauthorized to validate workflow in this organization\x12\xac\x01\n" +
 	"\n" +
-	"tagVersion\x127.ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\";¸\x187\b\x02\x102\"\vworkflow_id*$unauthorized to tag workflow version\x1a\x04\xa0\xff+2B\xa2\x02\n" +
-	"\"com.ai.stigmer.agentic.workflow.v1B\fCommandProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
+	"tagVersion\x127.ai.stigmer.agentic.workflow.v1.TagWorkflowVersionInput\x1a(.ai.stigmer.agentic.workflow.v1.Workflow\";¸\x187\b\x02\x102\"\vworkflow_id*$unauthorized to tag workflow version\x1a\x04\xa0\xff+2B\xa5\x02\n" +
+	"\"com.ai.stigmer.agentic.workflow.v1B\fCommandProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_workflow_v1_command_proto_goTypes = []any{
 	(*Workflow)(nil), // 0: ai.stigmer.agentic.workflow.v1.Workflow

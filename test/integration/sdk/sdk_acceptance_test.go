@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	stigmer "github.com/stigmer/stigmer/sdk/go"
-	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
-	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
+	stigmer "github.com/stigmer/stigmer/sdk/go/v3"
+	workflowv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflowexecution/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -144,8 +144,8 @@ The SDK does not push the skill directly. It declares the skill's source and reg
 
 ```go
 import (
-    "github.com/stigmer/stigmer/sdk/go/skill"
-    stigmer "github.com/stigmer/stigmer/sdk/go"
+    "github.com/stigmer/stigmer/sdk/go/v3/skill"
+    stigmer "github.com/stigmer/stigmer/sdk/go/v3"
 )
 
 stigmer.Run(func(ctx *stigmer.Context) error {

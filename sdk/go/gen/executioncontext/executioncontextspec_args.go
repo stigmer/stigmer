@@ -4,7 +4,7 @@
 package executioncontext
 
 import (
-	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
+	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
 )
 
 // ExecutionContextArgs contains the configuration arguments for creating a ExecutionContext.

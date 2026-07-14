@@ -1,0 +1,832 @@
+{
+  "resource": "agentchannel",
+  "package": "ai.stigmer.agentic.agentchannel.v1",
+  "goImportPath": "agentchannelv1",
+  "services": [
+    {
+      "name": "AgentChannelCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/agentchannel/v1/command.proto",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "AgentChannel",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
+          "outputType": "AgentChannel",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
+          "description": "Create or update an agent channel.\n\n @internal\n The authorization and state-operation are determined depending on\n whether the channel is going to be created or updated, resolved as\n part of request execution. status is preserved verbatim (the install\n flow is its sole writer)."
+        },
+        {
+          "name": "Create",
+          "inputType": "AgentChannel",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
+          "outputType": "AgentChannel",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
+          "description": "Create an agent channel.\n\n Connecting an agent to a channel is a billing-affecting decision:\n conversations arriving over the channel consume the connection-owning\n organization's credits.\n\n @internal\n Authorization: requires can_edit on the REFERENCED AGENT\n (spec.agent_ref), checked in-handler — same bar as AgentShare create,\n since connecting a channel broadens who can chat with the agent\n runtime. Standard org-scoped create tuples (owner = creator) for the\n channel itself; no visibility tuples (channel admission is app-level).\n Invariant enforced here: metadata.org must equal spec.agent_ref.org.\n status.install_state is initialized to pending_install."
+        },
+        {
+          "name": "Update",
+          "inputType": "AgentChannel",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
+          "outputType": "AgentChannel",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
+          "description": "Update an existing agent channel.\n\n Replaces the spec wholesale. The slug, referenced agent, and provider\n arm are immutable; status (install facts, credential reference) is\n never touched by updates.\n\n @internal\n Authorization: requires can_edit permission on the agent channel.\n Provider-arm immutability (a slack channel cannot become whatsapp) is\n enforced in-handler: the install state, credentials, and delivery\n records are all provider-shaped."
+        },
+        {
+          "name": "InitiateInstall",
+          "inputType": "InitiateChannelInstallInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput",
+          "outputType": "InitiateChannelInstallOutput",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput",
+          "description": "Start the provider install flow for an agent channel.\n\n Returns the provider authorization URL to redirect the installing\n user to, plus the single-use state that completeInstall verifies.\n\n @internal\n Authorization: requires can_edit on the agent channel — installing\n grants a workspace access to the agent runtime, the same bar as\n enabling. Generates and persists the single-use state (pending-state\n pattern from MCP OAuth). Cloud-first runtime: the OSS edition stores\n channel resources but returns FAILED_PRECONDITION here (documented\n posture, decision 001 D-g / T02 §0-b)."
+        },
+        {
+          "name": "CompleteInstall",
+          "inputType": "CompleteChannelInstallInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.CompleteChannelInstallInput",
+          "outputType": "AgentChannel",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
+          "description": "Complete the provider install flow for an agent channel.\n\n Called by the console after the provider's consent redirect, with the\n state from initiateInstall and the provider's authorization code. On\n success the channel's status carries the install facts and the\n channel begins serving (subject to spec.enabled).\n\n @internal\n Authorization: requires can_edit on the agent channel — the same bar\n as initiateInstall (the two halves of one flow). The handler consumes\n the state atomically, exchanges the code, stores credentials in the\n system-managed Environment, records the grant, and writes the status\n facts (sole writer). The OSS edition returns FAILED_PRECONDITION\n (documented posture, decision 001 D-g / T02 §0-b)."
+        },
+        {
+          "name": "Delete",
+          "inputType": "AgentChannelId",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelId",
+          "outputType": "AgentChannel",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
+          "description": "Delete an agent channel.\n\n Full teardown of the connection: inbound events for the workspace stop\n resolving, pending deliveries are abandoned, and the credentials\n environment is deleted with the grant. To pause serving while keeping\n the install, update the channel with enabled=false instead.\n\n @internal\n Authorization: requires can_delete permission on the agent channel.\n The referenced agent is untouched. Teardown cascade (managed env +\n grant deletion) mirrors McpServer disconnectOAuth."
+        }
+      ]
+    },
+    {
+      "name": "AgentChannelQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/agentchannel/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "AgentChannelId",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelId",
+          "outputType": "AgentChannel",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
+          "description": "Get a single agent channel by ID."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "AgentChannel",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannel",
+          "description": "Get an agent channel by its organization-scoped reference (org/slug).\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions (AgentShare pattern)."
+        },
+        {
+          "name": "GetByAgent",
+          "inputType": "GetAgentChannelsByAgentRequest",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest",
+          "outputType": "AgentChannelList",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelList",
+          "description": "Get all channels of a specific agent.\n Returns only channels the caller has access to.\n\n This is how the agent's integrations surface and CLI resolve an\n agent's existing channels regardless of slug.\n\n @internal\n Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS."
+        },
+        {
+          "name": "List",
+          "inputType": "ListAgentChannelsRequest",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest",
+          "outputType": "AgentChannelList",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelList",
+          "description": "List agent channels with optional label filtering.\n\n @internal\n Authorization in-handler via FGA-filtered queries (cloud) or\n unrestricted store queries (OSS)."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "InitiateChannelInstallInput",
+      "description": "Input for starting a provider install flow.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent channel to install.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "InitiateChannelInstallOutput",
+      "description": "Output of the initiate-install RPC.\n\n The caller redirects the user to authorization_url; the provider\n redirects back to the console, which completes the install with the\n completeInstall RPC.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/io.proto",
+      "fields": [
+        {
+          "name": "AuthorizationUrl",
+          "jsonName": "authorizationUrl",
+          "protoField": "authorization_url",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Provider authorization URL to redirect the installing user to\n (for Slack: the \"Add to Slack\" consent screen).",
+          "required": false
+        },
+        {
+          "name": "State",
+          "jsonName": "state",
+          "protoField": "state",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Single-use opaque state parameter bound to this install attempt.\n\n @internal\n Persisted server-side (PendingOAuthStateDocument pattern) and consumed\n atomically by completeInstall; expired or replayed states are rejected.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CompleteChannelInstallInput",
+      "description": "Input for completing a provider install flow.\n\n Carries the state and authorization code the provider's consent\n redirect delivered to the console.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.CompleteChannelInstallInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the agent channel being installed.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "State",
+          "jsonName": "state",
+          "protoField": "state",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Single-use state parameter issued by initiateInstall.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Code",
+          "jsonName": "code",
+          "protoField": "code",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Authorization code returned by the provider's consent screen.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource.\n\n When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens,\n starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\".\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form).\n\n Use empty org for same-org references (the common case).\n Use explicit org for cross-org references (e.g., marketplace resources).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "iam_policy",
+              "identity_account",
+              "api_key",
+              "invitation",
+              "identity_provider",
+              "oauth_app",
+              "platform_client",
+              "organization",
+              "platform",
+              "agent",
+              "agent_execution",
+              "session",
+              "skill",
+              "mcp_server",
+              "agent_instance",
+              "agent_share",
+              "agent_channel",
+              "workflow",
+              "workflow_instance",
+              "workflow_execution",
+              "environment",
+              "artifact",
+              "execution_context",
+              "project"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter\n and end with a letter or digit (e.g., \"web-search\", \"code-reviewer\").\n Length: 2-63 characters.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetAgentChannelsByAgentRequest",
+      "description": "Input for retrieving all channels of a specific agent.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/io.proto",
+      "fields": [
+        {
+          "name": "AgentId",
+          "jsonName": "agentId",
+          "protoField": "agent_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Identifier of the agent whose channels to retrieve.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageInfo",
+          "jsonName": "pageInfo",
+          "protoField": "page_info",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination options.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "AgentChannelList",
+      "description": "Response containing a paginated list of agent channels.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelList",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of agent channels matching the query.",
+          "required": false
+        },
+        {
+          "name": "Items",
+          "jsonName": "items",
+          "protoField": "items",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "AgentChannel"
+            }
+          },
+          "description": "Agent channels in the current page.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListAgentChannelsRequest",
+      "description": "Input for listing agent channels within an organization.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the listing.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Filter by metadata labels. AND semantics: all labels must match.",
+          "required": false
+        },
+        {
+          "name": "PageInfo",
+          "jsonName": "pageInfo",
+          "protoField": "page_info",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination options.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": "External tool server connected via the Model Context Protocol."
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": "Configured deployment of an agent with environment-specific overrides."
+        },
+        {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
+        },
+        {
+          "name": "agent_channel",
+          "number": 47,
+          "description": "Connection binding an agent to an external messaging platform workspace."
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": "Configured deployment of a workflow with environment-specific bindings."
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": "User-owned runtime context for managing execution state."
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Aggregate root grouping related resources for lifecycle management."
+        }
+      ]
+    },
+    {
+      "name": "AgentChannelInstallState",
+      "description": "AgentChannelInstallState tracks the provider install lifecycle.\n\n This is deliberately distinct from spec.enabled: enabled is the owner's\n serving switch; install_state is the observed state of the provider\n connection. Traffic is served only when installed AND enabled.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelInstallState",
+      "values": [
+        {
+          "name": "pending_install",
+          "number": 1,
+          "description": "The channel exists but the provider install has not completed.\n No traffic is served in this state regardless of spec.enabled."
+        },
+        {
+          "name": "installed",
+          "number": 2,
+          "description": "The provider install completed; credentials are stored and the\n channel serves traffic while spec.enabled is true."
+        },
+        {
+          "name": "revoked",
+          "number": 3,
+          "description": "The provider revoked the installation (e.g. the Slack app was\n uninstalled from the workspace or tokens were revoked). The channel\n configuration survives; re-installing returns it to installed."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#member tuple (all org members)\n - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n   (all members of all organizations managed by the owning org's\n   IdentityProvider)",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "All members of the owning organization can access (read) this resource.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#member\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: all org members see all executions via inheritance."
+        },
+        {
+          "name": "visibility_platform",
+          "number": 4,
+          "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "AgentChannel connects an agent to an external messaging platform so people can chat with it where they already work.\n\n A channel is a distribution channel like AgentShare, but for push-based\n messaging platforms: the provider (Slack today) delivers user messages\n to a Stigmer webhook, and Stigmer calls the provider's API to deliver\n the agent's replies. The connection records which agent serves the\n channel, whether serving is enabled, and provider selection; the\n workspace identity and credential references produced by the install\n flow live in status. Deleting the channel tears the connection down;\n disabling pauses serving while preserving the install.\n\n @internal\n Sibling of AgentShare (decision 001): one kind per target, provider\n variance in spec.provider_config. metadata.org is the billing org\n (decision 001 D-b). N channels per agent; the defaults resolver does\n NOT default the slug to the agent slug (org+slug is unique and channels\n are N-per-agent — P7), standard derive-from-name applies. The overview.md\n file provides the SDK-facing description and example YAML.",
+  "statusType": {
+    "name": "AgentChannelStatus",
+    "description": "AgentChannelStatus contains system-managed state for an agent channel.\n\n @internal\n Server-owned per decision 001 D-e / decision 004: install facts and the\n credentials reference survive every apply/update verbatim (the\n share_link_token precedent), so a routine manifest apply can never\n clobber an install or leak a secret. Secrets themselves NEVER appear\n here — the bot token lives encrypted in the referenced managed\n Environment; status is readable by anyone with can_view.",
+    "protoType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus",
+    "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/status.proto",
+    "fields": [
+      {
+        "name": "InstallState",
+        "jsonName": "installState",
+        "protoField": "install_state",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelInstallState",
+          "enumValues": [
+            "pending_install",
+            "installed",
+            "revoked"
+          ]
+        },
+        "description": "Install lifecycle of the provider connection.",
+        "required": false
+      },
+      {
+        "name": "Slack",
+        "jsonName": "slack",
+        "protoField": "slack",
+        "type": {
+          "kind": "message",
+          "messageType": "SlackInstallStatus"
+        },
+        "description": "Slack workspace install facts.",
+        "required": false,
+        "oneofGroup": "provider_status"
+      },
+      {
+        "name": "CredentialsEnvironmentId",
+        "jsonName": "credentialsEnvironmentId",
+        "protoField": "credentials_environment_id",
+        "type": {
+          "kind": "string"
+        },
+        "description": "ID of the system-managed Environment holding this connection's\n provider credentials (e.g. the Slack bot token).\n\n @internal\n Decision 004: created via ManagedEnvironmentService in the\n connection's org (stigmer.ai/managed=true), non-secret grant metadata\n in the resource-agnostic OAuthGrant document. The webhook receiver and\n delivery worker resolve the token through this reference — never from\n the channel resource itself.",
+        "required": false
+      },
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SlackInstallStatus",
+      "description": "SlackInstallStatus holds the facts observed when the Stigmer Slack app\n was installed into a workspace.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/status.proto",
+      "fields": [
+        {
+          "name": "TeamId",
+          "jsonName": "teamId",
+          "protoField": "team_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Slack workspace (team) ID, e.g. \"T0123ABCD\".\n\n @internal\n The inbound routing key: the webhook receiver resolves the\n AgentChannel from the event payload's team_id. One INSTALLED channel\n per workspace, enforced by a partial-unique index on installed rows\n (decision 007).",
+          "required": false
+        },
+        {
+          "name": "TeamName",
+          "jsonName": "teamName",
+          "protoField": "team_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable workspace name at install time.",
+          "required": false
+        },
+        {
+          "name": "BotUserId",
+          "jsonName": "botUserId",
+          "protoField": "bot_user_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Bot user ID minted by the install, e.g. \"U0456EFGH\".\n The identity the agent posts as; also how @mentions are recognized.",
+          "required": false
+        },
+        {
+          "name": "GrantedScopes",
+          "jsonName": "grantedScopes",
+          "protoField": "granted_scopes",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "OAuth scopes granted to the installation.",
+          "required": false
+        },
+        {
+          "name": "InstallerSlackUserId",
+          "jsonName": "installerSlackUserId",
+          "protoField": "installer_slack_user_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Slack user ID of the person who performed the install.",
+          "required": false
+        },
+        {
+          "name": "InstalledAt",
+          "jsonName": "installedAt",
+          "protoField": "installed_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the install completed.",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

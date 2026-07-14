@@ -8,8 +8,8 @@ package workflowv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	v1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -637,8 +637,8 @@ const file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDesc = "" +
 	"\x06Export\x12\x17\n" +
 	"\x02as\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02as\"!\n" +
 	"\vFlowControl\x12\x12\n" +
-	"\x04then\x18\x01 \x01(\tR\x04thenB\x9f\x02\n" +
-	"\"com.ai.stigmer.agentic.workflow.v1B\tSpecProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
+	"\x04then\x18\x01 \x01(\tR\x04thenB\xa2\x02\n" +
+	"\"com.ai.stigmer.agentic.workflow.v1B\tSpecProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1;workflowv1\xa2\x02\x04ASAW\xaa\x02\x1eAi.Stigmer.Agentic.Workflow.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Workflow\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Workflow\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Workflow::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_workflow_v1_spec_proto_rawDescOnce sync.Once

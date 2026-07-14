@@ -172,6 +172,7 @@
               "mcp_server",
               "agent_instance",
               "agent_share",
+              "agent_channel",
               "workflow",
               "workflow_instance",
               "workflow_execution",
@@ -579,6 +580,11 @@
           "name": "agent_share",
           "number": 46,
           "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
+        },
+        {
+          "name": "agent_channel",
+          "number": 47,
+          "description": "Connection binding an agent to an external messaging platform workspace."
         },
         {
           "name": "workflow",

@@ -251,8 +251,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_writeback_proto_rawDesc = "" +
 	"\x1eWORKSPACE_WRITE_BACK_COMMITTED\x10\x01\x12\x1f\n" +
 	"\x1bWORKSPACE_WRITE_BACK_PUSHED\x10\x02\x12#\n" +
 	"\x1fWORKSPACE_WRITE_BACK_PR_CREATED\x10\x03\x12\x1f\n" +
-	"\x1bWORKSPACE_WRITE_BACK_FAILED\x10\x04B\xce\x02\n" +
-	"(com.ai.stigmer.agentic.agentexecution.v1B\x0eWritebackProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
+	"\x1bWORKSPACE_WRITE_BACK_FAILED\x10\x04B\xd1\x02\n" +
+	"(com.ai.stigmer.agentic.agentexecution.v1B\x0eWritebackProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_agentexecution_v1_writeback_proto_rawDescOnce sync.Once

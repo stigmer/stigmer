@@ -7,8 +7,8 @@
 package skillv1
 
 import (
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -31,9 +31,9 @@ const file_ai_stigmer_agentic_skill_v1_query_proto_rawDesc = "" +
 	"\x03get\x12$.ai.stigmer.agentic.skill.v1.SkillId\x1a\".ai.stigmer.agentic.skill.v1.Skill\"*¸\x18&\b\x01\x10+\"\x05value*\x19unauthorized to get skill\x12p\n" +
 	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\".ai.stigmer.agentic.skill.v1.Skill\"\x04и\x18\x01\x12v\n" +
 	"\vgetArtifact\x12/.ai.stigmer.agentic.skill.v1.GetArtifactRequest\x1a0.ai.stigmer.agentic.skill.v1.GetArtifactResponse\"\x04и\x18\x01\x12\x81\x01\n" +
-	"\flistVersions\x123.ai.stigmer.agentic.skill.v1.ListSkillVersionsInput\x1a6.ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse\"\x04и\x18\x01\x1a\x04\xa0\xff++B\x8b\x02\n" +
+	"\flistVersions\x123.ai.stigmer.agentic.skill.v1.ListSkillVersionsInput\x1a6.ai.stigmer.agentic.skill.v1.ListSkillVersionsResponse\"\x04и\x18\x01\x1a\x04\xa0\xff++B\x8e\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.skill.v1B\n" +
-	"QueryProtoP\x01ZKgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
+	"QueryProtoP\x01ZNgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1;skillv1\xa2\x02\x04ASAS\xaa\x02\x1bAi.Stigmer.Agentic.Skill.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Skill\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Skill::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_skill_v1_query_proto_goTypes = []any{
 	(*SkillId)(nil),                          // 0: ai.stigmer.agentic.skill.v1.SkillId

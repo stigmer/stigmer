@@ -7,8 +7,8 @@
 package identityaccountv1
 
 import (
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	_ "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
+	_ "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
@@ -36,8 +36,8 @@ const file_ai_stigmer_iam_identityaccount_v1_command_proto_rawDesc = "" +
 	"\x16createFederatedAccount\x12>.ai.stigmer.iam.identityaccount.v1.CreateFederatedAccountInput\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"L¸\x18H\b\x15\x10\x1e\"\x03org*=unauthorized to create identity accounts in this organization\x12\xda\x01\n" +
 	"\x16updateFederatedAccount\x12>.ai.stigmer.iam.identityaccount.v1.UpdateFederatedAccountInput\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"L¸\x18H\b\x15\x10\x1e\"\x03org*=unauthorized to manage identity accounts in this organization\x12\xe4\x01\n" +
 	"\x1bdeprovisionFederatedAccount\x12C.ai.stigmer.iam.identityaccount.v1.DeprovisionFederatedAccountInput\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"L¸\x18H\b\x15\x10\x1e\"\x03org*=unauthorized to manage identity accounts in this organization\x12f\n" +
-	"\x12provisionMyAccount\x12\x16.google.protobuf.Empty\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"\x04и\x18\x01\x1a\x04\xa0\xff+\vB\xbb\x02\n" +
-	"%com.ai.stigmer.iam.identityaccount.v1B\fCommandProtoP\x01Z[github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
+	"\x12provisionMyAccount\x12\x16.google.protobuf.Empty\x1a2.ai.stigmer.iam.identityaccount.v1.IdentityAccount\"\x04и\x18\x01\x1a\x04\xa0\xff+\vB\xbe\x02\n" +
+	"%com.ai.stigmer.iam.identityaccount.v1B\fCommandProtoP\x01Z^github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/identityaccount/v1;identityaccountv1\xa2\x02\x04ASII\xaa\x02!Ai.Stigmer.Iam.Identityaccount.V1\xca\x02!Ai\\Stigmer\\Iam\\Identityaccount\\V1\xe2\x02-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Iam::Identityaccount::V1b\x06proto3"
 
 var file_ai_stigmer_iam_identityaccount_v1_command_proto_goTypes = []any{
 	(*IdentityAccount)(nil),                  // 0: ai.stigmer.iam.identityaccount.v1.IdentityAccount

@@ -163,8 +163,8 @@ const file_ai_stigmer_agentic_executioncontext_v1_spec_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01\"C\n" +
 	"\x0eExecutionValue\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value\x12\x1b\n" +
-	"\tis_secret\x18\x02 \x01(\bR\bisSecretB\xd7\x02\n" +
-	"*com.ai.stigmer.agentic.executioncontext.v1B\tSpecProtoP\x01Zagithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1;executioncontextv1\xa2\x02\x04ASAE\xaa\x02&Ai.Stigmer.Agentic.Executioncontext.V1\xca\x02&Ai\\Stigmer\\Agentic\\Executioncontext\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Executioncontext\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Executioncontext::V1b\x06proto3"
+	"\tis_secret\x18\x02 \x01(\bR\bisSecretB\xda\x02\n" +
+	"*com.ai.stigmer.agentic.executioncontext.v1B\tSpecProtoP\x01Zdgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1;executioncontextv1\xa2\x02\x04ASAE\xaa\x02&Ai.Stigmer.Agentic.Executioncontext.V1\xca\x02&Ai\\Stigmer\\Agentic\\Executioncontext\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Executioncontext\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Executioncontext::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_executioncontext_v1_spec_proto_rawDescOnce sync.Once

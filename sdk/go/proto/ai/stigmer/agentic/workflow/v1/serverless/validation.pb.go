@@ -214,8 +214,8 @@ const file_ai_stigmer_agentic_workflow_v1_serverless_validation_proto_rawDesc = 
 	"\x05VALID\x10\x02\x12\v\n" +
 	"\aINVALID\x10\x03\x12\n" +
 	"\n" +
-	"\x06FAILED\x10\x04B\xdf\x02\n" +
-	"-com.ai.stigmer.agentic.workflow.v1.serverlessB\x0fValidationProtoP\x01ZQgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1/serverless\xa2\x02\x06ASAWVS\xaa\x02)Ai.Stigmer.Agentic.Workflow.V1.Serverless\xca\x02)Ai\\Stigmer\\Agentic\\Workflow\\V1\\Serverless\xe2\x025Ai\\Stigmer\\Agentic\\Workflow\\V1\\Serverless\\GPBMetadata\xea\x02.Ai::Stigmer::Agentic::Workflow::V1::Serverlessb\x06proto3"
+	"\x06FAILED\x10\x04B\xe2\x02\n" +
+	"-com.ai.stigmer.agentic.workflow.v1.serverlessB\x0fValidationProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1/serverless\xa2\x02\x06ASAWVS\xaa\x02)Ai.Stigmer.Agentic.Workflow.V1.Serverless\xca\x02)Ai\\Stigmer\\Agentic\\Workflow\\V1\\Serverless\xe2\x025Ai\\Stigmer\\Agentic\\Workflow\\V1\\Serverless\\GPBMetadata\xea\x02.Ai::Stigmer::Agentic::Workflow::V1::Serverlessb\x06proto3"
 
 var (
 	file_ai_stigmer_agentic_workflow_v1_serverless_validation_proto_rawDescOnce sync.Once

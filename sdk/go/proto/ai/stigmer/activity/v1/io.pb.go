@@ -239,8 +239,8 @@ const file_ai_stigmer_activity_v1_io_proto_rawDesc = "" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x10\n" +
 	"\x03org\x18\x02 \x01(\tR\x03org\"c\n" +
 	"\x1aListRecentActivityResponse\x12E\n" +
-	"\aentries\x18\x01 \x03(\v2+.ai.stigmer.activity.v1.RecentActivityEntryR\aentriesB\xeb\x01\n" +
-	"\x1acom.ai.stigmer.activity.v1B\aIoProtoP\x01ZIgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/activity/v1;activityv1\xa2\x02\x03ASA\xaa\x02\x16Ai.Stigmer.Activity.V1\xca\x02\x16Ai\\Stigmer\\Activity\\V1\xe2\x02\"Ai\\Stigmer\\Activity\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Activity::V1b\x06proto3"
+	"\aentries\x18\x01 \x03(\v2+.ai.stigmer.activity.v1.RecentActivityEntryR\aentriesB\xee\x01\n" +
+	"\x1acom.ai.stigmer.activity.v1B\aIoProtoP\x01ZLgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/activity/v1;activityv1\xa2\x02\x03ASA\xaa\x02\x16Ai.Stigmer.Activity.V1\xca\x02\x16Ai\\Stigmer\\Activity\\V1\xe2\x02\"Ai\\Stigmer\\Activity\\V1\\GPBMetadata\xea\x02\x19Ai::Stigmer::Activity::V1b\x06proto3"
 
 var (
 	file_ai_stigmer_activity_v1_io_proto_rawDescOnce sync.Once
