@@ -208,7 +208,7 @@ Apache 2.0 License - see [LICENSE](./LICENSE) for details.
 ## Links
 
 - **Stigmer Platform**: [stigmer.ai](https://stigmer.ai)
-- **Documentation**: [docs.stigmer.ai](https://docs.stigmer.ai)
+- **Documentation**: [stigmer.ai/docs](https://stigmer.ai/docs)
 - **Buf Schema Registry**: [buf.build/leftbin/stigmer](https://buf.build/leftbin/stigmer)
 - **Main Repository**: [github.com/stigmer/stigmer](https://github.com/stigmer/stigmer)
 

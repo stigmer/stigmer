@@ -265,7 +265,7 @@ description as valid (description is optional).
 
 ## Getting Help
 
-- **Documentation**: [docs.stigmer.ai/sdk](https://docs.stigmer.ai/sdk)
+- **Documentation**: [stigmer.ai/docs/sdk](https://stigmer.ai/docs/sdk)
 - **Issues**: [GitHub Issues](https://github.com/leftbin/stigmer-sdk/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/leftbin/stigmer-sdk/discussions)
 - **Discord**: [Join our Discord](https://discord.gg/stigmer) (link TBD)
