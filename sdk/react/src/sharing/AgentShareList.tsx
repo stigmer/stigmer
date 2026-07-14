@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { MoreHorizontal, Pause, Pencil, Play, RotateCcw, Trash2 } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import {
   appendLinkToken,
@@ -10,9 +11,10 @@ import {
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { toast } from "../feedback/toast.js";
+import { ActionMenu } from "../action-menu/index.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
-import { PermissionGate } from "../iam-policy/PermissionGate.js";
+import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { useCopyResource } from "../resource-detail/useCopyResource.js";
@@ -164,14 +166,17 @@ export function AgentShareList({
           </div>
 
           <div className="overflow-hidden rounded-lg border border-border">
-            <table className="w-full text-sm">
+            {/* table-fixed keeps the layout deterministic: Name/Link flex and
+                truncate, the rest take fixed widths, so a long name or link
+                can never push the Actions kebab off the panel's edge. */}
+            <table className="w-full table-fixed text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted-subtle">
                   <th className="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
                   <th className="px-4 py-2 text-left font-medium text-muted-foreground">Link</th>
-                  <th className="px-4 py-2 text-left font-medium text-muted-foreground">Audience</th>
-                  <th className="px-4 py-2 text-left font-medium text-muted-foreground">Status</th>
-                  <th className="px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>
+                  <th className="w-28 px-4 py-2 text-left font-medium text-muted-foreground">Audience</th>
+                  <th className="w-24 px-4 py-2 text-left font-medium text-muted-foreground">Status</th>
+                  <th className="w-16 px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -248,6 +253,19 @@ function ShareRow({
   const { save, isPending } = useSaveAgentShare(agent);
   const { rotateShareLink, isPending: isRotating } = useRotateShareLink(id);
 
+  // Decide the row's actions here (not via nested PermissionGate wrappers) so
+  // the kebab is hidden entirely when the viewer can do nothing to this
+  // share — an empty overflow menu is worse than no menu. Same self-check
+  // RPC as PermissionGate; permissive in OSS, so local single-user sees all.
+  const { allowed: canEdit } = useCheckPermission(
+    { kind: "agent_share", id },
+    "can_edit",
+  );
+  const { allowed: canDelete } = useCheckPermission(
+    { kind: "agent_share", id },
+    "can_delete",
+  );
+
   // The copyable URL carries the link token on public shares (org
   // audience is gated by membership, not the token). The display stays
   // the bare path — the token is a secret, not an address.
@@ -292,14 +310,17 @@ function ShareRow({
       onClick={() => onEditClick(share)}
     >
       <td className="px-4 py-2.5">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-foreground">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className="truncate font-medium text-foreground"
+            title={meta?.name || slug || undefined}
+          >
             {meta?.name || slug || "\u2014"}
           </span>
           {isCrossOrg && (
             <span
               className={cn(
-                "inline-flex items-center rounded-md px-1.5 py-0.5",
+                "inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5",
                 "text-[0.6rem] font-medium uppercase tracking-wide",
                 "bg-muted text-muted-foreground border border-border",
               )}
@@ -312,9 +333,9 @@ function ShareRow({
       </td>
 
       <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-1.5">
+        <div className="flex min-w-0 items-center gap-1.5">
           <code
-            className="max-w-56 truncate font-mono text-xs text-muted-foreground"
+            className="truncate font-mono text-xs text-muted-foreground"
             title={displayPath}
           >
             {displayPath}
@@ -324,7 +345,7 @@ function ShareRow({
             onClick={handleCopyLink}
             aria-label={`Copy link for ${meta?.name || slug}`}
             className={cn(
-              "rounded p-1 text-muted-foreground",
+              "shrink-0 rounded p-1 text-muted-foreground",
               "hover:bg-accent-hover hover:text-foreground",
               "focus:outline-none focus:ring-1 focus:ring-ring",
             )}
@@ -358,63 +379,63 @@ function ShareRow({
         </span>
       </td>
 
+      {/* stopPropagation so opening the kebab never triggers the row's
+          click-to-edit. The menu content itself is portaled, so its items
+          never bubble to the row regardless. */}
       <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-end gap-1">
-          <PermissionGate resource={{ kind: "agent_share", id }} relation="can_edit">
-            <button
-              type="button"
-              onClick={() => onEditClick(share)}
-              className={cn(
-                "rounded px-2 py-1 text-xs font-medium",
-                "text-foreground hover:bg-accent-hover",
-                "focus:outline-none focus:ring-1 focus:ring-ring",
-              )}
+        {(canEdit || canDelete) && (
+          <ActionMenu>
+            <ActionMenu.Trigger
+              className="ml-auto"
+              aria-label={`Actions for ${meta?.name || slug}`}
             >
-              Edit
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleToggleEnabled()}
-              disabled={isPending}
-              className={cn(
-                "rounded px-2 py-1 text-xs font-medium",
-                "text-foreground hover:bg-accent-hover",
-                "focus:outline-none focus:ring-1 focus:ring-ring",
-                "disabled:pointer-events-none disabled:opacity-50",
+              <MoreHorizontal className="size-4" />
+            </ActionMenu.Trigger>
+            <ActionMenu.Content>
+              {canEdit && (
+                <>
+                  {/* Also the only keyboard-reachable path to edit — the
+                      row's click-to-edit is mouse-only. */}
+                  <ActionMenu.Item
+                    icon={<Pencil />}
+                    onSelect={() => onEditClick(share)}
+                  >
+                    Edit
+                  </ActionMenu.Item>
+                  {/* The menu closes on select; a toast reports the outcome,
+                      so no inline pending label is needed. `disabled` guards
+                      against a re-fire if the menu is reopened mid-flight. */}
+                  <ActionMenu.Item
+                    icon={enabled ? <Pause /> : <Play />}
+                    disabled={isPending}
+                    onSelect={() => void handleToggleEnabled()}
+                  >
+                    {enabled ? "Pause" : "Resume"}
+                  </ActionMenu.Item>
+                  {audience === "public" && (
+                    <ActionMenu.Item
+                      icon={<RotateCcw />}
+                      disabled={isRotating}
+                      onSelect={() => void handleResetLink()}
+                    >
+                      Reset link
+                    </ActionMenu.Item>
+                  )}
+                </>
               )}
-            >
-              {enabled ? "Pause" : "Resume"}
-            </button>
-            {audience === "public" && (
-              <button
-                type="button"
-                onClick={() => void handleResetLink()}
-                disabled={isRotating}
-                className={cn(
-                  "rounded px-2 py-1 text-xs font-medium",
-                  "text-foreground hover:bg-accent-hover",
-                  "focus:outline-none focus:ring-1 focus:ring-ring",
-                  "disabled:pointer-events-none disabled:opacity-50",
-                )}
-              >
-                {isRotating ? "Resetting…" : "Reset link"}
-              </button>
-            )}
-          </PermissionGate>
-          <PermissionGate resource={{ kind: "agent_share", id }} relation="can_delete">
-            <button
-              type="button"
-              onClick={() => onDeleteClick(share)}
-              className={cn(
-                "rounded px-2 py-1 text-xs font-medium",
-                "text-destructive hover:bg-destructive-subtle",
-                "focus:outline-none focus:ring-1 focus:ring-ring",
+              {canEdit && canDelete && <ActionMenu.Separator />}
+              {canDelete && (
+                <ActionMenu.Item
+                  icon={<Trash2 />}
+                  variant="destructive"
+                  onSelect={() => onDeleteClick(share)}
+                >
+                  Delete
+                </ActionMenu.Item>
               )}
-            >
-              Delete
-            </button>
-          </PermissionGate>
-        </div>
+            </ActionMenu.Content>
+          </ActionMenu>
+        )}
       </td>
     </tr>
   );

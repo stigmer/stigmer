@@ -116,10 +116,12 @@ test.describe("Workflow Instance Management", () => {
     const instancesTab = page.getByRole("tab", { name: "Instances" });
     await instancesTab.click();
 
-    // If there's a Delete button on any row
-    const deleteBtn = page.getByRole("button", { name: "Delete" }).first();
-    if (await deleteBtn.isVisible()) {
-      await deleteBtn.click();
+    // Row actions live in a per-row overflow (kebab) menu. If a row exists,
+    // open its menu and choose Delete to surface the cascade warning.
+    const rowMenu = page.getByRole("button", { name: /^Actions for/ }).first();
+    if (await rowMenu.isVisible()) {
+      await rowMenu.click();
+      await page.getByRole("menuitem", { name: "Delete" }).click();
 
       // Should show cascade warning
       await expect(

@@ -1,14 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { MoreHorizontal, Play, Trash2 } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useAgentInstances } from "./useAgentInstances.js";
+import { ActionMenu } from "../action-menu/index.js";
 import { Button } from "../button/Button.js";
 import { useEnvironmentList } from "../environment/useEnvironmentList.js";
 import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl.js";
-import { PermissionGate } from "../iam-policy/PermissionGate.js";
+import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { AgentInstanceEmptyState } from "./AgentInstanceEmptyState.js";
 
 /** Label marking a user's auto-managed personal instance. */
@@ -139,13 +141,16 @@ export function AgentInstanceList({
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border">
-        <table className="w-full text-sm">
+        {/* table-fixed keeps the layout deterministic: Name/Environments flex
+            and truncate, Visibility/Actions take fixed widths, so long
+            content can never push the Actions kebab off the panel's edge. */}
+        <table className="w-full table-fixed text-sm">
           <thead>
             <tr className="border-b border-border bg-muted-subtle">
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Environments</th>
-              <th className="px-4 py-2 text-left font-medium text-muted-foreground">Visibility</th>
-              <th className="px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>
+              <th className="w-36 px-4 py-2 text-left font-medium text-muted-foreground">Visibility</th>
+              <th className="w-16 px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -190,24 +195,37 @@ function InstanceRow({
 
   const envRefs = instance.spec?.environmentRefs ?? [];
 
+  // Delete is the only permission-gated row action (Start session is offered
+  // whenever the host wires it). Resolved here so the kebab is hidden when it
+  // would hold no items — never an empty overflow menu.
+  const { allowed: canDelete } = useCheckPermission(
+    { kind: "agent_instance", id },
+    "can_delete",
+  );
+  const showStartSession = !!onStartSessionClick;
+  const showDelete = !!onDeleteClick && canDelete;
+
   return (
     <tr
       className={cn(
         "transition-colors",
-        onRowClick && "cursor-pointer hover:bg-muted/30",
+        onRowClick && "cursor-pointer hover:bg-accent-hover",
       )}
       onClick={() => onRowClick?.(instance)}
     >
       <td className="px-4 py-2.5">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-foreground">
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2">
+            <span
+              className="truncate font-medium text-foreground"
+              title={meta?.name || meta?.slug || undefined}
+            >
               {meta?.name || meta?.slug || "\u2014"}
             </span>
             {isPersonal && (
               <span
                 className={cn(
-                  "inline-flex items-center rounded-md px-1.5 py-0.5",
+                  "inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5",
                   "text-[0.6rem] font-medium uppercase tracking-wide",
                   "bg-muted text-muted-foreground border border-border",
                 )}
@@ -217,7 +235,7 @@ function InstanceRow({
             )}
           </div>
           {instance.spec?.description && (
-            <p className="text-[0.65rem] text-muted-foreground truncate max-w-48">
+            <p className="text-[0.65rem] text-muted-foreground truncate">
               {instance.spec.description}
             </p>
           )}
@@ -259,40 +277,40 @@ function InstanceRow({
         )}
       </td>
 
+      {/* stopPropagation so opening the kebab never triggers the row's
+          click. The menu content itself is portaled, so its items never
+          bubble to the row regardless. */}
       <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-end gap-1">
-          {onStartSessionClick && (
-            <button
-              type="button"
-              onClick={() => onStartSessionClick(instance)}
-              className={cn(
-                "rounded px-2 py-1 text-xs font-medium",
-                "text-foreground hover:bg-accent-hover",
-                "focus:outline-none focus:ring-1 focus:ring-ring",
+        {(showStartSession || showDelete) && (
+          <ActionMenu>
+            <ActionMenu.Trigger
+              className="ml-auto"
+              aria-label={`Actions for ${meta?.name || meta?.slug}`}
+            >
+              <MoreHorizontal className="size-4" />
+            </ActionMenu.Trigger>
+            <ActionMenu.Content>
+              {showStartSession && (
+                <ActionMenu.Item
+                  icon={<Play />}
+                  onSelect={() => onStartSessionClick?.(instance)}
+                >
+                  Start session
+                </ActionMenu.Item>
               )}
-            >
-              Start session
-            </button>
-          )}
-          {onDeleteClick && (
-            <PermissionGate
-              resource={{ kind: "agent_instance", id }}
-              relation="can_delete"
-            >
-              <button
-                type="button"
-                onClick={() => onDeleteClick(instance)}
-                className={cn(
-                  "rounded px-2 py-1 text-xs font-medium",
-                  "text-destructive hover:bg-destructive/10",
-                  "focus:outline-none focus:ring-1 focus:ring-ring",
-                )}
-              >
-                Delete
-              </button>
-            </PermissionGate>
-          )}
-        </div>
+              {showStartSession && showDelete && <ActionMenu.Separator />}
+              {showDelete && (
+                <ActionMenu.Item
+                  icon={<Trash2 />}
+                  variant="destructive"
+                  onSelect={() => onDeleteClick?.(instance)}
+                >
+                  Delete
+                </ActionMenu.Item>
+              )}
+            </ActionMenu.Content>
+          </ActionMenu>
+        )}
       </td>
     </tr>
   );

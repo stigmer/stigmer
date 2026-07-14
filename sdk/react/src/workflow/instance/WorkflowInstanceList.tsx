@@ -1,14 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { MoreHorizontal, Play, Trash2 } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useWorkflowInstances } from "../useWorkflowInstances.js";
+import { ActionMenu } from "../../action-menu/index.js";
 import { Button } from "../../button/Button.js";
 import { useEnvironmentList } from "../../environment/useEnvironmentList.js";
 import { ResourceVisibilityControl } from "../../library/ResourceVisibilityControl.js";
-import { PermissionGate } from "../../iam-policy/PermissionGate.js";
+import { useCheckPermission } from "../../iam-policy/useCheckPermission.js";
 import { WorkflowInstanceEmptyState } from "./WorkflowInstanceEmptyState.js";
 
 /** Props for {@link WorkflowInstanceList}. */
@@ -131,13 +133,16 @@ export function WorkflowInstanceList({
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border">
-        <table className="w-full text-sm">
+        {/* table-fixed keeps the layout deterministic: Name/Environments flex
+            and truncate, Visibility/Actions take fixed widths, so long
+            content can never push the Actions kebab off the panel's edge. */}
+        <table className="w-full table-fixed text-sm">
           <thead>
             <tr className="border-b border-border bg-muted-subtle">
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Name</th>
               <th className="px-4 py-2 text-left font-medium text-muted-foreground">Environments</th>
-              <th className="px-4 py-2 text-left font-medium text-muted-foreground">Visibility</th>
-              <th className="px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>
+              <th className="w-36 px-4 py-2 text-left font-medium text-muted-foreground">Visibility</th>
+              <th className="w-16 px-4 py-2 text-right font-medium text-muted-foreground">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -181,21 +186,34 @@ function InstanceRow({
 
   const envRefs = instance.spec?.environmentRefs ?? [];
 
+  // Delete is the only permission-gated row action (Run is offered whenever
+  // the host wires it). Resolved here so the kebab is hidden when it would
+  // hold no items — never an empty overflow menu.
+  const { allowed: canDelete } = useCheckPermission(
+    { kind: "workflow_instance", id },
+    "can_delete",
+  );
+  const showRun = !!onRunClick;
+  const showDelete = !!onDeleteClick && canDelete;
+
   return (
     <tr
       className={cn(
         "transition-colors",
-        onRowClick && "cursor-pointer hover:bg-muted/30",
+        onRowClick && "cursor-pointer hover:bg-accent-hover",
       )}
       onClick={() => onRowClick?.(instance)}
     >
       <td className="px-4 py-2.5">
-        <div>
-          <span className="font-medium text-foreground">
+        <div className="min-w-0">
+          <span
+            className="block truncate font-medium text-foreground"
+            title={meta?.name || meta?.slug || undefined}
+          >
             {meta?.name || meta?.slug || "—"}
           </span>
           {instance.spec?.description && (
-            <p className="text-[0.65rem] text-muted-foreground truncate max-w-48">
+            <p className="text-[0.65rem] text-muted-foreground truncate">
               {instance.spec.description}
             </p>
           )}
@@ -237,40 +255,40 @@ function InstanceRow({
         )}
       </td>
 
+      {/* stopPropagation so opening the kebab never triggers the row's
+          click. The menu content itself is portaled, so its items never
+          bubble to the row regardless. */}
       <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-end gap-1">
-          {onRunClick && (
-            <button
-              type="button"
-              onClick={() => onRunClick(instance)}
-              className={cn(
-                "rounded px-2 py-1 text-xs font-medium",
-                "text-foreground hover:bg-accent-hover",
-                "focus:outline-none focus:ring-1 focus:ring-ring",
+        {(showRun || showDelete) && (
+          <ActionMenu>
+            <ActionMenu.Trigger
+              className="ml-auto"
+              aria-label={`Actions for ${meta?.name || meta?.slug}`}
+            >
+              <MoreHorizontal className="size-4" />
+            </ActionMenu.Trigger>
+            <ActionMenu.Content>
+              {showRun && (
+                <ActionMenu.Item
+                  icon={<Play />}
+                  onSelect={() => onRunClick?.(instance)}
+                >
+                  Run
+                </ActionMenu.Item>
               )}
-            >
-              Run
-            </button>
-          )}
-          {onDeleteClick && (
-            <PermissionGate
-              resource={{ kind: "workflow_instance", id }}
-              relation="can_delete"
-            >
-              <button
-                type="button"
-                onClick={() => onDeleteClick(instance)}
-                className={cn(
-                  "rounded px-2 py-1 text-xs font-medium",
-                  "text-destructive hover:bg-destructive/10",
-                  "focus:outline-none focus:ring-1 focus:ring-ring",
-                )}
-              >
-                Delete
-              </button>
-            </PermissionGate>
-          )}
-        </div>
+              {showRun && showDelete && <ActionMenu.Separator />}
+              {showDelete && (
+                <ActionMenu.Item
+                  icon={<Trash2 />}
+                  variant="destructive"
+                  onSelect={() => onDeleteClick?.(instance)}
+                >
+                  Delete
+                </ActionMenu.Item>
+              )}
+            </ActionMenu.Content>
+          </ActionMenu>
+        )}
       </td>
     </tr>
   );
