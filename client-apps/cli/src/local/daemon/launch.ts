@@ -21,10 +21,11 @@ import { readPidFile, removePidFile } from "../state/pidfile.js";
 import { findProcessByPort, isProcessAlive, killProcess } from "../state/proc.js";
 import { type StartupConfig, removeStartupConfig, saveStartupConfig } from "../state/startup-config.js";
 import { rotateLogs } from "../state/log-rotation.js";
+import { resolveApiKey, resolveProvider } from "../llm-config.js";
 import { ensureRunner } from "../runtime/runner.js";
 import { ensureServerBinary } from "../runtime/server.js";
 import { TemporalManager } from "../temporal/manager.js";
-import { buildDaemonEnv } from "./env.js";
+import { buildDaemonEnv, type DaemonEnvInputs } from "./env.js";
 
 /** How long `up` waits for the server's gRPC port after spawning the daemon. */
 const READY_TIMEOUT_MS = 60_000;
@@ -75,6 +76,7 @@ export async function up(options: UpOptions = {}, home: string = homedir()): Pro
       noWeb: options.noWeb === true,
       serverBin,
       runner,
+      ...resolveLlmKeyInputs(config),
     },
     process.env,
   );
@@ -219,6 +221,25 @@ async function stopManagedTemporal(home: string): Promise<void> {
     await TemporalManager.forHome(home).stop();
   } catch (err) {
     log.debug("managed Temporal stop skipped", { error: String(err) });
+  }
+}
+
+// LLM-key delivery for the runner: a key persisted by `stigmer setup` lives only in
+// the config file, so the launcher must write it into the daemon contract explicitly
+// — unlike a shell-exported key, it cannot flow by env inheritance. resolveApiKey's
+// precedence (env var > config file) makes both cases one code path; when the env
+// var is set this re-writes the same value. Only the effective provider's key is
+// passed: the config file stores a single key, keyed to the chosen provider.
+function resolveLlmKeyInputs(config: Config): Pick<DaemonEnvInputs, "anthropicApiKey" | "openaiApiKey"> {
+  const key = resolveApiKey(config);
+  if (key === "") return {};
+  switch (resolveProvider(config)) {
+    case "anthropic":
+      return { anthropicApiKey: key };
+    case "openai":
+      return { openaiApiKey: key };
+    default:
+      return {};
   }
 }
 

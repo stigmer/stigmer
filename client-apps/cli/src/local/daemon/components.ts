@@ -51,6 +51,10 @@ export function buildRunnerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = p
     LOG_LEVEL: base.LOG_LEVEL ?? "info",
   };
   if (config.cursorApiKey !== undefined) env.CURSOR_API_KEY = config.cursorApiKey;
+  // Explicit set (after the base spread) so the launcher-resolved key wins over any
+  // stale inherited value — the delivery path for a `stigmer setup`-persisted key.
+  if (config.anthropicApiKey !== undefined) env.ANTHROPIC_API_KEY = config.anthropicApiKey;
+  if (config.openaiApiKey !== undefined) env.OPENAI_API_KEY = config.openaiApiKey;
   if (config.activityRouting !== undefined) env.STIGMER_ACTIVITY_ROUTING = config.activityRouting;
   return env;
 }

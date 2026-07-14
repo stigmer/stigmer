@@ -26,6 +26,8 @@ describe("buildDaemonEnv + readDaemonConfig", () => {
       serverBin: "/usr/local/bin/stigmer-server",
       runner: { nodeBin: "/usr/bin/node", entryPath: "/repo/runner/dist/main.js", appDir: "/repo/runner" },
       cursorApiKey: undefined,
+      anthropicApiKey: undefined,
+      openaiApiKey: undefined,
       activityRouting: undefined,
     });
   });
@@ -42,6 +44,22 @@ describe("buildDaemonEnv + readDaemonConfig", () => {
     const config = readDaemonConfig(env);
     expect(config.cursorApiKey).toBe("ck");
     expect(config.activityRouting).toBe("session");
+  });
+
+  // The config-file-only delivery path: a key from `stigmer setup` is not in the
+  // shell env, so the launcher must write it into the contract explicitly.
+  it("delivers a launcher-resolved LLM key with no help from the base env", () => {
+    const env = buildDaemonEnv({ ...baseInputs, anthropicApiKey: "sk-ant-cfg" }, {});
+    const config = readDaemonConfig(env);
+    expect(config.anthropicApiKey).toBe("sk-ant-cfg");
+    expect(config.openaiApiKey).toBeUndefined();
+  });
+
+  it("passes shell-exported LLM keys through from the base env", () => {
+    const env = buildDaemonEnv(baseInputs, { ANTHROPIC_API_KEY: "sk-ant-env", OPENAI_API_KEY: "sk-oai-env" });
+    const config = readDaemonConfig(env);
+    expect(config.anthropicApiKey).toBe("sk-ant-env");
+    expect(config.openaiApiKey).toBe("sk-oai-env");
   });
 
   it("requires the data dir and server binary", () => {

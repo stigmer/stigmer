@@ -70,9 +70,17 @@ pub struct RunnerConfigInput {
     #[serde(default)]
     pub cursor_api_key: Option<String>,
     #[serde(default)]
+    pub anthropic_api_key: Option<String>,
+    #[serde(default)]
+    pub openai_api_key: Option<String>,
+    #[serde(default)]
     pub workspace_root_dir: Option<String>,
     #[serde(default)]
     pub proxy_endpoint: Option<String>,
+    /// JS `Record<string, string>` of additional env vars for the runner. Host-owned
+    /// keys are rejected at `start_runner` (see `RunnerConfig::extra_env`).
+    #[serde(default)]
+    pub extra_env: std::collections::HashMap<String, String>,
 }
 
 impl RunnerConfigInput {
@@ -91,8 +99,11 @@ impl RunnerConfigInput {
             temporal_namespace: self.temporal_namespace,
             stigmer_token: self.stigmer_token,
             cursor_api_key: self.cursor_api_key,
+            anthropic_api_key: self.anthropic_api_key,
+            openai_api_key: self.openai_api_key,
             workspace_root_dir: Some(workspace_root_dir),
             proxy_endpoint: self.proxy_endpoint,
+            extra_env: self.extra_env,
         })
     }
 }
@@ -223,4 +234,50 @@ pub async fn update_runner_token(
 #[tauri::command]
 pub async fn runner_status(state: State<'_, RunnerState>) -> Result<RunnerStatusResponse, String> {
     Ok(state.host.status().await.into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn config_input_deserializes_llm_credentials_and_extra_env() {
+        // The JS wire shape: camelCase keys, extraEnv as a Record<string, string>.
+        // Everything beyond the required trio must be omittable.
+        let input: RunnerConfigInput = serde_json::from_str(
+            r#"{
+                "nodeBinary": "node",
+                "runnerEntry": "/app/runner/main.js",
+                "stigmerEndpoint": "http://localhost:7234",
+                "anthropicApiKey": "sk-ant-test",
+                "openaiApiKey": "sk-oai-test",
+                "extraEnv": {"LOG_LEVEL": "debug"}
+            }"#,
+        )
+        .expect("camelCase input must deserialize");
+
+        assert_eq!(input.anthropic_api_key.as_deref(), Some("sk-ant-test"));
+        assert_eq!(input.openai_api_key.as_deref(), Some("sk-oai-test"));
+        assert_eq!(
+            input.extra_env.get("LOG_LEVEL").map(String::as_str),
+            Some("debug")
+        );
+    }
+
+    #[test]
+    fn config_input_defaults_new_fields_when_omitted() {
+        // Existing frontends that predate the LLM-credential fields keep working.
+        let input: RunnerConfigInput = serde_json::from_str(
+            r#"{
+                "nodeBinary": "node",
+                "runnerEntry": "/app/runner/main.js",
+                "stigmerEndpoint": "http://localhost:7234"
+            }"#,
+        )
+        .expect("minimal input must deserialize");
+
+        assert_eq!(input.anthropic_api_key, None);
+        assert_eq!(input.openai_api_key, None);
+        assert!(input.extra_env.is_empty());
+    }
 }
