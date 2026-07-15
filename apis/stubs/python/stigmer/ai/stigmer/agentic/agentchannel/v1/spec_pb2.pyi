@@ -10,16 +10,18 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentChannelSpec(_message.Message):
-    __slots__ = ("agent_ref", "enabled", "slack", "environment_refs")
+    __slots__ = ("agent_ref", "enabled", "slack", "environment_refs", "app_ref")
     AGENT_REF_FIELD_NUMBER: _ClassVar[int]
     ENABLED_FIELD_NUMBER: _ClassVar[int]
     SLACK_FIELD_NUMBER: _ClassVar[int]
     ENVIRONMENT_REFS_FIELD_NUMBER: _ClassVar[int]
+    APP_REF_FIELD_NUMBER: _ClassVar[int]
     agent_ref: _io_pb2.ApiResourceReference
     enabled: bool
     slack: SlackChannelConfig
     environment_refs: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
-    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., enabled: bool = ..., slack: _Optional[_Union[SlackChannelConfig, _Mapping]] = ..., environment_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ...) -> None: ...
+    app_ref: _io_pb2.ApiResourceReference
+    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., enabled: bool = ..., slack: _Optional[_Union[SlackChannelConfig, _Mapping]] = ..., environment_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., app_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ...) -> None: ...
 
 class SlackChannelConfig(_message.Message):
     __slots__ = ()

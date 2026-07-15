@@ -381,6 +381,44 @@ const pool = useSessionEnvPool({
 ```
 
 
+### useToolCredentialsReadiness
+
+Data hook that checks whether a connection's bound credentials will
+work at runtime — i.e. whether environments are bound and each one is
+shared with the organization (`visibility_org`).
+
+The runtime resolves connection-bound credentials exclusively through
+the org-shared environment seam (decision 011 — the agent's default
+instance stays pristine and is never consulted). So a tool-using
+agent with an empty binding list is *guaranteed* broken for the
+connection's users, and this hook says so explicitly
+(`needs-credentials`) instead of staying silent — the gap that made a
+share misconfiguration invisible until a visitor's first message
+failed (sharing project, session 12).
+
+`applicable` is the caller's predicate: connection kinds differ in
+when the check matters (shares add an audience arm; channels do not),
+so the caller owns that decision and this hook owns the lookups. All
+lookups run as the owner viewing the dialog, who can read the bound
+environments.
+
+Connection-kind wrappers: [`useShareToolReadiness`](/docs/sdk/react/sharing#usesharetoolreadiness) (shares),
+[`useChannelToolReadiness`](/docs/sdk/react/channel#usechanneltoolreadiness) (channels).
+
+**Signature**
+
+```tsx
+function useToolCredentialsReadiness(applicable: boolean, environmentRefs: readonly ResourceRef[]): ToolCredentialsReadiness
+```
+
+<TypeTable
+  type={{
+    applicable: { type: "boolean", description: "", required: true },
+    environmentRefs: { type: "readonly ResourceRef[]", description: "", required: true },
+  }}
+/>
+
+
 ### useUpdateEnvironment
 
 Behavior hook that wraps `environment.update()` with loading/error
@@ -856,6 +894,22 @@ toGrpcAddress("http://localhost:7234")   // "localhost:7234"
 toGrpcAddress("https://api.stigmer.ai")  // "api.stigmer.ai:443"
 toGrpcAddress("https://api.stigmer.ai:8443") // "api.stigmer.ai:8443"
 ```
+
+
+### ToolCredentialsReadiness
+
+Readiness of a connection's tool credentials for its visitors'
+executions. Shared vocabulary for every connection kind that binds
+`environment_refs` (shares, channels):
+
+- `na` — nothing to check: the caller decided the check does not
+  apply (no MCP tools, connection disabled, local deployment, …).
+- `needs-credentials` — the check applies but no environments are
+  bound: tool calls will fail until credentials are bound.
+- `checking` — lookups in flight.
+- `ready` — every bound environment is shared with the organization.
+- `blocked` — one or more bound environments are private; their
+  `org/slug` references are listed for the hint copy.
 
 
 ### UpdateEnvironmentVariablesInput

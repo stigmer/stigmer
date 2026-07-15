@@ -189,6 +189,56 @@ const { content } = useArtifactContent(executionId, storageKey, "SKILL.md");
 ```
 
 
+### useArtifactContentById
+
+Data hook that fetches the text content of an `Artifact` resource via
+`stigmer.artifact.getContent()`.
+
+The server proxies the artifact bytes through the Stigmer API rather than
+handing out a presigned URL — embedded SDK consumers on third-party origins
+avoid the CORS exposure of fetching storage URLs from the browser (the same
+rationale as the agent-execution side's `useArtifactContent`, which this
+hook mirrors; artifacts here are addressed by artifact ID, the artifact
+store's identity, instead of `executionId` + `storageKey`).
+
+Pass `null` for `artifactId` to skip fetching — the caller controls when to
+fetch based on artifact metadata (e.g. only for text content types below a
+size threshold), consistent with the `useArtifactContent(null)` convention.
+
+The server enforces a content size limit (default 512 KB). Content
+exceeding it comes back with `isTruncated: true`; offer a full download via
+`getDownloadUrl` in that case. The returned `content` is decoded as UTF-8 —
+for binary artifacts, use `getDownloadUrl` instead of this hook.
+
+**Signature**
+
+```tsx
+function useArtifactContentById(artifactId: string | null, cacheKey?: string): UseArtifactContentByIdReturn
+```
+
+<TypeTable
+  type={{
+    artifactId: { type: "string | null", description: "The `Artifact` resource id (`art_…`), or `null` to skip.", required: true },
+    cacheKey: { type: "string", description: "Optional cross-mount cache key (DD-014). When set, a   remount with the same key renders previously-fetched content instantly   and refetches in the background — used by the workflow artifact document   so switching back to a recently-viewed tab is instant." },
+  }}
+/>
+
+**Returns** — `UseArtifactContentByIdReturn`
+
+<TypeTable
+  type={{
+    content: { type: "string | null", description: "Decoded text content of the artifact, or `null` when: - Fetching is skipped (`artifactId` is `null`) - The request is in-flight - The request failed" },
+    contentType: { type: "string | null", description: "MIME content type recorded at artifact creation (`ArtifactSpec.content_type`). `null` before the first successful fetch." },
+    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the content request is in-flight." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
+    isTruncated: { type: "boolean", description: "Whether the returned content was truncated by the server's `max_bytes` limit. When `true`, offer the full artifact via `getDownloadUrl` instead." },
+    refetch: { type: "() => void", description: "Re-fetch the artifact content." },
+    totalSizeBytes: { type: "bigint", description: "Actual total size of the artifact in bytes — larger than the returned content when `isTruncated` is `true` (\"showing 512 KB of 2.1 MB\")." },
+  }}
+/>
+
+
 ### useArtifactCopy
 
 Behavior hook that copies an execution artifact's text to the clipboard on
@@ -240,9 +290,10 @@ const { copy, isCopying, copied } = useArtifactCopy(executionId);
 
 Behavior hook that downloads an execution artifact on demand.
 
-Mirrors the click → mint fresh URL → browser download flow established by
-`WorkflowExecutionArtifactPanel`, generalized so every artifact "Download"
-affordance shares one implementation. The URL is minted at click time from
+Implements the click → mint fresh URL → browser download flow so every
+artifact "Download" affordance shares one implementation (the workflow's
+`Artifact`-resource counterpart is `useWorkflowArtifactDownload`). The URL
+is minted at click time from
 the stable `storageKey` via `getArtifactDownloadUrl`, so it is always valid —
 unlike the previously persisted, short-lived URL that expired after an hour.
 
@@ -756,6 +807,55 @@ function useFileReviewRowState(fileChangeSetId: string, rowPath: string | null):
 />
 
 
+### useLiveAgentExecution
+
+Behavior hook for a single `AgentExecution` that is live only while
+it needs to be: fetch the snapshot, stream only what is running.
+
+This is the single-execution analog of the session's canonical
+composition (`useSessionExecutions` GET for history + `useExecutionStream`
+for the active turn): a terminal execution is served entirely by one
+`agentExecution.get()` — never a subscription — while a running one layers
+the streaming pipeline on top of the fetched snapshot.
+
+- The snapshot fetch is DD-014 cached (`agent-execution:<id>`), so a
+  remount (e.g. returning to a transcript tab) renders instantly from the
+  previous result with a background refresh — no loading flash.
+- The stream starts only after the fetch proves the phase non-terminal;
+  `useExecutionStream` then owns the live lifecycle (rAF coalescing,
+  auto-reconnect, terminal-phase completion — DD-009/DD-017).
+- Once streaming, the stream's snapshot supersedes the fetched one (it is
+  always at least as fresh, including the terminal state the fetch missed).
+
+Pass `null` to skip entirely (stable no-op).
+
+**Signature**
+
+```tsx
+function useLiveAgentExecution(executionId: string | null): UseLiveAgentExecutionReturn
+```
+
+<TypeTable
+  type={{
+    executionId: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseLiveAgentExecutionReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Snapshot-fetch error, or the stream's terminal error (auto-reconnect exhausted). `null` when healthy. Not-found is NOT an error — it yields `execution: null` with no error, matching `useWorkflowExecution`." },
+    execution: { type: "AgentExecution | null", description: "The freshest execution snapshot available: the live stream's while streaming, the fetched one otherwise. `null` while loading or when the execution does not exist." },
+    isLoading: { type: "boolean", description: "`true` while the initial snapshot fetch is in flight (nothing to show yet)." },
+    isReconnecting: { type: "boolean", description: "`true` while a transient stream drop is being retried in the background. The last snapshot stays visible — surface a subtle affordance, not an error." },
+    isStreaming: { type: "boolean", description: "`true` while live updates are arriving from the stream." },
+    phase: { type: "ExecutionPhase", description: "Convenience extraction of `execution.status.phase`; returns `EXECUTION_PHASE_UNSPECIFIED` when `execution` is `null`." },
+    reconnect: { type: "() => void", description: "Recover from either failure mode: re-fetches the snapshot AND resets the stream (one retry affordance for consumers, whichever side failed)." },
+  }}
+/>
+
+
 ### useSessionVariables
 
 Behavior hook that manages an array of session variable entries for
@@ -1089,7 +1189,7 @@ function MyArtifactPanel({ executionId, storageKey, fileName }) {
 The editor-pane rendering of a single execution artifact — the
 [`SurfaceVirtualDocument`](/docs/sdk/react/workspace#surfacevirtualdocument) counterpart of the [`ArtifactPreviewModal`](#artifactpreviewmodal)
 popup, mounted as an artifact-family virtual document under
-[`ARTIFACT_DOCUMENT_ENTRY_ID`](/docs/sdk/react/session#artifact_document_entry_id). Opening an artifact from the session
+[`ARTIFACT_DOCUMENT_ENTRY_ID`](#artifact_document_entry_id). Opening an artifact from the session
 panel's Artifacts facet lands here (VS Code "each file is a tab") rather than
 a modal.
 
@@ -1117,6 +1217,32 @@ All visual properties flow through `--stgm-*` tokens (DD-005).
     isTerminal: { type: "boolean", description: "Whether the producing execution is terminal. Gates the Apply/Push action (a mid-run artifact's content may still change).", required: true },
     onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied or a skill pushed — the same host callback the preview modal fires, so a document-apply behaves identically (toast / Library refresh)." },
     org: { type: "string", description: "Organization for the \"Apply to [org]\" / \"Push Skill to [org]\" CTA.", required: true },
+  }}
+/>
+
+
+### ArtifactFileContent
+
+The file-content states of an artifact body: loading skeleton, error,
+"not available for preview" (binary / unfetched), or the rendered text via
+[`ArtifactContentRenderer`](#artifactcontentrenderer).
+
+Extracted from `ArtifactContentBody` so surfaces on BOTH artifact data
+models render file content identically — the session's `ExecutionArtifact`
+bodies (modal + document) and the workflow's `Artifact`-resource document.
+Deliberately takes plain fields, not an artifact type: the two models share
+no proto, only this presentation.
+
+**Props** — `ArtifactFileContentProps`
+
+<TypeTable
+  type={{
+    content: { type: "string | null", description: "Decoded text content, or `null` (binary / loading / error).", required: true },
+    contentType: { type: "string | null", description: "Server-detected content type (rendering-strategy fallback).", required: true },
+    error: { type: "Error | null", description: "Content-fetch error, or `null`.", required: true },
+    fileName: { type: "string", description: "File name driving the render-mode dispatch (markdown / yaml / json / text).", required: true },
+    isLoading: { type: "boolean", description: "`true` while the content request is in-flight.", required: true },
+    isTruncated: { type: "boolean", description: "Whether the fetched content was truncated by the server's size cap.", required: true },
   }}
 />
 
@@ -1224,20 +1350,12 @@ const [previewArtifact, setPreviewArtifact] =
 
 ### ArtifactRow
 
-One dense, VS Code-style artifact row: a full-width open button (shared
-file-type icon + name + optional collision subtitle + size) with a sibling,
-hover/focus-revealed Download button.
-
-The open target and the Download control are SIBLINGS, never nested — a
-`<button>` inside a `<button>` is an axe `nested-interactive` (WCAG 4.1.2)
-violation. This mirrors `ExplorerRoot`'s header + remove-control pattern.
-
-Deliberately execution-pure and presentational: it takes only the artifact,
-its `executionId`, and open/activate closures — no session-domain types and
-no content fetch (resource detection and Apply/Push live in the opened
-document/modal, not the list). The two hosts — the session panel's
-`ArtifactsTab` facet and the panel-less [`ArtifactsWidget`](#artifactswidget) — map
-their entries onto these props and own the behavior wiring.
+The `ExecutionArtifact` host of the shared [`ArtifactRowView`](#artifactrowview): it owns
+the session model's identity and download mechanics (presigned URL minted
+by `executionId` + `storageKey` via [`useArtifactDownload`](#useartifactdownload)) and maps
+the artifact onto the view-model. The workflow's `Artifact`-resource host is
+`WorkflowArtifactRow` — same row UI, different data model (deliberately
+unified only at the presentational layer).
 
 **Props** — `ArtifactRowProps`
 
@@ -1247,7 +1365,40 @@ their entries onto these props and own the behavior wiring.
     className: { type: "string", description: "Additional CSS classes for the row's `<li>`." },
     executionId: { type: "string", description: "ID of the execution that produced this artifact — used to mint its download URL.", required: true },
     hasNameCollision: { type: "boolean", description: "When `true`, another artifact in the list shares this artifact's display `name` but has a different `sandbox_path`; the row renders the parent directory as a muted subtitle to disambiguate. Typically supplied from SessionArtifactEntry.hasNameCollision." },
+    onActivate: { type: "() => void", description: "Double click: promote the artifact to a persistent (pinned) tab — see ArtifactRowViewProps.onActivate. Omit in panel-less hosts." },
+    onOpen: { type: "() => void", description: "Single click / Enter / Space: open the artifact (a preview tab, or a modal).", required: true },
+  }}
+/>
+
+
+### ArtifactRowView
+
+One dense, VS Code-style artifact row: a full-width open button (shared
+file-type icon + name + optional disambiguation subtitle + size) with a
+sibling, hover/focus-revealed Download button.
+
+The open target and the Download control are SIBLINGS, never nested — a
+`<button>` inside a `<button>` is an axe `nested-interactive` (WCAG 4.1.2)
+violation. This mirrors `ExplorerRoot`'s header + remove-control pattern.
+
+Deliberately data-model-agnostic: it renders an [`ArtifactRowItem`](#artifactrowitem)
+view-model and takes open/activate/download closures, so the session
+(`ExecutionArtifact`) and workflow (`Artifact` resource) hosts share one row
+UI without sharing a data model. The domain wrappers — session `ArtifactRow`
+and workflow `WorkflowArtifactRow` — own identity, adapters, and download
+wiring.
+
+All visual properties flow through `--stgm-*` tokens (DD-005).
+
+**Props** — `ArtifactRowViewProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the row's `<li>`." },
+    isDownloading: { type: "boolean", description: "`true` while the host's download is in flight — disables the control.", required: true },
+    item: { type: "ArtifactRowItem", description: "The view-model to render (see ArtifactRowItem adapters).", required: true, typeDescriptionLink: "#artifactrowitem" },
     onActivate: { type: "() => void", description: "Double click: promote the artifact to a persistent (pinned) tab. Mirrors the file tree's `onOpenFile` (preview) / `onActivateFile` (pin) split — the leading single click of the double click has already opened the preview, so this promotes it. Omit in panel-less hosts (e.g. the modal-only widget): with no handler the row binds no `onDoubleClick`, so a double click is just two harmless single clicks, exactly as `FileTreeNode` behaves." },
+    onDownload: { type: "() => void", description: "Download the artifact (each host owns its own download mechanics).", required: true },
     onOpen: { type: "() => void", description: "Single click / Enter / Space: open the artifact (a preview tab, or a modal).", required: true },
   }}
 />
@@ -2004,6 +2155,36 @@ const conv = useSessionConversation(sessionId, org);
 
 ## Types
 
+### AGENT_EXECUTION_DOCUMENT_ENTRY_ID
+
+Virtual entry id of the agent-execution transcript document FAMILY. Like
+artifacts and file changes (and unlike the session's single plan tab),
+transcripts are many: every opened child AgentExecution shares this one
+entry id and is distinguished by its id-derived tab path, so
+`editorKey(AGENT_EXECUTION_DOCUMENT_ENTRY_ID, path)` yields one tab per
+child execution — the VS Code "each file is a tab" model. The
+NUL-namespaced virtual id can never alias a real workspace entry, and its
+distinct `"agentexec"` kind can never collide with the
+`"artifact"`/`"filechange"`/`"plan"` families.
+
+
+### agentExecutionTabPath
+
+The identity of a child AgentExecution's transcript tab within the family.
+
+The path deliberately CARRIES the child execution id (unlike artifact tabs,
+which need an owner-level record map to resolve content): a transcript
+needs only the id to fetch/stream itself, so the viewer parses it straight
+back out with [`parseAgentExecutionTabPath`](#parseagentexecutiontabpath) — no lookup map to keep in
+sync. The suffix is the AGENT_CALL task name because the editor tab's LABEL
+is the path's basename: the task name correlates the tab with the DAG node
+the user opened it from, and keeps two calls to the same agent distinct.
+
+```tsx
+function agentExecutionTabPath(childExecutionId: string, taskName: string): string
+```
+
+
 ### ApprovalCard
 
 Renders a pending tool-call approval request with the same visual
@@ -2079,6 +2260,18 @@ the thread's streaming re-render isolation (DD-009 / DD-010).
 />
 
 
+### ARTIFACT_DOCUMENT_ENTRY_ID
+
+Virtual entry id of the artifact document FAMILY. Unlike the plan (one tab
+per session), artifacts are many: every opened artifact shares this one
+entry id and is distinguished by its identity-derived `path` (the session's
+`artifactKey`, the workflow's `Artifact` id), so
+`editorKey(ARTIFACT_DOCUMENT_ENTRY_ID, path)` yields one tab per artifact —
+the VS Code "each file is a tab" model. The NUL-namespaced virtual id can
+never alias a real workspace entry, and its distinct `"artifact"` kind can
+never collide with the plan tab's `"plan"` kind.
+
+
 ### ArtifactInspection
 
 Everything a chrome (the modal action bar, the document toolbar, the content
@@ -2121,6 +2314,29 @@ rendering logic based on file type.
 - `"yaml"` — CSS-only YAML syntax highlighting
 - `"json"` — pretty-printed JSON with key/value coloring
 - `"text"` — monospace plain text with line numbers
+
+
+### ArtifactRowItem
+
+What an artifact row displays, independent of which artifact data model
+produced it.
+
+Two artifact models exist and are deliberately unified ONLY at this
+presentational layer, never at the data layer: the session's
+`ExecutionArtifact` (embedded in `AgentExecution.status.artifacts`) and the
+workflow's first-class `Artifact` resource. Their identity, provenance, and
+download mechanics differ — so the view-model carries no identity; list
+keys and open/download behavior stay with the domain-specific hosts.
+
+<TypeTable
+  type={{
+    isDirectory: { type: "boolean", description: "Directory artifacts render a folder icon, a `/` suffix, and ZIP download copy.", required: true },
+    name: { type: "string", description: "Display label (file or directory name).", required: true },
+    sizeBytes: { type: "number | bigint", description: "Content size in bytes (protobuf `int64` is `bigint`).", required: true },
+    subtitlePath: { type: "string | null", description: "Disambiguation subtitle rendered after the name when another row shares the same display name: the parent directory for sandbox-backed artifacts, the producing task for workflow artifacts. `null` when not needed.", required: true },
+    tooltip: { type: "string", description: "Hover title — the fullest location/name known for the artifact.", required: true },
+  }}
+/>
 
 
 ### BootstrapSessionSpec
@@ -2307,6 +2523,45 @@ function deriveEffectiveVerdicts(set: FileChangeSet): ReadonlyMap<string, FileDe
 ```
 
 
+### deriveExecutionFileChanges
+
+Collapses the file changes captured across `executions` into one *net*
+`FileChange` per path, ordered for a file list (modified, then
+created/renamed, then deleted; alphabetical within each group).
+
+**Source (ledger-first).** Under apply-then-review the changes live in the
+file-review ledger; [`displayFileChangeSets`](#displayfilechangesets) reads the server's live
+projection or folds the durable ledger for a terminal execution (whose
+projection is nil), and each captured change is projected onto the display
+`FileChange` via [`toDisplayFileChange`](#todisplayfilechange). The execution-scoped
+ledger already includes sub-agent captures (DD-19), so one pass per
+execution suffices.
+
+**Net-diff (not latest-wins).** A `FileChange` is a *delta* — an
+agent often rewrites the same file several times, and showing only the last
+edit's diff would misrepresent what changed. So changes to the same path
+are reduced to a single net change: `before` from the first change, `after`
+from the last. Because a WHOLE_FILE `after` is a complete file snapshot,
+`first.before → last.after` is exactly the net change. A group with one
+change (the common case) is passed through untouched; multi-edit groups
+synthesize a net `FileChange` so every consumer speaks one proto
+type (DD-007).
+
+**Ordering is a correctness input.** `executions` MUST be chronological:
+the net collapse anchors on each path's first and last change, so two
+executions touching the same path (a session's follow-up turns; two
+workflow agent-call tasks) produce a wrong net diff if visited out of
+order.
+
+Counts and unified diffs for whole-file captures stay derivable by the
+presentation layer (the runner emits 0/"" sentinels), matching the
+contract the SDK `tool-view` established.
+
+```tsx
+function deriveExecutionFileChanges(executions: readonly AgentExecution[]): readonly FileChange[]
+```
+
+
 ### DiffStatSummary
 
 Aggregate change statistics parsed from a `git diff --stat` summary line.
@@ -2407,6 +2662,18 @@ function extractPrimaryArg(toolCall: ToolCall): string | null
 ```
 
 
+### FILE_CHANGE_DOCUMENT_ENTRY_ID
+
+Virtual entry id of the file-change diff document FAMILY. Like artifacts
+(and unlike the session's single plan tab), file changes are many: every
+opened diff shares this one entry id and is distinguished by its
+change-path-derived tab path, so
+`editorKey(FILE_CHANGE_DOCUMENT_ENTRY_ID, path)` yields one tab per changed
+file — the VS Code "each file is a tab" model. The NUL-namespaced virtual
+id can never alias a real workspace entry, and its distinct `"filechange"`
+kind can never collide with the `"artifact"`/`"plan"` families.
+
+
 ### FileBlockReason
 
 Why an `"unavailable"` file cannot be reviewed — the honest per-file cause the
@@ -2462,6 +2729,20 @@ Props for [`FileChangeProgressBar`](#filechangeprogressbar).
     progress: { type: "FileChangeProgress | undefined", description: "The transient mid-run progress snapshot for the active turn (DD-32). Feed this from `useSessionConversation().fileChangeProgress`. Renders nothing when undefined or when no files have changed yet — the server clears it once the turn's change set leaves CAPTURING, so the bar disappears exactly when the decision surface (FileReviewDock) takes over.", required: true },
   }}
 />
+
+
+### fileChangeTabPath
+
+The identity of a file change's diff tab within the family. The net rollup
+carries at most one `FileChange` per path, so the change's path IS
+the identity — and, as the tab path, its basename is exactly the tab label
+(no prefixing needed, unlike artifact tabs whose ids are opaque).
+`absolutePath` is the fallback for captures without a workspace-relative
+path, matching the keying inside the net-collapse core.
+
+```tsx
+function fileChangeTabPath(change: FileChange): string
+```
 
 
 ### fileDecisionKey
@@ -2791,6 +3072,29 @@ function formatTokenCount(count: number): string
 ```
 
 
+### fromArtifact
+
+Adapts a workflow `Artifact` resource to a row item.
+
+A workflow artifact is always a single content-typed blob — the resource
+model has no directory concept — so `isDirectory` is always `false`. Name
+collisions disambiguate by the producing task (`source.task_name`), the
+workflow analog of the session's parent-directory subtitle.
+
+```tsx
+function fromArtifact(artifact: Artifact, hasNameCollision: boolean): ArtifactRowItem
+```
+
+
+### fromExecutionArtifact
+
+Adapts a session `ExecutionArtifact` to a row item.
+
+```tsx
+function fromExecutionArtifact(artifact: ExecutionArtifact, hasNameCollision: boolean): ArtifactRowItem
+```
+
+
 ### getArtifactExtension
 
 Extracts the lowercase file extension from an artifact's name.
@@ -2969,6 +3273,17 @@ Props for [`MessageEntry`](#messageentry).
     onEdit: { type: "() => void", description: "When provided on a `MESSAGE_HUMAN` entry, a hover-revealed \"Edit\" button appears on the bubble. Clicking it invokes this callback — the session chat uses it to stop the in-flight turn and pre-fill the composer with this message for editing. Ignored for non-human messages." },
   }}
 />
+
+
+### parseAgentExecutionTabPath
+
+Recovers the child execution id from a transcript tab's path — the inverse
+of [`agentExecutionTabPath`](#agentexecutiontabpath). Splits on the FIRST separator: execution
+ids never contain `/`, so a task name that does still round-trips.
+
+```tsx
+function parseAgentExecutionTabPath(path: string): string
+```
 
 
 ### parseDiffStatSummary
@@ -3566,6 +3881,23 @@ Returns `null` when there are no todos.
 
 ```tsx
 function todoCompletionSummary(todos: object | undefined): string | null
+```
+
+
+### toFileDiffEntry
+
+Projects a `FileChange` into a [`FileDiffEntry`](/docs/sdk/react/version-history#filediffentry) for a file list
+(`DiffFileList`).
+
+Counts: hunk-only uses the runner's authoritative numbers; whole-file inline
+is derived from the content (identical to the runner's capture-time counts by
+construction — same diff algorithm). A whole-file side with no synchronous
+content (offloaded / binary) falls back to the runner's capture-time
+`linesAdded`/`linesRemoved` — zero when no count exists, which the list
+renders as no stat.
+
+```tsx
+function toFileDiffEntry(change: FileChange): FileDiffEntry
 ```
 
 

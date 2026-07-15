@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.channelapp.v1;
+
+import "buf/validate/validate.proto";
+
+// ChannelAppSpec defines the provider app credentials for a channel app.
+//
+// Exactly one provider configuration must be set; the provider of a
+// ChannelApp always matches the provider of the channels that reference
+// it.
+//
+// @internal
+// Provider variance is config-shaped, not lifecycle-shaped — one kind,
+// a validated oneof (the AgentChannelSpec.provider_config precedent).
+// Secrets are inline spec fields encrypted at rest and redacted in every
+// response (the OAuthAppSpec.client_secret pipeline, both editions) —
+// NOT managed-environment refs: app credentials are user-authored
+// configuration entered in one motion with the resource, unlike
+// install-produced tokens (decision 004's split, amended for BYO).
+// The resource is always visibility_private; there is no updateVisibility
+// RPC.
+message ChannelAppSpec {
+  // Provider this app belongs to. Exactly one must be specified.
+  //
+  // @internal
+  // Adding WhatsApp (T05) extends this oneof; it touches zero kinds.
+  oneof provider_config {
+    option (buf.validate.oneof).required = true;
+
+    // Slack app credentials.
+    SlackChannelAppConfig slack = 1;
+  }
+}
+
+// SlackChannelAppConfig holds the credentials of a customer-created
+// Slack app.
+//
+// The values come from the app's "Basic Information" page on
+// api.slack.com. The app must be configured with Stigmer's OAuth
+// redirect URL and this ChannelApp's events webhook URL — the console
+// shows both, along with a ready-to-paste app manifest.
+//
+// @internal
+// No api_app_id and no redirect/webhook URLs here: webhook attribution
+// is by the per-app request path (/webhook/slack/{channelAppId}), chosen
+// over envelope api_app_id sniffing because Slack's url_verification
+// handshake carries no app identity and the raw body must verify before
+// any parse. The redirect URI is platform-derived, mirroring OAuthApp's
+// deliberate omission.
+message SlackChannelAppConfig {
+  // OAuth client ID of the Slack app.
+  string client_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // OAuth client secret of the Slack app.
+  // Encrypted at rest, redacted in responses and logs.
+  string client_secret = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Signing secret used to verify Slack webhook requests from this app.
+  // Encrypted at rest, redacted in responses and logs.
+  string signing_secret = 3 [(buf.validate.field).string.min_len = 1];
+}

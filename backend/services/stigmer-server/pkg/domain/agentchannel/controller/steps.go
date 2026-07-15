@@ -98,6 +98,26 @@ func (s *resolveChannelDefaultsStep) Execute(ctx *pipeline.RequestContext[*agent
 		)
 	}
 
+	// The BYO app must be the channel's own org's (secrets never cross
+	// orgs — the T06 invariant, applied to app credentials; T04 item 2).
+	// Normalized and checked before the agent load for the same
+	// no-probing reason. Deliberately NO existence or provider-match
+	// check: like environment_refs, enforcement lives at resolution time
+	// (the cloud install flow fails closed; OSS has no install flow).
+	appRef := channel.GetSpec().GetAppRef()
+	if appRef.GetSlug() != "" {
+		appRefOrg := appRef.GetOrg()
+		if appRefOrg == "" {
+			appRefOrg = metadata.GetOrg()
+		}
+		if appRefOrg != metadata.GetOrg() {
+			return grpclib.FailedPreconditionError(
+				"spec.app_ref.org must match metadata.org — a channel can only install through its own organization's channel app",
+			)
+		}
+		appRef.Org = appRefOrg
+	}
+
 	_, found, err := findAgentByOrgAndSlug(ctx.Context(), s.store, refOrg, agentRef.GetSlug())
 	if err != nil {
 		return err
@@ -212,6 +232,51 @@ func (s *validateChannelUpdateStep) Execute(ctx *pipeline.RequestContext[*agentc
 		return grpclib.FailedPreconditionError(
 			"spec provider is immutable (channel provider is %s) — create a new channel for a different provider",
 			existingProvider,
+		)
+	}
+
+	return validateAppRefUpdate(ctx, existing)
+}
+
+// validateAppRefUpdate enforces the app_ref rules on update (T04 item 2),
+// byte-identical with the cloud edition's ValidateChannelUpdate:
+//
+//   - same-org always: a channel must never install through another org's
+//     app credentials (repeated here because update does not run the
+//     defaults resolver);
+//   - frozen while installed: the workspace granted THAT app and the
+//     stored bot token belongs to it. Pending and revoked channels may
+//     rebind freely — switching apps before (re-)installing is a
+//     legitimate flow.
+func validateAppRefUpdate(
+	ctx *pipeline.RequestContext[*agentchannelv1.AgentChannel],
+	existing *agentchannelv1.AgentChannel,
+) error {
+	inputAppRef := ctx.Input().GetSpec().GetAppRef()
+	existingAppRef := existing.GetSpec().GetAppRef()
+
+	inputAppOrg := ""
+	if inputAppRef.GetSlug() != "" {
+		inputAppOrg = inputAppRef.GetOrg()
+		if inputAppOrg == "" {
+			inputAppOrg = existing.GetMetadata().GetOrg()
+		}
+	}
+
+	if inputAppOrg != "" && inputAppOrg != existing.GetMetadata().GetOrg() {
+		return grpclib.FailedPreconditionError(
+			"spec.app_ref.org must match metadata.org — a channel can only install through its own organization's channel app",
+		)
+	}
+
+	installed := existing.GetStatus().GetInstallState() ==
+		agentchannelv1.AgentChannelInstallState_installed
+	changed := inputAppRef.GetSlug() != existingAppRef.GetSlug() ||
+		(inputAppRef.GetSlug() != "" && inputAppOrg != existingAppRef.GetOrg())
+
+	if installed && changed {
+		return grpclib.FailedPreconditionError(
+			"spec.app_ref cannot change while the channel is installed — the workspace authorized the current app; uninstall or disconnect first, then rebind and re-install",
 		)
 	}
 

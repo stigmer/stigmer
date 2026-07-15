@@ -44,6 +44,7 @@
           "agent_instance",
           "agent_share",
           "agent_channel",
+          "channel_app",
           "workflow",
           "workflow_instance",
           "workflow_execution",

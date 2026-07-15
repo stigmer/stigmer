@@ -82,6 +82,11 @@ enum IamPermission {
   // Same-org shares keep their Phase A bar (can_edit on the agent), which
   // already implies membership in the agent's org.
   can_create_agent_share = 30;
+
+  // Organization-level permission to register channel apps (customer-owned
+  // messaging-platform apps holding webhook and OAuth credentials).
+  // Admin-gated like can_create_oauth_app.
+  can_create_channel_app = 31;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources

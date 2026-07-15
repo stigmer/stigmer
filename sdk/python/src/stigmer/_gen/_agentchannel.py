@@ -102,6 +102,7 @@ class AgentChannelInput:
     enabled: bool = False
     slack: SlackChannelConfigInput | None = None
     environment_refs: list[ResourceRef] = field(default_factory=list)
+    app_ref: ResourceRef | None = None
 
     def _to_proto(self) -> api_pb2.AgentChannel:
         spec = spec_pb2.AgentChannelSpec(
@@ -117,6 +118,10 @@ class AgentChannelInput:
             _ref = ref._to_proto()
             _ref.kind = 53
             spec.environment_refs.append(_ref)
+        if self.app_ref is not None and (self.app_ref.org or self.app_ref.slug):
+            _ref = self.app_ref._to_proto()
+            _ref.kind = 48
+            spec.app_ref.CopyFrom(_ref)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

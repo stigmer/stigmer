@@ -255,5 +255,77 @@ public interface AgentChannelSpecOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
       int index);
 
+  /**
+   * <pre>
+   * Reference to the ChannelApp this channel installs through.
+   *
+   * Absent means the channel uses the platform's shared Stigmer app —
+   * the zero-setup default. Set it to install through your own provider
+   * app instead: the bot carries the app's name and icon, and each app
+   * is its own bot identity, so multiple agents can serve one workspace.
+   *
+   * &#64;internal
+   * T04 item 2. Invariants (enforced in handlers of both editions):
+   * app_ref.org must equal metadata.org (secrets never cross orgs — the
+   * agent_ref rule), and the ref is immutable while install_state ==
+   * installed (the workspace granted THAT app; switching apps requires
+   * re-install, so pending/revoked channels may rebind freely). No
+   * write-time existence or provider-match check, matching the
+   * environment_refs posture: the install flow resolves the app and
+   * fails closed on a missing or wrong-provider reference.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+   * @return Whether the appRef field is set.
+   */
+  boolean hasAppRef();
+  /**
+   * <pre>
+   * Reference to the ChannelApp this channel installs through.
+   *
+   * Absent means the channel uses the platform's shared Stigmer app —
+   * the zero-setup default. Set it to install through your own provider
+   * app instead: the bot carries the app's name and icon, and each app
+   * is its own bot identity, so multiple agents can serve one workspace.
+   *
+   * &#64;internal
+   * T04 item 2. Invariants (enforced in handlers of both editions):
+   * app_ref.org must equal metadata.org (secrets never cross orgs — the
+   * agent_ref rule), and the ref is immutable while install_state ==
+   * installed (the workspace granted THAT app; switching apps requires
+   * re-install, so pending/revoked channels may rebind freely). No
+   * write-time existence or provider-match check, matching the
+   * environment_refs posture: the install flow resolves the app and
+   * fails closed on a missing or wrong-provider reference.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+   * @return The appRef.
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReference getAppRef();
+  /**
+   * <pre>
+   * Reference to the ChannelApp this channel installs through.
+   *
+   * Absent means the channel uses the platform's shared Stigmer app —
+   * the zero-setup default. Set it to install through your own provider
+   * app instead: the bot carries the app's name and icon, and each app
+   * is its own bot identity, so multiple agents can serve one workspace.
+   *
+   * &#64;internal
+   * T04 item 2. Invariants (enforced in handlers of both editions):
+   * app_ref.org must equal metadata.org (secrets never cross orgs — the
+   * agent_ref rule), and the ref is immutable while install_state ==
+   * installed (the workspace granted THAT app; switching apps requires
+   * re-install, so pending/revoked channels may rebind freely). No
+   * write-time existence or provider-match check, matching the
+   * environment_refs posture: the install flow resolves the app and
+   * fails closed on a missing or wrong-provider reference.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getAppRefOrBuilder();
+
   ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.ProviderConfigCase getProviderConfigCase();
 }

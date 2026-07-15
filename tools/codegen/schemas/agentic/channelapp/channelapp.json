@@ -1,0 +1,21 @@
+{
+  "name": "ChannelAppSpec",
+  "kind": "CHANNEL_APP_SPEC",
+  "description": "ChannelAppSpec defines the provider app credentials for a channel app.\n\n Exactly one provider configuration must be set; the provider of a\n ChannelApp always matches the provider of the channels that reference\n it.\n\n @internal\n Provider variance is config-shaped, not lifecycle-shaped — one kind,\n a validated oneof (the AgentChannelSpec.provider_config precedent).\n Secrets are inline spec fields encrypted at rest and redacted in every\n response (the OAuthAppSpec.client_secret pipeline, both editions) —\n NOT managed-environment refs: app credentials are user-authored\n configuration entered in one motion with the resource, unlike\n install-produced tokens (decision 004's split, amended for BYO).\n The resource is always visibility_private; there is no updateVisibility\n RPC.",
+  "protoType": "ai.stigmer.agentic.channelapp.v1.ChannelAppSpec",
+  "protoFile": "apis/ai/stigmer/agentic/channelapp/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Slack",
+      "jsonName": "slack",
+      "protoField": "slack",
+      "type": {
+        "kind": "message",
+        "messageType": "SlackChannelAppConfig"
+      },
+      "description": "Slack app credentials.",
+      "required": false,
+      "oneofGroup": "provider_config"
+    }
+  ]
+}

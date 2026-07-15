@@ -18,6 +18,7 @@ import (
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	agentsharev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1"
 	artifactv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/artifact/v1"
+	channelappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/channelapp/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
@@ -43,6 +44,7 @@ import (
 	agentsharemigration "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentshare/migration"
 	artifactcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/controller"
 	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
+	channelappcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/channelapp/controller"
 	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
 	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
 	mcpservercontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/controller"
@@ -320,6 +322,14 @@ func Run() error {
 	agentchannelv1.RegisterAgentChannelQueryControllerServer(grpcServer, agentChannelController)
 
 	log.Info().Msg("Registered AgentChannel controllers")
+
+	// Create and register ChannelApp controller (BYO channel apps, T04
+	// item 2) — shares the Environment/OAuthApp encryption service.
+	channelAppController := channelappcontroller.NewChannelAppController(store, secretService)
+	channelappv1.RegisterChannelAppCommandControllerServer(grpcServer, channelAppController)
+	channelappv1.RegisterChannelAppQueryControllerServer(grpcServer, channelAppController)
+
+	log.Info().Msg("Registered ChannelApp controllers")
 
 	// Register AgentExecution controller (created earlier for Temporal worker dependency)
 	agentexecutionv1.RegisterAgentExecutionCommandControllerServer(grpcServer, agentExecutionController)

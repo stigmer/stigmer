@@ -36,6 +36,7 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_manage_billing: _ClassVar[IamPermission]
     can_execute_billing_ops: _ClassVar[IamPermission]
     can_create_agent_share: _ClassVar[IamPermission]
+    can_create_channel_app: _ClassVar[IamPermission]
 
 class IamRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -74,6 +75,7 @@ can_view_billing: IamPermission
 can_manage_billing: IamPermission
 can_execute_billing_ops: IamPermission
 can_create_agent_share: IamPermission
+can_create_channel_app: IamPermission
 iam_role_unspecified: IamRole
 owner: IamRole
 admin: IamRole

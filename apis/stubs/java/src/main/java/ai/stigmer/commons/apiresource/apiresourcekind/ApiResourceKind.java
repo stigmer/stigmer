@@ -176,6 +176,15 @@ public enum ApiResourceKind
   agent_channel(47),
   /**
    * <pre>
+   * Customer-owned messaging-platform app (e.g. a Slack app) that agent
+   * channels can install through instead of the shared platform app.
+   * </pre>
+   *
+   * <code>channel_app = 48 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  channel_app(48),
+  /**
+   * <pre>
    * Multi-step orchestration defining how agents collaborate on a task.
    * </pre>
    *
@@ -403,6 +412,15 @@ public enum ApiResourceKind
   public static final int agent_channel_VALUE = 47;
   /**
    * <pre>
+   * Customer-owned messaging-platform app (e.g. a Slack app) that agent
+   * channels can install through instead of the shared platform app.
+   * </pre>
+   *
+   * <code>channel_app = 48 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int channel_app_VALUE = 48;
+  /**
+   * <pre>
    * Multi-step orchestration defining how agents collaborate on a task.
    * </pre>
    *
@@ -502,6 +520,7 @@ public enum ApiResourceKind
       case 45: return agent_instance;
       case 46: return agent_share;
       case 47: return agent_channel;
+      case 48: return channel_app;
       case 50: return workflow;
       case 51: return workflow_instance;
       case 52: return workflow_execution;

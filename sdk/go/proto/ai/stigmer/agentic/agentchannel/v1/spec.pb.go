@@ -94,8 +94,25 @@ type AgentChannelSpec struct {
 	// audience concept, and the same-org invariant (agent_ref.org ==
 	// metadata.org) already scopes resolution.
 	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,4,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Reference to the ChannelApp this channel installs through.
+	//
+	// Absent means the channel uses the platform's shared Stigmer app —
+	// the zero-setup default. Set it to install through your own provider
+	// app instead: the bot carries the app's name and icon, and each app
+	// is its own bot identity, so multiple agents can serve one workspace.
+	//
+	// @internal
+	// T04 item 2. Invariants (enforced in handlers of both editions):
+	// app_ref.org must equal metadata.org (secrets never cross orgs — the
+	// agent_ref rule), and the ref is immutable while install_state ==
+	// installed (the workspace granted THAT app; switching apps requires
+	// re-install, so pending/revoked channels may rebind freely). No
+	// write-time existence or provider-match check, matching the
+	// environment_refs posture: the install flow resolves the app and
+	// fails closed on a missing or wrong-provider reference.
+	AppRef        *apiresource.ApiResourceReference `protobuf:"bytes,5,opt,name=app_ref,json=appRef,proto3" json:"app_ref,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AgentChannelSpec) Reset() {
@@ -165,6 +182,13 @@ func (x *AgentChannelSpec) GetEnvironmentRefs() []*apiresource.ApiResourceRefere
 	return nil
 }
 
+func (x *AgentChannelSpec) GetAppRef() *apiresource.ApiResourceReference {
+	if x != nil {
+		return x.AppRef
+	}
+	return nil
+}
+
 type isAgentChannelSpec_ProviderConfig interface {
 	isAgentChannelSpec_ProviderConfig()
 }
@@ -227,14 +251,16 @@ var File_ai_stigmer_agentic_agentchannel_v1_spec_proto protoreflect.FileDescript
 
 const file_ai_stigmer_agentic_agentchannel_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xab\x04\n" +
+	"-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xf2\x05\n" +
 	"\x10AgentChannelSpec\x12\xb6\x01\n" +
 	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n" +
 	"\x0eagent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\bagentRef\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\x12N\n" +
 	"\x05slack\x18\x03 \x01(\v26.ai.stigmer.agentic.agentchannel.v1.SlackChannelConfigH\x00R\x05slack\x12\xd9\x01\n" +
 	"\x10environment_refs\x18\x04 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
-	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefsB\x18\n" +
+	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12\xc4\x01\n" +
+	"\aapp_ref\x18\x05 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBu\xbaHn\xba\x01k\n" +
+	"\fapp_ref.kind\x127app_ref must reference a resource with kind=channel_app\x1a\"this.slug == '' || this.kind == 48\xe0\x85,0R\x06appRefB\x18\n" +
 	"\x0fprovider_config\x12\x05\xbaH\x02\b\x01\"\x14\n" +
 	"\x12SlackChannelConfigB\xbe\x02\n" +
 	"&com.ai.stigmer.agentic.agentchannel.v1B\tSpecProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
@@ -261,11 +287,12 @@ var file_ai_stigmer_agentic_agentchannel_v1_spec_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	1, // 1: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.slack:type_name -> ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig
 	2, // 2: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2, // 3: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentchannel_v1_spec_proto_init() }

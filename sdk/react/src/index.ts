@@ -229,6 +229,7 @@ export {
   isTerminalPhase,
   useCreateAgentExecution,
   useExecutionStream,
+  useLiveAgentExecution,
   useAgentExecutionActions,
   useSubmitApproval,
   useFileReview,
@@ -340,6 +341,9 @@ export {
   toFileDiffEntry,
   FILE_CHANGE_DOCUMENT_ENTRY_ID,
   fileChangeTabPath,
+  AGENT_EXECUTION_DOCUMENT_ENTRY_ID,
+  agentExecutionTabPath,
+  parseAgentExecutionTabPath,
   EmptyChangeNotice,
   isTextArtifact,
   formatArtifactSize,
@@ -354,6 +358,7 @@ export type {
   SharedAgentExecutionFields,
   UseCreateAgentExecutionReturn,
   UseExecutionStreamReturn,
+  UseLiveAgentExecutionReturn,
   UseAgentExecutionActionsOptions,
   UseAgentExecutionActionsReturn,
   UseSubmitApprovalReturn,
@@ -877,6 +882,7 @@ export { IdentityProvidersSection } from "./settings/index.js";
 export type { IdentityProvidersSectionProps } from "./settings/index.js";
 export { PlatformClientsSection } from "./settings/index.js";
 export { OAuthAppsSection } from "./settings/index.js";
+export { ChannelAppsSection } from "./settings/index.js";
 export { UsageSection } from "./settings/index.js";
 
 // User — app shell user menu
@@ -946,6 +952,33 @@ export type {
   CreateOAuthAppFormProps,
   OAuthAppDetailPanelProps,
 } from "./oauth-app/index.js";
+
+// Channel App — data hooks, mutation hooks, styled components, and Slack
+// setup helpers for bring-your-own channel apps (T04 item 2)
+export {
+  useChannelAppList,
+  useCreateChannelApp,
+  useUpdateChannelApp,
+  useDeleteChannelApp,
+  ChannelAppListPanel,
+  CreateChannelAppForm,
+  ChannelAppDetailPanel,
+  buildSlackChannelAppManifest,
+  slackChannelAppRedirectUrl,
+  slackChannelAppWebhookUrl,
+  SLACK_CHANNEL_APP_BOT_EVENTS,
+  SLACK_CHANNEL_APP_BOT_SCOPES,
+} from "./channel-app/index.js";
+export type {
+  UseChannelAppListReturn,
+  UseCreateChannelAppReturn,
+  UseUpdateChannelAppReturn,
+  UseDeleteChannelAppReturn,
+  ChannelAppListPanelProps,
+  CreateChannelAppFormProps,
+  ChannelAppDetailPanelProps,
+  SlackChannelAppManifestInput,
+} from "./channel-app/index.js";
 
 // Identity Provider — data hooks, mutation hooks, styled components, presets, and guided wizard for IdP management and SSO discovery
 export {
@@ -1438,6 +1471,7 @@ export {
   WorkflowChangesTab,
   WorkflowUsageTab,
   WorkflowArtifactDocument,
+  WorkflowAgentExecutionDocument,
   useWorkflowArtifactDownload,
   useWorkflowExecutionFileChanges,
   enumerateAgentCallChildren,
@@ -1569,6 +1603,7 @@ export type {
   UseWorkflowExecutionFileChangesOptions,
   UseWorkflowExecutionFileChangesReturn,
   WorkflowArtifactDocumentProps,
+  WorkflowAgentExecutionDocumentProps,
   UseWorkflowArtifactDownloadReturn,
   WorkflowArtifactEntry,
   WorkflowUsageItem,

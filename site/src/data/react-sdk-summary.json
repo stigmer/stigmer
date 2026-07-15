@@ -60,8 +60,15 @@
       "slug": "channel",
       "title": "channel",
       "description": "",
-      "hooks": 6,
-      "components": 2
+      "hooks": 7,
+      "components": 4
+    },
+    {
+      "slug": "channel-app",
+      "title": "channel-app",
+      "description": "",
+      "hooks": 4,
+      "components": 3
     },
     {
       "slug": "composer",
@@ -88,7 +95,7 @@
       "slug": "environment",
       "title": "Environment",
       "description": "Hooks and components for configuration, variables, secrets, and session environment pools.",
-      "hooks": 9,
+      "hooks": 10,
       "components": 5
     },
     {
@@ -102,8 +109,8 @@
       "slug": "execution",
       "title": "Execution",
       "description": "Hooks and components for real-time streaming, tool calls, approvals, messages, and artifacts.",
-      "hooks": 20,
-      "components": 31
+      "hooks": 22,
+      "components": 33
     },
     {
       "slug": "file-reference",
@@ -222,7 +229,7 @@
       "title": "Settings",
       "description": "Pre-composed settings sections for organization console embedding.",
       "hooks": 0,
-      "components": 9
+      "components": 10
     },
     {
       "slug": "sharing",
@@ -270,15 +277,15 @@
       "slug": "workflow",
       "title": "Workflow",
       "description": "Hooks and components for workflow definitions, instances, executions, and the visual builder.",
-      "hooks": 33,
-      "components": 15
+      "hooks": 37,
+      "components": 19
     },
     {
       "slug": "workspace",
       "title": "Workspace",
       "description": "Hooks and components for file entries, folder browsing, and code editing.",
       "hooks": 6,
-      "components": 6
+      "components": 7
     }
   ]
 }

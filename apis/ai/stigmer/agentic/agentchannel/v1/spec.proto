@@ -95,6 +95,31 @@ message AgentChannelSpec {
       expression: "this.kind == 53"
     }
   ];
+
+  // Reference to the ChannelApp this channel installs through.
+  //
+  // Absent means the channel uses the platform's shared Stigmer app —
+  // the zero-setup default. Set it to install through your own provider
+  // app instead: the bot carries the app's name and icon, and each app
+  // is its own bot identity, so multiple agents can serve one workspace.
+  //
+  // @internal
+  // T04 item 2. Invariants (enforced in handlers of both editions):
+  // app_ref.org must equal metadata.org (secrets never cross orgs — the
+  // agent_ref rule), and the ref is immutable while install_state ==
+  // installed (the workspace granted THAT app; switching apps requires
+  // re-install, so pending/revoked channels may rebind freely). No
+  // write-time existence or provider-match check, matching the
+  // environment_refs posture: the install flow resolves the app and
+  // fails closed on a missing or wrong-provider reference.
+  ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [
+    (ai.stigmer.commons.apiresource.reference_kind) = channel_app,
+    (buf.validate.field).cel = {
+      id: "app_ref.kind"
+      message: "app_ref must reference a resource with kind=channel_app"
+      expression: "this.slug == '' || this.kind == 48"
+    }
+  ];
 }
 
 // SlackChannelConfig selects Slack as the channel provider.

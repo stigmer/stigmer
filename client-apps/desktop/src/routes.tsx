@@ -6,6 +6,7 @@ import {
 } from "react-router-dom";
 import {
   ApiKeysSection,
+  ChannelAppsSection,
   EnvironmentsSection,
   IdentityProvidersSection,
   InvitationsSection,
@@ -238,6 +239,7 @@ const routes: RouteObject[] = [
               { path: "identity-providers", element: <IdentityProvidersSection /> },
               { path: "platform-clients", element: <PlatformClientsSection /> },
               { path: "oauth-apps", element: <OAuthAppsSection /> },
+              { path: "channel-apps", element: <ChannelAppsSection /> },
               { path: "usage", element: <UsageSection /> },
               {
                 path: "billing",

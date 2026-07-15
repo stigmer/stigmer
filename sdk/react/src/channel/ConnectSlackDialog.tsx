@@ -6,6 +6,7 @@ import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { Button } from "../button/Button.js";
+import { useChannelAppList } from "../channel-app/useChannelAppList.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { ChannelToolCredentials } from "./ChannelToolCredentials.js";
@@ -150,6 +151,12 @@ function ConnectSlackDialogBody({
   // reconnect keeps the channel's existing bindings untouched; edits go
   // through the channel card's credentials dialog).
   const [environmentRefs, setEnvironmentRefs] = useState<ResourceRef[]>([]);
+  // The serving app (create mode only): null = the platform Stigmer app;
+  // a ref = one of the org's own channel apps (BYO — the bot carries that
+  // app's name, and each app is its own bot identity). A reconnect keeps
+  // the channel's existing binding — an installed channel's app_ref is
+  // frozen server-side.
+  const [appRef, setAppRef] = useState<ResourceRef | null>(null);
   const [installed, setInstalled] = useState<AgentChannel | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
@@ -171,6 +178,7 @@ function ConnectSlackDialogBody({
           },
           enabled: true,
           slack: {},
+          ...(appRef ? { appRef } : {}),
           ...(environmentRefs.length > 0 ? { environmentRefs } : {}),
         });
         // The channel now exists even if the install below fails or is
@@ -186,7 +194,7 @@ function ConnectSlackDialogBody({
       // error null for it; everything else renders below.
       setError(slack.error ?? (err instanceof Error ? err : new Error(String(err))));
     }
-  }, [agent, agentName, channel, createChannel, environmentRefs, name, org, onChannelsChanged, slack]);
+  }, [agent, agentName, appRef, channel, createChannel, environmentRefs, name, org, onChannelsChanged, slack]);
 
   const handleCancel = useCallback(() => {
     slack.clearError();
@@ -258,6 +266,15 @@ function ConnectSlackDialogBody({
             )}
 
             {!channel && (
+              <ServingAppSection
+                org={org}
+                value={appRef}
+                onChange={setAppRef}
+                disabled={busy}
+              />
+            )}
+
+            {!channel && (
               <ToolCredentialsSection
                 agent={agent}
                 org={org}
@@ -276,7 +293,7 @@ function ConnectSlackDialogBody({
             <p className="text-xs text-muted-foreground">
               Conversations from Slack are billed to{" "}
               <span className="font-medium">{org}</span>. A workspace can
-              host one agent at a time.
+              host one agent per Slack app.
             </p>
 
             {error && (
@@ -315,6 +332,115 @@ function ConnectSlackDialogBody({
         )}
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Serving app — the platform Stigmer app vs one of the org's own apps
+// ---------------------------------------------------------------------------
+
+/**
+ * "Connect as whom" for create mode (T04 item 2): the platform's shared
+ * Stigmer app (zero setup, bot named "Stigmer") or one of the org's own
+ * channel apps (the bot carries that app's brand, and because each app is
+ * its own bot identity, multiple agents can serve one workspace).
+ *
+ * Rendered only when the org has registered channel apps — with none, the
+ * platform app is the only answer and a one-option radio group is noise.
+ * Apps are registered under Settings → Channel Apps.
+ */
+function ServingAppSection({
+  org,
+  value,
+  onChange,
+  disabled,
+}: {
+  readonly org: string;
+  readonly value: ResourceRef | null;
+  readonly onChange: (ref: ResourceRef | null) => void;
+  readonly disabled: boolean;
+}) {
+  const { channelApps } = useChannelAppList(org);
+
+  const slackApps = channelApps.filter(
+    (app) => app.spec?.providerConfig?.case === "slack",
+  );
+  if (slackApps.length === 0) {
+    return null;
+  }
+
+  return (
+    <fieldset>
+      <legend className="mb-1.5 block text-xs font-medium text-foreground">
+        Connect as
+      </legend>
+      <div role="radiogroup" className="space-y-1.5">
+        <ServingAppOption
+          id="stgm-slack-app-platform"
+          label="Stigmer app"
+          hint="Fastest — no setup, the bot is named Stigmer"
+          checked={value === null}
+          onSelect={() => onChange(null)}
+          disabled={disabled}
+        />
+        {slackApps.map((app) => {
+          const slug = app.metadata?.slug ?? "";
+          const checked = value?.slug === slug;
+          return (
+            <ServingAppOption
+              key={app.metadata?.id ?? slug}
+              id={`stgm-slack-app-${slug}`}
+              label={app.metadata?.name ?? slug}
+              hint="Your app — your bot name and icon"
+              checked={checked}
+              onSelect={() => onChange({ org, slug })}
+              disabled={disabled}
+            />
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+function ServingAppOption({
+  id,
+  label,
+  hint,
+  checked,
+  onSelect,
+  disabled,
+}: {
+  readonly id: string;
+  readonly label: string;
+  readonly hint: string;
+  readonly checked: boolean;
+  readonly onSelect: () => void;
+  readonly disabled: boolean;
+}) {
+  return (
+    <label
+      htmlFor={id}
+      className={cn(
+        "flex cursor-pointer items-start gap-2 rounded-md border px-2.5 py-1.5",
+        checked ? "border-ring bg-accent" : "border-border hover:bg-accent-hover",
+        disabled && "pointer-events-none opacity-50",
+      )}
+    >
+      <input
+        id={id}
+        type="radio"
+        name="stgm-slack-serving-app"
+        checked={checked}
+        onChange={onSelect}
+        disabled={disabled}
+        className="mt-0.5 accent-current"
+      />
+      <span className="min-w-0">
+        <span className="block text-xs font-medium text-foreground">{label}</span>
+        <span className="block text-[0.65rem] text-muted-foreground">{hint}</span>
+      </span>
+    </label>
   );
 }
 

@@ -102,6 +102,28 @@ describe("agentChannelToInput", () => {
     expect(input).not.toHaveProperty("environmentRefs");
   });
 
+  it("carries app_ref — the toggle must never unbind the serving app", () => {
+    const channel = makeChannel({
+      spec: {
+        agentRef: { org: "acme", slug: "support-agent" },
+        enabled: true,
+        providerConfig: { case: "slack", value: {} },
+        appRef: { org: "acme", slug: "acme-support-app" },
+      },
+    });
+
+    const input = agentChannelToInput(channel);
+    // Dropping app_ref on an installed channel would not just rebind to
+    // the platform app — the server FREEZES the binding while installed,
+    // so the toggle itself would be refused.
+    expect(input.appRef).toEqual({ org: "acme", slug: "acme-support-app" });
+  });
+
+  it("omits appRef entirely for platform-app channels", () => {
+    const input = agentChannelToInput(makeChannel());
+    expect(input).not.toHaveProperty("appRef");
+  });
+
   it("omits the slack marker when the provider config is absent", () => {
     const channel = makeChannel({
       spec: {
@@ -163,6 +185,7 @@ describe("useSaveAgentChannel", () => {
         agentRef: { org: "acme", slug: "support-agent" },
         enabled: true,
         providerConfig: { case: "slack", value: {} },
+        appRef: { org: "acme", slug: "acme-support-app" },
         environmentRefs: [{ org: "acme", slug: "github-credentials" }],
       },
     });
@@ -175,14 +198,16 @@ describe("useSaveAgentChannel", () => {
     });
 
     // The disable toggle must preserve the rest of the spec — a partial
-    // input would silently drop agentRef, the provider marker, or the
-    // bound credentials (apply semantics unbind whatever is omitted).
+    // input would silently drop agentRef, the provider marker, the
+    // serving-app binding, or the bound credentials (apply semantics
+    // unbind whatever is omitted).
     expect(apply).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "Support Slack",
         agentRef: { org: "acme", slug: "support-agent" },
         slack: {},
         enabled: false,
+        appRef: { org: "acme", slug: "acme-support-app" },
         environmentRefs: [{ org: "acme", slug: "github-credentials" }],
       }),
     );

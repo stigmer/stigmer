@@ -48,8 +48,23 @@ interface MockOverrides {
   checkMyPermission?: (input: unknown) => Promise<unknown>;
 }
 
+interface MakeChannelOverrides {
+  installState?: number;
+  enabled?: boolean;
+  teamName?: string;
+  id?: string;
+  name?: string;
+  /** BYO channel-app binding (spec.app_ref); absent = platform app. */
+  appRefSlug?: string;
+}
+
 function createMockStigmer(overrides: MockOverrides = {}) {
   return {
+    // The connect dialog's serving-app picker lists the org's channel
+    // apps; the panel itself never fetches them.
+    channelapp: {
+      listByOrg: vi.fn().mockResolvedValue({ entries: [] }),
+    },
     agentChannel: {
       getByAgent: vi.fn().mockResolvedValue({
         totalCount: overrides.channels?.length ?? 0,
@@ -110,19 +125,14 @@ function makeAgent(overrides: { withTools?: boolean } = {}) {
   } as never;
 }
 
-function makeChannel(overrides: {
-  installState?: number;
-  enabled?: boolean;
-  teamName?: string;
-  id?: string;
-  name?: string;
-} = {}) {
+function makeChannel(overrides: MakeChannelOverrides = {}) {
   const {
     installState = 2, // installed
     enabled = true,
     teamName,
     id = "ach_1",
     name = "Support Slack",
+    appRefSlug,
   } = overrides;
   return {
     metadata: { id, org: "acme", slug: "support-slack", name, labels: {} },
@@ -130,6 +140,7 @@ function makeChannel(overrides: {
       agentRef: { org: "acme", slug: "support-agent" },
       enabled,
       providerConfig: { case: "slack", value: {} },
+      ...(appRefSlug ? { appRef: { org: "acme", slug: appRefSlug } } : {}),
     },
     status: {
       installState,
@@ -246,6 +257,33 @@ describe("AgentChannelsPanel", () => {
       within(confirmDialog).getByRole("button", { name: "Disconnect", hidden: true }),
     );
     await waitFor(() => expect(del).toHaveBeenCalledWith("ach_1"));
+  });
+
+  it("names the serving app on each card — platform vs your own app", async () => {
+    const client = createMockStigmer({
+      channels: [
+        makeChannel({ id: "ach_1", name: "Platform Channel" }),
+        makeChannel({
+          id: "ach_2",
+          name: "Branded Channel",
+          appRefSlug: "acme-support-app",
+        }),
+      ],
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    // Two channels of one workspace are only tellable apart by their
+    // serving app — the whole point of BYO (T04 item 2).
+    await waitFor(() =>
+      expect(screen.getByText("Serving app: Stigmer")).toBeTruthy(),
+    );
+    expect(
+      screen.getByText("Serving app: acme-support-app (your app)"),
+    ).toBeTruthy();
   });
 
   it("opens the connect dialog from the empty state", async () => {

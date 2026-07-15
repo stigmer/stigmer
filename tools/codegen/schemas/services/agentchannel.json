@@ -241,6 +241,7 @@
               "agent_instance",
               "agent_share",
               "agent_channel",
+              "channel_app",
               "workflow",
               "workflow_instance",
               "workflow_execution",
@@ -502,6 +503,11 @@
           "name": "agent_channel",
           "number": 47,
           "description": "Connection binding an agent to an external messaging platform workspace."
+        },
+        {
+          "name": "channel_app",
+          "number": 48,
+          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
         },
         {
           "name": "workflow",
@@ -834,6 +840,16 @@
             "kind": "timestamp"
           },
           "description": "When the install completed.",
+          "required": false
+        },
+        {
+          "name": "ChannelAppId",
+          "jsonName": "channelAppId",
+          "protoField": "channel_app_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the ChannelApp the install went through; empty for installs\n of the platform's shared Stigmer app.\n\n @internal\n Written by the install completion path from the resolved\n spec.app_ref (sole writer, like every install fact). Discriminates\n routing and workspace uniqueness once multiple apps can serve one\n workspace: lookups key on (team_id, channel_app_id) and the\n partial-unique installed index is compound over both (decision 007\n as amended by T04 item 2). Existing platform installs predate the\n field; a missing value means the platform app — no backfill.",
           "required": false
         }
       ]

@@ -428,6 +428,9 @@ The popup is opened **synchronously** before the `initiateOAuthConnect`
 RPC to avoid browser popup blockers. A blank page is shown briefly
 while the RPC resolves, then the popup navigates to the auth URL.
 
+Popup plumbing (callback wait, COOP fallbacks, cancellation) lives in
+the shared `internal/oauthPopup.ts` machinery.
+
 **Signature**
 
 ```tsx

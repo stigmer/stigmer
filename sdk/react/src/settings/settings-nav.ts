@@ -7,6 +7,7 @@ import {
   CreditCard,
   KeyRound,
   Link,
+  MessageSquare,
   Plug,
   ShieldCheck,
   Users,
@@ -65,6 +66,11 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
       },
       { href: "/settings/environments", label: "Environments", icon: Box },
       { href: "/settings/oauth-apps", label: "OAuth Apps", icon: AppWindow },
+      {
+        href: "/settings/channel-apps",
+        label: "Channel Apps",
+        icon: MessageSquare,
+      },
     ],
   },
   {

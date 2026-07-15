@@ -1,0 +1,47 @@
+{
+  "name": "SlackChannelAppConfig",
+  "description": "SlackChannelAppConfig holds the credentials of a customer-created\n Slack app.\n\n The values come from the app's \"Basic Information\" page on\n api.slack.com. The app must be configured with Stigmer's OAuth\n redirect URL and this ChannelApp's events webhook URL — the console\n shows both, along with a ready-to-paste app manifest.\n\n @internal\n No api_app_id and no redirect/webhook URLs here: webhook attribution\n is by the per-app request path (/webhook/slack/{channelAppId}), chosen\n over envelope api_app_id sniffing because Slack's url_verification\n handshake carries no app identity and the raw body must verify before\n any parse. The redirect URI is platform-derived, mirroring OAuthApp's\n deliberate omission.",
+  "protoType": "ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfig",
+  "protoFile": "apis/ai/stigmer/agentic/channelapp/v1/spec.proto",
+  "fields": [
+    {
+      "name": "ClientId",
+      "jsonName": "clientId",
+      "protoField": "client_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "OAuth client ID of the Slack app.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "ClientSecret",
+      "jsonName": "clientSecret",
+      "protoField": "client_secret",
+      "type": {
+        "kind": "string"
+      },
+      "description": "OAuth client secret of the Slack app.\n Encrypted at rest, redacted in responses and logs.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "SigningSecret",
+      "jsonName": "signingSecret",
+      "protoField": "signing_secret",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Signing secret used to verify Slack webhook requests from this app.\n Encrypted at rest, redacted in responses and logs.",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    }
+  ]
+}

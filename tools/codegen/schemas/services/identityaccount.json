@@ -600,6 +600,11 @@
           "description": "Connection binding an agent to an external messaging platform workspace."
         },
         {
+          "name": "channel_app",
+          "number": 48,
+          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
+        },
+        {
           "name": "workflow",
           "number": 50,
           "description": "Multi-step orchestration defining how agents collaborate on a task."

@@ -275,6 +275,11 @@ function ChannelCard({
     channel.status?.providerStatus?.case === "slack"
       ? channel.status.providerStatus.value
       : null;
+  // The serving app (T04 item 2): set means the channel installs through
+  // the org's own channel app; absent means the platform Stigmer app.
+  // The ref's slug is the identifier the owner chose — enough to tell
+  // two apps' channels apart without fetching the ChannelApp.
+  const servingAppSlug = channel.spec?.appRef?.slug || null;
 
   const { save, isPending } = useSaveAgentChannel();
 
@@ -327,6 +332,11 @@ function ChannelCard({
             </div>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {describeChannel(installState, slack?.teamName, installedAt)}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground-faint">
+              {servingAppSlug
+                ? `Serving app: ${servingAppSlug} (your app)`
+                : "Serving app: Stigmer"}
             </p>
           </div>
         </div>

@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3N0YXR1cy5wcm90bxIiYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MSKqAgoSQWdlbnRDaGFubmVsU3RhdHVzElMKDWluc3RhbGxfc3RhdGUYASABKA4yPC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbEluc3RhbGxTdGF0ZRJHCgVzbGFjaxgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuU2xhY2tJbnN0YWxsU3RhdHVzSAASIgoaY3JlZGVudGlhbHNfZW52aXJvbm1lbnRfaWQYAyABKAkSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdEIRCg9wcm92aWRlcl9zdGF0dXMiuAEKElNsYWNrSW5zdGFsbFN0YXR1cxIPCgd0ZWFtX2lkGAEgASgJEhEKCXRlYW1fbmFtZRgCIAEoCRITCgtib3RfdXNlcl9pZBgDIAEoCRIWCg5ncmFudGVkX3Njb3BlcxgEIAMoCRIfChdpbnN0YWxsZXJfc2xhY2tfdXNlcl9pZBgFIAEoCRIwCgxpbnN0YWxsZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wKngKGEFnZW50Q2hhbm5lbEluc3RhbGxTdGF0ZRIrCidhZ2VudF9jaGFubmVsX2luc3RhbGxfc3RhdGVfdW5zcGVjaWZpZWQQABITCg9wZW5kaW5nX2luc3RhbGwQARINCglpbnN0YWxsZWQQAhILCgdyZXZva2VkEANiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status, file_google_protobuf_timestamp]);
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3N0YXR1cy5wcm90bxIiYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MSKqAgoSQWdlbnRDaGFubmVsU3RhdHVzElMKDWluc3RhbGxfc3RhdGUYASABKA4yPC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbEluc3RhbGxTdGF0ZRJHCgVzbGFjaxgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuU2xhY2tJbnN0YWxsU3RhdHVzSAASIgoaY3JlZGVudGlhbHNfZW52aXJvbm1lbnRfaWQYAyABKAkSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdEIRCg9wcm92aWRlcl9zdGF0dXMi0AEKElNsYWNrSW5zdGFsbFN0YXR1cxIPCgd0ZWFtX2lkGAEgASgJEhEKCXRlYW1fbmFtZRgCIAEoCRITCgtib3RfdXNlcl9pZBgDIAEoCRIWCg5ncmFudGVkX3Njb3BlcxgEIAMoCRIfChdpbnN0YWxsZXJfc2xhY2tfdXNlcl9pZBgFIAEoCRIwCgxpbnN0YWxsZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhYKDmNoYW5uZWxfYXBwX2lkGAcgASgJKngKGEFnZW50Q2hhbm5lbEluc3RhbGxTdGF0ZRIrCidhZ2VudF9jaGFubmVsX2luc3RhbGxfc3RhdGVfdW5zcGVjaWZpZWQQABITCg9wZW5kaW5nX2luc3RhbGwQARINCglpbnN0YWxsZWQQAhILCgdyZXZva2VkEANiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status, file_google_protobuf_timestamp]);
 
 /**
  * AgentChannelStatus contains system-managed state for an agent channel.
@@ -141,6 +141,23 @@ export type SlackInstallStatus = Message<"ai.stigmer.agentic.agentchannel.v1.Sla
    * @generated from field: google.protobuf.Timestamp installed_at = 6;
    */
   installedAt?: Timestamp;
+
+  /**
+   * ID of the ChannelApp the install went through; empty for installs
+   * of the platform's shared Stigmer app.
+   *
+   * @internal
+   * Written by the install completion path from the resolved
+   * spec.app_ref (sole writer, like every install fact). Discriminates
+   * routing and workspace uniqueness once multiple apps can serve one
+   * workspace: lookups key on (team_id, channel_app_id) and the
+   * partial-unique installed index is compound over both (decision 007
+   * as amended by T04 item 2). Existing platform installs predate the
+   * field; a missing value means the platform app — no backfill.
+   *
+   * @generated from field: string channel_app_id = 7;
+   */
+  channelAppId: string;
 };
 
 /**

@@ -1,0 +1,379 @@
+{
+  "resource": "channelapp",
+  "package": "ai.stigmer.agentic.channelapp.v1",
+  "goImportPath": "channelappv1",
+  "services": [
+    {
+      "name": "ChannelAppCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/channelapp/v1/command.proto",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "ChannelApp",
+          "inputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
+          "outputType": "ChannelApp",
+          "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
+          "description": "Create or update a channel app.\n\n If the resource does not exist, creates a new channel app.\n If the resource exists, updates the existing channel app. Sending\n the redaction marker for a secret field preserves the stored value.\n\n @internal\n The authorization and state-operation are determined depending on\n whether the channel app is going to be created or updated, resolved\n as part of request execution."
+        },
+        {
+          "name": "Create",
+          "inputType": "ChannelApp",
+          "inputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
+          "outputType": "ChannelApp",
+          "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
+          "description": "Create a channel app.\n\n The creator's organization owns the channel app. The creator is\n granted the owner role automatically.\n\n @internal\n Authorization: requires can_create_channel_app permission in the\n organization (admin-gated like can_create_oauth_app — the resource\n holds org-wide webhook credentials)."
+        },
+        {
+          "name": "Update",
+          "inputType": "ChannelApp",
+          "inputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
+          "outputType": "ChannelApp",
+          "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
+          "description": "Update an existing channel app.\n\n Sending the redaction marker for a secret field preserves the\n stored value; the provider arm is immutable.\n\n @internal\n Authorization: requires can_edit permission on the channel_app\n resource."
+        },
+        {
+          "name": "Delete",
+          "inputType": "ApiResourceDeleteInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
+          "outputType": "ChannelApp",
+          "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
+          "description": "Delete a channel app.\n\n Deletion is blocked while any AgentChannel references this app via\n spec.app_ref — disconnect or delete those channels first.\n\n @internal\n Authorization: requires can_delete permission on the channel_app\n resource. The referencing-channels block mirrors OAuthApp's\n referencing-mcp-servers check and fails with FAILED_PRECONDITION\n naming a referencing channel."
+        }
+      ]
+    },
+    {
+      "name": "ChannelAppQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/channelapp/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "ApiResourceId",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
+          "outputType": "ChannelApp",
+          "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
+          "description": "Get a channel app by its unique identifier.\n\n Secret fields are redacted in the response.\n\n @internal\n Authorization: requires can_view permission on the channel_app\n resource."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "ChannelApp",
+          "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApp",
+          "description": "Get a channel app by its organization-scoped reference (org/slug).\n\n Secret fields are redacted in the response.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions (the OAuthApp pattern)."
+        },
+        {
+          "name": "ListByOrg",
+          "inputType": "ListChannelAppsByOrgInput",
+          "inputFullType": "ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput",
+          "outputType": "ChannelApps",
+          "outputFullType": "ai.stigmer.agentic.channelapp.v1.ChannelApps",
+          "description": "List all channel apps belonging to an organization.\n\n Returns every ChannelApp whose metadata.org matches the input org,\n with secret fields redacted. Typically a small set, so results are\n not paginated.\n\n @internal\n Authorization: requires can_view permission on the organization\n resource."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource.\n\n When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens,\n starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\".\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form).\n\n Use empty org for same-org references (the common case).\n Use explicit org for cross-org references (e.g., marketplace resources).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "iam_policy",
+              "identity_account",
+              "api_key",
+              "invitation",
+              "identity_provider",
+              "oauth_app",
+              "platform_client",
+              "organization",
+              "platform",
+              "agent",
+              "agent_execution",
+              "session",
+              "skill",
+              "mcp_server",
+              "agent_instance",
+              "agent_share",
+              "agent_channel",
+              "channel_app",
+              "workflow",
+              "workflow_instance",
+              "workflow_execution",
+              "environment",
+              "artifact",
+              "execution_context",
+              "project"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter\n and end with a letter or digit (e.g., \"web-search\", \"code-reviewer\").\n Length: 2-63 characters.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListChannelAppsByOrgInput",
+      "description": "ListChannelAppsByOrgInput specifies the organization whose channel\n apps should be returned.",
+      "protoType": "ai.stigmer.agentic.channelapp.v1.ListChannelAppsByOrgInput",
+      "protoFile": "apis/ai/stigmer/agentic/channelapp/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to list channel apps for.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "ChannelApps",
+      "description": "ChannelApps contains a list of channel app resources.",
+      "protoType": "ai.stigmer.agentic.channelapp.v1.ChannelApps",
+      "protoFile": "apis/ai/stigmer/agentic/channelapp/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ChannelApp"
+            }
+          },
+          "description": "Channel app entries.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": "External tool server connected via the Model Context Protocol."
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": "Configured deployment of an agent with environment-specific overrides."
+        },
+        {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
+        },
+        {
+          "name": "agent_channel",
+          "number": 47,
+          "description": "Connection binding an agent to an external messaging platform workspace."
+        },
+        {
+          "name": "channel_app",
+          "number": 48,
+          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": "Configured deployment of a workflow with environment-specific bindings."
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": "User-owned runtime context for managing execution state."
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Aggregate root grouping related resources for lifecycle management."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#member tuple (all org members)\n - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n   (all members of all organizations managed by the owning org's\n   IdentityProvider)",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "All members of the owning organization can access (read) this resource.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#member\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: all org members see all executions via inheritance."
+        },
+        {
+          "name": "visibility_platform",
+          "number": 4,
+          "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "ChannelApp registers your own messaging-platform app (e.g. a Slack app) for serving agent channels.\n\n By default, agent channels install through the platform's shared\n Stigmer app. A ChannelApp lets an organization bring its own provider\n app instead: the bot carries the app's own name and icon, and because\n each provider app is a distinct bot identity, multiple agents can\n serve the same workspace side by side. One ChannelApp can be\n referenced by many AgentChannel connections via spec.app_ref.\n\n @internal\n T04 item 2 (channel strategy tasks/T03_4). Structural sibling of\n OAuthApp (kind 22) — an org-owned credential holder with encrypted\n inline secrets — but a different trust surface: OAuthApp models\n user-authorization OAuth (authorize/token/userinfo URLs); a ChannelApp\n carries webhook signing secrets and install credentials, so it is a\n separate kind in the agentic group, never a reuse. Provider variance\n is a oneof (the AgentChannelSpec.provider_config idiom); WhatsApp\n (T05) extends the oneof, touching zero kinds."
+}

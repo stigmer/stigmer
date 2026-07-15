@@ -39,6 +39,7 @@
     "activity",
     "button",
     "channel",
+    "channel-app",
     "file-reference",
     "sharing",
     "switch"

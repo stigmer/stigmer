@@ -91,6 +91,40 @@ const { channels, isLoading, refetch } = useAgentChannelList(
 ```
 
 
+### useChannelToolReadiness
+
+Channel-scoped wrapper over [`useToolCredentialsReadiness`](/docs/sdk/react/environment#usetoolcredentialsreadiness):
+checks whether a tool-using agent's credentials will work over a
+channel — i.e. whether the channel binds environments
+(`AgentChannelSpec.environment_refs`) and each one is shared with the
+organization.
+
+Channel executions receive credentials exclusively from the
+channel's own bindings, resolved through the org-shared environment
+seam — exactly the share contract, without the audience arm (channels
+have no audience concept). So a tool-using agent on a channel with no
+bindings is guaranteed to refuse every workspace message that needs a
+tool.
+
+The check runs only when serving is enabled (a paused channel serves
+no traffic), the deployment is cloud (the channel runtime is
+cloud-only), and the agent declares MCP server usages.
+
+**Signature**
+
+```tsx
+function useChannelToolReadiness(agent: Agent, enabled: boolean, environmentRefs: readonly ResourceRef[]): ToolCredentialsReadiness
+```
+
+<TypeTable
+  type={{
+    agent: { type: "Agent", description: "", required: true },
+    enabled: { type: "boolean", description: "", required: true },
+    environmentRefs: { type: "readonly ResourceRef[]", description: "", required: true },
+  }}
+/>
+
+
 ### useConnectSlackChannel
 
 Behavior hook that orchestrates the Slack channel install flow.
@@ -290,6 +324,56 @@ This is an SDK component (DD-001) — embeddable by platform builders.
 />
 
 
+### ChannelCredentialsDialog
+
+Edits an installed channel's tool-credential bindings
+(`AgentChannelSpec.environment_refs`) after the fact — the companion
+to binding at connect time in [`ConnectSlackDialog`](#connectslackdialog). Saves are
+full-input applies via [`agentChannelToInput`](#agentchanneltoinput), so the agent
+reference, provider marker, and install status all survive; an
+emptied list is an explicit unbind.
+
+Built on the native `<dialog>` element, matching the SDK's modal
+convention. Most hosts mount it via [`AgentChannelsPanel`](#agentchannelspanel)'s
+channel card action.
+
+**Props** — `ChannelCredentialsDialogProps`
+
+<TypeTable
+  type={{
+    agent: { type: "Agent", description: "The agent the channel serves (drives the readiness hint).", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
+    channel: { type: "AgentChannel", description: "The channel whose credential bindings are edited.", required: true },
+    modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — for embedding in constrained surfaces (documentation demos, visual tests). Interactive hosts keep the default." },
+    onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog requests an open-state change.", required: true },
+    onSaved: { type: "() => void", description: "Called after a successful save (hosts typically pass `refetch`)." },
+    open: { type: "boolean", description: "Whether the dialog is open.", required: true },
+  }}
+/>
+
+
+### ChannelToolCredentials
+
+The channel's credential-binding surface: explanatory copy, the
+org-shared environment picker, and the readiness hint. Shared by the
+connect dialog (binding at connect time) and the channel card's
+credentials dialog (editing later) so the two surfaces can never
+drift — the [`ShareAgentDialog`](/docs/sdk/react/sharing#shareagentdialog) ToolCredentialsSection pattern,
+applied to channels.
+
+**Props** — `ChannelToolCredentialsProps`
+
+<TypeTable
+  type={{
+    agent: { type: "Agent", description: "The agent the channel serves (drives the readiness check).", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
+    disabled: { type: "boolean", description: "Disable all interactions (e.g. while a save is in flight)." },
+    enabled: { type: "boolean", description: "Whether the channel serves traffic. A paused channel needs no readiness warning — the hint stays silent when `false`." },
+    onChange: { type: "(refs: ResourceRef[]) => void", description: "Called when the binding list changes.", required: true },
+    org: { type: "string", description: "Organization the environments are listed from (the channel's org).", required: true },
+    value: { type: "readonly ResourceRef[]", description: "Currently bound environment references, in merge order.", required: true },
+  }}
+/>
+
+
 ### ConnectSlackDialog
 
 The connect flow for a Slack channel: create the `AgentChannel`
@@ -340,7 +424,11 @@ save({ ...agentChannelToInput(channel), enabled: false });
 
 Provider config carries over structurally (the Slack config is an
 empty marker message in v1 — all concrete facts are OAuth-observed and
-live in `status`, which survives every save verbatim).
+live in `status`, which survives every save verbatim). The channel's
+bound tool credentials (`environment_refs`) and its channel-app binding
+(`app_ref`) carry over too — apply semantics would otherwise silently
+unbind them on every toggle (and an installed channel's app_ref is
+frozen server-side, so dropping it would refuse the save outright).
 
 ```tsx
 function agentChannelToInput(channel: AgentChannel): AgentChannelInput

@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.channelapp.v1;
+
+import "ai/stigmer/agentic/channelapp/v1/spec.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "ai/stigmer/commons/apiresource/status.proto";
+import "buf/validate/validate.proto";
+
+// ChannelApp registers your own messaging-platform app (e.g. a Slack app) for serving agent channels.
+//
+// By default, agent channels install through the platform's shared
+// Stigmer app. A ChannelApp lets an organization bring its own provider
+// app instead: the bot carries the app's own name and icon, and because
+// each provider app is a distinct bot identity, multiple agents can
+// serve the same workspace side by side. One ChannelApp can be
+// referenced by many AgentChannel connections via spec.app_ref.
+//
+// @internal
+// T04 item 2 (channel strategy tasks/T03_4). Structural sibling of
+// OAuthApp (kind 22) — an org-owned credential holder with encrypted
+// inline secrets — but a different trust surface: OAuthApp models
+// user-authorization OAuth (authorize/token/userinfo URLs); a ChannelApp
+// carries webhook signing secrets and install credentials, so it is a
+// separate kind in the agentic group, never a reuse. Provider variance
+// is a oneof (the AgentChannelSpec.provider_config idiom); WhatsApp
+// (T05) extends the oneof, touching zero kinds.
+message ChannelApp {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'ChannelApp'];
+
+  // Resource metadata including name, organization, and labels.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // Provider app credentials and configuration (desired state).
+  ChannelAppSpec spec = 4;
+
+  // System-managed state including audit trail.
+  ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
+}

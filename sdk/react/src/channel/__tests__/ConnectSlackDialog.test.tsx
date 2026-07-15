@@ -40,10 +40,25 @@ interface MockOverrides {
   create?: (input: AgentChannelInput) => Promise<unknown>;
   initiateInstall?: (input: unknown) => Promise<unknown>;
   completeInstall?: (input: unknown) => Promise<unknown>;
+  /** Org channel apps returned by channelapp.listByOrg (BYO picker). */
+  channelApps?: unknown[];
+}
+
+/** A registered BYO Slack app as channelapp.listByOrg returns it. */
+function makeChannelApp(slug = "acme-support-app", name = "Acme Support App") {
+  return {
+    metadata: { id: `chapp_${slug}`, org: "acme", slug, name },
+    spec: { providerConfig: { case: "slack", value: {} } },
+  };
 }
 
 function createMockStigmer(overrides: MockOverrides = {}) {
   return {
+    channelapp: {
+      listByOrg: vi.fn().mockResolvedValue({
+        entries: overrides.channelApps ?? [],
+      }),
+    },
     agentChannel: {
       create:
         overrides.create ??
@@ -149,7 +164,7 @@ describe("ConnectSlackDialog", () => {
 
     expect(screen.getByDisplayValue("Support Agent Slack")).toBeTruthy();
     expect(screen.getByText(/billed to/i)).toBeTruthy();
-    expect(screen.getByText(/one agent at a time/i)).toBeTruthy();
+    expect(screen.getByText(/one agent per Slack app/i)).toBeTruthy();
   });
 
   it("creates the channel, runs the install, and reports the workspace", async () => {
@@ -248,6 +263,99 @@ describe("ConnectSlackDialog", () => {
         }),
       ),
     );
+  });
+
+  it("hides the serving-app choice when the org has no channel apps", async () => {
+    render(
+      <Providers client={createMockStigmer()}>
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    // With no registered apps the platform app is the only answer — a
+    // one-option radio group would be noise, so the section is absent.
+    await screen.findByRole("button", { name: /connect to slack/i });
+    expect(screen.queryByRole("radiogroup")).toBeNull();
+    expect(screen.queryByText("Connect as")).toBeNull();
+  });
+
+  it("defaults to the platform app and create carries no appRef", async () => {
+    const create = vi.fn().mockResolvedValue({
+      metadata: { id: "ach_new", org: "acme" },
+    });
+    const client = createMockStigmer({
+      create,
+      channelApps: [makeChannelApp()],
+    });
+
+    render(
+      <Providers client={client}>
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    // Both options render; the platform app is pre-selected.
+    const platform = await screen.findByRole("radio", { name: /stigmer app/i });
+    expect((platform as HTMLInputElement).checked).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: /connect to slack/i }));
+
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledWith(
+      expect.not.objectContaining({ appRef: expect.anything() }),
+    );
+  });
+
+  it("connecting as your own app carries its appRef on create", async () => {
+    const create = vi.fn().mockResolvedValue({
+      metadata: { id: "ach_new", org: "acme" },
+    });
+    const client = createMockStigmer({
+      create,
+      channelApps: [makeChannelApp("acme-support-app", "Acme Support App")],
+    });
+
+    render(
+      <Providers client={client}>
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("radio", { name: /acme support app/i }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /connect to slack/i }));
+
+    await waitFor(() =>
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          appRef: { org: "acme", slug: "acme-support-app" },
+        }),
+      ),
+    );
+  });
+
+  it("offers only Slack-typed channel apps in the picker", async () => {
+    const client = createMockStigmer({
+      channelApps: [
+        makeChannelApp("acme-support-app", "Acme Support App"),
+        {
+          metadata: { id: "chapp_wa", org: "acme", slug: "acme-whatsapp", name: "Acme WhatsApp" },
+          spec: { providerConfig: { case: "whatsapp", value: {} } },
+        },
+      ],
+    });
+
+    render(
+      <Providers client={client}>
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    expect(
+      await screen.findByRole("radio", { name: /acme support app/i }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("radio", { name: /acme whatsapp/i })).toBeNull();
   });
 
   it("skips the create step when reconnecting an existing channel", async () => {

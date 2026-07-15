@@ -568,36 +568,11 @@ block for platform builders composing a consolidated session-changes surface
 file changes in the transcript (stamped edit rows + the per-turn decision
 bar) and does not consume this hook.
 
-**Source (ledger-first).** Under apply-then-review the changes live in the
-file-review ledger; [`displayFileChangeSets`](/docs/sdk/react/execution#displayfilechangesets) reads the server's live
-projection or folds the durable ledger for a terminal execution (whose
-projection is nil), and each captured change is projected onto the display
-`FileChange` via [`toDisplayFileChange`](/docs/sdk/react/execution#todisplayfilechange). A pre-capture
-(legacy) execution has no ledger, so it falls back to the tool-call-coupled
-`ToolCall.file_changes` (#186; removed in a later slice with that field). The
-two sources are mutually exclusive per execution, so there is no double count.
-
-**Traversal.** The ledger is execution-scoped and already includes sub-agent
-captures (DD-19), so the primary path is one pass per execution. The legacy
-fallback walks the same surfaces the server-side approval recompute and
-`MessageThread` walk: `status.messages[].toolCalls` **and**
-`status.subAgentExecutions[].messages[].toolCalls`. Executions are visited in
-chronological order, so each path's change list is chronological.
-
-**Net-diff (not latest-wins).** `useSessionWriteBacks`/`useSessionArtifacts`
-dedup by "latest wins" because each entry is a *snapshot* (a PR; a file's
-final bytes). A `FileChange` is a *delta* — an agent often rewrites the
-same file several times in a turn, and showing only the last edit's diff
-would misrepresent what changed. So changes to the same path are reduced to a
-single net change: `before` from the first change, `after` from the last.
-Because a WHOLE_FILE `after` is a complete file snapshot, `first.before →
-last.after` is exactly the net change. A group with one change (the common
-case) is passed through untouched; multi-edit groups synthesize a net
-`FileChange` so every consumer speaks one proto type (DD-007).
-
-Counts and unified diffs for whole-file captures stay derivable by the
-presentation layer (the runner emits 0/"" sentinels), matching the contract
-the SDK `tool-view` established.
+A thin memoizing wrapper over [`deriveExecutionFileChanges`](/docs/sdk/react/execution#deriveexecutionfilechanges) — the
+shared execution-domain core that also powers the workflow panel's Changes
+facet (`useWorkflowExecutionFileChanges`). The source (ledger-first via
+`displayFileChangeSets`), the net-diff collapse, and the file-list ordering
+are all documented on the core.
 
 **Signature**
 
@@ -607,7 +582,7 @@ function useSessionFileChanges(executions: readonly AgentExecution[]): UseSessio
 
 <TypeTable
   type={{
-    executions: { type: "readonly AgentExecution[]", description: "All executions for a session, in chronological order.   Pass both completed and active-stream executions.", required: true },
+    executions: { type: "readonly AgentExecution[]", description: "All executions for a session, in chronological order.   Pass both completed and active-stream executions. Ordering matters: the   net collapse anchors on each path's first and last change.", required: true },
   }}
 />
 
@@ -616,7 +591,7 @@ function useSessionFileChanges(executions: readonly AgentExecution[]): UseSessio
 <TypeTable
   type={{
     fileChangeCount: { type: "number", description: "Number of distinct files changed." },
-    fileChanges: { type: "readonly FileChange[]", description: "One FileChange per file touched in the session — the *net* change for that path (see the net-diff note below) — ordered for a file-list (modified, then created/renamed, then deleted; alphabetical within each group)." },
+    fileChanges: { type: "readonly FileChange[]", description: "One FileChange per file touched in the session — the *net* change for that path (see deriveExecutionFileChanges for the net-diff semantics) — ordered for a file-list (modified, then created/renamed, then deleted; alphabetical within each group)." },
     hasFileChanges: { type: "boolean", description: "`true` when at least one file was changed across all executions." },
   }}
 />
@@ -1276,17 +1251,6 @@ All visual properties flow through `--stgm-*` tokens (DD-005).
 
 
 ## Types
-
-### ARTIFACT_DOCUMENT_ENTRY_ID
-
-Virtual entry id of the artifact document FAMILY. Unlike the plan (one tab
-per session), artifacts are many: every opened artifact shares this one
-entry id and is distinguished by its [`artifactKey`](#artifactkey)-derived `path`, so
-`editorKey(ARTIFACT_DOCUMENT_ENTRY_ID, path)` yields one tab per artifact —
-the VS Code "each file is a tab" model. The NUL-namespaced virtual id can
-never alias a real workspace entry, and its distinct `"artifact"` kind can
-never collide with the plan tab's `"plan"` kind.
-
 
 ### artifactKey
 
