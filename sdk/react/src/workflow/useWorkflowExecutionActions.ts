@@ -116,8 +116,9 @@ export interface UseWorkflowExecutionActionsReturn {
   readonly approvalSubmittingToolCallIds: ReadonlySet<string>;
   /**
    * Per-gate agent-tool approval failures, keyed by `toolCallId`. Consumed by
-   * {@link WorkflowExecutionApprovalCard} to surface the failure in-card,
-   * beside the gate that failed. Cleared for a gate when it is retried.
+   * `WorkflowApprovalList` (via the shared `ApprovalCard`) to surface the
+   * failure in-card, beside the gate that failed. Cleared for a gate when it
+   * is retried.
    */
   readonly approvalErrorsByToolCallId: ReadonlyMap<string, Error>;
   /**

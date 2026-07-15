@@ -17,7 +17,7 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * Validation:
  * - execution_id: Required, must reference an existing WorkflowExecution
  * - tool_call_id: Required, must match status.pending_approval.tool_call_id
- * - action: Required, must be APPROVE, SKIP, or REJECT (not UNSPECIFIED)
+ * - action: Required, must be APPROVE, SKIP, REJECT, or APPROVE_ALL (not UNSPECIFIED)
  * - comment: Optional, stored in audit trail
  * </pre>
  *
@@ -177,9 +177,13 @@ private static final long serialVersionUID = 0L;
   private int action_ = 0;
   /**
    * <pre>
-   * Approval decision: APPROVE, SKIP, or REJECT.
+   * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
    *
    * &#64;internal
+   * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
+   * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
+   * whose run-lifetime lease is applied by the child and therefore scoped to
+   * that child agent execution (a parallel sibling's gates keep prompting).
    * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *
@@ -191,9 +195,13 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Approval decision: APPROVE, SKIP, or REJECT.
+   * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
    *
    * &#64;internal
+   * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
+   * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
+   * whose run-lifetime lease is applied by the child and therefore scoped to
+   * that child agent execution (a parallel sibling's gates keep prompting).
    * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *
@@ -450,7 +458,7 @@ private static final long serialVersionUID = 0L;
    * Validation:
    * - execution_id: Required, must reference an existing WorkflowExecution
    * - tool_call_id: Required, must match status.pending_approval.tool_call_id
-   * - action: Required, must be APPROVE, SKIP, or REJECT (not UNSPECIFIED)
+   * - action: Required, must be APPROVE, SKIP, REJECT, or APPROVE_ALL (not UNSPECIFIED)
    * - comment: Optional, stored in audit trail
    * </pre>
    *
@@ -848,9 +856,13 @@ private static final long serialVersionUID = 0L;
     private int action_ = 0;
     /**
      * <pre>
-     * Approval decision: APPROVE, SKIP, or REJECT.
+     * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
      *
      * &#64;internal
+     * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
+     * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
+     * whose run-lifetime lease is applied by the child and therefore scoped to
+     * that child agent execution (a parallel sibling's gates keep prompting).
      * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
@@ -862,9 +874,13 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Approval decision: APPROVE, SKIP, or REJECT.
+     * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
      *
      * &#64;internal
+     * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
+     * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
+     * whose run-lifetime lease is applied by the child and therefore scoped to
+     * that child agent execution (a parallel sibling's gates keep prompting).
      * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
@@ -881,9 +897,13 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Approval decision: APPROVE, SKIP, or REJECT.
+     * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
      *
      * &#64;internal
+     * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
+     * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
+     * whose run-lifetime lease is applied by the child and therefore scoped to
+     * that child agent execution (a parallel sibling's gates keep prompting).
      * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
@@ -897,9 +917,13 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Approval decision: APPROVE, SKIP, or REJECT.
+     * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
      *
      * &#64;internal
+     * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
+     * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
+     * whose run-lifetime lease is applied by the child and therefore scoped to
+     * that child agent execution (a parallel sibling's gates keep prompting).
      * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *
@@ -916,9 +940,13 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Approval decision: APPROVE, SKIP, or REJECT.
+     * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
      *
      * &#64;internal
+     * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
+     * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
+     * whose run-lifetime lease is applied by the child and therefore scoped to
+     * that child agent execution (a parallel sibling's gates keep prompting).
      * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
      * </pre>
      *

@@ -64,9 +64,13 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
 
   /**
    * <pre>
-   * Approval decision: APPROVE, SKIP, or REJECT.
+   * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
    *
    * &#64;internal
+   * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
+   * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
+   * whose run-lifetime lease is applied by the child and therefore scoped to
+   * that child agent execution (a parallel sibling's gates keep prompting).
    * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *
@@ -76,9 +80,13 @@ public interface SubmitWorkflowApprovalInputOrBuilder extends
   int getActionValue();
   /**
    * <pre>
-   * Approval decision: APPROVE, SKIP, or REJECT.
+   * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
    *
    * &#64;internal
+   * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
+   * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
+   * whose run-lifetime lease is applied by the child and therefore scoped to
+   * that child agent execution (a parallel sibling's gates keep prompting).
    * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    * </pre>
    *

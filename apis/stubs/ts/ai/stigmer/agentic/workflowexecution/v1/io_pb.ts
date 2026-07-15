@@ -401,7 +401,7 @@ export const WorkflowExecutionUpdateStatusInputSchema: GenMessage<WorkflowExecut
  * Validation:
  * - execution_id: Required, must reference an existing WorkflowExecution
  * - tool_call_id: Required, must match status.pending_approval.tool_call_id
- * - action: Required, must be APPROVE, SKIP, or REJECT (not UNSPECIFIED)
+ * - action: Required, must be APPROVE, SKIP, REJECT, or APPROVE_ALL (not UNSPECIFIED)
  * - comment: Optional, stored in audit trail
  *
  * @generated from message ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput
@@ -428,9 +428,13 @@ export type SubmitWorkflowApprovalInput = Message<"ai.stigmer.agentic.workflowex
   toolCallId: string;
 
   /**
-   * Approval decision: APPROVE, SKIP, or REJECT.
+   * Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
    *
    * @internal
+   * Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
+   * ApprovalAction the child accepts is valid here — including APPROVE_ALL,
+   * whose run-lifetime lease is applied by the child and therefore scoped to
+   * that child agent execution (a parallel sibling's gates keep prompting).
    * APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3;

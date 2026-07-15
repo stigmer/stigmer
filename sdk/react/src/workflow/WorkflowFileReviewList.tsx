@@ -58,7 +58,7 @@ export interface WorkflowFileReviewListProps {
  * A decision is forwarded to the child via `WorkflowExecution.submitFileDecision`.
  *
  * This is the file-review sibling of the workflow tool-approval surface
- * (`WorkflowExecutionApprovalCard`). Empty `pendingFileReviews` renders nothing.
+ * (`WorkflowApprovalList`). Empty `pendingFileReviews` renders nothing.
  */
 export function WorkflowFileReviewList({
   pendingFileReviews,

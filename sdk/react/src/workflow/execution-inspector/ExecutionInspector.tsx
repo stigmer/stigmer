@@ -15,7 +15,7 @@ import { ErrorTab } from "./ErrorTab.js";
 import { RetriesTab } from "./RetriesTab.js";
 import { AgentCallTab } from "./AgentCallTab.js";
 import { EventLogTab } from "./EventLogTab.js";
-import { WorkflowExecutionApprovalCard } from "../WorkflowExecutionApprovalCard.js";
+import { WorkflowApprovalList } from "../WorkflowApprovalList.js";
 import { WorkflowTaskReviewGate } from "../WorkflowTaskReviewGate.js";
 import { WorkflowTaskApprovalSummary } from "../WorkflowTaskApprovalSummary.js";
 
@@ -241,23 +241,17 @@ export const ExecutionInspector = memo(function ExecutionInspector({
             />
           )}
           {effectiveTab === "approval" && taskApprovals.length > 0 && onSubmitApproval && (
-            <div className="space-y-2">
-              {taskApprovals.map((pa) => {
-                const toolCallId = pa.approval?.toolCallId ?? "";
-                return (
-                  <WorkflowExecutionApprovalCard
-                    key={toolCallId || pa.childAgentExecutionId}
-                    prompt={pa.approval?.message || `Tool "${pa.approval?.toolName}" requires approval`}
-                    toolCallId={toolCallId}
-                    approvers={[]}
-                    timeoutSeconds={0}
-                    onSubmitApproval={onSubmitApproval}
-                    isSubmitting={approvalSubmittingToolCallIds?.has(toolCallId) ?? false}
-                    error={approvalErrorsByToolCallId?.get(toolCallId) ?? null}
-                  />
-                );
-              })}
-            </div>
+            // The shared session ApprovalCard (via the workflow list) — the
+            // same 4-action card this gate shows in the transcript and the
+            // bottom Approvals tab. No nav link here: these gates are already
+            // scoped to the selected task's child, and the Agent tab owns
+            // navigation.
+            <WorkflowApprovalList
+              pendingApprovals={taskApprovals}
+              onSubmitApproval={onSubmitApproval}
+              submittingToolCallIds={approvalSubmittingToolCallIds}
+              approvalErrors={approvalErrorsByToolCallId}
+            />
           )}
           {effectiveTab === "approval" && detail.approval && (
             detail.status === "waiting_approval" && onSubmitTaskApproval ? (

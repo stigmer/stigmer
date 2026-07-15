@@ -230,7 +230,7 @@ message WorkflowExecutionUpdateStatusInput {
 // Validation:
 // - execution_id: Required, must reference an existing WorkflowExecution
 // - tool_call_id: Required, must match status.pending_approval.tool_call_id
-// - action: Required, must be APPROVE, SKIP, or REJECT (not UNSPECIFIED)
+// - action: Required, must be APPROVE, SKIP, REJECT, or APPROVE_ALL (not UNSPECIFIED)
 // - comment: Optional, stored in audit trail
 message SubmitWorkflowApprovalInput {
   // ID of the workflow execution.
@@ -245,9 +245,13 @@ message SubmitWorkflowApprovalInput {
   // Must match status.pending_approval.tool_call_id exactly.
   string tool_call_id = 2 [(buf.validate.field).string.min_len = 1];
 
-  // Approval decision: APPROVE, SKIP, or REJECT.
+  // Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.
   //
   // @internal
+  // Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every
+  // ApprovalAction the child accepts is valid here — including APPROVE_ALL,
+  // whose run-lifetime lease is applied by the child and therefore scoped to
+  // that child agent execution (a parallel sibling's gates keep prompting).
   // APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.
   ai.stigmer.agentic.agentexecution.v1.ApprovalAction action = 3 [(buf.validate.field).enum = {
     defined_only: true

@@ -257,9 +257,10 @@ export {
 } from "./deriveWorkflowUsageItems.js";
 
 export {
-  WorkflowExecutionApprovalCard,
-  type WorkflowExecutionApprovalCardProps,
-} from "./WorkflowExecutionApprovalCard.js";
+  WorkflowApprovalList,
+  type WorkflowApprovalListProps,
+  type WorkflowApprovalSubmit,
+} from "./WorkflowApprovalList.js";
 export {
   WorkflowFileReviewList,
   type WorkflowFileReviewListProps,

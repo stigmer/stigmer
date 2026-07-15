@@ -1053,7 +1053,7 @@ function useWorkflowExecutionActions(executionId: string | null, options?: UseWo
 
 <TypeTable
   type={{
-    approvalErrorsByToolCallId: { type: "ReadonlyMap<string, Error>", description: "Per-gate agent-tool approval failures, keyed by `toolCallId`. Consumed by WorkflowExecutionApprovalCard to surface the failure in-card, beside the gate that failed. Cleared for a gate when it is retried." },
+    approvalErrorsByToolCallId: { type: "ReadonlyMap<string, Error>", description: "Per-gate agent-tool approval failures, keyed by `toolCallId`. Consumed by `WorkflowApprovalList` (via the shared `ApprovalCard`) to surface the failure in-card, beside the gate that failed. Cleared for a gate when it is retried." },
     approvalSubmittingToolCallIds: { type: "ReadonlySet<string>", description: "Tool-call ids whose agent-tool approval is currently being submitted, keyed exactly like approvalErrorsByToolCallId. A workflow can hold many concurrent gates, so deciding one must not spin or disable the others." },
     cancel: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Cancel a running execution gracefully." },
     clearError: { type: "() => void", description: "Reset the lifecycle error to `null`." },
@@ -1671,6 +1671,41 @@ render this only in the private case.
 />
 
 
+### WorkflowApprovalList
+
+Renders the child agent tool approvals surfaced on a parent
+WorkflowExecution — the tool-approval sibling of [`WorkflowFileReviewList`](#workflowfilereviewlist),
+reusing the session's canonical [`ApprovalCard`](/docs/sdk/react/execution#approvalcard) so a gate reads
+identically everywhere it appears (workflow bottom tab, inspector, in-place
+transcript, agent session): same 4-action decision model (Approve / Skip /
+Reject / Approve-all-of-class), same preview, same gate provenance.
+
+Unlike the file sibling, this list does NOT stream the referenced children:
+`WorkflowPendingApproval.approval` already carries the child's full
+projected `PendingApproval` (file-review content is reference-only on the
+parent and must be dereferenced; approvals are copied whole). Same role,
+simpler body.
+
+Decisions route through the WORKFLOW-level RPC (the supplied
+`onSubmitApproval`, normally `useWorkflowExecutionActions().submitApproval`)
+— never the child's own `agentExecution.*` path, whose authorization checks
+the runner-spawned child rather than the workflow execution the operator
+owns. Empty `pendingApprovals` renders nothing.
+
+**Props** — `WorkflowApprovalListProps`
+
+<TypeTable
+  type={{
+    approvalErrors: { type: "ReadonlyMap<string, Error>", description: "Per-gate failures, keyed by `toolCallId` (pass `approvalErrorsByToolCallId` straight through) — surfaced in-card beside the gate that failed." },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Optional deep-link to open the gate's child agent execution in its own view. When provided, each gate renders a \"View agent execution\" affordance — with parallel children, it names which child a gate belongs to. Routing is the host's responsibility (DD-004)." },
+    onSubmitApproval: { type: "WorkflowApprovalSubmit", description: "Forwards a decision to the child (see WorkflowApprovalSubmit).", required: true, typeDescriptionLink: "#workflowapprovalsubmit" },
+    pendingApprovals: { type: "readonly WorkflowPendingApproval[]", description: "The parent workflow's surfaced tool-approval gates (`status.pending_approvals`) — each pairs a child's full `PendingApproval` with the child agent execution to route the decision to.", required: true },
+    submittingToolCallIds: { type: "ReadonlySet<string>", description: "Tool-call ids whose decision is in flight (pass `approvalSubmittingToolCallIds` straight through). Keyed per gate so deciding one never spins another." },
+  }}
+/>
+
+
 ### WorkflowArchitectDialog
 
 Three-phase dialog for generating a workflow via the Workflow Architect agent.
@@ -1855,7 +1890,7 @@ to render the actual diff — the heavy content stays single-sourced on the chil
 A decision is forwarded to the child via `WorkflowExecution.submitFileDecision`.
 
 This is the file-review sibling of the workflow tool-approval surface
-(`WorkflowExecutionApprovalCard`). Empty `pendingFileReviews` renders nothing.
+(`WorkflowApprovalList`). Empty `pendingFileReviews` renders nothing.
 
 **Props** — `WorkflowFileReviewListProps`
 
@@ -3593,6 +3628,14 @@ Approvals tab renders. One instance, two surfaces: a spinner or failure on
 a gate is identical wherever that gate is shown.
 
 
+### WorkflowApprovalSubmit
+
+Submit handler for a workflow-level tool-approval decision, matching
+`useWorkflowExecutionActions().submitApproval`. The tool-call id is bound per
+card so the shared [`ApprovalCard`](/docs/sdk/react/execution#approvalcard) only needs the card-level
+`(action, comment)`.
+
+
 ### WorkflowArtifactEntry
 
 One workflow artifact paired with its presentational row view-model.
@@ -3746,33 +3789,6 @@ Props for [`WorkflowEditorView`](#workfloweditorview).
     onSaveError: { type: "(error: Error) => void", description: "Called when a save fails." },
     onSaveSuccess: { type: "() => void", description: "Called after a successful save." },
     org: { type: "string", description: "Organization slug for the save path.", required: true },
-  }}
-/>
-
-
-### WorkflowExecutionApprovalCard
-
-Inline approval card rendered within the execution timeline when
-a `human_input` task or agent tool approval gate is active.
-
-Provides approve and reject buttons with an optional comment field.
-Keyboard-navigable and accessible.
-
-
-### WorkflowExecutionApprovalCardProps
-
-Props for [`WorkflowExecutionApprovalCard`](#workflowexecutionapprovalcard).
-
-<TypeTable
-  type={{
-    approvers: { type: "readonly string[]", description: "List of users/roles that can approve.", required: true },
-    className: { type: "string", description: "Additional CSS class names." },
-    error: { type: "Error | null", description: "This gate's last failed decision, or `null`. Surfaced in-card beside the actions (via the shared InCardDecisionError) — supply useWorkflowExecutionActions's `approvalErrorsByToolCallId` for this `toolCallId`." },
-    isSubmitting: { type: "boolean", description: "`true` while this gate's submission is in flight.", required: true },
-    onSubmitApproval: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => Promise<unknown>", description: "Callback to submit the approval decision.", required: true },
-    prompt: { type: "string", description: "The prompt message explaining what needs approval.", required: true },
-    timeoutSeconds: { type: "number", description: "Timeout in seconds (0 = no timeout).", required: true },
-    toolCallId: { type: "string", description: "Tool call ID for the approval request.", required: true },
   }}
 />
 

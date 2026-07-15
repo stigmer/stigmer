@@ -46,11 +46,18 @@ const (
 //
 // ## Approval Actions
 //
+// The action is forwarded verbatim to the child's AgentExecution.SubmitApproval,
+// so every ApprovalAction the child accepts is valid here:
+//
 //   - APPROVE: Tool executes with the provided arguments
 //   - SKIP: Tool execution is skipped, agent continues with skip message
 //   - REJECT: Tool is denied and the child agent continues (the objection is fed
 //     back to the model); REJECT denies a single tool, it does not fail the child
 //     agent or the workflow task
+//   - APPROVE_ALL: Approves this tool call AND grants a run-lifetime lease
+//     auto-approving the same class of tool for the rest of the CHILD agent
+//     execution (the lease is applied by the child, so a parallel sibling's
+//     gates keep prompting)
 //
 // ## Error Cases
 //

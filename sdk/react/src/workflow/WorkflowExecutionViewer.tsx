@@ -20,7 +20,7 @@ import { WorkflowExecutionGraph } from "./WorkflowExecutionGraph.js";
 import type { DerivedCostSummary, DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
 import { ExecutionComparisonPicker } from "./execution-comparison/ExecutionComparisonPicker.js";
 import { ExecutionComparisonView } from "./execution-comparison/ExecutionComparisonView.js";
-import { WorkflowExecutionApprovalCard } from "./WorkflowExecutionApprovalCard.js";
+import { WorkflowApprovalList } from "./WorkflowApprovalList.js";
 import { WorkflowFileReviewList, type WorkflowFileDecisionSubmit } from "./WorkflowFileReviewList.js";
 import type { WorkflowPendingApproval, WorkflowPendingFileReview } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -963,22 +963,19 @@ function ExecutionBottomPanel({
           )}
           {activeTab === "approvals" && (
             <div className="h-full overflow-y-auto px-4 py-3">
+              {/* The two HITL siblings, stacked: tool approvals then file
+                  reviews — each list renders the same shared card its gates
+                  show everywhere else (transcript, agent session). */}
               <div className="space-y-3">
-                {pendingApprovals && onSubmitApproval && pendingApprovals.map((pa) => {
-                  const toolCallId = pa.approval?.toolCallId ?? "";
-                  return (
-                    <WorkflowExecutionApprovalCard
-                      key={toolCallId || pa.childAgentExecutionId}
-                      prompt={pa.approval?.message || `Tool "${pa.approval?.toolName}" requires approval`}
-                      toolCallId={toolCallId}
-                      approvers={[]}
-                      timeoutSeconds={0}
-                      onSubmitApproval={onSubmitApproval}
-                      isSubmitting={approvalSubmittingToolCallIds.has(toolCallId)}
-                      error={approvalErrorsByToolCallId.get(toolCallId) ?? null}
-                    />
-                  );
-                })}
+                {pendingApprovals && onSubmitApproval && (
+                  <WorkflowApprovalList
+                    pendingApprovals={pendingApprovals}
+                    onSubmitApproval={onSubmitApproval}
+                    submittingToolCallIds={approvalSubmittingToolCallIds}
+                    approvalErrors={approvalErrorsByToolCallId}
+                    onNavigateToAgentExecution={onNavigateToAgentExecution}
+                  />
+                )}
                 {pendingFileReviews && pendingFileReviews.length > 0 && (
                   <WorkflowFileReviewList
                     pendingFileReviews={pendingFileReviews}
