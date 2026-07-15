@@ -72,7 +72,7 @@ export interface SharedAgentExecutionFields {
    * the Environment Flow instead (store secrets in an Environment
    * resource and bind them via an AgentInstance).
    *
-   * @see {@link https://docs.stigmer.ai/product/how-to-provide-secrets | How to Provide Secrets}
+   * @see {@link https://stigmer.ai/docs/product/how-to-provide-secrets | How to Provide Secrets}
    */
   readonly runtimeEnv?: Record<string, EnvVarInput>;
   /**

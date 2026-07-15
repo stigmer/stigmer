@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import {
+  AgentChannelsPanel,
   AgentDetailView,
   CreateAgentInstanceDialog,
   useAgent,
@@ -13,6 +15,7 @@ import {
   ConfirmDialog,
   useBreadcrumbOverride,
   useActiveOrgSlug,
+  type AdditionalTab,
   type DetailAction,
 } from "@stigmer/react";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
@@ -62,6 +65,40 @@ export default function AgentDetailPage() {
 
   const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
   const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
+
+  // Controlled tab state — the WorkflowDetailPage Editor-tab precedent,
+  // wired identically to the web app (DD-016 parity).
+  const [activeTab, setActiveTab] = useState<string>("overview");
+
+  // Tauri's Wry webview blocks window.open(), so the OAuth popup flow
+  // cannot run in-app (the same posture as MCP OAuth, which is web-only).
+  // Connect hands off to the web console in the system browser, landing
+  // on this agent's Channels tab via the ?tab= deep link.
+  const handleConnectExternal = useCallback(() => {
+    void invoke("open_auth_in_browser", {
+      authUrl: `${CONSOLE_URL}/library/agents/${org}/${slug}?tab=channels`,
+    });
+  }, [org, slug]);
+
+  // The Channels tab needs the loaded Agent; until then the tab is absent.
+  const additionalTabs: AdditionalTab[] = useMemo(
+    () =>
+      agent
+        ? [
+            {
+              id: "channels",
+              label: "Channels",
+              content: (
+                <AgentChannelsPanel
+                  agent={agent}
+                  onConnectExternal={handleConnectExternal}
+                />
+              ),
+            },
+          ]
+        : [],
+    [agent, handleConnectExternal],
+  );
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -215,6 +252,9 @@ export default function AgentDetailPage() {
         actions={actions}
         buildShareUrl={buildShareUrl}
         viewerOrg={viewerOrg}
+        additionalTabs={additionalTabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
         onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}
         onInstanceStartSessionClick={handleInstanceStartSession}
         onInstanceDeleteClick={handleInstanceDelete}

@@ -135,6 +135,11 @@ export {
   type McpAccessInput,
 } from "./gen/agent.js";
 export {
+  AgentChannelClient,
+  type AgentChannelInput,
+  type SlackChannelConfigInput,
+} from "./gen/agentchannel.js";
+export {
   AgentExecutionClient,
   type AgentExecutionInput,
   type ExecutionConfigInput,

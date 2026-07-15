@@ -763,6 +763,7 @@ func TestTsClientFieldName(t *testing.T) {
 		input string
 		want  string
 	}{
+		{"agentchannel", "agentChannel"},
 		{"agentexecution", "agentExecution"},
 		{"agentinstance", "agentInstance"},
 		{"agentshare", "agentShare"},
@@ -931,6 +932,7 @@ func TestPyClientFieldName(t *testing.T) {
 		want  string
 	}{
 		{"agent", "agents"},
+		{"agentchannel", "agent_channels"},
 		{"agentexecution", "agent_executions"},
 		{"agentshare", "agent_shares"},
 		{"mcpserver", "mcp_servers"},

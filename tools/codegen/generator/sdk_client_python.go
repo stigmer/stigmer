@@ -102,6 +102,7 @@ func pyTrackMethodTypeImport(typeName, fullType string, cfg sdkResourceConfig, s
 func pyClientFieldName(resource string) string {
 	m := map[string]string{
 		"agent":             "agents",
+		"agentchannel":      "agent_channels",
 		"agentexecution":    "agent_executions",
 		"agentinstance":     "agent_instances",
 		"agentshare":        "agent_shares",

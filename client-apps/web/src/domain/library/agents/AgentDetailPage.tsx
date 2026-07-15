@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
+  AgentChannelsPanel,
   AgentDetailView,
   CreateAgentInstanceDialog,
   useAgent,
@@ -15,6 +16,7 @@ import {
   ConfirmDialog,
   useBreadcrumbOverride,
   useActiveOrgSlug,
+  type AdditionalTab,
   type DetailAction,
 } from "@stigmer/react";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
@@ -22,6 +24,21 @@ import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import { useStaticRouteParam } from "@/domain/_shared/hooks/useStaticRouteParam";
 import { getAgentSessionUrl } from "@/domain/session/draft-session";
 import { getAppBaseUrl } from "@/config/env";
+
+/**
+ * Read the `?tab=` deep-link target once, at mount.
+ *
+ * Lets external surfaces (the desktop app's Connect action, docs links)
+ * land directly on a specific tab — e.g. `?tab=channels`. Read from
+ * `window.location` instead of `useSearchParams()` because tab state is
+ * deliberately local after landing (the workflow Editor-tab precedent) and
+ * the static-export prerender has no URL to read (the
+ * `useStaticRouteParam` idiom).
+ */
+function initialTabFromUrl(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  return new URLSearchParams(window.location.search).get("tab") ?? undefined;
+}
 
 interface AgentDetailPageInnerProps {
   readonly org: string;
@@ -49,6 +66,29 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
 
   const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
   const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
+
+  // Controlled tab state (the WorkflowDetailPage Editor-tab precedent),
+  // seeded from the ?tab= deep link so cross-surface handoffs land on the
+  // right tab.
+  const [activeTab, setActiveTab] = useState<string>(
+    () => initialTabFromUrl() ?? "overview",
+  );
+
+  // The Channels tab needs the loaded Agent; until then the tab is absent
+  // and a ?tab=channels deep link shows Overview, upgrading on load.
+  const additionalTabs: AdditionalTab[] = useMemo(
+    () =>
+      agent
+        ? [
+            {
+              id: "channels",
+              label: "Channels",
+              content: <AgentChannelsPanel agent={agent} />,
+            },
+          ]
+        : [],
+    [agent],
+  );
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -191,6 +231,9 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         actions={actions}
         buildShareUrl={buildShareUrl}
         viewerOrg={viewerOrg}
+        additionalTabs={additionalTabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
         onCreateInstanceClick={() => setShowCreateInstanceDialog(true)}
         onInstanceStartSessionClick={handleInstanceStartSession}
         onInstanceDeleteClick={handleInstanceDelete}

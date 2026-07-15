@@ -3,6 +3,7 @@ package harness
 import (
 	activityv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/activity/v1"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	agentchannelv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentchannel/v1"
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	agentsharev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1"
@@ -50,6 +51,8 @@ type Clients struct {
 	AgentExecutionQuery   agentexecv1.AgentExecutionQueryControllerClient
 	AgentShareCommand     agentsharev1.AgentShareCommandControllerClient
 	AgentShareQuery       agentsharev1.AgentShareQueryControllerClient
+	AgentChannelCommand   agentchannelv1.AgentChannelCommandControllerClient
+	AgentChannelQuery     agentchannelv1.AgentChannelQueryControllerClient
 
 	// Environment services
 	EnvironmentCommand environmentv1.EnvironmentCommandControllerClient
@@ -131,6 +134,8 @@ func NewClients(conn grpc.ClientConnInterface) *Clients {
 		AgentExecutionQuery:   agentexecv1.NewAgentExecutionQueryControllerClient(conn),
 		AgentShareCommand:     agentsharev1.NewAgentShareCommandControllerClient(conn),
 		AgentShareQuery:       agentsharev1.NewAgentShareQueryControllerClient(conn),
+		AgentChannelCommand:   agentchannelv1.NewAgentChannelCommandControllerClient(conn),
+		AgentChannelQuery:     agentchannelv1.NewAgentChannelQueryControllerClient(conn),
 
 		EnvironmentCommand: environmentv1.NewEnvironmentCommandControllerClient(conn),
 		EnvironmentQuery:   environmentv1.NewEnvironmentQueryControllerClient(conn),

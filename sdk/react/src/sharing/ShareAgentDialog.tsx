@@ -47,7 +47,7 @@ const SHARE_TABS: readonly TabItem[] = [
 ];
 
 const PLATFORM_CLIENT_DOCS_URL =
-  "https://docs.stigmer.ai/guides/authentication/platform-client/overview";
+  "https://stigmer.ai/docs/guides/authentication/platform-client/overview";
 
 /** Props for {@link ShareAgentDialog}. */
 export interface ShareAgentDialogProps {

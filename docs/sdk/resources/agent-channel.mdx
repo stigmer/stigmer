@@ -31,7 +31,7 @@ spec:
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agentChannel = await stigmer.agentchannel.get("ach_01j5q3k7m8r2s4tnz2hfp0q0c3");
+const agentChannel = await stigmer.agentChannel.get("ach_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 <Tab value="Go">
@@ -41,12 +41,12 @@ agentChannel, err := client.AgentChannel.Get(ctx, "ach_01j5q3k7m8r2s4tnz2hfp0q0c
 </Tab>
 <Tab value="Python">
 ```python
-agent_channel = client.agentchannels.get("ach_01j5q3k7m8r2s4tnz2hfp0q0c3")
+agent_channel = client.agent_channels.get("ach_01j5q3k7m8r2s4tnz2hfp0q0c3")
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentChannel agentChannel = client.agentchannels().get("ach_01j5q3k7m8r2s4tnz2hfp0q0c3");
+AgentChannel agentChannel = client.agentChannels().get("ach_01j5q3k7m8r2s4tnz2hfp0q0c3");
 ```
 </Tab>
 </SDKTabs>
@@ -73,7 +73,7 @@ Get a single agent channel by ID.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agentChannel = await stigmer.agentchannel.get(id);
+const agentChannel = await stigmer.agentChannel.get(id);
 ```
 </Tab>
 <Tab value="Go">
@@ -83,12 +83,12 @@ agentChannel, err := client.AgentChannel.Get(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-agent_channel = client.agentchannels.get(id)
+agent_channel = client.agent_channels.get(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentChannel agentChannel = client.agentchannels().get(id);
+AgentChannel agentChannel = client.agentChannels().get(id);
 ```
 </Tab>
 </SDKTabs>
@@ -110,7 +110,7 @@ This is how the agent's integrations surface and CLI resolve an agent's existing
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const result = await stigmer.agentchannel.getByAgent({
+const result = await stigmer.agentChannel.getByAgent({
   agentId: "...",
   pageInfo: {},
   org: "...",
@@ -128,7 +128,7 @@ result, err := client.AgentChannel.GetByAgent(ctx, &stigmer.GetAgentChannelsByAg
 </Tab>
 <Tab value="Python">
 ```python
-result = client.agentchannels.get_by_agent(GetAgentChannelsByAgentRequest(
+result = client.agent_channels.get_by_agent(GetAgentChannelsByAgentRequest(
     agent_id="...",
     page_info=None,
     org="...",
@@ -137,7 +137,7 @@ result = client.agentchannels.get_by_agent(GetAgentChannelsByAgentRequest(
 </Tab>
 <Tab value="Java">
 ```java
-AgentChannelList result = client.agentchannels().getByAgent(GetAgentChannelsByAgentRequest.builder()
+AgentChannelList result = client.agentChannels().getByAgent(GetAgentChannelsByAgentRequest.builder()
     .agentId("...")
     .pageInfo(null)
     .org("...")
@@ -157,7 +157,7 @@ Get an agent channel by its organization-scoped reference (org/slug).
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agentChannel = await stigmer.agentchannel.getByReference({
+const agentChannel = await stigmer.agentChannel.getByReference({
   org: "...",
   kind: "...",
   slug: "...",
@@ -177,7 +177,7 @@ agentChannel, err := client.AgentChannel.GetByReference(ctx, &stigmer.ApiResourc
 </Tab>
 <Tab value="Python">
 ```python
-agent_channel = client.agentchannels.get_by_reference(ApiResourceReference(
+agent_channel = client.agent_channels.get_by_reference(ApiResourceReference(
     org="...",
     kind="...",
     slug="...",
@@ -187,7 +187,7 @@ agent_channel = client.agentchannels.get_by_reference(ApiResourceReference(
 </Tab>
 <Tab value="Java">
 ```java
-AgentChannel agentChannel = client.agentchannels().getByReference(ApiResourceReference.builder()
+AgentChannel agentChannel = client.agentChannels().getByReference(ApiResourceReference.builder()
     .org("...")
     .kind("...")
     .slug("...")
@@ -208,7 +208,7 @@ List agent channels with optional label filtering.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const result = await stigmer.agentchannel.list({
+const result = await stigmer.agentChannel.list({
   org: "...",
   labels: {},
   pageInfo: {},
@@ -226,7 +226,7 @@ result, err := client.AgentChannel.List(ctx, &stigmer.ListAgentChannelsRequest{
 </Tab>
 <Tab value="Python">
 ```python
-result = client.agentchannels.list(ListAgentChannelsRequest(
+result = client.agent_channels.list(ListAgentChannelsRequest(
     org="...",
     labels={},
     page_info=None,
@@ -235,7 +235,7 @@ result = client.agentchannels.list(ListAgentChannelsRequest(
 </Tab>
 <Tab value="Java">
 ```java
-AgentChannelList result = client.agentchannels().list(ListAgentChannelsRequest.builder()
+AgentChannelList result = client.agentChannels().list(ListAgentChannelsRequest.builder()
     .org("...")
     .labels(Map.of())
     .pageInfo(null)
@@ -255,7 +255,7 @@ Create or update an agent channel.
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agentChannel = await stigmer.agentchannel.apply({
+const agentChannel = await stigmer.agentChannel.apply({
   name: "my-agent-channel",
   org: "acme",
   slug: "...",
@@ -281,7 +281,7 @@ agentChannel, err := client.AgentChannel.Apply(ctx, &stigmer.AgentChannelInput{
 </Tab>
 <Tab value="Python">
 ```python
-agent_channel = client.agentchannels.apply(AgentChannelInput(
+agent_channel = client.agent_channels.apply(AgentChannelInput(
     name="my-agent-channel",
     org="acme",
     slug="...",
@@ -294,7 +294,7 @@ agent_channel = client.agentchannels.apply(AgentChannelInput(
 </Tab>
 <Tab value="Java">
 ```java
-AgentChannel agentChannel = client.agentchannels().apply(AgentChannelInput.builder()
+AgentChannel agentChannel = client.agentChannels().apply(AgentChannelInput.builder()
     .name("my-agent-channel")
     .org("acme")
     .slug("...")
@@ -320,7 +320,7 @@ Connecting an agent to a channel is a billing-affecting decision: conversations 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agentChannel = await stigmer.agentchannel.create({
+const agentChannel = await stigmer.agentChannel.create({
   name: "my-agent-channel",
   org: "acme",
   slug: "...",
@@ -346,7 +346,7 @@ agentChannel, err := client.AgentChannel.Create(ctx, &stigmer.AgentChannelInput{
 </Tab>
 <Tab value="Python">
 ```python
-agent_channel = client.agentchannels.create(AgentChannelInput(
+agent_channel = client.agent_channels.create(AgentChannelInput(
     name="my-agent-channel",
     org="acme",
     slug="...",
@@ -359,7 +359,7 @@ agent_channel = client.agentchannels.create(AgentChannelInput(
 </Tab>
 <Tab value="Java">
 ```java
-AgentChannel agentChannel = client.agentchannels().create(AgentChannelInput.builder()
+AgentChannel agentChannel = client.agentChannels().create(AgentChannelInput.builder()
     .name("my-agent-channel")
     .org("acme")
     .slug("...")
@@ -385,7 +385,7 @@ Replaces the spec wholesale. The slug, referenced agent, and provider arm are im
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agentChannel = await stigmer.agentchannel.update({
+const agentChannel = await stigmer.agentChannel.update({
   name: "my-agent-channel",
   org: "acme",
   slug: "...",
@@ -411,7 +411,7 @@ agentChannel, err := client.AgentChannel.Update(ctx, &stigmer.AgentChannelInput{
 </Tab>
 <Tab value="Python">
 ```python
-agent_channel = client.agentchannels.update(AgentChannelInput(
+agent_channel = client.agent_channels.update(AgentChannelInput(
     name="my-agent-channel",
     org="acme",
     slug="...",
@@ -424,7 +424,7 @@ agent_channel = client.agentchannels.update(AgentChannelInput(
 </Tab>
 <Tab value="Java">
 ```java
-AgentChannel agentChannel = client.agentchannels().update(AgentChannelInput.builder()
+AgentChannel agentChannel = client.agentChannels().update(AgentChannelInput.builder()
     .name("my-agent-channel")
     .org("acme")
     .slug("...")
@@ -450,7 +450,7 @@ Full teardown of the connection: inbound events for the workspace stop resolving
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agentChannel = await stigmer.agentchannel.delete(id);
+const agentChannel = await stigmer.agentChannel.delete(id);
 ```
 </Tab>
 <Tab value="Go">
@@ -460,12 +460,12 @@ agentChannel, err := client.AgentChannel.Delete(ctx, id)
 </Tab>
 <Tab value="Python">
 ```python
-agent_channel = client.agentchannels.delete(id)
+agent_channel = client.agent_channels.delete(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AgentChannel agentChannel = client.agentchannels().delete(id);
+AgentChannel agentChannel = client.agentChannels().delete(id);
 ```
 </Tab>
 </SDKTabs>
@@ -487,7 +487,7 @@ Called by the console after the provider's consent redirect, with the state from
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const agentChannel = await stigmer.agentchannel.completeInstall({
+const agentChannel = await stigmer.agentChannel.completeInstall({
   resourceId: "...",
   state: "...",
   code: "...",
@@ -505,7 +505,7 @@ agentChannel, err := client.AgentChannel.CompleteInstall(ctx, &stigmer.CompleteC
 </Tab>
 <Tab value="Python">
 ```python
-agent_channel = client.agentchannels.complete_install(CompleteChannelInstallInput(
+agent_channel = client.agent_channels.complete_install(CompleteChannelInstallInput(
     resource_id="...",
     state="...",
     code="...",
@@ -514,7 +514,7 @@ agent_channel = client.agentchannels.complete_install(CompleteChannelInstallInpu
 </Tab>
 <Tab value="Java">
 ```java
-AgentChannel agentChannel = client.agentchannels().completeInstall(CompleteChannelInstallInput.builder()
+AgentChannel agentChannel = client.agentChannels().completeInstall(CompleteChannelInstallInput.builder()
     .resourceId("...")
     .state("...")
     .code("...")
@@ -536,7 +536,7 @@ Returns the provider authorization URL to redirect the installing user to, plus 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const initiateChannelInstallOutput = await stigmer.agentchannel.initiateInstall({
+const initiateChannelInstallOutput = await stigmer.agentChannel.initiateInstall({
   resourceId: "...",
 });
 ```
@@ -550,14 +550,14 @@ initiateChannelInstallOutput, err := client.AgentChannel.InitiateInstall(ctx, &s
 </Tab>
 <Tab value="Python">
 ```python
-initiate_channel_install_output = client.agentchannels.initiate_install(InitiateChannelInstallInput(
+initiate_channel_install_output = client.agent_channels.initiate_install(InitiateChannelInstallInput(
     resource_id="...",
 ))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-InitiateChannelInstallOutput initiateChannelInstallOutput = client.agentchannels().initiateInstall(InitiateChannelInstallInput.builder()
+InitiateChannelInstallOutput initiateChannelInstallOutput = client.agentChannels().initiateInstall(InitiateChannelInstallInput.builder()
     .resourceId("...")
     .build());
 ```

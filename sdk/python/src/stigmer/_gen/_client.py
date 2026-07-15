@@ -34,7 +34,7 @@ class GeneratedClient:
 
     def __init__(self, channel: grpc.Channel) -> None:
         self.agents = AgentClient(channel)
-        self.agentchannels = AgentChannelClient(channel)
+        self.agent_channels = AgentChannelClient(channel)
         self.agent_executions = AgentExecutionClient(channel)
         self.agent_instances = AgentInstanceClient(channel)
         self.agent_shares = AgentShareClient(channel)

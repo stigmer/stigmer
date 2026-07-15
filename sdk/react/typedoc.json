@@ -4,13 +4,13 @@
   "json": "typedoc-output.json",
   "externalSymbolLinkMappings": {
     "@stigmer/protos": {
-      "*": "https://docs.stigmer.ai/api-reference"
+      "*": "https://stigmer.ai/docs/api-reference"
     },
     "@stigmer/sdk": {
-      "*": "https://docs.stigmer.ai/sdk/typescript"
+      "*": "https://stigmer.ai/docs/sdk/typescript"
     },
     "@stigmer/react": {
-      "*": "https://docs.stigmer.ai/sdk/react"
+      "*": "https://stigmer.ai/docs/sdk/react"
     }
   }
 }
