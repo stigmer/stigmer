@@ -1,7 +1,7 @@
 {
   "name": "AgentChannelSpec",
   "kind": "AGENT_CHANNEL_SPEC",
-  "description": "AgentChannelSpec defines the configurable properties of an agent channel.\n\n The spec is deliberately small: which agent serves the channel, whether\n serving is enabled, and which provider the channel targets. Workspace\n identity and credentials are produced by the install flow and live in\n status — a declarative apply can never clobber them.\n\n @internal\n P1: the provider arms carry only genuinely user-declarable fields. For\n the multi-tenant Slack app everything concrete (team_id, bot_user_id,\n scopes, credentials env) is OAuth-observed → status. Owner-customizable\n refusal copy (the AgentShareMessages analog) is deliberately deferred:\n platform-default copy lives in the deliverer (decision 006); adding a\n messages block later is a non-breaking change.",
+  "description": "AgentChannelSpec defines the configurable properties of an agent channel.\n\n The spec is deliberately small: which agent serves the channel, whether\n serving is enabled, which provider the channel targets, and which\n environments supply the agent's tool credentials. Workspace identity and\n provider credentials are produced by the install flow and live in\n status — a declarative apply can never clobber them.\n\n @internal\n P1: the provider arms carry only genuinely user-declarable fields. For\n the multi-tenant Slack app everything concrete (team_id, bot_user_id,\n scopes, credentials env) is OAuth-observed → status. Owner-customizable\n refusal copy (the AgentShareMessages analog) is deliberately deferred:\n platform-default copy lives in the deliverer (decision 006); adding a\n messages block later is a non-breaking change.",
   "protoType": "ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec",
   "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/spec.proto",
   "fields": [
@@ -41,6 +41,21 @@
       "description": "Slack workspace connection (multi-tenant Stigmer Slack app).",
       "required": false,
       "oneofGroup": "provider_config"
+    },
+    {
+      "name": "EnvironmentRefs",
+      "jsonName": "environmentRefs",
+      "protoField": "environment_refs",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "References to Environment resources whose values are provided to\n conversations on this channel.\n\n This is how a tool-using agent becomes chattable over a channel: bind\n an org-shared environment holding the needed credentials (for example\n a read-only API token), and channel executions receive its values at\n runtime. The agent and its default instance stay untouched.\n\n @internal\n The AgentShareSpec.environment_refs analog (decision 011: sharing is\n a channel — both connection kinds carry their own credentials).\n Resolved in the channel's org through the org-shared environment\n resolution seam (EnvironmentRuntimeResolutionService /\n OrgSharedEnvironmentPolicy): each referenced environment must be\n visibility_org in the channel's org, or the merge skips it with a\n diagnostic. Merged at channel execution-context build time only,\n lowest priority (instance refs and runtime_env override on key\n conflicts) — never bound to the agent's system-managed default\n instance. No write-time existence or visibility check, matching the\n share: enforcement lives solely at runtime resolution, which fails\n closed. Unlike the share there is no audience CEL — channels have no\n audience concept, and the same-org invariant (agent_ref.org ==\n metadata.org) already scopes resolution.",
+      "required": false,
+      "referenceKind": 53
     }
   ]
 }

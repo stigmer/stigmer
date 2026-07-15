@@ -14,14 +14,15 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEitQIKEEFnZW50Q2hhbm5lbFNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRwoFc2xhY2sYAyABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLlNsYWNrQ2hhbm5lbENvbmZpZ0gAQhgKD3Byb3ZpZGVyX2NvbmZpZxIFukgCCAEiFAoSU2xhY2tDaGFubmVsQ29uZmlnYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEigAQKEEFnZW50Q2hhbm5lbFNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRwoFc2xhY2sYAyABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLlNsYWNrQ2hhbm5lbENvbmZpZ0gAEsgBChBlbnZpcm9ubWVudF9yZWZzGAQgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQni6SHGSAW4ibLoBaQoVZW52aXJvbm1lbnRfcmVmcy5raW5kEj9lbnZpcm9ubWVudF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9ZW52aXJvbm1lbnQaD3RoaXMua2luZCA9PSA1M+CFLDVCGAoPcHJvdmlkZXJfY29uZmlnEgW6SAIIASIUChJTbGFja0NoYW5uZWxDb25maWdiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentChannelSpec defines the configurable properties of an agent channel.
  *
  * The spec is deliberately small: which agent serves the channel, whether
- * serving is enabled, and which provider the channel targets. Workspace
- * identity and credentials are produced by the install flow and live in
+ * serving is enabled, which provider the channel targets, and which
+ * environments supply the agent's tool credentials. Workspace identity and
+ * provider credentials are produced by the install flow and live in
  * status — a declarative apply can never clobber them.
  *
  * @internal
@@ -83,6 +84,35 @@ export type AgentChannelSpec = Message<"ai.stigmer.agentic.agentchannel.v1.Agent
     value: SlackChannelConfig;
     case: "slack";
   } | { case: undefined; value?: undefined };
+
+  /**
+   * References to Environment resources whose values are provided to
+   * conversations on this channel.
+   *
+   * This is how a tool-using agent becomes chattable over a channel: bind
+   * an org-shared environment holding the needed credentials (for example
+   * a read-only API token), and channel executions receive its values at
+   * runtime. The agent and its default instance stay untouched.
+   *
+   * @internal
+   * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+   * a channel — both connection kinds carry their own credentials).
+   * Resolved in the channel's org through the org-shared environment
+   * resolution seam (EnvironmentRuntimeResolutionService /
+   * OrgSharedEnvironmentPolicy): each referenced environment must be
+   * visibility_org in the channel's org, or the merge skips it with a
+   * diagnostic. Merged at channel execution-context build time only,
+   * lowest priority (instance refs and runtime_env override on key
+   * conflicts) — never bound to the agent's system-managed default
+   * instance. No write-time existence or visibility check, matching the
+   * share: enforcement lives solely at runtime resolution, which fails
+   * closed. Unlike the share there is no audience CEL — channels have no
+   * audience concept, and the same-org invariant (agent_ref.org ==
+   * metadata.org) already scopes resolution.
+   *
+   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4;
+   */
+  environmentRefs: ApiResourceReference[];
 };
 
 /**

@@ -50,6 +50,8 @@ export {
 } from "./systemEnvVars.js";
 export { EnvironmentPicker } from "./EnvironmentPicker.js";
 export type { EnvironmentPickerProps } from "./EnvironmentPicker.js";
+export { useToolCredentialsReadiness } from "./useToolCredentialsReadiness.js";
+export type { ToolCredentialsReadiness } from "./useToolCredentialsReadiness.js";
 export {
   PERSONAL_ENV_LABEL,
   MANAGED_ENV_LABEL,

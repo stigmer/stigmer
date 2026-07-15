@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import grpc
 
@@ -101,6 +101,7 @@ class AgentChannelInput:
     visibility: int = 0
     enabled: bool = False
     slack: SlackChannelConfigInput | None = None
+    environment_refs: list[ResourceRef] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.AgentChannel:
         spec = spec_pb2.AgentChannelSpec(
@@ -112,6 +113,10 @@ class AgentChannelInput:
             spec.agent_ref.CopyFrom(_ref)
         if self.slack is not None:
             spec.slack.CopyFrom(self.slack._to_proto())
+        for ref in self.environment_refs:
+            _ref = ref._to_proto()
+            _ref.kind = 53
+            spec.environment_refs.append(_ref)
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

@@ -57,6 +57,13 @@
       "components": 1
     },
     {
+      "slug": "channel",
+      "title": "channel",
+      "description": "",
+      "hooks": 6,
+      "components": 2
+    },
+    {
       "slug": "composer",
       "title": "Composer",
       "description": "The unified message input with model selection, workspace, and attachments.",

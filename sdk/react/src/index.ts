@@ -674,6 +674,7 @@ export {
   resolveSystemEnvVarValues,
   resolveDeclaredSystemEnvVars,
   EnvironmentPicker,
+  useToolCredentialsReadiness,
 } from "./environment/index.js";
 export type {
   UseEnvironmentReturn,
@@ -696,6 +697,7 @@ export type {
   SessionEnvPoolInput,
   UseSessionEnvPoolReturn,
   EnvironmentPickerProps,
+  ToolCredentialsReadiness,
 } from "./environment/index.js";
 
 // Identity Account — gate hook for ensuring the caller's identity account exists before app render
@@ -1031,8 +1033,11 @@ export {
   useCreateAgentChannel,
   useDeleteAgentChannel,
   useConnectSlackChannel,
+  useChannelToolReadiness,
   AgentChannelsPanel,
   ConnectSlackDialog,
+  ChannelCredentialsDialog,
+  ChannelToolCredentials,
 } from "./channel/index.js";
 export type {
   UseAgentChannelListReturn,
@@ -1044,6 +1049,8 @@ export type {
   SlackConnectPhase,
   AgentChannelsPanelProps,
   ConnectSlackDialogProps,
+  ChannelCredentialsDialogProps,
+  ChannelToolCredentialsProps,
 } from "./channel/index.js";
 
 // Error — structured error display with classification, retry, and contextual guidance

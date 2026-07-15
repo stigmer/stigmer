@@ -64,6 +64,10 @@ function createMockStigmer(overrides: MockOverrides = {}) {
       }),
       completeInstall: vi.fn().mockResolvedValue({}),
     },
+    environment: {
+      list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
+      getByReference: vi.fn().mockRejectedValue(new Error("not found")),
+    },
     iamPolicy: {
       checkMyPermission:
         overrides.checkMyPermission ??
@@ -92,7 +96,7 @@ function Providers({
   );
 }
 
-function makeAgent() {
+function makeAgent(overrides: { withTools?: boolean } = {}) {
   return {
     metadata: {
       id: "agt_1",
@@ -100,7 +104,9 @@ function makeAgent() {
       slug: "support-agent",
       name: "Support Agent",
     },
-    spec: {},
+    spec: overrides.withTools
+      ? { mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }] }
+      : {},
   } as never;
 }
 
@@ -334,6 +340,62 @@ describe("AgentChannelsPanel", () => {
     expect(screen.queryByRole("switch")).toBeNull();
     expect(screen.queryByRole("button", { name: /connect to slack/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /actions for/i })).toBeNull();
+  });
+
+  it("warns on an installed card when a tool-using agent has no credentials bound", async () => {
+    const client = createMockStigmer({
+      channels: [makeChannel({ teamName: "Acme HQ" })],
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent({ withTools: true })} />
+      </Providers>,
+    );
+
+    await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
+    // The card is where an owner discovers the gap — including one who
+    // connected before credential binding existed.
+    expect(
+      await screen.findByText(/no credentials are bound to this channel/i),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: /bind credentials/i })).toBeTruthy();
+  });
+
+  it("stays silent on cards for agents without tools", async () => {
+    const client = createMockStigmer({
+      channels: [makeChannel({ teamName: "Acme HQ" })],
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
+    expect(
+      screen.queryByText(/no credentials are bound to this channel/i),
+    ).toBeNull();
+  });
+
+  it("opens the credentials dialog from the card's action menu", async () => {
+    const client = createMockStigmer({
+      channels: [makeChannel({ teamName: "Acme HQ" })],
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "Tool credentials" }),
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Tool credentials" }),
+    ).toBeTruthy();
   });
 
   it("renders an error state when the list fails to load", async () => {

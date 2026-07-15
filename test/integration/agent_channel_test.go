@@ -103,6 +103,63 @@ func TestAgentChannel_ApplyToggle(t *testing.T) {
 	t.Logf("channel toggled: id=%s, enabled→disabled", created.GetMetadata().GetId())
 }
 
+// TestAgentChannel_EnvironmentRefs verifies the channel-bound credentials
+// contract over the wire (T04): spec.environment_refs persist through
+// apply with empty ref orgs normalized to the channel's org, a re-apply
+// replaces the binding list wholesale, and a manifest omitting the refs
+// unbinds them (declarative semantics — the same wipe hazard the console's
+// full-input save protects against).
+func TestAgentChannel_EnvironmentRefs(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+
+	agent := harness.CreateAgent(t, ctx, clients, "test-channel-env-refs",
+		"You are a test agent for channel credential binding verification.")
+
+	name := "env-refs-slack-" + agent.GetMetadata().GetSlug()
+	bound := channelFor(agent, name, true)
+	bound.Spec.EnvironmentRefs = []*apiresource.ApiResourceReference{
+		{
+			Kind: apiresourcekind.ApiResourceKind_environment,
+			// Org deliberately empty — must normalize to the channel's org.
+			Slug: "github-credentials",
+		},
+	}
+
+	created, err := clients.AgentChannelCommand.Apply(ctx, bound)
+	require.NoError(t, err, "apply with environment_refs should succeed")
+	refs := created.GetSpec().GetEnvironmentRefs()
+	require.Len(t, refs, 1, "the bound environment ref must persist")
+	assert.Equal(t, agent.GetMetadata().GetOrg(), refs[0].GetOrg(),
+		"an empty environment ref org must normalize to the channel's org")
+	assert.Equal(t, "github-credentials", refs[0].GetSlug())
+
+	// Rebind: apply replaces the list wholesale.
+	rebound := channelFor(agent, name, true)
+	rebound.Spec.EnvironmentRefs = []*apiresource.ApiResourceReference{
+		{
+			Kind: apiresourcekind.ApiResourceKind_environment,
+			Org:  agent.GetMetadata().GetOrg(),
+			Slug: "rotated-credentials",
+		},
+	}
+	updated, err := clients.AgentChannelCommand.Apply(ctx, rebound)
+	require.NoError(t, err)
+	refs = updated.GetSpec().GetEnvironmentRefs()
+	require.Len(t, refs, 1, "rebind must replace the list, not append")
+	assert.Equal(t, "rotated-credentials", refs[0].GetSlug())
+
+	// Unbind: a manifest without environment_refs drops them.
+	unbound, err := clients.AgentChannelCommand.Apply(ctx, channelFor(agent, name, true))
+	require.NoError(t, err)
+	assert.Empty(t, unbound.GetSpec().GetEnvironmentRefs(),
+		"a manifest omitting environment_refs must unbind them")
+}
+
 // TestAgentChannel_InvariantRefusals verifies the two create-time error
 // contracts over the wire: a nonexistent agent is NOT_FOUND, and a
 // cross-org agent_ref is FAILED_PRECONDITION (channels have no cross-org

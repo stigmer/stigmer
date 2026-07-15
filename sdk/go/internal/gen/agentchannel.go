@@ -77,14 +77,15 @@ func (a *AgentChannelClient) List(ctx context.Context, input *agentchannelv1.Lis
 
 // AgentChannelInput holds the fields for creating/updating a AgentChannel.
 type AgentChannelInput struct {
-	Name       string
-	Slug       string
-	Org        string
-	Labels     map[string]string
-	Visibility apiresource.ApiResourceVisibility
-	AgentRef   ResourceRef
-	Enabled    bool
-	Slack      *SlackChannelConfigInput
+	Name            string
+	Slug            string
+	Org             string
+	Labels          map[string]string
+	Visibility      apiresource.ApiResourceVisibility
+	AgentRef        ResourceRef
+	Enabled         bool
+	Slack           *SlackChannelConfigInput
+	EnvironmentRefs []ResourceRef
 }
 
 // SlackChannelConfigInput is the SDK input type for SlackChannelConfig.
@@ -114,6 +115,11 @@ func (i *AgentChannelInput) toProto() *agentchannelv1.AgentChannel {
 		m := &agentchannelv1.SlackChannelConfig{}
 		resource.Spec.ProviderConfig = &agentchannelv1.AgentChannelSpec_Slack{Slack: m}
 	}
+	for _, r := range i.EnvironmentRefs {
+		ref := r.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_environment
+		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, ref)
+	}
 	return resource
 }
 
@@ -133,6 +139,9 @@ func AgentChannelInputFromProto(p *agentchannelv1.AgentChannel) *AgentChannelInp
 	if s := p.GetSpec(); s != nil {
 		input.AgentRef = resourceRefFromProto(s.GetAgentRef())
 		input.Enabled = s.GetEnabled()
+		for _, r := range s.GetEnvironmentRefs() {
+			input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
+		}
 		if ov := s.GetSlack(); ov != nil {
 			input.Slack = &SlackChannelConfigInput{}
 		}

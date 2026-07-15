@@ -19,6 +19,7 @@ public final class AgentChannelInput {
     private final ResourceRef agentRef;
     private final boolean enabled;
     private final SlackChannelConfigInput slack;
+    private final java.util.List<ResourceRef> environmentRefs;
 
     private AgentChannelInput(Builder builder) {
         this.name = builder.name;
@@ -29,6 +30,7 @@ public final class AgentChannelInput {
         this.agentRef = builder.agentRef;
         this.enabled = builder.enabled;
         this.slack = builder.slack;
+        this.environmentRefs = builder.environmentRefs;
     }
 
     AgentChannel toProto() {
@@ -40,6 +42,12 @@ public final class AgentChannelInput {
         spec.setEnabled(this.enabled);
         if (this.slack != null) {
             spec.setSlack(this.slack.toProto());
+        }
+        if (this.environmentRefs != null) {
+            for (ResourceRef item : this.environmentRefs) {
+                spec.addEnvironmentRefs(item.toProto().toBuilder()
+                    .setKind(ApiResourceKind.environment).build());
+            }
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -72,6 +80,7 @@ public final class AgentChannelInput {
         private ResourceRef agentRef;
         private boolean enabled;
         private SlackChannelConfigInput slack;
+        private java.util.List<ResourceRef> environmentRefs;
 
         private Builder() {}
 
@@ -83,6 +92,7 @@ public final class AgentChannelInput {
         public Builder agentRef(ResourceRef agentRef) { this.agentRef = agentRef; return this; }
         public Builder enabled(boolean enabled) { this.enabled = enabled; return this; }
         public Builder slack(SlackChannelConfigInput slack) { this.slack = slack; return this; }
+        public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
 
         public AgentChannelInput build() { return new AgentChannelInput(this); }
     }

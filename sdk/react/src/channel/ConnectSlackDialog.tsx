@@ -2,12 +2,13 @@
 
 import { useCallback, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { Button } from "../button/Button.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { ChannelToolCredentials } from "./ChannelToolCredentials.js";
 import { useConnectSlackChannel, type SlackConnectPhase } from "./useConnectSlackChannel.js";
 import { useCreateAgentChannel } from "./useCreateAgentChannel.js";
 import { SlackMarkIcon } from "./SlackMarkIcon.js";
@@ -145,6 +146,10 @@ function ConnectSlackDialogBody({
   const [name, setName] = useState(() =>
     channel ? (channel.metadata?.name ?? "") : `${agentName} Slack`,
   );
+  // Tool credentials bound at connect time (create mode only — a
+  // reconnect keeps the channel's existing bindings untouched; edits go
+  // through the channel card's credentials dialog).
+  const [environmentRefs, setEnvironmentRefs] = useState<ResourceRef[]>([]);
   const [installed, setInstalled] = useState<AgentChannel | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
@@ -166,6 +171,7 @@ function ConnectSlackDialogBody({
           },
           enabled: true,
           slack: {},
+          ...(environmentRefs.length > 0 ? { environmentRefs } : {}),
         });
         // The channel now exists even if the install below fails or is
         // abandoned — surface it in the list either way.
@@ -180,7 +186,7 @@ function ConnectSlackDialogBody({
       // error null for it; everything else renders below.
       setError(slack.error ?? (err instanceof Error ? err : new Error(String(err))));
     }
-  }, [agent, agentName, channel, createChannel, name, org, onChannelsChanged, slack]);
+  }, [agent, agentName, channel, createChannel, environmentRefs, name, org, onChannelsChanged, slack]);
 
   const handleCancel = useCallback(() => {
     slack.clearError();
@@ -251,6 +257,16 @@ function ConnectSlackDialogBody({
               </label>
             )}
 
+            {!channel && (
+              <ToolCredentialsSection
+                agent={agent}
+                org={org}
+                value={environmentRefs}
+                onChange={setEnvironmentRefs}
+                disabled={busy}
+              />
+            )}
+
             <p className="text-sm text-muted-foreground">
               You&apos;ll pick a Slack workspace and approve the install.
               Workspace members can then chat with{" "}
@@ -299,6 +315,66 @@ function ConnectSlackDialogBody({
         )}
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tool credentials — org-shared environments bound at connect time
+// ---------------------------------------------------------------------------
+
+/**
+ * Collapsible credential-binding section for create mode (the
+ * ShareAgentDialog ToolCredentialsSection pattern). Expanded by default
+ * when the agent uses MCP tools — for those agents this is essential
+ * configuration, not an advanced option: without a binding, every
+ * workspace message that needs a tool is refused.
+ */
+function ToolCredentialsSection({
+  agent,
+  org,
+  value,
+  onChange,
+  disabled,
+}: {
+  readonly agent: Agent;
+  readonly org: string;
+  readonly value: readonly ResourceRef[];
+  readonly onChange: (refs: ResourceRef[]) => void;
+  readonly disabled: boolean;
+}) {
+  const hasMcpTools = (agent.spec?.mcpServerUsages?.length ?? 0) > 0;
+  const [expanded, setExpanded] = useState(hasMcpTools || value.length > 0);
+
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className={cn(
+          "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground",
+          "hover:text-foreground",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+        )}
+      >
+        <ChevronIcon
+          className={cn("size-3 transition-transform", expanded && "rotate-90")}
+        />
+        Tool credentials
+      </button>
+
+      {expanded && (
+        <div className="mt-2">
+          <ChannelToolCredentials
+            agent={agent}
+            org={org}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+          />
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -405,6 +481,14 @@ function CheckIcon({ className }: { readonly className?: string }) {
   return (
     <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="m3 8.5 3.5 3.5L13 5" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m4.5 2.5 3.5 3.5-3.5 3.5" />
     </svg>
   );
 }

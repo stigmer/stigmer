@@ -19,12 +19,15 @@ import { toError } from "../internal/toError.js";
  *
  * Provider config carries over structurally (the Slack config is an
  * empty marker message in v1 — all concrete facts are OAuth-observed and
- * live in `status`, which survives every save verbatim).
+ * live in `status`, which survives every save verbatim). The channel's
+ * bound tool credentials (`environment_refs`) carry over too — apply
+ * semantics would otherwise silently unbind them on every toggle.
  */
 export function agentChannelToInput(channel: AgentChannel): AgentChannelInput {
   const metadata = channel.metadata;
   const spec = channel.spec;
   const labels = metadata?.labels ?? {};
+  const environmentRefs = spec?.environmentRefs ?? [];
 
   return {
     name: metadata?.name ?? "",
@@ -38,6 +41,14 @@ export function agentChannelToInput(channel: AgentChannel): AgentChannelInput {
     },
     enabled: spec?.enabled ?? false,
     ...(spec?.providerConfig?.case === "slack" ? { slack: {} } : {}),
+    ...(environmentRefs.length > 0
+      ? {
+          environmentRefs: environmentRefs.map((ref) => ({
+            org: ref.org,
+            slug: ref.slug,
+          })),
+        }
+      : {}),
   };
 }
 

@@ -487,6 +487,104 @@ func TestAgentChannelController_Apply(t *testing.T) {
 	}
 }
 
+// TestAgentChannelController_EnvironmentRefs pins the channel-bound
+// credentials contract (T04): spec.environment_refs persist and
+// round-trip through create/apply, empty ref orgs normalize to the
+// channel's org (the generic NormalizeReferences step), and an apply
+// that omits them unbinds them (wholesale spec replacement). The OSS
+// edition stores the refs only — the runtime merge into executions is
+// cloud-only, like the rest of the channel runtime.
+func TestAgentChannelController_EnvironmentRefs(t *testing.T) {
+	tc := newTestControllers(t)
+
+	agent := createTestAgent(t, tc, "Env Refs Agent")
+
+	withRefs := channelFor(agent, "Env Refs Slack", true)
+	withRefs.Spec.EnvironmentRefs = []*apiresource.ApiResourceReference{
+		{
+			Kind: apiresourcekind.ApiResourceKind_environment,
+			// Org deliberately empty — must normalize to the channel's org.
+			Slug: "github-credentials",
+		},
+		{
+			Kind: apiresourcekind.ApiResourceKind_environment,
+			Org:  "test-org",
+			Slug: "search-credentials",
+		},
+	}
+
+	created, err := tc.channels.Create(channelCtx(), withRefs)
+	if err != nil {
+		t.Fatalf("Create with environment_refs failed: %v", err)
+	}
+	refs := created.GetSpec().GetEnvironmentRefs()
+	if len(refs) != 2 {
+		t.Fatalf("expected both environment refs to persist, got %d", len(refs))
+	}
+	if got := refs[0].GetOrg(); got != "test-org" {
+		t.Errorf("an empty environment ref org must normalize to the channel's org, got %q", got)
+	}
+	if refs[0].GetSlug() != "github-credentials" || refs[1].GetSlug() != "search-credentials" {
+		t.Errorf("environment refs must persist in declaration order (merge priority), got %q then %q",
+			refs[0].GetSlug(), refs[1].GetSlug())
+	}
+
+	t.Run("get round-trips the refs verbatim", func(t *testing.T) {
+		fetched, err := tc.channels.Get(channelCtx(), &agentchannelv1.AgentChannelId{Value: created.GetMetadata().GetId()})
+		if err != nil {
+			t.Fatalf("Get failed: %v", err)
+		}
+		if got := len(fetched.GetSpec().GetEnvironmentRefs()); got != 2 {
+			t.Errorf("expected both refs after a read-back, got %d", got)
+		}
+	})
+
+	t.Run("apply replaces the refs — credentials are mutable", func(t *testing.T) {
+		rebound := channelFor(agent, "Env Refs Slack", true)
+		rebound.Spec.EnvironmentRefs = []*apiresource.ApiResourceReference{
+			{
+				Kind: apiresourcekind.ApiResourceKind_environment,
+				Org:  "test-org",
+				Slug: "rotated-credentials",
+			},
+		}
+		updated, err := tc.channels.Apply(channelCtx(), rebound)
+		if err != nil {
+			t.Fatalf("Apply(rebind refs) failed: %v", err)
+		}
+		got := updated.GetSpec().GetEnvironmentRefs()
+		if len(got) != 1 || got[0].GetSlug() != "rotated-credentials" {
+			t.Errorf("apply must replace the binding list wholesale, got %v", got)
+		}
+	})
+
+	t.Run("apply omitting the refs unbinds them (declarative semantics)", func(t *testing.T) {
+		unbound := channelFor(agent, "Env Refs Slack", true)
+		updated, err := tc.channels.Apply(channelCtx(), unbound)
+		if err != nil {
+			t.Fatalf("Apply(unbind refs) failed: %v", err)
+		}
+		if got := len(updated.GetSpec().GetEnvironmentRefs()); got != 0 {
+			t.Errorf("a manifest without environment_refs must unbind them, got %d refs", got)
+		}
+	})
+
+	t.Run("a non-environment ref kind is INVALID_ARGUMENT (proto CEL)", func(t *testing.T) {
+		wrongKind := channelFor(agent, "Wrong Kind Slack", true)
+		wrongKind.Spec.EnvironmentRefs = []*apiresource.ApiResourceReference{
+			{
+				Kind: apiresourcekind.ApiResourceKind_agent,
+				Org:  "test-org",
+				Slug: "not-an-environment",
+			},
+		}
+		_, err := tc.channels.Create(channelCtx(), wrongKind)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Errorf("expected INVALID_ARGUMENT for a non-environment ref, got %s (%v)", status.Code(err), err)
+		}
+	})
+}
+
 func TestAgentChannelController_Delete(t *testing.T) {
 	tc := newTestControllers(t)
 

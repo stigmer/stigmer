@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vite
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StigmerError, type AgentChannelInput } from "@stigmer/sdk";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
@@ -65,6 +66,25 @@ function createMockStigmer(overrides: MockOverrides = {}) {
           },
         }),
     },
+    environment: {
+      list: vi.fn().mockResolvedValue({
+        items: [
+          {
+            metadata: {
+              slug: "github-credentials",
+              name: "GitHub Credentials",
+              org: "acme",
+              visibility: ApiResourceVisibility.visibility_org,
+            },
+            spec: {},
+          },
+        ],
+        totalCount: 1,
+      }),
+      getByReference: vi.fn().mockResolvedValue({
+        metadata: { visibility: ApiResourceVisibility.visibility_org },
+      }),
+    },
   } as never;
 }
 
@@ -88,7 +108,7 @@ function Providers({
   );
 }
 
-function makeAgent() {
+function makeAgent(overrides: { withTools?: boolean } = {}) {
   return {
     metadata: {
       id: "agt_1",
@@ -96,7 +116,9 @@ function makeAgent() {
       slug: "support-agent",
       name: "Support Agent",
     },
-    spec: {},
+    spec: overrides.withTools
+      ? { mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }] }
+      : {},
   } as never;
 }
 
@@ -174,6 +196,58 @@ describe("ConnectSlackDialog", () => {
     expect(await screen.findByText(/connected to Acme HQ/i)).toBeTruthy();
     // Once for the created row, once for the completed install.
     expect(onChannelsChanged).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the tool-credentials section collapsed for agents without tools", async () => {
+    render(
+      <Providers client={createMockStigmer()}>
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    const toggle = await screen.findByRole("button", { name: "Tool credentials" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByLabelText("Add environment")).toBeNull();
+  });
+
+  it("binds credentials at connect time — create carries the chosen environment refs", async () => {
+    const create = vi.fn().mockResolvedValue({
+      metadata: { id: "ach_new", org: "acme" },
+    });
+    const client = createMockStigmer({ create });
+
+    render(
+      <Providers client={client}>
+        <ConnectSlackDialog
+          open
+          onOpenChange={() => {}}
+          agent={makeAgent({ withTools: true })}
+        />
+      </Providers>,
+    );
+
+    // Tool-using agent: the section is expanded by default (essential
+    // configuration, not an advanced option) and warns while unbound.
+    const toggle = await screen.findByRole("button", { name: "Tool credentials" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(
+      await screen.findByText(/no credentials are bound to this channel/i),
+    ).toBeTruthy();
+
+    const select = await screen.findByLabelText("Add environment");
+    fireEvent.change(select, { target: { value: "github-credentials" } });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /connect to slack/i }),
+    );
+
+    await waitFor(() =>
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          environmentRefs: [{ org: "acme", slug: "github-credentials" }],
+        }),
+      ),
+    );
   });
 
   it("skips the create step when reconnecting an existing channel", async () => {

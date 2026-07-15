@@ -19,8 +19,16 @@ export type {
   SlackConnectPhase,
 } from "./useConnectSlackChannel.js";
 
+export { useChannelToolReadiness } from "./useChannelToolReadiness.js";
+
 export { AgentChannelsPanel } from "./AgentChannelsPanel.js";
 export type { AgentChannelsPanelProps } from "./AgentChannelsPanel.js";
 
 export { ConnectSlackDialog } from "./ConnectSlackDialog.js";
 export type { ConnectSlackDialogProps } from "./ConnectSlackDialog.js";
+
+export { ChannelCredentialsDialog } from "./ChannelCredentialsDialog.js";
+export type { ChannelCredentialsDialogProps } from "./ChannelCredentialsDialog.js";
+
+export { ChannelToolCredentials } from "./ChannelToolCredentials.js";
+export type { ChannelToolCredentialsProps } from "./ChannelToolCredentials.js";

@@ -96,6 +96,7 @@ export interface AgentChannelInput {
   agentRef: ResourceRef;
   enabled?: boolean;
   slack?: SlackChannelConfigInput;
+  environmentRefs?: ResourceRef[];
 }
 
 /** SDK input type for SlackChannelConfig. */
@@ -109,9 +110,11 @@ function buildSlackChannelConfigProto(input: SlackChannelConfigInput) {
 
 export function buildAgentChannelProto(input: AgentChannelInput): AgentChannel {
   const agentRef = (input.agentRef?.slug || input.agentRef?.org) ? create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 }) : undefined;
+  const environmentRefs = input.environmentRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 53 }));
   const spec = Object.assign(create(AgentChannelSpecSchema), stripUndefined({
     agentRef,
     enabled: input.enabled,
+    environmentRefs,
   }));
   if (input.slack) {
     spec.providerConfig = { case: "slack", value: buildSlackChannelConfigProto(input.slack) };

@@ -38,6 +38,7 @@
     "user",
     "activity",
     "button",
+    "channel",
     "file-reference",
     "sharing",
     "switch"

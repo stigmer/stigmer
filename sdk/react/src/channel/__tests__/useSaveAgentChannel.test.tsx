@@ -76,6 +76,32 @@ describe("agentChannelToInput", () => {
     expect(input).not.toHaveProperty("slug");
   });
 
+  it("carries environment_refs — the toggle must never wipe bound credentials", () => {
+    const channel = makeChannel({
+      spec: {
+        agentRef: { org: "acme", slug: "support-agent" },
+        enabled: true,
+        providerConfig: { case: "slack", value: {} },
+        environmentRefs: [
+          { org: "acme", slug: "github-credentials" },
+          { org: "acme", slug: "search-credentials" },
+        ],
+      },
+    });
+
+    const input = agentChannelToInput(channel);
+    // Order preserved: the ref list's order is the merge priority.
+    expect(input.environmentRefs).toEqual([
+      { org: "acme", slug: "github-credentials" },
+      { org: "acme", slug: "search-credentials" },
+    ]);
+  });
+
+  it("omits environmentRefs entirely when the channel binds none", () => {
+    const input = agentChannelToInput(makeChannel());
+    expect(input).not.toHaveProperty("environmentRefs");
+  });
+
   it("omits the slack marker when the provider config is absent", () => {
     const channel = makeChannel({
       spec: {
@@ -132,21 +158,32 @@ describe("useSaveAgentChannel", () => {
       wrapper: wrapper(client),
     });
 
+    const boundChannel = makeChannel({
+      spec: {
+        agentRef: { org: "acme", slug: "support-agent" },
+        enabled: true,
+        providerConfig: { case: "slack", value: {} },
+        environmentRefs: [{ org: "acme", slug: "github-credentials" }],
+      },
+    });
+
     await act(async () => {
       await result.current.save({
-        ...agentChannelToInput(makeChannel()),
+        ...agentChannelToInput(boundChannel),
         enabled: false,
       });
     });
 
     // The disable toggle must preserve the rest of the spec — a partial
-    // input would silently drop agentRef or the provider marker.
+    // input would silently drop agentRef, the provider marker, or the
+    // bound credentials (apply semantics unbind whatever is omitted).
     expect(apply).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "Support Slack",
         agentRef: { org: "acme", slug: "support-agent" },
         slack: {},
         enabled: false,
+        environmentRefs: [{ org: "acme", slug: "github-credentials" }],
       }),
     );
   });

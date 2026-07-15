@@ -26,8 +26,9 @@ const (
 // AgentChannelSpec defines the configurable properties of an agent channel.
 //
 // The spec is deliberately small: which agent serves the channel, whether
-// serving is enabled, and which provider the channel targets. Workspace
-// identity and credentials are produced by the install flow and live in
+// serving is enabled, which provider the channel targets, and which
+// environments supply the agent's tool credentials. Workspace identity and
+// provider credentials are produced by the install flow and live in
 // status — a declarative apply can never clobber them.
 //
 // @internal
@@ -69,8 +70,32 @@ type AgentChannelSpec struct {
 	//
 	//	*AgentChannelSpec_Slack
 	ProviderConfig isAgentChannelSpec_ProviderConfig `protobuf_oneof:"provider_config"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// References to Environment resources whose values are provided to
+	// conversations on this channel.
+	//
+	// This is how a tool-using agent becomes chattable over a channel: bind
+	// an org-shared environment holding the needed credentials (for example
+	// a read-only API token), and channel executions receive its values at
+	// runtime. The agent and its default instance stay untouched.
+	//
+	// @internal
+	// The AgentShareSpec.environment_refs analog (decision 011: sharing is
+	// a channel — both connection kinds carry their own credentials).
+	// Resolved in the channel's org through the org-shared environment
+	// resolution seam (EnvironmentRuntimeResolutionService /
+	// OrgSharedEnvironmentPolicy): each referenced environment must be
+	// visibility_org in the channel's org, or the merge skips it with a
+	// diagnostic. Merged at channel execution-context build time only,
+	// lowest priority (instance refs and runtime_env override on key
+	// conflicts) — never bound to the agent's system-managed default
+	// instance. No write-time existence or visibility check, matching the
+	// share: enforcement lives solely at runtime resolution, which fails
+	// closed. Unlike the share there is no audience CEL — channels have no
+	// audience concept, and the same-org invariant (agent_ref.org ==
+	// metadata.org) already scopes resolution.
+	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,4,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *AgentChannelSpec) Reset() {
@@ -129,6 +154,13 @@ func (x *AgentChannelSpec) GetSlack() *SlackChannelConfig {
 		if x, ok := x.ProviderConfig.(*AgentChannelSpec_Slack); ok {
 			return x.Slack
 		}
+	}
+	return nil
+}
+
+func (x *AgentChannelSpec) GetEnvironmentRefs() []*apiresource.ApiResourceReference {
+	if x != nil {
+		return x.EnvironmentRefs
 	}
 	return nil
 }
@@ -195,12 +227,14 @@ var File_ai_stigmer_agentic_agentchannel_v1_spec_proto protoreflect.FileDescript
 
 const file_ai_stigmer_agentic_agentchannel_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xcf\x02\n" +
+	"-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xab\x04\n" +
 	"\x10AgentChannelSpec\x12\xb6\x01\n" +
 	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n" +
 	"\x0eagent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\bagentRef\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\x12N\n" +
-	"\x05slack\x18\x03 \x01(\v26.ai.stigmer.agentic.agentchannel.v1.SlackChannelConfigH\x00R\x05slackB\x18\n" +
+	"\x05slack\x18\x03 \x01(\v26.ai.stigmer.agentic.agentchannel.v1.SlackChannelConfigH\x00R\x05slack\x12\xd9\x01\n" +
+	"\x10environment_refs\x18\x04 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
+	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefsB\x18\n" +
 	"\x0fprovider_config\x12\x05\xbaH\x02\b\x01\"\x14\n" +
 	"\x12SlackChannelConfigB\xbc\x02\n" +
 	"&com.ai.stigmer.agentic.agentchannel.v1B\tSpecProtoP\x01ZZgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
@@ -226,11 +260,12 @@ var file_ai_stigmer_agentic_agentchannel_v1_spec_proto_goTypes = []any{
 var file_ai_stigmer_agentic_agentchannel_v1_spec_proto_depIdxs = []int32{
 	2, // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	1, // 1: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.slack:type_name -> ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	2, // 2: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentchannel_v1_spec_proto_init() }
