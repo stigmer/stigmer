@@ -103,6 +103,23 @@ vi.mock("../execution-comparison/ExecutionComparisonPicker", () => ({
   ExecutionComparisonPicker: () => null,
 }));
 
+// The child transcript document fetches and streams (its own suite covers
+// that); here it only proves the thread's "Open transcript" reaches the
+// panel's editor area with the right identity.
+vi.mock("../WorkflowAgentExecutionDocument", () => ({
+  WorkflowAgentExecutionDocument: ({
+    childExecutionId,
+    taskName,
+  }: {
+    childExecutionId: string;
+    taskName: string;
+  }) => (
+    <div data-testid="agent-doc-stub">
+      {childExecutionId}:{taskName}
+    </div>
+  ),
+}));
+
 vi.mock("../waterfall/index.js", () => ({
   WaterfallTimeline: () => <div data-testid="waterfall-stub" />,
 }));
@@ -218,7 +235,12 @@ function renderViewer(props?: { org?: string }) {
 }
 
 describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
-  beforeEach(() => arrange());
+  beforeEach(() => {
+    // The center view persists to localStorage — isolate tests from each
+    // other (and from ResizableSplit's persisted widths).
+    localStorage.clear();
+    arrange();
+  });
   afterEach(cleanup);
 
   it("starts two-column: graph only, panel collapsed to the chip, no inspector aside", () => {
@@ -317,5 +339,118 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
     fireEvent.click(screen.getByRole("button", { name: "click-pane" }));
 
     expect(graphRenders.count).toBe(rendersAfterMount);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S8: center-column Thread | Graph toggle
+// ---------------------------------------------------------------------------
+
+describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S8)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    arrange();
+  });
+  afterEach(cleanup);
+
+  function centerWrappers(container: HTMLElement) {
+    const graph = container.querySelector('[data-center-view="graph"]');
+    const thread = container.querySelector('[data-center-view="thread"]');
+    if (!graph || !thread) throw new Error("center view wrappers missing");
+    return { graph, thread };
+  }
+
+  it("defaults to Graph with the thread mounted but CSS-hidden", () => {
+    const { container } = renderViewer();
+    const { graph, thread } = centerWrappers(container);
+
+    expect(graph.classList.contains("hidden")).toBe(false);
+    expect(thread.classList.contains("hidden")).toBe(true);
+    expect(
+      screen.getByRole("radio", { name: "Graph" }).getAttribute("aria-checked"),
+    ).toBe("true");
+  });
+
+  it("toggling to Thread reveals the thread, hides (never unmounts) the graph, and persists", () => {
+    const { container } = renderViewer();
+
+    fireEvent.click(screen.getByRole("radio", { name: "Thread" }));
+
+    const { graph, thread } = centerWrappers(container);
+    expect(thread.classList.contains("hidden")).toBe(false);
+    expect(graph.classList.contains("hidden")).toBe(true);
+    // CSS-hidden, not unmounted (DD-009: no React Flow remount on toggle).
+    expect(screen.getByTestId("graph-stub")).toBeTruthy();
+    expect(localStorage.getItem("stgm-wf-exec-center-view")).toBe("thread");
+  });
+
+  it("toggling views never re-renders the settled graph (DD-009)", () => {
+    renderViewer();
+    const rendersAfterMount = graphRenders.count;
+
+    fireEvent.click(screen.getByRole("radio", { name: "Thread" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Graph" }));
+
+    expect(graphRenders.count).toBe(rendersAfterMount);
+  });
+
+  it("a thread card click opens the panel on Inspect (shared selection contract)", () => {
+    renderViewer();
+    fireEvent.click(screen.getByRole("radio", { name: "Thread" }));
+
+    fireEvent.click(screen.getByRole("button", { name: /^build-report/ }));
+
+    expect(screen.getByTestId("inspector-stub").textContent).toBe(
+      "build-report",
+    );
+    expect(
+      screen
+        .getByRole("radio", { name: "Inspect" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+  });
+
+  it("an AGENT_CALL card's Open transcript opens the S4 document in the panel", () => {
+    // Add a settled agent-call task carrying its child execution id. The
+    // stream stage must not be "complete" with zero events, or the viewer's
+    // snapshot fallback would replace these derived states (its documented
+    // event-persistence-failure path).
+    mockedUseEventStream.mockReturnValue({
+      events: [],
+      taskStates: new Map([
+        ["build-report", taskState("build-report")],
+        [
+          "call-writer",
+          {
+            ...taskState("call-writer"),
+            taskKind: 13, // WorkflowTaskKind.agent_call
+            agentSlug: "blog-writer",
+            childExecutionId: "aex_child_1",
+          },
+        ],
+      ]),
+      costSummary: COST_SUMMARY,
+      streamState: { stage: "idle" },
+      totalTasks: 2,
+      error: null,
+      reconnect: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowExecutionEventStream>);
+    renderViewer();
+    fireEvent.click(screen.getByRole("radio", { name: "Thread" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand call-writer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open transcript" }));
+
+    expect(screen.getByTestId("agent-doc-stub").textContent).toBe(
+      "aex_child_1:call-writer",
+    );
+  });
+
+  it("keeps exactly one aria-live announcer across both center views", () => {
+    const { container } = renderViewer();
+
+    expect(container.querySelectorAll("[aria-live]")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("radio", { name: "Thread" }));
+    expect(container.querySelectorAll("[aria-live]")).toHaveLength(1);
   });
 });

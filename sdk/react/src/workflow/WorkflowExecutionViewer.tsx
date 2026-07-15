@@ -61,6 +61,32 @@ import {
   DIAGNOSIS_DOCUMENT_PATH,
 } from "./diagnosis-document.js";
 import { WorkflowArtifactDocument } from "./WorkflowArtifactDocument.js";
+import { WorkflowTaskThread } from "./thread/WorkflowTaskThread.js";
+import { useExecutionAnnouncements } from "./useExecutionAnnouncements.js";
+
+// ---------------------------------------------------------------------------
+// Center-column view (S8: Thread | Graph toggle; Graph is the default)
+// ---------------------------------------------------------------------------
+
+/** The center-column view of the execution viewer. */
+type CenterView = "thread" | "graph";
+
+const CENTER_VIEW_STORAGE_KEY = "stgm-wf-exec-center-view";
+
+/**
+ * Read the persisted center view, defaulting to the graph (S8 keeps the DAG
+ * primary; S9 flips the default). Same lazy-`useState` + `localStorage`
+ * pattern as `ResizableSplit`'s persisted width.
+ */
+function readStoredCenterView(): CenterView {
+  try {
+    const stored = localStorage.getItem(CENTER_VIEW_STORAGE_KEY);
+    if (stored === "thread" || stored === "graph") return stored;
+  } catch {
+    /* localStorage may be unavailable */
+  }
+  return "graph";
+}
 
 /** Props for {@link WorkflowExecutionViewer}. */
 export interface WorkflowExecutionViewerProps {
@@ -269,6 +295,25 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   const [selectedTaskName, setSelectedTaskName] = useState<string | null>(null);
   const [showComparePicker, setShowComparePicker] = useState(false);
   const [compareTargetId, setCompareTargetId] = useState<string | null>(null);
+
+  // Center-column view (S8). Both views stay mounted with the inactive one
+  // CSS-hidden — the `collapsedPane` discipline — so toggling never remounts
+  // React Flow or drops the event stream (DD-009).
+  const [centerView, setCenterView] = useState<CenterView>(readStoredCenterView);
+  const handleCenterViewChange = useCallback((view: CenterView) => {
+    setCenterView(view);
+    try {
+      localStorage.setItem(CENTER_VIEW_STORAGE_KEY, view);
+    } catch {
+      /* quota or security error */
+    }
+  }, []);
+
+  // Screen reader announcements for task state changes. Owned by the viewer
+  // (not the graph): `display:none` removes content from the accessibility
+  // tree, so a live region inside the CSS-hidden graph would go silent in
+  // Thread view. One always-visible announcer serves both center views.
+  const announcement = useExecutionAnnouncements(effectiveTaskStates);
 
   // Selection is OWNER state (it also drives the graph highlight and the
   // bottom waterfall), reported into the panel controller from here — unlike
@@ -497,19 +542,54 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         className="min-h-0 flex-1"
         primary={
       <div className="flex h-full min-h-0 flex-1 flex-col">
-        {/* Primary area: the execution graph. Per-task detail lives in the
-            panel's Inspect facet (selecting a node opens it), so the graph
-            owns this column — no per-node sidebar competes with it. */}
-        <WorkflowExecutionGraph
-          executionId={executionId}
-          execution={execution}
-          taskStates={effectiveTaskStates}
-          onTaskSelect={handleSelectTask}
-          onAutoSelectTask={handleAutoSelectTask}
-          followExecution={isRunning}
-          nodesDraggable={nodesDraggable}
-          className="min-h-0 flex-1"
-        />
+        {/* Center-column view switcher (S8). Graph is the default; the
+            thread is the session-style card-per-task view (T02 pivot). */}
+        <CenterViewSwitcher view={centerView} onChange={handleCenterViewChange} />
+
+        {/* One always-visible live region for task state changes — see the
+            ownership note on `announcement` above. */}
+        <div role="log" aria-live="polite" aria-atomic="false" className="sr-only">
+          {announcement}
+        </div>
+
+        {/* Primary area: graph and thread, both mounted, inactive one
+            CSS-hidden (stable tree positions — no React Flow remount, no
+            stream reconnect, expanded cards survive a toggle). Per-task
+            detail lives in the panel's Inspect facet either way. */}
+        <div
+          data-center-view="graph"
+          className={cn("min-h-0 flex-1", centerView !== "graph" && "hidden")}
+        >
+          <WorkflowExecutionGraph
+            executionId={executionId}
+            execution={execution}
+            taskStates={effectiveTaskStates}
+            onTaskSelect={handleSelectTask}
+            onAutoSelectTask={handleAutoSelectTask}
+            // Gated on the graph being visible: camera moves against a
+            // display:none (zero-size) viewport are degenerate.
+            followExecution={isRunning && centerView === "graph"}
+            // The viewer owns the one always-visible announcer above; the
+            // graph's own would go silent while CSS-hidden in Thread view.
+            announceTaskStates={false}
+            nodesDraggable={nodesDraggable}
+            className="h-full"
+          />
+        </div>
+        <div
+          data-center-view="thread"
+          className={cn("min-h-0 flex-1", centerView !== "thread" && "hidden")}
+        >
+          <WorkflowTaskThread
+            taskStates={effectiveTaskStates}
+            totalTasks={effectiveTotalTasks}
+            isRunning={isRunning}
+            selectedTaskName={selectedTaskName}
+            onTaskSelect={handleSelectTask}
+            onOpenAgentExecution={panel.openAgentExecution}
+            className="h-full"
+          />
+        </div>
 
         {/* Bottom panel: Waterfall (default) + Event Log tabs */}
         <ExecutionBottomPanel
@@ -991,6 +1071,68 @@ function ExecutionBottomPanel({
         </div>
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Center-column view switcher (S8: Thread | Graph)
+// ---------------------------------------------------------------------------
+
+/**
+ * Slim segmented control above the center column. A radiogroup (the two
+ * views are mutually exclusive), matching the facet rail's radio semantics.
+ */
+function CenterViewSwitcher({
+  view,
+  onChange,
+}: {
+  readonly view: CenterView;
+  readonly onChange: (view: CenterView) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Center view"
+      className="flex items-center gap-0.5 border-b border-[var(--stgm-border,#e5e5e5)] px-2 py-1"
+    >
+      <CenterViewButton
+        label="Graph"
+        isActive={view === "graph"}
+        onClick={() => onChange("graph")}
+      />
+      <CenterViewButton
+        label="Thread"
+        isActive={view === "thread"}
+        onClick={() => onChange("thread")}
+      />
+    </div>
+  );
+}
+
+function CenterViewButton({
+  label,
+  isActive,
+  onClick,
+}: {
+  readonly label: string;
+  readonly isActive: boolean;
+  readonly onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={isActive}
+      onClick={onClick}
+      className={cn(
+        "rounded px-2 py-0.5 text-xs font-medium transition-colors",
+        isActive
+          ? "bg-[var(--stgm-muted,#f5f5f5)] text-[var(--stgm-foreground,#171717)]"
+          : "text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-foreground,#171717)]",
+      )}
+    >
+      {label}
+    </button>
   );
 }
 

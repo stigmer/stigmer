@@ -653,6 +653,23 @@ export {
   type WaterfallTimelineProps,
 } from "./waterfall/index.js";
 
+// S8: Workflow task thread — pure projection + behavior hook + styled component
+export {
+  projectThreadItems,
+  type WorkflowThreadItem,
+  type WorkflowThreadProgress,
+  type WorkflowThreadProjection,
+} from "./thread/project-thread-items.js";
+export {
+  threadCardVariant,
+  type WorkflowThreadCardVariant,
+} from "./thread/thread-presentation.js";
+export { useWorkflowThreadItems } from "./thread/useWorkflowThreadItems.js";
+export {
+  WorkflowTaskThread,
+  type WorkflowTaskThreadProps,
+} from "./thread/WorkflowTaskThread.js";
+
 // T11: Shortcut registry
 export {
   getAllShortcuts,

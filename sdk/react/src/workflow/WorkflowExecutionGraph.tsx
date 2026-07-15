@@ -24,8 +24,8 @@ import type { DerivedTaskState } from "../internal/store/workflow-execution-even
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { useFollowExecution, computeFollowSelection } from "./useFollowExecution.js";
 import { useActiveTaskName } from "./useActiveTaskName.js";
-import { useExecutionAnnouncements } from "./useExecutionAnnouncements.js";
 import { ExecutionActiveTaskIndicator } from "./ExecutionActiveTaskIndicator.js";
+import { useExecutionAnnouncements } from "./useExecutionAnnouncements.js";
 import { getAnimationDuration } from "../internal/motion-preference.js";
 
 /** Props for {@link WorkflowExecutionGraph}. */
@@ -74,6 +74,16 @@ export interface WorkflowExecutionGraphProps {
    * @default false
    */
   readonly nodesDraggable?: boolean;
+  /**
+   * Whether the graph renders its own `aria-live` region announcing task
+   * state changes. Keep the default for standalone embedding. Set `false`
+   * when a parent owns a shared announcer for multiple views of the same
+   * task states — a live region inside a CSS-hidden (`display:none`) graph
+   * is removed from the accessibility tree and would go silent, and two
+   * mounted announcers would double-announce.
+   * @default true
+   */
+  readonly announceTaskStates?: boolean;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -128,6 +138,7 @@ function WorkflowExecutionGraphInner({
   taskStates: externalTaskStates,
   onAutoSelectTask,
   panelOffsetPx = 0,
+  announceTaskStates = true,
   nodesDraggable: draggable = false,
   className,
 }: WorkflowExecutionGraphProps) {
@@ -244,7 +255,9 @@ function WorkflowExecutionGraphInner({
     onTaskSelect?.(taskToSelect);
   }, [isFollowing, activeTaskInfo?.taskName, selectedTaskName, setSelectedTaskName, onTaskSelect]);
 
-  // Screen reader announcements for task state changes
+  // Screen reader announcements for task state changes (standalone
+  // embedding). The viewer sets `announceTaskStates={false}` and owns a
+  // shared announcer instead — see the prop docs.
   const announcement = useExecutionAnnouncements(taskStates);
 
   const handleNodeClick = useCallback(
@@ -385,14 +398,16 @@ function WorkflowExecutionGraphInner({
         </ReactFlow>
 
         {/* Screen reader live region for execution state announcements */}
-        <div
-          role="log"
-          aria-live="polite"
-          aria-atomic="false"
-          className="sr-only"
-        >
-          {announcement}
-        </div>
+        {announceTaskStates && (
+          <div
+            role="log"
+            aria-live="polite"
+            aria-atomic="false"
+            className="sr-only"
+          >
+            {announcement}
+          </div>
+        )}
       </div>
     </WorkflowGraphModeProvider>
   );

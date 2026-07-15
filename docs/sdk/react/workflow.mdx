@@ -1520,6 +1520,33 @@ function useWorkflowSave(org: string): UseWorkflowSaveReturn
 />
 
 
+### useWorkflowThreadItems
+
+Behavior hook binding [`projectThreadItems`](#projectthreaditems) to a render loop with
+structural sharing: items whose fields did not change keep their object
+identity across event appends, so memoized card rows bail (DD-010).
+
+The projection is cheap (one pass over the task map), so it recomputes
+per render of the (memoized) thread organism rather than adding a
+`useMemo` whose dependency — the store's `taskStates` — changes identity
+on every event append anyway. The ref carries only the previous items
+for identity reuse; it holds no state of its own (single source of truth
+stays the store).
+
+**Signature**
+
+```tsx
+function useWorkflowThreadItems(taskStates: ReadonlyMap<string, DerivedTaskState>, totalTasks: number): WorkflowThreadProjection
+```
+
+<TypeTable
+  type={{
+    taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "", required: true },
+    totalTasks: { type: "number", description: "", required: true },
+  }}
+/>
+
+
 ### useWorkflowTopology
 
 Behavior hook that computes a DAG topology from workflow YAML.
@@ -3000,6 +3027,22 @@ All visuals use `--stgm-*` tokens. No hardcoded colors.
 />
 
 
+### projectThreadItems
+
+Projects the derived task-state map into ordered thread items plus a
+progress summary.
+
+Structural sharing: pass the previous call's `items` and any task whose
+fields are unchanged keeps its previous object identity. The store
+rebuilds every `DerivedTaskState` on each event append, so without this,
+every card would get a fresh item per event and `React.memo` rows could
+never bail (DD-009/DD-010 — only the actively-changing card re-renders).
+
+```tsx
+function projectThreadItems(taskStates: ReadonlyMap<string, DerivedTaskState>, totalTasks: number, previousItems?: readonly WorkflowThreadItem[]): WorkflowThreadProjection
+```
+
+
 ### RefinePhase
 
 Lifecycle phases for the workflow refinement flow.
@@ -3271,6 +3314,18 @@ Props for [`TaskPickerPopover`](#taskpickerpopover).
     side: { type: "\"left\" | \"right\" | \"top\" | \"bottom\"", description: "Which side of the anchor to position the popover." },
   }}
 />
+
+
+### threadCardVariant
+
+Resolves the thread card variant for a task kind.
+
+`agent_call` is the one kind-level special case (the flagship card);
+every other kind flows through the canonical category classification.
+
+```tsx
+function threadCardVariant(kind: WorkflowTaskKind): WorkflowThreadCardVariant
+```
 
 
 ### TopologyEdge
@@ -4308,6 +4363,46 @@ Props for [`WorkflowTaskReviewGate`](#workflowtaskreviewgate).
 />
 
 
+### WorkflowTaskThread
+
+Session-style task thread for a workflow execution: one card per task in
+execution order (first-started first — D-T02-1), streaming live as the
+run progresses, with a collapsed preview and an expandable detail body
+per card — the workflow analog of the session viewer's tool-call cards.
+
+Pending tasks render no cards (D-T02-5); the progress header keeps
+overall status visible. Retries collapse into one card with an attempt
+indicator (D-T02-6). AGENT_CALL cards expand to a summary plus an
+"Open transcript" affordance (D-T02-2) — the full transcript opens as a
+panel document, never inline. Selecting a card is the "show me this
+task" gesture (it opens Inspect), matching a DAG node click.
+
+Auto-follow uses the session thread's mechanism: an IntersectionObserver
+sentinel keeps the list pinned to the latest card until the user scrolls
+up, with a jump-to-latest affordance to re-engage.
+
+This component is designed to work identically whether rendered in the
+Stigmer Console or embedded in a third-party dashboard. No dependencies
+on Console routing, auth, or layout context.
+
+
+### WorkflowTaskThreadProps
+
+Props for [`WorkflowTaskThread`](#workflowtaskthread).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    isRunning: { type: "boolean", description: "Whether the execution is still running (drives streaming affordances).", required: true },
+    onOpenAgentExecution: { type: "(childExecutionId: string, taskName: string) => void", description: "Callback to open an AGENT_CALL task's child transcript in the panel's editor area (the S4 in-place expansion). Omitted → the affordance is not rendered." },
+    onTaskSelect: { type: "(taskName: string | null) => void", description: "Callback when the user selects a task card (or re-clicks the selected card to deselect — `null`). Same contract as a graph node click: the viewer opens the panel's Inspect facet on an explicit selection." },
+    selectedTaskName: { type: "string | null", description: "The task selected across the viewer (thread, graph, and panel).", required: true },
+    taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Live derived task states from the execution event stream.", required: true },
+    totalTasks: { type: "number", description: "Total planned tasks (from `execution_started`); `0` when unknown.", required: true },
+  }}
+/>
+
+
 ### WorkflowTemplate
 
 Workflow template = generic ResourceTemplate with workflow-specific data.
@@ -4351,6 +4446,79 @@ on template cards and preview dialogs.
     patterns: { type: "readonly WorkflowPattern[]", description: "Structural patterns detected in the template.", required: true },
     taskCount: { type: "number", description: "Number of top-level tasks (excludes nested tasks inside fork/try_catch/for_each).", required: true },
     taskKinds: { type: "readonly string[]", description: "Unique task kind strings used in the template.", required: true },
+  }}
+/>
+
+
+### WorkflowThreadCardVariant
+
+Presentation variant for a task card in the workflow task thread.
+
+Deliberately NOT a new task-kind classification (D-T02-3): variants are a
+thin presentation projection of the canonical categories from
+`kind-metadata.ts` (`categorizeKind` — the single source of truth that
+already consolidated three drifted client-side classifications), plus one
+kind-level special case for the flagship `agent_call` card.
+
+- `agent-call` — the flagship: live agent slug, current tool, message and
+  tool-call counts, transcript expansion (D-T02-2).
+- `control` — control-flow tasks (switch/fork/for-each/try-catch/wait).
+- `gate` — governance tasks (human_input); the stop-sign of the thread.
+- `event` — signal/timing tasks (listen/emit/notification/raise-error).
+- `action` — everything else (invocations, data transforms, LLM calls);
+  also the fallback for `unspecified` kinds, which the snapshot-derived
+  fallback task map produces when the event log is empty.
+
+
+### WorkflowThreadItem
+
+One task card in the thread — a flat, display-ready projection of a
+`DerivedTaskState`. Fields are copied (not referenced) so value equality
+is a shallow field compare, which powers the structural sharing below.
+
+<TypeTable
+  type={{
+    agentSlug: { type: "string", description: "", required: true },
+    attemptNumber: { type: "number", description: "", required: true },
+    childExecutionId: { type: "string", description: "", required: true },
+    costMicros: { type: "bigint", description: "", required: true },
+    currentToolName: { type: "string", description: "", required: true },
+    durationMs: { type: "number", description: "", required: true },
+    error: { type: "string", description: "", required: true },
+    kindLabel: { type: "string", description: "Human label for the kind, from the canonical `kindToDisplayName`. The empty string for `unspecified` kinds (the snapshot-derived fallback map carries no kind) — consumers hide the kind chip rather than render a meaningless \"Unknown\" label.", required: true },
+    messagesCount: { type: "number", description: "", required: true },
+    status: { type: "\"failed\" | \"pending\" | \"running\" | \"completed\" | \"skipped\" | \"retrying\" | \"waiting_approval\"", description: "", required: true },
+    taskKind: { type: "WorkflowTaskKind", description: "", required: true },
+    taskName: { type: "string", description: "", required: true },
+    tokensUsed: { type: "bigint", description: "", required: true },
+    toolCallsCount: { type: "number", description: "", required: true },
+    variant: { type: "WorkflowThreadCardVariant", description: "", required: true, typeDescriptionLink: "#workflowthreadcardvariant" },
+  }}
+/>
+
+
+### WorkflowThreadProgress
+
+Progress line for the thread header. Pending tasks render no cards
+(D-T02-5); this is where "what's coming" stays visible (Nielsen #1).
+
+<TypeTable
+  type={{
+    activeTasks: { type: "number", description: "Tasks currently active (running, retrying, or waiting approval).", required: true },
+    settledTasks: { type: "number", description: "Tasks in a terminal state (completed, failed, or skipped).", required: true },
+    totalTasks: { type: "number", description: "Total planned tasks from `execution_started`; `0` when unknown.", required: true },
+  }}
+/>
+
+
+### WorkflowThreadProjection
+
+Result of [`projectThreadItems`](#projectthreaditems).
+
+<TypeTable
+  type={{
+    items: { type: "readonly WorkflowThreadItem[]", description: "", required: true },
+    progress: { type: "WorkflowThreadProgress", description: "", required: true, typeDescriptionLink: "#workflowthreadprogress" },
   }}
 />
 

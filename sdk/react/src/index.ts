@@ -1562,6 +1562,11 @@ export {
   WorkflowTaskReviewGate,
   useReviewRenderer,
   useReviewPayload,
+  // S8: Workflow task thread (session-style center view)
+  projectThreadItems,
+  threadCardVariant,
+  useWorkflowThreadItems,
+  WorkflowTaskThread,
 } from "./workflow/index.js";
 export type {
   TaskKindDescriptor,
@@ -1718,6 +1723,12 @@ export type {
   TaskOutcome,
   WorkflowTaskReviewGateProps,
   UseReviewPayloadReturn,
+  // S8: Workflow task thread (session-style center view) types
+  WorkflowThreadItem,
+  WorkflowThreadProgress,
+  WorkflowThreadProjection,
+  WorkflowThreadCardVariant,
+  WorkflowTaskThreadProps,
 } from "./workflow/index.js";
 
 // ─── Dashboard (Unified Platform) ──────────────────────────────────────────
