@@ -11,6 +11,10 @@ import {
 } from "../../execution/file-change-document";
 import { AGENT_EXECUTION_DOCUMENT_ENTRY_ID } from "../../execution/agent-execution-document";
 import {
+  DIAGNOSIS_DOCUMENT_ENTRY_ID,
+  DIAGNOSIS_DOCUMENT_PATH,
+} from "../diagnosis-document";
+import {
   useWorkflowExecutionPanel,
   workflowArtifactTabPath,
 } from "../useWorkflowExecutionPanel";
@@ -242,5 +246,153 @@ describe("useWorkflowExecutionPanel", () => {
       useWorkflowExecutionPanel({ defaultView: "usage" }),
     );
     expect(result.current.view).toBe("usage");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Selection → Inspect (the reconciled panel's per-node facet)
+// ---------------------------------------------------------------------------
+
+describe("useWorkflowExecutionPanel notifySelection", () => {
+  it("an explicit selection ({ open: true }) expands the panel onto Inspect", () => {
+    const { result } = renderHook(() => useWorkflowExecutionPanel());
+
+    act(() => result.current.notifySelection("build-report", { open: true }));
+
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.view).toBe("inspect");
+  });
+
+  it("an explicit selection overrides a sticky rail pick — the node click IS the intent", () => {
+    const { result } = renderHook(() => useWorkflowExecutionPanel());
+    act(() => {
+      result.current.openPanel();
+      result.current.setView("usage"); // sticky explicit pick
+    });
+
+    act(() => result.current.notifySelection("build-report", { open: true }));
+
+    expect(result.current.view).toBe("inspect");
+  });
+
+  it("re-selecting the already-selected task re-opens a closed panel", () => {
+    const { result } = renderHook(() => useWorkflowExecutionPanel());
+    act(() => result.current.notifySelection("build-report", { open: true }));
+    act(() => result.current.closePanel());
+
+    act(() => result.current.notifySelection("build-report", { open: true }));
+
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.view).toBe("inspect");
+  });
+
+  it("an auto-focus never opens a collapsed panel (a deliberate collapse survives the run)", () => {
+    const { result } = renderHook(() => useWorkflowExecutionPanel());
+
+    act(() => result.current.notifySelection("running-task"));
+
+    expect(result.current.isOpen).toBe(false);
+    expect(result.current.view).toBe("artifacts");
+  });
+
+  it("an auto-focus surfaces Inspect in an already-open, un-stuck panel", () => {
+    const { result } = renderHook(() => useWorkflowExecutionPanel());
+    act(() => result.current.openPanel());
+
+    act(() => result.current.notifySelection("running-task"));
+
+    expect(result.current.view).toBe("inspect");
+  });
+
+  it("an auto-focus yields to a sticky rail pick", () => {
+    const { result } = renderHook(() => useWorkflowExecutionPanel());
+    act(() => {
+      result.current.openPanel();
+      result.current.setView("changes");
+    });
+
+    act(() => result.current.notifySelection("running-task"));
+
+    expect(result.current.view).toBe("changes");
+  });
+
+  it("opening the panel re-derives Inspect for a selection made while collapsed", () => {
+    const { result } = renderHook(() => useWorkflowExecutionPanel());
+    act(() => result.current.notifySelection("running-task")); // ignored while collapsed
+
+    act(() => result.current.openPanel());
+
+    expect(result.current.view).toBe("inspect");
+  });
+
+  it("clearing the selection leaves Inspect for the home view and unsticks", () => {
+    const { result } = renderHook(() => useWorkflowExecutionPanel());
+    act(() => result.current.notifySelection("build-report", { open: true }));
+
+    act(() => result.current.notifySelection(null));
+
+    expect(result.current.view).toBe("artifacts");
+    // Unstuck: the next auto-focus may switch views again.
+    act(() => result.current.notifySelection("next-task"));
+    expect(result.current.view).toBe("inspect");
+  });
+
+  it("clearing the selection on a non-Inspect view changes nothing", () => {
+    const { result } = renderHook(() => useWorkflowExecutionPanel());
+    act(() => {
+      result.current.openPanel();
+      result.current.setView("usage");
+    });
+
+    act(() => result.current.notifySelection(null));
+
+    expect(result.current.view).toBe("usage");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Diagnosis document (singleton editor tab — the tab IS the active state)
+// ---------------------------------------------------------------------------
+
+describe("useWorkflowExecutionPanel openDiagnosis", () => {
+  it("opens the diagnosis document as a pinned tab and expands the panel", () => {
+    const { result } = renderHook(() => useWorkflowExecutionPanel());
+
+    act(() => result.current.openDiagnosis());
+
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.editorsStore.getSnapshot().editors).toEqual([
+      {
+        entryId: DIAGNOSIS_DOCUMENT_ENTRY_ID,
+        path: DIAGNOSIS_DOCUMENT_PATH,
+        preview: false,
+      },
+    ]);
+  });
+
+  it("re-invoking Diagnose focuses the existing tab — never a duplicate (singleton)", () => {
+    const { result } = renderHook(() => useWorkflowExecutionPanel());
+
+    act(() => {
+      result.current.openDiagnosis();
+      result.current.openDiagnosis();
+    });
+
+    expect(result.current.editorsStore.getSnapshot().editors).toHaveLength(1);
+  });
+
+  it("the pinned diagnosis tab survives preview browsing (artifacts reuse their own slot)", () => {
+    const { result } = renderHook(() => useWorkflowExecutionPanel());
+
+    act(() => {
+      result.current.openDiagnosis();
+      result.current.openArtifact(artifact("art_1", "report.json"));
+    });
+
+    const { editors } = result.current.editorsStore.getSnapshot();
+    expect(editors).toHaveLength(2);
+    expect(editors.map((e) => e.entryId)).toContain(
+      DIAGNOSIS_DOCUMENT_ENTRY_ID,
+    );
   });
 });

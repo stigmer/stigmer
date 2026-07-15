@@ -3,8 +3,7 @@
  *
  * Consolidates formatting logic previously duplicated across
  * WorkflowExecutionViewer, WorkflowExecutionHeader,
- * WorkflowExecutionCostPanel, WorkflowExecutionTaskPanel,
- * and WorkflowExecutionTimelineEvent.
+ * WorkflowExecutionTaskPanel, and WorkflowExecutionTimelineEvent.
  *
  * @since T05 (Runtime Inspector)
  */

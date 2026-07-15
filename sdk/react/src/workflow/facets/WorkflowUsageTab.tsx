@@ -99,8 +99,10 @@ export function WorkflowUsageTab({
 /**
  * The execution-level rollup block: consumed cost/tokens with the budget
  * limit when the stream reported one (`remaining >= 0` — `-1` means "no
- * limit known"), plus an explicit threshold-breach notice (text + icon,
- * never color alone).
+ * limit known"), a budget progress gauge per known limit (absorbed from the
+ * retired sidebar `WorkflowExecutionCostPanel` so the layout consolidation
+ * lost no information), plus an explicit threshold-breach notice (text +
+ * icon, never color alone).
  */
 function UsageSummary({
   costSummary,
@@ -132,11 +134,23 @@ function UsageSummary({
           </span>
         )}
       </div>
+      <BudgetGauge
+        consumed={costSummary.costConsumedMicros}
+        limit={costLimit}
+        breached={costSummary.thresholdBreached}
+        label="Cost budget"
+      />
 
       <div className="text-xs tabular-nums text-muted-foreground">
         {formatTokenCount(costSummary.tokensConsumed)} tokens
         {tokenLimit !== undefined && ` of ${formatTokenCount(tokenLimit)}`}
       </div>
+      <BudgetGauge
+        consumed={costSummary.tokensConsumed}
+        limit={tokenLimit}
+        breached={costSummary.thresholdBreached}
+        label="Token budget"
+      />
 
       {costSummary.thresholdBreached && (
         <p className="flex items-center gap-1.5 text-xs text-warning">
@@ -144,6 +158,49 @@ function UsageSummary({
           Budget threshold breached
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * Budget consumption bar + percentage, shown only when a limit is known.
+ * The color shift (primary → warning past 80% or on breach) is a secondary
+ * channel — the breach notice above carries the accessible signal.
+ */
+function BudgetGauge({
+  consumed,
+  limit,
+  breached,
+  label,
+}: {
+  readonly consumed: bigint;
+  readonly limit: bigint | undefined;
+  readonly breached: boolean;
+  readonly label: string;
+}) {
+  if (limit === undefined || limit <= BIGINT_ZERO) return null;
+  const percentage = Number((consumed * BigInt(100)) / limit);
+
+  return (
+    <div className="flex items-center gap-2" aria-label={label}>
+      <div
+        role="progressbar"
+        aria-valuenow={Math.min(percentage, 100)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted"
+      >
+        <div
+          className={cn(
+            "h-full rounded-full transition-all",
+            breached || percentage > 80 ? "bg-warning" : "bg-primary",
+          )}
+          style={{ width: `${Math.min(percentage, 100)}%` }}
+        />
+      </div>
+      <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+        {percentage.toFixed(0)}%
+      </span>
     </div>
   );
 }

@@ -194,23 +194,26 @@ export {
   type WorkflowExecutionTaskPanelProps,
 } from "./WorkflowExecutionTaskPanel.js";
 
-export {
-  WorkflowExecutionCostPanel,
-  type WorkflowExecutionCostPanelProps,
-} from "./WorkflowExecutionCostPanel.js";
-
-// Execution panel — the WorkspaceSurface-based side panel (Artifacts/Changes/
-// Usage facets, virtual document tabs) and its controller/assembler hooks.
+// Execution panel — the single WorkspaceSurface-based side panel (Inspect/
+// Artifacts/Changes/Usage facets, virtual document tabs) and its
+// controller/assembler hooks.
 export {
   useWorkflowExecutionPanel,
   workflowArtifactTabPath,
   type WorkflowExecutionPanelController,
   type UseWorkflowExecutionPanelOptions,
+  type NotifySelectionOptions,
 } from "./useWorkflowExecutionPanel.js";
 export {
   useWorkflowExecutionRailViews,
   type UseWorkflowExecutionRailViewsOptions,
+  type WorkflowInspectViewOptions,
+  type WorkflowInspectHitl,
 } from "./useWorkflowExecutionRailViews.js";
+export {
+  DIAGNOSIS_DOCUMENT_ENTRY_ID,
+  DIAGNOSIS_DOCUMENT_PATH,
+} from "./diagnosis-document.js";
 export {
   WorkflowArtifactsTab,
   type WorkflowArtifactsTabProps,

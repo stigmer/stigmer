@@ -55,6 +55,16 @@ export interface SurfaceRailView {
   readonly badge?: number;
   /** Sidebar content rendered while this view is active. */
   readonly content: ReactNode;
+  /**
+   * The content OWNS its chrome: render it in a bare full-height slot with
+   * no sidebar header and no padded scroll wrapper. For self-managing views
+   * — a header + fixed tab strip + internally-scrolling body (the workflow
+   * Inspect facet) — where the default envelope would double the header and
+   * nest scroll containers. Flat, single-scroll facets (Config, Changes,
+   * Artifacts, Usage) omit it and keep the shared envelope.
+   * @default false
+   */
+  readonly fitted?: boolean;
 }
 
 /**
@@ -596,6 +606,17 @@ function SearchModeToggle({
 // ---------------------------------------------------------------------------
 
 function ExtraViewSidebar({ view }: { readonly view: SurfaceRailView }) {
+  if (view.fitted) {
+    // A fitted view owns its chrome (header, tab strip, scroll) — hand it a
+    // bare full-height slot. A shared header or scroll wrapper here would
+    // double the header and nest scroll containers around a component that
+    // already manages both.
+    return (
+      <div className="flex h-full min-h-0 flex-col border-r border-border">
+        {view.content}
+      </div>
+    );
+  }
   return (
     <div className="flex h-full min-h-0 flex-col border-r border-border">
       <SidebarHeader title={view.label} />

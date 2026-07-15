@@ -636,6 +636,7 @@ hosts extend its rail.
   type={{
     badge: { type: "number", description: "Optional count badge rendered over the rail icon (hidden when 0)." },
     content: { type: "ReactNode", description: "Sidebar content rendered while this view is active.", required: true },
+    fitted: { type: "boolean", description: "The content OWNS its chrome: render it in a bare full-height slot with no sidebar header and no padded scroll wrapper. For self-managing views — a header + fixed tab strip + internally-scrolling body (the workflow Inspect facet) — where the default envelope would double the header and nest scroll containers. Flat, single-scroll facets (Config, Changes, Artifacts, Usage) omit it and keep the shared envelope." },
     icon: { type: "ReactNode", description: "Monochrome rail icon (tinted via `currentColor`, DD-005).", required: true },
     id: { type: "string", description: "Unique view id. Must not collide with the built-in `\"files\"`/`\"search\"`.", required: true },
     label: { type: "string", description: "Accessible label; also rendered as the sidebar heading.", required: true },

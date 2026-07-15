@@ -229,6 +229,38 @@ describe("WorkspaceSurface extraViews", () => {
     expect(screen.getByRole("tab", { name: /main\.go/ })).toBeTruthy();
   });
 
+  it("hands a fitted view a bare slot — no sidebar heading, no padded scroll wrapper", () => {
+    // A fitted view (the workflow Inspect facet) owns its header, tab strip,
+    // and scroll; the shared envelope would double the header and nest
+    // scroll containers.
+    const fittedView = {
+      id: "inspect",
+      label: "Inspect",
+      icon: <span />,
+      fitted: true,
+      content: <div data-testid="fitted-probe" />,
+    };
+    renderSurface({ extraViews: [fittedView] });
+    fireEvent.click(screen.getByRole("radio", { name: "Inspect" }));
+
+    const probe = screen.getByTestId("fitted-probe");
+    // No SidebarHeader (the rail button carries the label as a title
+    // attribute, not text — so any "Inspect" text would be the heading).
+    expect(screen.queryByText("Inspect")).toBeNull();
+    // The content's wrapper is the bare sidebar column, not the padded
+    // scroll envelope the default path applies.
+    expect(probe.parentElement!.className).not.toContain("overflow-y-auto");
+    expect(probe.parentElement!.className).not.toContain("px-3");
+  });
+
+  it("keeps the shared envelope (heading + padded scroll) for unfitted views", () => {
+    renderSurface({ extraViews: [configView] });
+    fireEvent.click(screen.getByRole("radio", { name: "Config" }));
+    const probe = screen.getByTestId("config-probe");
+    expect(probe.parentElement!.className).toContain("overflow-y-auto");
+    expect(screen.getByText("Config")).toBeTruthy();
+  });
+
   it("supports controlled view selection via view/onViewChange", () => {
     const onViewChange = vi.fn();
     renderSurface({

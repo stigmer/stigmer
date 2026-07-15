@@ -11,6 +11,7 @@ import type {
 import {
   useWorkflowExecutionRailViews,
   type UseWorkflowExecutionRailViewsOptions,
+  type WorkflowInspectViewOptions,
 } from "../useWorkflowExecutionRailViews";
 
 function artifact(id: string, displayName: string) {
@@ -105,5 +106,85 @@ describe("useWorkflowExecutionRailViews", () => {
     const first = result.current;
     rerender();
     expect(result.current).toBe(first);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The contextual Inspect view (per-node detail, fitted)
+// ---------------------------------------------------------------------------
+
+/** A minimal Inspect bundle; tests override `selectedTaskName`. */
+function inspectOptions(
+  selectedTaskName: string | null,
+): WorkflowInspectViewOptions {
+  return {
+    selectedTaskName,
+    events: [],
+    hitl: {
+      submitApproval: vi.fn(),
+      approvalSubmittingToolCallIds: new Set<string>(),
+      approvalErrorsByToolCallId: new Map<string, Error>(),
+      submitTaskApproval: vi.fn(),
+      taskApprovalSubmittingTaskNames: new Set<string>(),
+      taskApprovalErrorsByTaskName: new Map<string, Error>(),
+    },
+  };
+}
+
+describe("useWorkflowExecutionRailViews Inspect view", () => {
+  it("leads the rail while a task is selected — fitted, unbadged", () => {
+    const { result } = renderHook(() =>
+      useWorkflowExecutionRailViews(
+        baseOptions({ inspect: inspectOptions("build-report") }),
+      ),
+    );
+    expect(result.current.map((v) => v.id)).toEqual([
+      "inspect",
+      "artifacts",
+      "changes",
+      "usage",
+    ]);
+    expect(result.current[0].label).toBe("Inspect");
+    // Fitted: the inspector owns its header/tabs/scroll — the surface must
+    // hand it the bare slot, not the shared facet envelope.
+    expect(result.current[0].fitted).toBe(true);
+    expect(result.current[0].badge).toBeUndefined();
+  });
+
+  it("is absent without a selection (contextual, like the session's Inspect)", () => {
+    const { result } = renderHook(() =>
+      useWorkflowExecutionRailViews(
+        baseOptions({ inspect: inspectOptions(null) }),
+      ),
+    );
+    expect(result.current.map((v) => v.id)).toEqual([
+      "artifacts",
+      "changes",
+      "usage",
+    ]);
+  });
+
+  it("is absent when the bundle is not provided (standalone panel embeds)", () => {
+    const { result } = renderHook(() =>
+      useWorkflowExecutionRailViews(baseOptions()),
+    );
+    expect(result.current.some((v) => v.id === "inspect")).toBe(false);
+  });
+
+  it("selection changes leave the execution-facet elements untouched (DD-010)", () => {
+    const base = baseOptions({ inspect: inspectOptions("task-a") });
+    const { result, rerender } = renderHook(
+      (opts: UseWorkflowExecutionRailViewsOptions) =>
+        useWorkflowExecutionRailViews(opts),
+      { initialProps: base },
+    );
+    const firstFacets = result.current.filter((v) => v.id !== "inspect");
+
+    rerender({ ...base, inspect: inspectOptions("task-b") });
+
+    const nextFacets = result.current.filter((v) => v.id !== "inspect");
+    expect(nextFacets.map((v, i) => v === firstFacets[i])).not.toContain(
+      false,
+    );
   });
 });

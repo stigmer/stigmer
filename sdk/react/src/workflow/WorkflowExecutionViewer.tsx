@@ -15,11 +15,9 @@ import { useWorkflowExecutionActions } from "./useWorkflowExecutionActions.js";
 import { WorkflowExecutionHeader } from "./WorkflowExecutionHeader.js";
 import { WorkflowExecutionTimeline, type WorkflowExecutionTimelineProps } from "./WorkflowExecutionTimeline.js";
 import { WaterfallTimeline } from "./waterfall/index.js";
-import { WorkflowExecutionCostPanel } from "./WorkflowExecutionCostPanel.js";
 import { WorkflowRepairCard } from "./WorkflowRepairCard.js";
 import { WorkflowExecutionGraph } from "./WorkflowExecutionGraph.js";
 import type { DerivedCostSummary, DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
-import { ExecutionInspector } from "./execution-inspector/index.js";
 import { ExecutionComparisonPicker } from "./execution-comparison/ExecutionComparisonPicker.js";
 import { ExecutionComparisonView } from "./execution-comparison/ExecutionComparisonView.js";
 import { WorkflowExecutionApprovalCard } from "./WorkflowExecutionApprovalCard.js";
@@ -53,7 +51,15 @@ import {
   workflowArtifactTabPath,
   type WorkflowExecutionPanelController,
 } from "./useWorkflowExecutionPanel.js";
-import { useWorkflowExecutionRailViews } from "./useWorkflowExecutionRailViews.js";
+import {
+  useWorkflowExecutionRailViews,
+  type WorkflowInspectHitl,
+  type WorkflowInspectViewOptions,
+} from "./useWorkflowExecutionRailViews.js";
+import {
+  DIAGNOSIS_DOCUMENT_ENTRY_ID,
+  DIAGNOSIS_DOCUMENT_PATH,
+} from "./diagnosis-document.js";
 import { WorkflowArtifactDocument } from "./WorkflowArtifactDocument.js";
 
 /** Props for {@link WorkflowExecutionViewer}. */
@@ -74,8 +80,6 @@ export interface WorkflowExecutionViewerProps {
    * application handles navigation to the workflow editor (DD-004).
    */
   readonly onNavigateToWorkflowEditor?: (yaml: string, workflowSlug: string) => void;
-  /** Additional action elements to render in the sidebar inspector footer. */
-  readonly additionalActions?: ReactNode;
   /**
    * Host-supplied action elements rendered in the header action group
    * (e.g. a Share control). Routing/auth-agnostic per DD-004.
@@ -95,9 +99,13 @@ export interface WorkflowExecutionViewerProps {
 /**
  * Top-level composed viewer for a single workflow execution.
  *
- * Wires together all execution hooks and sub-components into a
- * two-region layout: an event timeline (main area) and a context
- * sidebar (tasks, budget, artifacts).
+ * Wires together all execution hooks and sub-components into a two-column
+ * layout: the graph column (DAG graph + waterfall/events bottom drawer) and
+ * a single collapsible `WorkspaceSurface` panel carrying the facets
+ * (Inspect/Artifacts/Changes/Usage on the rail) and the rich documents
+ * (transcripts, diffs, artifacts, AI diagnosis in the editor area).
+ * Selecting a task — graph node, waterfall bar, Usage row — opens the panel
+ * on its Inspect facet.
  *
  * This component is designed to work identically whether rendered
  * in the Stigmer Console or embedded in a third-party dashboard.
@@ -116,7 +124,6 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   org,
   onNavigateToAgentExecution,
   onNavigateToWorkflowEditor,
-  additionalActions,
   headerActions,
   nodesDraggable,
   className,
@@ -260,17 +267,77 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   const panel = useWorkflowExecutionPanel();
 
   const [selectedTaskName, setSelectedTaskName] = useState<string | null>(null);
-  const [showDiagnosis, setShowDiagnosis] = useState(false);
   const [showComparePicker, setShowComparePicker] = useState(false);
   const [compareTargetId, setCompareTargetId] = useState<string | null>(null);
 
-  const handleDiagnose = useCallback(() => {
-    setShowDiagnosis(true);
-  }, []);
+  // Selection is OWNER state (it also drives the graph highlight and the
+  // bottom waterfall), reported into the panel controller from here — unlike
+  // the session, whose thread selection lives in the panel subtree. The two
+  // wrappers encode the one selection rule: an explicit user gesture (graph
+  // node, waterfall bar, Usage row) opens the panel on Inspect; the runner's
+  // auto-focus only updates an already-open panel. A deselect (graph pane
+  // click, or toggling the selected node off) clears without opening.
+  const notifySelection = panel.notifySelection;
+  const handleSelectTask = useCallback(
+    (taskName: string | null) => {
+      setSelectedTaskName(taskName);
+      notifySelection(taskName, taskName !== null ? { open: true } : undefined);
+    },
+    [notifySelection],
+  );
+  const handleAutoSelectTask = useCallback(
+    (taskName: string) => {
+      setSelectedTaskName(taskName);
+      notifySelection(taskName);
+    },
+    [notifySelection],
+  );
 
-  const handleCloseDiagnosis = useCallback(() => {
-    setShowDiagnosis(false);
-  }, []);
+  // The Inspect facet's HITL wiring — the same single actions instance,
+  // narrowed per-field (DD-010) exactly like `transcriptHitl` above, so a
+  // gate's spinner/error is identical in the Inspect facet, the transcript,
+  // and the bottom Approvals tab.
+  const inspectHitl = useMemo<WorkflowInspectHitl>(
+    () => ({
+      submitApproval: actions.submitApproval,
+      approvalSubmittingToolCallIds: actions.approvalSubmittingToolCallIds,
+      approvalErrorsByToolCallId: actions.approvalErrorsByToolCallId,
+      submitTaskApproval: actions.submitTaskApproval,
+      taskApprovalSubmittingTaskNames: actions.taskApprovalSubmittingTaskNames,
+      taskApprovalErrorsByTaskName: actions.taskApprovalErrorsByTaskName,
+    }),
+    [
+      actions.submitApproval,
+      actions.approvalSubmittingToolCallIds,
+      actions.approvalErrorsByToolCallId,
+      actions.submitTaskApproval,
+      actions.taskApprovalSubmittingTaskNames,
+      actions.taskApprovalErrorsByTaskName,
+    ],
+  );
+
+  // The Inspect facet's grouped inputs (memoized so the rail assembly
+  // re-derives the Inspect element only when these move).
+  const inspect = useMemo<WorkflowInspectViewOptions>(
+    () => ({
+      selectedTaskName,
+      events,
+      taskSnapshots: execution?.status?.tasks,
+      pendingApprovals: execution?.status?.pendingApprovals,
+      onNavigateToAgentExecution,
+      onOpenAgentExecution: panel.openAgentExecution,
+      hitl: inspectHitl,
+    }),
+    [
+      selectedTaskName,
+      events,
+      execution?.status?.tasks,
+      execution?.status?.pendingApprovals,
+      onNavigateToAgentExecution,
+      panel.openAgentExecution,
+      inspectHitl,
+    ],
+  );
 
   const handleOpenComparePicker = useCallback(() => {
     setShowComparePicker(true);
@@ -340,8 +407,10 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         streamState={streamState}
         costSummary={costSummary}
         actions={actions}
-        onDiagnose={org ? handleDiagnose : undefined}
-        isDiagnosing={showDiagnosis}
+        // Diagnose opens (or focuses) the singleton diagnosis document tab —
+        // the tab itself is the "diagnosis is active" state, so there is no
+        // owner-level isDiagnosing boolean to keep in sync (SSOT).
+        onDiagnose={org ? panel.openDiagnosis : undefined}
         onCompare={handleOpenComparePicker}
         headerActions={
           <>
@@ -428,66 +497,18 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         className="min-h-0 flex-1"
         primary={
       <div className="flex h-full min-h-0 flex-1 flex-col">
-        {/* Primary area: Execution graph + resizable inspector */}
-        <ResizableSplit
-          defaultSize={showDiagnosis ? 440 : 384}
-          minSize={280}
-          maxSize={800}
-          storageKey="stgm-wf-exec-inspector-width"
-          primary={
-            <WorkflowExecutionGraph
-              executionId={executionId}
-              execution={execution}
-              taskStates={effectiveTaskStates}
-              onTaskSelect={setSelectedTaskName}
-              onAutoSelectTask={setSelectedTaskName}
-              followExecution={isRunning}
-              nodesDraggable={nodesDraggable}
-              className="h-full"
-            />
-          }
-          secondary={
-            <aside className="flex h-full flex-col overflow-hidden">
-              {showDiagnosis && org ? (
-                <WorkflowRepairCard
-                  executionId={executionId}
-                  org={org}
-                  onApplyFix={onNavigateToWorkflowEditor ? handleApplyFix : undefined}
-                  onClose={handleCloseDiagnosis}
-                  className="h-full"
-                />
-              ) : (
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  <ExecutionInspector
-                    selectedTaskName={selectedTaskName}
-                    events={events}
-                    taskStates={effectiveTaskStates}
-                    taskSnapshots={execution?.status?.tasks ?? undefined}
-                    onNavigateToAgentExecution={onNavigateToAgentExecution}
-                    onOpenAgentExecution={panel.openAgentExecution}
-                    pendingApprovals={execution?.status?.pendingApprovals}
-                    onSubmitApproval={actions.submitApproval}
-                    approvalSubmittingToolCallIds={actions.approvalSubmittingToolCallIds}
-                    approvalErrorsByToolCallId={actions.approvalErrorsByToolCallId}
-                    onSubmitTaskApproval={actions.submitTaskApproval}
-                    taskApprovalSubmittingTaskNames={actions.taskApprovalSubmittingTaskNames}
-                    taskApprovalErrorsByTaskName={actions.taskApprovalErrorsByTaskName}
-                    className="min-h-0 flex-1"
-                  />
-
-                  <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
-                    <WorkflowExecutionCostPanel costSummary={costSummary} />
-                  </div>
-
-                  {additionalActions && (
-                    <div className="border-t border-[var(--stgm-border,#e5e5e5)] px-3 py-2">
-                      {additionalActions}
-                    </div>
-                  )}
-                </div>
-              )}
-            </aside>
-          }
+        {/* Primary area: the execution graph. Per-task detail lives in the
+            panel's Inspect facet (selecting a node opens it), so the graph
+            owns this column — no per-node sidebar competes with it. */}
+        <WorkflowExecutionGraph
+          executionId={executionId}
+          execution={execution}
+          taskStates={effectiveTaskStates}
+          onTaskSelect={handleSelectTask}
+          onAutoSelectTask={handleAutoSelectTask}
+          followExecution={isRunning}
+          nodesDraggable={nodesDraggable}
+          className="min-h-0 flex-1"
         />
 
         {/* Bottom panel: Waterfall (default) + Event Log tabs */}
@@ -497,7 +518,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           executionStartIso={execution.status?.startedAt ?? ""}
           executionDurationMs={executionDurationMs}
           selectedTaskName={selectedTaskName}
-          onTaskSelect={setSelectedTaskName}
+          onTaskSelect={handleSelectTask}
           onNavigateToAgentExecution={onNavigateToAgentExecution}
           taskStates={effectiveTaskStates}
           onSubmitTaskApproval={actions.submitTaskApproval}
@@ -521,12 +542,16 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           panel.isOpen ? (
             <ExecutionWorkspacePanel
               panel={panel}
+              executionId={executionId}
+              org={org}
+              inspect={inspect}
               artifacts={artifacts}
               fileChangesState={fileChangesState}
               costSummary={costSummary}
               taskStates={effectiveTaskStates}
-              onSelectTask={setSelectedTaskName}
+              onSelectTask={handleSelectTask}
               onNavigateToAgentExecution={onNavigateToAgentExecution}
+              onApplyFix={onNavigateToWorkflowEditor ? handleApplyFix : undefined}
               transcriptHitl={transcriptHitl}
             />
           ) : null
@@ -545,27 +570,38 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
 /**
  * The workflow analog of the session viewer's panel region: subscribes to the
  * open-editor group (keeping that subscription out of the streaming owner),
- * assembles the rail facets, and resolves open virtual-document tabs back to
- * their records (artifact tabs → `Artifact`, file-change tabs → the current
- * net `FileChange`).
+ * assembles the rail facets (including the selection-driven Inspect view),
+ * and resolves open virtual-document tabs back to their records (artifact
+ * tabs → `Artifact`, file-change tabs → the current net `FileChange`,
+ * transcript tabs → their child id, the diagnosis tab → `WorkflowRepairCard`).
  */
 function ExecutionWorkspacePanel({
   panel,
+  executionId,
+  org,
+  inspect,
   artifacts,
   fileChangesState,
   costSummary,
   taskStates,
   onSelectTask,
   onNavigateToAgentExecution,
+  onApplyFix,
   transcriptHitl,
 }: {
   readonly panel: WorkflowExecutionPanelController;
+  readonly executionId: string;
+  readonly org?: string;
+  /** Inputs for the Inspect rail view (memoized by the owner, DD-010). */
+  readonly inspect: WorkflowInspectViewOptions;
   readonly artifacts: readonly Artifact[];
   readonly fileChangesState: UseWorkflowExecutionFileChangesReturn;
   readonly costSummary: DerivedCostSummary;
   readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
   readonly onSelectTask: (taskName: string) => void;
   readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
+  /** "Apply Fix" from the diagnosis document — host-routed (DD-004). */
+  readonly onApplyFix?: (yaml: string) => void;
   /** Workflow-level HITL wiring for open transcript documents (S5). */
   readonly transcriptHitl: WorkflowAgentExecutionHitl;
 }) {
@@ -580,6 +616,7 @@ function ExecutionWorkspacePanel({
       : null;
 
   const railViews = useWorkflowExecutionRailViews({
+    inspect,
     artifacts,
     onOpenArtifact: panel.openArtifact,
     onActivateArtifact: panel.pinArtifact,
@@ -620,9 +657,35 @@ function ExecutionWorkspacePanel({
           (editor) =>
             editor.entryId === ARTIFACT_DOCUMENT_ENTRY_ID ||
             editor.entryId === FILE_CHANGE_DOCUMENT_ENTRY_ID ||
-            editor.entryId === AGENT_EXECUTION_DOCUMENT_ENTRY_ID,
+            editor.entryId === AGENT_EXECUTION_DOCUMENT_ENTRY_ID ||
+            editor.entryId === DIAGNOSIS_DOCUMENT_ENTRY_ID,
         )
         .map((editor) => {
+          if (editor.entryId === DIAGNOSIS_DOCUMENT_ENTRY_ID) {
+            // The singleton AI-diagnosis conversation (opened by the header's
+            // Diagnose button via `panel.openDiagnosis`). Keyed by the fixed
+            // path so the streaming diagnosis flow survives unrelated editor
+            // churn; its close button closes the tab — the tab IS the
+            // "diagnosis is active" state.
+            return {
+              entryId: DIAGNOSIS_DOCUMENT_ENTRY_ID,
+              path: editor.path,
+              content: (
+                <WorkflowRepairCard
+                  key={editor.path}
+                  executionId={executionId}
+                  org={org ?? ""}
+                  onApplyFix={onApplyFix}
+                  onClose={() =>
+                    panel.closeEditor(
+                      DIAGNOSIS_DOCUMENT_ENTRY_ID,
+                      DIAGNOSIS_DOCUMENT_PATH,
+                    )
+                  }
+                />
+              ),
+            };
+          }
           if (editor.entryId === AGENT_EXECUTION_DOCUMENT_ENTRY_ID) {
             // The tab path CARRIES the child id (no lookup map — unlike the
             // artifact/change families, a transcript needs only its id to
@@ -679,6 +742,10 @@ function ExecutionWorkspacePanel({
       taskStates,
       onNavigateToAgentExecution,
       transcriptHitl,
+      executionId,
+      org,
+      onApplyFix,
+      panel.closeEditor,
     ],
   );
 
