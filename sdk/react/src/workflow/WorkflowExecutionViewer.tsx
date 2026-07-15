@@ -14,7 +14,7 @@ import { WaterfallTimeline } from "./waterfall/index.js";
 import { WorkflowExecutionCostPanel } from "./WorkflowExecutionCostPanel.js";
 import { WorkflowRepairCard } from "./WorkflowRepairCard.js";
 import { WorkflowExecutionGraph } from "./WorkflowExecutionGraph.js";
-import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
+import type { DerivedCostSummary, DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
 import { ExecutionInspector } from "./execution-inspector/index.js";
 import { ExecutionComparisonPicker } from "./execution-comparison/ExecutionComparisonPicker.js";
 import { ExecutionComparisonView } from "./execution-comparison/ExecutionComparisonView.js";
@@ -295,17 +295,16 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         headerActions={
           <>
             {headerActions}
-            {/* The panel's always-mounted toggle. Gated on artifacts existing
-                because Artifacts is the panel's only facet this slice — an
-                openable-but-empty panel would be noise. Becomes always-on
-                when the Usage facet lands. */}
-            {artifacts.length > 0 && (
-              <PanelChip
-                isOpen={panel.isOpen}
-                onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
-                badgeCount={artifacts.length}
-              />
-            )}
+            {/* The panel's always-mounted toggle — always-on now that the
+                Usage facet gives the panel data-independent content (its
+                empty state is honest even before any usage accrues). The
+                badge stays the artifact count: artifacts are countable
+                collateral, usage is a continuous quantity. */}
+            <PanelChip
+              isOpen={panel.isOpen}
+              onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
+              badgeCount={artifacts.length}
+            />
           </>
         }
       />
@@ -468,7 +467,13 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           // region); the editors store lives on the controller, so open tabs
           // survive a collapse/expand cycle.
           panel.isOpen ? (
-            <ExecutionWorkspacePanel panel={panel} artifacts={artifacts} />
+            <ExecutionWorkspacePanel
+              panel={panel}
+              artifacts={artifacts}
+              costSummary={costSummary}
+              taskStates={effectiveTaskStates}
+              onSelectTask={setSelectedTaskName}
+            />
           ) : null
         }
       />
@@ -491,9 +496,15 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
 function ExecutionWorkspacePanel({
   panel,
   artifacts,
+  costSummary,
+  taskStates,
+  onSelectTask,
 }: {
   readonly panel: WorkflowExecutionPanelController;
   readonly artifacts: readonly Artifact[];
+  readonly costSummary: DerivedCostSummary;
+  readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
+  readonly onSelectTask: (taskName: string) => void;
 }) {
   const { editors, activeFile } = useWorkspaceEditors(panel.editorsStore);
 
@@ -501,6 +512,9 @@ function ExecutionWorkspacePanel({
     artifacts,
     onOpenArtifact: panel.openArtifact,
     onActivateArtifact: panel.pinArtifact,
+    costSummary,
+    taskStates,
+    onSelectTask,
   });
 
   // Resolve open artifact tabs to their records by the same tab-path identity

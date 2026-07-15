@@ -216,6 +216,10 @@ export {
   type WorkflowArtifactsTabProps,
 } from "./facets/WorkflowArtifactsTab.js";
 export {
+  WorkflowUsageTab,
+  type WorkflowUsageTabProps,
+} from "./facets/WorkflowUsageTab.js";
+export {
   WorkflowArtifactDocument,
   type WorkflowArtifactDocumentProps,
 } from "./WorkflowArtifactDocument.js";
@@ -227,6 +231,10 @@ export {
   deriveWorkflowArtifactItems,
   type WorkflowArtifactEntry,
 } from "./deriveWorkflowArtifactItems.js";
+export {
+  deriveWorkflowUsageItems,
+  type WorkflowUsageItem,
+} from "./deriveWorkflowUsageItems.js";
 
 export {
   WorkflowExecutionApprovalCard,

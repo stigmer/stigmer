@@ -5,8 +5,13 @@
 
 import { useMemo } from "react";
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
+import type {
+  DerivedCostSummary,
+  DerivedTaskState,
+} from "../internal/store/workflow-execution-event-store.js";
 import type { SurfaceRailView } from "../workspace/WorkspaceSurface.js";
 import { WorkflowArtifactsTab } from "./facets/WorkflowArtifactsTab.js";
+import { WorkflowUsageTab } from "./facets/WorkflowUsageTab.js";
 
 /** Options for {@link useWorkflowExecutionRailViews}. */
 export interface UseWorkflowExecutionRailViewsOptions {
@@ -16,6 +21,12 @@ export interface UseWorkflowExecutionRailViewsOptions {
   readonly onOpenArtifact: (artifact: Artifact) => void;
   /** Pin an artifact's document tab — the double-click half of open/activate. */
   readonly onActivateArtifact?: (artifact: Artifact) => void;
+  /** Execution-level cost/budget rollup — drives the Usage facet's summary. */
+  readonly costSummary: DerivedCostSummary;
+  /** Per-task derived states — drives the Usage facet's per-task breakdown. */
+  readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
+  /** Select a task in the host viewer from a Usage breakdown row. */
+  readonly onSelectTask?: (taskName: string) => void;
 }
 
 /**
@@ -24,17 +35,21 @@ export interface UseWorkflowExecutionRailViewsOptions {
  * mirroring `useSessionRailViews` (domain-specific assembler over the
  * domain-pure surface).
  *
- * This slice carries the Artifacts facet only; Usage/Changes/Inspect are
- * later parity slices. Artifacts is ALWAYS offered while the panel renders —
- * it is the panel's only view, and an empty rail would strand the surface's
- * view fallback on nothing. The empty-artifacts case is handled by the
- * facet's empty state (and by the viewer gating its toggle chip), not by
- * dropping the view.
+ * This slice carries the Artifacts and Usage facets; Changes/Inspect are
+ * later parity slices. Both views are ALWAYS offered while the panel renders
+ * (the session gates its execution facets behind `includeExecutionFacets`
+ * only for the pre-session launcher — the workflow viewer has no such
+ * pre-execution state). Empty data is handled by each facet's empty state,
+ * not by dropping the view: an empty rail would strand the surface's view
+ * fallback on nothing.
  */
 export function useWorkflowExecutionRailViews({
   artifacts,
   onOpenArtifact,
   onActivateArtifact,
+  costSummary,
+  taskStates,
+  onSelectTask,
 }: UseWorkflowExecutionRailViewsOptions): readonly SurfaceRailView[] {
   return useMemo(
     () => [
@@ -51,8 +66,29 @@ export function useWorkflowExecutionRailViews({
           />
         ),
       },
+      {
+        // No badge (matching the session's Usage view) — cost is a
+        // continuous quantity, not a countable collection.
+        id: "usage",
+        label: "Usage",
+        icon: <UsageIcon />,
+        content: (
+          <WorkflowUsageTab
+            costSummary={costSummary}
+            taskStates={taskStates}
+            onSelectTask={onSelectTask}
+          />
+        ),
+      },
     ],
-    [artifacts, onOpenArtifact, onActivateArtifact],
+    [
+      artifacts,
+      onOpenArtifact,
+      onActivateArtifact,
+      costSummary,
+      taskStates,
+      onSelectTask,
+    ],
   );
 }
 
@@ -68,6 +104,18 @@ function ArtifactsIcon() {
       <path d="M21 8l-9-5-9 5v8l9 5 9-5z" />
       <path d="M3 8l9 5 9-5" />
       <path d="M12 13v9" />
+    </svg>
+  );
+}
+
+function UsageIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 20h18" />
+      <path d="M6 20v-6" />
+      <path d="M11 20V9" />
+      <path d="M16 20v-9" />
+      <path d="M21 20V5" />
     </svg>
   );
 }
