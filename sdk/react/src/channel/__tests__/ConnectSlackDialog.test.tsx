@@ -167,6 +167,28 @@ describe("ConnectSlackDialog", () => {
     expect(screen.getByText(/one agent per Slack app/i)).toBeTruthy();
   });
 
+  it("sets workspace-picker expectations and explains how members reach the bot", () => {
+    render(
+      <Providers client={createMockStigmer()}>
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    // Item 1 (T03_3 feedback): Slack's consent page has a workspace picker
+    // in the corner — first-time installers must expect to choose.
+    expect(
+      screen.getByText(/Slack asks which workspace to add the bot to/i),
+    ).toBeTruthy();
+    // A1: the reach affordance — DM the bot or pick it from the @ list.
+    // Never a literal handle: the bot's name is app-level (platform
+    // "Stigmer" vs a BYO app's own brand), so the copy teaches the
+    // mechanism and names only the agent.
+    expect(
+      screen.getByText(/typing @ in a channel and choosing it from the list/i),
+    ).toBeTruthy();
+    expect(screen.queryByText(/@mentioning it/i)).toBeNull();
+  });
+
   it("creates the channel, runs the install, and reports the workspace", async () => {
     const create = vi.fn().mockResolvedValue({
       metadata: { id: "ach_new", org: "acme" },
@@ -209,6 +231,13 @@ describe("ConnectSlackDialog", () => {
     deliverCallback("state-1");
 
     expect(await screen.findByText(/connected to Acme HQ/i)).toBeTruthy();
+    // The success state says exactly how to start chatting (A1: the
+    // DM / @-pick affordance) and names the agent that answers.
+    expect(
+      screen.getByText(/open a direct message with the bot/i),
+    ).toBeTruthy();
+    expect(screen.getByText(/replies as/i)).toBeTruthy();
+    expect(screen.getByText("Support Agent")).toBeTruthy();
     // Once for the created row, once for the completed install.
     expect(onChannelsChanged).toHaveBeenCalledTimes(2);
   });

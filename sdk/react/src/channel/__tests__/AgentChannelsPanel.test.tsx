@@ -299,7 +299,9 @@ describe("AgentChannelsPanel", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /connect to slack/i }));
 
-    expect(await screen.findByText(/pick a Slack workspace/i)).toBeTruthy();
+    expect(
+      await screen.findByRole("heading", { name: "Connect to Slack" }),
+    ).toBeTruthy();
   });
 
   it("delegates connect to the host when onConnectExternal is provided", async () => {

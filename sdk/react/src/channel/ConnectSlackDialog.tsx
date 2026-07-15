@@ -285,10 +285,14 @@ function ConnectSlackDialogBody({
             )}
 
             <p className="text-sm text-muted-foreground">
-              You&apos;ll pick a Slack workspace and approve the install.
-              Workspace members can then chat with{" "}
+              When you continue, Slack asks which workspace to add the bot
+              to — pick the one where your team should chat with this agent.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Members reach{" "}
               <span className="font-medium text-foreground">{agentName}</span>{" "}
-              by messaging it directly or @mentioning it in channels.
+              by opening a direct message with the bot, or typing @ in a
+              channel and choosing it from the list.
             </p>
             <p className="text-xs text-muted-foreground">
               Conversations from Slack are billed to{" "}
@@ -582,10 +586,10 @@ function InstalledSummary({
         Connected{slack?.teamName ? ` to ${slack.teamName}` : ""}
       </div>
       <p className="text-sm text-muted-foreground">
-        Workspace members can now chat with{" "}
-        <span className="font-medium text-foreground">{agentName}</span> in
-        Slack — send it a direct message or @mention it in a channel to try
-        it out.
+        In Slack, open a direct message with the bot — or type @ in any
+        channel and pick it from the list — then ask your question. It
+        replies as{" "}
+        <span className="font-medium text-foreground">{agentName}</span>.
       </p>
     </div>
   );
