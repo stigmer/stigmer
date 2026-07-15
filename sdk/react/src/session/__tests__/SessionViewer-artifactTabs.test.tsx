@@ -7,7 +7,7 @@ import {
   ExecutionArtifactKind,
   ExecutionPhase,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../artifact-document";
+import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../../execution/artifact-document";
 import { artifactKey, type SessionArtifactEntry } from "../useSessionArtifacts";
 
 // ---------------------------------------------------------------------------

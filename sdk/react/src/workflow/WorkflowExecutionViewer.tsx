@@ -12,7 +12,6 @@ import { WorkflowExecutionHeader } from "./WorkflowExecutionHeader.js";
 import { WorkflowExecutionTimeline, type WorkflowExecutionTimelineProps } from "./WorkflowExecutionTimeline.js";
 import { WaterfallTimeline } from "./waterfall/index.js";
 import { WorkflowExecutionCostPanel } from "./WorkflowExecutionCostPanel.js";
-import { WorkflowExecutionArtifactPanel } from "./WorkflowExecutionArtifactPanel.js";
 import { WorkflowRepairCard } from "./WorkflowRepairCard.js";
 import { WorkflowExecutionGraph } from "./WorkflowExecutionGraph.js";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
@@ -23,7 +22,22 @@ import { WorkflowExecutionApprovalCard } from "./WorkflowExecutionApprovalCard.j
 import { WorkflowFileReviewList, type WorkflowFileDecisionSubmit } from "./WorkflowFileReviewList.js";
 import type { WorkflowPendingApproval, WorkflowPendingFileReview } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
+import { useWorkspaceEditors } from "../internal/store/index.js";
+import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../execution/artifact-document.js";
+import {
+  WorkspaceSurface,
+  type SurfaceVirtualDocument,
+} from "../workspace/WorkspaceSurface.js";
+import { PanelChip } from "../workspace/PanelChip.js";
+import {
+  useWorkflowExecutionPanel,
+  workflowArtifactTabPath,
+  type WorkflowExecutionPanelController,
+} from "./useWorkflowExecutionPanel.js";
+import { useWorkflowExecutionRailViews } from "./useWorkflowExecutionRailViews.js";
+import { WorkflowArtifactDocument } from "./WorkflowArtifactDocument.js";
 
 /** Props for {@link WorkflowExecutionViewer}. */
 export interface WorkflowExecutionViewerProps {
@@ -182,14 +196,17 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
     return undefined;
   }, [execution?.status?.startedAt, execution?.status?.completedAt]);
 
-  const {
-    artifacts,
-    isLoading: isLoadingArtifacts,
-  } = useWorkflowExecutionArtifacts(executionId);
+  const { artifacts } = useWorkflowExecutionArtifacts(executionId);
 
   const actions = useWorkflowExecutionActions(executionId, {
     onSuccess: refetchExecution,
   });
+
+  // The execution-level workspace panel (Artifacts facet + artifact document
+  // tabs). The controller lives at the owner level — the editors-store
+  // SUBSCRIPTION stays inside ExecutionWorkspacePanel so tab churn re-renders
+  // only the panel subtree, never the streaming graph (DD-009/DD-010).
+  const panel = useWorkflowExecutionPanel();
 
   const [selectedTaskName, setSelectedTaskName] = useState<string | null>(null);
   const [showDiagnosis, setShowDiagnosis] = useState(false);
@@ -275,7 +292,22 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         onDiagnose={org ? handleDiagnose : undefined}
         isDiagnosing={showDiagnosis}
         onCompare={handleOpenComparePicker}
-        headerActions={headerActions}
+        headerActions={
+          <>
+            {headerActions}
+            {/* The panel's always-mounted toggle. Gated on artifacts existing
+                because Artifacts is the panel's only facet this slice — an
+                openable-but-empty panel would be noise. Becomes always-on
+                when the Usage facet lands. */}
+            {artifacts.length > 0 && (
+              <PanelChip
+                isOpen={panel.isOpen}
+                onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
+                badgeCount={artifacts.length}
+              />
+            )}
+          </>
+        }
       />
 
       {/* Comparison picker dialog */}
@@ -329,7 +361,23 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col">
+      {/* Outer split: the graph-dominant content vs. the execution workspace
+          panel. Toggling goes through `collapsedPane` (CSS, not conditional
+          structure) so both children keep stable tree positions and an
+          open/close never remounts the React Flow graph or reconnects the
+          event stream (DD-009) — the same invariant the session viewer's
+          panel split holds for its conversation. */}
+      <ResizableSplit
+        resizablePane="secondary"
+        collapsedPane={panel.isOpen ? "none" : "secondary"}
+        defaultSize={560}
+        minSize={360}
+        maxSize={960}
+        storageKey="stgm-wf-exec-panel-width"
+        ariaLabel="Resize execution panel"
+        className="min-h-0 flex-1"
+        primary={
+      <div className="flex h-full min-h-0 flex-1 flex-col">
         {/* Primary area: Execution graph + resizable inspector */}
         <ResizableSplit
           defaultSize={showDiagnosis ? 440 : 384}
@@ -380,12 +428,6 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
                     <WorkflowExecutionCostPanel costSummary={costSummary} />
                   </div>
 
-                  {artifacts.length > 0 && (
-                    <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
-                      <WorkflowExecutionArtifactPanel artifacts={artifacts} />
-                    </div>
-                  )}
-
                   {additionalActions && (
                     <div className="border-t border-[var(--stgm-border,#e5e5e5)] px-3 py-2">
                       {additionalActions}
@@ -420,11 +462,113 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           fileDecisionErrorsByKey={actions.fileDecisionErrorsByKey}
         />
       </div>
+        }
+        secondary={
+          // Content unmounts while collapsed (matching the session panel
+          // region); the editors store lives on the controller, so open tabs
+          // survive a collapse/expand cycle.
+          panel.isOpen ? (
+            <ExecutionWorkspacePanel panel={panel} artifacts={artifacts} />
+          ) : null
+        }
+      />
       </>
       )}
     </div>
   );
 });
+
+// ---------------------------------------------------------------------------
+// Execution workspace panel — WorkspaceSurface + facets (Artifacts)
+// ---------------------------------------------------------------------------
+
+/**
+ * The workflow analog of the session viewer's panel region: subscribes to the
+ * open-editor group (keeping that subscription out of the streaming owner),
+ * assembles the rail facets, and resolves open artifact tabs back to their
+ * `Artifact` records as virtual documents.
+ */
+function ExecutionWorkspacePanel({
+  panel,
+  artifacts,
+}: {
+  readonly panel: WorkflowExecutionPanelController;
+  readonly artifacts: readonly Artifact[];
+}) {
+  const { editors, activeFile } = useWorkspaceEditors(panel.editorsStore);
+
+  const railViews = useWorkflowExecutionRailViews({
+    artifacts,
+    onOpenArtifact: panel.openArtifact,
+    onActivateArtifact: panel.pinArtifact,
+  });
+
+  // Resolve open artifact tabs to their records by the same tab-path identity
+  // used to open them (single source of truth). A tab whose artifact vanished
+  // (e.g. expired and dropped from a refetch) degrades to an honest notice
+  // rather than vanishing.
+  const artifactByTabPath = useMemo(
+    () => new Map(artifacts.map((a) => [workflowArtifactTabPath(a), a])),
+    [artifacts],
+  );
+  const virtualDocuments = useMemo<readonly SurfaceVirtualDocument[]>(
+    () =>
+      editors
+        .filter((editor) => editor.entryId === ARTIFACT_DOCUMENT_ENTRY_ID)
+        .map((editor) => {
+          const artifact = artifactByTabPath.get(editor.path);
+          return {
+            entryId: ARTIFACT_DOCUMENT_ENTRY_ID,
+            path: editor.path,
+            content: artifact ? (
+              <WorkflowArtifactDocument key={editor.path} artifact={artifact} />
+            ) : (
+              <ArtifactUnavailableNotice />
+            ),
+          };
+        }),
+    [editors, artifactByTabPath],
+  );
+
+  return (
+    <WorkspaceSurface
+      entries={[]}
+      lister={undefined}
+      reader={undefined}
+      // Facet-only rail until a workspace-source slice wires a lister —
+      // inert Explorer/Search icons would be dishonest chrome here.
+      builtInViews={[]}
+      view={panel.view}
+      onViewChange={panel.setView}
+      extraViews={railViews}
+      virtualDocuments={virtualDocuments}
+      editors={editors}
+      selectedFile={activeFile}
+      onOpenFile={panel.openFile}
+      onActivateEditor={panel.activateEditor}
+      onPinEditor={panel.pinEditor}
+      onCloseEditor={panel.closeEditor}
+      onCollapse={panel.closePanel}
+      className="h-full"
+    />
+  );
+}
+
+function ArtifactUnavailableNotice() {
+  return (
+    <div
+      role="status"
+      className="mx-auto flex w-full max-w-3xl flex-col items-center gap-1 px-4 py-8 text-center"
+    >
+      <p className="text-xs font-medium text-foreground">
+        This artifact is no longer available.
+      </p>
+      <p className="text-xs text-muted-foreground">
+        It may have expired or been removed from storage.
+      </p>
+    </div>
+  );
+}
 
 function LoadingSkeleton() {
   return (

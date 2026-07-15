@@ -55,6 +55,9 @@ export type { UseExecutionArtifactsReturn } from "./useExecutionArtifacts.js";
 export { useArtifactContent } from "./useArtifactContent.js";
 export type { UseArtifactContentReturn } from "./useArtifactContent.js";
 
+export { useArtifactContentById } from "./useArtifactContentById.js";
+export type { UseArtifactContentByIdReturn } from "./useArtifactContentById.js";
+
 export { useArtifactDownloadUrl } from "./useArtifactDownloadUrl.js";
 export type {
   UseArtifactDownloadUrlReturn,
@@ -264,8 +267,22 @@ export type { FileReviewContextValue } from "./FileReviewContext.js";
 export { ArtifactRow } from "./ArtifactRow.js";
 export type { ArtifactRowProps } from "./ArtifactRow.js";
 
+export { ArtifactRowView } from "./ArtifactRowView.js";
+export type { ArtifactRowViewProps } from "./ArtifactRowView.js";
+
+export {
+  fromExecutionArtifact,
+  fromArtifact,
+} from "./artifact-row-item.js";
+export type { ArtifactRowItem } from "./artifact-row-item.js";
+
+export { ARTIFACT_DOCUMENT_ENTRY_ID } from "./artifact-document.js";
+
 export { ArtifactContentRenderer } from "./ArtifactContentRenderer.js";
 export type { ArtifactContentRendererProps } from "./ArtifactContentRenderer.js";
+
+export { ArtifactFileContent } from "./ArtifactFileContent.js";
+export type { ArtifactFileContentProps } from "./ArtifactFileContent.js";
 
 export { ArtifactContentBody } from "./ArtifactContentBody.js";
 export type { ArtifactContentBodyProps } from "./ArtifactContentBody.js";

@@ -1,0 +1,257 @@
+"use client";
+
+// Editor-area document rendering one workflow Artifact resource's content.
+// Domain: workflow (the Artifact-resource counterpart of execution/ArtifactDocument).
+
+import { useCallback, useState } from "react";
+import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
+import { cn } from "@stigmer/theme";
+import { ArtifactFileContent } from "../execution/ArtifactFileContent.js";
+import { formatArtifactSize } from "../execution/artifact-utils.js";
+import { useArtifactContentById } from "../execution/useArtifactContentById.js";
+import { useWorkflowArtifactDownload } from "./useWorkflowArtifactDownload.js";
+
+const COPIED_FEEDBACK_MS = 2000;
+
+/** Props for {@link WorkflowArtifactDocument}. */
+export interface WorkflowArtifactDocumentProps {
+  /** The workflow artifact to render. */
+  readonly artifact: Artifact;
+  /** Additional CSS classes for the root element. */
+  readonly className?: string;
+}
+
+/**
+ * MIME types whose content is fetchable and renderable as text. The `Artifact`
+ * spec requires a content type at creation, so gating is MIME-first — unlike
+ * the session model, which infers text-ness from the file extension.
+ */
+function isTextContentType(contentType: string): boolean {
+  const ct = contentType.toLowerCase();
+  return (
+    ct.startsWith("text/") ||
+    ct.includes("json") ||
+    ct.includes("yaml") ||
+    ct.includes("xml") ||
+    ct.includes("markdown") ||
+    ct.includes("csv")
+  );
+}
+
+/**
+ * The editor-pane rendering of a single workflow `Artifact` resource — the
+ * `SurfaceVirtualDocument` body the workflow execution panel mounts when an
+ * artifact opens from its Artifacts facet (VS Code "each file is a tab").
+ *
+ * The `Artifact`-resource counterpart of the session's `ArtifactDocument`:
+ * same toolbar-over-body shape and the same shared file-content states
+ * ({@link ArtifactFileContent}), but file-only (the resource model has no
+ * directory concept) and deliberately read-only — no resource detection and
+ * no Apply/Push, which are session-specific product features.
+ *
+ * Content is fetched through `stigmer.artifact.getContent` (server-proxied
+ * bytes, CORS-safe for embedded hosts) only for text content types; binary
+ * artifacts show an honest "not available for preview" body with Download as
+ * the escape hatch. A `cacheKey` keeps reopening a recently-viewed tab
+ * instant (DD-014).
+ *
+ * All visual properties flow through `--stgm-*` tokens (DD-005).
+ */
+export function WorkflowArtifactDocument({
+  artifact,
+  className,
+}: WorkflowArtifactDocumentProps) {
+  const id = artifact.metadata?.id ?? "";
+  const displayName =
+    artifact.spec?.displayName || artifact.metadata?.name || "Unnamed";
+  const specContentType = artifact.spec?.contentType ?? "";
+  const sizeBytes = artifact.status?.sizeBytes ?? BigInt(0);
+
+  const canFetchContent = !!id && isTextContentType(specContentType);
+  const { content, contentType, isTruncated, isLoading, error } =
+    useArtifactContentById(
+      canFetchContent ? id : null,
+      // Artifacts are immutable after creation (append-only store), so the id
+      // alone is a safe cache identity — no contentHash needed.
+      canFetchContent ? `workflow-artifact-doc:${id}` : undefined,
+    );
+
+  const { download, isDownloading } = useWorkflowArtifactDownload();
+
+  const [copied, setCopied] = useState(false);
+  const copy = useCallback(() => {
+    if (!content) return;
+    void navigator.clipboard.writeText(content).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
+    });
+  }, [content]);
+
+  const showCopy = content !== null;
+
+  return (
+    <div
+      role="article"
+      aria-label={`Artifact ${displayName}`}
+      className={cn("flex min-h-0 min-w-0 flex-1 flex-col", className)}
+    >
+      {/* Toolbar sticks to the top of the editor pane's scroll container so the
+          file identity and actions stay visible while the body scrolls. Rows
+          wrap on narrow panes (min-w-0 + flex-wrap) rather than forcing a
+          horizontal scrollbar — the DD-20 reflow contract. */}
+      <div className="sticky top-0 z-10 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-border bg-background px-4 py-2">
+        <span className="shrink-0 text-muted-foreground">
+          <FileIcon />
+        </span>
+        <span className="truncate text-sm font-medium text-foreground">
+          {displayName}
+        </span>
+        <span className="shrink-0 text-[0.65rem] tabular-nums text-muted-foreground-faint">
+          {formatArtifactSize(sizeBytes)}
+        </span>
+        {specContentType && (
+          <span className="shrink-0 text-[0.65rem] text-muted-foreground">
+            {specContentType}
+          </span>
+        )}
+
+        <div className="ml-auto flex min-w-0 flex-wrap items-center gap-3">
+          {showCopy && (
+            <button
+              type="button"
+              onClick={copy}
+              aria-label={copied ? "Copied to clipboard" : "Copy content"}
+              className={cn(
+                "inline-flex items-center gap-1.5 text-xs font-medium transition-colors",
+                copied
+                  ? "text-success"
+                  : "text-muted-foreground hover:text-foreground",
+                FOCUS_RING_CLASSES,
+              )}
+            >
+              {copied ? <CheckIcon /> : <CopyIcon />}
+              {copied ? "Copied" : "Copy"}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => download(id)}
+            disabled={isDownloading || !id}
+            className={cn(
+              "inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50",
+              FOCUS_RING_CLASSES,
+            )}
+          >
+            <DownloadIcon />
+            {isDownloading ? "Preparing\u2026" : "Download"}
+          </button>
+        </div>
+      </div>
+
+      <div className="min-w-0">
+        <ArtifactFileContent
+          fileName={displayName}
+          content={content}
+          contentType={contentType ?? specContentType}
+          isLoading={isLoading}
+          error={error}
+          isTruncated={isTruncated}
+        />
+      </div>
+
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {copied && "Content copied to clipboard"}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Shared style constants
+// ---------------------------------------------------------------------------
+
+const FOCUS_RING_CLASSES =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm";
+
+// ---------------------------------------------------------------------------
+// Inline SVG icons (SDK independence — no lucide dependency)
+// ---------------------------------------------------------------------------
+
+function FileIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9.5 1.5H5C4.17 1.5 3.5 2.17 3.5 3V13C3.5 13.83 4.17 14.5 5 14.5H11C11.83 14.5 12.5 13.83 12.5 13V4.5L9.5 1.5Z" />
+      <path d="M9.5 1.5V4.5H12.5" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+      aria-hidden="true"
+    >
+      <rect x="4" y="4" width="6.5" height="6.5" rx="1" />
+      <path d="M8 4V2.5C8 1.95 7.55 1.5 7 1.5H2.5C1.95 1.5 1.5 1.95 1.5 2.5V7C1.5 7.55 1.95 8 2.5 8H4" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+      aria-hidden="true"
+    >
+      <path d="M6 1.5V8.5" />
+      <path d="M3 6L6 9L9 6" />
+      <path d="M2 10.5H10" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+      aria-hidden="true"
+    >
+      <path d="M2 6.5L4.5 9L10 3" />
+    </svg>
+  );
+}

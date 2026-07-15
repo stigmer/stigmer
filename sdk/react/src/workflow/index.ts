@@ -199,10 +199,34 @@ export {
   type WorkflowExecutionCostPanelProps,
 } from "./WorkflowExecutionCostPanel.js";
 
+// Execution panel — the WorkspaceSurface-based side panel (Artifacts facet,
+// artifact document tabs) and its controller/assembler hooks.
 export {
-  WorkflowExecutionArtifactPanel,
-  type WorkflowExecutionArtifactPanelProps,
-} from "./WorkflowExecutionArtifactPanel.js";
+  useWorkflowExecutionPanel,
+  workflowArtifactTabPath,
+  type WorkflowExecutionPanelController,
+  type UseWorkflowExecutionPanelOptions,
+} from "./useWorkflowExecutionPanel.js";
+export {
+  useWorkflowExecutionRailViews,
+  type UseWorkflowExecutionRailViewsOptions,
+} from "./useWorkflowExecutionRailViews.js";
+export {
+  WorkflowArtifactsTab,
+  type WorkflowArtifactsTabProps,
+} from "./facets/WorkflowArtifactsTab.js";
+export {
+  WorkflowArtifactDocument,
+  type WorkflowArtifactDocumentProps,
+} from "./WorkflowArtifactDocument.js";
+export {
+  useWorkflowArtifactDownload,
+  type UseWorkflowArtifactDownloadReturn,
+} from "./useWorkflowArtifactDownload.js";
+export {
+  deriveWorkflowArtifactItems,
+  type WorkflowArtifactEntry,
+} from "./deriveWorkflowArtifactItems.js";
 
 export {
   WorkflowExecutionApprovalCard,

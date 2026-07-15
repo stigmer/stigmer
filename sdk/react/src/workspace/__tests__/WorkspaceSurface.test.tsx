@@ -315,6 +315,47 @@ describe("WorkspaceSurface extraViews", () => {
 });
 
 // ---------------------------------------------------------------------------
+// builtInViews opt-in (DD-011) — hosts without a workspace file source scope
+// the rail to their injected facets (the workflow execution panel today).
+// ---------------------------------------------------------------------------
+
+describe("WorkspaceSurface builtInViews", () => {
+  it("offers Explorer and Search by default (backward-compatible)", () => {
+    renderSurface();
+    expect(screen.getByRole("radio", { name: "Explorer" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Search" })).toBeTruthy();
+  });
+
+  it("renders a facet-only rail with builtInViews={[]}", () => {
+    renderSurface({ builtInViews: [], extraViews: [configView] });
+    expect(screen.queryByRole("radio", { name: "Explorer" })).toBeNull();
+    expect(screen.queryByRole("radio", { name: "Search" })).toBeNull();
+    expect(screen.getByRole("radio", { name: "Config" })).toBeTruthy();
+  });
+
+  it("falls back to the first injected view — never a hidden built-in — for a stale view id", () => {
+    // A hardcoded "files" fallback would strand a facet-only host on a view
+    // its rail doesn't render (blank sidebar).
+    renderSurface({
+      builtInViews: [],
+      extraViews: [configView],
+      view: "inspect",
+    });
+    expect(screen.getByTestId("config-probe")).toBeTruthy();
+    expect(
+      screen.getByRole("radio", { name: "Config" }).getAttribute("aria-checked"),
+    ).toBe("true");
+    expect(screen.queryByTestId("explorer-probe")).toBeNull();
+  });
+
+  it("can offer a subset of built-ins", () => {
+    renderSurface({ builtInViews: ["files"] });
+    expect(screen.getByRole("radio", { name: "Explorer" })).toBeTruthy();
+    expect(screen.queryByRole("radio", { name: "Search" })).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Host-injected virtual documents — editor tabs that are not workspace files
 // (the session's plan.md today). Same open/pin/close semantics as file tabs;
 // only the body rendering diverges.
