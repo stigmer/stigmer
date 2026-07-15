@@ -1,95 +1,58 @@
 "use client";
 
-import { memo, useMemo } from "react";
+import { memo } from "react";
 import { cn } from "@stigmer/theme";
 import type { TaskDetailAgentCall } from "./derive-task-detail.js";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
 import { formatMicroUsd, formatTokenCount } from "../format-utils.js";
-import { useExecutionStream } from "../../execution/useExecutionStream.js";
-import { useConversationStoreRef } from "../../internal/store/index.js";
-import { MessageThread } from "../../execution/MessageThread.js";
 
+/** Props for {@link AgentCallTab}. */
 export interface AgentCallTabProps {
   readonly agentCall: TaskDetailAgentCall;
+  /** The AGENT_CALL task's name — the transcript tab's identity suffix. */
+  readonly taskName: string;
   readonly taskStatus?: DerivedTaskState["status"];
-  readonly isTabActive?: boolean;
+  /**
+   * Open the child execution's full transcript in the execution panel —
+   * the S4 in-place expansion (primary action).
+   */
+  readonly onOpenAgentExecution?: (
+    childExecutionId: string,
+    taskName: string,
+  ) => void;
+  /** Open the child execution as a standalone page (pop-out escape hatch). */
   readonly onNavigateToAgentExecution?: (id: string) => void;
   readonly className?: string;
 }
 
 /**
- * Agent Call tab in the execution inspector.
+ * Agent Call tab in the execution inspector — a compact LAUNCHER, not a
+ * viewer: at-a-glance stats plus "Open agent execution" (the in-place
+ * expansion into the execution panel) and "Open standalone" (host-routed
+ * pop-out, DD-004).
  *
- * When the task is running and childExecutionId is known, subscribes to
- * the child AgentExecution stream and renders a live MessageThread.
- * When complete or ID is unavailable, shows a static summary.
- *
- * Subscription lifecycle follows DD-LIVE-006: only subscribes when the tab
- * is active and the task is running. Unsubscribes on unmount or deactivation.
+ * This deliberately replaced the earlier embedded `MessageThread` thumbnail
+ * (`max-h-[50vh]` + double scrollbar): the full transcript now renders in
+ * the panel's editor area via `WorkflowAgentExecutionDocument`, which owns
+ * the fetch/stream lifecycle. The inspector therefore holds NO child
+ * subscription — one launcher serves running and terminal tasks alike.
  */
 export const AgentCallTab = memo(function AgentCallTab({
   agentCall,
+  taskName,
   taskStatus,
-  isTabActive = true,
+  onOpenAgentExecution,
   onNavigateToAgentExecution,
   className,
 }: AgentCallTabProps) {
   const isRunning = taskStatus === "running" || taskStatus === "waiting_approval";
   const hasChildId = !!agentCall.childExecutionId;
-  const shouldSubscribe = isTabActive && isRunning && hasChildId;
-
-  const effectiveId = shouldSubscribe ? agentCall.childExecutionId : null;
-  const store = useConversationStoreRef();
-  const { execution: streamExecution, isStreaming, isConnecting, error: streamError } =
-    useExecutionStream(effectiveId, { store });
-
-  const emptyExecutions = useMemo(() => [] as const, []);
 
   const BZ = BigInt(0);
 
-  if (isRunning && hasChildId) {
-    return (
-      <div className={cn("flex flex-col gap-2", className)}>
-        {/* Stream status bar */}
-        <div className="flex items-center gap-2 text-[11px]">
-          {isConnecting && (
-            <span className="text-muted-foreground">Connecting to agent stream...</span>
-          )}
-          {isStreaming && (
-            <span className="text-primary">
-              <span className="mr-1 inline-block size-1.5 animate-pulse rounded-full bg-primary" />
-              Live
-            </span>
-          )}
-          {streamError && (
-            <span className="text-destructive">Stream error</span>
-          )}
-          <span className="ml-auto text-muted-foreground">{agentCall.agentSlug}</span>
-        </div>
-
-        {/* Live message transcript */}
-        <div className="min-h-0 flex-1 overflow-y-auto rounded border border-border">
-          <MessageThread
-            executions={emptyExecutions}
-            activeStreamExecution={streamExecution ?? undefined}
-            className="max-h-[50vh]"
-          />
-        </div>
-
-        {/* Navigation link */}
-        {onNavigateToAgentExecution && (
-          <button
-            type="button"
-            onClick={() => onNavigateToAgentExecution(agentCall.childExecutionId)}
-            className="self-start rounded border border-border px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-muted"
-          >
-            Open Full Session
-          </button>
-        )}
-      </div>
-    );
-  }
-
+  // Very-early running state: the child execution has not registered its id
+  // yet (agentCallStarted precedes the first progress event that carries it).
+  // Nothing to open, so an honest waiting state instead of dead buttons.
   if (isRunning && !hasChildId) {
     return (
       <div className={cn("flex flex-col items-center justify-center gap-2 py-8", className)}>
@@ -102,10 +65,22 @@ export const AgentCallTab = memo(function AgentCallTab({
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
-        <dt className="text-muted-foreground">Agent</dt>
-        <dd className="font-medium text-foreground">{agentCall.agentSlug}</dd>
+      {/* Identity + live state */}
+      <div className="flex items-center gap-2 text-xs">
+        <span className="min-w-0 truncate font-medium text-foreground">
+          {agentCall.agentSlug}
+        </span>
+        {isRunning && (
+          <span className="inline-flex shrink-0 items-center gap-1.5 font-medium text-primary">
+            <span className="inline-block size-1.5 animate-pulse rounded-full bg-primary" aria-hidden="true" />
+            Running
+          </span>
+        )}
+      </div>
 
+      {/* At-a-glance stats — live progress values while running, the final
+          ledger once completed (derive-task-detail sources both). */}
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
         {agentCall.agentPhase && (
           <>
             <dt className="text-muted-foreground">Phase</dt>
@@ -155,14 +130,32 @@ export const AgentCallTab = memo(function AgentCallTab({
         </div>
       )}
 
-      {onNavigateToAgentExecution && agentCall.childExecutionId && (
-        <button
-          type="button"
-          onClick={() => onNavigateToAgentExecution(agentCall.childExecutionId)}
-          className="self-start rounded border border-border px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-muted"
-        >
-          View Agent Execution
-        </button>
+      {/* Launch actions — only when the child id exists (a run that predates
+          id registration, or an event-empty run without the snapshot
+          fallback, has nothing to open). */}
+      {hasChildId && (onOpenAgentExecution || onNavigateToAgentExecution) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {onOpenAgentExecution && (
+            <button
+              type="button"
+              onClick={() =>
+                onOpenAgentExecution(agentCall.childExecutionId, taskName)
+              }
+              className="rounded bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Open agent execution
+            </button>
+          )}
+          {onNavigateToAgentExecution && (
+            <button
+              type="button"
+              onClick={() => onNavigateToAgentExecution(agentCall.childExecutionId)}
+              className="rounded border border-border px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Open standalone
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

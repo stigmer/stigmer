@@ -27,7 +27,7 @@ import {
   type WorkspaceFileReader,
 } from "./WorkspaceFileReader.js";
 
-/** Line-skeleton widths, mirroring `FileContentStateView` in `ArtifactPreviewModal`. */
+/** Line-skeleton widths, mirroring `ArtifactFileContent` in `execution/`. */
 const SKELETON_LINE_WIDTHS = [85, 72, 90, 65, 78, 88, 70, 82] as const;
 
 /** Props for {@link FileViewer}. */
@@ -97,7 +97,7 @@ export interface FileViewerHandle {
  * {@link useWorkspaceFileContent}, and — for displayable text — delegates to
  * the shared {@link ArtifactContentRenderer} (markdown / YAML / JSON /
  * line-numbered text). Its state body deliberately mirrors
- * `FileContentStateView` in `ArtifactPreviewModal` (same skeleton, error, and
+ * `ArtifactFileContent` in `execution/` (same skeleton, error, and
  * delegation), extended with the three states an execution artifact never
  * has — binary, too-large, and unsupported-substrate. The two are **not**
  * merged into one shared component: their surrounding chrome (an artifact's
@@ -326,7 +326,7 @@ function ViewerModeToggle({
 }
 
 // ---------------------------------------------------------------------------
-// Body — exactly one state, mirroring FileContentStateView + workspace extras
+// Body — exactly one state, mirroring ArtifactFileContent + workspace extras
 // ---------------------------------------------------------------------------
 
 /**

@@ -57,22 +57,23 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "slack\022<\n\032credentials_environment_id\030\003 \001(" +
       "\tR\030credentialsEnvironmentId\022F\n\005audit\030c \001" +
       "(\01320.ai.stigmer.commons.apiresource.ApiR" +
-      "esourceAuditR\005auditB\021\n\017provider_status\"\207" +
+      "esourceAuditR\005auditB\021\n\017provider_status\"\255" +
       "\002\n\022SlackInstallStatus\022\027\n\007team_id\030\001 \001(\tR\006" +
       "teamId\022\033\n\tteam_name\030\002 \001(\tR\010teamName\022\036\n\013b" +
       "ot_user_id\030\003 \001(\tR\tbotUserId\022%\n\016granted_s" +
       "copes\030\004 \003(\tR\rgrantedScopes\0225\n\027installer_" +
       "slack_user_id\030\005 \001(\tR\024installerSlackUserI" +
       "d\022=\n\014installed_at\030\006 \001(\0132\032.google.protobu" +
-      "f.TimestampR\013installedAt*x\n\030AgentChannel" +
-      "InstallState\022+\n\'agent_channel_install_st" +
-      "ate_unspecified\020\000\022\023\n\017pending_install\020\001\022\r" +
-      "\n\tinstalled\020\002\022\013\n\007revoked\020\003B\272\001B\013StatusPro" +
-      "toP\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agentic.Agentch" +
-      "annel.V1\312\002\"Ai\\Stigmer\\Agentic\\Agentchann" +
-      "el\\V1\342\002.Ai\\Stigmer\\Agentic\\Agentchannel\\" +
-      "V1\\GPBMetadata\352\002&Ai::Stigmer::Agentic::A" +
-      "gentchannel::V1b\006proto3"
+      "f.TimestampR\013installedAt\022$\n\016channel_app_" +
+      "id\030\007 \001(\tR\014channelAppId*x\n\030AgentChannelIn" +
+      "stallState\022+\n\'agent_channel_install_stat" +
+      "e_unspecified\020\000\022\023\n\017pending_install\020\001\022\r\n\t" +
+      "installed\020\002\022\013\n\007revoked\020\003B\272\001B\013StatusProto" +
+      "P\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agentic.Agentchan" +
+      "nel.V1\312\002\"Ai\\Stigmer\\Agentic\\Agentchannel" +
+      "\\V1\342\002.Ai\\Stigmer\\Agentic\\Agentchannel\\V1" +
+      "\\GPBMetadata\352\002&Ai::Stigmer::Agentic::Age" +
+      "ntchannel::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -91,7 +92,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentchannel_v1_SlackInstallStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_SlackInstallStatus_descriptor,
-        new java.lang.String[] { "TeamId", "TeamName", "BotUserId", "GrantedScopes", "InstallerSlackUserId", "InstalledAt", });
+        new java.lang.String[] { "TeamId", "TeamName", "BotUserId", "GrantedScopes", "InstallerSlackUserId", "InstalledAt", "ChannelAppId", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();

@@ -27,7 +27,7 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\"\xcf\x02\n\x10\x41gentChannelSpec\x12\xb6\x01\n\tagent_ref\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n\x0e\x61gent_ref.kind\x12\x33\x61gent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\x08\x61gentRef\x12\x18\n\x07\x65nabled\x18\x02 \x01(\x08R\x07\x65nabled\x12N\n\x05slack\x18\x03 \x01(\x0b\x32\x36.ai.stigmer.agentic.agentchannel.v1.SlackChannelConfigH\x00R\x05slackB\x18\n\x0fprovider_config\x12\x05\xbaH\x02\x08\x01\"\x14\n\x12SlackChannelConfigB\xe0\x01\n&com.ai.stigmer.agentic.agentchannel.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\"\xf2\x05\n\x10\x41gentChannelSpec\x12\xb6\x01\n\tagent_ref\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n\x0e\x61gent_ref.kind\x12\x33\x61gent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\x08\x61gentRef\x12\x18\n\x07\x65nabled\x18\x02 \x01(\x08R\x07\x65nabled\x12N\n\x05slack\x18\x03 \x01(\x0b\x32\x36.ai.stigmer.agentic.agentchannel.v1.SlackChannelConfigH\x00R\x05slack\x12\xd9\x01\n\x10\x65nvironment_refs\x18\x04 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n\x15\x65nvironment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0f\x65nvironmentRefs\x12\xc4\x01\n\x07\x61pp_ref\x18\x05 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBu\xbaHn\xba\x01k\n\x0c\x61pp_ref.kind\x12\x37\x61pp_ref must reference a resource with kind=channel_app\x1a\"this.slug == \'\' || this.kind == 48\xe0\x85,0R\x06\x61ppRefB\x18\n\x0fprovider_config\x12\x05\xbaH\x02\x08\x01\"\x14\n\x12SlackChannelConfigB\xe0\x01\n&com.ai.stigmer.agentic.agentchannel.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,8 +39,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_AGENTCHANNELSPEC'].oneofs_by_name['provider_config']._serialized_options = b'\272H\002\010\001'
   _globals['_AGENTCHANNELSPEC'].fields_by_name['agent_ref']._loaded_options = None
   _globals['_AGENTCHANNELSPEC'].fields_by_name['agent_ref']._serialized_options = b'\272H\\\272\001V\n\016agent_ref.kind\0223agent_ref must reference a resource with kind=agent\032\017this.kind == 40\310\001\001\340\205,('
+  _globals['_AGENTCHANNELSPEC'].fields_by_name['environment_refs']._loaded_options = None
+  _globals['_AGENTCHANNELSPEC'].fields_by_name['environment_refs']._serialized_options = b'\272Hq\222\001n\"l\272\001i\n\025environment_refs.kind\022?environment_refs must reference resources with kind=environment\032\017this.kind == 53\340\205,5'
+  _globals['_AGENTCHANNELSPEC'].fields_by_name['app_ref']._loaded_options = None
+  _globals['_AGENTCHANNELSPEC'].fields_by_name['app_ref']._serialized_options = b'\272Hn\272\001k\n\014app_ref.kind\0227app_ref must reference a resource with kind=channel_app\032\"this.slug == \'\' || this.kind == 48\340\205,0'
   _globals['_AGENTCHANNELSPEC']._serialized_start=208
-  _globals['_AGENTCHANNELSPEC']._serialized_end=543
-  _globals['_SLACKCHANNELCONFIG']._serialized_start=545
-  _globals['_SLACKCHANNELCONFIG']._serialized_end=565
+  _globals['_AGENTCHANNELSPEC']._serialized_end=962
+  _globals['_SLACKCHANNELCONFIG']._serialized_start=964
+  _globals['_SLACKCHANNELCONFIG']._serialized_end=984
 # @@protoc_insertion_point(module_scope)

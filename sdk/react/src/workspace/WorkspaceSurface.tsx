@@ -28,8 +28,11 @@ import { FileViewer, type FileViewerHandle } from "./FileViewer.js";
 import { EditorTabs, editorTabDomId } from "./EditorTabs.js";
 import { ExplorerTree } from "./ExplorerTree.js";
 
-/** The built-in rail views every surface has. */
-const BUILT_IN_VIEWS = ["files", "search"] as const;
+/** The surface's built-in rail views (offered by default, opt-out per host). */
+const ALL_BUILT_IN_VIEWS = ["files", "search"] as const;
+
+/** Identifier of a built-in rail view. */
+export type BuiltInViewId = (typeof ALL_BUILT_IN_VIEWS)[number];
 
 /**
  * A host-injected rail view: an icon in the activity rail whose content
@@ -52,6 +55,16 @@ export interface SurfaceRailView {
   readonly badge?: number;
   /** Sidebar content rendered while this view is active. */
   readonly content: ReactNode;
+  /**
+   * The content OWNS its chrome: render it in a bare full-height slot with
+   * no sidebar header and no padded scroll wrapper. For self-managing views
+   * — a header + fixed tab strip + internally-scrolling body (the workflow
+   * Inspect facet) — where the default envelope would double the header and
+   * nest scroll containers. Flat, single-scroll facets (Config, Changes,
+   * Artifacts, Usage) omit it and keep the shared envelope.
+   * @default false
+   */
+  readonly fitted?: boolean;
 }
 
 /**
@@ -104,6 +117,15 @@ export interface WorkspaceSurfaceProps {
   readonly view?: string;
   /** Called when the user picks a rail view. */
   readonly onViewChange?: (viewId: string) => void;
+  /**
+   * Which built-in rail views the surface offers, in rail order. Defaults to
+   * all of them; hosts without a workspace file source pass `[]` so the rail
+   * carries only their injected `extraViews` — an honest facet-only surface
+   * instead of inert Explorer/Search icons (DD-011: opt-in behavior change,
+   * backward-compatible default). The workflow execution panel does this
+   * until a workspace-source slice wires a lister.
+   */
+  readonly builtInViews?: readonly BuiltInViewId[];
   /**
    * Host-injected rail views, rendered after the built-in Explorer/Search.
    * Their `content` renders in the sidebar pane; the editor area stays for
@@ -186,6 +208,7 @@ export function WorkspaceSurface({
   searcher,
   view,
   onViewChange,
+  builtInViews = ALL_BUILT_IN_VIEWS,
   extraViews,
   virtualDocuments,
   onRemoveEntry,
@@ -215,11 +238,13 @@ export function WorkspaceSurface({
   );
 
   // A stale id (e.g. a contextual extra view that disappeared) degrades to the
-  // explorer rather than an empty sidebar.
+  // first OFFERED view rather than an empty sidebar — hardcoding "files" would
+  // strand a builtInViews={[]} host on a view its rail doesn't render.
   const isKnownView =
-    (BUILT_IN_VIEWS as readonly string[]).includes(requestedView) ||
+    (builtInViews as readonly string[]).includes(requestedView) ||
     (extraViews?.some((v) => v.id === requestedView) ?? false);
-  const activeView = isKnownView ? requestedView : "files";
+  const fallbackView = builtInViews[0] ?? extraViews?.[0]?.id ?? "files";
+  const activeView = isKnownView ? requestedView : fallbackView;
   const activeExtraView = extraViews?.find((v) => v.id === activeView);
 
   return (
@@ -227,6 +252,7 @@ export function WorkspaceSurface({
       <ActivityRail
         view={activeView}
         onViewChange={handleViewChange}
+        builtInViews={builtInViews}
         extraViews={extraViews}
       />
       <ResizableSplit
@@ -297,15 +323,22 @@ interface RailItem {
 function ActivityRail({
   view,
   onViewChange,
+  builtInViews,
   extraViews,
 }: {
   readonly view: string;
   readonly onViewChange: (next: string) => void;
+  readonly builtInViews: readonly BuiltInViewId[];
   readonly extraViews: readonly SurfaceRailView[] | undefined;
 }) {
-  const items: readonly RailItem[] = [
+  const builtInItems: readonly RailItem[] = [
     { id: "files", label: "Explorer", icon: <FilesIcon /> },
     { id: "search", label: "Search", icon: <SearchIcon /> },
+  ];
+  const items: readonly RailItem[] = [
+    ...builtInItems.filter((item) =>
+      (builtInViews as readonly string[]).includes(item.id),
+    ),
     ...(extraViews ?? []),
   ];
 
@@ -573,6 +606,17 @@ function SearchModeToggle({
 // ---------------------------------------------------------------------------
 
 function ExtraViewSidebar({ view }: { readonly view: SurfaceRailView }) {
+  if (view.fitted) {
+    // A fitted view owns its chrome (header, tab strip, scroll) — hand it a
+    // bare full-height slot. A shared header or scroll wrapper here would
+    // double the header and nest scroll containers around a component that
+    // already manages both.
+    return (
+      <div className="flex h-full min-h-0 flex-col border-r border-border">
+        {view.content}
+      </div>
+    );
+  }
   return (
     <div className="flex h-full min-h-0 flex-col border-r border-border">
       <SidebarHeader title={view.label} />

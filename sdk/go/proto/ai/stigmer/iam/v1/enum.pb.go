@@ -91,6 +91,10 @@ const (
 	// Same-org shares keep their Phase A bar (can_edit on the agent), which
 	// already implies membership in the agent's org.
 	IamPermission_can_create_agent_share IamPermission = 30
+	// Organization-level permission to register channel apps (customer-owned
+	// messaging-platform apps holding webhook and OAuth credentials).
+	// Admin-gated like can_create_oauth_app.
+	IamPermission_can_create_channel_app IamPermission = 31
 )
 
 // Enum value maps for IamPermission.
@@ -126,6 +130,7 @@ var (
 		28: "can_manage_billing",
 		29: "can_execute_billing_ops",
 		30: "can_create_agent_share",
+		31: "can_create_channel_app",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -158,6 +163,7 @@ var (
 		"can_manage_billing":           28,
 		"can_execute_billing_ops":      29,
 		"can_create_agent_share":       30,
+		"can_create_channel_app":       31,
 	}
 )
 
@@ -261,7 +267,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xd2\x05\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xee\x05\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -294,7 +300,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x10can_view_billing\x10\x1b\x12\x16\n" +
 	"\x12can_manage_billing\x10\x1c\x12\x1b\n" +
 	"\x17can_execute_billing_ops\x10\x1d\x12\x1a\n" +
-	"\x16can_create_agent_share\x10\x1e*Q\n" +
+	"\x16can_create_agent_share\x10\x1e\x12\x1a\n" +
+	"\x16can_create_channel_app\x10\x1f*Q\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

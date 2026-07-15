@@ -10,6 +10,7 @@ import (
 	agentinstancev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentinstance/v1"
 	agentsharev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentshare/v1"
 	artifactv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/artifact/v1"
+	channelappv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1"
 	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
@@ -62,6 +63,11 @@ func ApiKeyInputFromProto(p *apikeyv1.ApiKey) *ApiKeyInput {
 // ArtifactInputFromProto creates a ArtifactInput from a proto Artifact resource.
 func ArtifactInputFromProto(p *artifactv1.Artifact) *ArtifactInput {
 	return gen.ArtifactInputFromProto(p)
+}
+
+// ChannelAppInputFromProto creates a ChannelAppInput from a proto ChannelApp resource.
+func ChannelAppInputFromProto(p *channelappv1.ChannelApp) *ChannelAppInput {
+	return gen.ChannelAppInputFromProto(p)
 }
 
 // EnvironmentInputFromProto creates a EnvironmentInput from a proto Environment resource.

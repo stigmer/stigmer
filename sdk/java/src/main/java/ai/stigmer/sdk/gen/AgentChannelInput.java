@@ -19,6 +19,8 @@ public final class AgentChannelInput {
     private final ResourceRef agentRef;
     private final boolean enabled;
     private final SlackChannelConfigInput slack;
+    private final java.util.List<ResourceRef> environmentRefs;
+    private final ResourceRef appRef;
 
     private AgentChannelInput(Builder builder) {
         this.name = builder.name;
@@ -29,6 +31,8 @@ public final class AgentChannelInput {
         this.agentRef = builder.agentRef;
         this.enabled = builder.enabled;
         this.slack = builder.slack;
+        this.environmentRefs = builder.environmentRefs;
+        this.appRef = builder.appRef;
     }
 
     AgentChannel toProto() {
@@ -40,6 +44,16 @@ public final class AgentChannelInput {
         spec.setEnabled(this.enabled);
         if (this.slack != null) {
             spec.setSlack(this.slack.toProto());
+        }
+        if (this.environmentRefs != null) {
+            for (ResourceRef item : this.environmentRefs) {
+                spec.addEnvironmentRefs(item.toProto().toBuilder()
+                    .setKind(ApiResourceKind.environment).build());
+            }
+        }
+        if (this.appRef != null && this.appRef.hasIdentifier()) {
+            spec.setAppRef(this.appRef.toProto().toBuilder()
+                .setKind(ApiResourceKind.channel_app).build());
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -72,6 +86,8 @@ public final class AgentChannelInput {
         private ResourceRef agentRef;
         private boolean enabled;
         private SlackChannelConfigInput slack;
+        private java.util.List<ResourceRef> environmentRefs;
+        private ResourceRef appRef;
 
         private Builder() {}
 
@@ -83,6 +99,8 @@ public final class AgentChannelInput {
         public Builder agentRef(ResourceRef agentRef) { this.agentRef = agentRef; return this; }
         public Builder enabled(boolean enabled) { this.enabled = enabled; return this; }
         public Builder slack(SlackChannelConfigInput slack) { this.slack = slack; return this; }
+        public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
+        public Builder appRef(ResourceRef appRef) { this.appRef = appRef; return this; }
 
         public AgentChannelInput build() { return new AgentChannelInput(this); }
     }

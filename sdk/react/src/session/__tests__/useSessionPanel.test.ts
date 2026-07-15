@@ -8,7 +8,7 @@ import {
 import { ExecutionArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { useSessionPanel, type UseSessionPanelOptions } from "../useSessionPanel";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "../plan-document";
-import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../artifact-document";
+import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../../execution/artifact-document";
 import { artifactKey } from "../useSessionArtifacts";
 import type { SelectedThreadItem } from "../../internal/store/selection-store";
 

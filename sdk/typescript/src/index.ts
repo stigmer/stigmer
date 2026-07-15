@@ -157,6 +157,11 @@ export {
 } from "./gen/agentshare.js";
 export { ApiKeyClient, type ApiKeyInput } from "./gen/apikey.js";
 export {
+  ChannelAppClient,
+  type ChannelAppInput,
+  type SlackChannelAppConfigInput,
+} from "./gen/channelapp.js";
+export {
   EnvironmentClient,
   type EnvironmentInput,
 } from "./gen/environment.js";

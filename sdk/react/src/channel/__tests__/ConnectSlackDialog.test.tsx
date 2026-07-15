@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vite
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { StigmerError, type AgentChannelInput } from "@stigmer/sdk";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
@@ -39,10 +40,25 @@ interface MockOverrides {
   create?: (input: AgentChannelInput) => Promise<unknown>;
   initiateInstall?: (input: unknown) => Promise<unknown>;
   completeInstall?: (input: unknown) => Promise<unknown>;
+  /** Org channel apps returned by channelapp.listByOrg (BYO picker). */
+  channelApps?: unknown[];
+}
+
+/** A registered BYO Slack app as channelapp.listByOrg returns it. */
+function makeChannelApp(slug = "acme-support-app", name = "Acme Support App") {
+  return {
+    metadata: { id: `chapp_${slug}`, org: "acme", slug, name },
+    spec: { providerConfig: { case: "slack", value: {} } },
+  };
 }
 
 function createMockStigmer(overrides: MockOverrides = {}) {
   return {
+    channelapp: {
+      listByOrg: vi.fn().mockResolvedValue({
+        entries: overrides.channelApps ?? [],
+      }),
+    },
     agentChannel: {
       create:
         overrides.create ??
@@ -64,6 +80,25 @@ function createMockStigmer(overrides: MockOverrides = {}) {
             providerStatus: { case: "slack", value: { teamName: "Acme HQ" } },
           },
         }),
+    },
+    environment: {
+      list: vi.fn().mockResolvedValue({
+        items: [
+          {
+            metadata: {
+              slug: "github-credentials",
+              name: "GitHub Credentials",
+              org: "acme",
+              visibility: ApiResourceVisibility.visibility_org,
+            },
+            spec: {},
+          },
+        ],
+        totalCount: 1,
+      }),
+      getByReference: vi.fn().mockResolvedValue({
+        metadata: { visibility: ApiResourceVisibility.visibility_org },
+      }),
     },
   } as never;
 }
@@ -88,7 +123,7 @@ function Providers({
   );
 }
 
-function makeAgent() {
+function makeAgent(overrides: { withTools?: boolean } = {}) {
   return {
     metadata: {
       id: "agt_1",
@@ -96,7 +131,9 @@ function makeAgent() {
       slug: "support-agent",
       name: "Support Agent",
     },
-    spec: {},
+    spec: overrides.withTools
+      ? { mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }] }
+      : {},
   } as never;
 }
 
@@ -127,7 +164,29 @@ describe("ConnectSlackDialog", () => {
 
     expect(screen.getByDisplayValue("Support Agent Slack")).toBeTruthy();
     expect(screen.getByText(/billed to/i)).toBeTruthy();
-    expect(screen.getByText(/one agent at a time/i)).toBeTruthy();
+    expect(screen.getByText(/one agent per Slack app/i)).toBeTruthy();
+  });
+
+  it("sets workspace-picker expectations and explains how members reach the bot", () => {
+    render(
+      <Providers client={createMockStigmer()}>
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    // Item 1 (T03_3 feedback): Slack's consent page has a workspace picker
+    // in the corner — first-time installers must expect to choose.
+    expect(
+      screen.getByText(/Slack asks which workspace to add the bot to/i),
+    ).toBeTruthy();
+    // A1: the reach affordance — DM the bot or pick it from the @ list.
+    // Never a literal handle: the bot's name is app-level (platform
+    // "Stigmer" vs a BYO app's own brand), so the copy teaches the
+    // mechanism and names only the agent.
+    expect(
+      screen.getByText(/typing @ in a channel and choosing it from the list/i),
+    ).toBeTruthy();
+    expect(screen.queryByText(/@mentioning it/i)).toBeNull();
   });
 
   it("creates the channel, runs the install, and reports the workspace", async () => {
@@ -172,8 +231,160 @@ describe("ConnectSlackDialog", () => {
     deliverCallback("state-1");
 
     expect(await screen.findByText(/connected to Acme HQ/i)).toBeTruthy();
+    // The success state says exactly how to start chatting (A1: the
+    // DM / @-pick affordance) and names the agent that answers.
+    expect(
+      screen.getByText(/open a direct message with the bot/i),
+    ).toBeTruthy();
+    expect(screen.getByText(/replies as/i)).toBeTruthy();
+    expect(screen.getByText("Support Agent")).toBeTruthy();
     // Once for the created row, once for the completed install.
     expect(onChannelsChanged).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the tool-credentials section collapsed for agents without tools", async () => {
+    render(
+      <Providers client={createMockStigmer()}>
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    const toggle = await screen.findByRole("button", { name: "Tool credentials" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByLabelText("Add environment")).toBeNull();
+  });
+
+  it("binds credentials at connect time — create carries the chosen environment refs", async () => {
+    const create = vi.fn().mockResolvedValue({
+      metadata: { id: "ach_new", org: "acme" },
+    });
+    const client = createMockStigmer({ create });
+
+    render(
+      <Providers client={client}>
+        <ConnectSlackDialog
+          open
+          onOpenChange={() => {}}
+          agent={makeAgent({ withTools: true })}
+        />
+      </Providers>,
+    );
+
+    // Tool-using agent: the section is expanded by default (essential
+    // configuration, not an advanced option) and warns while unbound.
+    const toggle = await screen.findByRole("button", { name: "Tool credentials" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(
+      await screen.findByText(/no credentials are bound to this channel/i),
+    ).toBeTruthy();
+
+    const select = await screen.findByLabelText("Add environment");
+    fireEvent.change(select, { target: { value: "github-credentials" } });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /connect to slack/i }),
+    );
+
+    await waitFor(() =>
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          environmentRefs: [{ org: "acme", slug: "github-credentials" }],
+        }),
+      ),
+    );
+  });
+
+  it("hides the serving-app choice when the org has no channel apps", async () => {
+    render(
+      <Providers client={createMockStigmer()}>
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    // With no registered apps the platform app is the only answer — a
+    // one-option radio group would be noise, so the section is absent.
+    await screen.findByRole("button", { name: /connect to slack/i });
+    expect(screen.queryByRole("radiogroup")).toBeNull();
+    expect(screen.queryByText("Connect as")).toBeNull();
+  });
+
+  it("defaults to the platform app and create carries no appRef", async () => {
+    const create = vi.fn().mockResolvedValue({
+      metadata: { id: "ach_new", org: "acme" },
+    });
+    const client = createMockStigmer({
+      create,
+      channelApps: [makeChannelApp()],
+    });
+
+    render(
+      <Providers client={client}>
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    // Both options render; the platform app is pre-selected.
+    const platform = await screen.findByRole("radio", { name: /stigmer app/i });
+    expect((platform as HTMLInputElement).checked).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: /connect to slack/i }));
+
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledWith(
+      expect.not.objectContaining({ appRef: expect.anything() }),
+    );
+  });
+
+  it("connecting as your own app carries its appRef on create", async () => {
+    const create = vi.fn().mockResolvedValue({
+      metadata: { id: "ach_new", org: "acme" },
+    });
+    const client = createMockStigmer({
+      create,
+      channelApps: [makeChannelApp("acme-support-app", "Acme Support App")],
+    });
+
+    render(
+      <Providers client={client}>
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("radio", { name: /acme support app/i }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /connect to slack/i }));
+
+    await waitFor(() =>
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          appRef: { org: "acme", slug: "acme-support-app" },
+        }),
+      ),
+    );
+  });
+
+  it("offers only Slack-typed channel apps in the picker", async () => {
+    const client = createMockStigmer({
+      channelApps: [
+        makeChannelApp("acme-support-app", "Acme Support App"),
+        {
+          metadata: { id: "chapp_wa", org: "acme", slug: "acme-whatsapp", name: "Acme WhatsApp" },
+          spec: { providerConfig: { case: "whatsapp", value: {} } },
+        },
+      ],
+    });
+
+    render(
+      <Providers client={client}>
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    expect(
+      await screen.findByRole("radio", { name: /acme support app/i }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("radio", { name: /acme whatsapp/i })).toBeNull();
   });
 
   it("skips the create step when reconnecting an existing channel", async () => {

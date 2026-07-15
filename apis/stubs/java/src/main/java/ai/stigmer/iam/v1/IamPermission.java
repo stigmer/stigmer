@@ -212,6 +212,16 @@ public enum IamPermission
    * <code>can_create_agent_share = 30;</code>
    */
   can_create_agent_share(30),
+  /**
+   * <pre>
+   * Organization-level permission to register channel apps (customer-owned
+   * messaging-platform apps holding webhook and OAuth credentials).
+   * Admin-gated like can_create_oauth_app.
+   * </pre>
+   *
+   * <code>can_create_channel_app = 31;</code>
+   */
+  can_create_channel_app(31),
   UNRECOGNIZED(-1),
   ;
 
@@ -411,6 +421,16 @@ public enum IamPermission
    * <code>can_create_agent_share = 30;</code>
    */
   public static final int can_create_agent_share_VALUE = 30;
+  /**
+   * <pre>
+   * Organization-level permission to register channel apps (customer-owned
+   * messaging-platform apps holding webhook and OAuth credentials).
+   * Admin-gated like can_create_oauth_app.
+   * </pre>
+   *
+   * <code>can_create_channel_app = 31;</code>
+   */
+  public static final int can_create_channel_app_VALUE = 31;
 
 
   public final int getNumber() {
@@ -467,6 +487,7 @@ public enum IamPermission
       case 28: return can_manage_billing;
       case 29: return can_execute_billing_ops;
       case 30: return can_create_agent_share;
+      case 31: return can_create_channel_app;
       default: return null;
     }
   }

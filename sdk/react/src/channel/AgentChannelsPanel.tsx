@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import { KeyRound, MoreHorizontal, Trash2 } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -18,9 +18,11 @@ import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { ChannelCredentialsDialog } from "./ChannelCredentialsDialog.js";
 import { ConnectSlackDialog } from "./ConnectSlackDialog.js";
 import { SlackMarkIcon } from "./SlackMarkIcon.js";
 import { useAgentChannelList } from "./useAgentChannelList.js";
+import { useChannelToolReadiness } from "./useChannelToolReadiness.js";
 import { useDeleteAgentChannel } from "./useDeleteAgentChannel.js";
 import { agentChannelToInput, useSaveAgentChannel } from "./useSaveAgentChannel.js";
 
@@ -97,6 +99,10 @@ export function AgentChannelsPanel({
     | { readonly mode: "reconnect"; readonly channel: AgentChannel }
     | null
   >(null);
+
+  // The channel whose tool-credential bindings are being edited.
+  const [editingCredentials, setEditingCredentials] =
+    useState<AgentChannel | null>(null);
 
   const handleConnect = useCallback(
     (channel: AgentChannel | null) => {
@@ -192,10 +198,12 @@ export function AgentChannelsPanel({
             {channels.map((channel) => (
               <ChannelCard
                 key={channel.metadata?.id}
+                agent={agent}
                 channel={channel}
                 installsAvailable={installsAvailable || !!onConnectExternal}
                 onConnectClick={() => handleConnect(channel)}
                 onDeleteClick={() => void handleDelete(channel)}
+                onEditCredentials={() => setEditingCredentials(channel)}
                 refetch={refetch}
               />
             ))}
@@ -215,6 +223,18 @@ export function AgentChannelsPanel({
         />
       )}
 
+      {editingCredentials && (
+        <ChannelCredentialsDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setEditingCredentials(null);
+          }}
+          agent={agent}
+          channel={editingCredentials}
+          onSaved={refetch}
+        />
+      )}
+
       <ConfirmDialog
         state={confirmState}
         onConfirm={handleConfirm}
@@ -229,18 +249,22 @@ export function AgentChannelsPanel({
 // ---------------------------------------------------------------------------
 
 interface ChannelCardProps {
+  readonly agent: Agent;
   readonly channel: AgentChannel;
   readonly installsAvailable: boolean;
   readonly onConnectClick: () => void;
   readonly onDeleteClick: () => void;
+  readonly onEditCredentials: () => void;
   readonly refetch: () => void;
 }
 
 function ChannelCard({
+  agent,
   channel,
   installsAvailable,
   onConnectClick,
   onDeleteClick,
+  onEditCredentials,
   refetch,
 }: ChannelCardProps) {
   const meta = channel.metadata;
@@ -251,6 +275,11 @@ function ChannelCard({
     channel.status?.providerStatus?.case === "slack"
       ? channel.status.providerStatus.value
       : null;
+  // The serving app (T04 item 2): set means the channel installs through
+  // the org's own channel app; absent means the platform Stigmer app.
+  // The ref's slug is the identifier the owner chose — enough to tell
+  // two apps' channels apart without fetching the ChannelApp.
+  const servingAppSlug = channel.spec?.appRef?.slug || null;
 
   const { save, isPending } = useSaveAgentChannel();
 
@@ -304,6 +333,11 @@ function ChannelCard({
             <p className="mt-0.5 text-xs text-muted-foreground">
               {describeChannel(installState, slack?.teamName, installedAt)}
             </p>
+            <p className="mt-0.5 text-xs text-muted-foreground-faint">
+              {servingAppSlug
+                ? `Serving app: ${servingAppSlug} (your app)`
+                : "Serving app: Stigmer"}
+            </p>
           </div>
         </div>
 
@@ -325,7 +359,7 @@ function ChannelCard({
                   : "Connect"}
               </Button>
             )}
-          {canDelete && (
+          {(canEdit || canDelete) && (
             <ActionMenu>
               <ActionMenu.Trigger
                 aria-label={`Actions for ${meta?.name || meta?.slug}`}
@@ -333,19 +367,97 @@ function ChannelCard({
                 <MoreHorizontal className="size-4" />
               </ActionMenu.Trigger>
               <ActionMenu.Content>
-                <ActionMenu.Item
-                  icon={<Trash2 />}
-                  variant="destructive"
-                  onSelect={onDeleteClick}
-                >
-                  Disconnect
-                </ActionMenu.Item>
+                {canEdit && (
+                  <ActionMenu.Item
+                    icon={<KeyRound />}
+                    onSelect={onEditCredentials}
+                  >
+                    Tool credentials
+                  </ActionMenu.Item>
+                )}
+                {canDelete && (
+                  <ActionMenu.Item
+                    icon={<Trash2 />}
+                    variant="destructive"
+                    onSelect={onDeleteClick}
+                  >
+                    Disconnect
+                  </ActionMenu.Item>
+                )}
               </ActionMenu.Content>
             </ActionMenu>
           )}
         </div>
       </div>
+
+      <CardReadinessWarning
+        agent={agent}
+        channel={channel}
+        canEdit={canEdit}
+        onEditCredentials={onEditCredentials}
+      />
     </div>
+  );
+}
+
+/**
+ * Serving-readiness warning for tool-using agents: channel executions
+ * receive credentials only from the channel's own bindings, so an
+ * installed, enabled channel with none (or with a private binding) will
+ * refuse the first workspace message that needs a tool. The card is
+ * where an owner — including one who connected before credential
+ * binding existed — discovers the gap, instead of hearing about it from
+ * a confused workspace member.
+ */
+function CardReadinessWarning({
+  agent,
+  channel,
+  canEdit,
+  onEditCredentials,
+}: {
+  readonly agent: Agent;
+  readonly channel: AgentChannel;
+  readonly canEdit: boolean;
+  readonly onEditCredentials: () => void;
+}) {
+  const serving =
+    (channel.spec?.enabled ?? false) &&
+    installStateOf(channel) === AgentChannelInstallState.installed;
+  const readiness = useChannelToolReadiness(
+    agent,
+    serving,
+    channel.spec?.environmentRefs ?? [],
+  );
+
+  if (readiness.status !== "needs-credentials" && readiness.status !== "blocked") {
+    return null;
+  }
+
+  const message =
+    readiness.status === "needs-credentials"
+      ? "This agent uses tools, but no credentials are bound to this channel — workspace messages that need a tool will be refused."
+      : `Bound environment${readiness.privateEnvironments.length > 1 ? "s" : ""} ${readiness.privateEnvironments.join(", ")} ${readiness.privateEnvironments.length > 1 ? "are" : "is"} private — share ${readiness.privateEnvironments.length > 1 ? "them" : "it"} with your organization so workspace messages can use the credentials.`;
+
+  return (
+    <p className="mt-2 text-xs text-warning" role="status">
+      {message}
+      {canEdit && (
+        <>
+          {" "}
+          <button
+            type="button"
+            onClick={onEditCredentials}
+            className={cn(
+              "font-medium underline underline-offset-2",
+              "hover:text-foreground",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+            )}
+          >
+            Bind credentials
+          </button>
+        </>
+      )}
+    </p>
   );
 }
 

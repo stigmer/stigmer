@@ -2,12 +2,14 @@
 
 import { useCallback, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { Button } from "../button/Button.js";
+import { useChannelAppList } from "../channel-app/useChannelAppList.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { ChannelToolCredentials } from "./ChannelToolCredentials.js";
 import { useConnectSlackChannel, type SlackConnectPhase } from "./useConnectSlackChannel.js";
 import { useCreateAgentChannel } from "./useCreateAgentChannel.js";
 import { SlackMarkIcon } from "./SlackMarkIcon.js";
@@ -145,6 +147,16 @@ function ConnectSlackDialogBody({
   const [name, setName] = useState(() =>
     channel ? (channel.metadata?.name ?? "") : `${agentName} Slack`,
   );
+  // Tool credentials bound at connect time (create mode only — a
+  // reconnect keeps the channel's existing bindings untouched; edits go
+  // through the channel card's credentials dialog).
+  const [environmentRefs, setEnvironmentRefs] = useState<ResourceRef[]>([]);
+  // The serving app (create mode only): null = the platform Stigmer app;
+  // a ref = one of the org's own channel apps (BYO — the bot carries that
+  // app's name, and each app is its own bot identity). A reconnect keeps
+  // the channel's existing binding — an installed channel's app_ref is
+  // frozen server-side.
+  const [appRef, setAppRef] = useState<ResourceRef | null>(null);
   const [installed, setInstalled] = useState<AgentChannel | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
@@ -166,6 +178,8 @@ function ConnectSlackDialogBody({
           },
           enabled: true,
           slack: {},
+          ...(appRef ? { appRef } : {}),
+          ...(environmentRefs.length > 0 ? { environmentRefs } : {}),
         });
         // The channel now exists even if the install below fails or is
         // abandoned — surface it in the list either way.
@@ -180,7 +194,7 @@ function ConnectSlackDialogBody({
       // error null for it; everything else renders below.
       setError(slack.error ?? (err instanceof Error ? err : new Error(String(err))));
     }
-  }, [agent, agentName, channel, createChannel, name, org, onChannelsChanged, slack]);
+  }, [agent, agentName, appRef, channel, createChannel, environmentRefs, name, org, onChannelsChanged, slack]);
 
   const handleCancel = useCallback(() => {
     slack.clearError();
@@ -251,16 +265,39 @@ function ConnectSlackDialogBody({
               </label>
             )}
 
+            {!channel && (
+              <ServingAppSection
+                org={org}
+                value={appRef}
+                onChange={setAppRef}
+                disabled={busy}
+              />
+            )}
+
+            {!channel && (
+              <ToolCredentialsSection
+                agent={agent}
+                org={org}
+                value={environmentRefs}
+                onChange={setEnvironmentRefs}
+                disabled={busy}
+              />
+            )}
+
             <p className="text-sm text-muted-foreground">
-              You&apos;ll pick a Slack workspace and approve the install.
-              Workspace members can then chat with{" "}
+              When you continue, Slack asks which workspace to add the bot
+              to — pick the one where your team should chat with this agent.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Members reach{" "}
               <span className="font-medium text-foreground">{agentName}</span>{" "}
-              by messaging it directly or @mentioning it in channels.
+              by opening a direct message with the bot, or typing @ in a
+              channel and choosing it from the list.
             </p>
             <p className="text-xs text-muted-foreground">
               Conversations from Slack are billed to{" "}
               <span className="font-medium">{org}</span>. A workspace can
-              host one agent at a time.
+              host one agent per Slack app.
             </p>
 
             {error && (
@@ -299,6 +336,175 @@ function ConnectSlackDialogBody({
         )}
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Serving app — the platform Stigmer app vs one of the org's own apps
+// ---------------------------------------------------------------------------
+
+/**
+ * "Connect as whom" for create mode (T04 item 2): the platform's shared
+ * Stigmer app (zero setup, bot named "Stigmer") or one of the org's own
+ * channel apps (the bot carries that app's brand, and because each app is
+ * its own bot identity, multiple agents can serve one workspace).
+ *
+ * Rendered only when the org has registered channel apps — with none, the
+ * platform app is the only answer and a one-option radio group is noise.
+ * Apps are registered under Settings → Channel Apps.
+ */
+function ServingAppSection({
+  org,
+  value,
+  onChange,
+  disabled,
+}: {
+  readonly org: string;
+  readonly value: ResourceRef | null;
+  readonly onChange: (ref: ResourceRef | null) => void;
+  readonly disabled: boolean;
+}) {
+  const { channelApps } = useChannelAppList(org);
+
+  const slackApps = channelApps.filter(
+    (app) => app.spec?.providerConfig?.case === "slack",
+  );
+  if (slackApps.length === 0) {
+    return null;
+  }
+
+  return (
+    <fieldset>
+      <legend className="mb-1.5 block text-xs font-medium text-foreground">
+        Connect as
+      </legend>
+      <div role="radiogroup" className="space-y-1.5">
+        <ServingAppOption
+          id="stgm-slack-app-platform"
+          label="Stigmer app"
+          hint="Fastest — no setup, the bot is named Stigmer"
+          checked={value === null}
+          onSelect={() => onChange(null)}
+          disabled={disabled}
+        />
+        {slackApps.map((app) => {
+          const slug = app.metadata?.slug ?? "";
+          const checked = value?.slug === slug;
+          return (
+            <ServingAppOption
+              key={app.metadata?.id ?? slug}
+              id={`stgm-slack-app-${slug}`}
+              label={app.metadata?.name ?? slug}
+              hint="Your app — your bot name and icon"
+              checked={checked}
+              onSelect={() => onChange({ org, slug })}
+              disabled={disabled}
+            />
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+function ServingAppOption({
+  id,
+  label,
+  hint,
+  checked,
+  onSelect,
+  disabled,
+}: {
+  readonly id: string;
+  readonly label: string;
+  readonly hint: string;
+  readonly checked: boolean;
+  readonly onSelect: () => void;
+  readonly disabled: boolean;
+}) {
+  return (
+    <label
+      htmlFor={id}
+      className={cn(
+        "flex cursor-pointer items-start gap-2 rounded-md border px-2.5 py-1.5",
+        checked ? "border-ring bg-accent" : "border-border hover:bg-accent-hover",
+        disabled && "pointer-events-none opacity-50",
+      )}
+    >
+      <input
+        id={id}
+        type="radio"
+        name="stgm-slack-serving-app"
+        checked={checked}
+        onChange={onSelect}
+        disabled={disabled}
+        className="mt-0.5 accent-current"
+      />
+      <span className="min-w-0">
+        <span className="block text-xs font-medium text-foreground">{label}</span>
+        <span className="block text-[0.65rem] text-muted-foreground">{hint}</span>
+      </span>
+    </label>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tool credentials — org-shared environments bound at connect time
+// ---------------------------------------------------------------------------
+
+/**
+ * Collapsible credential-binding section for create mode (the
+ * ShareAgentDialog ToolCredentialsSection pattern). Expanded by default
+ * when the agent uses MCP tools — for those agents this is essential
+ * configuration, not an advanced option: without a binding, every
+ * workspace message that needs a tool is refused.
+ */
+function ToolCredentialsSection({
+  agent,
+  org,
+  value,
+  onChange,
+  disabled,
+}: {
+  readonly agent: Agent;
+  readonly org: string;
+  readonly value: readonly ResourceRef[];
+  readonly onChange: (refs: ResourceRef[]) => void;
+  readonly disabled: boolean;
+}) {
+  const hasMcpTools = (agent.spec?.mcpServerUsages?.length ?? 0) > 0;
+  const [expanded, setExpanded] = useState(hasMcpTools || value.length > 0);
+
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className={cn(
+          "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground",
+          "hover:text-foreground",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+        )}
+      >
+        <ChevronIcon
+          className={cn("size-3 transition-transform", expanded && "rotate-90")}
+        />
+        Tool credentials
+      </button>
+
+      {expanded && (
+        <div className="mt-2">
+          <ChannelToolCredentials
+            agent={agent}
+            org={org}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+          />
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -380,10 +586,10 @@ function InstalledSummary({
         Connected{slack?.teamName ? ` to ${slack.teamName}` : ""}
       </div>
       <p className="text-sm text-muted-foreground">
-        Workspace members can now chat with{" "}
-        <span className="font-medium text-foreground">{agentName}</span> in
-        Slack — send it a direct message or @mention it in a channel to try
-        it out.
+        In Slack, open a direct message with the bot — or type @ in any
+        channel and pick it from the list — then ask your question. It
+        replies as{" "}
+        <span className="font-medium text-foreground">{agentName}</span>.
       </p>
     </div>
   );
@@ -405,6 +611,14 @@ function CheckIcon({ className }: { readonly className?: string }) {
   return (
     <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="m3 8.5 3.5 3.5L13 5" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m4.5 2.5 3.5 3.5-3.5 3.5" />
     </svg>
   );
 }

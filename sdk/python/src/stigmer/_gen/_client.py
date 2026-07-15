@@ -11,6 +11,7 @@ from ._agentinstance import AgentInstanceClient
 from ._agentshare import AgentShareClient
 from ._apikey import ApiKeyClient
 from ._artifact import ArtifactClient
+from ._channelapp import ChannelAppClient
 from ._environment import EnvironmentClient
 from ._executioncontext import ExecutionContextClient
 from ._iampolicy import IamPolicyClient
@@ -40,6 +41,7 @@ class GeneratedClient:
         self.agent_shares = AgentShareClient(channel)
         self.api_keys = ApiKeyClient(channel)
         self.artifacts = ArtifactClient(channel)
+        self.channelapps = ChannelAppClient(channel)
         self.environments = EnvironmentClient(channel)
         self.execution_contexts = ExecutionContextClient(channel)
         self.iam_policies = IamPolicyClient(channel)

@@ -78,6 +78,7 @@ export {
   WorkspaceSummary,
   FileViewer,
   WorkspaceSurface,
+  PanelChip,
   ExplorerTree,
   virtualEntryId,
   isVirtualEntryId,
@@ -115,6 +116,8 @@ export type {
   WorkspaceSurfaceProps,
   SurfaceRailView,
   SurfaceVirtualDocument,
+  BuiltInViewId,
+  PanelChipProps,
   ExplorerTreeProps,
   OpenEditor,
   OpenFileOptions,
@@ -226,6 +229,7 @@ export {
   isTerminalPhase,
   useCreateAgentExecution,
   useExecutionStream,
+  useLiveAgentExecution,
   useAgentExecutionActions,
   useSubmitApproval,
   useFileReview,
@@ -295,8 +299,12 @@ export {
   useFileReviewRowState,
   useFileReviewRowChange,
   ArtifactRow,
+  ArtifactRowView,
+  fromExecutionArtifact,
+  fromArtifact,
   ArtifactContentRenderer,
   ArtifactContentBody,
+  ArtifactFileContent,
   ArtifactDocument,
   useArtifactInspection,
   ArtifactPreviewContent,
@@ -315,6 +323,7 @@ export {
   SessionVariablesInput,
   useExecutionArtifacts,
   useArtifactContent,
+  useArtifactContentById,
   useArtifactDownloadUrl,
   useArtifactDownload,
   useArtifactCopy,
@@ -328,6 +337,13 @@ export {
   writeBackDisplayName,
   FileChangesView,
   FileChangeDiff,
+  deriveExecutionFileChanges,
+  toFileDiffEntry,
+  FILE_CHANGE_DOCUMENT_ENTRY_ID,
+  fileChangeTabPath,
+  AGENT_EXECUTION_DOCUMENT_ENTRY_ID,
+  agentExecutionTabPath,
+  parseAgentExecutionTabPath,
   EmptyChangeNotice,
   isTextArtifact,
   formatArtifactSize,
@@ -342,6 +358,7 @@ export type {
   SharedAgentExecutionFields,
   UseCreateAgentExecutionReturn,
   UseExecutionStreamReturn,
+  UseLiveAgentExecutionReturn,
   UseAgentExecutionActionsOptions,
   UseAgentExecutionActionsReturn,
   UseSubmitApprovalReturn,
@@ -396,8 +413,11 @@ export type {
   UseApprovalResult,
   FileReviewContextValue,
   ArtifactRowProps,
+  ArtifactRowViewProps,
+  ArtifactRowItem,
   ArtifactContentRendererProps,
   ArtifactContentBodyProps,
+  ArtifactFileContentProps,
   ArtifactDocumentProps,
   ArtifactInspection,
   UseArtifactInspectionOptions,
@@ -415,6 +435,7 @@ export type {
   SessionVariablesInputProps,
   UseExecutionArtifactsReturn,
   UseArtifactContentReturn,
+  UseArtifactContentByIdReturn,
   UseArtifactDownloadUrlReturn,
   UseArtifactDownloadUrlOptions,
   UseArtifactDownloadReturn,
@@ -674,6 +695,7 @@ export {
   resolveSystemEnvVarValues,
   resolveDeclaredSystemEnvVars,
   EnvironmentPicker,
+  useToolCredentialsReadiness,
 } from "./environment/index.js";
 export type {
   UseEnvironmentReturn,
@@ -696,6 +718,7 @@ export type {
   SessionEnvPoolInput,
   UseSessionEnvPoolReturn,
   EnvironmentPickerProps,
+  ToolCredentialsReadiness,
 } from "./environment/index.js";
 
 // Identity Account — gate hook for ensuring the caller's identity account exists before app render
@@ -859,6 +882,7 @@ export { IdentityProvidersSection } from "./settings/index.js";
 export type { IdentityProvidersSectionProps } from "./settings/index.js";
 export { PlatformClientsSection } from "./settings/index.js";
 export { OAuthAppsSection } from "./settings/index.js";
+export { ChannelAppsSection } from "./settings/index.js";
 export { UsageSection } from "./settings/index.js";
 
 // User — app shell user menu
@@ -928,6 +952,33 @@ export type {
   CreateOAuthAppFormProps,
   OAuthAppDetailPanelProps,
 } from "./oauth-app/index.js";
+
+// Channel App — data hooks, mutation hooks, styled components, and Slack
+// setup helpers for bring-your-own channel apps (T04 item 2)
+export {
+  useChannelAppList,
+  useCreateChannelApp,
+  useUpdateChannelApp,
+  useDeleteChannelApp,
+  ChannelAppListPanel,
+  CreateChannelAppForm,
+  ChannelAppDetailPanel,
+  buildSlackChannelAppManifest,
+  slackChannelAppRedirectUrl,
+  slackChannelAppWebhookUrl,
+  SLACK_CHANNEL_APP_BOT_EVENTS,
+  SLACK_CHANNEL_APP_BOT_SCOPES,
+} from "./channel-app/index.js";
+export type {
+  UseChannelAppListReturn,
+  UseCreateChannelAppReturn,
+  UseUpdateChannelAppReturn,
+  UseDeleteChannelAppReturn,
+  ChannelAppListPanelProps,
+  CreateChannelAppFormProps,
+  ChannelAppDetailPanelProps,
+  SlackChannelAppManifestInput,
+} from "./channel-app/index.js";
 
 // Identity Provider — data hooks, mutation hooks, styled components, presets, and guided wizard for IdP management and SSO discovery
 export {
@@ -1031,8 +1082,11 @@ export {
   useCreateAgentChannel,
   useDeleteAgentChannel,
   useConnectSlackChannel,
+  useChannelToolReadiness,
   AgentChannelsPanel,
   ConnectSlackDialog,
+  ChannelCredentialsDialog,
+  ChannelToolCredentials,
 } from "./channel/index.js";
 export type {
   UseAgentChannelListReturn,
@@ -1044,6 +1098,8 @@ export type {
   SlackConnectPhase,
   AgentChannelsPanelProps,
   ConnectSlackDialogProps,
+  ChannelCredentialsDialogProps,
+  ChannelToolCredentialsProps,
 } from "./channel/index.js";
 
 // Error — structured error display with classification, retry, and contextual guidance
@@ -1407,8 +1463,22 @@ export {
   WorkflowExecutionHeader,
   WorkflowExecutionTimeline,
   WorkflowExecutionTaskPanel,
-  WorkflowExecutionCostPanel,
-  WorkflowExecutionArtifactPanel,
+  useWorkflowExecutionPanel,
+  workflowArtifactTabPath,
+  DIAGNOSIS_DOCUMENT_ENTRY_ID,
+  DIAGNOSIS_DOCUMENT_PATH,
+  useWorkflowExecutionRailViews,
+  WorkflowArtifactsTab,
+  WorkflowChangesTab,
+  WorkflowUsageTab,
+  WorkflowArtifactDocument,
+  WorkflowAgentExecutionDocument,
+  useWorkflowArtifactDownload,
+  useWorkflowExecutionFileChanges,
+  enumerateAgentCallChildren,
+  agentCallChildrenSignature,
+  deriveWorkflowArtifactItems,
+  deriveWorkflowUsageItems,
   WorkflowExecutionApprovalCard,
   WorkflowFileReviewList,
   serializeWorkflowYaml,
@@ -1523,8 +1593,24 @@ export type {
   WorkflowExecutionHeaderProps,
   WorkflowExecutionTimelineProps,
   WorkflowExecutionTaskPanelProps,
-  WorkflowExecutionCostPanelProps,
-  WorkflowExecutionArtifactPanelProps,
+  WorkflowExecutionPanelController,
+  UseWorkflowExecutionPanelOptions,
+  NotifySelectionOptions,
+  UseWorkflowExecutionRailViewsOptions,
+  WorkflowInspectViewOptions,
+  WorkflowInspectHitl,
+  WorkflowArtifactsTabProps,
+  WorkflowChangesTabProps,
+  WorkflowUsageTabProps,
+  AgentCallChild,
+  UseWorkflowExecutionFileChangesOptions,
+  UseWorkflowExecutionFileChangesReturn,
+  WorkflowArtifactDocumentProps,
+  WorkflowAgentExecutionDocumentProps,
+  WorkflowAgentExecutionHitl,
+  UseWorkflowArtifactDownloadReturn,
+  WorkflowArtifactEntry,
+  WorkflowUsageItem,
   WorkflowExecutionApprovalCardProps,
   WorkflowFileReviewListProps,
   WorkflowFileDecisionSubmit,

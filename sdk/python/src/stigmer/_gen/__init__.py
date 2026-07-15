@@ -9,6 +9,7 @@ from ._agentinstance import AgentInstanceClient, AgentInstanceInput
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
 from ._artifact import ArtifactClient, ArtifactInput, ArtifactSourceInput, RetentionPolicyInput
+from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfigInput
 from ._environment import EnvironmentClient, EnvironmentInput
 from ._executioncontext import ExecutionContextClient, ExecutionContextInput
 from ._iampolicy import IamPolicyClient, IamPolicyInput, ApiResourceRefInput
@@ -77,6 +78,9 @@ __all__ = [
     "ArtifactInput",
     "ArtifactSourceInput",
     "RetentionPolicyInput",
+    "ChannelAppClient",
+    "ChannelAppInput",
+    "SlackChannelAppConfigInput",
     "EnvironmentClient",
     "EnvironmentInput",
     "ExecutionContextClient",

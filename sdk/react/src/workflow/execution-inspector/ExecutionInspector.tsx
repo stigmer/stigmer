@@ -31,6 +31,15 @@ export interface ExecutionInspectorProps {
   readonly taskSnapshots?: readonly WorkflowTask[];
   /** Callback when the user clicks "View Agent Execution" on an agent_call task. */
   readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
+  /**
+   * Open an agent_call task's child execution transcript in the execution
+   * panel (the S4 in-place expansion). Wired by the viewer to
+   * `panel.openAgentExecution`; the Agent tab's primary launch action.
+   */
+  readonly onOpenAgentExecution?: (
+    childExecutionId: string,
+    taskName: string,
+  ) => void;
   /** Pending agent tool approvals from `execution.status.pending_approvals`. */
   readonly pendingApprovals?: readonly WorkflowPendingApproval[];
   /** Callback to submit an agent tool approval decision. */
@@ -104,6 +113,7 @@ export const ExecutionInspector = memo(function ExecutionInspector({
   taskStates,
   taskSnapshots,
   onNavigateToAgentExecution,
+  onOpenAgentExecution,
   pendingApprovals,
   onSubmitApproval,
   approvalSubmittingToolCallIds,
@@ -224,8 +234,9 @@ export const ExecutionInspector = memo(function ExecutionInspector({
           {effectiveTab === "agent" && detail.agentCall && (
             <AgentCallTab
               agentCall={detail.agentCall}
+              taskName={detail.taskName}
               taskStatus={detail.status}
-              isTabActive={effectiveTab === "agent"}
+              onOpenAgentExecution={onOpenAgentExecution}
               onNavigateToAgentExecution={onNavigateToAgentExecution}
             />
           )}

@@ -194,15 +194,67 @@ export {
   type WorkflowExecutionTaskPanelProps,
 } from "./WorkflowExecutionTaskPanel.js";
 
+// Execution panel — the single WorkspaceSurface-based side panel (Inspect/
+// Artifacts/Changes/Usage facets, virtual document tabs) and its
+// controller/assembler hooks.
 export {
-  WorkflowExecutionCostPanel,
-  type WorkflowExecutionCostPanelProps,
-} from "./WorkflowExecutionCostPanel.js";
-
+  useWorkflowExecutionPanel,
+  workflowArtifactTabPath,
+  type WorkflowExecutionPanelController,
+  type UseWorkflowExecutionPanelOptions,
+  type NotifySelectionOptions,
+} from "./useWorkflowExecutionPanel.js";
 export {
-  WorkflowExecutionArtifactPanel,
-  type WorkflowExecutionArtifactPanelProps,
-} from "./WorkflowExecutionArtifactPanel.js";
+  useWorkflowExecutionRailViews,
+  type UseWorkflowExecutionRailViewsOptions,
+  type WorkflowInspectViewOptions,
+  type WorkflowInspectHitl,
+} from "./useWorkflowExecutionRailViews.js";
+export {
+  DIAGNOSIS_DOCUMENT_ENTRY_ID,
+  DIAGNOSIS_DOCUMENT_PATH,
+} from "./diagnosis-document.js";
+export {
+  WorkflowArtifactsTab,
+  type WorkflowArtifactsTabProps,
+} from "./facets/WorkflowArtifactsTab.js";
+export {
+  WorkflowChangesTab,
+  type WorkflowChangesTabProps,
+} from "./facets/WorkflowChangesTab.js";
+export {
+  WorkflowUsageTab,
+  type WorkflowUsageTabProps,
+} from "./facets/WorkflowUsageTab.js";
+export {
+  useWorkflowExecutionFileChanges,
+  enumerateAgentCallChildren,
+  agentCallChildrenSignature,
+  type AgentCallChild,
+  type UseWorkflowExecutionFileChangesOptions,
+  type UseWorkflowExecutionFileChangesReturn,
+} from "./useWorkflowExecutionFileChanges.js";
+export {
+  WorkflowArtifactDocument,
+  type WorkflowArtifactDocumentProps,
+} from "./WorkflowArtifactDocument.js";
+export {
+  WorkflowAgentExecutionDocument,
+  type WorkflowAgentExecutionDocumentProps,
+  type WorkflowAgentExecutionHitl,
+} from "./WorkflowAgentExecutionDocument.js";
+export {
+  useWorkflowArtifactDownload,
+  type UseWorkflowArtifactDownloadReturn,
+} from "./useWorkflowArtifactDownload.js";
+export {
+  deriveWorkflowArtifactItems,
+  type WorkflowArtifactEntry,
+} from "./deriveWorkflowArtifactItems.js";
+export {
+  deriveWorkflowUsageItems,
+  type WorkflowUsageItem,
+} from "./deriveWorkflowUsageItems.js";
 
 export {
   WorkflowExecutionApprovalCard,

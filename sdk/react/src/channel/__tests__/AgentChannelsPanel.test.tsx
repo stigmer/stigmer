@@ -48,8 +48,23 @@ interface MockOverrides {
   checkMyPermission?: (input: unknown) => Promise<unknown>;
 }
 
+interface MakeChannelOverrides {
+  installState?: number;
+  enabled?: boolean;
+  teamName?: string;
+  id?: string;
+  name?: string;
+  /** BYO channel-app binding (spec.app_ref); absent = platform app. */
+  appRefSlug?: string;
+}
+
 function createMockStigmer(overrides: MockOverrides = {}) {
   return {
+    // The connect dialog's serving-app picker lists the org's channel
+    // apps; the panel itself never fetches them.
+    channelapp: {
+      listByOrg: vi.fn().mockResolvedValue({ entries: [] }),
+    },
     agentChannel: {
       getByAgent: vi.fn().mockResolvedValue({
         totalCount: overrides.channels?.length ?? 0,
@@ -63,6 +78,10 @@ function createMockStigmer(overrides: MockOverrides = {}) {
         state: "s",
       }),
       completeInstall: vi.fn().mockResolvedValue({}),
+    },
+    environment: {
+      list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
+      getByReference: vi.fn().mockRejectedValue(new Error("not found")),
     },
     iamPolicy: {
       checkMyPermission:
@@ -92,7 +111,7 @@ function Providers({
   );
 }
 
-function makeAgent() {
+function makeAgent(overrides: { withTools?: boolean } = {}) {
   return {
     metadata: {
       id: "agt_1",
@@ -100,23 +119,20 @@ function makeAgent() {
       slug: "support-agent",
       name: "Support Agent",
     },
-    spec: {},
+    spec: overrides.withTools
+      ? { mcpServerUsages: [{ mcpServerRef: { org: "acme", slug: "github" } }] }
+      : {},
   } as never;
 }
 
-function makeChannel(overrides: {
-  installState?: number;
-  enabled?: boolean;
-  teamName?: string;
-  id?: string;
-  name?: string;
-} = {}) {
+function makeChannel(overrides: MakeChannelOverrides = {}) {
   const {
     installState = 2, // installed
     enabled = true,
     teamName,
     id = "ach_1",
     name = "Support Slack",
+    appRefSlug,
   } = overrides;
   return {
     metadata: { id, org: "acme", slug: "support-slack", name, labels: {} },
@@ -124,6 +140,7 @@ function makeChannel(overrides: {
       agentRef: { org: "acme", slug: "support-agent" },
       enabled,
       providerConfig: { case: "slack", value: {} },
+      ...(appRefSlug ? { appRef: { org: "acme", slug: appRefSlug } } : {}),
     },
     status: {
       installState,
@@ -242,6 +259,33 @@ describe("AgentChannelsPanel", () => {
     await waitFor(() => expect(del).toHaveBeenCalledWith("ach_1"));
   });
 
+  it("names the serving app on each card — platform vs your own app", async () => {
+    const client = createMockStigmer({
+      channels: [
+        makeChannel({ id: "ach_1", name: "Platform Channel" }),
+        makeChannel({
+          id: "ach_2",
+          name: "Branded Channel",
+          appRefSlug: "acme-support-app",
+        }),
+      ],
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    // Two channels of one workspace are only tellable apart by their
+    // serving app — the whole point of BYO (T04 item 2).
+    await waitFor(() =>
+      expect(screen.getByText("Serving app: Stigmer")).toBeTruthy(),
+    );
+    expect(
+      screen.getByText("Serving app: acme-support-app (your app)"),
+    ).toBeTruthy();
+  });
+
   it("opens the connect dialog from the empty state", async () => {
     const client = createMockStigmer();
     render(
@@ -255,7 +299,9 @@ describe("AgentChannelsPanel", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /connect to slack/i }));
 
-    expect(await screen.findByText(/pick a Slack workspace/i)).toBeTruthy();
+    expect(
+      await screen.findByRole("heading", { name: "Connect to Slack" }),
+    ).toBeTruthy();
   });
 
   it("delegates connect to the host when onConnectExternal is provided", async () => {
@@ -334,6 +380,62 @@ describe("AgentChannelsPanel", () => {
     expect(screen.queryByRole("switch")).toBeNull();
     expect(screen.queryByRole("button", { name: /connect to slack/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /actions for/i })).toBeNull();
+  });
+
+  it("warns on an installed card when a tool-using agent has no credentials bound", async () => {
+    const client = createMockStigmer({
+      channels: [makeChannel({ teamName: "Acme HQ" })],
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent({ withTools: true })} />
+      </Providers>,
+    );
+
+    await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
+    // The card is where an owner discovers the gap — including one who
+    // connected before credential binding existed.
+    expect(
+      await screen.findByText(/no credentials are bound to this channel/i),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: /bind credentials/i })).toBeTruthy();
+  });
+
+  it("stays silent on cards for agents without tools", async () => {
+    const client = createMockStigmer({
+      channels: [makeChannel({ teamName: "Acme HQ" })],
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
+    expect(
+      screen.queryByText(/no credentials are bound to this channel/i),
+    ).toBeNull();
+  });
+
+  it("opens the credentials dialog from the card's action menu", async () => {
+    const client = createMockStigmer({
+      channels: [makeChannel({ teamName: "Acme HQ" })],
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "Tool credentials" }),
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Tool credentials" }),
+    ).toBeTruthy();
   });
 
   it("renders an error state when the list fails to load", async () => {

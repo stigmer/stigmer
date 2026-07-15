@@ -11,7 +11,7 @@ import {
   type WorkspaceEditorsStore,
 } from "../internal/store/index.js";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "./plan-document.js";
-import { ARTIFACT_DOCUMENT_ENTRY_ID } from "./artifact-document.js";
+import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../execution/artifact-document.js";
 import { artifactKey } from "./useSessionArtifacts.js";
 
 /** Options for {@link useSessionPanel}. */

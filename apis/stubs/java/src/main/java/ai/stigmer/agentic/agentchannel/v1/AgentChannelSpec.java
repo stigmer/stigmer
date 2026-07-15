@@ -10,8 +10,9 @@ package ai.stigmer.agentic.agentchannel.v1;
  * AgentChannelSpec defines the configurable properties of an agent channel.
  *
  * The spec is deliberately small: which agent serves the channel, whether
- * serving is enabled, and which provider the channel targets. Workspace
- * identity and credentials are produced by the install flow and live in
+ * serving is enabled, which provider the channel targets, and which
+ * environments supply the agent's tool credentials. Workspace identity and
+ * provider credentials are produced by the install flow and live in
  * status — a declarative apply can never clobber them.
  *
  * &#64;internal
@@ -45,6 +46,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private AgentChannelSpec() {
+    environmentRefs_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -229,6 +231,260 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig.getDefaultInstance();
   }
 
+  public static final int ENVIRONMENT_REFS_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> environmentRefs_;
+  /**
+   * <pre>
+   * References to Environment resources whose values are provided to
+   * conversations on this channel.
+   *
+   * This is how a tool-using agent becomes chattable over a channel: bind
+   * an org-shared environment holding the needed credentials (for example
+   * a read-only API token), and channel executions receive its values at
+   * runtime. The agent and its default instance stay untouched.
+   *
+   * &#64;internal
+   * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+   * a channel — both connection kinds carry their own credentials).
+   * Resolved in the channel's org through the org-shared environment
+   * resolution seam (EnvironmentRuntimeResolutionService /
+   * OrgSharedEnvironmentPolicy): each referenced environment must be
+   * visibility_org in the channel's org, or the merge skips it with a
+   * diagnostic. Merged at channel execution-context build time only,
+   * lowest priority (instance refs and runtime_env override on key
+   * conflicts) — never bound to the agent's system-managed default
+   * instance. No write-time existence or visibility check, matching the
+   * share: enforcement lives solely at runtime resolution, which fails
+   * closed. Unlike the share there is no audience CEL — channels have no
+   * audience concept, and the same-org invariant (agent_ref.org ==
+   * metadata.org) already scopes resolution.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getEnvironmentRefsList() {
+    return environmentRefs_;
+  }
+  /**
+   * <pre>
+   * References to Environment resources whose values are provided to
+   * conversations on this channel.
+   *
+   * This is how a tool-using agent becomes chattable over a channel: bind
+   * an org-shared environment holding the needed credentials (for example
+   * a read-only API token), and channel executions receive its values at
+   * runtime. The agent and its default instance stay untouched.
+   *
+   * &#64;internal
+   * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+   * a channel — both connection kinds carry their own credentials).
+   * Resolved in the channel's org through the org-shared environment
+   * resolution seam (EnvironmentRuntimeResolutionService /
+   * OrgSharedEnvironmentPolicy): each referenced environment must be
+   * visibility_org in the channel's org, or the merge skips it with a
+   * diagnostic. Merged at channel execution-context build time only,
+   * lowest priority (instance refs and runtime_env override on key
+   * conflicts) — never bound to the agent's system-managed default
+   * instance. No write-time existence or visibility check, matching the
+   * share: enforcement lives solely at runtime resolution, which fails
+   * closed. Unlike the share there is no audience CEL — channels have no
+   * audience concept, and the same-org invariant (agent_ref.org ==
+   * metadata.org) already scopes resolution.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+      getEnvironmentRefsOrBuilderList() {
+    return environmentRefs_;
+  }
+  /**
+   * <pre>
+   * References to Environment resources whose values are provided to
+   * conversations on this channel.
+   *
+   * This is how a tool-using agent becomes chattable over a channel: bind
+   * an org-shared environment holding the needed credentials (for example
+   * a read-only API token), and channel executions receive its values at
+   * runtime. The agent and its default instance stay untouched.
+   *
+   * &#64;internal
+   * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+   * a channel — both connection kinds carry their own credentials).
+   * Resolved in the channel's org through the org-shared environment
+   * resolution seam (EnvironmentRuntimeResolutionService /
+   * OrgSharedEnvironmentPolicy): each referenced environment must be
+   * visibility_org in the channel's org, or the merge skips it with a
+   * diagnostic. Merged at channel execution-context build time only,
+   * lowest priority (instance refs and runtime_env override on key
+   * conflicts) — never bound to the agent's system-managed default
+   * instance. No write-time existence or visibility check, matching the
+   * share: enforcement lives solely at runtime resolution, which fails
+   * closed. Unlike the share there is no audience CEL — channels have no
+   * audience concept, and the same-org invariant (agent_ref.org ==
+   * metadata.org) already scopes resolution.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public int getEnvironmentRefsCount() {
+    return environmentRefs_.size();
+  }
+  /**
+   * <pre>
+   * References to Environment resources whose values are provided to
+   * conversations on this channel.
+   *
+   * This is how a tool-using agent becomes chattable over a channel: bind
+   * an org-shared environment holding the needed credentials (for example
+   * a read-only API token), and channel executions receive its values at
+   * runtime. The agent and its default instance stay untouched.
+   *
+   * &#64;internal
+   * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+   * a channel — both connection kinds carry their own credentials).
+   * Resolved in the channel's org through the org-shared environment
+   * resolution seam (EnvironmentRuntimeResolutionService /
+   * OrgSharedEnvironmentPolicy): each referenced environment must be
+   * visibility_org in the channel's org, or the merge skips it with a
+   * diagnostic. Merged at channel execution-context build time only,
+   * lowest priority (instance refs and runtime_env override on key
+   * conflicts) — never bound to the agent's system-managed default
+   * instance. No write-time existence or visibility check, matching the
+   * share: enforcement lives solely at runtime resolution, which fails
+   * closed. Unlike the share there is no audience CEL — channels have no
+   * audience concept, and the same-org invariant (agent_ref.org ==
+   * metadata.org) already scopes resolution.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index) {
+    return environmentRefs_.get(index);
+  }
+  /**
+   * <pre>
+   * References to Environment resources whose values are provided to
+   * conversations on this channel.
+   *
+   * This is how a tool-using agent becomes chattable over a channel: bind
+   * an org-shared environment holding the needed credentials (for example
+   * a read-only API token), and channel executions receive its values at
+   * runtime. The agent and its default instance stay untouched.
+   *
+   * &#64;internal
+   * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+   * a channel — both connection kinds carry their own credentials).
+   * Resolved in the channel's org through the org-shared environment
+   * resolution seam (EnvironmentRuntimeResolutionService /
+   * OrgSharedEnvironmentPolicy): each referenced environment must be
+   * visibility_org in the channel's org, or the merge skips it with a
+   * diagnostic. Merged at channel execution-context build time only,
+   * lowest priority (instance refs and runtime_env override on key
+   * conflicts) — never bound to the agent's system-managed default
+   * instance. No write-time existence or visibility check, matching the
+   * share: enforcement lives solely at runtime resolution, which fails
+   * closed. Unlike the share there is no audience CEL — channels have no
+   * audience concept, and the same-org invariant (agent_ref.org ==
+   * metadata.org) already scopes resolution.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
+      int index) {
+    return environmentRefs_.get(index);
+  }
+
+  public static final int APP_REF_FIELD_NUMBER = 5;
+  private ai.stigmer.commons.apiresource.ApiResourceReference appRef_;
+  /**
+   * <pre>
+   * Reference to the ChannelApp this channel installs through.
+   *
+   * Absent means the channel uses the platform's shared Stigmer app —
+   * the zero-setup default. Set it to install through your own provider
+   * app instead: the bot carries the app's name and icon, and each app
+   * is its own bot identity, so multiple agents can serve one workspace.
+   *
+   * &#64;internal
+   * T04 item 2. Invariants (enforced in handlers of both editions):
+   * app_ref.org must equal metadata.org (secrets never cross orgs — the
+   * agent_ref rule), and the ref is immutable while install_state ==
+   * installed (the workspace granted THAT app; switching apps requires
+   * re-install, so pending/revoked channels may rebind freely). No
+   * write-time existence or provider-match check, matching the
+   * environment_refs posture: the install flow resolves the app and
+   * fails closed on a missing or wrong-provider reference.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+   * @return Whether the appRef field is set.
+   */
+  @java.lang.Override
+  public boolean hasAppRef() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <pre>
+   * Reference to the ChannelApp this channel installs through.
+   *
+   * Absent means the channel uses the platform's shared Stigmer app —
+   * the zero-setup default. Set it to install through your own provider
+   * app instead: the bot carries the app's name and icon, and each app
+   * is its own bot identity, so multiple agents can serve one workspace.
+   *
+   * &#64;internal
+   * T04 item 2. Invariants (enforced in handlers of both editions):
+   * app_ref.org must equal metadata.org (secrets never cross orgs — the
+   * agent_ref rule), and the ref is immutable while install_state ==
+   * installed (the workspace granted THAT app; switching apps requires
+   * re-install, so pending/revoked channels may rebind freely). No
+   * write-time existence or provider-match check, matching the
+   * environment_refs posture: the install flow resolves the app and
+   * fails closed on a missing or wrong-provider reference.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+   * @return The appRef.
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReference getAppRef() {
+    return appRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : appRef_;
+  }
+  /**
+   * <pre>
+   * Reference to the ChannelApp this channel installs through.
+   *
+   * Absent means the channel uses the platform's shared Stigmer app —
+   * the zero-setup default. Set it to install through your own provider
+   * app instead: the bot carries the app's name and icon, and each app
+   * is its own bot identity, so multiple agents can serve one workspace.
+   *
+   * &#64;internal
+   * T04 item 2. Invariants (enforced in handlers of both editions):
+   * app_ref.org must equal metadata.org (secrets never cross orgs — the
+   * agent_ref rule), and the ref is immutable while install_state ==
+   * installed (the workspace granted THAT app; switching apps requires
+   * re-install, so pending/revoked channels may rebind freely). No
+   * write-time existence or provider-match check, matching the
+   * environment_refs posture: the install flow resolves the app and
+   * fails closed on a missing or wrong-provider reference.
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getAppRefOrBuilder() {
+    return appRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : appRef_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -252,6 +508,12 @@ private static final long serialVersionUID = 0L;
     if (providerConfigCase_ == 3) {
       output.writeMessage(3, (ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig) providerConfig_);
     }
+    for (int i = 0; i < environmentRefs_.size(); i++) {
+      output.writeMessage(4, environmentRefs_.get(i));
+    }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(5, getAppRef());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -272,6 +534,19 @@ private static final long serialVersionUID = 0L;
     if (providerConfigCase_ == 3) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(3, (ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig) providerConfig_);
+    }
+
+        {
+          final int count = environmentRefs_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(environmentRefs_.get(i));
+          }
+          size += 1 * count;
+        }
+    if (((bitField0_ & 0x00000002) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(5, getAppRef());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -295,6 +570,13 @@ private static final long serialVersionUID = 0L;
     }
     if (getEnabled()
         != other.getEnabled()) return false;
+    if (!getEnvironmentRefsList()
+        .equals(other.getEnvironmentRefsList())) return false;
+    if (hasAppRef() != other.hasAppRef()) return false;
+    if (hasAppRef()) {
+      if (!getAppRef()
+          .equals(other.getAppRef())) return false;
+    }
     if (!getProviderConfigCase().equals(other.getProviderConfigCase())) return false;
     switch (providerConfigCase_) {
       case 3:
@@ -322,6 +604,14 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + ENABLED_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getEnabled());
+    if (getEnvironmentRefsCount() > 0) {
+      hash = (37 * hash) + ENVIRONMENT_REFS_FIELD_NUMBER;
+      hash = (53 * hash) + getEnvironmentRefsList().hashCode();
+    }
+    if (hasAppRef()) {
+      hash = (37 * hash) + APP_REF_FIELD_NUMBER;
+      hash = (53 * hash) + getAppRef().hashCode();
+    }
     switch (providerConfigCase_) {
       case 3:
         hash = (37 * hash) + SLACK_FIELD_NUMBER;
@@ -432,8 +722,9 @@ private static final long serialVersionUID = 0L;
    * AgentChannelSpec defines the configurable properties of an agent channel.
    *
    * The spec is deliberately small: which agent serves the channel, whether
-   * serving is enabled, and which provider the channel targets. Workspace
-   * identity and credentials are produced by the install flow and live in
+   * serving is enabled, which provider the channel targets, and which
+   * environments supply the agent's tool credentials. Workspace identity and
+   * provider credentials are produced by the install flow and live in
    * status — a declarative apply can never clobber them.
    *
    * &#64;internal
@@ -478,6 +769,8 @@ private static final long serialVersionUID = 0L;
       if (com.google.protobuf.GeneratedMessage
               .alwaysUseFieldBuilders) {
         internalGetAgentRefFieldBuilder();
+        internalGetEnvironmentRefsFieldBuilder();
+        internalGetAppRefFieldBuilder();
       }
     }
     @java.lang.Override
@@ -492,6 +785,18 @@ private static final long serialVersionUID = 0L;
       enabled_ = false;
       if (slackBuilder_ != null) {
         slackBuilder_.clear();
+      }
+      if (environmentRefsBuilder_ == null) {
+        environmentRefs_ = java.util.Collections.emptyList();
+      } else {
+        environmentRefs_ = null;
+        environmentRefsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000008);
+      appRef_ = null;
+      if (appRefBuilder_ != null) {
+        appRefBuilder_.dispose();
+        appRefBuilder_ = null;
       }
       providerConfigCase_ = 0;
       providerConfig_ = null;
@@ -521,10 +826,23 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec buildPartial() {
       ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec result = new ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec(this);
+      buildPartialRepeatedFields(result);
       if (bitField0_ != 0) { buildPartial0(result); }
       buildPartialOneofs(result);
       onBuilt();
       return result;
+    }
+
+    private void buildPartialRepeatedFields(ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec result) {
+      if (environmentRefsBuilder_ == null) {
+        if (((bitField0_ & 0x00000008) != 0)) {
+          environmentRefs_ = java.util.Collections.unmodifiableList(environmentRefs_);
+          bitField0_ = (bitField0_ & ~0x00000008);
+        }
+        result.environmentRefs_ = environmentRefs_;
+      } else {
+        result.environmentRefs_ = environmentRefsBuilder_.build();
+      }
     }
 
     private void buildPartial0(ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec result) {
@@ -538,6 +856,12 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.enabled_ = enabled_;
+      }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.appRef_ = appRefBuilder_ == null
+            ? appRef_
+            : appRefBuilder_.build();
+        to_bitField0_ |= 0x00000002;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -568,6 +892,35 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getEnabled() != false) {
         setEnabled(other.getEnabled());
+      }
+      if (environmentRefsBuilder_ == null) {
+        if (!other.environmentRefs_.isEmpty()) {
+          if (environmentRefs_.isEmpty()) {
+            environmentRefs_ = other.environmentRefs_;
+            bitField0_ = (bitField0_ & ~0x00000008);
+          } else {
+            ensureEnvironmentRefsIsMutable();
+            environmentRefs_.addAll(other.environmentRefs_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.environmentRefs_.isEmpty()) {
+          if (environmentRefsBuilder_.isEmpty()) {
+            environmentRefsBuilder_.dispose();
+            environmentRefsBuilder_ = null;
+            environmentRefs_ = other.environmentRefs_;
+            bitField0_ = (bitField0_ & ~0x00000008);
+            environmentRefsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetEnvironmentRefsFieldBuilder() : null;
+          } else {
+            environmentRefsBuilder_.addAllMessages(other.environmentRefs_);
+          }
+        }
+      }
+      if (other.hasAppRef()) {
+        mergeAppRef(other.getAppRef());
       }
       switch (other.getProviderConfigCase()) {
         case SLACK: {
@@ -623,6 +976,26 @@ private static final long serialVersionUID = 0L;
               providerConfigCase_ = 3;
               break;
             } // case 26
+            case 34: {
+              ai.stigmer.commons.apiresource.ApiResourceReference m =
+                  input.readMessage(
+                      ai.stigmer.commons.apiresource.ApiResourceReference.parser(),
+                      extensionRegistry);
+              if (environmentRefsBuilder_ == null) {
+                ensureEnvironmentRefsIsMutable();
+                environmentRefs_.add(m);
+              } else {
+                environmentRefsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 34
+            case 42: {
+              input.readMessage(
+                  internalGetAppRefFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1113,6 +1486,1006 @@ private static final long serialVersionUID = 0L;
       providerConfigCase_ = 3;
       onChanged();
       return slackBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> environmentRefs_ =
+      java.util.Collections.emptyList();
+    private void ensureEnvironmentRefsIsMutable() {
+      if (!((bitField0_ & 0x00000008) != 0)) {
+        environmentRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(environmentRefs_);
+        bitField0_ |= 0x00000008;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> environmentRefsBuilder_;
+
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getEnvironmentRefsList() {
+      if (environmentRefsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(environmentRefs_);
+      } else {
+        return environmentRefsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public int getEnvironmentRefsCount() {
+      if (environmentRefsBuilder_ == null) {
+        return environmentRefs_.size();
+      } else {
+        return environmentRefsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index) {
+      if (environmentRefsBuilder_ == null) {
+        return environmentRefs_.get(index);
+      } else {
+        return environmentRefsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setEnvironmentRefs(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (environmentRefsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureEnvironmentRefsIsMutable();
+        environmentRefs_.set(index, value);
+        onChanged();
+      } else {
+        environmentRefsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setEnvironmentRefs(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (environmentRefsBuilder_ == null) {
+        ensureEnvironmentRefsIsMutable();
+        environmentRefs_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        environmentRefsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addEnvironmentRefs(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (environmentRefsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureEnvironmentRefsIsMutable();
+        environmentRefs_.add(value);
+        onChanged();
+      } else {
+        environmentRefsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addEnvironmentRefs(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (environmentRefsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureEnvironmentRefsIsMutable();
+        environmentRefs_.add(index, value);
+        onChanged();
+      } else {
+        environmentRefsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addEnvironmentRefs(
+        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (environmentRefsBuilder_ == null) {
+        ensureEnvironmentRefsIsMutable();
+        environmentRefs_.add(builderForValue.build());
+        onChanged();
+      } else {
+        environmentRefsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addEnvironmentRefs(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (environmentRefsBuilder_ == null) {
+        ensureEnvironmentRefsIsMutable();
+        environmentRefs_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        environmentRefsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addAllEnvironmentRefs(
+        java.lang.Iterable<? extends ai.stigmer.commons.apiresource.ApiResourceReference> values) {
+      if (environmentRefsBuilder_ == null) {
+        ensureEnvironmentRefsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, environmentRefs_);
+        onChanged();
+      } else {
+        environmentRefsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder clearEnvironmentRefs() {
+      if (environmentRefsBuilder_ == null) {
+        environmentRefs_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000008);
+        onChanged();
+      } else {
+        environmentRefsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder removeEnvironmentRefs(int index) {
+      if (environmentRefsBuilder_ == null) {
+        ensureEnvironmentRefsIsMutable();
+        environmentRefs_.remove(index);
+        onChanged();
+      } else {
+        environmentRefsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getEnvironmentRefsBuilder(
+        int index) {
+      return internalGetEnvironmentRefsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
+        int index) {
+      if (environmentRefsBuilder_ == null) {
+        return environmentRefs_.get(index);  } else {
+        return environmentRefsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+         getEnvironmentRefsOrBuilderList() {
+      if (environmentRefsBuilder_ != null) {
+        return environmentRefsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(environmentRefs_);
+      }
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addEnvironmentRefsBuilder() {
+      return internalGetEnvironmentRefsFieldBuilder().addBuilder(
+          ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addEnvironmentRefsBuilder(
+        int index) {
+      return internalGetEnvironmentRefsFieldBuilder().addBuilder(
+          index, ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * References to Environment resources whose values are provided to
+     * conversations on this channel.
+     *
+     * This is how a tool-using agent becomes chattable over a channel: bind
+     * an org-shared environment holding the needed credentials (for example
+     * a read-only API token), and channel executions receive its values at
+     * runtime. The agent and its default instance stay untouched.
+     *
+     * &#64;internal
+     * The AgentShareSpec.environment_refs analog (decision 011: sharing is
+     * a channel — both connection kinds carry their own credentials).
+     * Resolved in the channel's org through the org-shared environment
+     * resolution seam (EnvironmentRuntimeResolutionService /
+     * OrgSharedEnvironmentPolicy): each referenced environment must be
+     * visibility_org in the channel's org, or the merge skips it with a
+     * diagnostic. Merged at channel execution-context build time only,
+     * lowest priority (instance refs and runtime_env override on key
+     * conflicts) — never bound to the agent's system-managed default
+     * instance. No write-time existence or visibility check, matching the
+     * share: enforcement lives solely at runtime resolution, which fails
+     * closed. Unlike the share there is no audience CEL — channels have no
+     * audience concept, and the same-org invariant (agent_ref.org ==
+     * metadata.org) already scopes resolution.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 4 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference.Builder> 
+         getEnvironmentRefsBuilderList() {
+      return internalGetEnvironmentRefsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+        internalGetEnvironmentRefsFieldBuilder() {
+      if (environmentRefsBuilder_ == null) {
+        environmentRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
+                environmentRefs_,
+                ((bitField0_ & 0x00000008) != 0),
+                getParentForChildren(),
+                isClean());
+        environmentRefs_ = null;
+      }
+      return environmentRefsBuilder_;
+    }
+
+    private ai.stigmer.commons.apiresource.ApiResourceReference appRef_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> appRefBuilder_;
+    /**
+     * <pre>
+     * Reference to the ChannelApp this channel installs through.
+     *
+     * Absent means the channel uses the platform's shared Stigmer app —
+     * the zero-setup default. Set it to install through your own provider
+     * app instead: the bot carries the app's name and icon, and each app
+     * is its own bot identity, so multiple agents can serve one workspace.
+     *
+     * &#64;internal
+     * T04 item 2. Invariants (enforced in handlers of both editions):
+     * app_ref.org must equal metadata.org (secrets never cross orgs — the
+     * agent_ref rule), and the ref is immutable while install_state ==
+     * installed (the workspace granted THAT app; switching apps requires
+     * re-install, so pending/revoked channels may rebind freely). No
+     * write-time existence or provider-match check, matching the
+     * environment_refs posture: the install flow resolves the app and
+     * fails closed on a missing or wrong-provider reference.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     * @return Whether the appRef field is set.
+     */
+    public boolean hasAppRef() {
+      return ((bitField0_ & 0x00000010) != 0);
+    }
+    /**
+     * <pre>
+     * Reference to the ChannelApp this channel installs through.
+     *
+     * Absent means the channel uses the platform's shared Stigmer app —
+     * the zero-setup default. Set it to install through your own provider
+     * app instead: the bot carries the app's name and icon, and each app
+     * is its own bot identity, so multiple agents can serve one workspace.
+     *
+     * &#64;internal
+     * T04 item 2. Invariants (enforced in handlers of both editions):
+     * app_ref.org must equal metadata.org (secrets never cross orgs — the
+     * agent_ref rule), and the ref is immutable while install_state ==
+     * installed (the workspace granted THAT app; switching apps requires
+     * re-install, so pending/revoked channels may rebind freely). No
+     * write-time existence or provider-match check, matching the
+     * environment_refs posture: the install flow resolves the app and
+     * fails closed on a missing or wrong-provider reference.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     * @return The appRef.
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference getAppRef() {
+      if (appRefBuilder_ == null) {
+        return appRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : appRef_;
+      } else {
+        return appRefBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Reference to the ChannelApp this channel installs through.
+     *
+     * Absent means the channel uses the platform's shared Stigmer app —
+     * the zero-setup default. Set it to install through your own provider
+     * app instead: the bot carries the app's name and icon, and each app
+     * is its own bot identity, so multiple agents can serve one workspace.
+     *
+     * &#64;internal
+     * T04 item 2. Invariants (enforced in handlers of both editions):
+     * app_ref.org must equal metadata.org (secrets never cross orgs — the
+     * agent_ref rule), and the ref is immutable while install_state ==
+     * installed (the workspace granted THAT app; switching apps requires
+     * re-install, so pending/revoked channels may rebind freely). No
+     * write-time existence or provider-match check, matching the
+     * environment_refs posture: the install flow resolves the app and
+     * fails closed on a missing or wrong-provider reference.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setAppRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (appRefBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        appRef_ = value;
+      } else {
+        appRefBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Reference to the ChannelApp this channel installs through.
+     *
+     * Absent means the channel uses the platform's shared Stigmer app —
+     * the zero-setup default. Set it to install through your own provider
+     * app instead: the bot carries the app's name and icon, and each app
+     * is its own bot identity, so multiple agents can serve one workspace.
+     *
+     * &#64;internal
+     * T04 item 2. Invariants (enforced in handlers of both editions):
+     * app_ref.org must equal metadata.org (secrets never cross orgs — the
+     * agent_ref rule), and the ref is immutable while install_state ==
+     * installed (the workspace granted THAT app; switching apps requires
+     * re-install, so pending/revoked channels may rebind freely). No
+     * write-time existence or provider-match check, matching the
+     * environment_refs posture: the install flow resolves the app and
+     * fails closed on a missing or wrong-provider reference.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setAppRef(
+        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (appRefBuilder_ == null) {
+        appRef_ = builderForValue.build();
+      } else {
+        appRefBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Reference to the ChannelApp this channel installs through.
+     *
+     * Absent means the channel uses the platform's shared Stigmer app —
+     * the zero-setup default. Set it to install through your own provider
+     * app instead: the bot carries the app's name and icon, and each app
+     * is its own bot identity, so multiple agents can serve one workspace.
+     *
+     * &#64;internal
+     * T04 item 2. Invariants (enforced in handlers of both editions):
+     * app_ref.org must equal metadata.org (secrets never cross orgs — the
+     * agent_ref rule), and the ref is immutable while install_state ==
+     * installed (the workspace granted THAT app; switching apps requires
+     * re-install, so pending/revoked channels may rebind freely). No
+     * write-time existence or provider-match check, matching the
+     * environment_refs posture: the install flow resolves the app and
+     * fails closed on a missing or wrong-provider reference.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder mergeAppRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (appRefBuilder_ == null) {
+        if (((bitField0_ & 0x00000010) != 0) &&
+          appRef_ != null &&
+          appRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
+          getAppRefBuilder().mergeFrom(value);
+        } else {
+          appRef_ = value;
+        }
+      } else {
+        appRefBuilder_.mergeFrom(value);
+      }
+      if (appRef_ != null) {
+        bitField0_ |= 0x00000010;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Reference to the ChannelApp this channel installs through.
+     *
+     * Absent means the channel uses the platform's shared Stigmer app —
+     * the zero-setup default. Set it to install through your own provider
+     * app instead: the bot carries the app's name and icon, and each app
+     * is its own bot identity, so multiple agents can serve one workspace.
+     *
+     * &#64;internal
+     * T04 item 2. Invariants (enforced in handlers of both editions):
+     * app_ref.org must equal metadata.org (secrets never cross orgs — the
+     * agent_ref rule), and the ref is immutable while install_state ==
+     * installed (the workspace granted THAT app; switching apps requires
+     * re-install, so pending/revoked channels may rebind freely). No
+     * write-time existence or provider-match check, matching the
+     * environment_refs posture: the install flow resolves the app and
+     * fails closed on a missing or wrong-provider reference.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder clearAppRef() {
+      bitField0_ = (bitField0_ & ~0x00000010);
+      appRef_ = null;
+      if (appRefBuilder_ != null) {
+        appRefBuilder_.dispose();
+        appRefBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Reference to the ChannelApp this channel installs through.
+     *
+     * Absent means the channel uses the platform's shared Stigmer app —
+     * the zero-setup default. Set it to install through your own provider
+     * app instead: the bot carries the app's name and icon, and each app
+     * is its own bot identity, so multiple agents can serve one workspace.
+     *
+     * &#64;internal
+     * T04 item 2. Invariants (enforced in handlers of both editions):
+     * app_ref.org must equal metadata.org (secrets never cross orgs — the
+     * agent_ref rule), and the ref is immutable while install_state ==
+     * installed (the workspace granted THAT app; switching apps requires
+     * re-install, so pending/revoked channels may rebind freely). No
+     * write-time existence or provider-match check, matching the
+     * environment_refs posture: the install flow resolves the app and
+     * fails closed on a missing or wrong-provider reference.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getAppRefBuilder() {
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return internalGetAppRefFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Reference to the ChannelApp this channel installs through.
+     *
+     * Absent means the channel uses the platform's shared Stigmer app —
+     * the zero-setup default. Set it to install through your own provider
+     * app instead: the bot carries the app's name and icon, and each app
+     * is its own bot identity, so multiple agents can serve one workspace.
+     *
+     * &#64;internal
+     * T04 item 2. Invariants (enforced in handlers of both editions):
+     * app_ref.org must equal metadata.org (secrets never cross orgs — the
+     * agent_ref rule), and the ref is immutable while install_state ==
+     * installed (the workspace granted THAT app; switching apps requires
+     * re-install, so pending/revoked channels may rebind freely). No
+     * write-time existence or provider-match check, matching the
+     * environment_refs posture: the install flow resolves the app and
+     * fails closed on a missing or wrong-provider reference.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getAppRefOrBuilder() {
+      if (appRefBuilder_ != null) {
+        return appRefBuilder_.getMessageOrBuilder();
+      } else {
+        return appRef_ == null ?
+            ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : appRef_;
+      }
+    }
+    /**
+     * <pre>
+     * Reference to the ChannelApp this channel installs through.
+     *
+     * Absent means the channel uses the platform's shared Stigmer app —
+     * the zero-setup default. Set it to install through your own provider
+     * app instead: the bot carries the app's name and icon, and each app
+     * is its own bot identity, so multiple agents can serve one workspace.
+     *
+     * &#64;internal
+     * T04 item 2. Invariants (enforced in handlers of both editions):
+     * app_ref.org must equal metadata.org (secrets never cross orgs — the
+     * agent_ref rule), and the ref is immutable while install_state ==
+     * installed (the workspace granted THAT app; switching apps requires
+     * re-install, so pending/revoked channels may rebind freely). No
+     * write-time existence or provider-match check, matching the
+     * environment_refs posture: the install flow resolves the app and
+     * fails closed on a missing or wrong-provider reference.
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+        internalGetAppRefFieldBuilder() {
+      if (appRefBuilder_ == null) {
+        appRefBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
+                getAppRef(),
+                getParentForChildren(),
+                isClean());
+        appRef_ = null;
+      }
+      return appRefBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec)

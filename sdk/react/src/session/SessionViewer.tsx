@@ -48,7 +48,7 @@ import { usePlanDraft, planDraftKey, type PlanDraftController } from "./usePlanD
 import { PlanEditor } from "./PlanEditor.js";
 import { PlanStreamingDocument } from "./PlanStreamingDocument.js";
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "./plan-document.js";
-import { ARTIFACT_DOCUMENT_ENTRY_ID } from "./artifact-document.js";
+import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../execution/artifact-document.js";
 import { ArtifactDocument } from "../execution/ArtifactDocument.js";
 import { useSessionRailViews } from "./useSessionRailViews.js";
 import { useSessionPanel, type SessionPanelController } from "./useSessionPanel.js";

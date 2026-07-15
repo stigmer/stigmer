@@ -51,11 +51,14 @@ export type { WorkspaceContentSearchProps } from "./WorkspaceContentSearch.js";
 // The highlight helper (findHighlightRanges) stays @internal, like matchWorkspaceFiles.
 export { FileViewer } from "./FileViewer.js";
 export type { FileViewerProps, FileViewerHandle } from "./FileViewer.js";
+export { PanelChip } from "./PanelChip.js";
+export type { PanelChipProps } from "./PanelChip.js";
 export { WorkspaceSurface } from "./WorkspaceSurface.js";
 export type {
   WorkspaceSurfaceProps,
   SurfaceRailView,
   SurfaceVirtualDocument,
+  BuiltInViewId,
 } from "./WorkspaceSurface.js";
 // Virtual-document identity helpers: hosts mint collision-proof entry ids for
 // SurfaceVirtualDocument tabs and detect them in file-only code paths.

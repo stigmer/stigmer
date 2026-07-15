@@ -28,9 +28,10 @@ export interface UseArtifactDownloadReturn {
 /**
  * Behavior hook that downloads an execution artifact on demand.
  *
- * Mirrors the click → mint fresh URL → browser download flow established by
- * `WorkflowExecutionArtifactPanel`, generalized so every artifact "Download"
- * affordance shares one implementation. The URL is minted at click time from
+ * Implements the click → mint fresh URL → browser download flow so every
+ * artifact "Download" affordance shares one implementation (the workflow's
+ * `Artifact`-resource counterpart is `useWorkflowArtifactDownload`). The URL
+ * is minted at click time from
  * the stable `storageKey` via `getArtifactDownloadUrl`, so it is always valid —
  * unlike the previously persisted, short-lived URL that expired after an hour.
  *

@@ -28,6 +28,8 @@ const (
 	crossOrgMessage          = "spec.agent_ref.org must match metadata.org — an agent channel must live in the referenced agent's organization (%s)"
 	refImmutableMessage      = "spec.agent_ref is immutable (channel connects %s/%s) — create a new channel to connect a different agent"
 	providerImmutableMessage = "spec provider is immutable (channel provider is %s) — create a new channel for a different provider"
+	appRefCrossOrgMessage    = "spec.app_ref.org must match metadata.org — a channel can only install through its own organization's channel app"
+	appRefFrozenMessage      = "spec.app_ref cannot change while the channel is installed — the workspace authorized the current app; uninstall or disconnect first, then rebind and re-install"
 )
 
 // contextWithKind simulates the apiresource interceptor, which injects the
@@ -485,6 +487,239 @@ func TestAgentChannelController_Apply(t *testing.T) {
 	if list.GetTotalCount() != 1 {
 		t.Errorf("expected exactly one channel after apply+apply, got %d", list.GetTotalCount())
 	}
+}
+
+// TestAgentChannelController_EnvironmentRefs pins the channel-bound
+// credentials contract (T04): spec.environment_refs persist and
+// round-trip through create/apply, empty ref orgs normalize to the
+// channel's org (the generic NormalizeReferences step), and an apply
+// that omits them unbinds them (wholesale spec replacement). The OSS
+// edition stores the refs only — the runtime merge into executions is
+// cloud-only, like the rest of the channel runtime.
+func TestAgentChannelController_EnvironmentRefs(t *testing.T) {
+	tc := newTestControllers(t)
+
+	agent := createTestAgent(t, tc, "Env Refs Agent")
+
+	withRefs := channelFor(agent, "Env Refs Slack", true)
+	withRefs.Spec.EnvironmentRefs = []*apiresource.ApiResourceReference{
+		{
+			Kind: apiresourcekind.ApiResourceKind_environment,
+			// Org deliberately empty — must normalize to the channel's org.
+			Slug: "github-credentials",
+		},
+		{
+			Kind: apiresourcekind.ApiResourceKind_environment,
+			Org:  "test-org",
+			Slug: "search-credentials",
+		},
+	}
+
+	created, err := tc.channels.Create(channelCtx(), withRefs)
+	if err != nil {
+		t.Fatalf("Create with environment_refs failed: %v", err)
+	}
+	refs := created.GetSpec().GetEnvironmentRefs()
+	if len(refs) != 2 {
+		t.Fatalf("expected both environment refs to persist, got %d", len(refs))
+	}
+	if got := refs[0].GetOrg(); got != "test-org" {
+		t.Errorf("an empty environment ref org must normalize to the channel's org, got %q", got)
+	}
+	if refs[0].GetSlug() != "github-credentials" || refs[1].GetSlug() != "search-credentials" {
+		t.Errorf("environment refs must persist in declaration order (merge priority), got %q then %q",
+			refs[0].GetSlug(), refs[1].GetSlug())
+	}
+
+	t.Run("get round-trips the refs verbatim", func(t *testing.T) {
+		fetched, err := tc.channels.Get(channelCtx(), &agentchannelv1.AgentChannelId{Value: created.GetMetadata().GetId()})
+		if err != nil {
+			t.Fatalf("Get failed: %v", err)
+		}
+		if got := len(fetched.GetSpec().GetEnvironmentRefs()); got != 2 {
+			t.Errorf("expected both refs after a read-back, got %d", got)
+		}
+	})
+
+	t.Run("apply replaces the refs — credentials are mutable", func(t *testing.T) {
+		rebound := channelFor(agent, "Env Refs Slack", true)
+		rebound.Spec.EnvironmentRefs = []*apiresource.ApiResourceReference{
+			{
+				Kind: apiresourcekind.ApiResourceKind_environment,
+				Org:  "test-org",
+				Slug: "rotated-credentials",
+			},
+		}
+		updated, err := tc.channels.Apply(channelCtx(), rebound)
+		if err != nil {
+			t.Fatalf("Apply(rebind refs) failed: %v", err)
+		}
+		got := updated.GetSpec().GetEnvironmentRefs()
+		if len(got) != 1 || got[0].GetSlug() != "rotated-credentials" {
+			t.Errorf("apply must replace the binding list wholesale, got %v", got)
+		}
+	})
+
+	t.Run("apply omitting the refs unbinds them (declarative semantics)", func(t *testing.T) {
+		unbound := channelFor(agent, "Env Refs Slack", true)
+		updated, err := tc.channels.Apply(channelCtx(), unbound)
+		if err != nil {
+			t.Fatalf("Apply(unbind refs) failed: %v", err)
+		}
+		if got := len(updated.GetSpec().GetEnvironmentRefs()); got != 0 {
+			t.Errorf("a manifest without environment_refs must unbind them, got %d refs", got)
+		}
+	})
+
+	t.Run("a non-environment ref kind is INVALID_ARGUMENT (proto CEL)", func(t *testing.T) {
+		wrongKind := channelFor(agent, "Wrong Kind Slack", true)
+		wrongKind.Spec.EnvironmentRefs = []*apiresource.ApiResourceReference{
+			{
+				Kind: apiresourcekind.ApiResourceKind_agent,
+				Org:  "test-org",
+				Slug: "not-an-environment",
+			},
+		}
+		_, err := tc.channels.Create(channelCtx(), wrongKind)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Errorf("expected INVALID_ARGUMENT for a non-environment ref, got %s (%v)", status.Code(err), err)
+		}
+	})
+}
+
+// TestAgentChannelController_AppRef pins the BYO channel-app binding
+// contract (T04 item 2): same-org normalization + invariant on create,
+// free rebinding while pending/revoked, and the frozen-while-installed
+// rule — all with error copy byte-identical to the cloud edition.
+func TestAgentChannelController_AppRef(t *testing.T) {
+	tc := newTestControllers(t)
+
+	appRef := func(org, slug string) *apiresource.ApiResourceReference {
+		return &apiresource.ApiResourceReference{
+			Kind: apiresourcekind.ApiResourceKind_channel_app,
+			Org:  org,
+			Slug: slug,
+		}
+	}
+
+	t.Run("an empty app_ref org normalizes to the channel's org and persists", func(t *testing.T) {
+		agent := createTestAgent(t, tc, "App Ref Agent")
+		channel := channelFor(agent, "BYO Slack", true)
+		channel.Spec.AppRef = appRef("", "acme-support-app")
+
+		created, err := tc.channels.Create(channelCtx(), channel)
+		if err != nil {
+			t.Fatalf("Create with app_ref failed: %v", err)
+		}
+		if got := created.GetSpec().GetAppRef().GetOrg(); got != agent.GetMetadata().GetOrg() {
+			t.Errorf("an empty app_ref org must normalize to the channel's org, got %q", got)
+		}
+		if got := created.GetSpec().GetAppRef().GetSlug(); got != "acme-support-app" {
+			t.Errorf("app_ref slug must persist, got %q", got)
+		}
+	})
+
+	t.Run("a cross-org app_ref is FAILED_PRECONDITION with the shared copy", func(t *testing.T) {
+		agent := createTestAgent(t, tc, "Cross Org App Agent")
+		channel := channelFor(agent, "Cross Org App Slack", true)
+		channel.Spec.AppRef = appRef("other-org", "their-app")
+
+		_, err := tc.channels.Create(channelCtx(), channel)
+		if status.Code(err) != codes.FailedPrecondition {
+			t.Fatalf("expected FAILED_PRECONDITION for a cross-org app_ref, got %s (%v)", status.Code(err), err)
+		}
+		if got := status.Convert(err).Message(); got != appRefCrossOrgMessage {
+			t.Errorf("cross-org app_ref copy must match the cloud edition:\n  want %q\n  got  %q",
+				appRefCrossOrgMessage, got)
+		}
+	})
+
+	t.Run("a non-channel_app ref kind is INVALID_ARGUMENT (proto CEL)", func(t *testing.T) {
+		agent := createTestAgent(t, tc, "Wrong Kind App Agent")
+		channel := channelFor(agent, "Wrong Kind App Slack", true)
+		channel.Spec.AppRef = &apiresource.ApiResourceReference{
+			Kind: apiresourcekind.ApiResourceKind_agent,
+			Org:  agent.GetMetadata().GetOrg(),
+			Slug: "not-a-channel-app",
+		}
+
+		_, err := tc.channels.Create(channelCtx(), channel)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Errorf("expected INVALID_ARGUMENT for a non-channel_app ref, got %s (%v)", status.Code(err), err)
+		}
+	})
+
+	t.Run("a pending channel may rebind freely — rebind-before-install is the intended flow", func(t *testing.T) {
+		agent := createTestAgent(t, tc, "Pending Rebind Agent")
+		channel := channelFor(agent, "Pending Rebind Slack", true)
+		channel.Spec.AppRef = appRef("", "first-app")
+		created, err := tc.channels.Create(channelCtx(), channel)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		rebound := created
+		rebound.Spec.AppRef = appRef("", "second-app")
+		updated, err := tc.channels.Update(channelCtx(), rebound)
+		if err != nil {
+			t.Fatalf("rebinding a pending channel must pass: %v", err)
+		}
+		if got := updated.GetSpec().GetAppRef().GetSlug(); got != "second-app" {
+			t.Errorf("the rebind must persist, got %q", got)
+		}
+	})
+
+	t.Run("app_ref is frozen while installed, with the shared copy", func(t *testing.T) {
+		agent := createTestAgent(t, tc, "Installed Freeze Agent")
+		channel := channelFor(agent, "Installed Freeze Slack", true)
+		channel.Spec.AppRef = appRef("", "granted-app")
+		created, err := tc.channels.Create(channelCtx(), channel)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		// Flip the stored row to installed directly — OSS has no install
+		// flow, and the freeze keys on stored status, not on how it got
+		// there.
+		created.Status.InstallState = agentchannelv1.AgentChannelInstallState_installed
+		if err := tc.store.SaveResource(context.Background(),
+			apiresourcekind.ApiResourceKind_agent_channel,
+			created.GetMetadata().GetId(), created); err != nil {
+			t.Fatalf("failed to mark channel installed: %v", err)
+		}
+
+		rebound := channelFor(agent, "Installed Freeze Slack", true)
+		rebound.Metadata.Id = created.GetMetadata().GetId()
+		rebound.Metadata.Slug = created.GetMetadata().GetSlug()
+		rebound.Spec.AppRef = appRef("", "different-app")
+		_, err = tc.channels.Update(channelCtx(), rebound)
+		if status.Code(err) != codes.FailedPrecondition {
+			t.Fatalf("expected FAILED_PRECONDITION for a rebind while installed, got %s (%v)", status.Code(err), err)
+		}
+		if got := status.Convert(err).Message(); got != appRefFrozenMessage {
+			t.Errorf("frozen-app_ref copy must match the cloud edition:\n  want %q\n  got  %q",
+				appRefFrozenMessage, got)
+		}
+
+		// Unbinding while installed is equally a change — the platform-app
+		// fallback would desync the install.
+		unbound := channelFor(agent, "Installed Freeze Slack", true)
+		unbound.Metadata.Id = created.GetMetadata().GetId()
+		unbound.Metadata.Slug = created.GetMetadata().GetSlug()
+		_, err = tc.channels.Update(channelCtx(), unbound)
+		if status.Code(err) != codes.FailedPrecondition {
+			t.Errorf("expected FAILED_PRECONDITION for an unbind while installed, got %s (%v)", status.Code(err), err)
+		}
+
+		// An unchanged binding must pass — the disable toggle keeps it.
+		unchanged := channelFor(agent, "Installed Freeze Slack", false)
+		unchanged.Metadata.Id = created.GetMetadata().GetId()
+		unchanged.Metadata.Slug = created.GetMetadata().GetSlug()
+		unchanged.Spec.AppRef = appRef(agent.GetMetadata().GetOrg(), "granted-app")
+		if _, err := tc.channels.Update(channelCtx(), unchanged); err != nil {
+			t.Errorf("an unchanged app_ref on an installed channel must pass: %v", err)
+		}
+	})
 }
 
 func TestAgentChannelController_Delete(t *testing.T) {

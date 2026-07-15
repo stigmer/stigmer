@@ -326,30 +326,20 @@ return <h1>{profile.name}</h1>;
 
 ### useShareToolReadiness
 
-Data hook that checks whether a tool-using shared agent's credentials
-will work for visitors — i.e. whether the share binds environments
-(`environment_refs`) and each one is shared with the organization
-(`visibility_org`).
-
-Guest executions receive credentials exclusively from the share's own
-`environment_refs`, resolved through the org-shared environment seam
-(decision 011 — the agent's default instance stays pristine and is
-never consulted). So a tool-using agent with an empty binding list is
-*guaranteed* broken for visitors, and this hook says so explicitly
-(`needs-credentials`) instead of staying silent — the gap that made
-session 12's misconfiguration invisible until a visitor's first
-message failed.
+Share-scoped wrapper over [`useToolCredentialsReadiness`](/docs/sdk/react/environment#usetoolcredentialsreadiness): checks
+whether a tool-using shared agent's credentials will work for
+visitors — i.e. whether the share binds environments
+(`environment_refs`) and each one is shared with the organization.
 
 The check runs only when the share is enabled with a public audience
 (org-audience shares reject bindings at the proto boundary), the
 deployment is cloud (local mode has no guest runtime or secret
-gating), and the agent declares MCP server usages. All lookups run as
-the owner viewing the dialog, who can read the bound environments.
+gating), and the agent declares MCP server usages.
 
 **Signature**
 
 ```tsx
-function useShareToolReadiness(agent: Agent, draft: AgentShareDraft): ShareToolReadiness
+function useShareToolReadiness(agent: Agent, draft: AgentShareDraft): ToolCredentialsReadiness
 ```
 
 <TypeTable
@@ -555,17 +545,8 @@ function draftFromShare(share: AgentShare | null): AgentShareDraft
 
 Readiness of a share's tool credentials for visitor executions.
 
-- `na` — nothing to check: the agent uses no MCP tools, sharing is
-  off, the audience is org (bindings are public-audience only), or
-  the deployment cannot serve guest chat (local mode).
-- `needs-credentials` — the agent uses MCP tools but the share has no
-  environments bound: visitors' tool calls will fail until the owner
-  binds credentials.
-- `checking` — lookups in flight.
-- `ready` — every environment bound to the share is shared with the
-  organization.
-- `blocked` — one or more bound environments are private; their
-  `org/slug` references are listed for the hint copy.
+The shared vocabulary lives on [`ToolCredentialsReadiness`](/docs/sdk/react/environment#toolcredentialsreadiness); this
+alias preserves the original share-scoped export.
 
 
 ### SharingAudience

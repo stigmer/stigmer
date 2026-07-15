@@ -6,10 +6,14 @@ title: Agent Channel
 
 An AgentChannel connects an agent to an external messaging platform so
 people can chat with it where they already work. The spec declares which
-agent serves the channel, whether serving is enabled, and the provider
-(Slack today). Workspace identity and credential references are produced
-by the install flow and live in status — applying a manifest never
-touches them, and channel operations never modify the referenced agent.
+agent serves the channel, whether serving is enabled, the provider (Slack
+today), optional environment references that supply the agent's tool
+credentials for channel conversations, and an optional `app_ref` to a
+ChannelApp when the channel should install through your own provider app
+instead of the shared Stigmer app. Workspace identity and provider
+credentials are produced by the install flow and live in status — applying
+a manifest never touches them, and channel operations never modify the
+referenced agent.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -24,6 +28,10 @@ spec:
     slug: support-agent
   enabled: true
   slack: {}
+  environment_refs:
+    - kind: environment
+      org: workshop
+      slug: support-tools-credentials
 ```
 
 ## Client Access
@@ -263,19 +271,23 @@ const agentChannel = await stigmer.agentChannel.apply({
   agentRef: {},
   enabled: false,
   slack: {},
+  environmentRefs: [],
+  appRef: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 agentChannel, err := client.AgentChannel.Apply(ctx, &stigmer.AgentChannelInput{
-  Name:     "my-agent-channel",
-  Org:      "acme",
-  Slug:     "...",
-  Labels:   map[string]string{},
-  AgentRef: &stigmer.ResourceRef{},
-  Enabled:  false,
-  Slack:    &stigmer.SlackChannelConfigInput{},
+  Name:            "my-agent-channel",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  AgentRef:        &stigmer.ResourceRef{},
+  Enabled:         false,
+  Slack:           &stigmer.SlackChannelConfigInput{},
+  EnvironmentRefs: []stigmer.ResourceRef{},
+  AppRef:          &stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -289,6 +301,8 @@ agent_channel = client.agent_channels.apply(AgentChannelInput(
     agent_ref=None,
     enabled=False,
     slack=None,
+    environment_refs=[],
+    app_ref=None,
 ))
 ```
 </Tab>
@@ -302,6 +316,8 @@ AgentChannel agentChannel = client.agentChannels().apply(AgentChannelInput.build
     .agentRef(null)
     .enabled(false)
     .slack(null)
+    .environmentRefs(List.of())
+    .appRef(null)
     .build());
 ```
 </Tab>
@@ -328,19 +344,23 @@ const agentChannel = await stigmer.agentChannel.create({
   agentRef: {},
   enabled: false,
   slack: {},
+  environmentRefs: [],
+  appRef: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 agentChannel, err := client.AgentChannel.Create(ctx, &stigmer.AgentChannelInput{
-  Name:     "my-agent-channel",
-  Org:      "acme",
-  Slug:     "...",
-  Labels:   map[string]string{},
-  AgentRef: &stigmer.ResourceRef{},
-  Enabled:  false,
-  Slack:    &stigmer.SlackChannelConfigInput{},
+  Name:            "my-agent-channel",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  AgentRef:        &stigmer.ResourceRef{},
+  Enabled:         false,
+  Slack:           &stigmer.SlackChannelConfigInput{},
+  EnvironmentRefs: []stigmer.ResourceRef{},
+  AppRef:          &stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -354,6 +374,8 @@ agent_channel = client.agent_channels.create(AgentChannelInput(
     agent_ref=None,
     enabled=False,
     slack=None,
+    environment_refs=[],
+    app_ref=None,
 ))
 ```
 </Tab>
@@ -367,6 +389,8 @@ AgentChannel agentChannel = client.agentChannels().create(AgentChannelInput.buil
     .agentRef(null)
     .enabled(false)
     .slack(null)
+    .environmentRefs(List.of())
+    .appRef(null)
     .build());
 ```
 </Tab>
@@ -393,19 +417,23 @@ const agentChannel = await stigmer.agentChannel.update({
   agentRef: {},
   enabled: false,
   slack: {},
+  environmentRefs: [],
+  appRef: {},
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 agentChannel, err := client.AgentChannel.Update(ctx, &stigmer.AgentChannelInput{
-  Name:     "my-agent-channel",
-  Org:      "acme",
-  Slug:     "...",
-  Labels:   map[string]string{},
-  AgentRef: &stigmer.ResourceRef{},
-  Enabled:  false,
-  Slack:    &stigmer.SlackChannelConfigInput{},
+  Name:            "my-agent-channel",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  AgentRef:        &stigmer.ResourceRef{},
+  Enabled:         false,
+  Slack:           &stigmer.SlackChannelConfigInput{},
+  EnvironmentRefs: []stigmer.ResourceRef{},
+  AppRef:          &stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -419,6 +447,8 @@ agent_channel = client.agent_channels.update(AgentChannelInput(
     agent_ref=None,
     enabled=False,
     slack=None,
+    environment_refs=[],
+    app_ref=None,
 ))
 ```
 </Tab>
@@ -432,6 +462,8 @@ AgentChannel agentChannel = client.agentChannels().update(AgentChannelInput.buil
     .agentRef(null)
     .enabled(false)
     .slack(null)
+    .environmentRefs(List.of())
+    .appRef(null)
     .build());
 ```
 </Tab>
@@ -583,6 +615,8 @@ Input for creating or updating an Agent Channel.
     agentRef: { type: "ResourceRef", description: "Reference to the agent this channel serves.", typeDescriptionLink: "#resourceref", required: true },
     enabled: { type: "boolean", description: "Whether serving traffic on this channel is enabled." },
     slack: { type: "SlackChannelConfigInput", description: "Slack workspace connection (multi-tenant Stigmer Slack app).", typeDescriptionLink: "#slackchannelconfiginput" },
+    environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources whose values are provided to conversations on this channel.", typeDescriptionLink: "#resourceref" },
+    appRef: { type: "ResourceRef", description: "Reference to the ChannelApp this channel installs through.", typeDescriptionLink: "#resourceref" },
   }}
 />
 
@@ -710,6 +744,7 @@ SlackInstallStatus holds the facts observed when the Stigmer Slack app was insta
     grantedScopes: { type: "string[]", description: "OAuth scopes granted to the installation." },
     installerSlackUserId: { type: "string", description: "Slack user ID of the person who performed the install." },
     installedAt: { type: "string", description: "When the install completed." },
+    channelAppId: { type: "string", description: "ID of the ChannelApp the install went through; empty for installs of the platform's shared Stigmer app." },
   }}
 />
 

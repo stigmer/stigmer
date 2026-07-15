@@ -464,6 +464,30 @@ enum ApiResourceKind {
     }
   }];
 
+  // Customer-owned messaging-platform app (e.g. a Slack app) that agent
+  // channels can install through instead of the shared platform app.
+  channel_app = 48 [(kind_meta) = {
+    group: agentic
+    version: v1
+    name: "ChannelApp"
+    display_name: "Channel App"
+    id_prefix: "chapp"
+    is_versioned: false
+    // Not searchable by design: a channel app is credential configuration
+    // reached through the org's channel settings, not a library artifact.
+    // (Mirrors agent_share/agent_channel; skips the Go search-extractor.)
+    not_search_indexed: true
+    tier: open_source
+    authorization: {
+      scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      grantable_roles: [
+        owner,
+        viewer
+      ]
+    }
+  }];
+
   // Agentic - Workflow orchestration
 
   // Multi-step orchestration defining how agents collaborate on a task.

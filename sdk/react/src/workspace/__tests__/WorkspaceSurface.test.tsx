@@ -229,6 +229,38 @@ describe("WorkspaceSurface extraViews", () => {
     expect(screen.getByRole("tab", { name: /main\.go/ })).toBeTruthy();
   });
 
+  it("hands a fitted view a bare slot — no sidebar heading, no padded scroll wrapper", () => {
+    // A fitted view (the workflow Inspect facet) owns its header, tab strip,
+    // and scroll; the shared envelope would double the header and nest
+    // scroll containers.
+    const fittedView = {
+      id: "inspect",
+      label: "Inspect",
+      icon: <span />,
+      fitted: true,
+      content: <div data-testid="fitted-probe" />,
+    };
+    renderSurface({ extraViews: [fittedView] });
+    fireEvent.click(screen.getByRole("radio", { name: "Inspect" }));
+
+    const probe = screen.getByTestId("fitted-probe");
+    // No SidebarHeader (the rail button carries the label as a title
+    // attribute, not text — so any "Inspect" text would be the heading).
+    expect(screen.queryByText("Inspect")).toBeNull();
+    // The content's wrapper is the bare sidebar column, not the padded
+    // scroll envelope the default path applies.
+    expect(probe.parentElement!.className).not.toContain("overflow-y-auto");
+    expect(probe.parentElement!.className).not.toContain("px-3");
+  });
+
+  it("keeps the shared envelope (heading + padded scroll) for unfitted views", () => {
+    renderSurface({ extraViews: [configView] });
+    fireEvent.click(screen.getByRole("radio", { name: "Config" }));
+    const probe = screen.getByTestId("config-probe");
+    expect(probe.parentElement!.className).toContain("overflow-y-auto");
+    expect(screen.getByText("Config")).toBeTruthy();
+  });
+
   it("supports controlled view selection via view/onViewChange", () => {
     const onViewChange = vi.fn();
     renderSurface({
@@ -315,6 +347,47 @@ describe("WorkspaceSurface extraViews", () => {
 });
 
 // ---------------------------------------------------------------------------
+// builtInViews opt-in (DD-011) — hosts without a workspace file source scope
+// the rail to their injected facets (the workflow execution panel today).
+// ---------------------------------------------------------------------------
+
+describe("WorkspaceSurface builtInViews", () => {
+  it("offers Explorer and Search by default (backward-compatible)", () => {
+    renderSurface();
+    expect(screen.getByRole("radio", { name: "Explorer" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Search" })).toBeTruthy();
+  });
+
+  it("renders a facet-only rail with builtInViews={[]}", () => {
+    renderSurface({ builtInViews: [], extraViews: [configView] });
+    expect(screen.queryByRole("radio", { name: "Explorer" })).toBeNull();
+    expect(screen.queryByRole("radio", { name: "Search" })).toBeNull();
+    expect(screen.getByRole("radio", { name: "Config" })).toBeTruthy();
+  });
+
+  it("falls back to the first injected view — never a hidden built-in — for a stale view id", () => {
+    // A hardcoded "files" fallback would strand a facet-only host on a view
+    // its rail doesn't render (blank sidebar).
+    renderSurface({
+      builtInViews: [],
+      extraViews: [configView],
+      view: "inspect",
+    });
+    expect(screen.getByTestId("config-probe")).toBeTruthy();
+    expect(
+      screen.getByRole("radio", { name: "Config" }).getAttribute("aria-checked"),
+    ).toBe("true");
+    expect(screen.queryByTestId("explorer-probe")).toBeNull();
+  });
+
+  it("can offer a subset of built-ins", () => {
+    renderSurface({ builtInViews: ["files"] });
+    expect(screen.getByRole("radio", { name: "Explorer" })).toBeTruthy();
+    expect(screen.queryByRole("radio", { name: "Search" })).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Host-injected virtual documents — editor tabs that are not workspace files
 // (the session's plan.md today). Same open/pin/close semantics as file tabs;
 // only the body rendering diverges.
@@ -396,6 +469,43 @@ describe("WorkspaceSurface virtualDocuments", () => {
     // min-w-0 pair is what forces documents to reflow at narrow widths.
     expect(body.className).toContain("overflow-x-hidden");
     expect(body.className).toContain("min-w-0");
+  });
+
+  it("mounts ONLY the active virtual document — inactive tabs stay unmounted", () => {
+    // Load-bearing for streaming documents (the workflow's agent-execution
+    // transcripts): an inactive tab's content must not exist in the tree at
+    // all, so its fetch/stream hooks never run (DD-LIVE-006 — only the
+    // visible surface streams). A hidden-but-mounted body would keep every
+    // open transcript's subscription alive.
+    const mounts: string[] = [];
+    function Probe({ id }: { readonly id: string }) {
+      mounts.push(id);
+      return <div data-testid={`doc-${id}`} />;
+    }
+    const TRANSCRIPT_ENTRY_ID = virtualEntryId("agentexec");
+    renderSurface({
+      virtualDocuments: [
+        {
+          entryId: TRANSCRIPT_ENTRY_ID,
+          path: "aex_1/first-call",
+          content: <Probe id="first" />,
+        },
+        {
+          entryId: TRANSCRIPT_ENTRY_ID,
+          path: "aex_2/second-call",
+          content: <Probe id="second" />,
+        },
+      ],
+      editors: [
+        { entryId: TRANSCRIPT_ENTRY_ID, path: "aex_1/first-call", preview: false },
+        { entryId: TRANSCRIPT_ENTRY_ID, path: "aex_2/second-call", preview: false },
+      ],
+      selectedFile: { entryId: TRANSCRIPT_ENTRY_ID, path: "aex_2/second-call" },
+    });
+
+    expect(screen.getByTestId("doc-second")).toBeTruthy();
+    expect(screen.queryByTestId("doc-first")).toBeNull();
+    expect(mounts).not.toContain("first");
   });
 });
 

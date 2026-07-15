@@ -129,9 +129,10 @@ export {
   PLAN_DOCUMENT_PATH,
 } from "./plan-document.js";
 
-// Artifact document — the editor-area rendering of an execution artifact
-// (mounted as an artifact-family virtual document) and the identity of its tabs.
-export { ARTIFACT_DOCUMENT_ENTRY_ID } from "./artifact-document.js";
+// Artifact document tab identity — promoted to execution/ (shared with the
+// workflow panel); re-exported here so `@stigmer/react`'s public export and
+// existing session-path importers are unchanged.
+export { ARTIFACT_DOCUMENT_ENTRY_ID } from "../execution/artifact-document.js";
 
 // Selection types (for platform builders composing their own Inspect facet)
 export type { SelectedThreadItem } from "../internal/store/selection-store.js";

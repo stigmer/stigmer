@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.channelapp.v1;
+
+import "ai/stigmer/agentic/channelapp/v1/api.proto";
+import "buf/validate/validate.proto";
+
+// ChannelApps contains a list of channel app resources.
+message ChannelApps {
+  // Channel app entries.
+  repeated ChannelApp entries = 1;
+}
+
+// ListChannelAppsByOrgInput specifies the organization whose channel
+// apps should be returned.
+message ListChannelAppsByOrgInput {
+  // Organization slug to list channel apps for.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+}

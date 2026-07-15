@@ -227,7 +227,19 @@ type SlackInstallStatus struct {
 	// Slack user ID of the person who performed the install.
 	InstallerSlackUserId string `protobuf:"bytes,5,opt,name=installer_slack_user_id,json=installerSlackUserId,proto3" json:"installer_slack_user_id,omitempty"`
 	// When the install completed.
-	InstalledAt   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=installed_at,json=installedAt,proto3" json:"installed_at,omitempty"`
+	InstalledAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=installed_at,json=installedAt,proto3" json:"installed_at,omitempty"`
+	// ID of the ChannelApp the install went through; empty for installs
+	// of the platform's shared Stigmer app.
+	//
+	// @internal
+	// Written by the install completion path from the resolved
+	// spec.app_ref (sole writer, like every install fact). Discriminates
+	// routing and workspace uniqueness once multiple apps can serve one
+	// workspace: lookups key on (team_id, channel_app_id) and the
+	// partial-unique installed index is compound over both (decision 007
+	// as amended by T04 item 2). Existing platform installs predate the
+	// field; a missing value means the platform app — no backfill.
+	ChannelAppId  string `protobuf:"bytes,7,opt,name=channel_app_id,json=channelAppId,proto3" json:"channel_app_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -304,6 +316,13 @@ func (x *SlackInstallStatus) GetInstalledAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *SlackInstallStatus) GetChannelAppId() string {
+	if x != nil {
+		return x.ChannelAppId
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agentchannel_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentchannel_v1_status_proto_rawDesc = "" +
@@ -314,14 +333,15 @@ const file_ai_stigmer_agentic_agentchannel_v1_status_proto_rawDesc = "" +
 	"\x05slack\x18\x02 \x01(\v26.ai.stigmer.agentic.agentchannel.v1.SlackInstallStatusH\x00R\x05slack\x12<\n" +
 	"\x1acredentials_environment_id\x18\x03 \x01(\tR\x18credentialsEnvironmentId\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\x11\n" +
-	"\x0fprovider_status\"\x87\x02\n" +
+	"\x0fprovider_status\"\xad\x02\n" +
 	"\x12SlackInstallStatus\x12\x17\n" +
 	"\ateam_id\x18\x01 \x01(\tR\x06teamId\x12\x1b\n" +
 	"\tteam_name\x18\x02 \x01(\tR\bteamName\x12\x1e\n" +
 	"\vbot_user_id\x18\x03 \x01(\tR\tbotUserId\x12%\n" +
 	"\x0egranted_scopes\x18\x04 \x03(\tR\rgrantedScopes\x125\n" +
 	"\x17installer_slack_user_id\x18\x05 \x01(\tR\x14installerSlackUserId\x12=\n" +
-	"\finstalled_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\vinstalledAt*x\n" +
+	"\finstalled_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\vinstalledAt\x12$\n" +
+	"\x0echannel_app_id\x18\a \x01(\tR\fchannelAppId*x\n" +
 	"\x18AgentChannelInstallState\x12+\n" +
 	"'agent_channel_install_state_unspecified\x10\x00\x12\x13\n" +
 	"\x0fpending_install\x10\x01\x12\r\n" +

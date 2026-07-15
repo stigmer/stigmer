@@ -12,4 +12,5 @@ export { IdentityProvidersSection } from "./IdentityProvidersSection.js";
 export type { IdentityProvidersSectionProps } from "./IdentityProvidersSection.js";
 export { PlatformClientsSection } from "./PlatformClientsSection.js";
 export { OAuthAppsSection } from "./OAuthAppsSection.js";
+export { ChannelAppsSection } from "./ChannelAppsSection.js";
 export { UsageSection } from "./UsageSection.js";
