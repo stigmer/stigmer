@@ -14,6 +14,7 @@ import { DiffFileList } from "../version-history/DiffFileList.js";
 import { DiffSummary } from "../version-history/DiffSummary.js";
 import { UnifiedDiffView } from "../version-history/UnifiedDiffView.js";
 import type { DiffHunk, FileDiffEntry } from "../version-history/types.js";
+import { countHunks, toFileDiffEntry } from "./deriveExecutionFileChanges.js";
 import { FilePathLink } from "./FilePathLink.js";
 import { EmptyChangeNotice } from "./EmptyChangeNotice.js";
 import { useFileChangeContent } from "./useFileChangeContent.js";
@@ -326,72 +327,6 @@ function Notice({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function countHunks(hunks: readonly DiffHunk[]): {
-  additions: number;
-  deletions: number;
-} {
-  let additions = 0;
-  let deletions = 0;
-  for (const hunk of hunks) {
-    for (const line of hunk.lines) {
-      if (line.type === "added") additions++;
-      else if (line.type === "removed") deletions++;
-    }
-  }
-  return { additions, deletions };
-}
-
-/**
- * Projects a {@link FileChange} into a {@link FileDiffEntry} for the file list.
- *
- * Counts: hunk-only uses the runner's authoritative numbers; whole-file inline
- * is derived from the content (identical to the runner's capture-time counts by
- * construction — same diff algorithm). A whole-file side with no synchronous
- * content (offloaded / binary) falls back to the runner's capture-time
- * `linesAdded`/`linesRemoved` — zero when no count exists, which the list
- * renders as no stat.
- */
-function toFileDiffEntry(change: FileChange): FileDiffEntry {
-  const changeType =
-    change.changeType === FileChangeType.CREATE
-      ? "added"
-      : change.changeType === FileChangeType.DELETE
-        ? "removed"
-        : "modified";
-
-  if (change.captureLevel === FileChangeCaptureLevel.HUNK_ONLY) {
-    return {
-      path: change.path,
-      changeType,
-      additions: change.linesAdded,
-      deletions: change.linesRemoved,
-    };
-  }
-
-  const before = inlineSide(change.before);
-  const after = inlineSide(change.after);
-  if (before !== null && after !== null) {
-    const { additions, deletions } = countHunks(computeDiff(before, after));
-    return { path: change.path, changeType, additions, deletions };
-  }
-
-  return {
-    path: change.path,
-    changeType,
-    additions: change.linesAdded,
-    deletions: change.linesRemoved,
-  };
-}
-
-/** Inline text of a side, or null when absent/offloaded/binary. */
-function inlineSide(
-  side: FileChange["before"],
-): string | null {
-  if (!side) return "";
-  if (side.isBinary) return null;
-  return side.body.case === "inline" ? side.body.value : null;
-}
+// countHunks / toFileDiffEntry moved to deriveExecutionFileChanges.ts — shared
+// with the workflow panel's Changes facet, which projects the same net
+// FileChange list into its rail file list.

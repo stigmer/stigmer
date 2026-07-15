@@ -7,6 +7,10 @@ import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1
 import { useWorkflowExecution } from "./useWorkflowExecution.js";
 import { useWorkflowExecutionEventStream } from "./useWorkflowExecutionEventStream.js";
 import { useWorkflowExecutionArtifacts } from "./useWorkflowExecutionArtifacts.js";
+import {
+  useWorkflowExecutionFileChanges,
+  type UseWorkflowExecutionFileChangesReturn,
+} from "./useWorkflowExecutionFileChanges.js";
 import { useWorkflowExecutionActions } from "./useWorkflowExecutionActions.js";
 import { WorkflowExecutionHeader } from "./WorkflowExecutionHeader.js";
 import { WorkflowExecutionTimeline, type WorkflowExecutionTimelineProps } from "./WorkflowExecutionTimeline.js";
@@ -26,6 +30,11 @@ import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/ap
 import { ResizableSplit } from "../internal/ResizableSplit.js";
 import { useWorkspaceEditors } from "../internal/store/index.js";
 import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../execution/artifact-document.js";
+import {
+  FILE_CHANGE_DOCUMENT_ENTRY_ID,
+  fileChangeTabPath,
+} from "../execution/file-change-document.js";
+import { FileChangeDiff } from "../execution/FileChangesView.js";
 import {
   WorkspaceSurface,
   type SurfaceVirtualDocument,
@@ -198,11 +207,20 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
 
   const { artifacts } = useWorkflowExecutionArtifacts(executionId);
 
+  // File-change rollup across AGENT_CALL children (Changes facet). Owner-level
+  // like the artifacts hook — the fetched children must survive panel
+  // collapse/expand cycles (the panel's content unmounts while collapsed).
+  const fileChangesState = useWorkflowExecutionFileChanges({
+    executionId,
+    taskStates: effectiveTaskStates,
+    taskSnapshots: execution?.status?.tasks,
+  });
+
   const actions = useWorkflowExecutionActions(executionId, {
     onSuccess: refetchExecution,
   });
 
-  // The execution-level workspace panel (Artifacts facet + artifact document
+  // The execution-level workspace panel (facets + virtual document
   // tabs). The controller lives at the owner level — the editors-store
   // SUBSCRIPTION stays inside ExecutionWorkspacePanel so tab churn re-renders
   // only the panel subtree, never the streaming graph (DD-009/DD-010).
@@ -470,6 +488,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
             <ExecutionWorkspacePanel
               panel={panel}
               artifacts={artifacts}
+              fileChangesState={fileChangesState}
               costSummary={costSummary}
               taskStates={effectiveTaskStates}
               onSelectTask={setSelectedTaskName}
@@ -484,34 +503,51 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
 });
 
 // ---------------------------------------------------------------------------
-// Execution workspace panel — WorkspaceSurface + facets (Artifacts)
+// Execution workspace panel — WorkspaceSurface + facets (Artifacts/Changes/Usage)
 // ---------------------------------------------------------------------------
 
 /**
  * The workflow analog of the session viewer's panel region: subscribes to the
  * open-editor group (keeping that subscription out of the streaming owner),
- * assembles the rail facets, and resolves open artifact tabs back to their
- * `Artifact` records as virtual documents.
+ * assembles the rail facets, and resolves open virtual-document tabs back to
+ * their records (artifact tabs → `Artifact`, file-change tabs → the current
+ * net `FileChange`).
  */
 function ExecutionWorkspacePanel({
   panel,
   artifacts,
+  fileChangesState,
   costSummary,
   taskStates,
   onSelectTask,
 }: {
   readonly panel: WorkflowExecutionPanelController;
   readonly artifacts: readonly Artifact[];
+  readonly fileChangesState: UseWorkflowExecutionFileChangesReturn;
   readonly costSummary: DerivedCostSummary;
   readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
   readonly onSelectTask: (taskName: string) => void;
 }) {
   const { editors, activeFile } = useWorkspaceEditors(panel.editorsStore);
 
+  // The Changes list highlights the row of the open diff tab — only a
+  // file-change document's path counts (an artifact tab must not highlight a
+  // coincidentally-named change).
+  const activeFileChangePath =
+    activeFile?.entryId === FILE_CHANGE_DOCUMENT_ENTRY_ID
+      ? activeFile.path
+      : null;
+
   const railViews = useWorkflowExecutionRailViews({
     artifacts,
     onOpenArtifact: panel.openArtifact,
     onActivateArtifact: panel.pinArtifact,
+    fileChanges: fileChangesState.fileChanges,
+    fileChangesLoading: fileChangesState.isLoading,
+    fileChangesRefetching: fileChangesState.isRefetching,
+    fileChangesError: fileChangesState.error,
+    activeFileChangePath,
+    onOpenFileChange: panel.openFileChange,
     costSummary,
     taskStates,
     onSelectTask,
@@ -525,11 +561,40 @@ function ExecutionWorkspacePanel({
     () => new Map(artifacts.map((a) => [workflowArtifactTabPath(a), a])),
     [artifacts],
   );
+  // File-change tabs resolve the same way: tab path → net FileChange. The
+  // rollup is re-derived at task boundaries, so an open tab always renders
+  // the CURRENT net diff for its path (never a stale copy captured at open
+  // time); a path that dropped out of the rollup degrades to a notice.
+  const fileChangeByTabPath = useMemo(
+    () =>
+      new Map(
+        fileChangesState.fileChanges.map((c) => [fileChangeTabPath(c), c]),
+      ),
+    [fileChangesState.fileChanges],
+  );
   const virtualDocuments = useMemo<readonly SurfaceVirtualDocument[]>(
     () =>
       editors
-        .filter((editor) => editor.entryId === ARTIFACT_DOCUMENT_ENTRY_ID)
+        .filter(
+          (editor) =>
+            editor.entryId === ARTIFACT_DOCUMENT_ENTRY_ID ||
+            editor.entryId === FILE_CHANGE_DOCUMENT_ENTRY_ID,
+        )
         .map((editor) => {
+          if (editor.entryId === FILE_CHANGE_DOCUMENT_ENTRY_ID) {
+            const change = fileChangeByTabPath.get(editor.path);
+            return {
+              entryId: FILE_CHANGE_DOCUMENT_ENTRY_ID,
+              path: editor.path,
+              content: change ? (
+                <div className="mx-auto w-full max-w-5xl px-4 py-4">
+                  <FileChangeDiff key={editor.path} change={change} />
+                </div>
+              ) : (
+                <FileChangeUnavailableNotice />
+              ),
+            };
+          }
           const artifact = artifactByTabPath.get(editor.path);
           return {
             entryId: ARTIFACT_DOCUMENT_ENTRY_ID,
@@ -541,7 +606,7 @@ function ExecutionWorkspacePanel({
             ),
           };
         }),
-    [editors, artifactByTabPath],
+    [editors, artifactByTabPath, fileChangeByTabPath],
   );
 
   return (
@@ -565,6 +630,23 @@ function ExecutionWorkspacePanel({
       onCollapse={panel.closePanel}
       className="h-full"
     />
+  );
+}
+
+function FileChangeUnavailableNotice() {
+  return (
+    <div
+      role="status"
+      className="mx-auto flex w-full max-w-3xl flex-col items-center gap-1 px-4 py-8 text-center"
+    >
+      <p className="text-xs font-medium text-foreground">
+        This file change is no longer available.
+      </p>
+      <p className="text-xs text-muted-foreground">
+        The rollup was refreshed and this file no longer appears among the
+        execution&apos;s changes.
+      </p>
+    </div>
   );
 }
 

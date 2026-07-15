@@ -2,16 +2,28 @@ import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { ArtifactSchema } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
+import { FileChangeSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { FileChangeType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type {
   DerivedCostSummary,
   DerivedTaskState,
 } from "../../internal/store/workflow-execution-event-store";
-import { useWorkflowExecutionRailViews } from "../useWorkflowExecutionRailViews";
+import {
+  useWorkflowExecutionRailViews,
+  type UseWorkflowExecutionRailViewsOptions,
+} from "../useWorkflowExecutionRailViews";
 
 function artifact(id: string, displayName: string) {
   return create(ArtifactSchema, {
     metadata: { id, name: displayName },
     spec: { displayName, contentType: "application/json" },
+  });
+}
+
+function fileChange(path: string) {
+  return create(FileChangeSchema, {
+    path,
+    changeType: FileChangeType.MODIFY,
   });
 }
 
@@ -25,48 +37,70 @@ const EMPTY_COST_SUMMARY: DerivedCostSummary = {
 
 const EMPTY_TASK_STATES: ReadonlyMap<string, DerivedTaskState> = new Map();
 
+/** Minimal valid options; tests override the fields under test. */
+function baseOptions(
+  overrides?: Partial<UseWorkflowExecutionRailViewsOptions>,
+): UseWorkflowExecutionRailViewsOptions {
+  return {
+    artifacts: [],
+    onOpenArtifact: vi.fn(),
+    fileChanges: [],
+    onOpenFileChange: vi.fn(),
+    costSummary: EMPTY_COST_SUMMARY,
+    taskStates: EMPTY_TASK_STATES,
+    ...overrides,
+  };
+}
+
 describe("useWorkflowExecutionRailViews", () => {
-  it("always offers Artifacts AND Usage — even with zero artifacts and zero usage (the always-on panel chip needs both)", () => {
+  it("always offers Artifacts, Changes AND Usage — even with zero data (the always-on panel chip needs a full rail)", () => {
     const { result } = renderHook(() =>
-      useWorkflowExecutionRailViews({
-        artifacts: [],
-        onOpenArtifact: vi.fn(),
-        costSummary: EMPTY_COST_SUMMARY,
-        taskStates: EMPTY_TASK_STATES,
-      }),
+      useWorkflowExecutionRailViews(baseOptions()),
     );
-    expect(result.current.map((v) => v.id)).toEqual(["artifacts", "usage"]);
-    expect(result.current[1].label).toBe("Usage");
+    expect(result.current.map((v) => v.id)).toEqual([
+      "artifacts",
+      "changes",
+      "usage",
+    ]);
+    expect(result.current[1].label).toBe("Changes");
+    expect(result.current[2].label).toBe("Usage");
     // No badge for an empty list (a zero badge would be noise); Usage never
     // carries a badge (cost is a quantity, not a countable collection).
     expect(result.current[0].badge).toBeUndefined();
     expect(result.current[1].badge).toBeUndefined();
+    expect(result.current[2].badge).toBeUndefined();
   });
 
   it("carries the artifact count as the Artifacts rail badge", () => {
     const { result } = renderHook(() =>
-      useWorkflowExecutionRailViews({
-        artifacts: [artifact("art_1", "a.json"), artifact("art_2", "b.json")],
-        onOpenArtifact: vi.fn(),
-        costSummary: EMPTY_COST_SUMMARY,
-        taskStates: EMPTY_TASK_STATES,
-      }),
+      useWorkflowExecutionRailViews(
+        baseOptions({
+          artifacts: [artifact("art_1", "a.json"), artifact("art_2", "b.json")],
+        }),
+      ),
     );
     expect(result.current[0].badge).toBe(2);
   });
 
+  it("carries the changed-file count as the Changes rail badge", () => {
+    const { result } = renderHook(() =>
+      useWorkflowExecutionRailViews(
+        baseOptions({
+          fileChanges: [fileChange("src/a.ts"), fileChange("src/b.ts")],
+        }),
+      ),
+    );
+    expect(result.current[1].badge).toBe(2);
+  });
+
   it("is referentially stable across re-renders with unchanged inputs (DD-010)", () => {
-    const onOpenArtifact = vi.fn();
-    const onSelectTask = vi.fn();
-    const artifacts = [artifact("art_1", "a.json")];
+    const options = baseOptions({
+      artifacts: [artifact("art_1", "a.json")],
+      fileChanges: [fileChange("src/a.ts")],
+      onSelectTask: vi.fn(),
+    });
     const { result, rerender } = renderHook(() =>
-      useWorkflowExecutionRailViews({
-        artifacts,
-        onOpenArtifact,
-        costSummary: EMPTY_COST_SUMMARY,
-        taskStates: EMPTY_TASK_STATES,
-        onSelectTask,
-      }),
+      useWorkflowExecutionRailViews(options),
     );
     const first = result.current;
     rerender();

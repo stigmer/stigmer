@@ -95,6 +95,11 @@ export type { DiffStatSummary } from "./write-back-utils.js";
 export { FileChangesView, FileChangeDiff } from "./FileChangesView.js";
 export type { FileChangesViewProps, FileChangeDiffProps } from "./FileChangesView.js";
 
+export {
+  deriveExecutionFileChanges,
+  toFileDiffEntry,
+} from "./deriveExecutionFileChanges.js";
+
 export { EmptyChangeNotice } from "./EmptyChangeNotice.js";
 export type { EmptyChangeNoticeProps, EmptyChangeKind } from "./EmptyChangeNotice.js";
 
@@ -277,6 +282,11 @@ export {
 export type { ArtifactRowItem } from "./artifact-row-item.js";
 
 export { ARTIFACT_DOCUMENT_ENTRY_ID } from "./artifact-document.js";
+
+export {
+  FILE_CHANGE_DOCUMENT_ENTRY_ID,
+  fileChangeTabPath,
+} from "./file-change-document.js";
 
 export { ArtifactContentRenderer } from "./ArtifactContentRenderer.js";
 export type { ArtifactContentRendererProps } from "./ArtifactContentRenderer.js";

@@ -5,12 +5,14 @@
 
 import { useMemo } from "react";
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type {
   DerivedCostSummary,
   DerivedTaskState,
 } from "../internal/store/workflow-execution-event-store.js";
 import type { SurfaceRailView } from "../workspace/WorkspaceSurface.js";
 import { WorkflowArtifactsTab } from "./facets/WorkflowArtifactsTab.js";
+import { WorkflowChangesTab } from "./facets/WorkflowChangesTab.js";
 import { WorkflowUsageTab } from "./facets/WorkflowUsageTab.js";
 
 /** Options for {@link useWorkflowExecutionRailViews}. */
@@ -21,6 +23,18 @@ export interface UseWorkflowExecutionRailViewsOptions {
   readonly onOpenArtifact: (artifact: Artifact) => void;
   /** Pin an artifact's document tab — the double-click half of open/activate. */
   readonly onActivateArtifact?: (artifact: Artifact) => void;
+  /** Net file changes across all tasks — drives the Changes facet. */
+  readonly fileChanges: readonly FileChange[];
+  /** First-load state of the file-change rollup (Changes facet skeleton). */
+  readonly fileChangesLoading?: boolean;
+  /** Background-refresh state of the file-change rollup. */
+  readonly fileChangesRefetching?: boolean;
+  /** Child-fetch error for the Changes facet, or `null`. */
+  readonly fileChangesError?: Error | null;
+  /** Tab path of the active file-change diff document (active-row highlight). */
+  readonly activeFileChangePath?: string | null;
+  /** Open a file change's diff as an editor-pane document tab (preview slot). */
+  readonly onOpenFileChange: (change: FileChange) => void;
   /** Execution-level cost/budget rollup — drives the Usage facet's summary. */
   readonly costSummary: DerivedCostSummary;
   /** Per-task derived states — drives the Usage facet's per-task breakdown. */
@@ -47,6 +61,12 @@ export function useWorkflowExecutionRailViews({
   artifacts,
   onOpenArtifact,
   onActivateArtifact,
+  fileChanges,
+  fileChangesLoading,
+  fileChangesRefetching,
+  fileChangesError,
+  activeFileChangePath,
+  onOpenFileChange,
   costSummary,
   taskStates,
   onSelectTask,
@@ -63,6 +83,22 @@ export function useWorkflowExecutionRailViews({
             artifacts={artifacts}
             onOpen={onOpenArtifact}
             onActivate={onActivateArtifact}
+          />
+        ),
+      },
+      {
+        id: "changes",
+        label: "Changes",
+        icon: <ChangesIcon />,
+        badge: fileChanges.length > 0 ? fileChanges.length : undefined,
+        content: (
+          <WorkflowChangesTab
+            fileChanges={fileChanges}
+            isLoading={fileChangesLoading}
+            isRefetching={fileChangesRefetching}
+            error={fileChangesError}
+            activePath={activeFileChangePath}
+            onOpen={onOpenFileChange}
           />
         ),
       },
@@ -85,6 +121,12 @@ export function useWorkflowExecutionRailViews({
       artifacts,
       onOpenArtifact,
       onActivateArtifact,
+      fileChanges,
+      fileChangesLoading,
+      fileChangesRefetching,
+      fileChangesError,
+      activeFileChangePath,
+      onOpenFileChange,
       costSummary,
       taskStates,
       onSelectTask,
@@ -104,6 +146,23 @@ function ArtifactsIcon() {
       <path d="M21 8l-9-5-9 5v8l9 5 9-5z" />
       <path d="M3 8l9 5 9-5" />
       <path d="M12 13v9" />
+    </svg>
+  );
+}
+
+/**
+ * File-diff glyph (document with +/- lines) — deliberately NOT the session
+ * rail's branch glyph: that Changes view shows git write-backs, while this
+ * one shows file diffs, and reusing the glyph would imply the same content.
+ */
+function ChangesIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7z" />
+      <path d="M14 3v4h4" />
+      <path d="M10 11h4" />
+      <path d="M12 9v4" />
+      <path d="M10 16.5h4" />
     </svg>
   );
 }

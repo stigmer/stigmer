@@ -5,12 +5,17 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
+import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
   useWorkspaceEditorsStoreRef,
   type OpenFileOptions,
   type WorkspaceEditorsStore,
 } from "../internal/store/index.js";
 import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../execution/artifact-document.js";
+import {
+  FILE_CHANGE_DOCUMENT_ENTRY_ID,
+  fileChangeTabPath,
+} from "../execution/file-change-document.js";
 
 /**
  * The identity of a workflow artifact's document tab within the shared
@@ -80,6 +85,18 @@ export interface WorkflowExecutionPanelController {
    * A no-op if the artifact is not open.
    */
   readonly pinArtifact: (artifact: Artifact) => void;
+  /**
+   * Open (or focus) a file change's diff as an editor-pane document tab and
+   * expand the panel. Same preview-slot semantics as {@link openArtifact} —
+   * the slot is shared across families, so casually browsing changes and
+   * artifacts reuses one tab (true VS Code behavior).
+   */
+  readonly openFileChange: (change: FileChange) => void;
+  /**
+   * Pin a file change's diff tab — the double-click half of the
+   * open/activate split. A no-op if the change is not open.
+   */
+  readonly pinFileChange: (change: FileChange) => void;
 }
 
 /** Options for {@link useWorkflowExecutionPanel}. */
@@ -135,6 +152,24 @@ export function useWorkflowExecutionPanel({
     [editorsStore],
   );
 
+  const openFileChange = useCallback(
+    (change: FileChange) => {
+      editorsStore.openPreview(
+        FILE_CHANGE_DOCUMENT_ENTRY_ID,
+        fileChangeTabPath(change),
+      );
+      setIsOpen(true);
+    },
+    [editorsStore],
+  );
+
+  const pinFileChange = useCallback(
+    (change: FileChange) => {
+      editorsStore.pin(FILE_CHANGE_DOCUMENT_ENTRY_ID, fileChangeTabPath(change));
+    },
+    [editorsStore],
+  );
+
   const activateEditor = useCallback(
     (entryId: string, path: string) => editorsStore.activate(entryId, path),
     [editorsStore],
@@ -164,6 +199,8 @@ export function useWorkflowExecutionPanel({
       closeEditor,
       openArtifact,
       pinArtifact,
+      openFileChange,
+      pinFileChange,
     }),
     [
       editorsStore,
@@ -177,6 +214,8 @@ export function useWorkflowExecutionPanel({
       closeEditor,
       openArtifact,
       pinArtifact,
+      openFileChange,
+      pinFileChange,
     ],
   );
 }

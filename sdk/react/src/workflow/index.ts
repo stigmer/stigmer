@@ -199,8 +199,8 @@ export {
   type WorkflowExecutionCostPanelProps,
 } from "./WorkflowExecutionCostPanel.js";
 
-// Execution panel — the WorkspaceSurface-based side panel (Artifacts facet,
-// artifact document tabs) and its controller/assembler hooks.
+// Execution panel — the WorkspaceSurface-based side panel (Artifacts/Changes/
+// Usage facets, virtual document tabs) and its controller/assembler hooks.
 export {
   useWorkflowExecutionPanel,
   workflowArtifactTabPath,
@@ -216,9 +216,21 @@ export {
   type WorkflowArtifactsTabProps,
 } from "./facets/WorkflowArtifactsTab.js";
 export {
+  WorkflowChangesTab,
+  type WorkflowChangesTabProps,
+} from "./facets/WorkflowChangesTab.js";
+export {
   WorkflowUsageTab,
   type WorkflowUsageTabProps,
 } from "./facets/WorkflowUsageTab.js";
+export {
+  useWorkflowExecutionFileChanges,
+  enumerateAgentCallChildren,
+  agentCallChildrenSignature,
+  type AgentCallChild,
+  type UseWorkflowExecutionFileChangesOptions,
+  type UseWorkflowExecutionFileChangesReturn,
+} from "./useWorkflowExecutionFileChanges.js";
 export {
   WorkflowArtifactDocument,
   type WorkflowArtifactDocumentProps,
