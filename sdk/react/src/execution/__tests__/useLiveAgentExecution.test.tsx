@@ -152,9 +152,13 @@ describe("useLiveAgentExecution", () => {
     });
 
     const { result } = renderHook(() => useLiveAgentExecution("aex_4"));
-    await waitFor(() => expect(result.current.error).toBe(streamError));
-    // The fetched snapshot stays visible alongside the stream error.
-    expect(result.current.execution).toBe(running);
+    // The stream error surfaces synchronously, but the fetched snapshot
+    // arrives asynchronously — wait for both so the assertion cannot race
+    // the in-flight fetch (the snapshot stays visible alongside the error).
+    await waitFor(() => {
+      expect(result.current.error).toBe(streamError);
+      expect(result.current.execution).toBe(running);
+    });
   });
 
   it("reconnect() retries both the fetch and the stream", async () => {
