@@ -1604,6 +1604,7 @@ export type {
   UseWorkflowExecutionFileChangesReturn,
   WorkflowArtifactDocumentProps,
   WorkflowAgentExecutionDocumentProps,
+  WorkflowAgentExecutionHitl,
   UseWorkflowArtifactDownloadReturn,
   WorkflowArtifactEntry,
   WorkflowUsageItem,

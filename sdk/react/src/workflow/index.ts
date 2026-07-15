@@ -238,6 +238,7 @@ export {
 export {
   WorkflowAgentExecutionDocument,
   type WorkflowAgentExecutionDocumentProps,
+  type WorkflowAgentExecutionHitl,
 } from "./WorkflowAgentExecutionDocument.js";
 export {
   useWorkflowArtifactDownload,

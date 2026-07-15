@@ -39,7 +39,10 @@ import {
   parseAgentExecutionTabPath,
 } from "../execution/agent-execution-document.js";
 import { FileChangeDiff } from "../execution/FileChangesView.js";
-import { WorkflowAgentExecutionDocument } from "./WorkflowAgentExecutionDocument.js";
+import {
+  WorkflowAgentExecutionDocument,
+  type WorkflowAgentExecutionHitl,
+} from "./WorkflowAgentExecutionDocument.js";
 import {
   WorkspaceSurface,
   type SurfaceVirtualDocument,
@@ -224,6 +227,31 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   const actions = useWorkflowExecutionActions(executionId, {
     onSuccess: refetchExecution,
   });
+
+  // The transcript document's HITL wiring (S5) — the same actions instance
+  // the bottom Approvals tab renders, narrowed to the fields the document
+  // needs. Deps are the individual fields (DD-010): the bundle's ref must
+  // survive unrelated churn on `actions` (a lifecycle action's isSubmitting
+  // flip), so an open transcript re-renders only when a gate's own
+  // in-flight/error state moves.
+  const transcriptHitl = useMemo<WorkflowAgentExecutionHitl>(
+    () => ({
+      submitApproval: actions.submitApproval,
+      approvalSubmittingToolCallIds: actions.approvalSubmittingToolCallIds,
+      approvalErrorsByToolCallId: actions.approvalErrorsByToolCallId,
+      submitFileDecision: actions.submitFileDecision,
+      fileDecisionSubmittingKeys: actions.fileDecisionSubmittingKeys,
+      fileDecisionErrorsByKey: actions.fileDecisionErrorsByKey,
+    }),
+    [
+      actions.submitApproval,
+      actions.approvalSubmittingToolCallIds,
+      actions.approvalErrorsByToolCallId,
+      actions.submitFileDecision,
+      actions.fileDecisionSubmittingKeys,
+      actions.fileDecisionErrorsByKey,
+    ],
+  );
 
   // The execution-level workspace panel (facets + virtual document
   // tabs). The controller lives at the owner level — the editors-store
@@ -499,6 +527,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
               taskStates={effectiveTaskStates}
               onSelectTask={setSelectedTaskName}
               onNavigateToAgentExecution={onNavigateToAgentExecution}
+              transcriptHitl={transcriptHitl}
             />
           ) : null
         }
@@ -528,6 +557,7 @@ function ExecutionWorkspacePanel({
   taskStates,
   onSelectTask,
   onNavigateToAgentExecution,
+  transcriptHitl,
 }: {
   readonly panel: WorkflowExecutionPanelController;
   readonly artifacts: readonly Artifact[];
@@ -536,6 +566,8 @@ function ExecutionWorkspacePanel({
   readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
   readonly onSelectTask: (taskName: string) => void;
   readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
+  /** Workflow-level HITL wiring for open transcript documents (S5). */
+  readonly transcriptHitl: WorkflowAgentExecutionHitl;
 }) {
   const { editors, activeFile } = useWorkspaceEditors(panel.editorsStore);
 
@@ -610,6 +642,7 @@ function ExecutionWorkspacePanel({
                   taskName={taskName}
                   agentSlug={taskStates.get(taskName)?.agentSlug || undefined}
                   onNavigateToAgentExecution={onNavigateToAgentExecution}
+                  hitl={transcriptHitl}
                 />
               ),
             };
@@ -645,6 +678,7 @@ function ExecutionWorkspacePanel({
       fileChangeByTabPath,
       taskStates,
       onNavigateToAgentExecution,
+      transcriptHitl,
     ],
   );
 
