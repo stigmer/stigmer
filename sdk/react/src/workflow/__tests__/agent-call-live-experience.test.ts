@@ -4,7 +4,6 @@
  * Covers:
  * - WorkflowExecutionEventStore: agentCallProgress handler
  * - ExecutionBadge: approval tool name + agent activity rendering
- * - AgentCallTab: live/static/pending view switching based on task state
  * - ExecutionInspector: Approval tab visibility
  */
 
@@ -369,58 +368,12 @@ describe("ExecutionBadge agent activity", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// AgentCallTab view switching
-// ---------------------------------------------------------------------------
-
-describe("AgentCallTab view switching", () => {
-  it("shows live view when task is running and childExecutionId is available", () => {
-    const taskStatus = "running" as const;
-    const childExecutionId = "aex_abc123";
-    const isTabActive = true;
-
-    const shouldSubscribe = isTabActive && (taskStatus === "running" || taskStatus === "waiting_approval") && !!childExecutionId;
-    expect(shouldSubscribe).toBe(true);
-  });
-
-  it("shows pending view when task is running but no childExecutionId", () => {
-    const taskStatus = "running" as const;
-    const childExecutionId = "";
-    const isTabActive = true;
-
-    const isRunning = taskStatus === "running" || taskStatus === "waiting_approval";
-    const hasChildId = !!childExecutionId;
-    const shouldSubscribe = isTabActive && isRunning && hasChildId;
-
-    expect(shouldSubscribe).toBe(false);
-    expect(isRunning && !hasChildId).toBe(true);
-  });
-
-  it("shows static view when task is completed", () => {
-    const taskStatus: string = "completed";
-
-    const isRunning = taskStatus === "running" || taskStatus === "waiting_approval";
-    expect(isRunning).toBe(false);
-  });
-
-  it("does not subscribe when tab is not active", () => {
-    const taskStatus = "running" as const;
-    const childExecutionId = "aex_abc123";
-    const isTabActive = false;
-
-    const shouldSubscribe = isTabActive && (taskStatus === "running" || taskStatus === "waiting_approval") && !!childExecutionId;
-    expect(shouldSubscribe).toBe(false);
-  });
-
-  it("subscribes when task is waiting_approval with childExecutionId", () => {
-    const taskStatus: string = "waiting_approval";
-    const childExecutionId = "aex_abc123";
-    const isTabActive = true;
-
-    const shouldSubscribe = isTabActive && (taskStatus === "running" || taskStatus === "waiting_approval") && !!childExecutionId;
-    expect(shouldSubscribe).toBe(true);
-  });
-});
+// NOTE: the "AgentCallTab view switching" suite that lived here tested the
+// tab's embedded-thumbnail subscription gating. S4 replaced the thumbnail
+// with a launcher (no subscription in the inspector at all); the launcher's
+// behavior is covered by component tests in agent-call-tab.test.tsx, and the
+// transcript's fetch/stream lifecycle by useLiveAgentExecution.test.tsx +
+// WorkflowAgentExecutionDocument.test.tsx.
 
 // ---------------------------------------------------------------------------
 // Inspector Approval tab visibility

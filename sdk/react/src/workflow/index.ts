@@ -236,6 +236,10 @@ export {
   type WorkflowArtifactDocumentProps,
 } from "./WorkflowArtifactDocument.js";
 export {
+  WorkflowAgentExecutionDocument,
+  type WorkflowAgentExecutionDocumentProps,
+} from "./WorkflowAgentExecutionDocument.js";
+export {
   useWorkflowArtifactDownload,
   type UseWorkflowArtifactDownloadReturn,
 } from "./useWorkflowArtifactDownload.js";

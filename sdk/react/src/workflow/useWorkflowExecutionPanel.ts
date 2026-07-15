@@ -16,6 +16,10 @@ import {
   FILE_CHANGE_DOCUMENT_ENTRY_ID,
   fileChangeTabPath,
 } from "../execution/file-change-document.js";
+import {
+  AGENT_EXECUTION_DOCUMENT_ENTRY_ID,
+  agentExecutionTabPath,
+} from "../execution/agent-execution-document.js";
 
 /**
  * The identity of a workflow artifact's document tab within the shared
@@ -97,6 +101,24 @@ export interface WorkflowExecutionPanelController {
    * open/activate split. A no-op if the change is not open.
    */
   readonly pinFileChange: (change: FileChange) => void;
+  /**
+   * Open (or focus) a child AgentExecution's transcript as an editor-pane
+   * document tab and expand the panel — the S4 in-place expansion. Same
+   * preview-slot semantics as {@link openArtifact}: casually stepping
+   * through agent calls reuses one tab; pinning keeps one around.
+   */
+  readonly openAgentExecution: (
+    childExecutionId: string,
+    taskName: string,
+  ) => void;
+  /**
+   * Pin a child AgentExecution's transcript tab — the double-click half of
+   * the open/activate split. A no-op if the transcript is not open.
+   */
+  readonly pinAgentExecution: (
+    childExecutionId: string,
+    taskName: string,
+  ) => void;
 }
 
 /** Options for {@link useWorkflowExecutionPanel}. */
@@ -170,6 +192,27 @@ export function useWorkflowExecutionPanel({
     [editorsStore],
   );
 
+  const openAgentExecution = useCallback(
+    (childExecutionId: string, taskName: string) => {
+      editorsStore.openPreview(
+        AGENT_EXECUTION_DOCUMENT_ENTRY_ID,
+        agentExecutionTabPath(childExecutionId, taskName),
+      );
+      setIsOpen(true);
+    },
+    [editorsStore],
+  );
+
+  const pinAgentExecution = useCallback(
+    (childExecutionId: string, taskName: string) => {
+      editorsStore.pin(
+        AGENT_EXECUTION_DOCUMENT_ENTRY_ID,
+        agentExecutionTabPath(childExecutionId, taskName),
+      );
+    },
+    [editorsStore],
+  );
+
   const activateEditor = useCallback(
     (entryId: string, path: string) => editorsStore.activate(entryId, path),
     [editorsStore],
@@ -201,6 +244,8 @@ export function useWorkflowExecutionPanel({
       pinArtifact,
       openFileChange,
       pinFileChange,
+      openAgentExecution,
+      pinAgentExecution,
     }),
     [
       editorsStore,
@@ -216,6 +261,8 @@ export function useWorkflowExecutionPanel({
       pinArtifact,
       openFileChange,
       pinFileChange,
+      openAgentExecution,
+      pinAgentExecution,
     ],
   );
 }

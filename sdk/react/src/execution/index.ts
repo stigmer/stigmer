@@ -12,6 +12,9 @@ export { isTerminalPhase } from "./execution-phases.js";
 export { useExecutionStream } from "./useExecutionStream.js";
 export type { UseExecutionStreamReturn } from "./useExecutionStream.js";
 
+export { useLiveAgentExecution } from "./useLiveAgentExecution.js";
+export type { UseLiveAgentExecutionReturn } from "./useLiveAgentExecution.js";
+
 export { useAgentExecutionActions } from "./useAgentExecutionActions.js";
 export type {
   UseAgentExecutionActionsOptions,
@@ -287,6 +290,12 @@ export {
   FILE_CHANGE_DOCUMENT_ENTRY_ID,
   fileChangeTabPath,
 } from "./file-change-document.js";
+
+export {
+  AGENT_EXECUTION_DOCUMENT_ENTRY_ID,
+  agentExecutionTabPath,
+  parseAgentExecutionTabPath,
+} from "./agent-execution-document.js";
 
 export { ArtifactContentRenderer } from "./ArtifactContentRenderer.js";
 export type { ArtifactContentRendererProps } from "./ArtifactContentRenderer.js";

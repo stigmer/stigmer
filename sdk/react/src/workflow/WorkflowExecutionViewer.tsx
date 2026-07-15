@@ -34,7 +34,12 @@ import {
   FILE_CHANGE_DOCUMENT_ENTRY_ID,
   fileChangeTabPath,
 } from "../execution/file-change-document.js";
+import {
+  AGENT_EXECUTION_DOCUMENT_ENTRY_ID,
+  parseAgentExecutionTabPath,
+} from "../execution/agent-execution-document.js";
 import { FileChangeDiff } from "../execution/FileChangesView.js";
+import { WorkflowAgentExecutionDocument } from "./WorkflowAgentExecutionDocument.js";
 import {
   WorkspaceSurface,
   type SurfaceVirtualDocument,
@@ -431,6 +436,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
                     taskStates={effectiveTaskStates}
                     taskSnapshots={execution?.status?.tasks ?? undefined}
                     onNavigateToAgentExecution={onNavigateToAgentExecution}
+                    onOpenAgentExecution={panel.openAgentExecution}
                     pendingApprovals={execution?.status?.pendingApprovals}
                     onSubmitApproval={actions.submitApproval}
                     approvalSubmittingToolCallIds={actions.approvalSubmittingToolCallIds}
@@ -492,6 +498,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
               costSummary={costSummary}
               taskStates={effectiveTaskStates}
               onSelectTask={setSelectedTaskName}
+              onNavigateToAgentExecution={onNavigateToAgentExecution}
             />
           ) : null
         }
@@ -520,6 +527,7 @@ function ExecutionWorkspacePanel({
   costSummary,
   taskStates,
   onSelectTask,
+  onNavigateToAgentExecution,
 }: {
   readonly panel: WorkflowExecutionPanelController;
   readonly artifacts: readonly Artifact[];
@@ -527,6 +535,7 @@ function ExecutionWorkspacePanel({
   readonly costSummary: DerivedCostSummary;
   readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
   readonly onSelectTask: (taskName: string) => void;
+  readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
 }) {
   const { editors, activeFile } = useWorkspaceEditors(panel.editorsStore);
 
@@ -578,9 +587,33 @@ function ExecutionWorkspacePanel({
         .filter(
           (editor) =>
             editor.entryId === ARTIFACT_DOCUMENT_ENTRY_ID ||
-            editor.entryId === FILE_CHANGE_DOCUMENT_ENTRY_ID,
+            editor.entryId === FILE_CHANGE_DOCUMENT_ENTRY_ID ||
+            editor.entryId === AGENT_EXECUTION_DOCUMENT_ENTRY_ID,
         )
         .map((editor) => {
+          if (editor.entryId === AGENT_EXECUTION_DOCUMENT_ENTRY_ID) {
+            // The tab path CARRIES the child id (no lookup map — unlike the
+            // artifact/change families, a transcript needs only its id to
+            // fetch/stream itself). The suffix is the AGENT_CALL task name;
+            // its live state provides the agent slug for the header.
+            const childExecutionId = parseAgentExecutionTabPath(editor.path);
+            const taskName = editor.path.slice(childExecutionId.length + 1);
+            return {
+              entryId: AGENT_EXECUTION_DOCUMENT_ENTRY_ID,
+              path: editor.path,
+              // Keyed by tab path so the mounted fetch/stream survives
+              // unrelated editors churn while this tab stays active.
+              content: (
+                <WorkflowAgentExecutionDocument
+                  key={editor.path}
+                  childExecutionId={childExecutionId}
+                  taskName={taskName}
+                  agentSlug={taskStates.get(taskName)?.agentSlug || undefined}
+                  onNavigateToAgentExecution={onNavigateToAgentExecution}
+                />
+              ),
+            };
+          }
           if (editor.entryId === FILE_CHANGE_DOCUMENT_ENTRY_ID) {
             const change = fileChangeByTabPath.get(editor.path);
             return {
@@ -606,7 +639,13 @@ function ExecutionWorkspacePanel({
             ),
           };
         }),
-    [editors, artifactByTabPath, fileChangeByTabPath],
+    [
+      editors,
+      artifactByTabPath,
+      fileChangeByTabPath,
+      taskStates,
+      onNavigateToAgentExecution,
+    ],
   );
 
   return (

@@ -438,6 +438,43 @@ describe("WorkspaceSurface virtualDocuments", () => {
     expect(body.className).toContain("overflow-x-hidden");
     expect(body.className).toContain("min-w-0");
   });
+
+  it("mounts ONLY the active virtual document — inactive tabs stay unmounted", () => {
+    // Load-bearing for streaming documents (the workflow's agent-execution
+    // transcripts): an inactive tab's content must not exist in the tree at
+    // all, so its fetch/stream hooks never run (DD-LIVE-006 — only the
+    // visible surface streams). A hidden-but-mounted body would keep every
+    // open transcript's subscription alive.
+    const mounts: string[] = [];
+    function Probe({ id }: { readonly id: string }) {
+      mounts.push(id);
+      return <div data-testid={`doc-${id}`} />;
+    }
+    const TRANSCRIPT_ENTRY_ID = virtualEntryId("agentexec");
+    renderSurface({
+      virtualDocuments: [
+        {
+          entryId: TRANSCRIPT_ENTRY_ID,
+          path: "aex_1/first-call",
+          content: <Probe id="first" />,
+        },
+        {
+          entryId: TRANSCRIPT_ENTRY_ID,
+          path: "aex_2/second-call",
+          content: <Probe id="second" />,
+        },
+      ],
+      editors: [
+        { entryId: TRANSCRIPT_ENTRY_ID, path: "aex_1/first-call", preview: false },
+        { entryId: TRANSCRIPT_ENTRY_ID, path: "aex_2/second-call", preview: false },
+      ],
+      selectedFile: { entryId: TRANSCRIPT_ENTRY_ID, path: "aex_2/second-call" },
+    });
+
+    expect(screen.getByTestId("doc-second")).toBeTruthy();
+    expect(screen.queryByTestId("doc-first")).toBeNull();
+    expect(mounts).not.toContain("first");
+  });
 });
 
 // ---------------------------------------------------------------------------
