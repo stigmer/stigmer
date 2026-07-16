@@ -185,11 +185,6 @@ export {
 } from "./WorkflowExecutionHeader.js";
 
 export {
-  WorkflowExecutionTimeline,
-  type WorkflowExecutionTimelineProps,
-} from "./WorkflowExecutionTimeline.js";
-
-export {
   WorkflowExecutionTaskPanel,
   type WorkflowExecutionTaskPanelProps,
 } from "./WorkflowExecutionTaskPanel.js";
@@ -600,6 +595,10 @@ export {
   type ExecutionActiveTaskIndicatorProps,
 } from "./ExecutionActiveTaskIndicator.js";
 export { useExecutionAnnouncements } from "./useExecutionAnnouncements.js";
+export {
+  useApprovalBoundary,
+  type ApprovalBoundaryCrossing,
+} from "./useApprovalBoundary.js";
 export { getAnimationDuration, prefersReducedMotion } from "../internal/motion-preference.js";
 
 // T05: Shared formatting utilities
@@ -633,25 +632,6 @@ export {
   ExecutionInspector,
   type ExecutionInspectorProps,
 } from "./execution-inspector/index.js";
-
-// T07: Waterfall timeline — pure derivation + behavior hook
-export {
-  deriveWaterfallEntries,
-  deriveWaterfallScale,
-  type WaterfallEntry,
-  type WaterfallAttempt,
-  type WaterfallSpan,
-  type WaterfallScale,
-  useWaterfallEntries,
-  type UseWaterfallEntriesOptions,
-  type UseWaterfallEntriesReturn,
-} from "./execution/index.js";
-
-// T07: Waterfall timeline — styled components
-export {
-  WaterfallTimeline,
-  type WaterfallTimelineProps,
-} from "./waterfall/index.js";
 
 // S8: Workflow task thread — pure projection + behavior hook + styled component
 export {

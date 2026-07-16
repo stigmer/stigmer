@@ -1461,7 +1461,6 @@ export {
   WorkflowDetailView,
   WorkflowExecutionViewer,
   WorkflowExecutionHeader,
-  WorkflowExecutionTimeline,
   WorkflowExecutionTaskPanel,
   useWorkflowExecutionPanel,
   workflowArtifactTabPath,
@@ -1567,6 +1566,8 @@ export {
   threadCardVariant,
   useWorkflowThreadItems,
   WorkflowTaskThread,
+  // S9: approval-boundary watcher (snapshot freshness + gate attention)
+  useApprovalBoundary,
 } from "./workflow/index.js";
 export type {
   TaskKindDescriptor,
@@ -1596,7 +1597,6 @@ export type {
   WorkflowDetailViewProps,
   WorkflowExecutionViewerProps,
   WorkflowExecutionHeaderProps,
-  WorkflowExecutionTimelineProps,
   WorkflowExecutionTaskPanelProps,
   WorkflowExecutionPanelController,
   UseWorkflowExecutionPanelOptions,
@@ -1729,6 +1729,8 @@ export type {
   WorkflowThreadProjection,
   WorkflowThreadCardVariant,
   WorkflowTaskThreadProps,
+  // S9: approval-boundary watcher types
+  ApprovalBoundaryCrossing,
 } from "./workflow/index.js";
 
 // ─── Dashboard (Unified Platform) ──────────────────────────────────────────

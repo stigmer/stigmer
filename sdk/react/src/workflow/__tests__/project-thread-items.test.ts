@@ -1,10 +1,21 @@
 // Unit tests for the thread projection (S8): ordering, variant mapping,
 // progress accounting, and the structural sharing that lets memoized card
-// rows bail during streaming (DD-009/DD-010).
+// rows bail during streaming (DD-009/DD-010). The fan-out suite (S9) runs
+// real events through the store derivation to validate the flat
+// start-order model against parallel branches (D-T02-1's revisit hook).
 
 import { describe, it, expect } from "vitest";
+import { create } from "@bufbuild/protobuf";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import {
+  WorkflowExecutionEventSchema,
+  WorkflowEventType,
+  TaskStartedPayloadSchema,
+  TaskCompletedPayloadSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
+import { WorkflowExecutionEventStore } from "../../internal/store/workflow-execution-event-store";
 import { projectThreadItems } from "../thread/project-thread-items";
 import { threadCardVariant } from "../thread/thread-presentation";
 
@@ -176,5 +187,117 @@ describe("projectThreadItems", () => {
       expect(second.items[0]).not.toBe(first.items[0]);
       expect(second.items[0].status).toBe("completed");
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Fan-out validation (S9 — D-T02-1's revisit hook)
+//
+// A realistic parallel workflow driven through the REAL event-store
+// derivation, not hand-built maps: prepare → four concurrent fetches
+// (started in one burst, finishing out of order) → join. Proves the two
+// properties the flat model rests on:
+//   1. thread order is first-STARTED order, and
+//   2. that order is STABLE — out-of-order completions (`Map.set` on an
+//      existing key) never reorder cards mid-run.
+// ---------------------------------------------------------------------------
+
+function startedEvent(seq: number, taskName: string): WorkflowExecutionEvent {
+  return create(WorkflowExecutionEventSchema, {
+    eventId: `evt-${seq}`,
+    sequenceNumber: BigInt(seq),
+    occurredAt: "2026-07-16T00:00:00Z",
+    taskName,
+    eventType: WorkflowEventType.task_started,
+    payload: {
+      case: "taskStarted",
+      value: create(TaskStartedPayloadSchema, {
+        taskKind: WorkflowTaskKind.http_call,
+        attemptNumber: 1,
+      }),
+    },
+  });
+}
+
+function completedEvent(seq: number, taskName: string): WorkflowExecutionEvent {
+  return create(WorkflowExecutionEventSchema, {
+    eventId: `evt-${seq}`,
+    sequenceNumber: BigInt(seq),
+    occurredAt: "2026-07-16T00:00:00Z",
+    taskName,
+    eventType: WorkflowEventType.task_completed,
+    payload: {
+      case: "taskCompleted",
+      value: create(TaskCompletedPayloadSchema, {
+        taskKind: WorkflowTaskKind.http_call,
+        durationMs: BigInt(250),
+        costMicros: BigInt(0),
+        tokensUsed: BigInt(0),
+      }),
+    },
+  });
+}
+
+describe("fan-out ordering through the store derivation (D-T02-1)", () => {
+  it("keeps first-started order while parallel branches complete out of order", () => {
+    const store = new WorkflowExecutionEventStore();
+
+    // prepare settles, then the fan-out burst: four branches start
+    // back-to-back before any of them finishes.
+    store.appendEvents([
+      startedEvent(1, "prepare"),
+      completedEvent(2, "prepare"),
+      startedEvent(3, "fetch-us"),
+      startedEvent(4, "fetch-eu"),
+      startedEvent(5, "fetch-apac"),
+      startedEvent(6, "fetch-latam"),
+    ]);
+    const midRun = projectThreadItems(store.getTaskStates(), 6);
+    expect(midRun.items.map((i) => i.taskName)).toEqual([
+      "prepare",
+      "fetch-us",
+      "fetch-eu",
+      "fetch-apac",
+      "fetch-latam",
+    ]);
+    // Concurrency is visible as overlapping running cards (the flat
+    // model's representation of parallelism).
+    expect(midRun.progress).toEqual({
+      settledTasks: 1,
+      activeTasks: 4,
+      totalTasks: 6,
+    });
+
+    // Branches finish out of start order (apac → us → latam → eu), then
+    // the join starts. Card order must not move.
+    store.appendEvents([
+      completedEvent(7, "fetch-apac"),
+      completedEvent(8, "fetch-us"),
+      completedEvent(9, "fetch-latam"),
+      completedEvent(10, "fetch-eu"),
+      startedEvent(11, "join-results"),
+    ]);
+    const afterJoin = projectThreadItems(
+      store.getTaskStates(),
+      6,
+      midRun.items,
+    );
+    expect(afterJoin.items.map((i) => i.taskName)).toEqual([
+      "prepare",
+      "fetch-us",
+      "fetch-eu",
+      "fetch-apac",
+      "fetch-latam",
+      "join-results",
+    ]);
+    expect(afterJoin.progress).toEqual({
+      settledTasks: 5,
+      activeTasks: 1,
+      totalTasks: 6,
+    });
+
+    // Structural sharing holds across the fan-in: prepare's card (untouched
+    // by the second batch) keeps its identity.
+    expect(afterJoin.items[0]).toBe(midRun.items[0]);
   });
 });

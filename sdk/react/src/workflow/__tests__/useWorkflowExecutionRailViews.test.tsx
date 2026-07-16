@@ -127,6 +127,9 @@ function inspectOptions(
       submitTaskApproval: vi.fn(),
       taskApprovalSubmittingTaskNames: new Set<string>(),
       taskApprovalErrorsByTaskName: new Map<string, Error>(),
+      submitFileDecision: vi.fn(),
+      fileDecisionSubmittingKeys: new Set<string>(),
+      fileDecisionErrorsByKey: new Map<string, Error>(),
     },
   };
 }

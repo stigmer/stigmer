@@ -120,10 +120,6 @@ vi.mock("../WorkflowAgentExecutionDocument", () => ({
   ),
 }));
 
-vi.mock("../waterfall/index.js", () => ({
-  WaterfallTimeline: () => <div data-testid="waterfall-stub" />,
-}));
-
 const mockedUseWorkflowExecution = vi.mocked(useWorkflowExecution);
 const mockedUseEventStream = vi.mocked(useWorkflowExecutionEventStream);
 const mockedUseArtifacts = vi.mocked(useWorkflowExecutionArtifacts);
@@ -199,11 +195,12 @@ function mockActions() {
 }
 
 function arrange(phase: ExecutionPhase = ExecutionPhase.EXECUTION_COMPLETED) {
+  const refetch = vi.fn();
   mockedUseWorkflowExecution.mockReturnValue({
     execution: makeExecution(phase),
     isLoading: false,
     error: null,
-    refetch: vi.fn(),
+    refetch,
   } as unknown as ReturnType<typeof useWorkflowExecution>);
   mockedUseEventStream.mockReturnValue({
     events: [],
@@ -226,6 +223,7 @@ function arrange(phase: ExecutionPhase = ExecutionPhase.EXECUTION_COMPLETED) {
     refetch: vi.fn(),
   });
   mockedUseActions.mockReturnValue(mockActions());
+  return { refetch };
 }
 
 function renderViewer(props?: { org?: string }) {
@@ -243,14 +241,22 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
   });
   afterEach(cleanup);
 
-  it("starts two-column: graph only, panel collapsed to the chip, no inspector aside", () => {
+  it("starts two-column: center column with the panel collapsed to the chip, no inspector aside", () => {
     renderViewer();
+    // Both center views are mounted (the inactive one CSS-hidden).
     expect(screen.getByTestId("graph-stub")).toBeTruthy();
     expect(screen.queryByTestId("inspector-stub")).toBeNull();
     // The retired aside's empty-state hint must be gone.
     expect(
       screen.queryByText("Click a node to view execution details"),
     ).toBeNull();
+  });
+
+  it("carries no bottom drawer — Waterfall, Events, and Approvals tabs are retired (S9)", () => {
+    renderViewer();
+    expect(screen.queryByRole("button", { name: "Waterfall" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Events/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Approvals/ })).toBeNull();
   });
 
   it("a node click opens the panel on the Inspect facet showing that task", () => {
@@ -343,10 +349,10 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// S8: center-column Thread | Graph toggle
+// S9: center-column Thread | Graph toggle (thread is primary)
 // ---------------------------------------------------------------------------
 
-describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S8)", () => {
+describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () => {
   beforeEach(() => {
     localStorage.clear();
     arrange();
@@ -360,43 +366,65 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S8)", () =
     return { graph, thread };
   }
 
-  it("defaults to Graph with the thread mounted but CSS-hidden", () => {
+  it("defaults to Thread with the graph mounted but CSS-hidden", () => {
     const { container } = renderViewer();
     const { graph, thread } = centerWrappers(container);
 
-    expect(graph.classList.contains("hidden")).toBe(false);
-    expect(thread.classList.contains("hidden")).toBe(true);
+    expect(thread.classList.contains("hidden")).toBe(false);
+    expect(graph.classList.contains("hidden")).toBe(true);
+    // Mounted, never conditionally rendered (DD-009).
+    expect(screen.getByTestId("graph-stub")).toBeTruthy();
     expect(
-      screen.getByRole("radio", { name: "Graph" }).getAttribute("aria-checked"),
+      screen
+        .getByRole("radio", { name: "Thread" })
+        .getAttribute("aria-checked"),
     ).toBe("true");
   });
 
-  it("toggling to Thread reveals the thread, hides (never unmounts) the graph, and persists", () => {
+  it("a stored S8 (unversioned) preference is abandoned — the pivot's one-time reset", () => {
+    localStorage.setItem("stgm-wf-exec-center-view", "graph");
     const { container } = renderViewer();
 
-    fireEvent.click(screen.getByRole("radio", { name: "Thread" }));
+    const { thread } = centerWrappers(container);
+    expect(thread.classList.contains("hidden")).toBe(false);
+    // The legacy key is cleaned up on mount.
+    expect(localStorage.getItem("stgm-wf-exec-center-view")).toBeNull();
+  });
+
+  it("toggling to Graph reveals the graph, hides (never unmounts) the thread, and persists the v2 key", () => {
+    const { container } = renderViewer();
+
+    fireEvent.click(screen.getByRole("radio", { name: "Graph" }));
 
     const { graph, thread } = centerWrappers(container);
-    expect(thread.classList.contains("hidden")).toBe(false);
-    expect(graph.classList.contains("hidden")).toBe(true);
-    // CSS-hidden, not unmounted (DD-009: no React Flow remount on toggle).
-    expect(screen.getByTestId("graph-stub")).toBeTruthy();
-    expect(localStorage.getItem("stgm-wf-exec-center-view")).toBe("thread");
+    expect(graph.classList.contains("hidden")).toBe(false);
+    expect(thread.classList.contains("hidden")).toBe(true);
+    expect(localStorage.getItem("stgm-wf-exec-center-view.v2")).toBe("graph");
+  });
+
+  it("a persisted v2 Graph choice is respected on the next mount", () => {
+    localStorage.setItem("stgm-wf-exec-center-view.v2", "graph");
+    const { container } = renderViewer();
+
+    const { graph } = centerWrappers(container);
+    expect(graph.classList.contains("hidden")).toBe(false);
+    expect(
+      screen.getByRole("radio", { name: "Graph" }).getAttribute("aria-checked"),
+    ).toBe("true");
   });
 
   it("toggling views never re-renders the settled graph (DD-009)", () => {
     renderViewer();
     const rendersAfterMount = graphRenders.count;
 
-    fireEvent.click(screen.getByRole("radio", { name: "Thread" }));
     fireEvent.click(screen.getByRole("radio", { name: "Graph" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Thread" }));
 
     expect(graphRenders.count).toBe(rendersAfterMount);
   });
 
   it("a thread card click opens the panel on Inspect (shared selection contract)", () => {
     renderViewer();
-    fireEvent.click(screen.getByRole("radio", { name: "Thread" }));
 
     fireEvent.click(screen.getByRole("button", { name: /^build-report/ }));
 
@@ -436,7 +464,6 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S8)", () =
       reconnect: vi.fn(),
     } as unknown as ReturnType<typeof useWorkflowExecutionEventStream>);
     renderViewer();
-    fireEvent.click(screen.getByRole("radio", { name: "Thread" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Expand call-writer" }));
     fireEvent.click(screen.getByRole("button", { name: "Open transcript" }));
@@ -450,7 +477,87 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S8)", () =
     const { container } = renderViewer();
 
     expect(container.querySelectorAll("[aria-live]")).toHaveLength(1);
-    fireEvent.click(screen.getByRole("radio", { name: "Thread" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Graph" }));
     expect(container.querySelectorAll("[aria-live]")).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S9: approval-boundary wiring (snapshot refresh + gate attention)
+// ---------------------------------------------------------------------------
+
+describe("WorkflowExecutionViewer (approval boundary, S9)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+  afterEach(cleanup);
+
+  // Re-mocks ONLY the stream (the execution mock — and its refetch spy —
+  // must stay stable across the flip, since the assertions count its calls).
+  function mockStream(status: DerivedTaskState["status"]) {
+    mockedUseEventStream.mockReturnValue({
+      events: [],
+      taskStates: new Map([
+        ["build-report", { ...taskState("build-report"), status }],
+      ]),
+      costSummary: COST_SUMMARY,
+      streamState: { stage: "streaming" },
+      totalTasks: 1,
+      error: null,
+      reconnect: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowExecutionEventStream>);
+  }
+
+  it("a gate opening mid-run refetches the snapshot and auto-selects the gating task onto Inspect", () => {
+    const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    mockStream("running");
+    const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
+    expect(refetch).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("inspector-stub")).toBeNull();
+
+    // The stream flips the task across the waiting_approval boundary. The
+    // viewer is memoized, so a rerender with identical props would bail
+    // before re-reading the mocked stream — vary a benign prop to deliver
+    // the new stream value (in production the store subscription re-renders
+    // the viewer without any prop change).
+    mockStream("waiting_approval");
+    rerender(
+      <WorkflowExecutionViewer executionId="wex_1" className="pass-2" />,
+    );
+
+    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("inspector-stub").textContent).toBe(
+      "build-report",
+    );
+    expect(
+      screen
+        .getByRole("radio", { name: "Inspect" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+  });
+
+  it("a gate resolving also refetches — decided gates never linger", () => {
+    const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    mockStream("waiting_approval");
+    const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
+    // Mount observed the gate already open → one entering crossing.
+    expect(refetch).toHaveBeenCalledTimes(1);
+
+    mockStream("running");
+    // Benign prop change to get past the viewer's memo (see above).
+    rerender(
+      <WorkflowExecutionViewer executionId="wex_1" className="pass-2" />,
+    );
+
+    expect(refetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("terminal-execution replay never refetches nor auto-selects", () => {
+    const { refetch } = arrange(ExecutionPhase.EXECUTION_COMPLETED);
+    mockStream("waiting_approval");
+    render(<WorkflowExecutionViewer executionId="wex_1" />);
+
+    expect(refetch).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("inspector-stub")).toBeNull();
   });
 });

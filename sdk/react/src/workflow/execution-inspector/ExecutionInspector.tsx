@@ -3,7 +3,11 @@
 import { memo, useCallback, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { WorkflowTask, WorkflowPendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type {
+  WorkflowTask,
+  WorkflowPendingApproval,
+  WorkflowPendingFileReview,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
 import { Tabs, type TabItem } from "../../tabs/Tabs.js";
@@ -16,6 +20,10 @@ import { RetriesTab } from "./RetriesTab.js";
 import { AgentCallTab } from "./AgentCallTab.js";
 import { EventLogTab } from "./EventLogTab.js";
 import { WorkflowApprovalList } from "../WorkflowApprovalList.js";
+import {
+  WorkflowFileReviewList,
+  type WorkflowFileDecisionSubmit,
+} from "../WorkflowFileReviewList.js";
 import { WorkflowTaskReviewGate } from "../WorkflowTaskReviewGate.js";
 import { WorkflowTaskApprovalSummary } from "../WorkflowTaskApprovalSummary.js";
 
@@ -72,6 +80,20 @@ export interface ExecutionInspectorProps {
    * {@link useWorkflowExecutionActions}'s `taskApprovalErrorsByTaskName`.
    */
   readonly taskApprovalErrorsByTaskName?: ReadonlyMap<string, Error>;
+  /** Pending file reviews from `execution.status.pending_file_reviews`. */
+  readonly pendingFileReviews?: readonly WorkflowPendingFileReview[];
+  /** Callback to submit a file-review decision on a child agent execution. */
+  readonly onSubmitFileDecision?: WorkflowFileDecisionSubmit;
+  /**
+   * In-flight file-decision keys. Supply
+   * {@link useWorkflowExecutionActions}'s `fileDecisionSubmittingKeys`.
+   */
+  readonly fileDecisionSubmittingKeys?: ReadonlySet<string>;
+  /**
+   * Per-decision file-review failures. Supply
+   * {@link useWorkflowExecutionActions}'s `fileDecisionErrorsByKey`.
+   */
+  readonly fileDecisionErrorsByKey?: ReadonlyMap<string, Error>;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -121,6 +143,10 @@ export const ExecutionInspector = memo(function ExecutionInspector({
   onSubmitTaskApproval,
   taskApprovalSubmittingTaskNames,
   taskApprovalErrorsByTaskName,
+  pendingFileReviews,
+  onSubmitFileDecision,
+  fileDecisionSubmittingKeys,
+  fileDecisionErrorsByKey,
   className,
 }: ExecutionInspectorProps) {
   const { detail } = useExecutionTaskDetail({
@@ -174,12 +200,17 @@ export const ExecutionInspector = memo(function ExecutionInspector({
     );
   }
 
-  // Filter pending approvals relevant to the selected task (match by childExecutionId)
+  // Filter both HITL gate kinds to the selected task (match by the
+  // AGENT_CALL child's execution id — the parent status references gates
+  // per child, never per task name).
   const taskApprovals = pendingApprovals?.filter(
     (pa) => pa.childAgentExecutionId === detail.agentCall?.childExecutionId,
   ) ?? [];
+  const taskFileReviews = pendingFileReviews?.filter(
+    (ref) => ref.childAgentExecutionId === detail.agentCall?.childExecutionId,
+  ) ?? [];
 
-  const tabs = buildVisibleTabs(detail, taskApprovals.length);
+  const tabs = buildVisibleTabs(detail, taskApprovals.length + taskFileReviews.length);
   const effectiveTab = tabs.some((t) => t.id === activeTab) ? activeTab : "summary";
 
   const BZ = BigInt(0);
@@ -242,15 +273,28 @@ export const ExecutionInspector = memo(function ExecutionInspector({
           )}
           {effectiveTab === "approval" && taskApprovals.length > 0 && onSubmitApproval && (
             // The shared session ApprovalCard (via the workflow list) — the
-            // same 4-action card this gate shows in the transcript and the
-            // bottom Approvals tab. No nav link here: these gates are already
-            // scoped to the selected task's child, and the Agent tab owns
-            // navigation.
+            // same 4-action card this gate shows in the in-place transcript.
+            // No nav link here: these gates are already scoped to the
+            // selected task's child, and the Agent tab owns navigation.
             <WorkflowApprovalList
               pendingApprovals={taskApprovals}
               onSubmitApproval={onSubmitApproval}
               submittingToolCallIds={approvalSubmittingToolCallIds}
               approvalErrors={approvalErrorsByToolCallId}
+            />
+          )}
+          {effectiveTab === "approval" && taskFileReviews.length > 0 && onSubmitFileDecision && (
+            // The file-review sibling, stacked below tool approvals — the
+            // same pairing the two gate kinds have always had on
+            // execution-level surfaces. Scoped to the selected task's child
+            // by the filter above; the list streams the child itself
+            // (reference-only, derive-from-child).
+            <WorkflowFileReviewList
+              pendingFileReviews={taskFileReviews}
+              onSubmitFileDecision={onSubmitFileDecision}
+              submittingDecisionKeys={fileDecisionSubmittingKeys}
+              decisionErrors={fileDecisionErrorsByKey}
+              className="mt-3"
             />
           )}
           {effectiveTab === "approval" && detail.approval && (
@@ -294,7 +338,9 @@ export const ExecutionInspector = memo(function ExecutionInspector({
 
 function buildVisibleTabs(
   detail: NonNullable<ReturnType<typeof useExecutionTaskDetail>["detail"]>,
-  approvalCount: number,
+  // Pending HITL gates of BOTH kinds (tool approvals + file reviews) — they
+  // share the one Approval tab and its badge.
+  hitlGateCount: number,
 ): TabItem[] {
   const tabs: TabItem[] = [{ id: "summary", label: "Summary" }];
 
@@ -305,8 +351,8 @@ function buildVisibleTabs(
     tabs.push({ id: "retries", label: "Retries", badge: detail.retries.attempts.length });
   }
   if (detail.agentCall) tabs.push({ id: "agent", label: "Agent" });
-  if (approvalCount > 0 || detail.approval) {
-    tabs.push({ id: "approval", label: "Approval", badge: approvalCount || undefined });
+  if (hitlGateCount > 0 || detail.approval) {
+    tabs.push({ id: "approval", label: "Approval", badge: hitlGateCount || undefined });
   }
 
   tabs.push({ id: "events", label: "Events", badge: detail.eventLog.length });

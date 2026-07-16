@@ -2,12 +2,33 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { WorkflowPendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type {
+  WorkflowTask,
+  WorkflowPendingFileReview,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import {
+  WorkflowPendingApprovalSchema,
+  WorkflowPendingFileReviewSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ExecutionInspector } from "../execution-inspector";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
+
+// The file-review list streams each referenced child (StigmerProvider
+// territory — its own suite covers the real rendering); this suite proves
+// the inspector's seam: tab visibility, per-task filtering, and wiring.
+vi.mock("../WorkflowFileReviewList", () => ({
+  WorkflowFileReviewList: ({
+    pendingFileReviews,
+  }: {
+    pendingFileReviews: readonly WorkflowPendingFileReview[];
+  }) => (
+    <div data-testid="file-review-list-stub">
+      {pendingFileReviews.map((r) => r.childAgentExecutionId).join(",")}
+    </div>
+  ),
+}));
 
 function makeEvent(
   taskName: string,
@@ -185,6 +206,50 @@ describe("ExecutionInspector — approval gating", () => {
       "tc_inspector",
       ApprovalAction.SKIP,
       undefined,
+    );
+  });
+
+  it("shows the Approval tab for a file-review-only gate, scoped to the selected task's child (S9)", () => {
+    // No tool approvals and no human_input gate — pending file reviews alone
+    // must surface the Approval tab (they became Inspect's responsibility
+    // when the bottom drawer was retired).
+    const AGENT_TASK = "call_helper";
+    const agentCallStarted = makeEvent(AGENT_TASK, 1, {
+      case: "agentCallStarted",
+      value: {
+        childExecutionId: "agx_child",
+        agentSlug: "helper",
+        messageSummary: "",
+      },
+    });
+
+    render(
+      <ExecutionInspector
+        selectedTaskName={AGENT_TASK}
+        events={[agentCallStarted]}
+        taskStates={new Map([[AGENT_TASK, makeTaskState(AGENT_TASK, "waiting_approval")]])}
+        pendingFileReviews={[
+          create(WorkflowPendingFileReviewSchema, {
+            childAgentExecutionId: "agx_child",
+            changeSetId: ["cs_1"],
+          }),
+          // A sibling child's review — must be filtered OUT of this task.
+          create(WorkflowPendingFileReviewSchema, {
+            childAgentExecutionId: "agx_other",
+            changeSetId: ["cs_2"],
+          }),
+        ]}
+        onSubmitFileDecision={vi.fn()}
+      />,
+    );
+
+    // The gate auto-opens the Approval tab (waiting_approval status) with a
+    // badge counting only this task's gates.
+    expect(
+      screen.getByRole("tab", { name: /Approval/, selected: true }),
+    ).toBeTruthy();
+    expect(screen.getByTestId("file-review-list-stub").textContent).toBe(
+      "agx_child",
     );
   });
 

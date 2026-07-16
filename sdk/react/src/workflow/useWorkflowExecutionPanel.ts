@@ -43,8 +43,8 @@ export function workflowArtifactTabPath(artifact: Artifact): string {
 /** Options for {@link WorkflowExecutionPanelController.notifySelection}. */
 export interface NotifySelectionOptions {
   /**
-   * Treat this selection as an explicit user gesture (graph node click,
-   * waterfall bar, Usage row): expand the panel and land on Inspect,
+   * Treat this selection as an explicit user gesture (thread card, graph
+   * node click, Usage row): expand the panel and land on Inspect,
    * overriding a sticky rail pick. Omit for the runner's auto-focus, which
    * only surfaces Inspect in an already-open panel.
    */

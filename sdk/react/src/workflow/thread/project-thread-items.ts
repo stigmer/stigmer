@@ -2,10 +2,10 @@
  * Pure projection from the event store's derived task-state map to the
  * ordered card list the workflow task thread renders.
  *
- * Deliberately NOT a third event-log derivation (D-T02-4): the event log
- * already has two walks (`deriveTaskStates` in the store,
- * `deriveWaterfallEntries` in the waterfall). This module only re-shapes
- * the store's cached map. Thread order is the map's insertion order, which
+ * Deliberately NOT a second event-log derivation (D-T02-4): the event log
+ * already has its canonical walk (`deriveTaskStates` in the store). This
+ * module only re-shapes the store's cached map. Thread order is the map's
+ * insertion order, which
  * `deriveTaskStates` builds in first-event order (`Map.set` on an existing
  * key preserves position) — the flat start-order model of D-T02-1 with no
  * second ordering source to drift.

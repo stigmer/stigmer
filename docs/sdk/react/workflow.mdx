@@ -7,6 +7,47 @@ description: Hooks and components for workflow definitions, instances, execution
 
 ## Hooks
 
+### useApprovalBoundary
+
+Behavior hook that watches the live derived task-state map and reports
+when any task crosses the `waiting_approval` boundary — the client-side
+mirror of the stream's `approval_requested` / `approval_resolved` events.
+
+Why this exists: the execution SNAPSHOT (`status.pending_approvals` /
+`status.pending_file_reviews`) is fetched once and carries the gate
+payloads, while the event STREAM is live but carries only task status.
+A boundary crossing is precisely the moment the snapshot goes stale, so
+consumers refetch it then — derived-over-stored: the stream is the
+signal, the snapshot stays the single source for gate payloads. The
+`WorkflowExecutionViewer` additionally auto-selects a newly gated task so
+the decision surface (the panel's Inspect Approval tab) is never hidden
+while the run is blocked.
+
+Same diffing shape as `useExecutionAnnouncements` (prev-map ref,
+diff on each map commit). A task first observed already in
+`waiting_approval` counts as entered — with rAF-coalesced commits the
+running→waiting transition can collapse into the task's first appearance.
+
+`enabled` gates the CALLBACK, not the tracking: state is tracked even
+while disabled so enabling later never replays stale crossings. Keep it
+`false` for terminal executions — their event-history replay crosses the
+boundary for long-decided gates.
+
+**Signature**
+
+```tsx
+function useApprovalBoundary(taskStates: ReadonlyMap<string, DerivedTaskState>, enabled: boolean, onCrossing: (crossing: ApprovalBoundaryCrossing) => void): void
+```
+
+<TypeTable
+  type={{
+    taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "", required: true },
+    enabled: { type: "boolean", description: "", required: true },
+    onCrossing: { type: "(crossing: ApprovalBoundaryCrossing) => void", description: "", required: true },
+  }}
+/>
+
+
 ### useCreateWorkflowInstance
 
 Mutation hook that creates a new WorkflowInstance resource.
@@ -2286,6 +2327,19 @@ function agentCallChildrenSignature(children: readonly AgentCallChild[]): string
 ```
 
 
+### ApprovalBoundaryCrossing
+
+Tasks that crossed the `waiting_approval` boundary in one commit of the
+derived task-state map, in the map's (first-started) order.
+
+<TypeTable
+  type={{
+    entered: { type: "readonly string[]", description: "Task names that transitioned INTO `waiting_approval` (a gate opened).", required: true },
+    exited: { type: "readonly string[]", description: "Task names that transitioned OUT of `waiting_approval` (a gate resolved).", required: true },
+  }}
+/>
+
+
 ### ApprovalFormBuilder
 
 Specialized inspector editor for `human_input` task nodes.
@@ -2981,7 +3035,7 @@ Options for `WorkflowExecutionPanelController.notifySelection`.
 
 <TypeTable
   type={{
-    open: { type: "boolean", description: "Treat this selection as an explicit user gesture (graph node click, waterfall bar, Usage row): expand the panel and land on Inspect, overriding a sticky rail pick. Omit for the runner's auto-focus, which only surfaces Inspect in an already-open panel." },
+    open: { type: "boolean", description: "Treat this selection as an explicit user gesture (thread card, graph node click, Usage row): expand the panel and land on Inspect, overriding a sticky rail pick. Omit for the runner's auto-focus, which only surfaces Inspect in an already-open panel." },
   }}
 />
 
@@ -3999,49 +4053,19 @@ Props for [`WorkflowExecutionTaskPanel`](#workflowexecutiontaskpanel).
 />
 
 
-### WorkflowExecutionTimeline
-
-Scrollable event timeline for a workflow execution.
-
-Renders each event through `WorkflowExecutionTimelineEvent` and
-auto-scrolls to the bottom when new events arrive during live
-streaming, using a bottom sentinel + IntersectionObserver pattern
-consistent with DD-009.
-
-Auto-scroll activates only when the sentinel is visible (user is
-near the bottom). When the user scrolls up, auto-scroll pauses
-to allow reading history.
-
-
-### WorkflowExecutionTimelineProps
-
-Props for [`WorkflowExecutionTimeline`](#workflowexecutiontimeline).
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names." },
-    events: { type: "readonly WorkflowExecutionEvent[]", description: "Events ordered by sequence_number ascending.", required: true },
-    onNavigateToAgentExecution: { type: "(executionId: string) => void", description: "Callback when user clicks an agent execution link." },
-    onSubmitTaskApproval: { type: "(taskName: string, outcome: string, formData?: Record<string, unknown>, comment?: string) => Promise<unknown>", description: "Callback to submit a human_input task approval decision." },
-    streamState: { type: "WorkflowEventStreamState", description: "Current stream lifecycle state.", required: true },
-    taskApprovalErrorsByTaskName: { type: "ReadonlyMap<string, Error>", description: "Per-gate human_input approval failures, keyed by `taskName`. Supply useWorkflowExecutionActions's `taskApprovalErrorsByTaskName`." },
-    taskApprovalSubmittingTaskNames: { type: "ReadonlySet<string>", description: "Task names whose human_input approval is currently in flight, keyed by `taskName` so deciding one gate never spins another. Supply useWorkflowExecutionActions's `taskApprovalSubmittingTaskNames`." },
-    taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Derived task states for rendering interactive approval cards." },
-  }}
-/>
-
-
 ### WorkflowExecutionViewer
 
 Top-level composed viewer for a single workflow execution.
 
 Wires together all execution hooks and sub-components into a two-column
-layout: the graph column (DAG graph + waterfall/events bottom drawer) and
-a single collapsible `WorkspaceSurface` panel carrying the facets
-(Inspect/Artifacts/Changes/Usage on the rail) and the rich documents
-(transcripts, diffs, artifacts, AI diagnosis in the editor area).
-Selecting a task — graph node, waterfall bar, Usage row — opens the panel
-on its Inspect facet.
+layout: the center column (the session-style task thread by default, with
+the DAG graph behind a view toggle) and a single collapsible
+`WorkspaceSurface` panel carrying the facets (Inspect/Artifacts/Changes/
+Usage on the rail) and the rich documents (transcripts, diffs, artifacts,
+AI diagnosis in the editor area). Selecting a task — thread card, graph
+node, Usage row — opens the panel on its Inspect facet; an approval gate
+arriving mid-run auto-selects its task so the decision surface is never
+hidden.
 
 This component is designed to work identically whether rendered
 in the Stigmer Console or embedded in a third-party dashboard.
@@ -4181,14 +4205,13 @@ Sentinel nodes (`__start__`, `__end__`) use `WorkflowTaskKind` value 0
 
 The HITL wiring for the Inspect facet: the slice of
 [`UseWorkflowExecutionActionsReturn`](#useworkflowexecutionactionsreturn) the inspector's Approval tab
-needs to decide agent-tool and `human_input` gates.
+needs to decide agent-tool, `human_input`, and file-review gates.
 
 A `Pick` (not a new shape) so the bundle can never drift from the actions
 hook — the same idiom as the transcript document's
 `WorkflowAgentExecutionHitl`. The viewer builds it from its single
 `useWorkflowExecutionActions` instance, so a gate's in-flight/error state
-is identical wherever that gate is shown (Inspect facet, transcript,
-bottom Approvals tab).
+is identical wherever that gate is shown (Inspect facet, transcript).
 
 
 ### WorkflowInspectorPanel
@@ -4253,6 +4276,7 @@ Inspect element only when its own inputs move, never on unrelated churn.
     onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Navigate to a child agent execution as a standalone page (DD-004)." },
     onOpenAgentExecution: { type: "(childExecutionId: string, taskName: string) => void", description: "Open an AGENT_CALL child's transcript in the panel's editor area." },
     pendingApprovals: { type: "readonly WorkflowPendingApproval[]", description: "Pending agent tool approvals from `execution.status.pending_approvals`." },
+    pendingFileReviews: { type: "readonly WorkflowPendingFileReview[]", description: "Pending file reviews from `execution.status.pending_file_reviews`." },
     selectedTaskName: { type: "string | null", description: "The selected task the facet inspects. The view exists only with one.", required: true },
     taskSnapshots: { type: "readonly WorkflowTask[]", description: "Task snapshots from `execution.status.tasks` for full I/O data." },
   }}

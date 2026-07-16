@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
 import { useAutoScroll } from "../../internal/useAutoScroll.js";
@@ -182,6 +182,20 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
   ) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
+  // Selection is shared across the viewer (graph node, Usage row, gate
+  // auto-select) — when it lands on this card from OUTSIDE the thread, the
+  // card may be off-screen. Reveal it on the selected edge only; `nearest`
+  // makes an already-visible card (e.g. the user's own click) a no-op.
+  // If this scrolls away from the bottom, the auto-follow sentinel
+  // disengages follow mode — correct: the user is inspecting. Optional
+  // call: jsdom has no `scrollIntoView`.
+  useEffect(() => {
+    if (!isSelected) return;
+    cardRef.current?.scrollIntoView?.({ block: "nearest" });
+  }, [isSelected]);
+
   // Task names are user-authored (may contain spaces); sanitize for the id.
   const detailId = `stgm-thread-task-${item.taskName.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
   const meta = formatMetaChips({
@@ -193,6 +207,7 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
 
   return (
     <div
+      ref={cardRef}
       className={cn(
         "rounded-md border bg-card",
         isSelected

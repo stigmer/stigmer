@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { WorkflowTaskStatus, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
@@ -13,17 +13,11 @@ import {
 } from "./useWorkflowExecutionFileChanges.js";
 import { useWorkflowExecutionActions } from "./useWorkflowExecutionActions.js";
 import { WorkflowExecutionHeader } from "./WorkflowExecutionHeader.js";
-import { WorkflowExecutionTimeline, type WorkflowExecutionTimelineProps } from "./WorkflowExecutionTimeline.js";
-import { WaterfallTimeline } from "./waterfall/index.js";
 import { WorkflowRepairCard } from "./WorkflowRepairCard.js";
 import { WorkflowExecutionGraph } from "./WorkflowExecutionGraph.js";
 import type { DerivedCostSummary, DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
 import { ExecutionComparisonPicker } from "./execution-comparison/ExecutionComparisonPicker.js";
 import { ExecutionComparisonView } from "./execution-comparison/ExecutionComparisonView.js";
-import { WorkflowApprovalList } from "./WorkflowApprovalList.js";
-import { WorkflowFileReviewList, type WorkflowFileDecisionSubmit } from "./WorkflowFileReviewList.js";
-import type { WorkflowPendingApproval, WorkflowPendingFileReview } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
 import { useWorkspaceEditors } from "../internal/store/index.js";
@@ -63,20 +57,31 @@ import {
 import { WorkflowArtifactDocument } from "./WorkflowArtifactDocument.js";
 import { WorkflowTaskThread } from "./thread/WorkflowTaskThread.js";
 import { useExecutionAnnouncements } from "./useExecutionAnnouncements.js";
+import {
+  useApprovalBoundary,
+  type ApprovalBoundaryCrossing,
+} from "./useApprovalBoundary.js";
 
 // ---------------------------------------------------------------------------
-// Center-column view (S8: Thread | Graph toggle; Graph is the default)
+// Center-column view (S9: Thread | Graph toggle; Thread is the default)
 // ---------------------------------------------------------------------------
 
 /** The center-column view of the execution viewer. */
 type CenterView = "thread" | "graph";
 
-const CENTER_VIEW_STORAGE_KEY = "stgm-wf-exec-center-view";
+// Versioned key (S9). The unversioned S8 key is deliberately ABANDONED, not
+// migrated: S8 shipped the thread as an opt-in preview with Graph as the
+// default, so a stored S8 value records exploration of that preview — not a
+// deliberate preference against the thread-primary product direction. The
+// version bump gives every user one fresh landing on the new default;
+// choices made from there persist.
+const CENTER_VIEW_STORAGE_KEY = "stgm-wf-exec-center-view.v2";
+const LEGACY_CENTER_VIEW_STORAGE_KEY = "stgm-wf-exec-center-view";
 
 /**
- * Read the persisted center view, defaulting to the graph (S8 keeps the DAG
- * primary; S9 flips the default). Same lazy-`useState` + `localStorage`
- * pattern as `ResizableSplit`'s persisted width.
+ * Read the persisted center view, defaulting to the thread (the T02
+ * thread-primary pivot). Same lazy-`useState` + `localStorage` pattern as
+ * `ResizableSplit`'s persisted width.
  */
 function readStoredCenterView(): CenterView {
   try {
@@ -85,7 +90,7 @@ function readStoredCenterView(): CenterView {
   } catch {
     /* localStorage may be unavailable */
   }
-  return "graph";
+  return "thread";
 }
 
 /** Props for {@link WorkflowExecutionViewer}. */
@@ -126,12 +131,14 @@ export interface WorkflowExecutionViewerProps {
  * Top-level composed viewer for a single workflow execution.
  *
  * Wires together all execution hooks and sub-components into a two-column
- * layout: the graph column (DAG graph + waterfall/events bottom drawer) and
- * a single collapsible `WorkspaceSurface` panel carrying the facets
- * (Inspect/Artifacts/Changes/Usage on the rail) and the rich documents
- * (transcripts, diffs, artifacts, AI diagnosis in the editor area).
- * Selecting a task — graph node, waterfall bar, Usage row — opens the panel
- * on its Inspect facet.
+ * layout: the center column (the session-style task thread by default, with
+ * the DAG graph behind a view toggle) and a single collapsible
+ * `WorkspaceSurface` panel carrying the facets (Inspect/Artifacts/Changes/
+ * Usage on the rail) and the rich documents (transcripts, diffs, artifacts,
+ * AI diagnosis in the editor area). Selecting a task — thread card, graph
+ * node, Usage row — opens the panel on its Inspect facet; an approval gate
+ * arriving mid-run auto-selects its task so the decision surface is never
+ * hidden.
  *
  * This component is designed to work identically whether rendered
  * in the Stigmer Console or embedded in a third-party dashboard.
@@ -237,15 +244,6 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   const effectiveTaskStates = fallbackTaskStates ?? taskStates;
   const effectiveTotalTasks = fallbackTaskStates ? fallbackTaskStates.size : totalTasks;
 
-  const executionDurationMs = useMemo(() => {
-    const startedAt = execution?.status?.startedAt;
-    const completedAt = execution?.status?.completedAt;
-    if (startedAt && completedAt) {
-      return new Date(completedAt).getTime() - new Date(startedAt).getTime();
-    }
-    return undefined;
-  }, [execution?.status?.startedAt, execution?.status?.completedAt]);
-
   const { artifacts } = useWorkflowExecutionArtifacts(executionId);
 
   // File-change rollup across AGENT_CALL children (Changes facet). Owner-level
@@ -296,9 +294,9 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   const [showComparePicker, setShowComparePicker] = useState(false);
   const [compareTargetId, setCompareTargetId] = useState<string | null>(null);
 
-  // Center-column view (S8). Both views stay mounted with the inactive one
-  // CSS-hidden — the `collapsedPane` discipline — so toggling never remounts
-  // React Flow or drops the event stream (DD-009).
+  // Center-column view (S8/S9). Both views stay mounted with the inactive
+  // one CSS-hidden — the `collapsedPane` discipline — so toggling never
+  // remounts React Flow or drops the event stream (DD-009).
   const [centerView, setCenterView] = useState<CenterView>(readStoredCenterView);
   const handleCenterViewChange = useCallback((view: CenterView) => {
     setCenterView(view);
@@ -309,19 +307,29 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
     }
   }, []);
 
+  // One-time cleanup of the abandoned S8 key (an effect, not the read path —
+  // reads must stay side-effect-free).
+  useEffect(() => {
+    try {
+      localStorage.removeItem(LEGACY_CENTER_VIEW_STORAGE_KEY);
+    } catch {
+      /* localStorage may be unavailable */
+    }
+  }, []);
+
   // Screen reader announcements for task state changes. Owned by the viewer
   // (not the graph): `display:none` removes content from the accessibility
   // tree, so a live region inside the CSS-hidden graph would go silent in
   // Thread view. One always-visible announcer serves both center views.
   const announcement = useExecutionAnnouncements(effectiveTaskStates);
 
-  // Selection is OWNER state (it also drives the graph highlight and the
-  // bottom waterfall), reported into the panel controller from here — unlike
-  // the session, whose thread selection lives in the panel subtree. The two
-  // wrappers encode the one selection rule: an explicit user gesture (graph
-  // node, waterfall bar, Usage row) opens the panel on Inspect; the runner's
+  // Selection is OWNER state (it drives the thread-card and graph-node
+  // highlights), reported into the panel controller from here — unlike the
+  // session, whose thread selection lives in the panel subtree. The two
+  // wrappers encode the one selection rule: an explicit user gesture (thread
+  // card, graph node, Usage row) opens the panel on Inspect; the runner's
   // auto-focus only updates an already-open panel. A deselect (graph pane
-  // click, or toggling the selected node off) clears without opening.
+  // click, or toggling the selected card/node off) clears without opening.
   const notifySelection = panel.notifySelection;
   const handleSelectTask = useCallback(
     (taskName: string | null) => {
@@ -338,10 +346,32 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
     [notifySelection],
   );
 
+  // HITL attention + snapshot freshness (S9, the drawer's replacement).
+  // A `waiting_approval` boundary crossing means the mount snapshot's gate
+  // lists are stale → refetch (stale-while-revalidate; no skeleton). A gate
+  // OPENING additionally auto-selects its task through the explicit-gesture
+  // path — the one deliberate exception to "auto-focus never force-opens a
+  // collapsed panel": the run is blocked on a decision the user cannot see
+  // otherwise (Nielsen #1). Concurrent gates: last one wins the selection;
+  // every gating card stays amber in the thread and the graph. Gated on
+  // `isRunning` so terminal-execution history replay (which crosses the
+  // boundary for long-decided gates) triggers neither.
+  const handleApprovalBoundary = useCallback(
+    (crossing: ApprovalBoundaryCrossing) => {
+      refetchExecution();
+      const gated = crossing.entered[crossing.entered.length - 1];
+      if (gated) handleSelectTask(gated);
+    },
+    [refetchExecution, handleSelectTask],
+  );
+  useApprovalBoundary(effectiveTaskStates, isRunning, handleApprovalBoundary);
+
   // The Inspect facet's HITL wiring — the same single actions instance,
   // narrowed per-field (DD-010) exactly like `transcriptHitl` above, so a
-  // gate's spinner/error is identical in the Inspect facet, the transcript,
-  // and the bottom Approvals tab.
+  // gate's spinner/error is identical in the Inspect facet and the
+  // transcript. Carries all three gate kinds (tool approvals, human_input,
+  // file reviews): the Inspect Approval tab is the execution-level HITL
+  // surface since the bottom drawer's retirement (S9).
   const inspectHitl = useMemo<WorkflowInspectHitl>(
     () => ({
       submitApproval: actions.submitApproval,
@@ -350,6 +380,9 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
       submitTaskApproval: actions.submitTaskApproval,
       taskApprovalSubmittingTaskNames: actions.taskApprovalSubmittingTaskNames,
       taskApprovalErrorsByTaskName: actions.taskApprovalErrorsByTaskName,
+      submitFileDecision: actions.submitFileDecision,
+      fileDecisionSubmittingKeys: actions.fileDecisionSubmittingKeys,
+      fileDecisionErrorsByKey: actions.fileDecisionErrorsByKey,
     }),
     [
       actions.submitApproval,
@@ -358,6 +391,9 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
       actions.submitTaskApproval,
       actions.taskApprovalSubmittingTaskNames,
       actions.taskApprovalErrorsByTaskName,
+      actions.submitFileDecision,
+      actions.fileDecisionSubmittingKeys,
+      actions.fileDecisionErrorsByKey,
     ],
   );
 
@@ -369,6 +405,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
       events,
       taskSnapshots: execution?.status?.tasks,
       pendingApprovals: execution?.status?.pendingApprovals,
+      pendingFileReviews: execution?.status?.pendingFileReviews,
       onNavigateToAgentExecution,
       onOpenAgentExecution: panel.openAgentExecution,
       hitl: inspectHitl,
@@ -378,6 +415,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
       events,
       execution?.status?.tasks,
       execution?.status?.pendingApprovals,
+      execution?.status?.pendingFileReviews,
       onNavigateToAgentExecution,
       panel.openAgentExecution,
       inspectHitl,
@@ -552,10 +590,24 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
           {announcement}
         </div>
 
-        {/* Primary area: graph and thread, both mounted, inactive one
+        {/* Primary area: thread and graph, both mounted, inactive one
             CSS-hidden (stable tree positions — no React Flow remount, no
             stream reconnect, expanded cards survive a toggle). Per-task
             detail lives in the panel's Inspect facet either way. */}
+        <div
+          data-center-view="thread"
+          className={cn("min-h-0 flex-1", centerView !== "thread" && "hidden")}
+        >
+          <WorkflowTaskThread
+            taskStates={effectiveTaskStates}
+            totalTasks={effectiveTotalTasks}
+            isRunning={isRunning}
+            selectedTaskName={selectedTaskName}
+            onTaskSelect={handleSelectTask}
+            onOpenAgentExecution={panel.openAgentExecution}
+            className="h-full"
+          />
+        </div>
         <div
           data-center-view="graph"
           className={cn("min-h-0 flex-1", centerView !== "graph" && "hidden")}
@@ -576,43 +628,6 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
             className="h-full"
           />
         </div>
-        <div
-          data-center-view="thread"
-          className={cn("min-h-0 flex-1", centerView !== "thread" && "hidden")}
-        >
-          <WorkflowTaskThread
-            taskStates={effectiveTaskStates}
-            totalTasks={effectiveTotalTasks}
-            isRunning={isRunning}
-            selectedTaskName={selectedTaskName}
-            onTaskSelect={handleSelectTask}
-            onOpenAgentExecution={panel.openAgentExecution}
-            className="h-full"
-          />
-        </div>
-
-        {/* Bottom panel: Waterfall (default) + Event Log tabs */}
-        <ExecutionBottomPanel
-          events={events}
-          streamState={streamState}
-          executionStartIso={execution.status?.startedAt ?? ""}
-          executionDurationMs={executionDurationMs}
-          selectedTaskName={selectedTaskName}
-          onTaskSelect={handleSelectTask}
-          onNavigateToAgentExecution={onNavigateToAgentExecution}
-          taskStates={effectiveTaskStates}
-          onSubmitTaskApproval={actions.submitTaskApproval}
-          taskApprovalSubmittingTaskNames={actions.taskApprovalSubmittingTaskNames}
-          taskApprovalErrorsByTaskName={actions.taskApprovalErrorsByTaskName}
-          pendingApprovals={execution?.status?.pendingApprovals}
-          onSubmitApproval={actions.submitApproval}
-          approvalSubmittingToolCallIds={actions.approvalSubmittingToolCallIds}
-          approvalErrorsByToolCallId={actions.approvalErrorsByToolCallId}
-          pendingFileReviews={execution?.status?.pendingFileReviews}
-          onSubmitFileDecision={actions.submitFileDecision}
-          fileDecisionSubmittingKeys={actions.fileDecisionSubmittingKeys}
-          fileDecisionErrorsByKey={actions.fileDecisionErrorsByKey}
-        />
       </div>
         }
         secondary={
@@ -906,181 +921,14 @@ function LoadingSkeleton() {
 
 
 // ---------------------------------------------------------------------------
-// Tabbed bottom panel: Waterfall + Event Log + Approvals
-// ---------------------------------------------------------------------------
-
-type BottomTab = "waterfall" | "events" | "approvals";
-
-function ExecutionBottomPanel({
-  events,
-  streamState,
-  executionStartIso,
-  executionDurationMs,
-  selectedTaskName,
-  onTaskSelect,
-  onNavigateToAgentExecution,
-  taskStates,
-  onSubmitTaskApproval,
-  taskApprovalSubmittingTaskNames,
-  taskApprovalErrorsByTaskName,
-  pendingApprovals,
-  onSubmitApproval,
-  approvalSubmittingToolCallIds,
-  approvalErrorsByToolCallId,
-  pendingFileReviews,
-  onSubmitFileDecision,
-  fileDecisionSubmittingKeys,
-  fileDecisionErrorsByKey,
-}: {
-  events: WorkflowExecutionTimelineProps["events"];
-  streamState: WorkflowExecutionTimelineProps["streamState"];
-  executionStartIso: string;
-  executionDurationMs?: number;
-  selectedTaskName: string | null;
-  onTaskSelect: (taskName: string) => void;
-  onNavigateToAgentExecution?: (id: string) => void;
-  taskStates: ReadonlyMap<string, DerivedTaskState>;
-  onSubmitTaskApproval: WorkflowExecutionTimelineProps["onSubmitTaskApproval"];
-  taskApprovalSubmittingTaskNames: ReadonlySet<string>;
-  taskApprovalErrorsByTaskName: ReadonlyMap<string, Error>;
-  pendingApprovals?: readonly WorkflowPendingApproval[];
-  onSubmitApproval?: (toolCallId: string, action: ApprovalAction, comment?: string) => Promise<unknown>;
-  approvalSubmittingToolCallIds: ReadonlySet<string>;
-  approvalErrorsByToolCallId: ReadonlyMap<string, Error>;
-  pendingFileReviews?: readonly WorkflowPendingFileReview[];
-  onSubmitFileDecision: WorkflowFileDecisionSubmit;
-  fileDecisionSubmittingKeys: ReadonlySet<string>;
-  fileDecisionErrorsByKey: ReadonlyMap<string, Error>;
-}) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState<BottomTab>("waterfall");
-  const prevHitlCountRef = useRef(0);
-
-  const approvalCount = pendingApprovals?.length ?? 0;
-  const fileReviewCount = pendingFileReviews?.length ?? 0;
-  // Both HITL kinds (tool approvals + file reviews) share the one "Approvals" tab.
-  const hitlCount = approvalCount + fileReviewCount;
-  const hasHitl = hitlCount > 0;
-
-  // Auto-switch to the Approvals tab when a new HITL gate (approval or file
-  // review) arrives; leave it when everything is resolved.
-  useEffect(() => {
-    if (hitlCount > prevHitlCountRef.current && hitlCount > 0) {
-      setActiveTab("approvals");
-      setCollapsed(false);
-    }
-    if (hitlCount === 0 && activeTab === "approvals") {
-      setActiveTab("waterfall");
-    }
-    prevHitlCountRef.current = hitlCount;
-  }, [hitlCount, activeTab]);
-
-  return (
-    <div className="border-t border-[var(--stgm-border,#e5e5e5)]">
-      {/* Tab bar */}
-      <div className="flex items-center gap-0 border-b border-[var(--stgm-border,#e5e5e5)]">
-        <button
-          type="button"
-          onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--stgm-muted-foreground,#737373)] hover:bg-[var(--stgm-muted,#f5f5f5)]"
-          aria-label={collapsed ? "Expand bottom panel" : "Collapse bottom panel"}
-        >
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 10 10"
-            className={cn("transition-transform", !collapsed && "rotate-180")}
-            aria-hidden="true"
-          >
-            <path d="M2 4L5 7L8 4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-
-        <TabButton
-          label="Waterfall"
-          isActive={activeTab === "waterfall"}
-          onClick={() => { setActiveTab("waterfall"); setCollapsed(false); }}
-        />
-        <TabButton
-          label={`Events (${events.length})`}
-          isActive={activeTab === "events"}
-          onClick={() => { setActiveTab("events"); setCollapsed(false); }}
-        />
-        {hasHitl && (
-          <TabButton
-            label={`Approvals (${hitlCount})`}
-            isActive={activeTab === "approvals"}
-            onClick={() => { setActiveTab("approvals"); setCollapsed(false); }}
-          />
-        )}
-      </div>
-
-      {/* Panel content */}
-      {!collapsed && (
-        <div className="h-52">
-          {activeTab === "waterfall" && (
-            <WaterfallTimeline
-              events={events}
-              streamState={streamState}
-              executionStartIso={executionStartIso}
-              executionDurationMs={executionDurationMs}
-              selectedTaskName={selectedTaskName}
-              onTaskSelect={onTaskSelect}
-              className="h-full"
-            />
-          )}
-          {activeTab === "events" && (
-            <WorkflowExecutionTimeline
-              events={events}
-              streamState={streamState}
-              onNavigateToAgentExecution={onNavigateToAgentExecution}
-              taskStates={taskStates}
-              onSubmitTaskApproval={onSubmitTaskApproval}
-              taskApprovalSubmittingTaskNames={taskApprovalSubmittingTaskNames}
-              taskApprovalErrorsByTaskName={taskApprovalErrorsByTaskName}
-              className="h-full"
-            />
-          )}
-          {activeTab === "approvals" && (
-            <div className="h-full overflow-y-auto px-4 py-3">
-              {/* The two HITL siblings, stacked: tool approvals then file
-                  reviews — each list renders the same shared card its gates
-                  show everywhere else (transcript, agent session). */}
-              <div className="space-y-3">
-                {pendingApprovals && onSubmitApproval && (
-                  <WorkflowApprovalList
-                    pendingApprovals={pendingApprovals}
-                    onSubmitApproval={onSubmitApproval}
-                    submittingToolCallIds={approvalSubmittingToolCallIds}
-                    approvalErrors={approvalErrorsByToolCallId}
-                    onNavigateToAgentExecution={onNavigateToAgentExecution}
-                  />
-                )}
-                {pendingFileReviews && pendingFileReviews.length > 0 && (
-                  <WorkflowFileReviewList
-                    pendingFileReviews={pendingFileReviews}
-                    onSubmitFileDecision={onSubmitFileDecision}
-                    submittingDecisionKeys={fileDecisionSubmittingKeys}
-                    decisionErrors={fileDecisionErrorsByKey}
-                    onNavigateToAgentExecution={onNavigateToAgentExecution}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Center-column view switcher (S8: Thread | Graph)
+// Center-column view switcher (S9: Thread | Graph — thread-primary order)
 // ---------------------------------------------------------------------------
 
 /**
  * Slim segmented control above the center column. A radiogroup (the two
  * views are mutually exclusive), matching the facet rail's radio semantics.
+ * Thread leads: it is the primary view (T02 pivot); the DAG is the
+ * secondary, topology-oriented lens.
  */
 function CenterViewSwitcher({
   view,
@@ -1096,14 +944,14 @@ function CenterViewSwitcher({
       className="flex items-center gap-0.5 border-b border-[var(--stgm-border,#e5e5e5)] px-2 py-1"
     >
       <CenterViewButton
-        label="Graph"
-        isActive={view === "graph"}
-        onClick={() => onChange("graph")}
-      />
-      <CenterViewButton
         label="Thread"
         isActive={view === "thread"}
         onClick={() => onChange("thread")}
+      />
+      <CenterViewButton
+        label="Graph"
+        isActive={view === "graph"}
+        onClick={() => onChange("graph")}
       />
     </div>
   );
@@ -1136,27 +984,3 @@ function CenterViewButton({
   );
 }
 
-function TabButton({
-  label,
-  isActive,
-  onClick,
-}: {
-  readonly label: string;
-  readonly isActive: boolean;
-  readonly onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "px-3 py-1.5 text-xs font-medium transition-colors",
-        isActive
-          ? "border-b-2 border-[var(--stgm-primary,#3b82f6)] text-[var(--stgm-foreground,#171717)]"
-          : "text-[var(--stgm-muted-foreground,#737373)] hover:text-[var(--stgm-foreground,#171717)]",
-      )}
-    >
-      {label}
-    </button>
-  );
-}

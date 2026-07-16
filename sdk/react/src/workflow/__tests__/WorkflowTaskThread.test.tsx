@@ -310,6 +310,72 @@ describe("WorkflowTaskThread", () => {
     ).toBe("true");
   });
 
+  it("renders a fan-out as overlapping running cards in first-started order (D-T02-1)", () => {
+    // The concurrency shape of the fan-out fixture (four branches live at
+    // once after prepare settled): the flat model shows parallelism as
+    // multiple simultaneously-running cards under an honest progress line.
+    render(
+      <WorkflowTaskThread
+        taskStates={statesOf(
+          taskState({ taskName: "prepare", status: "completed" }),
+          taskState({ taskName: "fetch-us", status: "running" }),
+          taskState({ taskName: "fetch-eu", status: "running" }),
+          taskState({ taskName: "fetch-apac", status: "running" }),
+          taskState({ taskName: "fetch-latam", status: "running" }),
+        )}
+        totalTasks={6}
+        isRunning
+        selectedTaskName={null}
+      />,
+    );
+
+    const cards = screen.getAllByRole("button", { pressed: false });
+    const expectedOrder = [
+      "prepare",
+      "fetch-us",
+      "fetch-eu",
+      "fetch-apac",
+      "fetch-latam",
+    ];
+    expect(cards).toHaveLength(expectedOrder.length);
+    expectedOrder.forEach((name, i) => {
+      expect(cards[i].textContent?.startsWith(name)).toBe(true);
+    });
+    expect(screen.getByText("1 of 6 tasks")).toBeTruthy();
+    expect(screen.getByText("4 active")).toBeTruthy();
+  });
+
+  it("reveals a card selected from outside the thread (shared-selection scroll)", () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+
+    const states = statesOf(
+      taskState({ taskName: "a" }),
+      taskState({ taskName: "b" }),
+    );
+    const { rerender } = render(
+      <WorkflowTaskThread
+        taskStates={states}
+        totalTasks={2}
+        isRunning={false}
+        selectedTaskName={null}
+      />,
+    );
+    scrollIntoView.mockClear();
+
+    // Selection arriving via props (graph node, Usage row, gate
+    // auto-select) — the newly selected card reveals itself.
+    rerender(
+      <WorkflowTaskThread
+        taskStates={states}
+        totalTasks={2}
+        isRunning={false}
+        selectedTaskName="b"
+      />,
+    );
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+  });
+
   it("mounts the jump-to-latest affordance (hidden while following)", () => {
     const { container } = render(
       <WorkflowTaskThread
