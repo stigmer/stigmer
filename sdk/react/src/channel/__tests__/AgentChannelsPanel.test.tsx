@@ -151,6 +151,41 @@ function makeChannel(overrides: MakeChannelOverrides = {}) {
   };
 }
 
+function makeWhatsAppChannel(overrides: {
+  installState?: number;
+  id?: string;
+  name?: string;
+} = {}) {
+  const { installState = 2, id = "ach_wa", name = "Support WhatsApp" } = overrides;
+  return {
+    metadata: { id, org: "acme", slug: "support-whatsapp", name, labels: {} },
+    spec: {
+      agentRef: { org: "acme", slug: "support-agent" },
+      enabled: true,
+      providerConfig: {
+        case: "whatsapp",
+        value: { phoneNumberId: "106540352242922" },
+      },
+      appRef: { org: "acme", slug: "acme-meta-app" },
+    },
+    status: {
+      installState,
+      providerStatus:
+        installState === 2
+          ? {
+              case: "whatsapp",
+              value: {
+                phoneNumberId: "106540352242922",
+                displayPhoneNumber: "+1 555 025 3483",
+                verifiedName: "Acme Corp",
+                channelAppId: "chapp_acme-meta-app",
+              },
+            }
+          : { case: undefined },
+    },
+  };
+}
+
 describe("AgentChannelsPanel", () => {
   it("renders the empty state with a connect call to action", async () => {
     const client = createMockStigmer();
@@ -440,6 +475,134 @@ describe("AgentChannelsPanel", () => {
     expect(
       await screen.findByRole("heading", { name: "Tool credentials" }),
     ).toBeTruthy();
+  });
+
+  it("offers one visible connect button per provider, each with its cursor target", async () => {
+    const client = createMockStigmer();
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    // Two providers = two buttons side by side, not a dropdown — each
+    // keeps its stable docs-demo cursor target (see providers.ts).
+    const slackBtn = await screen.findByRole("button", { name: /connect to slack/i });
+    const whatsappBtn = screen.getByRole("button", { name: /connect to whatsapp/i });
+    expect(slackBtn.getAttribute("data-cursor-target")).toBe("connect-slack");
+    expect(whatsappBtn.getAttribute("data-cursor-target")).toBe("connect-whatsapp");
+  });
+
+  it("opens the WhatsApp connect dialog from the empty state", async () => {
+    const client = createMockStigmer();
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /connect to whatsapp/i }),
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Connect to WhatsApp" }),
+    ).toBeTruthy();
+  });
+
+  it("renders WhatsApp cards with the number facts and serving line", async () => {
+    const client = createMockStigmer({
+      channels: [makeWhatsAppChannel()],
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("Support WhatsApp")).toBeTruthy(),
+    );
+    expect(screen.getByText("Installed")).toBeTruthy();
+    expect(screen.getByText(/\+1 555 025 3483/)).toBeTruthy();
+    expect(screen.getByText(/Acme Corp/)).toBeTruthy();
+    // The serving line names the Meta app (falls back to the ref slug
+    // when the app isn't in the fetched list) — never "@mention".
+    expect(
+      screen.getByText(/Serving app: acme-meta-app \(your Meta app\)/),
+    ).toBeTruthy();
+  });
+
+  it("connects WhatsApp in-app even when the host provides onConnectExternal", async () => {
+    // The desktop hand-off exists for OAuth popups the webview cannot
+    // open; a direct install is a plain API call and needs no hand-off.
+    const onConnectExternal = vi.fn();
+    const client = createMockStigmer({
+      channels: [makeWhatsAppChannel({ installState: 1 })],
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel
+          agent={makeAgent()}
+          onConnectExternal={onConnectExternal}
+        />
+      </Providers>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Connect" })).toBeTruthy(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(onConnectExternal).not.toHaveBeenCalled();
+    expect(
+      await screen.findByRole("heading", { name: "Reconnect to WhatsApp" }),
+    ).toBeTruthy();
+  });
+
+  it("hides only the WhatsApp connect affordance in local mode with an external delegate", async () => {
+    const client = createMockStigmer();
+    render(
+      <Providers client={client} mode="local">
+        <AgentChannelsPanel agent={makeAgent()} onConnectExternal={vi.fn()} />
+      </Providers>,
+    );
+
+    // Slack can still hand off to the host's browser; WhatsApp installs
+    // are in-app-only and doomed on a local backend, so its button
+    // yields to the cloud notice.
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /connect to slack/i }),
+      ).toBeTruthy(),
+    );
+    expect(
+      screen.queryByRole("button", { name: /connect to whatsapp/i }),
+    ).toBeNull();
+    expect(screen.getByText(/require Stigmer Cloud/i)).toBeTruthy();
+  });
+
+  it("scopes the disconnect prompt to the channel's provider", async () => {
+    const client = createMockStigmer({
+      channels: [makeWhatsAppChannel()],
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("Support WhatsApp")).toBeTruthy(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Disconnect" }));
+
+    // WhatsApp credentials live on the shared ChannelApp and survive the
+    // channel (DD-WA-3) — the prompt must not claim they are removed.
+    await screen.findByText("Disconnect channel?");
+    expect(screen.getByText(/number binding is removed/i)).toBeTruthy();
+    expect(screen.queryByText(/including credentials/i)).toBeNull();
   });
 
   it("renders an error state when the list fails to load", async () => {

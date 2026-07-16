@@ -28,10 +28,12 @@ export interface ChannelAppListPanelProps {
 
 /**
  * Displays the {@link ChannelApp} resources owned by an organization —
- * the customer's own Slack apps that agent channels can install through.
+ * the customer's own provider apps (Slack, Meta/WhatsApp) that agent
+ * channels can install through.
  *
- * Each row shows the app name, provider, client ID (non-secret), and
- * creation date. Secret fields never appear (they arrive redacted).
+ * Each row shows the app name, provider, the provider's non-secret app
+ * identifier, and creation date. Secret fields never appear (they
+ * arrive redacted).
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
@@ -121,9 +123,14 @@ function ChannelAppRow({
   const name = channelApp.metadata?.name ?? "";
   const providerCase = channelApp.spec?.providerConfig?.case;
   const provider = channelProviderOf(providerCase);
-  const slack = channelApp.spec?.providerConfig?.case === "slack"
-    ? channelApp.spec.providerConfig.value
-    : undefined;
+  // The provider's non-secret app identifier — the one value that ties
+  // the row to the app on the provider's dashboard.
+  const providerAppId =
+    channelApp.spec?.providerConfig?.case === "slack"
+      ? channelApp.spec.providerConfig.value.clientId
+      : channelApp.spec?.providerConfig?.case === "whatsapp"
+        ? channelApp.spec.providerConfig.value.appId
+        : undefined;
   const createdAt = channelApp.status?.audit?.specAudit?.createdAt;
 
   return (
@@ -145,9 +152,9 @@ function ChannelAppRow({
           </span>
         </div>
         <div className="flex items-baseline gap-2">
-          {slack?.clientId && (
+          {providerAppId && (
             <span className="truncate font-mono text-[0.65rem] text-muted-foreground">
-              {slack.clientId}
+              {providerAppId}
             </span>
           )}
           {createdAt && (

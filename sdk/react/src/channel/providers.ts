@@ -1,20 +1,39 @@
 import type { ComponentType } from "react";
 import { SlackMarkIcon } from "./SlackMarkIcon.js";
+import { WhatsAppMarkIcon } from "./WhatsAppMarkIcon.js";
 
 /**
  * Identifier of a channel provider — matches the `provider_config` oneof
  * case name on `AgentChannelSpec` / `ChannelAppSpec`, which is the wire
  * discriminator every channel surface already switches on.
  */
-export type ChannelProviderId = "slack";
+export type ChannelProviderId = "slack" | "whatsapp";
+
+/**
+ * How a provider's install flow runs — the client-side hint for whether
+ * connecting needs a browser popup.
+ *
+ * - `redirect`: an OAuth consent redirect (Slack). The client opens a
+ *   popup synchronously inside the user gesture — before `initiateInstall`
+ *   answers — because browsers only allow `window.open` from a gesture
+ *   call stack.
+ * - `direct`: `initiateInstall` runs the whole install server-side and
+ *   answers `completed=true` (WhatsApp, DD-WA-1). No popup, no callback
+ *   route; the client refetches the channel.
+ *
+ * The server's `InitiateChannelInstallOutput.completed` field stays the
+ * authoritative outcome (DD-WA-1b) — this hint only decides whether to
+ * pre-open a popup at all.
+ */
+export type ChannelInstallStyle = "redirect" | "direct";
 
 /**
  * Display descriptor for a channel provider.
  *
  * The single place a provider's UI identity lives. Adding a provider
- * (WhatsApp, T05) means adding a registry entry here; consumers derive
- * labels, icons, and provider menus from the registry instead of
- * hardcoding Slack.
+ * means adding a registry entry here (plus its presentation copy in
+ * providerPresentation.tsx); consumers derive labels, icons, and connect
+ * affordances from the registry instead of hardcoding a provider.
  */
 export interface ChannelProviderDescriptor {
   readonly id: ChannelProviderId;
@@ -22,18 +41,22 @@ export interface ChannelProviderDescriptor {
   readonly label: string;
   /** Brand mark; consumers size it via className. */
   readonly Icon: ComponentType<{ readonly className?: string }>;
+  /** How this provider's install flow runs. */
+  readonly installStyle: ChannelInstallStyle;
 }
 
 /**
  * All channel providers this UI can render, in display order.
  *
- * While the registry has a single entry, connect affordances render as a
- * direct "Connect to {label}" action (a one-option picker is noise —
- * Hick's law); a second entry is the signal for those affordances to
- * become a provider menu.
+ * With two providers the connect affordance renders as one visible
+ * "Connect to {label}" button per provider — deliberately NOT a dropdown
+ * menu: two options are clearer side by side (visibility over a hidden
+ * menu), and each button keeps its own stable cursor target for the docs
+ * demos. A third entry is the signal to fold these into a provider menu.
  */
 export const CHANNEL_PROVIDERS: readonly ChannelProviderDescriptor[] = [
-  { id: "slack", label: "Slack", Icon: SlackMarkIcon },
+  { id: "slack", label: "Slack", Icon: SlackMarkIcon, installStyle: "redirect" },
+  { id: "whatsapp", label: "WhatsApp", Icon: WhatsAppMarkIcon, installStyle: "direct" },
 ];
 
 /**

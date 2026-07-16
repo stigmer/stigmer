@@ -137,6 +137,29 @@ describe("agentChannelToInput", () => {
     expect(input).not.toHaveProperty("slack");
     expect(input.enabled).toBe(false);
   });
+
+  it("carries the whatsapp arm with its number — the toggle must never empty the provider oneof", () => {
+    const channel = makeChannel({
+      spec: {
+        agentRef: { org: "acme", slug: "support-agent" },
+        enabled: true,
+        providerConfig: {
+          case: "whatsapp",
+          value: { phoneNumberId: "106540352242922" },
+        },
+        appRef: { org: "acme", slug: "acme-meta-app" },
+      },
+    });
+
+    const input = agentChannelToInput(channel);
+    // A save without the arm would empty spec.provider_config, which the
+    // server refuses as a provider-immutability violation — the toggle
+    // itself would hard-fail. The declared number rides along because it
+    // lives in spec (unlike Slack, whose config is an empty marker).
+    expect(input.whatsapp).toEqual({ phoneNumberId: "106540352242922" });
+    expect(input).not.toHaveProperty("slack");
+    expect(input.appRef).toEqual({ org: "acme", slug: "acme-meta-app" });
+  });
 });
 
 describe("useSaveAgentChannel", () => {

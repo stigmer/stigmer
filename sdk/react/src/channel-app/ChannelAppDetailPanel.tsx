@@ -7,11 +7,16 @@ import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v
 import { useStigmer } from "../hooks.js";
 import { useUpdateChannelApp } from "./useUpdateChannelApp.js";
 import { useDeleteChannelApp } from "./useDeleteChannelApp.js";
+import type { ChannelAppCreateHandoff } from "./CreateChannelAppForm.js";
 import {
   buildSlackChannelAppManifest,
   slackChannelAppRedirectUrl,
   slackChannelAppWebhookUrl,
 } from "./slackAppSetup.js";
+import {
+  WHATSAPP_CHANNEL_APP_WEBHOOK_FIELDS,
+  whatsappChannelAppWebhookUrl,
+} from "./whatsappAppSetup.js";
 import { CopyBlock, CopyRow, FormField, SpinnerIcon } from "./internal.js";
 
 // ---------------------------------------------------------------------------
@@ -24,9 +29,18 @@ export interface ChannelAppDetailPanelProps {
   readonly channelApp: ChannelApp;
   /**
    * Console origin used to derive the OAuth redirect URL shown in the
-   * setup guidance. Defaults to the current window's origin.
+   * Slack setup guidance. Defaults to the current window's origin.
    */
   readonly consoleOrigin?: string;
+  /**
+   * Once-visible values threaded from the create flow (in memory only).
+   * The WhatsApp verify token is entered at registration but answers
+   * redacted from then on, and phase-two setup needs it *together with*
+   * the webhook URL that only exists now — this handoff lets the panel
+   * show both, exactly once. Absent on a later visit, the token renders
+   * redacted (rotate to get a fresh one).
+   */
+  readonly createHandoff?: ChannelAppCreateHandoff;
   /** Fired with the updated app after a successful save. */
   readonly onUpdated?: (app: ChannelApp) => void;
   /** Fired after the app is deleted. */
@@ -38,27 +52,143 @@ export interface ChannelAppDetailPanelProps {
 }
 
 /**
- * Detail view for one {@link ChannelApp}: the "finish setup in Slack"
- * values (the app's own events webhook URL — phase two of the two-phase
- * setup — plus the completed manifest), credential rotation, and
- * deletion.
+ * Detail view for one {@link ChannelApp}: the "finish setup at the
+ * provider" values — phase two of the two-phase setup — plus credential
+ * rotation and deletion.
+ *
+ * Provider-shaped bodies on a shared frame: a Slack app shows its
+ * events webhook URL, OAuth redirect URL, and completed manifest; a
+ * Meta (WhatsApp) app shows its webhook URL and verify token (no
+ * manifest — Meta has no equivalent, so the guidance is a checklist).
  *
  * Secret fields are prefilled with the redaction marker; leaving them
  * untouched preserves the stored values (rotate one secret without
- * re-entering the other). Deletion is refused server-side while any
+ * re-entering the others). Deletion is refused server-side while any
  * agent channel still installs through this app.
  */
 export function ChannelAppDetailPanel({
   channelApp,
   consoleOrigin,
+  createHandoff,
   onUpdated,
   onDeleted,
   onBack,
   className,
 }: ChannelAppDetailPanelProps) {
+  const { deleteApp, isDeleting, error: deleteError } = useDeleteChannelApp();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const appId = channelApp.metadata?.id ?? "";
+  const name = channelApp.metadata?.name ?? "";
+  const providerCase = channelApp.spec?.providerConfig?.case;
+
+  const handleDelete = useCallback(async () => {
+    try {
+      await deleteApp(appId);
+      onDeleted?.();
+    } catch {
+      // error state is managed by useDeleteChannelApp
+    } finally {
+      setConfirmingDelete(false);
+    }
+  }, [deleteApp, appId, onDeleted]);
+
+  return (
+    <div className={cn("space-y-5", className)}>
+      <div className="flex items-center justify-between">
+        <div className="min-w-0">
+          <h3 className="truncate text-sm font-semibold text-foreground">{name}</h3>
+          <p className="font-mono text-[0.65rem] text-muted-foreground">{appId}</p>
+        </div>
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-muted-foreground hover:text-foreground shrink-0 text-xs transition-colors"
+          >
+            ← Back
+          </button>
+        )}
+      </div>
+
+      {providerCase === "slack" ? (
+        <SlackAppDetail
+          channelApp={channelApp}
+          consoleOrigin={consoleOrigin}
+          onUpdated={onUpdated}
+        />
+      ) : providerCase === "whatsapp" ? (
+        <WhatsAppAppDetail
+          channelApp={channelApp}
+          createHandoff={createHandoff}
+          onUpdated={onUpdated}
+        />
+      ) : null}
+
+      {/* Deletion */}
+      <section className="border-t border-border pt-3" aria-label="Danger zone">
+        {deleteError && (
+          <p className="text-destructive mb-2 text-[0.65rem]" role="alert">
+            {getUserMessage(deleteError)}
+          </p>
+        )}
+        {confirmingDelete ? (
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-foreground">
+              Delete this channel app? Channels installing through it must be
+              disconnected first.
+            </p>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
+                "bg-destructive text-destructive-foreground hover:opacity-90",
+                "disabled:pointer-events-none disabled:opacity-40",
+              )}
+            >
+              {isDeleting && <SpinnerIcon />}
+              Delete
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(false)}
+              disabled={isDeleting}
+              className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+            >
+              Keep
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmingDelete(true)}
+            className="text-destructive text-xs font-medium hover:opacity-80"
+          >
+            Delete channel app
+          </button>
+        )}
+      </section>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Slack — finish setup in Slack + credential rotation
+// ---------------------------------------------------------------------------
+
+function SlackAppDetail({
+  channelApp,
+  consoleOrigin,
+  onUpdated,
+}: {
+  readonly channelApp: ChannelApp;
+  readonly consoleOrigin?: string;
+  readonly onUpdated?: (app: ChannelApp) => void;
+}) {
   const stigmer = useStigmer();
   const { update, isUpdating, error: updateError, clearError } = useUpdateChannelApp();
-  const { deleteApp, isDeleting, error: deleteError } = useDeleteChannelApp();
 
   const slack = channelApp.spec?.providerConfig?.case === "slack"
     ? channelApp.spec.providerConfig.value
@@ -67,7 +197,6 @@ export function ChannelAppDetailPanel({
   const [clientId, setClientId] = useState(slack?.clientId ?? "");
   const [clientSecret, setClientSecret] = useState(slack?.clientSecret ?? "");
   const [signingSecret, setSigningSecret] = useState(slack?.signingSecret ?? "");
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const appId = channelApp.metadata?.id ?? "";
   const name = channelApp.metadata?.name ?? "";
@@ -118,35 +247,8 @@ export function ChannelAppDetailPanel({
     [canSave, clearError, update, name, channelApp.metadata, clientId, clientSecret, signingSecret, onUpdated],
   );
 
-  const handleDelete = useCallback(async () => {
-    try {
-      await deleteApp(appId);
-      onDeleted?.();
-    } catch {
-      // error state is managed by useDeleteChannelApp
-    } finally {
-      setConfirmingDelete(false);
-    }
-  }, [deleteApp, appId, onDeleted]);
-
   return (
-    <div className={cn("space-y-5", className)}>
-      <div className="flex items-center justify-between">
-        <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold text-foreground">{name}</h3>
-          <p className="font-mono text-[0.65rem] text-muted-foreground">{appId}</p>
-        </div>
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="text-muted-foreground hover:text-foreground shrink-0 text-xs transition-colors"
-          >
-            ← Back
-          </button>
-        )}
-      </div>
-
+    <>
       {/* Finish setup: the per-app webhook URL only exists after creation */}
       <section className="space-y-2" aria-label="Finish setup in Slack">
         <p className="text-xs font-medium text-foreground">Finish setup in Slack</p>
@@ -223,52 +325,186 @@ export function ChannelAppDetailPanel({
           Save credentials
         </button>
       </form>
+    </>
+  );
+}
 
-      {/* Deletion */}
-      <section className="border-t border-border pt-3" aria-label="Danger zone">
-        {deleteError && (
-          <p className="text-destructive mb-2 text-[0.65rem]" role="alert">
-            {getUserMessage(deleteError)}
-          </p>
-        )}
-        {confirmingDelete ? (
-          <div className="flex items-center gap-2">
-            <p className="text-xs text-foreground">
-              Delete this channel app? Channels installing through it must be
-              disconnected first.
-            </p>
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
-                "bg-destructive text-destructive-foreground hover:opacity-90",
-                "disabled:pointer-events-none disabled:opacity-40",
-              )}
-            >
-              {isDeleting && <SpinnerIcon />}
-              Delete
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmingDelete(false)}
-              disabled={isDeleting}
-              className="text-muted-foreground hover:text-foreground text-xs transition-colors"
-            >
-              Keep
-            </button>
-          </div>
+// ---------------------------------------------------------------------------
+// WhatsApp — finish setup in Meta + credential rotation
+// ---------------------------------------------------------------------------
+
+function WhatsAppAppDetail({
+  channelApp,
+  createHandoff,
+  onUpdated,
+}: {
+  readonly channelApp: ChannelApp;
+  readonly createHandoff?: ChannelAppCreateHandoff;
+  readonly onUpdated?: (app: ChannelApp) => void;
+}) {
+  const stigmer = useStigmer();
+  const { update, isUpdating, error: updateError, clearError } = useUpdateChannelApp();
+
+  const whatsapp = channelApp.spec?.providerConfig?.case === "whatsapp"
+    ? channelApp.spec.providerConfig.value
+    : undefined;
+
+  const [metaAppId, setMetaAppId] = useState(whatsapp?.appId ?? "");
+  const [appSecret, setAppSecret] = useState(whatsapp?.appSecret ?? "");
+  const [accessToken, setAccessToken] = useState(whatsapp?.accessToken ?? "");
+  const [verifyToken, setVerifyToken] = useState(whatsapp?.verifyToken ?? "");
+
+  const appId = channelApp.metadata?.id ?? "";
+  const name = channelApp.metadata?.name ?? "";
+
+  const webhookUrl = useMemo(
+    () => whatsappChannelAppWebhookUrl(stigmer.baseUrl, appId),
+    [stigmer.baseUrl, appId],
+  );
+
+  const canSave =
+    metaAppId.trim() !== "" &&
+    appSecret.trim() !== "" &&
+    accessToken.trim() !== "" &&
+    verifyToken.trim() !== "" &&
+    !isUpdating;
+
+  const handleSave = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault();
+      if (!canSave) return;
+
+      clearError();
+      try {
+        const updated = await update({
+          name,
+          org: channelApp.metadata?.org ?? "",
+          ...(channelApp.metadata?.slug ? { slug: channelApp.metadata.slug } : {}),
+          whatsapp: {
+            appId: metaAppId.trim(),
+            // The redaction marker means "keep the stored value" — the
+            // server preserves per field.
+            appSecret: appSecret.trim(),
+            accessToken: accessToken.trim(),
+            verifyToken: verifyToken.trim(),
+          },
+        });
+        onUpdated?.(updated);
+      } catch {
+        // error state is managed by useUpdateChannelApp
+      }
+    },
+    [canSave, clearError, update, name, channelApp.metadata, metaAppId, appSecret, accessToken, verifyToken, onUpdated],
+  );
+
+  return (
+    <>
+      {/* Finish setup: the per-app webhook URL only exists after creation,
+          and the verify token is only visible in the create handoff. */}
+      <section className="space-y-2" aria-label="Finish setup in Meta">
+        <p className="text-xs font-medium text-foreground">Finish setup in Meta</p>
+        <p className="text-[0.65rem] text-muted-foreground">
+          On the app&apos;s <span className="font-medium">WhatsApp →
+          Configuration</span> page, set the callback URL and verify token
+          below, click <span className="font-medium">Verify and save</span>{" "}
+          (Meta verifies immediately), then subscribe to the{" "}
+          <span className="font-medium">
+            {WHATSAPP_CHANNEL_APP_WEBHOOK_FIELDS.join(", ")}
+          </span>{" "}
+          webhook field.
+        </p>
+        <CopyRow
+          label="Callback URL"
+          value={webhookUrl}
+          copyTargetId="stgm-chapp-webhook-copy"
+        />
+        {createHandoff?.verifyToken ? (
+          <CopyRow
+            label="Verify token"
+            value={createHandoff.verifyToken}
+            copyTargetId="stgm-chapp-verify-token-copy"
+          />
         ) : (
-          <button
-            type="button"
-            onClick={() => setConfirmingDelete(true)}
-            className="text-destructive text-xs font-medium hover:opacity-80"
-          >
-            Delete channel app
-          </button>
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-foreground">Verify token</p>
+            <p className="text-[0.65rem] text-muted-foreground">
+              Shown once at registration. If you no longer have it, paste a
+              new one below and update Meta&apos;s webhook configuration to
+              match.
+            </p>
+          </div>
         )}
       </section>
-    </div>
+
+      {/* Credential rotation */}
+      <form onSubmit={handleSave} className="space-y-3" aria-label="Credentials">
+        <p className="text-xs font-medium text-foreground">Credentials</p>
+        <p className="-mt-2 text-[0.65rem] text-muted-foreground">
+          Secrets show as <code className="font-mono">***REDACTED***</code>;
+          leave a field untouched to keep its stored value, or paste a new
+          one to rotate it.
+        </p>
+
+        <FormField
+          id="stgm-chapp-edit-app-id"
+          label="App ID"
+          value={metaAppId}
+          onChange={setMetaAppId}
+          placeholder="1234567890123456"
+          disabled={isUpdating}
+          required
+        />
+        <FormField
+          id="stgm-chapp-edit-app-secret"
+          label="App secret"
+          value={appSecret}
+          onChange={setAppSecret}
+          placeholder="App secret"
+          type="password"
+          disabled={isUpdating}
+          required
+        />
+        <FormField
+          id="stgm-chapp-edit-access-token"
+          label="Access token"
+          value={accessToken}
+          onChange={setAccessToken}
+          placeholder="Long-lived system-user access token"
+          type="password"
+          disabled={isUpdating}
+          required
+        />
+        <FormField
+          id="stgm-chapp-edit-verify-token"
+          label="Verify token"
+          value={verifyToken}
+          onChange={setVerifyToken}
+          placeholder="Verify token"
+          type="password"
+          hint="Rotating it? Update Meta's webhook configuration to the same value."
+          disabled={isUpdating}
+          required
+        />
+
+        {updateError && (
+          <p className="text-destructive text-[0.65rem]" role="alert">
+            {getUserMessage(updateError)}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={!canSave}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
+            "bg-primary text-primary-foreground hover:bg-primary-hover",
+            "disabled:pointer-events-none disabled:opacity-40",
+          )}
+        >
+          {isUpdating && <SpinnerIcon />}
+          Save credentials
+        </button>
+      </form>
+    </>
   );
 }

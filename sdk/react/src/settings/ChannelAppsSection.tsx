@@ -3,7 +3,10 @@
 import { useCallback, useRef, useState } from "react";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppListPanel } from "../channel-app/ChannelAppListPanel.js";
-import { CreateChannelAppForm } from "../channel-app/CreateChannelAppForm.js";
+import {
+  CreateChannelAppForm,
+  type ChannelAppCreateHandoff,
+} from "../channel-app/CreateChannelAppForm.js";
 import { ChannelAppDetailPanel } from "../channel-app/ChannelAppDetailPanel.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
@@ -12,13 +15,24 @@ import { useActiveOrgSlug } from "../organization/OrgProvider.js";
 type FlowState =
   | { phase: "idle" }
   | { phase: "creating" }
-  | { phase: "editing"; channelApp: ChannelApp };
+  | {
+      phase: "editing";
+      channelApp: ChannelApp;
+      /**
+       * Once-visible create-flow values (the WhatsApp verify token),
+       * held in memory only for the detail panel's phase-two setup.
+       * Absent when editing reopens from the list later.
+       */
+      createHandoff?: ChannelAppCreateHandoff;
+    };
 
 /**
  * Settings section for the organization's channel apps — customer-owned
- * Slack apps that agent channels install through instead of the shared
- * Stigmer app (bring your own app: your bot name and icon, and one agent
- * per app per workspace, so multiple agents can serve one workspace).
+ * provider apps (Slack apps, Meta WhatsApp apps) that agent channels
+ * install through. For Slack that replaces the shared Stigmer app (bring
+ * your own app: your bot name and icon, and one agent per app per
+ * workspace, so multiple agents can serve one workspace); for WhatsApp a
+ * channel app is the only way — there is no platform Meta app (DD-WA-2).
  *
  * After registering an app here, the connect dialog on any agent's
  * Channels tab offers it as the serving app.
@@ -36,12 +50,16 @@ export function ChannelAppsSection() {
     listRefetchRef.current = refetch;
   }, []);
 
-  const handleCreated = useCallback((app: ChannelApp) => {
-    listRefetchRef.current?.();
-    // Creation lands on the detail panel deliberately: phase two of the
-    // setup (the events webhook URL) only exists now.
-    setFlow({ phase: "editing", channelApp: app });
-  }, []);
+  const handleCreated = useCallback(
+    (app: ChannelApp, createHandoff: ChannelAppCreateHandoff) => {
+      listRefetchRef.current?.();
+      // Creation lands on the detail panel deliberately: phase two of the
+      // setup (the events webhook URL — plus, for WhatsApp, the verify
+      // token carried in the handoff) only exists now.
+      setFlow({ phase: "editing", channelApp: app, createHandoff });
+    },
+    [],
+  );
 
   const handleUpdated = useCallback(() => {
     listRefetchRef.current?.();
@@ -74,9 +92,10 @@ export function ChannelAppsSection() {
         )}
       </div>
       <p className="text-muted-foreground mb-4 text-xs">
-        Your own Slack apps for serving agent channels. Connecting through
-        your app gives the bot your name and icon, and lets multiple agents
-        serve the same workspace — one per app.
+        Your own provider apps for serving agent channels. A Slack app
+        gives the bot your name and icon, and lets multiple agents serve
+        the same workspace — one per app. A Meta app is how WhatsApp
+        channels connect — every WhatsApp channel installs through one.
       </p>
 
       {!installsAvailable ? (
@@ -96,6 +115,7 @@ export function ChannelAppsSection() {
         <div className="border-border bg-card rounded-lg border p-4">
           <ChannelAppDetailPanel
             channelApp={flow.channelApp}
+            createHandoff={flow.createHandoff}
             onUpdated={handleUpdated}
             onDeleted={handleDeleted}
             onBack={() => setFlow({ phase: "idle" })}
