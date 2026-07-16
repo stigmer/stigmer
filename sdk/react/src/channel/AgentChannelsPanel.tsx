@@ -7,12 +7,14 @@ import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
 import { toast } from "../feedback/toast.js";
 import { ActionMenu } from "../action-menu/index.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { Switch } from "../switch/Switch.js";
+import { useChannelAppList } from "../channel-app/useChannelAppList.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
@@ -20,7 +22,7 @@ import { useDeploymentMode } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { ChannelCredentialsDialog } from "./ChannelCredentialsDialog.js";
 import { ConnectSlackDialog } from "./ConnectSlackDialog.js";
-import { SlackMarkIcon } from "./SlackMarkIcon.js";
+import { CHANNEL_PROVIDERS, channelProviderOf } from "./providers.js";
 import { useAgentChannelList } from "./useAgentChannelList.js";
 import { useChannelToolReadiness } from "./useChannelToolReadiness.js";
 import { useDeleteAgentChannel } from "./useDeleteAgentChannel.js";
@@ -38,6 +40,13 @@ export interface AgentChannelsPanelProps {
    * (re)connected, or `null` for a brand-new connection.
    */
   readonly onConnectExternal?: (channel: AgentChannel | null) => void;
+  /**
+   * Where the host manages Channel Apps (the console passes
+   * `/settings/channel-apps`). Threaded to the connect dialog's
+   * "Register a channel app" affordance; absent, the affordance
+   * degrades to plain guidance text.
+   */
+  readonly channelAppsHref?: string;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -67,6 +76,7 @@ export interface AgentChannelsPanelProps {
 export function AgentChannelsPanel({
   agent,
   onConnectExternal,
+  channelAppsHref,
   className,
 }: AgentChannelsPanelProps) {
   const agentId = agent.metadata?.id ?? "";
@@ -75,6 +85,11 @@ export function AgentChannelsPanel({
     agentId,
     agent.metadata?.org ?? "",
   );
+
+  // One fetch for all cards: a channel's spec.app_ref carries only the
+  // slug, but the app's name is the bot name members @mention — the
+  // label worth showing.
+  const { channelApps } = useChannelAppList(agent.metadata?.org || null);
 
   // Mirrors the server's create bar (agent can_edit — the permission the
   // create/apply handlers enforce on the referenced agent) so the connect
@@ -161,6 +176,11 @@ export function AgentChannelsPanel({
         (c) => installStateOf(c) !== AgentChannelInstallState.installed,
       ));
 
+  // With a single registered provider the connect affordance is a direct
+  // "Connect to {label}" action; a second registry entry is the signal to
+  // turn this into a provider menu (see providers.ts).
+  const provider = CHANNEL_PROVIDERS[0];
+
   return (
     <div className={cn("space-y-3", className)}>
       {showCloudNotice && (
@@ -186,10 +206,10 @@ export function AgentChannelsPanel({
               <Button
                 variant="outline"
                 size="xs"
-                icon={<SlackMarkIcon className="size-3" />}
+                icon={<provider.Icon className="size-3" />}
                 onClick={() => handleConnect(null)}
               >
-                Connect to Slack
+                Connect to {provider.label}
               </Button>
             )}
           </div>
@@ -200,6 +220,7 @@ export function AgentChannelsPanel({
                 key={channel.metadata?.id}
                 agent={agent}
                 channel={channel}
+                channelApps={channelApps}
                 installsAvailable={installsAvailable || !!onConnectExternal}
                 onConnectClick={() => handleConnect(channel)}
                 onDeleteClick={() => void handleDelete(channel)}
@@ -220,6 +241,7 @@ export function AgentChannelsPanel({
           agent={agent}
           channel={connecting.mode === "reconnect" ? connecting.channel : undefined}
           onChannelsChanged={refetch}
+          channelAppsHref={channelAppsHref}
         />
       )}
 
@@ -251,6 +273,7 @@ export function AgentChannelsPanel({
 interface ChannelCardProps {
   readonly agent: Agent;
   readonly channel: AgentChannel;
+  readonly channelApps: readonly ChannelApp[];
   readonly installsAvailable: boolean;
   readonly onConnectClick: () => void;
   readonly onDeleteClick: () => void;
@@ -261,6 +284,7 @@ interface ChannelCardProps {
 function ChannelCard({
   agent,
   channel,
+  channelApps,
   installsAvailable,
   onConnectClick,
   onDeleteClick,
@@ -277,9 +301,19 @@ function ChannelCard({
       : null;
   // The serving app (T04 item 2): set means the channel installs through
   // the org's own channel app; absent means the platform Stigmer app.
-  // The ref's slug is the identifier the owner chose — enough to tell
-  // two apps' channels apart without fetching the ChannelApp.
+  // The app's NAME is the bot members @mention, so prefer it over the
+  // ref's slug when the app is in the fetched list (it may not be —
+  // e.g. the app was deleted after install).
   const servingAppSlug = channel.spec?.appRef?.slug || null;
+  const servingAppName = servingAppSlug
+    ? channelApps.find((app) => app.metadata?.slug === servingAppSlug)
+        ?.metadata?.name || servingAppSlug
+    : null;
+
+  // The spec's provider marker is set at create; unknown cases (a newer
+  // server) fall back to the default provider mark rather than no icon.
+  const provider =
+    channelProviderOf(channel.spec?.providerConfig?.case) ?? CHANNEL_PROVIDERS[0];
 
   const { save, isPending } = useSaveAgentChannel();
 
@@ -319,7 +353,7 @@ function ChannelCard({
     <div className="rounded-lg border border-border p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <SlackMarkIcon className="size-5 shrink-0 text-foreground" />
+          <provider.Icon className="size-5 shrink-0 text-foreground" />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span
@@ -334,9 +368,9 @@ function ChannelCard({
               {describeChannel(installState, slack?.teamName, installedAt)}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground-faint">
-              {servingAppSlug
-                ? `Serving app: ${servingAppSlug} (your app)`
-                : "Serving app: Stigmer"}
+              {servingAppName
+                ? `Serving app: ${servingAppName} (your app) — members @mention ${servingAppName}`
+                : "Serving app: Stigmer — members @mention Stigmer"}
             </p>
           </div>
         </div>
@@ -538,10 +572,11 @@ function ChannelEmptyState({
   readonly canCreate: boolean;
   readonly onConnectClick: () => void;
 }) {
+  const provider = CHANNEL_PROVIDERS[0];
   return (
     <EmptyState
       variant="first-use"
-      icon={<SlackMarkIcon className="size-10" />}
+      icon={<provider.Icon className="size-10" />}
       title="No channels yet"
       description={
         "Connect this agent to a Slack workspace and members chat with it " +
@@ -551,9 +586,9 @@ function ChannelEmptyState({
       action={
         canCreate
           ? {
-              label: "Connect to Slack",
+              label: `Connect to ${provider.label}`,
               onClick: onConnectClick,
-              icon: <SlackMarkIcon className="size-3" />,
+              icon: <provider.Icon className="size-3" />,
             }
           : undefined
       }

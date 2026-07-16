@@ -13,3 +13,11 @@ plugins:
       - import_extension=js
 inputs:
   - directory: .
+  # google.rpc error-detail types (ErrorInfo & co) for the SDK's typed
+  # reading of structured refusals (grpc-status-details-bin). Nothing in
+  # our protos imports these — details ride error trailers, not messages —
+  # so buf would never generate them from the main input; they need their
+  # own, paths-filtered input.
+  - module: buf.build/googleapis/googleapis
+    paths:
+      - google/rpc/error_details.proto

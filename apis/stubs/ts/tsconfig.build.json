@@ -12,6 +12,6 @@
     "rootDir": ".",
     "outDir": "./dist"
   },
-  "include": ["ai/**/*", "buf/**/*"],
+  "include": ["ai/**/*", "buf/**/*", "google/**/*"],
   "exclude": ["node_modules", "dist"]
 }
