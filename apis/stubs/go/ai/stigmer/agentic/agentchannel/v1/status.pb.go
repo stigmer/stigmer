@@ -110,6 +110,7 @@ type AgentChannelStatus struct {
 	// Types that are valid to be assigned to ProviderStatus:
 	//
 	//	*AgentChannelStatus_Slack
+	//	*AgentChannelStatus_Whatsapp
 	ProviderStatus isAgentChannelStatus_ProviderStatus `protobuf_oneof:"provider_status"`
 	// ID of the system-managed Environment holding this connection's
 	// provider credentials (e.g. the Slack bot token).
@@ -180,6 +181,15 @@ func (x *AgentChannelStatus) GetSlack() *SlackInstallStatus {
 	return nil
 }
 
+func (x *AgentChannelStatus) GetWhatsapp() *WhatsAppInstallStatus {
+	if x != nil {
+		if x, ok := x.ProviderStatus.(*AgentChannelStatus_Whatsapp); ok {
+			return x.Whatsapp
+		}
+	}
+	return nil
+}
+
 func (x *AgentChannelStatus) GetCredentialsEnvironmentId() string {
 	if x != nil {
 		return x.CredentialsEnvironmentId
@@ -203,7 +213,14 @@ type AgentChannelStatus_Slack struct {
 	Slack *SlackInstallStatus `protobuf:"bytes,2,opt,name=slack,proto3,oneof"`
 }
 
+type AgentChannelStatus_Whatsapp struct {
+	// WhatsApp Business number install facts.
+	Whatsapp *WhatsAppInstallStatus `protobuf:"bytes,4,opt,name=whatsapp,proto3,oneof"`
+}
+
 func (*AgentChannelStatus_Slack) isAgentChannelStatus_ProviderStatus() {}
+
+func (*AgentChannelStatus_Whatsapp) isAgentChannelStatus_ProviderStatus() {}
 
 // SlackInstallStatus holds the facts observed when the Stigmer Slack app
 // was installed into a workspace.
@@ -323,14 +340,118 @@ func (x *SlackInstallStatus) GetChannelAppId() string {
 	return ""
 }
 
+// WhatsAppInstallStatus holds the facts observed when a WhatsApp Business
+// number was connected through the Meta Cloud API.
+//
+// @internal
+// Written by the direct-install path (sole writer, DD-WA-1): the installer
+// validates spec.whatsapp.phone_number_id against the Graph API and echoes
+// it here alongside the observed display facts. The echo is deliberate —
+// routing and uniqueness read STATUS (the install fact), mirroring
+// status.slack.team_id, so a later spec edit can never silently re-route
+// live traffic; the number binding changes only through a re-install.
+type WhatsAppInstallStatus struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Phone number ID the install validated and bound, e.g. "106540352242922".
+	//
+	// @internal
+	// The inbound routing key: the webhook receiver resolves the
+	// AgentChannel from the event payload's metadata.phone_number_id. One
+	// INSTALLED channel per (phone_number_id, channel_app_id), enforced by
+	// a compound partial-unique index on installed rows — the
+	// status.slack.team_id mechanism (decision 007) applied to WhatsApp.
+	PhoneNumberId string `protobuf:"bytes,1,opt,name=phone_number_id,json=phoneNumberId,proto3" json:"phone_number_id,omitempty"`
+	// Human-readable phone number at install time, e.g. "+1 555 025 3483".
+	DisplayPhoneNumber string `protobuf:"bytes,2,opt,name=display_phone_number,json=displayPhoneNumber,proto3" json:"display_phone_number,omitempty"`
+	// WhatsApp Business verified display name of the number at install time.
+	VerifiedName string `protobuf:"bytes,3,opt,name=verified_name,json=verifiedName,proto3" json:"verified_name,omitempty"`
+	// ID of the ChannelApp the install went through. Always set for
+	// WhatsApp — every WhatsApp channel installs through your own Meta app.
+	//
+	// @internal
+	// Same discriminator role as SlackInstallStatus.channel_app_id; never
+	// empty because WhatsApp has no platform app (DD-WA-2).
+	ChannelAppId string `protobuf:"bytes,4,opt,name=channel_app_id,json=channelAppId,proto3" json:"channel_app_id,omitempty"`
+	// When the install completed.
+	InstalledAt   *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=installed_at,json=installedAt,proto3" json:"installed_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WhatsAppInstallStatus) Reset() {
+	*x = WhatsAppInstallStatus{}
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_status_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WhatsAppInstallStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WhatsAppInstallStatus) ProtoMessage() {}
+
+func (x *WhatsAppInstallStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_status_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WhatsAppInstallStatus.ProtoReflect.Descriptor instead.
+func (*WhatsAppInstallStatus) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentchannel_v1_status_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *WhatsAppInstallStatus) GetPhoneNumberId() string {
+	if x != nil {
+		return x.PhoneNumberId
+	}
+	return ""
+}
+
+func (x *WhatsAppInstallStatus) GetDisplayPhoneNumber() string {
+	if x != nil {
+		return x.DisplayPhoneNumber
+	}
+	return ""
+}
+
+func (x *WhatsAppInstallStatus) GetVerifiedName() string {
+	if x != nil {
+		return x.VerifiedName
+	}
+	return ""
+}
+
+func (x *WhatsAppInstallStatus) GetChannelAppId() string {
+	if x != nil {
+		return x.ChannelAppId
+	}
+	return ""
+}
+
+func (x *WhatsAppInstallStatus) GetInstalledAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.InstalledAt
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_agentchannel_v1_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentchannel_v1_status_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentchannel/v1/status.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe0\x02\n" +
+	"/ai/stigmer/agentic/agentchannel/v1/status.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb9\x03\n" +
 	"\x12AgentChannelStatus\x12a\n" +
 	"\rinstall_state\x18\x01 \x01(\x0e2<.ai.stigmer.agentic.agentchannel.v1.AgentChannelInstallStateR\finstallState\x12N\n" +
-	"\x05slack\x18\x02 \x01(\v26.ai.stigmer.agentic.agentchannel.v1.SlackInstallStatusH\x00R\x05slack\x12<\n" +
+	"\x05slack\x18\x02 \x01(\v26.ai.stigmer.agentic.agentchannel.v1.SlackInstallStatusH\x00R\x05slack\x12W\n" +
+	"\bwhatsapp\x18\x04 \x01(\v29.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatusH\x00R\bwhatsapp\x12<\n" +
 	"\x1acredentials_environment_id\x18\x03 \x01(\tR\x18credentialsEnvironmentId\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05auditB\x11\n" +
 	"\x0fprovider_status\"\xad\x02\n" +
@@ -341,7 +462,13 @@ const file_ai_stigmer_agentic_agentchannel_v1_status_proto_rawDesc = "" +
 	"\x0egranted_scopes\x18\x04 \x03(\tR\rgrantedScopes\x125\n" +
 	"\x17installer_slack_user_id\x18\x05 \x01(\tR\x14installerSlackUserId\x12=\n" +
 	"\finstalled_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\vinstalledAt\x12$\n" +
-	"\x0echannel_app_id\x18\a \x01(\tR\fchannelAppId*x\n" +
+	"\x0echannel_app_id\x18\a \x01(\tR\fchannelAppId\"\xfb\x01\n" +
+	"\x15WhatsAppInstallStatus\x12&\n" +
+	"\x0fphone_number_id\x18\x01 \x01(\tR\rphoneNumberId\x120\n" +
+	"\x14display_phone_number\x18\x02 \x01(\tR\x12displayPhoneNumber\x12#\n" +
+	"\rverified_name\x18\x03 \x01(\tR\fverifiedName\x12$\n" +
+	"\x0echannel_app_id\x18\x04 \x01(\tR\fchannelAppId\x12=\n" +
+	"\finstalled_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\vinstalledAt*x\n" +
 	"\x18AgentChannelInstallState\x12+\n" +
 	"'agent_channel_install_state_unspecified\x10\x00\x12\x13\n" +
 	"\x0fpending_install\x10\x01\x12\r\n" +
@@ -362,24 +489,27 @@ func file_ai_stigmer_agentic_agentchannel_v1_status_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_agentic_agentchannel_v1_status_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_agentchannel_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_agentic_agentchannel_v1_status_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_agentic_agentchannel_v1_status_proto_goTypes = []any{
 	(AgentChannelInstallState)(0),        // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannelInstallState
 	(*AgentChannelStatus)(nil),           // 1: ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus
 	(*SlackInstallStatus)(nil),           // 2: ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus
-	(*apiresource.ApiResourceAudit)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(*timestamppb.Timestamp)(nil),        // 4: google.protobuf.Timestamp
+	(*WhatsAppInstallStatus)(nil),        // 3: ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus
+	(*apiresource.ApiResourceAudit)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(*timestamppb.Timestamp)(nil),        // 5: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_agentchannel_v1_status_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.install_state:type_name -> ai.stigmer.agentic.agentchannel.v1.AgentChannelInstallState
 	2, // 1: ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.slack:type_name -> ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus
-	3, // 2: ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	4, // 3: ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus.installed_at:type_name -> google.protobuf.Timestamp
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	3, // 2: ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.whatsapp:type_name -> ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus
+	4, // 3: ai.stigmer.agentic.agentchannel.v1.AgentChannelStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	5, // 4: ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus.installed_at:type_name -> google.protobuf.Timestamp
+	5, // 5: ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.installed_at:type_name -> google.protobuf.Timestamp
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentchannel_v1_status_proto_init() }
@@ -389,6 +519,7 @@ func file_ai_stigmer_agentic_agentchannel_v1_status_proto_init() {
 	}
 	file_ai_stigmer_agentic_agentchannel_v1_status_proto_msgTypes[0].OneofWrappers = []any{
 		(*AgentChannelStatus_Slack)(nil),
+		(*AgentChannelStatus_Whatsapp)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -396,7 +527,7 @@ func file_ai_stigmer_agentic_agentchannel_v1_status_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentchannel_v1_status_proto_rawDesc), len(file_ai_stigmer_agentic_agentchannel_v1_status_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

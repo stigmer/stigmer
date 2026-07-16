@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIicKDkFnZW50Q2hhbm5lbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEifAoeR2V0QWdlbnRDaGFubmVsc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxILCgNvcmcYAyABKAkiaAoQQWdlbnRDaGFubmVsTGlzdBITCgt0b3RhbF9jb3VudBgBIAEoBRI/CgVpdGVtcxgCIAMoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQWdlbnRDaGFubmVsIu4BChhMaXN0QWdlbnRDaGFubmVsc1JlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABElgKBmxhYmVscxgCIAMoCzJILmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuTGlzdEFnZW50Q2hhbm5lbHNSZXF1ZXN0LkxhYmVsc0VudHJ5EjMKCXBhZ2VfaW5mbxgDIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI6ChtJbml0aWF0ZUNoYW5uZWxJbnN0YWxsSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBASJIChxJbml0aWF0ZUNoYW5uZWxJbnN0YWxsT3V0cHV0EhkKEWF1dGhvcml6YXRpb25fdXJsGAEgASgJEg0KBXN0YXRlGAIgASgJImcKG0NvbXBsZXRlQ2hhbm5lbEluc3RhbGxJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhUKBXN0YXRlGAIgASgJQga6SAPIAQESFAoEY29kZRgDIAEoCUIGukgDyAEBYgZwcm90bzM", [file_ai_stigmer_agentic_agentchannel_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIicKDkFnZW50Q2hhbm5lbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEifAoeR2V0QWdlbnRDaGFubmVsc0J5QWdlbnRSZXF1ZXN0EhgKCGFnZW50X2lkGAEgASgJQga6SAPIAQESMwoJcGFnZV9pbmZvGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbxILCgNvcmcYAyABKAkiaAoQQWdlbnRDaGFubmVsTGlzdBITCgt0b3RhbF9jb3VudBgBIAEoBRI/CgVpdGVtcxgCIAMoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQWdlbnRDaGFubmVsIu4BChhMaXN0QWdlbnRDaGFubmVsc1JlcXVlc3QSFAoDb3JnGAEgASgJQge6SARyAhABElgKBmxhYmVscxgCIAMoCzJILmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuTGlzdEFnZW50Q2hhbm5lbHNSZXF1ZXN0LkxhYmVsc0VudHJ5EjMKCXBhZ2VfaW5mbxgDIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8aLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI6ChtJbml0aWF0ZUNoYW5uZWxJbnN0YWxsSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBASJbChxJbml0aWF0ZUNoYW5uZWxJbnN0YWxsT3V0cHV0EhkKEWF1dGhvcml6YXRpb25fdXJsGAEgASgJEg0KBXN0YXRlGAIgASgJEhEKCWNvbXBsZXRlZBgDIAEoCCJnChtDb21wbGV0ZUNoYW5uZWxJbnN0YWxsSW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARIVCgVzdGF0ZRgCIAEoCUIGukgDyAEBEhQKBGNvZGUYAyABKAlCBrpIA8gBAWIGcHJvdG8z", [file_ai_stigmer_agentic_agentchannel_v1_api, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
 
 /**
  * AgentChannelId wraps an agent channel identifier.
@@ -170,16 +170,20 @@ export const InitiateChannelInstallInputSchema: GenMessage<InitiateChannelInstal
 /**
  * Output of the initiate-install RPC.
  *
- * The caller redirects the user to authorization_url; the provider
+ * Two install styles share this output. For redirect-installed providers
+ * (Slack) the caller redirects the user to authorization_url; the provider
  * redirects back to the console, which completes the install with the
- * completeInstall RPC.
+ * completeInstall RPC. For direct-installed providers (WhatsApp) the
+ * install completes inside this RPC: completed is true and there is
+ * nothing to redirect to — refresh the channel to see its install facts.
  *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput
  */
 export type InitiateChannelInstallOutput = Message<"ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput"> & {
   /**
    * Provider authorization URL to redirect the installing user to
-   * (for Slack: the "Add to Slack" consent screen).
+   * (for Slack: the "Add to Slack" consent screen). Empty when the
+   * install completed directly.
    *
    * @generated from field: string authorization_url = 1;
    */
@@ -187,6 +191,7 @@ export type InitiateChannelInstallOutput = Message<"ai.stigmer.agentic.agentchan
 
   /**
    * Single-use opaque state parameter bound to this install attempt.
+   * Empty when the install completed directly.
    *
    * @internal
    * Persisted server-side (PendingOAuthStateDocument pattern) and consumed
@@ -195,6 +200,21 @@ export type InitiateChannelInstallOutput = Message<"ai.stigmer.agentic.agentchan
    * @generated from field: string state = 2;
    */
   state: string;
+
+  /**
+   * True when the install completed synchronously inside this RPC
+   * (direct-installed providers). Clients branch on this field — never on
+   * provider knowledge of their own — so the server stays the single
+   * source of install-style truth.
+   *
+   * @internal
+   * DD-WA-1b. The seam behind it is the sealed ChannelInstaller split:
+   * AuthorizationRedirectInstaller populates authorization_url + state;
+   * DirectInstaller populates completed.
+   *
+   * @generated from field: bool completed = 3;
+   */
+  completed: boolean;
 };
 
 /**

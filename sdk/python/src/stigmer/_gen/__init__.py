@@ -3,13 +3,13 @@
 from ._bidi import BidiStream
 from ._client import GeneratedClient
 from ._agent import AgentClient, AgentInput, McpServerUsageInput, ToolApprovalOverrideInput, SubAgentInput, McpAccessInput, EnvVarDeclarationInput
-from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput
+from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput
 from ._agentexecution import AgentExecutionClient, AgentExecutionInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput
 from ._agentinstance import AgentInstanceClient, AgentInstanceInput
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
 from ._artifact import ArtifactClient, ArtifactInput, ArtifactSourceInput, RetentionPolicyInput
-from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfigInput
+from ._channelapp import ChannelAppClient, ChannelAppInput, SlackChannelAppConfigInput, WhatsAppChannelAppConfigInput
 from ._environment import EnvironmentClient, EnvironmentInput
 from ._executioncontext import ExecutionContextClient, ExecutionContextInput
 from ._iampolicy import IamPolicyClient, IamPolicyInput, ApiResourceRefInput
@@ -57,6 +57,7 @@ __all__ = [
     "AgentChannelClient",
     "AgentChannelInput",
     "SlackChannelConfigInput",
+    "WhatsAppChannelConfigInput",
     "AgentExecutionClient",
     "AgentExecutionInput",
     "SessionSpecInput",
@@ -81,6 +82,7 @@ __all__ = [
     "ChannelAppClient",
     "ChannelAppInput",
     "SlackChannelAppConfigInput",
+    "WhatsAppChannelAppConfigInput",
     "EnvironmentClient",
     "EnvironmentInput",
     "ExecutionContextClient",

@@ -70,6 +70,7 @@ private static final long serialVersionUID = 0L;
       implements com.google.protobuf.Internal.EnumLite,
           com.google.protobuf.AbstractMessage.InternalOneOfEnum {
     SLACK(2),
+    WHATSAPP(4),
     PROVIDERSTATUS_NOT_SET(0);
     private final int value;
     private ProviderStatusCase(int value) {
@@ -88,6 +89,7 @@ private static final long serialVersionUID = 0L;
     public static ProviderStatusCase forNumber(int value) {
       switch (value) {
         case 2: return SLACK;
+        case 4: return WHATSAPP;
         case 0: return PROVIDERSTATUS_NOT_SET;
         default: return null;
       }
@@ -170,6 +172,49 @@ private static final long serialVersionUID = 0L;
        return (ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus) providerStatus_;
     }
     return ai.stigmer.agentic.agentchannel.v1.SlackInstallStatus.getDefaultInstance();
+  }
+
+  public static final int WHATSAPP_FIELD_NUMBER = 4;
+  /**
+   * <pre>
+   * WhatsApp Business number install facts.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4 [json_name = "whatsapp"];</code>
+   * @return Whether the whatsapp field is set.
+   */
+  @java.lang.Override
+  public boolean hasWhatsapp() {
+    return providerStatusCase_ == 4;
+  }
+  /**
+   * <pre>
+   * WhatsApp Business number install facts.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4 [json_name = "whatsapp"];</code>
+   * @return The whatsapp.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus getWhatsapp() {
+    if (providerStatusCase_ == 4) {
+       return (ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus) providerStatus_;
+    }
+    return ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * WhatsApp Business number install facts.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4 [json_name = "whatsapp"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatusOrBuilder getWhatsappOrBuilder() {
+    if (providerStatusCase_ == 4) {
+       return (ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus) providerStatus_;
+    }
+    return ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.getDefaultInstance();
   }
 
   public static final int CREDENTIALS_ENVIRONMENT_ID_FIELD_NUMBER = 3;
@@ -296,6 +341,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(credentialsEnvironmentId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 3, credentialsEnvironmentId_);
     }
+    if (providerStatusCase_ == 4) {
+      output.writeMessage(4, (ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus) providerStatus_);
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
     }
@@ -318,6 +366,10 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(credentialsEnvironmentId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(3, credentialsEnvironmentId_);
+    }
+    if (providerStatusCase_ == 4) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(4, (ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus) providerStatus_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -352,6 +404,10 @@ private static final long serialVersionUID = 0L;
         if (!getSlack()
             .equals(other.getSlack())) return false;
         break;
+      case 4:
+        if (!getWhatsapp()
+            .equals(other.getWhatsapp())) return false;
+        break;
       case 0:
       default:
     }
@@ -378,6 +434,10 @@ private static final long serialVersionUID = 0L;
       case 2:
         hash = (37 * hash) + SLACK_FIELD_NUMBER;
         hash = (53 * hash) + getSlack().hashCode();
+        break;
+      case 4:
+        hash = (37 * hash) + WHATSAPP_FIELD_NUMBER;
+        hash = (53 * hash) + getWhatsapp().hashCode();
         break;
       case 0:
       default:
@@ -535,6 +595,9 @@ private static final long serialVersionUID = 0L;
       if (slackBuilder_ != null) {
         slackBuilder_.clear();
       }
+      if (whatsappBuilder_ != null) {
+        whatsappBuilder_.clear();
+      }
       credentialsEnvironmentId_ = "";
       audit_ = null;
       if (auditBuilder_ != null) {
@@ -580,11 +643,11 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.installState_ = installState_;
       }
-      if (((from_bitField0_ & 0x00000004) != 0)) {
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.credentialsEnvironmentId_ = credentialsEnvironmentId_;
       }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000008) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.audit_ = auditBuilder_ == null
             ? audit_
             : auditBuilder_.build();
@@ -599,6 +662,10 @@ private static final long serialVersionUID = 0L;
       if (providerStatusCase_ == 2 &&
           slackBuilder_ != null) {
         result.providerStatus_ = slackBuilder_.build();
+      }
+      if (providerStatusCase_ == 4 &&
+          whatsappBuilder_ != null) {
+        result.providerStatus_ = whatsappBuilder_.build();
       }
     }
 
@@ -619,7 +686,7 @@ private static final long serialVersionUID = 0L;
       }
       if (!other.getCredentialsEnvironmentId().isEmpty()) {
         credentialsEnvironmentId_ = other.credentialsEnvironmentId_;
-        bitField0_ |= 0x00000004;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       if (other.hasAudit()) {
@@ -628,6 +695,10 @@ private static final long serialVersionUID = 0L;
       switch (other.getProviderStatusCase()) {
         case SLACK: {
           mergeSlack(other.getSlack());
+          break;
+        }
+        case WHATSAPP: {
+          mergeWhatsapp(other.getWhatsapp());
           break;
         }
         case PROVIDERSTATUS_NOT_SET: {
@@ -674,14 +745,21 @@ private static final long serialVersionUID = 0L;
             } // case 18
             case 26: {
               credentialsEnvironmentId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000004;
+              bitField0_ |= 0x00000008;
               break;
             } // case 26
+            case 34: {
+              input.readMessage(
+                  internalGetWhatsappFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              providerStatusCase_ = 4;
+              break;
+            } // case 34
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000010;
               break;
             } // case 794
             default: {
@@ -966,6 +1044,184 @@ private static final long serialVersionUID = 0L;
       return slackBuilder_;
     }
 
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus, ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.Builder, ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatusOrBuilder> whatsappBuilder_;
+    /**
+     * <pre>
+     * WhatsApp Business number install facts.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4 [json_name = "whatsapp"];</code>
+     * @return Whether the whatsapp field is set.
+     */
+    @java.lang.Override
+    public boolean hasWhatsapp() {
+      return providerStatusCase_ == 4;
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number install facts.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4 [json_name = "whatsapp"];</code>
+     * @return The whatsapp.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus getWhatsapp() {
+      if (whatsappBuilder_ == null) {
+        if (providerStatusCase_ == 4) {
+          return (ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus) providerStatus_;
+        }
+        return ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.getDefaultInstance();
+      } else {
+        if (providerStatusCase_ == 4) {
+          return whatsappBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number install facts.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4 [json_name = "whatsapp"];</code>
+     */
+    public Builder setWhatsapp(ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus value) {
+      if (whatsappBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        providerStatus_ = value;
+        onChanged();
+      } else {
+        whatsappBuilder_.setMessage(value);
+      }
+      providerStatusCase_ = 4;
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number install facts.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4 [json_name = "whatsapp"];</code>
+     */
+    public Builder setWhatsapp(
+        ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.Builder builderForValue) {
+      if (whatsappBuilder_ == null) {
+        providerStatus_ = builderForValue.build();
+        onChanged();
+      } else {
+        whatsappBuilder_.setMessage(builderForValue.build());
+      }
+      providerStatusCase_ = 4;
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number install facts.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4 [json_name = "whatsapp"];</code>
+     */
+    public Builder mergeWhatsapp(ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus value) {
+      if (whatsappBuilder_ == null) {
+        if (providerStatusCase_ == 4 &&
+            providerStatus_ != ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.getDefaultInstance()) {
+          providerStatus_ = ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.newBuilder((ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus) providerStatus_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          providerStatus_ = value;
+        }
+        onChanged();
+      } else {
+        if (providerStatusCase_ == 4) {
+          whatsappBuilder_.mergeFrom(value);
+        } else {
+          whatsappBuilder_.setMessage(value);
+        }
+      }
+      providerStatusCase_ = 4;
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number install facts.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4 [json_name = "whatsapp"];</code>
+     */
+    public Builder clearWhatsapp() {
+      if (whatsappBuilder_ == null) {
+        if (providerStatusCase_ == 4) {
+          providerStatusCase_ = 0;
+          providerStatus_ = null;
+          onChanged();
+        }
+      } else {
+        if (providerStatusCase_ == 4) {
+          providerStatusCase_ = 0;
+          providerStatus_ = null;
+        }
+        whatsappBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number install facts.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4 [json_name = "whatsapp"];</code>
+     */
+    public ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.Builder getWhatsappBuilder() {
+      return internalGetWhatsappFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number install facts.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4 [json_name = "whatsapp"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatusOrBuilder getWhatsappOrBuilder() {
+      if ((providerStatusCase_ == 4) && (whatsappBuilder_ != null)) {
+        return whatsappBuilder_.getMessageOrBuilder();
+      } else {
+        if (providerStatusCase_ == 4) {
+          return (ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus) providerStatus_;
+        }
+        return ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number install facts.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4 [json_name = "whatsapp"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus, ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.Builder, ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatusOrBuilder> 
+        internalGetWhatsappFieldBuilder() {
+      if (whatsappBuilder_ == null) {
+        if (!(providerStatusCase_ == 4)) {
+          providerStatus_ = ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.getDefaultInstance();
+        }
+        whatsappBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus, ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.Builder, ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatusOrBuilder>(
+                (ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus) providerStatus_,
+                getParentForChildren(),
+                isClean());
+        providerStatus_ = null;
+      }
+      providerStatusCase_ = 4;
+      onChanged();
+      return whatsappBuilder_;
+    }
+
     private java.lang.Object credentialsEnvironmentId_ = "";
     /**
      * <pre>
@@ -1045,7 +1301,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       credentialsEnvironmentId_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1067,7 +1323,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearCredentialsEnvironmentId() {
       credentialsEnvironmentId_ = getDefaultInstance().getCredentialsEnvironmentId();
-      bitField0_ = (bitField0_ & ~0x00000004);
+      bitField0_ = (bitField0_ & ~0x00000008);
       onChanged();
       return this;
     }
@@ -1093,7 +1349,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       credentialsEnvironmentId_ = value;
-      bitField0_ |= 0x00000004;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
@@ -1110,7 +1366,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the audit field is set.
      */
     public boolean hasAudit() {
-      return ((bitField0_ & 0x00000008) != 0);
+      return ((bitField0_ & 0x00000010) != 0);
     }
     /**
      * <pre>
@@ -1143,7 +1399,7 @@ private static final long serialVersionUID = 0L;
       } else {
         auditBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1161,7 +1417,7 @@ private static final long serialVersionUID = 0L;
       } else {
         auditBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -1174,7 +1430,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeAudit(ai.stigmer.commons.apiresource.ApiResourceAudit value) {
       if (auditBuilder_ == null) {
-        if (((bitField0_ & 0x00000008) != 0) &&
+        if (((bitField0_ & 0x00000010) != 0) &&
           audit_ != null &&
           audit_ != ai.stigmer.commons.apiresource.ApiResourceAudit.getDefaultInstance()) {
           getAuditBuilder().mergeFrom(value);
@@ -1185,7 +1441,7 @@ private static final long serialVersionUID = 0L;
         auditBuilder_.mergeFrom(value);
       }
       if (audit_ != null) {
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       return this;
@@ -1198,7 +1454,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
      */
     public Builder clearAudit() {
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000010);
       audit_ = null;
       if (auditBuilder_ != null) {
         auditBuilder_.dispose();
@@ -1215,7 +1471,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceAudit.Builder getAuditBuilder() {
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       onChanged();
       return internalGetAuditFieldBuilder().getBuilder();
     }

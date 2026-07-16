@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/channelapp/v1/spec.proto\x12 ai.stigmer.agentic.channelapp.v1\x1a\x1b\x62uf/validate/validate.proto\"{\n\x0e\x43hannelAppSpec\x12O\n\x05slack\x18\x01 \x01(\x0b\x32\x37.ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfigH\x00R\x05slackB\x18\n\x0fprovider_config\x12\x05\xbaH\x02\x08\x01\"\x9b\x01\n\x15SlackChannelAppConfig\x12$\n\tclient_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08\x63lientId\x12,\n\rclient_secret\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0c\x63lientSecret\x12.\n\x0esigning_secret\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\rsigningSecretB\xd6\x01\n$com.ai.stigmer.agentic.channelapp.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAC\xaa\x02 Ai.Stigmer.Agentic.Channelapp.V1\xca\x02 Ai\\Stigmer\\Agentic\\Channelapp\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Channelapp::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+ai/stigmer/agentic/channelapp/v1/spec.proto\x12 ai.stigmer.agentic.channelapp.v1\x1a\x1b\x62uf/validate/validate.proto\"\xd5\x01\n\x0e\x43hannelAppSpec\x12O\n\x05slack\x18\x01 \x01(\x0b\x32\x37.ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfigH\x00R\x05slack\x12X\n\x08whatsapp\x18\x02 \x01(\x0b\x32:.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfigH\x00R\x08whatsappB\x18\n\x0fprovider_config\x12\x05\xbaH\x02\x08\x01\"\x9b\x01\n\x15SlackChannelAppConfig\x12$\n\tclient_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08\x63lientId\x12,\n\rclient_secret\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0c\x63lientSecret\x12.\n\x0esigning_secret\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\rsigningSecret\"\xba\x01\n\x18WhatsAppChannelAppConfig\x12\x1e\n\x06\x61pp_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x05\x61ppId\x12&\n\napp_secret\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\tappSecret\x12*\n\x0c\x61\x63\x63\x65ss_token\x18\x03 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0b\x61\x63\x63\x65ssToken\x12*\n\x0cverify_token\x18\x04 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x0bverifyTokenB\xd6\x01\n$com.ai.stigmer.agentic.channelapp.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAC\xaa\x02 Ai.Stigmer.Agentic.Channelapp.V1\xca\x02 Ai\\Stigmer\\Agentic\\Channelapp\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Channelapp::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,8 +41,18 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SLACKCHANNELAPPCONFIG'].fields_by_name['client_secret']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_SLACKCHANNELAPPCONFIG'].fields_by_name['signing_secret']._loaded_options = None
   _globals['_SLACKCHANNELAPPCONFIG'].fields_by_name['signing_secret']._serialized_options = b'\272H\004r\002\020\001'
-  _globals['_CHANNELAPPSPEC']._serialized_start=110
-  _globals['_CHANNELAPPSPEC']._serialized_end=233
-  _globals['_SLACKCHANNELAPPCONFIG']._serialized_start=236
-  _globals['_SLACKCHANNELAPPCONFIG']._serialized_end=391
+  _globals['_WHATSAPPCHANNELAPPCONFIG'].fields_by_name['app_id']._loaded_options = None
+  _globals['_WHATSAPPCHANNELAPPCONFIG'].fields_by_name['app_id']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_WHATSAPPCHANNELAPPCONFIG'].fields_by_name['app_secret']._loaded_options = None
+  _globals['_WHATSAPPCHANNELAPPCONFIG'].fields_by_name['app_secret']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_WHATSAPPCHANNELAPPCONFIG'].fields_by_name['access_token']._loaded_options = None
+  _globals['_WHATSAPPCHANNELAPPCONFIG'].fields_by_name['access_token']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_WHATSAPPCHANNELAPPCONFIG'].fields_by_name['verify_token']._loaded_options = None
+  _globals['_WHATSAPPCHANNELAPPCONFIG'].fields_by_name['verify_token']._serialized_options = b'\272H\004r\002\020\001'
+  _globals['_CHANNELAPPSPEC']._serialized_start=111
+  _globals['_CHANNELAPPSPEC']._serialized_end=324
+  _globals['_SLACKCHANNELAPPCONFIG']._serialized_start=327
+  _globals['_SLACKCHANNELAPPCONFIG']._serialized_end=482
+  _globals['_WHATSAPPCHANNELAPPCONFIG']._serialized_start=485
+  _globals['_WHATSAPPCHANNELAPPCONFIG']._serialized_end=671
 # @@protoc_insertion_point(module_scope)

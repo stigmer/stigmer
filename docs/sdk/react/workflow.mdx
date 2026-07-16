@@ -4531,7 +4531,7 @@ is a shallow field compare, which powers the structural sharing below.
     error: { type: "string", description: "", required: true },
     kindLabel: { type: "string", description: "Human label for the kind, from the canonical `kindToDisplayName`. The empty string for `unspecified` kinds (the snapshot-derived fallback map carries no kind) — consumers hide the kind chip rather than render a meaningless \"Unknown\" label.", required: true },
     messagesCount: { type: "number", description: "", required: true },
-    status: { type: "\"failed\" | \"pending\" | \"running\" | \"completed\" | \"skipped\" | \"retrying\" | \"waiting_approval\"", description: "", required: true },
+    status: { type: "\"completed\" | \"failed\" | \"pending\" | \"running\" | \"skipped\" | \"retrying\" | \"waiting_approval\"", description: "", required: true },
     taskKind: { type: "WorkflowTaskKind", description: "", required: true },
     taskName: { type: "string", description: "", required: true },
     tokensUsed: { type: "bigint", description: "", required: true },
@@ -4575,7 +4575,7 @@ One per-task usage row rendered by the Usage facet's breakdown list.
   type={{
     costMicros: { type: "bigint", description: "Cost consumed by the task in micro-USD.", required: true },
     kindLabel: { type: "string", description: "Human-readable kind label (e.g. `\"Agent Call\"`), via kind metadata.", required: true },
-    status: { type: "\"failed\" | \"pending\" | \"running\" | \"completed\" | \"skipped\" | \"retrying\" | \"waiting_approval\"", description: "Task lifecycle status at derivation time.", required: true },
+    status: { type: "\"completed\" | \"failed\" | \"pending\" | \"running\" | \"skipped\" | \"retrying\" | \"waiting_approval\"", description: "Task lifecycle status at derivation time.", required: true },
     taskKind: { type: "WorkflowTaskKind", description: "Task kind enum (as reported by the event stream).", required: true },
     taskName: { type: "string", description: "Task name — the row's identity and the selection-callback argument.", required: true },
     tokensUsed: { type: "bigint", description: "Tokens consumed by the task (live for running agent-call tasks).", required: true },

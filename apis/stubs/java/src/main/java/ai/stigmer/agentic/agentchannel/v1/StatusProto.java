@@ -36,6 +36,11 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentchannel_v1_SlackInstallStatus_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentchannel_v1_WhatsAppInstallStatus_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentchannel_v1_WhatsAppInstallStatus_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -49,31 +54,40 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "tus.proto\022\"ai.stigmer.agentic.agentchann" +
       "el.v1\032+ai/stigmer/commons/apiresource/st" +
       "atus.proto\032\037google/protobuf/timestamp.pr" +
-      "oto\"\340\002\n\022AgentChannelStatus\022a\n\rinstall_st" +
+      "oto\"\271\003\n\022AgentChannelStatus\022a\n\rinstall_st" +
       "ate\030\001 \001(\0162<.ai.stigmer.agentic.agentchan" +
       "nel.v1.AgentChannelInstallStateR\014install" +
       "State\022N\n\005slack\030\002 \001(\01326.ai.stigmer.agenti" +
       "c.agentchannel.v1.SlackInstallStatusH\000R\005" +
-      "slack\022<\n\032credentials_environment_id\030\003 \001(" +
-      "\tR\030credentialsEnvironmentId\022F\n\005audit\030c \001" +
-      "(\01320.ai.stigmer.commons.apiresource.ApiR" +
-      "esourceAuditR\005auditB\021\n\017provider_status\"\255" +
-      "\002\n\022SlackInstallStatus\022\027\n\007team_id\030\001 \001(\tR\006" +
-      "teamId\022\033\n\tteam_name\030\002 \001(\tR\010teamName\022\036\n\013b" +
-      "ot_user_id\030\003 \001(\tR\tbotUserId\022%\n\016granted_s" +
-      "copes\030\004 \003(\tR\rgrantedScopes\0225\n\027installer_" +
-      "slack_user_id\030\005 \001(\tR\024installerSlackUserI" +
-      "d\022=\n\014installed_at\030\006 \001(\0132\032.google.protobu" +
-      "f.TimestampR\013installedAt\022$\n\016channel_app_" +
-      "id\030\007 \001(\tR\014channelAppId*x\n\030AgentChannelIn" +
-      "stallState\022+\n\'agent_channel_install_stat" +
-      "e_unspecified\020\000\022\023\n\017pending_install\020\001\022\r\n\t" +
-      "installed\020\002\022\013\n\007revoked\020\003B\272\001B\013StatusProto" +
-      "P\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agentic.Agentchan" +
-      "nel.V1\312\002\"Ai\\Stigmer\\Agentic\\Agentchannel" +
-      "\\V1\342\002.Ai\\Stigmer\\Agentic\\Agentchannel\\V1" +
-      "\\GPBMetadata\352\002&Ai::Stigmer::Agentic::Age" +
-      "ntchannel::V1b\006proto3"
+      "slack\022W\n\010whatsapp\030\004 \001(\01329.ai.stigmer.age" +
+      "ntic.agentchannel.v1.WhatsAppInstallStat" +
+      "usH\000R\010whatsapp\022<\n\032credentials_environmen" +
+      "t_id\030\003 \001(\tR\030credentialsEnvironmentId\022F\n\005" +
+      "audit\030c \001(\01320.ai.stigmer.commons.apireso" +
+      "urce.ApiResourceAuditR\005auditB\021\n\017provider" +
+      "_status\"\255\002\n\022SlackInstallStatus\022\027\n\007team_i" +
+      "d\030\001 \001(\tR\006teamId\022\033\n\tteam_name\030\002 \001(\tR\010team" +
+      "Name\022\036\n\013bot_user_id\030\003 \001(\tR\tbotUserId\022%\n\016" +
+      "granted_scopes\030\004 \003(\tR\rgrantedScopes\0225\n\027i" +
+      "nstaller_slack_user_id\030\005 \001(\tR\024installerS" +
+      "lackUserId\022=\n\014installed_at\030\006 \001(\0132\032.googl" +
+      "e.protobuf.TimestampR\013installedAt\022$\n\016cha" +
+      "nnel_app_id\030\007 \001(\tR\014channelAppId\"\373\001\n\025What" +
+      "sAppInstallStatus\022&\n\017phone_number_id\030\001 \001" +
+      "(\tR\rphoneNumberId\0220\n\024display_phone_numbe" +
+      "r\030\002 \001(\tR\022displayPhoneNumber\022#\n\rverified_" +
+      "name\030\003 \001(\tR\014verifiedName\022$\n\016channel_app_" +
+      "id\030\004 \001(\tR\014channelAppId\022=\n\014installed_at\030\005" +
+      " \001(\0132\032.google.protobuf.TimestampR\013instal" +
+      "ledAt*x\n\030AgentChannelInstallState\022+\n\'age" +
+      "nt_channel_install_state_unspecified\020\000\022\023" +
+      "\n\017pending_install\020\001\022\r\n\tinstalled\020\002\022\013\n\007re" +
+      "voked\020\003B\272\001B\013StatusProtoP\001\242\002\004ASAA\252\002\"Ai.St" +
+      "igmer.Agentic.Agentchannel.V1\312\002\"Ai\\Stigm" +
+      "er\\Agentic\\Agentchannel\\V1\342\002.Ai\\Stigmer\\" +
+      "Agentic\\Agentchannel\\V1\\GPBMetadata\352\002&Ai" +
+      "::Stigmer::Agentic::Agentchannel::V1b\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -86,13 +100,19 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentchannel_v1_AgentChannelStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_AgentChannelStatus_descriptor,
-        new java.lang.String[] { "InstallState", "Slack", "CredentialsEnvironmentId", "Audit", "ProviderStatus", });
+        new java.lang.String[] { "InstallState", "Slack", "Whatsapp", "CredentialsEnvironmentId", "Audit", "ProviderStatus", });
     internal_static_ai_stigmer_agentic_agentchannel_v1_SlackInstallStatus_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_agentchannel_v1_SlackInstallStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_SlackInstallStatus_descriptor,
         new java.lang.String[] { "TeamId", "TeamName", "BotUserId", "GrantedScopes", "InstallerSlackUserId", "InstalledAt", "ChannelAppId", });
+    internal_static_ai_stigmer_agentic_agentchannel_v1_WhatsAppInstallStatus_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_agentchannel_v1_WhatsAppInstallStatus_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentchannel_v1_WhatsAppInstallStatus_descriptor,
+        new java.lang.String[] { "PhoneNumberId", "DisplayPhoneNumber", "VerifiedName", "ChannelAppId", "InstalledAt", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();

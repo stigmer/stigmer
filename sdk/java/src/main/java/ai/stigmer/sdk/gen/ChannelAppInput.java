@@ -5,6 +5,7 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.channelapp.v1.ChannelApp;
 import ai.stigmer.agentic.channelapp.v1.ChannelAppSpec;
 import ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfig;
+import ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 
@@ -16,6 +17,7 @@ public final class ChannelAppInput {
     private final java.util.Map<String, String> labels;
     private final ApiResourceVisibility visibility;
     private final SlackChannelAppConfigInput slack;
+    private final WhatsAppChannelAppConfigInput whatsapp;
 
     private ChannelAppInput(Builder builder) {
         this.name = builder.name;
@@ -24,12 +26,16 @@ public final class ChannelAppInput {
         this.labels = builder.labels;
         this.visibility = builder.visibility;
         this.slack = builder.slack;
+        this.whatsapp = builder.whatsapp;
     }
 
     ChannelApp toProto() {
         ChannelAppSpec.Builder spec = ChannelAppSpec.newBuilder();
         if (this.slack != null) {
             spec.setSlack(this.slack.toProto());
+        }
+        if (this.whatsapp != null) {
+            spec.setWhatsapp(this.whatsapp.toProto());
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -60,6 +66,7 @@ public final class ChannelAppInput {
         private java.util.Map<String, String> labels;
         private ApiResourceVisibility visibility;
         private SlackChannelAppConfigInput slack;
+        private WhatsAppChannelAppConfigInput whatsapp;
 
         private Builder() {}
 
@@ -69,6 +76,7 @@ public final class ChannelAppInput {
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder visibility(ApiResourceVisibility visibility) { this.visibility = visibility; return this; }
         public Builder slack(SlackChannelAppConfigInput slack) { this.slack = slack; return this; }
+        public Builder whatsapp(WhatsAppChannelAppConfigInput whatsapp) { this.whatsapp = whatsapp; return this; }
 
         public ChannelAppInput build() { return new ChannelAppInput(this); }
     }
@@ -113,6 +121,56 @@ public final class ChannelAppInput {
             public Builder signingSecret(String signingSecret) { this.signingSecret = signingSecret; return this; }
 
             public SlackChannelAppConfigInput build() { return new SlackChannelAppConfigInput(this); }
+        }
+    }
+
+    /** SDK input type for WhatsAppChannelAppConfig. */
+    public static final class WhatsAppChannelAppConfigInput {
+        private final String appId;
+        private final String appSecret;
+        private final String accessToken;
+        private final String verifyToken;
+
+        private WhatsAppChannelAppConfigInput(Builder builder) {
+            this.appId = builder.appId;
+            this.appSecret = builder.appSecret;
+            this.accessToken = builder.accessToken;
+            this.verifyToken = builder.verifyToken;
+        }
+
+        WhatsAppChannelAppConfig toProto() {
+            WhatsAppChannelAppConfig.Builder builder = WhatsAppChannelAppConfig.newBuilder();
+            if (this.appId != null) {
+                builder.setAppId(this.appId);
+            }
+            if (this.appSecret != null) {
+                builder.setAppSecret(this.appSecret);
+            }
+            if (this.accessToken != null) {
+                builder.setAccessToken(this.accessToken);
+            }
+            if (this.verifyToken != null) {
+                builder.setVerifyToken(this.verifyToken);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String appId;
+            private String appSecret;
+            private String accessToken;
+            private String verifyToken;
+
+            private Builder() {}
+
+            public Builder appId(String appId) { this.appId = appId; return this; }
+            public Builder appSecret(String appSecret) { this.appSecret = appSecret; return this; }
+            public Builder accessToken(String accessToken) { this.accessToken = accessToken; return this; }
+            public Builder verifyToken(String verifyToken) { this.verifyToken = verifyToken; return this; }
+
+            public WhatsAppChannelAppConfigInput build() { return new WhatsAppChannelAppConfigInput(this); }
         }
     }
 }

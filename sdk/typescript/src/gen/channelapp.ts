@@ -9,7 +9,7 @@ import { ChannelAppSchema, type ChannelApp } from "@stigmer/protos/ai/stigmer/ag
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ListChannelAppsByOrgInputSchema, ChannelAppsSchema, type ListChannelAppsByOrgInput, type ChannelApps } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
-import { ChannelAppSpecSchema, SlackChannelAppConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/spec_pb";
+import { ChannelAppSpecSchema, SlackChannelAppConfigSchema, WhatsAppChannelAppConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -80,6 +80,7 @@ export interface ChannelAppInput {
   labels?: Record<string, string>;
   visibility?: ApiResourceVisibility;
   slack?: SlackChannelAppConfigInput;
+  whatsapp?: WhatsAppChannelAppConfigInput;
 }
 
 /** SDK input type for SlackChannelAppConfig. */
@@ -87,6 +88,14 @@ export interface SlackChannelAppConfigInput {
   clientId?: string;
   clientSecret?: string;
   signingSecret?: string;
+}
+
+/** SDK input type for WhatsAppChannelAppConfig. */
+export interface WhatsAppChannelAppConfigInput {
+  appId?: string;
+  appSecret?: string;
+  accessToken?: string;
+  verifyToken?: string;
 }
 
 function buildSlackChannelAppConfigProto(input: SlackChannelAppConfigInput) {
@@ -97,11 +106,22 @@ function buildSlackChannelAppConfigProto(input: SlackChannelAppConfigInput) {
   }));
 }
 
+function buildWhatsAppChannelAppConfigProto(input: WhatsAppChannelAppConfigInput) {
+  return Object.assign(create(WhatsAppChannelAppConfigSchema), stripUndefined({
+    appId: input.appId,
+    appSecret: input.appSecret,
+    accessToken: input.accessToken,
+    verifyToken: input.verifyToken,
+  }));
+}
+
 export function buildChannelAppProto(input: ChannelAppInput): ChannelApp {
   const spec = Object.assign(create(ChannelAppSpecSchema), stripUndefined({
   }));
   if (input.slack) {
     spec.providerConfig = { case: "slack", value: buildSlackChannelAppConfigProto(input.slack) };
+  } else if (input.whatsapp) {
+    spec.providerConfig = { case: "whatsapp", value: buildWhatsAppChannelAppConfigProto(input.whatsapp) };
   }
   return Object.assign(create(ChannelAppSchema), {
     apiVersion: "agentic.stigmer.ai/v1",

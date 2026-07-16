@@ -105,16 +105,31 @@ class AgentChannelCommandControllerServicer(object):
     def initiateInstall(self, request, context):
         """Start the provider install flow for an agent channel.
 
-        Returns the provider authorization URL to redirect the installing
-        user to, plus the single-use state that completeInstall verifies.
+        For redirect-installed providers (Slack) the output carries the
+        provider authorization URL to redirect the installing user to, plus
+        the single-use state that completeInstall verifies. For
+        direct-installed providers (WhatsApp) the install runs to completion
+        inside this RPC and the output carries completed=true instead.
+
+        Refusals a client should branch on carry a google.rpc.ErrorInfo
+        detail (domain "stigmer.ai") on the standard grpc-status-details-bin
+        trailer, alongside the human-readable FAILED_PRECONDITION message:
+
+        - WHATSAPP_NUMBER_ALREADY_CONNECTED — the WhatsApp Business number
+        already serves an agent through this channel app (one agent per
+        number per app). Metadata: display_phone_number (the occupied
+        number), channel_app_id (the serving app).
 
         @internal
         Authorization: requires can_edit on the agent channel — installing
         grants a workspace access to the agent runtime, the same bar as
-        enabling. Generates and persists the single-use state (pending-state
-        pattern from MCP OAuth). Cloud-first runtime: the OSS edition stores
-        channel resources but returns FAILED_PRECONDITION here (documented
-        posture, decision 001 D-g / T02 §0-b).
+        enabling. Redirect style generates and persists the single-use state
+        (pending-state pattern from MCP OAuth); direct style validates
+        against the provider, persists the status, and maps the
+        duplicate-number refusal (the completeInstall duplicate-workspace
+        mechanism). Cloud-first runtime: the OSS edition stores channel
+        resources but returns FAILED_PRECONDITION here (documented posture,
+        decision 001 D-g / T02 §0-b).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

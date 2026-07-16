@@ -72,6 +72,7 @@ type ChannelAppInput struct {
 	Labels     map[string]string
 	Visibility apiresource.ApiResourceVisibility
 	Slack      *SlackChannelAppConfigInput
+	Whatsapp   *WhatsAppChannelAppConfigInput
 }
 
 // SlackChannelAppConfigInput is the SDK input type for SlackChannelAppConfig.
@@ -79,6 +80,14 @@ type SlackChannelAppConfigInput struct {
 	ClientId      string
 	ClientSecret  string
 	SigningSecret string
+}
+
+// WhatsAppChannelAppConfigInput is the SDK input type for WhatsAppChannelAppConfig.
+type WhatsAppChannelAppConfigInput struct {
+	AppId       string
+	AppSecret   string
+	AccessToken string
+	VerifyToken string
 }
 
 func (i *ChannelAppInput) toProto() *channelappv1.ChannelApp {
@@ -100,6 +109,14 @@ func (i *ChannelAppInput) toProto() *channelappv1.ChannelApp {
 		m.ClientSecret = i.Slack.ClientSecret
 		m.SigningSecret = i.Slack.SigningSecret
 		resource.Spec.ProviderConfig = &channelappv1.ChannelAppSpec_Slack{Slack: m}
+	}
+	if i.Whatsapp != nil {
+		m := &channelappv1.WhatsAppChannelAppConfig{}
+		m.AppId = i.Whatsapp.AppId
+		m.AppSecret = i.Whatsapp.AppSecret
+		m.AccessToken = i.Whatsapp.AccessToken
+		m.VerifyToken = i.Whatsapp.VerifyToken
+		resource.Spec.ProviderConfig = &channelappv1.ChannelAppSpec_Whatsapp{Whatsapp: m}
 	}
 	return resource
 }
@@ -125,6 +142,14 @@ func ChannelAppInputFromProto(p *channelappv1.ChannelApp) *ChannelAppInput {
 				SigningSecret: ov.GetSigningSecret(),
 			}
 		}
+		if ov := s.GetWhatsapp(); ov != nil {
+			input.Whatsapp = &WhatsAppChannelAppConfigInput{
+				AppId:       ov.GetAppId(),
+				AppSecret:   ov.GetAppSecret(),
+				AccessToken: ov.GetAccessToken(),
+				VerifyToken: ov.GetVerifyToken(),
+			}
+		}
 	}
 	return input
 }
@@ -137,5 +162,17 @@ func slackChannelAppConfigInputFromProto(p *channelappv1.SlackChannelAppConfig) 
 	input.ClientId = p.GetClientId()
 	input.ClientSecret = p.GetClientSecret()
 	input.SigningSecret = p.GetSigningSecret()
+	return input
+}
+
+func whatsAppChannelAppConfigInputFromProto(p *channelappv1.WhatsAppChannelAppConfig) *WhatsAppChannelAppConfigInput {
+	if p == nil {
+		return nil
+	}
+	input := &WhatsAppChannelAppConfigInput{}
+	input.AppId = p.GetAppId()
+	input.AppSecret = p.GetAppSecret()
+	input.AccessToken = p.GetAccessToken()
+	input.VerifyToken = p.GetVerifyToken()
 	return input
 }

@@ -81,11 +81,14 @@ class ChannelAppInput:
     labels: dict[str, str] | None = None
     visibility: int = 0
     slack: SlackChannelAppConfigInput | None = None
+    whatsapp: WhatsAppChannelAppConfigInput | None = None
 
     def _to_proto(self) -> api_pb2.ChannelApp:
         spec = spec_pb2.ChannelAppSpec()
         if self.slack is not None:
             spec.slack.CopyFrom(self.slack._to_proto())
+        if self.whatsapp is not None:
+            spec.whatsapp.CopyFrom(self.whatsapp._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -117,6 +120,25 @@ class SlackChannelAppConfigInput:
             client_id=self.client_id,
             client_secret=self.client_secret,
             signing_secret=self.signing_secret,
+        )
+        return msg
+
+
+@dataclass
+class WhatsAppChannelAppConfigInput:
+    """SDK input type for WhatsAppChannelAppConfig."""
+
+    app_id: str = ""
+    app_secret: str = ""
+    access_token: str = ""
+    verify_token: str = ""
+
+    def _to_proto(self) -> spec_pb2.WhatsAppChannelAppConfig:
+        msg = spec_pb2.WhatsAppChannelAppConfig(
+            app_id=self.app_id,
+            app_secret=self.app_secret,
+            access_token=self.access_token,
+            verify_token=self.verify_token,
         )
         return msg
 

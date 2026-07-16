@@ -5,6 +5,7 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.agentchannel.v1.AgentChannel;
 import ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec;
 import ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig;
+import ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
@@ -19,6 +20,7 @@ public final class AgentChannelInput {
     private final ResourceRef agentRef;
     private final boolean enabled;
     private final SlackChannelConfigInput slack;
+    private final WhatsAppChannelConfigInput whatsapp;
     private final java.util.List<ResourceRef> environmentRefs;
     private final ResourceRef appRef;
 
@@ -31,6 +33,7 @@ public final class AgentChannelInput {
         this.agentRef = builder.agentRef;
         this.enabled = builder.enabled;
         this.slack = builder.slack;
+        this.whatsapp = builder.whatsapp;
         this.environmentRefs = builder.environmentRefs;
         this.appRef = builder.appRef;
     }
@@ -44,6 +47,9 @@ public final class AgentChannelInput {
         spec.setEnabled(this.enabled);
         if (this.slack != null) {
             spec.setSlack(this.slack.toProto());
+        }
+        if (this.whatsapp != null) {
+            spec.setWhatsapp(this.whatsapp.toProto());
         }
         if (this.environmentRefs != null) {
             for (ResourceRef item : this.environmentRefs) {
@@ -86,6 +92,7 @@ public final class AgentChannelInput {
         private ResourceRef agentRef;
         private boolean enabled;
         private SlackChannelConfigInput slack;
+        private WhatsAppChannelConfigInput whatsapp;
         private java.util.List<ResourceRef> environmentRefs;
         private ResourceRef appRef;
 
@@ -99,6 +106,7 @@ public final class AgentChannelInput {
         public Builder agentRef(ResourceRef agentRef) { this.agentRef = agentRef; return this; }
         public Builder enabled(boolean enabled) { this.enabled = enabled; return this; }
         public Builder slack(SlackChannelConfigInput slack) { this.slack = slack; return this; }
+        public Builder whatsapp(WhatsAppChannelConfigInput whatsapp) { this.whatsapp = whatsapp; return this; }
         public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
         public Builder appRef(ResourceRef appRef) { this.appRef = appRef; return this; }
 
@@ -124,6 +132,35 @@ public final class AgentChannelInput {
 
 
             public SlackChannelConfigInput build() { return new SlackChannelConfigInput(this); }
+        }
+    }
+
+    /** SDK input type for WhatsAppChannelConfig. */
+    public static final class WhatsAppChannelConfigInput {
+        private final String phoneNumberId;
+
+        private WhatsAppChannelConfigInput(Builder builder) {
+            this.phoneNumberId = builder.phoneNumberId;
+        }
+
+        WhatsAppChannelConfig toProto() {
+            WhatsAppChannelConfig.Builder builder = WhatsAppChannelConfig.newBuilder();
+            if (this.phoneNumberId != null) {
+                builder.setPhoneNumberId(this.phoneNumberId);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String phoneNumberId;
+
+            private Builder() {}
+
+            public Builder phoneNumberId(String phoneNumberId) { this.phoneNumberId = phoneNumberId; return this; }
+
+            public WhatsAppChannelConfigInput build() { return new WhatsAppChannelConfigInput(this); }
         }
     }
 }

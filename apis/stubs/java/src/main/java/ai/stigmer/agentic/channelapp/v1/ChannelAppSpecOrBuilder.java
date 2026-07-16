@@ -37,5 +37,32 @@ public interface ChannelAppSpecOrBuilder extends
    */
   ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfigOrBuilder getSlackOrBuilder();
 
+  /**
+   * <pre>
+   * WhatsApp (Meta) app credentials.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2 [json_name = "whatsapp"];</code>
+   * @return Whether the whatsapp field is set.
+   */
+  boolean hasWhatsapp();
+  /**
+   * <pre>
+   * WhatsApp (Meta) app credentials.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2 [json_name = "whatsapp"];</code>
+   * @return The whatsapp.
+   */
+  ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig getWhatsapp();
+  /**
+   * <pre>
+   * WhatsApp (Meta) app credentials.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2 [json_name = "whatsapp"];</code>
+   */
+  ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfigOrBuilder getWhatsappOrBuilder();
+
   ai.stigmer.agentic.channelapp.v1.ChannelAppSpec.ProviderConfigCase getProviderConfigCase();
 }

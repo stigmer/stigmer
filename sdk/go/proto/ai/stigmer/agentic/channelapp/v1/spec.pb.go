@@ -43,11 +43,13 @@ type ChannelAppSpec struct {
 	// Provider this app belongs to. Exactly one must be specified.
 	//
 	// @internal
-	// Adding WhatsApp (T05) extends this oneof; it touches zero kinds.
+	// Adding a provider extends this oneof; it touches zero kinds (the
+	// pattern WhatsApp proved in T05).
 	//
 	// Types that are valid to be assigned to ProviderConfig:
 	//
 	//	*ChannelAppSpec_Slack
+	//	*ChannelAppSpec_Whatsapp
 	ProviderConfig isChannelAppSpec_ProviderConfig `protobuf_oneof:"provider_config"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -99,6 +101,15 @@ func (x *ChannelAppSpec) GetSlack() *SlackChannelAppConfig {
 	return nil
 }
 
+func (x *ChannelAppSpec) GetWhatsapp() *WhatsAppChannelAppConfig {
+	if x != nil {
+		if x, ok := x.ProviderConfig.(*ChannelAppSpec_Whatsapp); ok {
+			return x.Whatsapp
+		}
+	}
+	return nil
+}
+
 type isChannelAppSpec_ProviderConfig interface {
 	isChannelAppSpec_ProviderConfig()
 }
@@ -108,7 +119,14 @@ type ChannelAppSpec_Slack struct {
 	Slack *SlackChannelAppConfig `protobuf:"bytes,1,opt,name=slack,proto3,oneof"`
 }
 
+type ChannelAppSpec_Whatsapp struct {
+	// WhatsApp (Meta) app credentials.
+	Whatsapp *WhatsAppChannelAppConfig `protobuf:"bytes,2,opt,name=whatsapp,proto3,oneof"`
+}
+
 func (*ChannelAppSpec_Slack) isChannelAppSpec_ProviderConfig() {}
+
+func (*ChannelAppSpec_Whatsapp) isChannelAppSpec_ProviderConfig() {}
 
 // SlackChannelAppConfig holds the credentials of a customer-created
 // Slack app.
@@ -190,18 +208,119 @@ func (x *SlackChannelAppConfig) GetSigningSecret() string {
 	return ""
 }
 
+// WhatsAppChannelAppConfig holds the credentials of a customer-created
+// Meta app with WhatsApp Business access.
+//
+// The values come from the app's dashboard on developers.facebook.com.
+// The app's webhook must be configured with this ChannelApp's events URL
+// and verify token — the console shows both after the app is registered.
+//
+// @internal
+// DD-WA-3: every WhatsApp credential is per-app authored (Meta's Cloud
+// API has no per-install OAuth), so they all live here — no managed
+// Environment, no OAuthGrant row; AgentChannelStatus.credentials_environment_id
+// stays empty for WhatsApp channels. Webhook attribution is by the per-app
+// request path (/webhook/whatsapp/{channelAppId}), matching Slack's
+// per-app URL posture: Meta's GET verification handshake carries no app
+// identity, and the POST signature (X-Hub-Signature-256, HMAC over the
+// raw body with app_secret) must verify before any parse.
+type WhatsAppChannelAppConfig struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Meta app ID, from the app dashboard's Basic Settings.
+	AppId string `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	// Meta app secret used to verify webhook signatures from this app.
+	// Encrypted at rest, redacted in responses and logs.
+	AppSecret string `protobuf:"bytes,2,opt,name=app_secret,json=appSecret,proto3" json:"app_secret,omitempty"`
+	// Long-lived Cloud API access token (system-user token) used to send
+	// messages on behalf of the WhatsApp Business account.
+	// Encrypted at rest, redacted in responses and logs.
+	AccessToken string `protobuf:"bytes,3,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	// Verify token echoed during Meta's webhook verification handshake.
+	// Choose any opaque value and paste the same value into the app's
+	// webhook configuration.
+	// Encrypted at rest, redacted in responses and logs.
+	VerifyToken   string `protobuf:"bytes,4,opt,name=verify_token,json=verifyToken,proto3" json:"verify_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WhatsAppChannelAppConfig) Reset() {
+	*x = WhatsAppChannelAppConfig{}
+	mi := &file_ai_stigmer_agentic_channelapp_v1_spec_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WhatsAppChannelAppConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WhatsAppChannelAppConfig) ProtoMessage() {}
+
+func (x *WhatsAppChannelAppConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_channelapp_v1_spec_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WhatsAppChannelAppConfig.ProtoReflect.Descriptor instead.
+func (*WhatsAppChannelAppConfig) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_channelapp_v1_spec_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *WhatsAppChannelAppConfig) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *WhatsAppChannelAppConfig) GetAppSecret() string {
+	if x != nil {
+		return x.AppSecret
+	}
+	return ""
+}
+
+func (x *WhatsAppChannelAppConfig) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *WhatsAppChannelAppConfig) GetVerifyToken() string {
+	if x != nil {
+		return x.VerifyToken
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_channelapp_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_channelapp_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"+ai/stigmer/agentic/channelapp/v1/spec.proto\x12 ai.stigmer.agentic.channelapp.v1\x1a\x1bbuf/validate/validate.proto\"{\n" +
+	"+ai/stigmer/agentic/channelapp/v1/spec.proto\x12 ai.stigmer.agentic.channelapp.v1\x1a\x1bbuf/validate/validate.proto\"\xd5\x01\n" +
 	"\x0eChannelAppSpec\x12O\n" +
-	"\x05slack\x18\x01 \x01(\v27.ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfigH\x00R\x05slackB\x18\n" +
+	"\x05slack\x18\x01 \x01(\v27.ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfigH\x00R\x05slack\x12X\n" +
+	"\bwhatsapp\x18\x02 \x01(\v2:.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfigH\x00R\bwhatsappB\x18\n" +
 	"\x0fprovider_config\x12\x05\xbaH\x02\b\x01\"\x9b\x01\n" +
 	"\x15SlackChannelAppConfig\x12$\n" +
 	"\tclient_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bclientId\x12,\n" +
 	"\rclient_secret\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\fclientSecret\x12.\n" +
-	"\x0esigning_secret\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\rsigningSecretB\xb0\x02\n" +
+	"\x0esigning_secret\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\rsigningSecret\"\xba\x01\n" +
+	"\x18WhatsAppChannelAppConfig\x12\x1e\n" +
+	"\x06app_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05appId\x12&\n" +
+	"\n" +
+	"app_secret\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tappSecret\x12*\n" +
+	"\faccess_token\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vaccessToken\x12*\n" +
+	"\fverify_token\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vverifyTokenB\xb0\x02\n" +
 	"$com.ai.stigmer.agentic.channelapp.v1B\tSpecProtoP\x01ZXgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/channelapp/v1;channelappv1\xa2\x02\x04ASAC\xaa\x02 Ai.Stigmer.Agentic.Channelapp.V1\xca\x02 Ai\\Stigmer\\Agentic\\Channelapp\\V1\xe2\x02,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\GPBMetadata\xea\x02$Ai::Stigmer::Agentic::Channelapp::V1b\x06proto3"
 
 var (
@@ -216,18 +335,20 @@ func file_ai_stigmer_agentic_channelapp_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_channelapp_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_channelapp_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_agentic_channelapp_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_agentic_channelapp_v1_spec_proto_goTypes = []any{
-	(*ChannelAppSpec)(nil),        // 0: ai.stigmer.agentic.channelapp.v1.ChannelAppSpec
-	(*SlackChannelAppConfig)(nil), // 1: ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfig
+	(*ChannelAppSpec)(nil),           // 0: ai.stigmer.agentic.channelapp.v1.ChannelAppSpec
+	(*SlackChannelAppConfig)(nil),    // 1: ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfig
+	(*WhatsAppChannelAppConfig)(nil), // 2: ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig
 }
 var file_ai_stigmer_agentic_channelapp_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.channelapp.v1.ChannelAppSpec.slack:type_name -> ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfig
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2, // 1: ai.stigmer.agentic.channelapp.v1.ChannelAppSpec.whatsapp:type_name -> ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_channelapp_v1_spec_proto_init() }
@@ -237,6 +358,7 @@ func file_ai_stigmer_agentic_channelapp_v1_spec_proto_init() {
 	}
 	file_ai_stigmer_agentic_channelapp_v1_spec_proto_msgTypes[0].OneofWrappers = []any{
 		(*ChannelAppSpec_Slack)(nil),
+		(*ChannelAppSpec_Whatsapp)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -244,7 +366,7 @@ func file_ai_stigmer_agentic_channelapp_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_channelapp_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_channelapp_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

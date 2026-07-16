@@ -85,7 +85,7 @@ export class GeneratedClient {
 export { AgentClient } from "./agent.js";
 export { type AgentInput, type McpServerUsageInput, type ToolApprovalOverrideInput, type SubAgentInput, type McpAccessInput, type EnvVarDeclarationInput } from "./agent.js";
 export { AgentChannelClient } from "./agentchannel.js";
-export { type AgentChannelInput, type SlackChannelConfigInput } from "./agentchannel.js";
+export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput } from "./agentchannel.js";
 export { AgentExecutionClient } from "./agentexecution.js";
 export { type AgentExecutionInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type ExecutionConfigInput, type ContextManagementConfigInput, type AttachmentInput } from "./agentexecution.js";
 export { AgentInstanceClient } from "./agentinstance.js";
@@ -97,7 +97,7 @@ export { type ApiKeyInput } from "./apikey.js";
 export { ArtifactClient } from "./artifact.js";
 export { type ArtifactInput, type ArtifactSourceInput, type RetentionPolicyInput } from "./artifact.js";
 export { ChannelAppClient } from "./channelapp.js";
-export { type ChannelAppInput, type SlackChannelAppConfigInput } from "./channelapp.js";
+export { type ChannelAppInput, type SlackChannelAppConfigInput, type WhatsAppChannelAppConfigInput } from "./channelapp.js";
 export { EnvironmentClient } from "./environment.js";
 export { type EnvironmentInput } from "./environment.js";
 export { ExecutionContextClient } from "./executioncontext.js";

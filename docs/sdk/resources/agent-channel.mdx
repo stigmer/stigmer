@@ -7,13 +7,13 @@ title: Agent Channel
 An AgentChannel connects an agent to an external messaging platform so
 people can chat with it where they already work. The spec declares which
 agent serves the channel, whether serving is enabled, the provider (Slack
-today), optional environment references that supply the agent's tool
-credentials for channel conversations, and an optional `app_ref` to a
-ChannelApp when the channel should install through your own provider app
-instead of the shared Stigmer app. Workspace identity and provider
-credentials are produced by the install flow and live in status — applying
-a manifest never touches them, and channel operations never modify the
-referenced agent.
+or WhatsApp), optional environment references that supply the agent's tool
+credentials for channel conversations, and an `app_ref` to a ChannelApp
+when the channel installs through your own provider app — optional for
+Slack (absent means the shared Stigmer app), required for WhatsApp.
+Provider identity facts and credentials are produced by the install flow
+and live in status — applying a manifest never touches them, and channel
+operations never modify the referenced agent.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -32,6 +32,29 @@ spec:
     - kind: environment
       org: workshop
       slug: support-tools-credentials
+```
+
+A WhatsApp channel names the Business phone number it serves and always
+installs through your own Meta app:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: AgentChannel
+metadata:
+  name: support-agent-whatsapp
+  org: workshop
+spec:
+  agent_ref:
+    kind: agent
+    org: workshop
+    slug: support-agent
+  enabled: true
+  whatsapp:
+    phone_number_id: "106540352242922"
+  app_ref:
+    kind: channel_app
+    org: workshop
+    slug: acme-whatsapp
 ```
 
 ## Client Access
@@ -271,6 +294,7 @@ const agentChannel = await stigmer.agentChannel.apply({
   agentRef: {},
   enabled: false,
   slack: {},
+  whatsapp: {},
   environmentRefs: [],
   appRef: {},
 });
@@ -286,6 +310,7 @@ agentChannel, err := client.AgentChannel.Apply(ctx, &stigmer.AgentChannelInput{
   AgentRef:        &stigmer.ResourceRef{},
   Enabled:         false,
   Slack:           &stigmer.SlackChannelConfigInput{},
+  Whatsapp:        &stigmer.WhatsAppChannelConfigInput{},
   EnvironmentRefs: []stigmer.ResourceRef{},
   AppRef:          &stigmer.ResourceRef{},
 })
@@ -301,6 +326,7 @@ agent_channel = client.agent_channels.apply(AgentChannelInput(
     agent_ref=None,
     enabled=False,
     slack=None,
+    whatsapp=None,
     environment_refs=[],
     app_ref=None,
 ))
@@ -316,6 +342,7 @@ AgentChannel agentChannel = client.agentChannels().apply(AgentChannelInput.build
     .agentRef(null)
     .enabled(false)
     .slack(null)
+    .whatsapp(null)
     .environmentRefs(List.of())
     .appRef(null)
     .build());
@@ -344,6 +371,7 @@ const agentChannel = await stigmer.agentChannel.create({
   agentRef: {},
   enabled: false,
   slack: {},
+  whatsapp: {},
   environmentRefs: [],
   appRef: {},
 });
@@ -359,6 +387,7 @@ agentChannel, err := client.AgentChannel.Create(ctx, &stigmer.AgentChannelInput{
   AgentRef:        &stigmer.ResourceRef{},
   Enabled:         false,
   Slack:           &stigmer.SlackChannelConfigInput{},
+  Whatsapp:        &stigmer.WhatsAppChannelConfigInput{},
   EnvironmentRefs: []stigmer.ResourceRef{},
   AppRef:          &stigmer.ResourceRef{},
 })
@@ -374,6 +403,7 @@ agent_channel = client.agent_channels.create(AgentChannelInput(
     agent_ref=None,
     enabled=False,
     slack=None,
+    whatsapp=None,
     environment_refs=[],
     app_ref=None,
 ))
@@ -389,6 +419,7 @@ AgentChannel agentChannel = client.agentChannels().create(AgentChannelInput.buil
     .agentRef(null)
     .enabled(false)
     .slack(null)
+    .whatsapp(null)
     .environmentRefs(List.of())
     .appRef(null)
     .build());
@@ -417,6 +448,7 @@ const agentChannel = await stigmer.agentChannel.update({
   agentRef: {},
   enabled: false,
   slack: {},
+  whatsapp: {},
   environmentRefs: [],
   appRef: {},
 });
@@ -432,6 +464,7 @@ agentChannel, err := client.AgentChannel.Update(ctx, &stigmer.AgentChannelInput{
   AgentRef:        &stigmer.ResourceRef{},
   Enabled:         false,
   Slack:           &stigmer.SlackChannelConfigInput{},
+  Whatsapp:        &stigmer.WhatsAppChannelConfigInput{},
   EnvironmentRefs: []stigmer.ResourceRef{},
   AppRef:          &stigmer.ResourceRef{},
 })
@@ -447,6 +480,7 @@ agent_channel = client.agent_channels.update(AgentChannelInput(
     agent_ref=None,
     enabled=False,
     slack=None,
+    whatsapp=None,
     environment_refs=[],
     app_ref=None,
 ))
@@ -462,6 +496,7 @@ AgentChannel agentChannel = client.agentChannels().update(AgentChannelInput.buil
     .agentRef(null)
     .enabled(false)
     .slack(null)
+    .whatsapp(null)
     .environmentRefs(List.of())
     .appRef(null)
     .build());
@@ -516,6 +551,12 @@ Complete the provider install flow for an agent channel.
 
 Called by the console after the provider's consent redirect, with the state from initiateInstall and the provider's authorization code. On success the channel's status carries the install facts and the channel begins serving (subject to spec.enabled).
 
+Refusals a client should branch on carry a google.rpc.ErrorInfo detail (domain "stigmer.ai") on the standard grpc-status-details-bin trailer, alongside the human-readable FAILED_PRECONDITION message:
+
+- SLACK_WORKSPACE_ALREADY_CONNECTED — the workspace already hosts an agent through this serving app (one agent per workspace per app). Metadata: team_name (the occupied workspace), channel_app_id (the serving app; empty = platform app). - CHANNEL_INSTALL_STATE_INVALID — the state parameter is missing, expired, or replayed; restart the install. - SLACK_ENTERPRISE_INSTALL_UNSUPPORTED — an Enterprise Grid org-wide install was attempted; install into a single workspace.
+
+Other refusals (unconfigured deployment, provider-refused code exchange) carry no reason — their message is the interface.
+
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
@@ -563,7 +604,11 @@ AgentChannel agentChannel = client.agentChannels().completeInstall(CompleteChann
 
 Start the provider install flow for an agent channel.
 
-Returns the provider authorization URL to redirect the installing user to, plus the single-use state that completeInstall verifies.
+For redirect-installed providers (Slack) the output carries the provider authorization URL to redirect the installing user to, plus the single-use state that completeInstall verifies. For direct-installed providers (WhatsApp) the install runs to completion inside this RPC and the output carries completed=true instead.
+
+Refusals a client should branch on carry a google.rpc.ErrorInfo detail (domain "stigmer.ai") on the standard grpc-status-details-bin trailer, alongside the human-readable FAILED_PRECONDITION message:
+
+- WHATSAPP_NUMBER_ALREADY_CONNECTED — the WhatsApp Business number already serves an agent through this channel app (one agent per number per app). Metadata: display_phone_number (the occupied number), channel_app_id (the serving app).
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -615,6 +660,7 @@ Input for creating or updating an Agent Channel.
     agentRef: { type: "ResourceRef", description: "Reference to the agent this channel serves.", typeDescriptionLink: "#resourceref", required: true },
     enabled: { type: "boolean", description: "Whether serving traffic on this channel is enabled." },
     slack: { type: "SlackChannelConfigInput", description: "Slack workspace connection (multi-tenant Stigmer Slack app).", typeDescriptionLink: "#slackchannelconfiginput" },
+    whatsapp: { type: "WhatsAppChannelConfigInput", description: "WhatsApp Business number connection (Meta Cloud API).", typeDescriptionLink: "#whatsappchannelconfiginput" },
     environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources whose values are provided to conversations on this channel.", typeDescriptionLink: "#resourceref" },
     appRef: { type: "ResourceRef", description: "Reference to the ChannelApp this channel installs through.", typeDescriptionLink: "#resourceref" },
   }}
@@ -637,6 +683,16 @@ Generic reference to any API resource by org and slug.
 
 SlackChannelConfig selects Slack as the channel provider.
 
+### WhatsAppChannelConfigInput
+
+WhatsAppChannelConfig selects WhatsApp as the channel provider and names the WhatsApp Business phone number the channel serves.
+
+<TypeTable
+  type={{
+    phoneNumberId: { type: "string", description: "Phone number ID of the WhatsApp Business number this channel serves, from Meta's WhatsApp Manager (API Setup), e.g. \"106540352242922\"." },
+  }}
+/>
+
 ### InitiateChannelInstallInput
 
 Input for starting a provider install flow.
@@ -655,6 +711,7 @@ Output of the initiate-install RPC.
   type={{
     authorizationUrl: { type: "string", description: "Provider authorization URL to redirect the installing user to (for Slack: the \"Add to Slack\" consent screen)." },
     state: { type: "string", description: "Single-use opaque state parameter bound to this install attempt." },
+    completed: { type: "boolean", description: "True when the install completed synchronously inside this RPC (direct-installed providers)." },
   }}
 />
 
@@ -727,6 +784,7 @@ AgentChannelStatus contains system-managed state for an agent channel.
   type={{
     installState: { type: "AgentChannelInstallState", description: "Install lifecycle of the provider connection.", typeDescriptionLink: "#agentchannelinstallstate" },
     slack: { type: "SlackInstallStatus", description: "Slack workspace install facts.", typeDescriptionLink: "#slackinstallstatus" },
+    whatsapp: { type: "WhatsAppInstallStatus", description: "WhatsApp Business number install facts.", typeDescriptionLink: "#whatsappinstallstatus" },
     credentialsEnvironmentId: { type: "string", description: "ID of the system-managed Environment holding this connection's provider credentials (e.g. the Slack bot token)." },
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
   }}
@@ -745,6 +803,20 @@ SlackInstallStatus holds the facts observed when the Stigmer Slack app was insta
     installerSlackUserId: { type: "string", description: "Slack user ID of the person who performed the install." },
     installedAt: { type: "string", description: "When the install completed." },
     channelAppId: { type: "string", description: "ID of the ChannelApp the install went through; empty for installs of the platform's shared Stigmer app." },
+  }}
+/>
+
+### WhatsAppInstallStatus
+
+WhatsAppInstallStatus holds the facts observed when a WhatsApp Business number was connected through the Meta Cloud API.
+
+<TypeTable
+  type={{
+    phoneNumberId: { type: "string", description: "Phone number ID the install validated and bound, e.g. \"106540352242922\"." },
+    displayPhoneNumber: { type: "string", description: "Human-readable phone number at install time, e.g. \"+1 555 025 3483\"." },
+    verifiedName: { type: "string", description: "WhatsApp Business verified display name of the number at install time." },
+    channelAppId: { type: "string", description: "ID of the ChannelApp the install went through." },
+    installedAt: { type: "string", description: "When the install completed." },
   }}
 />
 

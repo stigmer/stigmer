@@ -26,6 +26,9 @@ message AgentChannelStatus {
   oneof provider_status {
     // Slack workspace install facts.
     SlackInstallStatus slack = 2;
+
+    // WhatsApp Business number install facts.
+    WhatsAppInstallStatus whatsapp = 4;
   }
 
   // ID of the system-managed Environment holding this connection's
@@ -106,4 +109,43 @@ message SlackInstallStatus {
   // as amended by T04 item 2). Existing platform installs predate the
   // field; a missing value means the platform app — no backfill.
   string channel_app_id = 7;
+}
+
+// WhatsAppInstallStatus holds the facts observed when a WhatsApp Business
+// number was connected through the Meta Cloud API.
+//
+// @internal
+// Written by the direct-install path (sole writer, DD-WA-1): the installer
+// validates spec.whatsapp.phone_number_id against the Graph API and echoes
+// it here alongside the observed display facts. The echo is deliberate —
+// routing and uniqueness read STATUS (the install fact), mirroring
+// status.slack.team_id, so a later spec edit can never silently re-route
+// live traffic; the number binding changes only through a re-install.
+message WhatsAppInstallStatus {
+  // Phone number ID the install validated and bound, e.g. "106540352242922".
+  //
+  // @internal
+  // The inbound routing key: the webhook receiver resolves the
+  // AgentChannel from the event payload's metadata.phone_number_id. One
+  // INSTALLED channel per (phone_number_id, channel_app_id), enforced by
+  // a compound partial-unique index on installed rows — the
+  // status.slack.team_id mechanism (decision 007) applied to WhatsApp.
+  string phone_number_id = 1;
+
+  // Human-readable phone number at install time, e.g. "+1 555 025 3483".
+  string display_phone_number = 2;
+
+  // WhatsApp Business verified display name of the number at install time.
+  string verified_name = 3;
+
+  // ID of the ChannelApp the install went through. Always set for
+  // WhatsApp — every WhatsApp channel installs through your own Meta app.
+  //
+  // @internal
+  // Same discriminator role as SlackInstallStatus.channel_app_id; never
+  // empty because WhatsApp has no platform app (DD-WA-2).
+  string channel_app_id = 4;
+
+  // When the install completed.
+  google.protobuf.Timestamp installed_at = 5;
 }

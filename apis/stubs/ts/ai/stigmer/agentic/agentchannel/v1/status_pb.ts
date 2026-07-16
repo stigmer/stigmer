@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3N0YXR1cy5wcm90bxIiYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MSKqAgoSQWdlbnRDaGFubmVsU3RhdHVzElMKDWluc3RhbGxfc3RhdGUYASABKA4yPC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbEluc3RhbGxTdGF0ZRJHCgVzbGFjaxgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuU2xhY2tJbnN0YWxsU3RhdHVzSAASIgoaY3JlZGVudGlhbHNfZW52aXJvbm1lbnRfaWQYAyABKAkSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdEIRCg9wcm92aWRlcl9zdGF0dXMi0AEKElNsYWNrSW5zdGFsbFN0YXR1cxIPCgd0ZWFtX2lkGAEgASgJEhEKCXRlYW1fbmFtZRgCIAEoCRITCgtib3RfdXNlcl9pZBgDIAEoCRIWCg5ncmFudGVkX3Njb3BlcxgEIAMoCRIfChdpbnN0YWxsZXJfc2xhY2tfdXNlcl9pZBgFIAEoCRIwCgxpbnN0YWxsZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhYKDmNoYW5uZWxfYXBwX2lkGAcgASgJKngKGEFnZW50Q2hhbm5lbEluc3RhbGxTdGF0ZRIrCidhZ2VudF9jaGFubmVsX2luc3RhbGxfc3RhdGVfdW5zcGVjaWZpZWQQABITCg9wZW5kaW5nX2luc3RhbGwQARINCglpbnN0YWxsZWQQAhILCgdyZXZva2VkEANiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status, file_google_protobuf_timestamp]);
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3N0YXR1cy5wcm90bxIiYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MSL5AgoSQWdlbnRDaGFubmVsU3RhdHVzElMKDWluc3RhbGxfc3RhdGUYASABKA4yPC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkFnZW50Q2hhbm5lbEluc3RhbGxTdGF0ZRJHCgVzbGFjaxgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuU2xhY2tJbnN0YWxsU3RhdHVzSAASTQoId2hhdHNhcHAYBCABKAsyOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLldoYXRzQXBwSW5zdGFsbFN0YXR1c0gAEiIKGmNyZWRlbnRpYWxzX2Vudmlyb25tZW50X2lkGAMgASgJEj8KBWF1ZGl0GGMgASgLMjAuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRCEQoPcHJvdmlkZXJfc3RhdHVzItABChJTbGFja0luc3RhbGxTdGF0dXMSDwoHdGVhbV9pZBgBIAEoCRIRCgl0ZWFtX25hbWUYAiABKAkSEwoLYm90X3VzZXJfaWQYAyABKAkSFgoOZ3JhbnRlZF9zY29wZXMYBCADKAkSHwoXaW5zdGFsbGVyX3NsYWNrX3VzZXJfaWQYBSABKAkSMAoMaW5zdGFsbGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIWCg5jaGFubmVsX2FwcF9pZBgHIAEoCSKvAQoVV2hhdHNBcHBJbnN0YWxsU3RhdHVzEhcKD3Bob25lX251bWJlcl9pZBgBIAEoCRIcChRkaXNwbGF5X3Bob25lX251bWJlchgCIAEoCRIVCg12ZXJpZmllZF9uYW1lGAMgASgJEhYKDmNoYW5uZWxfYXBwX2lkGAQgASgJEjAKDGluc3RhbGxlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAqeAoYQWdlbnRDaGFubmVsSW5zdGFsbFN0YXRlEisKJ2FnZW50X2NoYW5uZWxfaW5zdGFsbF9zdGF0ZV91bnNwZWNpZmllZBAAEhMKD3BlbmRpbmdfaW5zdGFsbBABEg0KCWluc3RhbGxlZBACEgsKB3Jldm9rZWQQA2IGcHJvdG8z", [file_ai_stigmer_commons_apiresource_status, file_google_protobuf_timestamp]);
 
 /**
  * AgentChannelStatus contains system-managed state for an agent channel.
@@ -54,6 +54,14 @@ export type AgentChannelStatus = Message<"ai.stigmer.agentic.agentchannel.v1.Age
      */
     value: SlackInstallStatus;
     case: "slack";
+  } | {
+    /**
+     * WhatsApp Business number install facts.
+     *
+     * @generated from field: ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4;
+     */
+    value: WhatsAppInstallStatus;
+    case: "whatsapp";
   } | { case: undefined; value?: undefined };
 
   /**
@@ -166,6 +174,76 @@ export type SlackInstallStatus = Message<"ai.stigmer.agentic.agentchannel.v1.Sla
  */
 export const SlackInstallStatusSchema: GenMessage<SlackInstallStatus> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentchannel_v1_status, 1);
+
+/**
+ * WhatsAppInstallStatus holds the facts observed when a WhatsApp Business
+ * number was connected through the Meta Cloud API.
+ *
+ * @internal
+ * Written by the direct-install path (sole writer, DD-WA-1): the installer
+ * validates spec.whatsapp.phone_number_id against the Graph API and echoes
+ * it here alongside the observed display facts. The echo is deliberate —
+ * routing and uniqueness read STATUS (the install fact), mirroring
+ * status.slack.team_id, so a later spec edit can never silently re-route
+ * live traffic; the number binding changes only through a re-install.
+ *
+ * @generated from message ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus
+ */
+export type WhatsAppInstallStatus = Message<"ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus"> & {
+  /**
+   * Phone number ID the install validated and bound, e.g. "106540352242922".
+   *
+   * @internal
+   * The inbound routing key: the webhook receiver resolves the
+   * AgentChannel from the event payload's metadata.phone_number_id. One
+   * INSTALLED channel per (phone_number_id, channel_app_id), enforced by
+   * a compound partial-unique index on installed rows — the
+   * status.slack.team_id mechanism (decision 007) applied to WhatsApp.
+   *
+   * @generated from field: string phone_number_id = 1;
+   */
+  phoneNumberId: string;
+
+  /**
+   * Human-readable phone number at install time, e.g. "+1 555 025 3483".
+   *
+   * @generated from field: string display_phone_number = 2;
+   */
+  displayPhoneNumber: string;
+
+  /**
+   * WhatsApp Business verified display name of the number at install time.
+   *
+   * @generated from field: string verified_name = 3;
+   */
+  verifiedName: string;
+
+  /**
+   * ID of the ChannelApp the install went through. Always set for
+   * WhatsApp — every WhatsApp channel installs through your own Meta app.
+   *
+   * @internal
+   * Same discriminator role as SlackInstallStatus.channel_app_id; never
+   * empty because WhatsApp has no platform app (DD-WA-2).
+   *
+   * @generated from field: string channel_app_id = 4;
+   */
+  channelAppId: string;
+
+  /**
+   * When the install completed.
+   *
+   * @generated from field: google.protobuf.Timestamp installed_at = 5;
+   */
+  installedAt?: Timestamp;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus.
+ * Use `create(WhatsAppInstallStatusSchema)` to create a new message.
+ */
+export const WhatsAppInstallStatusSchema: GenMessage<WhatsAppInstallStatus> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_status, 2);
 
 /**
  * AgentChannelInstallState tracks the provider install lifecycle.

@@ -74,6 +74,7 @@ private static final long serialVersionUID = 0L;
       implements com.google.protobuf.Internal.EnumLite,
           com.google.protobuf.AbstractMessage.InternalOneOfEnum {
     SLACK(1),
+    WHATSAPP(2),
     PROVIDERCONFIG_NOT_SET(0);
     private final int value;
     private ProviderConfigCase(int value) {
@@ -92,6 +93,7 @@ private static final long serialVersionUID = 0L;
     public static ProviderConfigCase forNumber(int value) {
       switch (value) {
         case 1: return SLACK;
+        case 2: return WHATSAPP;
         case 0: return PROVIDERCONFIG_NOT_SET;
         default: return null;
       }
@@ -150,6 +152,49 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfig.getDefaultInstance();
   }
 
+  public static final int WHATSAPP_FIELD_NUMBER = 2;
+  /**
+   * <pre>
+   * WhatsApp (Meta) app credentials.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2 [json_name = "whatsapp"];</code>
+   * @return Whether the whatsapp field is set.
+   */
+  @java.lang.Override
+  public boolean hasWhatsapp() {
+    return providerConfigCase_ == 2;
+  }
+  /**
+   * <pre>
+   * WhatsApp (Meta) app credentials.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2 [json_name = "whatsapp"];</code>
+   * @return The whatsapp.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig getWhatsapp() {
+    if (providerConfigCase_ == 2) {
+       return (ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig) providerConfig_;
+    }
+    return ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * WhatsApp (Meta) app credentials.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2 [json_name = "whatsapp"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfigOrBuilder getWhatsappOrBuilder() {
+    if (providerConfigCase_ == 2) {
+       return (ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig) providerConfig_;
+    }
+    return ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -167,6 +212,9 @@ private static final long serialVersionUID = 0L;
     if (providerConfigCase_ == 1) {
       output.writeMessage(1, (ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfig) providerConfig_);
     }
+    if (providerConfigCase_ == 2) {
+      output.writeMessage(2, (ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig) providerConfig_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -179,6 +227,10 @@ private static final long serialVersionUID = 0L;
     if (providerConfigCase_ == 1) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(1, (ai.stigmer.agentic.channelapp.v1.SlackChannelAppConfig) providerConfig_);
+    }
+    if (providerConfigCase_ == 2) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(2, (ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig) providerConfig_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -201,6 +253,10 @@ private static final long serialVersionUID = 0L;
         if (!getSlack()
             .equals(other.getSlack())) return false;
         break;
+      case 2:
+        if (!getWhatsapp()
+            .equals(other.getWhatsapp())) return false;
+        break;
       case 0:
       default:
     }
@@ -219,6 +275,10 @@ private static final long serialVersionUID = 0L;
       case 1:
         hash = (37 * hash) + SLACK_FIELD_NUMBER;
         hash = (53 * hash) + getSlack().hashCode();
+        break;
+      case 2:
+        hash = (37 * hash) + WHATSAPP_FIELD_NUMBER;
+        hash = (53 * hash) + getWhatsapp().hashCode();
         break;
       case 0:
       default:
@@ -376,6 +436,9 @@ private static final long serialVersionUID = 0L;
       if (slackBuilder_ != null) {
         slackBuilder_.clear();
       }
+      if (whatsappBuilder_ != null) {
+        whatsappBuilder_.clear();
+      }
       providerConfigCase_ = 0;
       providerConfig_ = null;
       return this;
@@ -421,6 +484,10 @@ private static final long serialVersionUID = 0L;
           slackBuilder_ != null) {
         result.providerConfig_ = slackBuilder_.build();
       }
+      if (providerConfigCase_ == 2 &&
+          whatsappBuilder_ != null) {
+        result.providerConfig_ = whatsappBuilder_.build();
+      }
     }
 
     @java.lang.Override
@@ -438,6 +505,10 @@ private static final long serialVersionUID = 0L;
       switch (other.getProviderConfigCase()) {
         case SLACK: {
           mergeSlack(other.getSlack());
+          break;
+        }
+        case WHATSAPP: {
+          mergeWhatsapp(other.getWhatsapp());
           break;
         }
         case PROVIDERCONFIG_NOT_SET: {
@@ -477,6 +548,13 @@ private static final long serialVersionUID = 0L;
               providerConfigCase_ = 1;
               break;
             } // case 10
+            case 18: {
+              input.readMessage(
+                  internalGetWhatsappFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              providerConfigCase_ = 2;
+              break;
+            } // case 18
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -685,6 +763,184 @@ private static final long serialVersionUID = 0L;
       providerConfigCase_ = 1;
       onChanged();
       return slackBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig, ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig.Builder, ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfigOrBuilder> whatsappBuilder_;
+    /**
+     * <pre>
+     * WhatsApp (Meta) app credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2 [json_name = "whatsapp"];</code>
+     * @return Whether the whatsapp field is set.
+     */
+    @java.lang.Override
+    public boolean hasWhatsapp() {
+      return providerConfigCase_ == 2;
+    }
+    /**
+     * <pre>
+     * WhatsApp (Meta) app credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2 [json_name = "whatsapp"];</code>
+     * @return The whatsapp.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig getWhatsapp() {
+      if (whatsappBuilder_ == null) {
+        if (providerConfigCase_ == 2) {
+          return (ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig) providerConfig_;
+        }
+        return ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig.getDefaultInstance();
+      } else {
+        if (providerConfigCase_ == 2) {
+          return whatsappBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * WhatsApp (Meta) app credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2 [json_name = "whatsapp"];</code>
+     */
+    public Builder setWhatsapp(ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig value) {
+      if (whatsappBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        providerConfig_ = value;
+        onChanged();
+      } else {
+        whatsappBuilder_.setMessage(value);
+      }
+      providerConfigCase_ = 2;
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp (Meta) app credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2 [json_name = "whatsapp"];</code>
+     */
+    public Builder setWhatsapp(
+        ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig.Builder builderForValue) {
+      if (whatsappBuilder_ == null) {
+        providerConfig_ = builderForValue.build();
+        onChanged();
+      } else {
+        whatsappBuilder_.setMessage(builderForValue.build());
+      }
+      providerConfigCase_ = 2;
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp (Meta) app credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2 [json_name = "whatsapp"];</code>
+     */
+    public Builder mergeWhatsapp(ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig value) {
+      if (whatsappBuilder_ == null) {
+        if (providerConfigCase_ == 2 &&
+            providerConfig_ != ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig.getDefaultInstance()) {
+          providerConfig_ = ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig.newBuilder((ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig) providerConfig_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          providerConfig_ = value;
+        }
+        onChanged();
+      } else {
+        if (providerConfigCase_ == 2) {
+          whatsappBuilder_.mergeFrom(value);
+        } else {
+          whatsappBuilder_.setMessage(value);
+        }
+      }
+      providerConfigCase_ = 2;
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp (Meta) app credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2 [json_name = "whatsapp"];</code>
+     */
+    public Builder clearWhatsapp() {
+      if (whatsappBuilder_ == null) {
+        if (providerConfigCase_ == 2) {
+          providerConfigCase_ = 0;
+          providerConfig_ = null;
+          onChanged();
+        }
+      } else {
+        if (providerConfigCase_ == 2) {
+          providerConfigCase_ = 0;
+          providerConfig_ = null;
+        }
+        whatsappBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp (Meta) app credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2 [json_name = "whatsapp"];</code>
+     */
+    public ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig.Builder getWhatsappBuilder() {
+      return internalGetWhatsappFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * WhatsApp (Meta) app credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2 [json_name = "whatsapp"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfigOrBuilder getWhatsappOrBuilder() {
+      if ((providerConfigCase_ == 2) && (whatsappBuilder_ != null)) {
+        return whatsappBuilder_.getMessageOrBuilder();
+      } else {
+        if (providerConfigCase_ == 2) {
+          return (ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig) providerConfig_;
+        }
+        return ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * WhatsApp (Meta) app credentials.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2 [json_name = "whatsapp"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig, ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig.Builder, ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfigOrBuilder> 
+        internalGetWhatsappFieldBuilder() {
+      if (whatsappBuilder_ == null) {
+        if (!(providerConfigCase_ == 2)) {
+          providerConfig_ = ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig.getDefaultInstance();
+        }
+        whatsappBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig, ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig.Builder, ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfigOrBuilder>(
+                (ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig) providerConfig_,
+                getParentForChildren(),
+                isClean());
+        providerConfig_ = null;
+      }
+      providerConfigCase_ = 2;
+      onChanged();
+      return whatsappBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.channelapp.v1.ChannelAppSpec)

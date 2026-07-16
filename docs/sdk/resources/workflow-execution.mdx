@@ -1263,7 +1263,7 @@ Input for the submitApproval RPC.
   type={{
     executionId: { type: "string", description: "ID of the workflow execution." },
     toolCallId: { type: "string", description: "ID of the tool call to approve, skip, or reject." },
-    action: { type: "ApprovalAction", description: "Approval decision: APPROVE, SKIP, or REJECT.", typeDescriptionLink: "#approvalaction" },
+    action: { type: "ApprovalAction", description: "Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.", typeDescriptionLink: "#approvalaction" },
     comment: { type: "string", description: "Optional reason or comment for the decision, stored in the audit trail." },
   }}
 />

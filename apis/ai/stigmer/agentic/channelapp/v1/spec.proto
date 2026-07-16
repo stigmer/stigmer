@@ -24,12 +24,16 @@ message ChannelAppSpec {
   // Provider this app belongs to. Exactly one must be specified.
   //
   // @internal
-  // Adding WhatsApp (T05) extends this oneof; it touches zero kinds.
+  // Adding a provider extends this oneof; it touches zero kinds (the
+  // pattern WhatsApp proved in T05).
   oneof provider_config {
     option (buf.validate.oneof).required = true;
 
     // Slack app credentials.
     SlackChannelAppConfig slack = 1;
+
+    // WhatsApp (Meta) app credentials.
+    WhatsAppChannelAppConfig whatsapp = 2;
   }
 }
 
@@ -59,4 +63,40 @@ message SlackChannelAppConfig {
   // Signing secret used to verify Slack webhook requests from this app.
   // Encrypted at rest, redacted in responses and logs.
   string signing_secret = 3 [(buf.validate.field).string.min_len = 1];
+}
+
+// WhatsAppChannelAppConfig holds the credentials of a customer-created
+// Meta app with WhatsApp Business access.
+//
+// The values come from the app's dashboard on developers.facebook.com.
+// The app's webhook must be configured with this ChannelApp's events URL
+// and verify token — the console shows both after the app is registered.
+//
+// @internal
+// DD-WA-3: every WhatsApp credential is per-app authored (Meta's Cloud
+// API has no per-install OAuth), so they all live here — no managed
+// Environment, no OAuthGrant row; AgentChannelStatus.credentials_environment_id
+// stays empty for WhatsApp channels. Webhook attribution is by the per-app
+// request path (/webhook/whatsapp/{channelAppId}), matching Slack's
+// per-app URL posture: Meta's GET verification handshake carries no app
+// identity, and the POST signature (X-Hub-Signature-256, HMAC over the
+// raw body with app_secret) must verify before any parse.
+message WhatsAppChannelAppConfig {
+  // Meta app ID, from the app dashboard's Basic Settings.
+  string app_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Meta app secret used to verify webhook signatures from this app.
+  // Encrypted at rest, redacted in responses and logs.
+  string app_secret = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Long-lived Cloud API access token (system-user token) used to send
+  // messages on behalf of the WhatsApp Business account.
+  // Encrypted at rest, redacted in responses and logs.
+  string access_token = 3 [(buf.validate.field).string.min_len = 1];
+
+  // Verify token echoed during Meta's webhook verification handshake.
+  // Choose any opaque value and paste the same value into the app's
+  // webhook configuration.
+  // Encrypted at rest, redacted in responses and logs.
+  string verify_token = 4 [(buf.validate.field).string.min_len = 1];
 }

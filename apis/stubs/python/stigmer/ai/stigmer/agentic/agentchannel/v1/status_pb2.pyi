@@ -23,16 +23,18 @@ installed: AgentChannelInstallState
 revoked: AgentChannelInstallState
 
 class AgentChannelStatus(_message.Message):
-    __slots__ = ("install_state", "slack", "credentials_environment_id", "audit")
+    __slots__ = ("install_state", "slack", "whatsapp", "credentials_environment_id", "audit")
     INSTALL_STATE_FIELD_NUMBER: _ClassVar[int]
     SLACK_FIELD_NUMBER: _ClassVar[int]
+    WHATSAPP_FIELD_NUMBER: _ClassVar[int]
     CREDENTIALS_ENVIRONMENT_ID_FIELD_NUMBER: _ClassVar[int]
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     install_state: AgentChannelInstallState
     slack: SlackInstallStatus
+    whatsapp: WhatsAppInstallStatus
     credentials_environment_id: str
     audit: _status_pb2.ApiResourceAudit
-    def __init__(self, install_state: _Optional[_Union[AgentChannelInstallState, str]] = ..., slack: _Optional[_Union[SlackInstallStatus, _Mapping]] = ..., credentials_environment_id: _Optional[str] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...
+    def __init__(self, install_state: _Optional[_Union[AgentChannelInstallState, str]] = ..., slack: _Optional[_Union[SlackInstallStatus, _Mapping]] = ..., whatsapp: _Optional[_Union[WhatsAppInstallStatus, _Mapping]] = ..., credentials_environment_id: _Optional[str] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...
 
 class SlackInstallStatus(_message.Message):
     __slots__ = ("team_id", "team_name", "bot_user_id", "granted_scopes", "installer_slack_user_id", "installed_at", "channel_app_id")
@@ -51,3 +53,17 @@ class SlackInstallStatus(_message.Message):
     installed_at: _timestamp_pb2.Timestamp
     channel_app_id: str
     def __init__(self, team_id: _Optional[str] = ..., team_name: _Optional[str] = ..., bot_user_id: _Optional[str] = ..., granted_scopes: _Optional[_Iterable[str]] = ..., installer_slack_user_id: _Optional[str] = ..., installed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., channel_app_id: _Optional[str] = ...) -> None: ...
+
+class WhatsAppInstallStatus(_message.Message):
+    __slots__ = ("phone_number_id", "display_phone_number", "verified_name", "channel_app_id", "installed_at")
+    PHONE_NUMBER_ID_FIELD_NUMBER: _ClassVar[int]
+    DISPLAY_PHONE_NUMBER_FIELD_NUMBER: _ClassVar[int]
+    VERIFIED_NAME_FIELD_NUMBER: _ClassVar[int]
+    CHANNEL_APP_ID_FIELD_NUMBER: _ClassVar[int]
+    INSTALLED_AT_FIELD_NUMBER: _ClassVar[int]
+    phone_number_id: str
+    display_phone_number: str
+    verified_name: str
+    channel_app_id: str
+    installed_at: _timestamp_pb2.Timestamp
+    def __init__(self, phone_number_id: _Optional[str] = ..., display_phone_number: _Optional[str] = ..., verified_name: _Optional[str] = ..., channel_app_id: _Optional[str] = ..., installed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...

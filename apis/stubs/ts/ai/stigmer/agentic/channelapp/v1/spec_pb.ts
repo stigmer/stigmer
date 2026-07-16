@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/channelapp/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_channelapp_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvY2hhbm5lbGFwcC92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MSJ0Cg5DaGFubmVsQXBwU3BlYxJICgVzbGFjaxgBIAEoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLlNsYWNrQ2hhbm5lbEFwcENvbmZpZ0gAQhgKD3Byb3ZpZGVyX2NvbmZpZxIFukgCCAEidAoVU2xhY2tDaGFubmVsQXBwQ29uZmlnEhoKCWNsaWVudF9pZBgBIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAIgASgJQge6SARyAhABEh8KDnNpZ25pbmdfc2VjcmV0GAMgASgJQge6SARyAhABYgZwcm90bzM", [file_buf_validate_validate]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvY2hhbm5lbGFwcC92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MSLEAQoOQ2hhbm5lbEFwcFNwZWMSSAoFc2xhY2sYASABKAsyNy5haS5zdGlnbWVyLmFnZW50aWMuY2hhbm5lbGFwcC52MS5TbGFja0NoYW5uZWxBcHBDb25maWdIABJOCgh3aGF0c2FwcBgCIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy5jaGFubmVsYXBwLnYxLldoYXRzQXBwQ2hhbm5lbEFwcENvbmZpZ0gAQhgKD3Byb3ZpZGVyX2NvbmZpZxIFukgCCAEidAoVU2xhY2tDaGFubmVsQXBwQ29uZmlnEhoKCWNsaWVudF9pZBgBIAEoCUIHukgEcgIQARIeCg1jbGllbnRfc2VjcmV0GAIgASgJQge6SARyAhABEh8KDnNpZ25pbmdfc2VjcmV0GAMgASgJQge6SARyAhABIo4BChhXaGF0c0FwcENoYW5uZWxBcHBDb25maWcSFwoGYXBwX2lkGAEgASgJQge6SARyAhABEhsKCmFwcF9zZWNyZXQYAiABKAlCB7pIBHICEAESHQoMYWNjZXNzX3Rva2VuGAMgASgJQge6SARyAhABEh0KDHZlcmlmeV90b2tlbhgEIAEoCUIHukgEcgIQAWIGcHJvdG8z", [file_buf_validate_validate]);
 
 /**
  * ChannelAppSpec defines the provider app credentials for a channel app.
@@ -38,7 +38,8 @@ export type ChannelAppSpec = Message<"ai.stigmer.agentic.channelapp.v1.ChannelAp
    * Provider this app belongs to. Exactly one must be specified.
    *
    * @internal
-   * Adding WhatsApp (T05) extends this oneof; it touches zero kinds.
+   * Adding a provider extends this oneof; it touches zero kinds (the
+   * pattern WhatsApp proved in T05).
    *
    * @generated from oneof ai.stigmer.agentic.channelapp.v1.ChannelAppSpec.provider_config
    */
@@ -50,6 +51,14 @@ export type ChannelAppSpec = Message<"ai.stigmer.agentic.channelapp.v1.ChannelAp
      */
     value: SlackChannelAppConfig;
     case: "slack";
+  } | {
+    /**
+     * WhatsApp (Meta) app credentials.
+     *
+     * @generated from field: ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig whatsapp = 2;
+     */
+    value: WhatsAppChannelAppConfig;
+    case: "whatsapp";
   } | { case: undefined; value?: undefined };
 };
 
@@ -110,4 +119,67 @@ export type SlackChannelAppConfig = Message<"ai.stigmer.agentic.channelapp.v1.Sl
  */
 export const SlackChannelAppConfigSchema: GenMessage<SlackChannelAppConfig> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_channelapp_v1_spec, 1);
+
+/**
+ * WhatsAppChannelAppConfig holds the credentials of a customer-created
+ * Meta app with WhatsApp Business access.
+ *
+ * The values come from the app's dashboard on developers.facebook.com.
+ * The app's webhook must be configured with this ChannelApp's events URL
+ * and verify token — the console shows both after the app is registered.
+ *
+ * @internal
+ * DD-WA-3: every WhatsApp credential is per-app authored (Meta's Cloud
+ * API has no per-install OAuth), so they all live here — no managed
+ * Environment, no OAuthGrant row; AgentChannelStatus.credentials_environment_id
+ * stays empty for WhatsApp channels. Webhook attribution is by the per-app
+ * request path (/webhook/whatsapp/{channelAppId}), matching Slack's
+ * per-app URL posture: Meta's GET verification handshake carries no app
+ * identity, and the POST signature (X-Hub-Signature-256, HMAC over the
+ * raw body with app_secret) must verify before any parse.
+ *
+ * @generated from message ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig
+ */
+export type WhatsAppChannelAppConfig = Message<"ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig"> & {
+  /**
+   * Meta app ID, from the app dashboard's Basic Settings.
+   *
+   * @generated from field: string app_id = 1;
+   */
+  appId: string;
+
+  /**
+   * Meta app secret used to verify webhook signatures from this app.
+   * Encrypted at rest, redacted in responses and logs.
+   *
+   * @generated from field: string app_secret = 2;
+   */
+  appSecret: string;
+
+  /**
+   * Long-lived Cloud API access token (system-user token) used to send
+   * messages on behalf of the WhatsApp Business account.
+   * Encrypted at rest, redacted in responses and logs.
+   *
+   * @generated from field: string access_token = 3;
+   */
+  accessToken: string;
+
+  /**
+   * Verify token echoed during Meta's webhook verification handshake.
+   * Choose any opaque value and paste the same value into the app's
+   * webhook configuration.
+   * Encrypted at rest, redacted in responses and logs.
+   *
+   * @generated from field: string verify_token = 4;
+   */
+  verifyToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.channelapp.v1.WhatsAppChannelAppConfig.
+ * Use `create(WhatsAppChannelAppConfigSchema)` to create a new message.
+ */
+export const WhatsAppChannelAppConfigSchema: GenMessage<WhatsAppChannelAppConfig> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_channelapp_v1_spec, 2);
 

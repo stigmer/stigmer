@@ -310,20 +310,35 @@ func (x *InitiateChannelInstallInput) GetResourceId() string {
 
 // Output of the initiate-install RPC.
 //
-// The caller redirects the user to authorization_url; the provider
+// Two install styles share this output. For redirect-installed providers
+// (Slack) the caller redirects the user to authorization_url; the provider
 // redirects back to the console, which completes the install with the
-// completeInstall RPC.
+// completeInstall RPC. For direct-installed providers (WhatsApp) the
+// install completes inside this RPC: completed is true and there is
+// nothing to redirect to — refresh the channel to see its install facts.
 type InitiateChannelInstallOutput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Provider authorization URL to redirect the installing user to
-	// (for Slack: the "Add to Slack" consent screen).
+	// (for Slack: the "Add to Slack" consent screen). Empty when the
+	// install completed directly.
 	AuthorizationUrl string `protobuf:"bytes,1,opt,name=authorization_url,json=authorizationUrl,proto3" json:"authorization_url,omitempty"`
 	// Single-use opaque state parameter bound to this install attempt.
+	// Empty when the install completed directly.
 	//
 	// @internal
 	// Persisted server-side (PendingOAuthStateDocument pattern) and consumed
 	// atomically by completeInstall; expired or replayed states are rejected.
-	State         string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	State string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	// True when the install completed synchronously inside this RPC
+	// (direct-installed providers). Clients branch on this field — never on
+	// provider knowledge of their own — so the server stays the single
+	// source of install-style truth.
+	//
+	// @internal
+	// DD-WA-1b. The seam behind it is the sealed ChannelInstaller split:
+	// AuthorizationRedirectInstaller populates authorization_url + state;
+	// DirectInstaller populates completed.
+	Completed     bool `protobuf:"varint,3,opt,name=completed,proto3" json:"completed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -370,6 +385,13 @@ func (x *InitiateChannelInstallOutput) GetState() string {
 		return x.State
 	}
 	return ""
+}
+
+func (x *InitiateChannelInstallOutput) GetCompleted() bool {
+	if x != nil {
+		return x.Completed
+	}
+	return false
 }
 
 // Input for completing a provider install flow.
@@ -463,10 +485,11 @@ const file_ai_stigmer_agentic_agentchannel_v1_io_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"F\n" +
 	"\x1bInitiateChannelInstallInput\x12'\n" +
 	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
-	"resourceId\"a\n" +
+	"resourceId\"\x7f\n" +
 	"\x1cInitiateChannelInstallOutput\x12+\n" +
 	"\x11authorization_url\x18\x01 \x01(\tR\x10authorizationUrl\x12\x14\n" +
-	"\x05state\x18\x02 \x01(\tR\x05state\"\x80\x01\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\x12\x1c\n" +
+	"\tcompleted\x18\x03 \x01(\bR\tcompleted\"\x80\x01\n" +
 	"\x1bCompleteChannelInstallInput\x12'\n" +
 	"\vresource_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"resourceId\x12\x1c\n" +
