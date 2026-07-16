@@ -208,6 +208,7 @@ export function AgentChannelsPanel({
                 size="xs"
                 icon={<provider.Icon className="size-3" />}
                 onClick={() => handleConnect(null)}
+                data-cursor-target="connect-slack"
               >
                 Connect to {provider.label}
               </Button>
@@ -583,16 +584,21 @@ function ChannelEmptyState({
         "right where they work — direct messages and channel @mentions, " +
         "with policy and billing enforced by Stigmer."
       }
-      action={
-        canCreate
-          ? {
-              label: `Connect to ${provider.label}`,
-              onClick: onConnectClick,
-              icon: <provider.Icon className="size-3" />,
-            }
-          : undefined
-      }
-    />
+    >
+      {/* Rendered via the children slot (not `action`) so the button can
+          carry the docs-demo cursor target, which EmptyState's action
+          config does not thread through. */}
+      {canCreate && (
+        <Button
+          variant="primary"
+          icon={<provider.Icon className="size-3" />}
+          onClick={onConnectClick}
+          data-cursor-target="connect-slack"
+        >
+          Connect to {provider.label}
+        </Button>
+      )}
+    </EmptyState>
   );
 }
 

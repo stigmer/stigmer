@@ -34,4 +34,8 @@ export const glossary: Record<string, string> = {
     "A separate space (like testing or production) where the same Agent can run with different settings.",
   Project:
     "A container within an Organization that groups related Agents, Workflows, and resources together.",
+  "Agent Channel":
+    "A connection that puts an Agent into an external messaging platform — Slack today — so people can chat with it where they already work.",
+  "Channel App":
+    "A customer-owned messaging-platform app (your own Slack app) that an Agent Channel can install through instead of the shared Stigmer app, so the bot carries your name.",
 };

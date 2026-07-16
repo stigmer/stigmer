@@ -398,6 +398,7 @@ function ConnectSlackDialogBody({
               onClick={() => void handleConnect()}
               disabled={busy}
               icon={<SlackMarkIcon className="size-3.5" />}
+              data-cursor-target="dialog-connect-slack"
             >
               {error ? "Try again" : channel ? "Reconnect to Slack" : "Connect to Slack"}
             </Button>

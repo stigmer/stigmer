@@ -82,7 +82,10 @@ PlatformClient | PlatformClient, `kind: platform_client` | PlatformClient | |
 execution | Agent Execution | AgentExecution, `kind: AgentExecution` | Agent
 Execution | | **Workflow Execution** | --- | run, execution | Workflow Execution
 | WorkflowExecution, `kind: WorkflowExecution` | Workflow Execution | |
-**Sub-Agent** | --- | --- | Sub-Agent | SubAgent, `sub_agents` | Sub-Agent |
+**Sub-Agent** | --- | --- | Sub-Agent | SubAgent, `sub_agents` | Sub-Agent | |
+**Agent Channel** | --- | --- | channel, Agent Channel | AgentChannel,
+`kind: AgentChannel` | Agent Channel | | **Channel App** | --- | --- | Channel
+App | ChannelApp, `kind: ChannelApp` | Channel App |
 
 Dash (—) means the term should not appear in that context.
 
@@ -609,6 +612,48 @@ One run of a Workflow from start to finish.
 - **Pattern**: Follows Workflow → WorkflowInstance → WorkflowExecution. The
   Instance (`kind: WorkflowInstance`, prefix `win`) sits between the template
   and the execution, holding deployment configuration.
+
+---
+
+#### Agent Channel
+
+A connection that puts an Agent into an external messaging platform---Slack
+today---so people can chat with it where they already work.
+
+- **Capitalize**: Yes, when referring to the Stigmer resource. Lowercase
+  "channel" is fine in prose once the concept is established ("connect a
+  channel," "the channel card").
+- **API surface**: `kind: AgentChannel`, prefix `ach`. proto:
+  `agentchannel/v1/spec.proto`.
+- **Key fields**: `agent_ref`, `enabled`, `slack` (provider config),
+  `environment_refs`, `app_ref`.
+- **Context rule**: On the sales site, say "connect your Agent to Slack" without
+  naming the resource. In how-to docs, introduce as "channel" with a gloss, then
+  use "channel." In reference, use `AgentChannel`.
+- **Note**: Do not confuse with a Slack channel (a room inside a workspace). An
+  Agent Channel connects an Agent to a whole workspace; workspace members then
+  reach it from any conversation. Workspace identity and provider credentials
+  live in `status`, written by the install flow---applying a manifest never
+  touches them.
+
+---
+
+#### Channel App
+
+A customer-owned messaging-platform app (your own Slack app) that an Agent
+Channel can install through instead of the shared Stigmer app, so the bot
+carries your name.
+
+- **Capitalize**: Yes, two words: "Channel App."
+- **API surface**: `kind: ChannelApp`, prefix `chapp`. proto:
+  `channelapp/v1/spec.proto`.
+- **Key fields**: `slack` (`client_id`, `client_secret`, `signing_secret`;
+  secrets are encrypted at rest and redacted in responses).
+- **Context rule**: How-to and reference only. The user-facing phrase is "bring
+  your own Slack app"; Channel App is the resource that stores it.
+- **Note**: Each app is its own bot identity. A workspace hosts one Agent per
+  app, so registering additional Channel Apps is also how several Agents serve
+  the same workspace.
 
 ---
 

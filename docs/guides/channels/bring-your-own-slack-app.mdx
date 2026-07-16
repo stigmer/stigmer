@@ -1,0 +1,117 @@
+---
+title: Bring Your Own Slack App
+description:
+  Register your Organization's own Slack app so the bot carries your name and
+  icon — and so several Agents can serve the same workspace.
+---
+
+By default, an Agent connects to Slack through the platform's shared **Stigmer**
+app: zero setup, and members chat with a bot named Stigmer. When you want the
+bot to carry your own name and icon, register your own Slack app and store it in
+Stigmer as a **Channel App**. Each app is its own bot identity, so registering
+apps is also how several Agents serve one workspace side by side.
+
+<Callout type="info">
+  This guide assumes you have read [Connect an Agent to
+  Slack](/docs/guides/channels/connect-slack). A Channel App changes which Slack
+  app the connect flow installs — not how the flow itself works.
+</Callout>
+
+## When to bring your own app
+
+Two scenarios call for it:
+
+1. **Your brand, not ours.** Members @mention the app's bot name. With the
+   platform app that is always `@Stigmer`. With your own app, it is whatever
+   name you register — `@Acme Support`, for example.
+
+2. **Several Agents in one workspace.** A workspace hosts one Agent per Slack
+   app. To put a second Agent in the same workspace, connect it through a
+   different app.
+
+Setup happens in two steps, because each side mints something the other needs:
+Slack mints the app's credentials, and Stigmer mints the app's webhook address
+once the Channel App exists.
+
+## Step 1 — Create the app and register it
+
+1. In the web console, open **Settings → Channel Apps** and click **Register
+   channel app**.
+2. Enter the **Name**. This becomes the bot name your workspace will @mention,
+   so pick what your team should see — for example `Acme Support Bot`.
+3. The form shows a ready-to-paste **Slack app manifest** for that name. On
+   [api.slack.com/apps](https://api.slack.com/apps?new_app=1), create a new app,
+   choose **From a manifest**, and paste it. The manifest configures the bot
+   user, the OAuth redirect URL, and the exact permissions Stigmer needs —
+   nothing more.
+4. From the new app's **Basic Information** page, copy the **Client ID**,
+   **Client secret**, and **Signing secret** into the form. Stigmer encrypts the
+   secrets at rest and never shows them again.
+5. Click **Register channel app**.
+
+## Step 2 — Finish setup in Slack
+
+The saved Channel App now has its own webhook address — the URL Slack delivers
+this app's events to. The app's detail panel shows it under **Finish setup in
+Slack**.
+
+1. Copy the **Events request URL** from the detail panel.
+2. On your Slack app's **Event Subscriptions** page, enable events and paste it
+   as the request URL. Slack verifies the URL immediately — verification passes
+   because Stigmer checks the request against the signing secret you registered
+   in step 1.
+
+The detail panel also offers the **Completed app manifest** — the same manifest
+with the events URL filled in — if you prefer to re-apply it on the app's
+manifest page instead.
+
+## Connect an Agent through your app
+
+Registration done, the connect flow picks it up automatically:
+
+1. Open the Agent under **Library → Agents**, go to the **Channels** tab, and
+   click **Connect to Slack**.
+2. Under **Connect as**, your app now appears next to the platform Stigmer app.
+   Select it.
+3. Continue the flow as in
+   [Connect an Agent to Slack](/docs/guides/channels/connect-slack). Slack's
+   consent page shows your app's name, and after the install, members @mention
+   your bot — the channel card confirms the serving app.
+
+## What the manifest configures
+
+The generated manifest mirrors the platform app deliberately, with your identity
+on it:
+
+- **Four bot scopes** — read mentions, write chat messages, read direct
+  messages, and drive the assistant surface. Scope minimalism is deliberate: the
+  scope list is the first thing a workspace admin reviews on the consent screen.
+- **Seven bot events** — mentions, direct messages, the assistant surface, and
+  the uninstall/revocation lifecycle.
+- **A shared OAuth redirect URL** — every app, including the platform's,
+  completes the install through the console's callback route.
+- **No Enterprise Grid** — org-wide installs stay unsupported
+  (`org_deploy_enabled: false`), the same as the platform app.
+
+Keep these settings as generated. Trimming scopes or events breaks the channel
+in ways that only show up later — a missing event, for example, means messages
+silently never arrive.
+
+## Rotate credentials or remove the app
+
+Back in **Settings → Channel Apps**, the app's detail panel manages its
+lifecycle:
+
+- **Rotate a secret** — stored secrets display as `***REDACTED***`. Leave a
+  field untouched to keep its value, or paste a new one to rotate it — you can
+  rotate one secret without re-entering the other.
+- **Delete the app** — Stigmer refuses the deletion while any channel still
+  installs through the app. Disconnect those channels first, then delete.
+
+## What's next
+
+Connect your first Agent through the new app — or a second Agent into the same
+workspace. → [Connect an Agent to Slack](/docs/guides/channels/connect-slack)
+
+For every field on the resource, see the
+[ChannelApp reference](/docs/sdk/resources/channel-app).
