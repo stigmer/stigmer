@@ -22,6 +22,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import { createInterface } from "node:readline";
+import { preflightNodeRuntime } from "./preflight.js";
 import { loadConfig } from "./config.js";
 import { initTracing, initMetrics } from "./otel.js";
 import { createStigmerRunner } from "./runner.js";
@@ -283,6 +284,22 @@ function collectTsFiles(dir: string, files: string[] = []): string[] {
 // ─── Entry Point ─────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
+  // Runtime capability gate FIRST: everything below (config load, manager /
+  // static init) eventually imports node:sqlite via the checkpointer chain,
+  // and the raw ERR_UNKNOWN_BUILTIN_MODULE from that import is inscrutable.
+  // In manager mode the host reads the first stdout line as the handshake, so
+  // a fatal IPC error here surfaces verbatim in the host's UI (see
+  // negotiate_ready in crates/stigmer-runner-host/src/host.rs).
+  const preflightError = preflightNodeRuntime();
+  if (preflightError !== null) {
+    if (process.env.STIGMER_RUNNER_MODE === "manager") {
+      sendIpc({ type: "error", message: preflightError, fatal: true });
+    } else {
+      writeStderr(`${preflightError}\n`);
+    }
+    process.exit(1);
+  }
+
   checkBuildFreshness();
 
   const config = loadConfig();
