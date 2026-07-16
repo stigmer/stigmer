@@ -111,6 +111,22 @@ export const AgentChannelCommandController: GenService<{
    * success the channel's status carries the install facts and the
    * channel begins serving (subject to spec.enabled).
    *
+   * Refusals a client should branch on carry a google.rpc.ErrorInfo
+   * detail (domain "stigmer.ai") on the standard grpc-status-details-bin
+   * trailer, alongside the human-readable FAILED_PRECONDITION message:
+   *
+   *   - SLACK_WORKSPACE_ALREADY_CONNECTED — the workspace already hosts
+   *     an agent through this serving app (one agent per workspace per
+   *     app). Metadata: team_name (the occupied workspace),
+   *     channel_app_id (the serving app; empty = platform app).
+   *   - CHANNEL_INSTALL_STATE_INVALID — the state parameter is missing,
+   *     expired, or replayed; restart the install.
+   *   - SLACK_ENTERPRISE_INSTALL_UNSUPPORTED — an Enterprise Grid
+   *     org-wide install was attempted; install into a single workspace.
+   *
+   * Other refusals (unconfigured deployment, provider-refused code
+   * exchange) carry no reason — their message is the interface.
+   *
    * @internal
    * Authorization: requires can_edit on the agent channel — the same bar
    * as initiateInstall (the two halves of one flow). The handler consumes

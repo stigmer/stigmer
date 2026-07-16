@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
+import { getErrorReason, getUserMessage, type ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
 import { Button } from "../button/Button.js";
 import { useChannelAppList } from "../channel-app/useChannelAppList.js";
 import { useDeploymentMode } from "../deployment-mode.js";
@@ -12,6 +14,7 @@ import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { ChannelToolCredentials } from "./ChannelToolCredentials.js";
 import { useConnectSlackChannel, type SlackConnectPhase } from "./useConnectSlackChannel.js";
 import { useCreateAgentChannel } from "./useCreateAgentChannel.js";
+import { useOrgAgentChannelList } from "./useOrgAgentChannelList.js";
 import { SlackMarkIcon } from "./SlackMarkIcon.js";
 
 /** Props for {@link ConnectSlackDialog}. */
@@ -42,6 +45,15 @@ export interface ConnectSlackDialogProps {
    * @default true
    */
   readonly modal?: boolean;
+  /**
+   * Where the host manages Channel Apps (the console passes
+   * `/settings/channel-apps`). When provided, the "Connect as" section
+   * and install refusals render a "Register a channel app" link there.
+   * SDK components never hardcode host routes — hosts inject the
+   * destination (the `onConnectExternal` delegate convention). Absent,
+   * the affordance degrades to plain guidance text.
+   */
+  readonly channelAppsHref?: string;
 }
 
 /**
@@ -70,6 +82,7 @@ export function ConnectSlackDialog({
   channel,
   onChannelsChanged,
   modal = true,
+  channelAppsHref,
 }: ConnectSlackDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -114,6 +127,7 @@ export function ConnectSlackDialog({
           channel={channel ?? null}
           onChannelsChanged={onChannelsChanged}
           onClose={handleClose}
+          channelAppsHref={channelAppsHref}
         />
       )}
     </dialog>
@@ -129,6 +143,7 @@ interface ConnectSlackDialogBodyProps {
   readonly channel: AgentChannel | null;
   readonly onChannelsChanged?: () => void;
   readonly onClose: () => void;
+  readonly channelAppsHref?: string;
 }
 
 function ConnectSlackDialogBody({
@@ -136,6 +151,7 @@ function ConnectSlackDialogBody({
   channel,
   onChannelsChanged,
   onClose,
+  channelAppsHref,
 }: ConnectSlackDialogBodyProps) {
   const deploymentMode = useDeploymentMode();
   const agentName = agent.metadata?.name || agent.metadata?.slug || "this agent";
@@ -159,6 +175,52 @@ function ConnectSlackDialogBody({
   const [appRef, setAppRef] = useState<ResourceRef | null>(null);
   const [installed, setInstalled] = useState<AgentChannel | null>(null);
   const [error, setError] = useState<Error | null>(null);
+
+  // The org's channel apps, fetched once here so the serving-app picker,
+  // the addressing copy, and the advisory all read one consistent list.
+  const { channelApps } = useChannelAppList(org || null);
+  const slackApps = useMemo(
+    () => channelApps.filter((app) => app.spec?.providerConfig?.case === "slack"),
+    [channelApps],
+  );
+
+  // The app the install will (or did) go through: the picker's choice in
+  // create mode, the frozen spec.app_ref on a reconnect. null = platform.
+  const effectiveAppRef = channel
+    ? channel.spec?.appRef?.slug
+      ? { org: channel.spec.appRef.org || org, slug: channel.spec.appRef.slug }
+      : null
+    : appRef;
+  const selectedApp = effectiveAppRef
+    ? slackApps.find((app) => app.metadata?.slug === effectiveAppRef.slug) ?? null
+    : null;
+  // What members type after "@" in Slack. App-level, not agent-level: the
+  // platform app's bot is "Stigmer"; a BYO app's bot carries the name its
+  // manifest declared — which the registration form seeded from the
+  // ChannelApp's own name.
+  const botName = effectiveAppRef
+    ? selectedApp?.metadata?.name || effectiveAppRef.slug
+    : "Stigmer";
+
+  // Workspaces the selected serving app already occupies, matched on the
+  // same key the database enforces uniqueness on: (team, channel app).
+  // Advisory only — the list is permission-bounded, and other orgs'
+  // holds are invisible; completeInstall stays the arbiter.
+  const advisoryActive = deploymentMode === "cloud" && !channel && !installed;
+  const { channels: orgChannels } = useOrgAgentChannelList(
+    advisoryActive && org ? org : null,
+  );
+  const alreadyServed = useMemo(() => {
+    // Platform app installs stamp an empty channel_app_id.
+    const selectedAppId = effectiveAppRef ? selectedApp?.metadata?.id : "";
+    if (selectedAppId === undefined) return [];
+    return orgChannels.filter(
+      (c) =>
+        c.status?.installState === AgentChannelInstallState.installed &&
+        c.status?.providerStatus?.case === "slack" &&
+        c.status.providerStatus.value.channelAppId === selectedAppId,
+    );
+  }, [orgChannels, effectiveAppRef, selectedApp]);
 
   // One click drives the whole journey: (create →) initiate → popup →
   // complete. It must stay a single synchronous entry point — the popup
@@ -237,7 +299,11 @@ function ConnectSlackDialogBody({
             platform&apos;s hosted Slack app.
           </CloudFeatureNotice>
         ) : installed ? (
-          <InstalledSummary channel={installed} agentName={agentName} />
+          <InstalledSummary
+            channel={installed}
+            agentName={agentName}
+            botName={botName}
+          />
         ) : busy ? (
           <FlowProgress phase={slack.phase} onCancel={handleCancel} />
         ) : (
@@ -268,10 +334,16 @@ function ConnectSlackDialogBody({
             {!channel && (
               <ServingAppSection
                 org={org}
+                apps={slackApps}
                 value={appRef}
                 onChange={setAppRef}
                 disabled={busy}
+                channelAppsHref={channelAppsHref}
               />
+            )}
+
+            {alreadyServed.length > 0 && (
+              <AlreadyServedNote botName={botName} channels={alreadyServed} />
             )}
 
             {!channel && (
@@ -289,10 +361,12 @@ function ConnectSlackDialogBody({
               to — pick the one where your team should chat with this agent.
             </p>
             <p className="text-sm text-muted-foreground">
-              Members reach{" "}
-              <span className="font-medium text-foreground">{agentName}</span>{" "}
-              by opening a direct message with the bot, or typing @ in a
-              channel and choosing it from the list.
+              Members reach the agent by opening a direct message with{" "}
+              <span className="font-medium text-foreground">{botName}</span>,
+              or typing @ in a channel and picking{" "}
+              <span className="font-medium text-foreground">{botName}</span>{" "}
+              from the list — it answers as{" "}
+              <span className="font-medium text-foreground">{agentName}</span>.
             </p>
             <p className="text-xs text-muted-foreground">
               Conversations from Slack are billed to{" "}
@@ -301,12 +375,7 @@ function ConnectSlackDialogBody({
             </p>
 
             {error && (
-              <div
-                role="alert"
-                className="rounded-md border border-destructive/30 bg-destructive-subtle px-3 py-2 text-xs text-destructive"
-              >
-                {getUserMessage(error)}
-              </div>
+              <InstallRefusal error={error} channelAppsHref={channelAppsHref} />
             )}
           </>
         )}
@@ -349,28 +418,46 @@ function ConnectSlackDialogBody({
  * channel apps (the bot carries that app's brand, and because each app is
  * its own bot identity, multiple agents can serve one workspace).
  *
- * Rendered only when the org has registered channel apps — with none, the
- * platform app is the only answer and a one-option radio group is noise.
- * Apps are registered under Settings → Channel Apps.
+ * Always rendered so the choice — and the path to registering an app —
+ * is discoverable before the first BYO app exists. With no registered
+ * apps it states the default plainly instead of a one-option radio group
+ * (which would be noise); with apps it offers the picker. Both shapes
+ * carry the register affordance: a link when the host provided
+ * `channelAppsHref`, plain guidance text otherwise.
  */
 function ServingAppSection({
   org,
+  apps,
   value,
   onChange,
   disabled,
+  channelAppsHref,
 }: {
   readonly org: string;
+  readonly apps: readonly ChannelApp[];
   readonly value: ResourceRef | null;
   readonly onChange: (ref: ResourceRef | null) => void;
   readonly disabled: boolean;
+  readonly channelAppsHref?: string;
 }) {
-  const { channelApps } = useChannelAppList(org);
-
-  const slackApps = channelApps.filter(
-    (app) => app.spec?.providerConfig?.case === "slack",
-  );
-  if (slackApps.length === 0) {
-    return null;
+  if (apps.length === 0) {
+    return (
+      <section aria-label="Connect as">
+        <h3 className="mb-1.5 text-xs font-medium text-foreground">
+          Connect as
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          The platform{" "}
+          <span className="font-medium text-foreground">Stigmer</span> app —
+          no setup needed. Want the bot to carry your own name and icon, or
+          several agents in one workspace?{" "}
+          <RegisterChannelAppAffordance channelAppsHref={channelAppsHref}>
+            Register a channel app
+          </RegisterChannelAppAffordance>
+          .
+        </p>
+      </section>
+    );
   }
 
   return (
@@ -387,7 +474,7 @@ function ServingAppSection({
           onSelect={() => onChange(null)}
           disabled={disabled}
         />
-        {slackApps.map((app) => {
+        {apps.map((app) => {
           const slug = app.metadata?.slug ?? "";
           const checked = value?.slug === slug;
           return (
@@ -403,7 +490,136 @@ function ServingAppSection({
           );
         })}
       </div>
+      <p className="mt-1.5 text-xs text-muted-foreground">
+        <RegisterChannelAppAffordance channelAppsHref={channelAppsHref}>
+          Register a channel app
+        </RegisterChannelAppAffordance>
+        .
+      </p>
     </fieldset>
+  );
+}
+
+/**
+ * The path from the connect flow to Channel App registration. A link
+ * when the host told us where registration lives; otherwise the label
+ * plus the console location, so embedded hosts without the route still
+ * leave the user oriented. Children are the label ("Register a channel
+ * app" / "register a channel app") so each call site reads as a sentence.
+ */
+function RegisterChannelAppAffordance({
+  channelAppsHref,
+  children,
+}: {
+  readonly channelAppsHref?: string;
+  readonly children: ReactNode;
+}) {
+  if (!channelAppsHref) {
+    return <>{children} under Settings → Channel Apps</>;
+  }
+  return (
+    <a
+      href={channelAppsHref}
+      className={cn(
+        "font-medium underline underline-offset-2",
+        "hover:no-underline",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+      )}
+    >
+      {children}
+    </a>
+  );
+}
+
+/**
+ * The reason code the server attaches (google.rpc.ErrorInfo, domain
+ * stigmer.ai) to a duplicate-workspace completeInstall refusal — see the
+ * completeInstall rpc comment for the vocabulary.
+ */
+const REASON_WORKSPACE_ALREADY_CONNECTED = "SLACK_WORKSPACE_ALREADY_CONNECTED";
+
+/**
+ * Install-refusal rendering. The duplicate-workspace refusal is the one
+ * a user can act on from here, so it gets a guided treatment — names the
+ * occupied workspace (from the ErrorInfo metadata) and offers the
+ * register-a-channel-app path. Every other refusal (and any error from a
+ * server not attaching reasons) renders the server's copy verbatim — the
+ * server owns that vocabulary.
+ */
+function InstallRefusal({
+  error,
+  channelAppsHref,
+}: {
+  readonly error: Error;
+  readonly channelAppsHref?: string;
+}) {
+  const reason = getErrorReason(error);
+  if (reason?.reason !== REASON_WORKSPACE_ALREADY_CONNECTED) {
+    return (
+      <div
+        role="alert"
+        className="rounded-md border border-destructive/30 bg-destructive-subtle px-3 py-2 text-xs text-destructive"
+      >
+        {getUserMessage(error)}
+      </div>
+    );
+  }
+
+  const team = reason.metadata.team_name || "This workspace";
+  return (
+    <div
+      role="alert"
+      className="space-y-1 rounded-md border border-destructive/30 bg-destructive-subtle px-3 py-2 text-xs text-destructive"
+    >
+      <p>
+        <span className="font-medium">{team}</span> already hosts an agent
+        through this app — a workspace hosts one agent per Slack app.
+      </p>
+      <p>
+        To reach it with this agent, disconnect the existing channel, or{" "}
+        <RegisterChannelAppAffordance channelAppsHref={channelAppsHref}>
+          register a channel app
+        </RegisterChannelAppAffordance>{" "}
+        and connect through that instead.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Pre-OAuth advisory: the selected serving app already occupies these
+ * workspaces, matched on the exact key the database enforces —
+ * (workspace, serving app). Shown before the user spends a Slack OAuth
+ * round-trip discovering it. Best-effort by design: the list is bounded
+ * by the caller's visibility and cannot see other orgs' holds, so the
+ * copy warns rather than forbids.
+ */
+function AlreadyServedNote({
+  botName,
+  channels,
+}: {
+  readonly botName: string;
+  readonly channels: readonly AgentChannel[];
+}) {
+  return (
+    <div role="status" className="space-y-0.5 text-xs text-warning">
+      {channels.map((c) => {
+        const slack =
+          c.status?.providerStatus?.case === "slack"
+            ? c.status.providerStatus.value
+            : null;
+        const team = slack?.teamName || slack?.teamId || "a workspace";
+        const agent = c.spec?.agentRef?.slug || "another agent";
+        return (
+          <p key={c.metadata?.id ?? team}>
+            <span className="font-medium">{botName}</span> already serves{" "}
+            <span className="font-medium">{team}</span> via {agent} — a
+            workspace hosts one agent per app, so connect through a
+            different channel app to reach it.
+          </p>
+        );
+      })}
+    </div>
   );
 }
 
@@ -571,9 +787,11 @@ function FlowProgress({
 function InstalledSummary({
   channel,
   agentName,
+  botName,
 }: {
   readonly channel: AgentChannel;
   readonly agentName: string;
+  readonly botName: string;
 }) {
   const slack = channel.status?.providerStatus?.case === "slack"
     ? channel.status.providerStatus.value
@@ -586,9 +804,11 @@ function InstalledSummary({
         Connected{slack?.teamName ? ` to ${slack.teamName}` : ""}
       </div>
       <p className="text-sm text-muted-foreground">
-        In Slack, open a direct message with the bot — or type @ in any
-        channel and pick it from the list — then ask your question. It
-        replies as{" "}
+        In Slack, open a direct message with{" "}
+        <span className="font-medium text-foreground">{botName}</span> — or
+        type @ in any channel and pick{" "}
+        <span className="font-medium text-foreground">{botName}</span> from
+        the list — then ask your question. Answers come from{" "}
         <span className="font-medium text-foreground">{agentName}</span>.
       </p>
     </div>

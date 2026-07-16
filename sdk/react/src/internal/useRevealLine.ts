@@ -38,8 +38,8 @@ export interface UseRevealLineResult<T extends HTMLElement = HTMLElement> {
  * highlight.
  *
  * The mechanics are centralized here (rather than duplicated into each line
- * renderer) and mirror the established `data-attribute` scroll pattern used by
- * the workflow waterfall: the consumer renders each row with `data-line="N"`
+ * renderer) using the established `data-attribute` scroll pattern: the
+ * consumer renders each row with `data-line="N"`
  * and this hook, on every `reveal.nonce` change, finds the target row within
  * `containerRef` and scrolls it into view. Smooth scroll yields to
  * `prefers-reduced-motion` (a JS animation the CSS rule does not cover), and

@@ -270,7 +270,7 @@
     },
     {
       "name": "SubmitWorkflowApprovalInput",
-      "description": "Input for the submitApproval RPC.\n\n @internal\n Forwards an approval decision to a child AgentExecution that is waiting for\n approval. The child execution ID is resolved from\n status.pending_approval.child_agent_execution_id.\n\n Validation:\n - execution_id: Required, must reference an existing WorkflowExecution\n - tool_call_id: Required, must match status.pending_approval.tool_call_id\n - action: Required, must be APPROVE, SKIP, or REJECT (not UNSPECIFIED)\n - comment: Optional, stored in audit trail",
+      "description": "Input for the submitApproval RPC.\n\n @internal\n Forwards an approval decision to a child AgentExecution that is waiting for\n approval. The child execution ID is resolved from\n status.pending_approval.child_agent_execution_id.\n\n Validation:\n - execution_id: Required, must reference an existing WorkflowExecution\n - tool_call_id: Required, must match status.pending_approval.tool_call_id\n - action: Required, must be APPROVE, SKIP, REJECT, or APPROVE_ALL (not UNSPECIFIED)\n - comment: Optional, stored in audit trail",
       "protoType": "ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput",
       "protoFile": "apis/ai/stigmer/agentic/workflowexecution/v1/io.proto",
       "fields": [
@@ -314,7 +314,7 @@
               "APPROVAL_ACTION_APPROVE_ALL"
             ]
           },
-          "description": "Approval decision: APPROVE, SKIP, or REJECT.\n\n @internal\n APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.",
+          "description": "Approval decision: APPROVE, SKIP, REJECT, or APPROVE_ALL.\n\n @internal\n Forwarded verbatim to the child's AgentExecution.SubmitApproval, so every\n ApprovalAction the child accepts is valid here — including APPROVE_ALL,\n whose run-lifetime lease is applied by the child and therefore scoped to\n that child agent execution (a parallel sibling's gates keep prompting).\n APPROVAL_ACTION_UNSPECIFIED (0) is rejected by validation.",
           "required": false
         },
         {

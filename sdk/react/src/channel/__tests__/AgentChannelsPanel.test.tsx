@@ -277,12 +277,16 @@ describe("AgentChannelsPanel", () => {
     );
 
     // Two channels of one workspace are only tellable apart by their
-    // serving app — the whole point of BYO (T04 item 2).
+    // serving app — the whole point of BYO (T04 item 2). The line also
+    // names the bot members @mention (falls back to the ref slug when
+    // the app isn't in the fetched list).
     await waitFor(() =>
-      expect(screen.getByText("Serving app: Stigmer")).toBeTruthy(),
+      expect(
+        screen.getByText(/Serving app: Stigmer — members @mention Stigmer/),
+      ).toBeTruthy(),
     );
     expect(
-      screen.getByText("Serving app: acme-support-app (your app)"),
+      screen.getByText(/Serving app: acme-support-app \(your app\)/),
     ).toBeTruthy();
   });
 
@@ -442,6 +446,9 @@ describe("AgentChannelsPanel", () => {
     const client = {
       agentChannel: {
         getByAgent: vi.fn().mockRejectedValue(new Error("boom")),
+      },
+      channelapp: {
+        listByOrg: vi.fn().mockResolvedValue({ entries: [] }),
       },
       iamPolicy: {
         checkMyPermission: vi.fn().mockResolvedValue({ isAuthorized: true }),

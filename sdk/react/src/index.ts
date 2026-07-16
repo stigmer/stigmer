@@ -1461,7 +1461,6 @@ export {
   WorkflowDetailView,
   WorkflowExecutionViewer,
   WorkflowExecutionHeader,
-  WorkflowExecutionTimeline,
   WorkflowExecutionTaskPanel,
   useWorkflowExecutionPanel,
   workflowArtifactTabPath,
@@ -1479,7 +1478,7 @@ export {
   agentCallChildrenSignature,
   deriveWorkflowArtifactItems,
   deriveWorkflowUsageItems,
-  WorkflowExecutionApprovalCard,
+  WorkflowApprovalList,
   WorkflowFileReviewList,
   serializeWorkflowYaml,
   parseWorkflowYaml,
@@ -1562,6 +1561,13 @@ export {
   WorkflowTaskReviewGate,
   useReviewRenderer,
   useReviewPayload,
+  // S8: Workflow task thread (session-style center view)
+  projectThreadItems,
+  threadCardVariant,
+  useWorkflowThreadItems,
+  WorkflowTaskThread,
+  // S9: approval-boundary watcher (snapshot freshness + gate attention)
+  useApprovalBoundary,
 } from "./workflow/index.js";
 export type {
   TaskKindDescriptor,
@@ -1591,7 +1597,6 @@ export type {
   WorkflowDetailViewProps,
   WorkflowExecutionViewerProps,
   WorkflowExecutionHeaderProps,
-  WorkflowExecutionTimelineProps,
   WorkflowExecutionTaskPanelProps,
   WorkflowExecutionPanelController,
   UseWorkflowExecutionPanelOptions,
@@ -1611,7 +1616,8 @@ export type {
   UseWorkflowArtifactDownloadReturn,
   WorkflowArtifactEntry,
   WorkflowUsageItem,
-  WorkflowExecutionApprovalCardProps,
+  WorkflowApprovalListProps,
+  WorkflowApprovalSubmit,
   WorkflowFileReviewListProps,
   WorkflowFileDecisionSubmit,
   UseWorkflowYamlReturn,
@@ -1717,6 +1723,14 @@ export type {
   TaskOutcome,
   WorkflowTaskReviewGateProps,
   UseReviewPayloadReturn,
+  // S8: Workflow task thread (session-style center view) types
+  WorkflowThreadItem,
+  WorkflowThreadProgress,
+  WorkflowThreadProjection,
+  WorkflowThreadCardVariant,
+  WorkflowTaskThreadProps,
+  // S9: approval-boundary watcher types
+  ApprovalBoundaryCrossing,
 } from "./workflow/index.js";
 
 // ─── Dashboard (Unified Platform) ──────────────────────────────────────────

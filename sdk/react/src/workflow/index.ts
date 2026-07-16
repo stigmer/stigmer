@@ -185,11 +185,6 @@ export {
 } from "./WorkflowExecutionHeader.js";
 
 export {
-  WorkflowExecutionTimeline,
-  type WorkflowExecutionTimelineProps,
-} from "./WorkflowExecutionTimeline.js";
-
-export {
   WorkflowExecutionTaskPanel,
   type WorkflowExecutionTaskPanelProps,
 } from "./WorkflowExecutionTaskPanel.js";
@@ -257,9 +252,10 @@ export {
 } from "./deriveWorkflowUsageItems.js";
 
 export {
-  WorkflowExecutionApprovalCard,
-  type WorkflowExecutionApprovalCardProps,
-} from "./WorkflowExecutionApprovalCard.js";
+  WorkflowApprovalList,
+  type WorkflowApprovalListProps,
+  type WorkflowApprovalSubmit,
+} from "./WorkflowApprovalList.js";
 export {
   WorkflowFileReviewList,
   type WorkflowFileReviewListProps,
@@ -599,6 +595,10 @@ export {
   type ExecutionActiveTaskIndicatorProps,
 } from "./ExecutionActiveTaskIndicator.js";
 export { useExecutionAnnouncements } from "./useExecutionAnnouncements.js";
+export {
+  useApprovalBoundary,
+  type ApprovalBoundaryCrossing,
+} from "./useApprovalBoundary.js";
 export { getAnimationDuration, prefersReducedMotion } from "../internal/motion-preference.js";
 
 // T05: Shared formatting utilities
@@ -633,24 +633,22 @@ export {
   type ExecutionInspectorProps,
 } from "./execution-inspector/index.js";
 
-// T07: Waterfall timeline — pure derivation + behavior hook
+// S8: Workflow task thread — pure projection + behavior hook + styled component
 export {
-  deriveWaterfallEntries,
-  deriveWaterfallScale,
-  type WaterfallEntry,
-  type WaterfallAttempt,
-  type WaterfallSpan,
-  type WaterfallScale,
-  useWaterfallEntries,
-  type UseWaterfallEntriesOptions,
-  type UseWaterfallEntriesReturn,
-} from "./execution/index.js";
-
-// T07: Waterfall timeline — styled components
+  projectThreadItems,
+  type WorkflowThreadItem,
+  type WorkflowThreadProgress,
+  type WorkflowThreadProjection,
+} from "./thread/project-thread-items.js";
 export {
-  WaterfallTimeline,
-  type WaterfallTimelineProps,
-} from "./waterfall/index.js";
+  threadCardVariant,
+  type WorkflowThreadCardVariant,
+} from "./thread/thread-presentation.js";
+export { useWorkflowThreadItems } from "./thread/useWorkflowThreadItems.js";
+export {
+  WorkflowTaskThread,
+  type WorkflowTaskThreadProps,
+} from "./thread/WorkflowTaskThread.js";
 
 // T11: Shortcut registry
 export {

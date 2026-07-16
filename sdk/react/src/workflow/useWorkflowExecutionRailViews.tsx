@@ -7,7 +7,11 @@ import { useMemo } from "react";
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import type { WorkflowTask, WorkflowPendingApproval } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type {
+  WorkflowTask,
+  WorkflowPendingApproval,
+  WorkflowPendingFileReview,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type {
   DerivedCostSummary,
   DerivedTaskState,
@@ -22,14 +26,13 @@ import type { UseWorkflowExecutionActionsReturn } from "./useWorkflowExecutionAc
 /**
  * The HITL wiring for the Inspect facet: the slice of
  * {@link UseWorkflowExecutionActionsReturn} the inspector's Approval tab
- * needs to decide agent-tool and `human_input` gates.
+ * needs to decide agent-tool, `human_input`, and file-review gates.
  *
  * A `Pick` (not a new shape) so the bundle can never drift from the actions
  * hook — the same idiom as the transcript document's
  * `WorkflowAgentExecutionHitl`. The viewer builds it from its single
  * `useWorkflowExecutionActions` instance, so a gate's in-flight/error state
- * is identical wherever that gate is shown (Inspect facet, transcript,
- * bottom Approvals tab).
+ * is identical wherever that gate is shown (Inspect facet, transcript).
  */
 export type WorkflowInspectHitl = Pick<
   UseWorkflowExecutionActionsReturn,
@@ -39,6 +42,9 @@ export type WorkflowInspectHitl = Pick<
   | "submitTaskApproval"
   | "taskApprovalSubmittingTaskNames"
   | "taskApprovalErrorsByTaskName"
+  | "submitFileDecision"
+  | "fileDecisionSubmittingKeys"
+  | "fileDecisionErrorsByKey"
 >;
 
 /**
@@ -55,6 +61,8 @@ export interface WorkflowInspectViewOptions {
   readonly taskSnapshots?: readonly WorkflowTask[];
   /** Pending agent tool approvals from `execution.status.pending_approvals`. */
   readonly pendingApprovals?: readonly WorkflowPendingApproval[];
+  /** Pending file reviews from `execution.status.pending_file_reviews`. */
+  readonly pendingFileReviews?: readonly WorkflowPendingFileReview[];
   /** Navigate to a child agent execution as a standalone page (DD-004). */
   readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
   /** Open an AGENT_CALL child's transcript in the panel's editor area. */
@@ -168,6 +176,10 @@ export function useWorkflowExecutionRailViews({
           taskApprovalErrorsByTaskName={
             inspect.hitl.taskApprovalErrorsByTaskName
           }
+          pendingFileReviews={inspect.pendingFileReviews}
+          onSubmitFileDecision={inspect.hitl.submitFileDecision}
+          fileDecisionSubmittingKeys={inspect.hitl.fileDecisionSubmittingKeys}
+          fileDecisionErrorsByKey={inspect.hitl.fileDecisionErrorsByKey}
           className="min-h-0 flex-1"
         />
       ),

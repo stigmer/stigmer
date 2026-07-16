@@ -1497,8 +1497,8 @@ export class StigmerError extends Error {
   readonly code: ErrorCode;
   readonly connectCode: number;
 
-  constructor(code: ErrorCode, message: string, connectCode: number) {
-    super(message);
+  constructor(code: ErrorCode, message: string, connectCode: number, options?: ErrorOptions) {
+    super(message, options);
     this.name = "StigmerError";
     this.code = code;
     this.connectCode = connectCode;
@@ -1509,13 +1509,15 @@ export class StigmerError extends Error {
 export function wrapError(err: unknown): StigmerError {
   if (err instanceof ConnectError) {
     const code = CODE_MAP[err.code] ?? "unknown";
-    return new StigmerError(code, err.rawMessage || err.message, err.code);
+    // Chain the ConnectError so structured error details
+    // (e.g. google.rpc.ErrorInfo) stay reachable via getErrorReason.
+    return new StigmerError(code, err.rawMessage || err.message, err.code, { cause: err });
   }
   if (err instanceof StigmerError) {
     return err;
   }
   if (err instanceof Error) {
-    return new StigmerError("unknown", err.message, Code.Unknown);
+    return new StigmerError("unknown", err.message, Code.Unknown, { cause: err });
   }
   return new StigmerError("unknown", String(err), Code.Unknown);
 }

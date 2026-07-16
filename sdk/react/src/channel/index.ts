@@ -1,6 +1,15 @@
 export { useAgentChannelList } from "./useAgentChannelList.js";
 export type { UseAgentChannelListReturn } from "./useAgentChannelList.js";
 
+export { useOrgAgentChannelList } from "./useOrgAgentChannelList.js";
+export type { UseOrgAgentChannelListReturn } from "./useOrgAgentChannelList.js";
+
+export { CHANNEL_PROVIDERS, channelProviderOf } from "./providers.js";
+export type {
+  ChannelProviderDescriptor,
+  ChannelProviderId,
+} from "./providers.js";
+
 export { useAgentChannel } from "./useAgentChannel.js";
 export type { UseAgentChannelReturn } from "./useAgentChannel.js";
 

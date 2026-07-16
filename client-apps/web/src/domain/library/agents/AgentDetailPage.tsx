@@ -83,7 +83,12 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
             {
               id: "channels",
               label: "Channels",
-              content: <AgentChannelsPanel agent={agent} />,
+              content: (
+                <AgentChannelsPanel
+                  agent={agent}
+                  channelAppsHref="/settings/channel-apps"
+                />
+              ),
             },
           ]
         : [],

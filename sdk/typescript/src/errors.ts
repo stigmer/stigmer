@@ -1,4 +1,5 @@
 import { ConnectError, Code } from "@connectrpc/connect";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { StigmerError, type ErrorCode } from "./gen/errors.js";
 
 // Re-export generated error types
@@ -254,6 +255,52 @@ function matchesInfraNoise(message: string): boolean {
     if (pattern.test(message)) return true;
   }
   return false;
+}
+
+/**
+ * A machine-readable refusal reason extracted from a server error's
+ * `google.rpc.ErrorInfo` detail — the platform's structured-error
+ * contract (domain `stigmer.ai`; per-RPC reasons are documented on the
+ * refusing RPC's proto comment).
+ */
+export interface ErrorReason {
+  /** The reason code, e.g. `"SLACK_WORKSPACE_ALREADY_CONNECTED"`. */
+  readonly reason: string;
+  /** The emitting domain, e.g. `"stigmer.ai"`. */
+  readonly domain: string;
+  /** Reason-specific facts, e.g. `{ team_name: "Acme" }`. */
+  readonly metadata: Readonly<Record<string, string>>;
+}
+
+/**
+ * Extract the structured refusal reason from any thrown value, or `null`
+ * when the error carries none.
+ *
+ * Servers attach `google.rpc.ErrorInfo` to refusals a client should
+ * branch on (rather than parse the human-readable copy). SDK methods
+ * wrap the transport's {@link ConnectError} in a {@link StigmerError}
+ * with the original chained as `cause`, so this walks the cause chain
+ * to the ConnectError and reads its detail payloads.
+ *
+ * Absence is normal — older servers, transport failures, and refusals
+ * with no machine-readable reason all return `null`; callers fall back
+ * to {@link getUserMessage}.
+ */
+export function getErrorReason(error: unknown): ErrorReason | null {
+  let current: unknown = error;
+  while (current !== null && current !== undefined) {
+    if (isConnectError(current)) {
+      const info = current.findDetails(ErrorInfoSchema)[0];
+      if (!info) return null;
+      return {
+        reason: info.reason,
+        domain: info.domain,
+        metadata: { ...info.metadata },
+      };
+    }
+    current = current instanceof Error ? current.cause : undefined;
+  }
+  return null;
 }
 
 /**

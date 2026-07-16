@@ -83,9 +83,10 @@ const DEFAULT_OUTCOMES: readonly TaskOutcome[] = [
  * Designed for inline rendering in the execution timeline when a
  * human_input task is in `waiting_approval` state.
  *
- * Distinct from `WorkflowExecutionApprovalCard` (which handles agent
- * tool approvals with `toolCallId` + `ApprovalAction`). This component
- * uses `taskName` + `outcome` string + optional `formData`.
+ * Distinct from `WorkflowApprovalList` (which handles agent tool
+ * approvals with `toolCallId` + `ApprovalAction` via the shared
+ * `ApprovalCard`). This component uses `taskName` + `outcome` string +
+ * optional `formData`.
  *
  * Follows SDK component standards:
  * - All colors via `--stgm-*` tokens (DD-005)

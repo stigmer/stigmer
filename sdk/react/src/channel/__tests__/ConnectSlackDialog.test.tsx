@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { StigmerError, type AgentChannelInput } from "@stigmer/sdk";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { DeploymentModeContext } from "../../deployment-mode";
@@ -42,6 +44,8 @@ interface MockOverrides {
   completeInstall?: (input: unknown) => Promise<unknown>;
   /** Org channel apps returned by channelapp.listByOrg (BYO picker). */
   channelApps?: unknown[];
+  /** Org-wide channels returned by agentChannel.list (pre-OAuth advisory). */
+  orgChannels?: unknown[];
 }
 
 /** A registered BYO Slack app as channelapp.listByOrg returns it. */
@@ -60,6 +64,9 @@ function createMockStigmer(overrides: MockOverrides = {}) {
       }),
     },
     agentChannel: {
+      list: vi.fn().mockResolvedValue({
+        items: overrides.orgChannels ?? [],
+      }),
       create:
         overrides.create ??
         vi.fn().mockResolvedValue({
@@ -179,14 +186,37 @@ describe("ConnectSlackDialog", () => {
     expect(
       screen.getByText(/Slack asks which workspace to add the bot to/i),
     ).toBeTruthy();
-    // A1: the reach affordance — DM the bot or pick it from the @ list.
-    // Never a literal handle: the bot's name is app-level (platform
-    // "Stigmer" vs a BYO app's own brand), so the copy teaches the
-    // mechanism and names only the agent.
+    // The reach affordance names the bot members will actually @mention —
+    // selection-driven (platform app = "Stigmer"; a BYO app = its own
+    // name), so the copy is accurate instead of mechanism-only.
     expect(
-      screen.getByText(/typing @ in a channel and choosing it from the list/i),
+      screen.getByText(/typing @ in a channel and picking/i),
     ).toBeTruthy();
-    expect(screen.queryByText(/@mentioning it/i)).toBeNull();
+    expect(screen.getAllByText("Stigmer").length).toBeGreaterThan(0);
+    // The agent still appears as the answering identity.
+    expect(screen.getByText(/it answers as/i)).toBeTruthy();
+  });
+
+  it("names the selected app's bot in the addressing copy when connecting as a BYO app", async () => {
+    render(
+      <Providers
+        client={createMockStigmer({
+          channelApps: [makeChannelApp("acme-support-app", "Acme Support App")],
+        })}
+      >
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("radio", { name: /acme support app/i }),
+    );
+
+    // The @mention target switches from "Stigmer" to the app's name — the
+    // bot name its generated manifest declared.
+    const explainer = screen.getByText(/opening a direct message with/i);
+    expect(explainer.textContent).toContain("Acme Support App");
+    expect(explainer.textContent).not.toContain("with Stigmer");
   });
 
   it("creates the channel, runs the install, and reports the workspace", async () => {
@@ -231,12 +261,14 @@ describe("ConnectSlackDialog", () => {
     deliverCallback("state-1");
 
     expect(await screen.findByText(/connected to Acme HQ/i)).toBeTruthy();
-    // The success state says exactly how to start chatting (A1: the
-    // DM / @-pick affordance) and names the agent that answers.
+    // The success state says exactly how to start chatting — DM or @-pick
+    // the bot BY NAME (platform app = "Stigmer") — and names the agent
+    // that answers.
     expect(
-      screen.getByText(/open a direct message with the bot/i),
+      screen.getByText(/open a direct message with/i),
     ).toBeTruthy();
-    expect(screen.getByText(/replies as/i)).toBeTruthy();
+    expect(screen.getAllByText("Stigmer").length).toBeGreaterThan(0);
+    expect(screen.getByText(/answers come from/i)).toBeTruthy();
     expect(screen.getByText("Support Agent")).toBeTruthy();
     // Once for the created row, once for the completed install.
     expect(onChannelsChanged).toHaveBeenCalledTimes(2);
@@ -294,18 +326,84 @@ describe("ConnectSlackDialog", () => {
     );
   });
 
-  it("hides the serving-app choice when the org has no channel apps", async () => {
+  it("with no channel apps, states the platform default and offers the register path", async () => {
     render(
       <Providers client={createMockStigmer()}>
         <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
       </Providers>,
     );
 
-    // With no registered apps the platform app is the only answer — a
-    // one-option radio group would be noise, so the section is absent.
+    // The section is always visible — the zero-apps case states the
+    // default plainly (no one-option radio group, which would be noise)
+    // and makes BYO registration discoverable from the connect flow.
     await screen.findByRole("button", { name: /connect to slack/i });
+    expect(screen.getByText("Connect as")).toBeTruthy();
     expect(screen.queryByRole("radiogroup")).toBeNull();
-    expect(screen.queryByText("Connect as")).toBeNull();
+    // No channelAppsHref prop: the affordance degrades to guidance text
+    // naming the console location (embedded hosts without the route).
+    expect(
+      screen.getByText(/register a channel app under settings/i),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("link", { name: /register a channel app/i }),
+    ).toBeNull();
+  });
+
+  it("renders the register affordance as a link when the host provides channelAppsHref", async () => {
+    render(
+      <Providers client={createMockStigmer()}>
+        <ConnectSlackDialog
+          open
+          onOpenChange={() => {}}
+          agent={makeAgent()}
+          channelAppsHref="/settings/channel-apps"
+        />
+      </Providers>,
+    );
+
+    const link = await screen.findByRole("link", {
+      name: /register a channel app/i,
+    });
+    expect(link.getAttribute("href")).toBe("/settings/channel-apps");
+  });
+
+  it("warns before OAuth when the selected app already serves a workspace", async () => {
+    const orgChannels = [
+      {
+        metadata: { id: "ach_other" },
+        spec: { agentRef: { org: "acme", slug: "other-agent" } },
+        status: {
+          installState: 2, // installed
+          providerStatus: {
+            case: "slack",
+            // Empty channelAppId = the platform app — the same key the
+            // DB uniqueness index uses.
+            value: { teamName: "Acme HQ", channelAppId: "" },
+          },
+        },
+      },
+    ];
+    render(
+      <Providers
+        client={createMockStigmer({
+          orgChannels,
+          channelApps: [makeChannelApp("acme-support-app", "Acme Support App")],
+        })}
+      >
+        <ConnectSlackDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    // Platform app is pre-selected and already holds Acme HQ.
+    const note = await screen.findByRole("status");
+    expect(note.textContent).toContain("Acme HQ");
+    expect(note.textContent).toContain("other-agent");
+
+    // Selecting the BYO app clears the advisory — that app serves nothing.
+    fireEvent.click(
+      screen.getByRole("radio", { name: /acme support app/i }),
+    );
+    await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
   });
 
   it("defaults to the platform app and create carries no appRef", async () => {
@@ -425,6 +523,67 @@ describe("ConnectSlackDialog", () => {
       ),
     );
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it("renders a guided refusal for the duplicate-workspace reason, with the register path", async () => {
+    // The wire shape: FAILED_PRECONDITION with a google.rpc.ErrorInfo
+    // detail (grpc-status-details-bin), wrapped by the SDK into a
+    // StigmerError with the ConnectError chained as cause.
+    const connectError = new ConnectError(
+      "This Slack workspace is already connected to a Stigmer agent through this app.",
+      Code.FailedPrecondition,
+      undefined,
+      [
+        {
+          desc: ErrorInfoSchema,
+          value: {
+            domain: "stigmer.ai",
+            reason: "SLACK_WORKSPACE_ALREADY_CONNECTED",
+            metadata: { team_name: "Acme HQ", channel_app_id: "" },
+          },
+        },
+      ],
+    );
+    const completeInstall = vi.fn().mockRejectedValue(
+      new StigmerError(
+        "failed-precondition",
+        connectError.rawMessage,
+        Code.FailedPrecondition,
+        { cause: connectError },
+      ),
+    );
+
+    render(
+      <Providers client={createMockStigmer({ completeInstall })}>
+        <ConnectSlackDialog
+          open
+          onOpenChange={() => {}}
+          agent={makeAgent()}
+          channelAppsHref="/settings/channel-apps"
+        />
+      </Providers>,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /connect to slack/i }),
+    );
+    // Deliver the OAuth callback only once the flow is listening for it.
+    expect(
+      await screen.findByText(/waiting for your approval/i),
+    ).toBeTruthy();
+    deliverCallback("state-1");
+
+    // Guided treatment: names the occupied workspace from the ErrorInfo
+    // metadata, explains the rule, and links to registration — instead of
+    // the verbatim server string.
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Acme HQ");
+    expect(alert.textContent).toContain("one agent per Slack app");
+    // The register path is offered inside the refusal itself (the
+    // serving-app section carries its own copy of the link).
+    const link = alert.querySelector("a");
+    expect(link?.getAttribute("href")).toBe("/settings/channel-apps");
+    expect(screen.getByRole("button", { name: /try again/i })).toBeTruthy();
   });
 
   it("renders the server's refusal copy verbatim and offers retry", async () => {

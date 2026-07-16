@@ -7,6 +7,47 @@ description: Hooks and components for workflow definitions, instances, execution
 
 ## Hooks
 
+### useApprovalBoundary
+
+Behavior hook that watches the live derived task-state map and reports
+when any task crosses the `waiting_approval` boundary — the client-side
+mirror of the stream's `approval_requested` / `approval_resolved` events.
+
+Why this exists: the execution SNAPSHOT (`status.pending_approvals` /
+`status.pending_file_reviews`) is fetched once and carries the gate
+payloads, while the event STREAM is live but carries only task status.
+A boundary crossing is precisely the moment the snapshot goes stale, so
+consumers refetch it then — derived-over-stored: the stream is the
+signal, the snapshot stays the single source for gate payloads. The
+`WorkflowExecutionViewer` additionally auto-selects a newly gated task so
+the decision surface (the panel's Inspect Approval tab) is never hidden
+while the run is blocked.
+
+Same diffing shape as `useExecutionAnnouncements` (prev-map ref,
+diff on each map commit). A task first observed already in
+`waiting_approval` counts as entered — with rAF-coalesced commits the
+running→waiting transition can collapse into the task's first appearance.
+
+`enabled` gates the CALLBACK, not the tracking: state is tracked even
+while disabled so enabling later never replays stale crossings. Keep it
+`false` for terminal executions — their event-history replay crosses the
+boundary for long-decided gates.
+
+**Signature**
+
+```tsx
+function useApprovalBoundary(taskStates: ReadonlyMap<string, DerivedTaskState>, enabled: boolean, onCrossing: (crossing: ApprovalBoundaryCrossing) => void): void
+```
+
+<TypeTable
+  type={{
+    taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "", required: true },
+    enabled: { type: "boolean", description: "", required: true },
+    onCrossing: { type: "(crossing: ApprovalBoundaryCrossing) => void", description: "", required: true },
+  }}
+/>
+
+
 ### useCreateWorkflowInstance
 
 Mutation hook that creates a new WorkflowInstance resource.
@@ -1053,7 +1094,7 @@ function useWorkflowExecutionActions(executionId: string | null, options?: UseWo
 
 <TypeTable
   type={{
-    approvalErrorsByToolCallId: { type: "ReadonlyMap<string, Error>", description: "Per-gate agent-tool approval failures, keyed by `toolCallId`. Consumed by WorkflowExecutionApprovalCard to surface the failure in-card, beside the gate that failed. Cleared for a gate when it is retried." },
+    approvalErrorsByToolCallId: { type: "ReadonlyMap<string, Error>", description: "Per-gate agent-tool approval failures, keyed by `toolCallId`. Consumed by `WorkflowApprovalList` (via the shared `ApprovalCard`) to surface the failure in-card, beside the gate that failed. Cleared for a gate when it is retried." },
     approvalSubmittingToolCallIds: { type: "ReadonlySet<string>", description: "Tool-call ids whose agent-tool approval is currently being submitted, keyed exactly like approvalErrorsByToolCallId. A workflow can hold many concurrent gates, so deciding one must not spin or disable the others." },
     cancel: { type: "(reason?: string) => Promise<WorkflowExecution | null>", description: "Cancel a running execution gracefully." },
     clearError: { type: "() => void", description: "Reset the lifecycle error to `null`." },
@@ -1520,6 +1561,33 @@ function useWorkflowSave(org: string): UseWorkflowSaveReturn
 />
 
 
+### useWorkflowThreadItems
+
+Behavior hook binding [`projectThreadItems`](#projectthreaditems) to a render loop with
+structural sharing: items whose fields did not change keep their object
+identity across event appends, so memoized card rows bail (DD-010).
+
+The projection is cheap (one pass over the task map), so it recomputes
+per render of the (memoized) thread organism rather than adding a
+`useMemo` whose dependency — the store's `taskStates` — changes identity
+on every event append anyway. The ref carries only the previous items
+for identity reuse; it holds no state of its own (single source of truth
+stays the store).
+
+**Signature**
+
+```tsx
+function useWorkflowThreadItems(taskStates: ReadonlyMap<string, DerivedTaskState>, totalTasks: number): WorkflowThreadProjection
+```
+
+<TypeTable
+  type={{
+    taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "", required: true },
+    totalTasks: { type: "number", description: "", required: true },
+  }}
+/>
+
+
 ### useWorkflowTopology
 
 Behavior hook that computes a DAG topology from workflow YAML.
@@ -1667,6 +1735,41 @@ render this only in the private case.
     executionVisibility: { type: "WorkflowExecutionVisibility", description: "Current `execution_visibility` from the instance spec.", required: true },
     instanceId: { type: "string", description: "Id of the workflow instance whose run visibility is edited.", required: true },
     onChanged: { type: "() => void", description: "Called after a successful change so the host can refresh the instance." },
+  }}
+/>
+
+
+### WorkflowApprovalList
+
+Renders the child agent tool approvals surfaced on a parent
+WorkflowExecution — the tool-approval sibling of [`WorkflowFileReviewList`](#workflowfilereviewlist),
+reusing the session's canonical [`ApprovalCard`](/docs/sdk/react/execution#approvalcard) so a gate reads
+identically everywhere it appears (workflow bottom tab, inspector, in-place
+transcript, agent session): same 4-action decision model (Approve / Skip /
+Reject / Approve-all-of-class), same preview, same gate provenance.
+
+Unlike the file sibling, this list does NOT stream the referenced children:
+`WorkflowPendingApproval.approval` already carries the child's full
+projected `PendingApproval` (file-review content is reference-only on the
+parent and must be dereferenced; approvals are copied whole). Same role,
+simpler body.
+
+Decisions route through the WORKFLOW-level RPC (the supplied
+`onSubmitApproval`, normally `useWorkflowExecutionActions().submitApproval`)
+— never the child's own `agentExecution.*` path, whose authorization checks
+the runner-spawned child rather than the workflow execution the operator
+owns. Empty `pendingApprovals` renders nothing.
+
+**Props** — `WorkflowApprovalListProps`
+
+<TypeTable
+  type={{
+    approvalErrors: { type: "ReadonlyMap<string, Error>", description: "Per-gate failures, keyed by `toolCallId` (pass `approvalErrorsByToolCallId` straight through) — surfaced in-card beside the gate that failed." },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Optional deep-link to open the gate's child agent execution in its own view. When provided, each gate renders a \"View agent execution\" affordance — with parallel children, it names which child a gate belongs to. Routing is the host's responsibility (DD-004)." },
+    onSubmitApproval: { type: "WorkflowApprovalSubmit", description: "Forwards a decision to the child (see WorkflowApprovalSubmit).", required: true, typeDescriptionLink: "#workflowapprovalsubmit" },
+    pendingApprovals: { type: "readonly WorkflowPendingApproval[]", description: "The parent workflow's surfaced tool-approval gates (`status.pending_approvals`) — each pairs a child's full `PendingApproval` with the child agent execution to route the decision to.", required: true },
+    submittingToolCallIds: { type: "ReadonlySet<string>", description: "Tool-call ids whose decision is in flight (pass `approvalSubmittingToolCallIds` straight through). Keyed per gate so deciding one never spins another." },
   }}
 />
 
@@ -1855,7 +1958,7 @@ to render the actual diff — the heavy content stays single-sourced on the chil
 A decision is forwarded to the child via `WorkflowExecution.submitFileDecision`.
 
 This is the file-review sibling of the workflow tool-approval surface
-(`WorkflowExecutionApprovalCard`). Empty `pendingFileReviews` renders nothing.
+(`WorkflowApprovalList`). Empty `pendingFileReviews` renders nothing.
 
 **Props** — `WorkflowFileReviewListProps`
 
@@ -2222,6 +2325,19 @@ consumers from the event store's per-event `taskStates` identity churn
 ```tsx
 function agentCallChildrenSignature(children: readonly AgentCallChild[]): string
 ```
+
+
+### ApprovalBoundaryCrossing
+
+Tasks that crossed the `waiting_approval` boundary in one commit of the
+derived task-state map, in the map's (first-started) order.
+
+<TypeTable
+  type={{
+    entered: { type: "readonly string[]", description: "Task names that transitioned INTO `waiting_approval` (a gate opened).", required: true },
+    exited: { type: "readonly string[]", description: "Task names that transitioned OUT of `waiting_approval` (a gate resolved).", required: true },
+  }}
+/>
 
 
 ### ApprovalFormBuilder
@@ -2919,7 +3035,7 @@ Options for `WorkflowExecutionPanelController.notifySelection`.
 
 <TypeTable
   type={{
-    open: { type: "boolean", description: "Treat this selection as an explicit user gesture (graph node click, waterfall bar, Usage row): expand the panel and land on Inspect, overriding a sticky rail pick. Omit for the runner's auto-focus, which only surfaces Inspect in an already-open panel." },
+    open: { type: "boolean", description: "Treat this selection as an explicit user gesture (thread card, graph node click, Usage row): expand the panel and land on Inspect, overriding a sticky rail pick. Omit for the runner's auto-focus, which only surfaces Inspect in an already-open panel." },
   }}
 />
 
@@ -2963,6 +3079,22 @@ All visuals use `--stgm-*` tokens. No hardcoded colors.
     totalCount: { type: "number", description: "", required: true },
   }}
 />
+
+
+### projectThreadItems
+
+Projects the derived task-state map into ordered thread items plus a
+progress summary.
+
+Structural sharing: pass the previous call's `items` and any task whose
+fields are unchanged keeps its previous object identity. The store
+rebuilds every `DerivedTaskState` on each event append, so without this,
+every card would get a fresh item per event and `React.memo` rows could
+never bail (DD-009/DD-010 — only the actively-changing card re-renders).
+
+```tsx
+function projectThreadItems(taskStates: ReadonlyMap<string, DerivedTaskState>, totalTasks: number, previousItems?: readonly WorkflowThreadItem[]): WorkflowThreadProjection
+```
 
 
 ### RefinePhase
@@ -3236,6 +3368,18 @@ Props for [`TaskPickerPopover`](#taskpickerpopover).
     side: { type: "\"left\" | \"right\" | \"top\" | \"bottom\"", description: "Which side of the anchor to position the popover." },
   }}
 />
+
+
+### threadCardVariant
+
+Resolves the thread card variant for a task kind.
+
+`agent_call` is the one kind-level special case (the flagship card);
+every other kind flows through the canonical category classification.
+
+```tsx
+function threadCardVariant(kind: WorkflowTaskKind): WorkflowThreadCardVariant
+```
 
 
 ### TopologyEdge
@@ -3593,6 +3737,14 @@ Approvals tab renders. One instance, two surfaces: a spinner or failure on
 a gate is identical wherever that gate is shown.
 
 
+### WorkflowApprovalSubmit
+
+Submit handler for a workflow-level tool-approval decision, matching
+`useWorkflowExecutionActions().submitApproval`. The tool-call id is bound per
+card so the shared [`ApprovalCard`](/docs/sdk/react/execution#approvalcard) only needs the card-level
+`(action, comment)`.
+
+
 ### WorkflowArtifactEntry
 
 One workflow artifact paired with its presentational row view-model.
@@ -3750,33 +3902,6 @@ Props for [`WorkflowEditorView`](#workfloweditorview).
 />
 
 
-### WorkflowExecutionApprovalCard
-
-Inline approval card rendered within the execution timeline when
-a `human_input` task or agent tool approval gate is active.
-
-Provides approve and reject buttons with an optional comment field.
-Keyboard-navigable and accessible.
-
-
-### WorkflowExecutionApprovalCardProps
-
-Props for [`WorkflowExecutionApprovalCard`](#workflowexecutionapprovalcard).
-
-<TypeTable
-  type={{
-    approvers: { type: "readonly string[]", description: "List of users/roles that can approve.", required: true },
-    className: { type: "string", description: "Additional CSS class names." },
-    error: { type: "Error | null", description: "This gate's last failed decision, or `null`. Surfaced in-card beside the actions (via the shared InCardDecisionError) — supply useWorkflowExecutionActions's `approvalErrorsByToolCallId` for this `toolCallId`." },
-    isSubmitting: { type: "boolean", description: "`true` while this gate's submission is in flight.", required: true },
-    onSubmitApproval: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => Promise<unknown>", description: "Callback to submit the approval decision.", required: true },
-    prompt: { type: "string", description: "The prompt message explaining what needs approval.", required: true },
-    timeoutSeconds: { type: "number", description: "Timeout in seconds (0 = no timeout).", required: true },
-    toolCallId: { type: "string", description: "Tool call ID for the approval request.", required: true },
-  }}
-/>
-
-
 ### WorkflowExecutionHeader
 
 
@@ -3928,49 +4053,19 @@ Props for [`WorkflowExecutionTaskPanel`](#workflowexecutiontaskpanel).
 />
 
 
-### WorkflowExecutionTimeline
-
-Scrollable event timeline for a workflow execution.
-
-Renders each event through `WorkflowExecutionTimelineEvent` and
-auto-scrolls to the bottom when new events arrive during live
-streaming, using a bottom sentinel + IntersectionObserver pattern
-consistent with DD-009.
-
-Auto-scroll activates only when the sentinel is visible (user is
-near the bottom). When the user scrolls up, auto-scroll pauses
-to allow reading history.
-
-
-### WorkflowExecutionTimelineProps
-
-Props for [`WorkflowExecutionTimeline`](#workflowexecutiontimeline).
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names." },
-    events: { type: "readonly WorkflowExecutionEvent[]", description: "Events ordered by sequence_number ascending.", required: true },
-    onNavigateToAgentExecution: { type: "(executionId: string) => void", description: "Callback when user clicks an agent execution link." },
-    onSubmitTaskApproval: { type: "(taskName: string, outcome: string, formData?: Record<string, unknown>, comment?: string) => Promise<unknown>", description: "Callback to submit a human_input task approval decision." },
-    streamState: { type: "WorkflowEventStreamState", description: "Current stream lifecycle state.", required: true },
-    taskApprovalErrorsByTaskName: { type: "ReadonlyMap<string, Error>", description: "Per-gate human_input approval failures, keyed by `taskName`. Supply useWorkflowExecutionActions's `taskApprovalErrorsByTaskName`." },
-    taskApprovalSubmittingTaskNames: { type: "ReadonlySet<string>", description: "Task names whose human_input approval is currently in flight, keyed by `taskName` so deciding one gate never spins another. Supply useWorkflowExecutionActions's `taskApprovalSubmittingTaskNames`." },
-    taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Derived task states for rendering interactive approval cards." },
-  }}
-/>
-
-
 ### WorkflowExecutionViewer
 
 Top-level composed viewer for a single workflow execution.
 
 Wires together all execution hooks and sub-components into a two-column
-layout: the graph column (DAG graph + waterfall/events bottom drawer) and
-a single collapsible `WorkspaceSurface` panel carrying the facets
-(Inspect/Artifacts/Changes/Usage on the rail) and the rich documents
-(transcripts, diffs, artifacts, AI diagnosis in the editor area).
-Selecting a task — graph node, waterfall bar, Usage row — opens the panel
-on its Inspect facet.
+layout: the center column (the session-style task thread by default, with
+the DAG graph behind a view toggle) and a single collapsible
+`WorkspaceSurface` panel carrying the facets (Inspect/Artifacts/Changes/
+Usage on the rail) and the rich documents (transcripts, diffs, artifacts,
+AI diagnosis in the editor area). Selecting a task — thread card, graph
+node, Usage row — opens the panel on its Inspect facet; an approval gate
+arriving mid-run auto-selects its task so the decision surface is never
+hidden.
 
 This component is designed to work identically whether rendered
 in the Stigmer Console or embedded in a third-party dashboard.
@@ -4110,14 +4205,13 @@ Sentinel nodes (`__start__`, `__end__`) use `WorkflowTaskKind` value 0
 
 The HITL wiring for the Inspect facet: the slice of
 [`UseWorkflowExecutionActionsReturn`](#useworkflowexecutionactionsreturn) the inspector's Approval tab
-needs to decide agent-tool and `human_input` gates.
+needs to decide agent-tool, `human_input`, and file-review gates.
 
 A `Pick` (not a new shape) so the bundle can never drift from the actions
 hook — the same idiom as the transcript document's
 `WorkflowAgentExecutionHitl`. The viewer builds it from its single
 `useWorkflowExecutionActions` instance, so a gate's in-flight/error state
-is identical wherever that gate is shown (Inspect facet, transcript,
-bottom Approvals tab).
+is identical wherever that gate is shown (Inspect facet, transcript).
 
 
 ### WorkflowInspectorPanel
@@ -4182,6 +4276,7 @@ Inspect element only when its own inputs move, never on unrelated churn.
     onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Navigate to a child agent execution as a standalone page (DD-004)." },
     onOpenAgentExecution: { type: "(childExecutionId: string, taskName: string) => void", description: "Open an AGENT_CALL child's transcript in the panel's editor area." },
     pendingApprovals: { type: "readonly WorkflowPendingApproval[]", description: "Pending agent tool approvals from `execution.status.pending_approvals`." },
+    pendingFileReviews: { type: "readonly WorkflowPendingFileReview[]", description: "Pending file reviews from `execution.status.pending_file_reviews`." },
     selectedTaskName: { type: "string | null", description: "The selected task the facet inspects. The view exists only with one.", required: true },
     taskSnapshots: { type: "readonly WorkflowTask[]", description: "Task snapshots from `execution.status.tasks` for full I/O data." },
   }}
@@ -4292,6 +4387,46 @@ Props for [`WorkflowTaskReviewGate`](#workflowtaskreviewgate).
 />
 
 
+### WorkflowTaskThread
+
+Session-style task thread for a workflow execution: one card per task in
+execution order (first-started first — D-T02-1), streaming live as the
+run progresses, with a collapsed preview and an expandable detail body
+per card — the workflow analog of the session viewer's tool-call cards.
+
+Pending tasks render no cards (D-T02-5); the progress header keeps
+overall status visible. Retries collapse into one card with an attempt
+indicator (D-T02-6). AGENT_CALL cards expand to a summary plus an
+"Open transcript" affordance (D-T02-2) — the full transcript opens as a
+panel document, never inline. Selecting a card is the "show me this
+task" gesture (it opens Inspect), matching a DAG node click.
+
+Auto-follow uses the session thread's mechanism: an IntersectionObserver
+sentinel keeps the list pinned to the latest card until the user scrolls
+up, with a jump-to-latest affordance to re-engage.
+
+This component is designed to work identically whether rendered in the
+Stigmer Console or embedded in a third-party dashboard. No dependencies
+on Console routing, auth, or layout context.
+
+
+### WorkflowTaskThreadProps
+
+Props for [`WorkflowTaskThread`](#workflowtaskthread).
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    isRunning: { type: "boolean", description: "Whether the execution is still running (drives streaming affordances).", required: true },
+    onOpenAgentExecution: { type: "(childExecutionId: string, taskName: string) => void", description: "Callback to open an AGENT_CALL task's child transcript in the panel's editor area (the S4 in-place expansion). Omitted → the affordance is not rendered." },
+    onTaskSelect: { type: "(taskName: string | null) => void", description: "Callback when the user selects a task card (or re-clicks the selected card to deselect — `null`). Same contract as a graph node click: the viewer opens the panel's Inspect facet on an explicit selection." },
+    selectedTaskName: { type: "string | null", description: "The task selected across the viewer (thread, graph, and panel).", required: true },
+    taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Live derived task states from the execution event stream.", required: true },
+    totalTasks: { type: "number", description: "Total planned tasks (from `execution_started`); `0` when unknown.", required: true },
+  }}
+/>
+
+
 ### WorkflowTemplate
 
 Workflow template = generic ResourceTemplate with workflow-specific data.
@@ -4335,6 +4470,79 @@ on template cards and preview dialogs.
     patterns: { type: "readonly WorkflowPattern[]", description: "Structural patterns detected in the template.", required: true },
     taskCount: { type: "number", description: "Number of top-level tasks (excludes nested tasks inside fork/try_catch/for_each).", required: true },
     taskKinds: { type: "readonly string[]", description: "Unique task kind strings used in the template.", required: true },
+  }}
+/>
+
+
+### WorkflowThreadCardVariant
+
+Presentation variant for a task card in the workflow task thread.
+
+Deliberately NOT a new task-kind classification (D-T02-3): variants are a
+thin presentation projection of the canonical categories from
+`kind-metadata.ts` (`categorizeKind` — the single source of truth that
+already consolidated three drifted client-side classifications), plus one
+kind-level special case for the flagship `agent_call` card.
+
+- `agent-call` — the flagship: live agent slug, current tool, message and
+  tool-call counts, transcript expansion (D-T02-2).
+- `control` — control-flow tasks (switch/fork/for-each/try-catch/wait).
+- `gate` — governance tasks (human_input); the stop-sign of the thread.
+- `event` — signal/timing tasks (listen/emit/notification/raise-error).
+- `action` — everything else (invocations, data transforms, LLM calls);
+  also the fallback for `unspecified` kinds, which the snapshot-derived
+  fallback task map produces when the event log is empty.
+
+
+### WorkflowThreadItem
+
+One task card in the thread — a flat, display-ready projection of a
+`DerivedTaskState`. Fields are copied (not referenced) so value equality
+is a shallow field compare, which powers the structural sharing below.
+
+<TypeTable
+  type={{
+    agentSlug: { type: "string", description: "", required: true },
+    attemptNumber: { type: "number", description: "", required: true },
+    childExecutionId: { type: "string", description: "", required: true },
+    costMicros: { type: "bigint", description: "", required: true },
+    currentToolName: { type: "string", description: "", required: true },
+    durationMs: { type: "number", description: "", required: true },
+    error: { type: "string", description: "", required: true },
+    kindLabel: { type: "string", description: "Human label for the kind, from the canonical `kindToDisplayName`. The empty string for `unspecified` kinds (the snapshot-derived fallback map carries no kind) — consumers hide the kind chip rather than render a meaningless \"Unknown\" label.", required: true },
+    messagesCount: { type: "number", description: "", required: true },
+    status: { type: "\"failed\" | \"pending\" | \"running\" | \"completed\" | \"skipped\" | \"retrying\" | \"waiting_approval\"", description: "", required: true },
+    taskKind: { type: "WorkflowTaskKind", description: "", required: true },
+    taskName: { type: "string", description: "", required: true },
+    tokensUsed: { type: "bigint", description: "", required: true },
+    toolCallsCount: { type: "number", description: "", required: true },
+    variant: { type: "WorkflowThreadCardVariant", description: "", required: true, typeDescriptionLink: "#workflowthreadcardvariant" },
+  }}
+/>
+
+
+### WorkflowThreadProgress
+
+Progress line for the thread header. Pending tasks render no cards
+(D-T02-5); this is where "what's coming" stays visible (Nielsen #1).
+
+<TypeTable
+  type={{
+    activeTasks: { type: "number", description: "Tasks currently active (running, retrying, or waiting approval).", required: true },
+    settledTasks: { type: "number", description: "Tasks in a terminal state (completed, failed, or skipped).", required: true },
+    totalTasks: { type: "number", description: "Total planned tasks from `execution_started`; `0` when unknown.", required: true },
+  }}
+/>
+
+
+### WorkflowThreadProjection
+
+Result of [`projectThreadItems`](#projectthreaditems).
+
+<TypeTable
+  type={{
+    items: { type: "readonly WorkflowThreadItem[]", description: "", required: true },
+    progress: { type: "WorkflowThreadProgress", description: "", required: true, typeDescriptionLink: "#workflowthreadprogress" },
   }}
 />
 

@@ -47,6 +47,8 @@ export {
   isRetryableError,
   isTransientStreamError,
   getUserMessage,
+  type ErrorReason,
+  getErrorReason,
   type RpcErrorMetadata,
   annotateRpcError,
   getRpcMetadata,

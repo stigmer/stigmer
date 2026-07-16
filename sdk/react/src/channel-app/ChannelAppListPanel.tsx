@@ -4,6 +4,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { channelProviderOf } from "../channel/providers.js";
 import { useChannelAppList } from "./useChannelAppList.js";
 
 // ---------------------------------------------------------------------------
@@ -118,6 +119,8 @@ function ChannelAppRow({
   onEdit?: () => void;
 }) {
   const name = channelApp.metadata?.name ?? "";
+  const providerCase = channelApp.spec?.providerConfig?.case;
+  const provider = channelProviderOf(providerCase);
   const slack = channelApp.spec?.providerConfig?.case === "slack"
     ? channelApp.spec.providerConfig.value
     : undefined;
@@ -135,7 +138,11 @@ function ChannelAppRow({
           <span className="truncate text-xs font-medium text-foreground">
             {name}
           </span>
-          <span className="text-[0.65rem] text-muted-foreground">Slack</span>
+          {/* Fall back to the raw oneof case for providers this UI
+              doesn't know yet — honest, and never an empty label. */}
+          <span className="text-[0.65rem] text-muted-foreground">
+            {provider?.label ?? providerCase ?? ""}
+          </span>
         </div>
         <div className="flex items-baseline gap-2">
           {slack?.clientId && (

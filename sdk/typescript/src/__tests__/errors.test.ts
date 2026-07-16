@@ -1,11 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { ConnectError, Code } from "@connectrpc/connect";
+import { ErrorInfoSchema } from "@stigmer/protos/google/rpc/error_details_pb";
 import { StigmerError, type ErrorCode } from "../gen/errors";
 import {
   classifyError,
   isRetryableError,
   isTransientStreamError,
   getUserMessage,
+  getErrorReason,
   annotateRpcError,
   getRpcMetadata,
   type ErrorCategory,
@@ -264,6 +266,65 @@ describe("getUserMessage", () => {
 
   it("uses 'unknown' category fallback for non-SDK errors without message", () => {
     expect(getUserMessage(42)).toBe("An unexpected error occurred.");
+  });
+});
+
+describe("getErrorReason", () => {
+  const errorInfoDetail = {
+    desc: ErrorInfoSchema,
+    value: {
+      domain: "stigmer.ai",
+      reason: "SLACK_WORKSPACE_ALREADY_CONNECTED",
+      metadata: { team_name: "Acme HQ", channel_app_id: "" },
+    },
+  };
+
+  it("extracts the reason from a ConnectError's ErrorInfo detail", () => {
+    const error = new ConnectError(
+      "workspace taken",
+      Code.FailedPrecondition,
+      undefined,
+      [errorInfoDetail],
+    );
+
+    expect(getErrorReason(error)).toEqual({
+      reason: "SLACK_WORKSPACE_ALREADY_CONNECTED",
+      domain: "stigmer.ai",
+      metadata: { team_name: "Acme HQ", channel_app_id: "" },
+    });
+  });
+
+  it("walks the cause chain of an SDK-wrapped StigmerError", () => {
+    const connectError = new ConnectError(
+      "workspace taken",
+      Code.FailedPrecondition,
+      undefined,
+      [errorInfoDetail],
+    );
+    const wrapped = new StigmerError(
+      "failed-precondition",
+      connectError.rawMessage,
+      Code.FailedPrecondition,
+      { cause: connectError },
+    );
+
+    expect(getErrorReason(wrapped)?.reason).toBe(
+      "SLACK_WORKSPACE_ALREADY_CONNECTED",
+    );
+  });
+
+  it("returns null for errors without an ErrorInfo detail", () => {
+    expect(
+      getErrorReason(new ConnectError("bare refusal", Code.FailedPrecondition)),
+    ).toBeNull();
+    expect(
+      getErrorReason(
+        new StigmerError("failed-precondition", "bare refusal", 9),
+      ),
+    ).toBeNull();
+    expect(getErrorReason(new Error("plain"))).toBeNull();
+    expect(getErrorReason("not an error")).toBeNull();
+    expect(getErrorReason(null)).toBeNull();
   });
 });
 

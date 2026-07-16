@@ -2,8 +2,8 @@
  * Shared formatting utilities for workflow execution metrics.
  *
  * Consolidates formatting logic previously duplicated across
- * WorkflowExecutionViewer, WorkflowExecutionHeader,
- * WorkflowExecutionTaskPanel, and WorkflowExecutionTimelineEvent.
+ * WorkflowExecutionViewer, WorkflowExecutionHeader, and
+ * WorkflowExecutionTaskPanel.
  *
  * @since T05 (Runtime Inspector)
  */
