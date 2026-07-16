@@ -259,13 +259,16 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
     onSuccess: refetchExecution,
   });
 
-  // The transcript document's HITL wiring (S5) — the same actions instance
-  // the bottom Approvals tab renders, narrowed to the fields the document
-  // needs. Deps are the individual fields (DD-010): the bundle's ref must
-  // survive unrelated churn on `actions` (a lifecycle action's isSubmitting
-  // flip), so an open transcript re-renders only when a gate's own
+  // The child-gate HITL wiring — ONE bundle from the single actions
+  // instance, narrowed to the six child-gate fields, consumed by BOTH the
+  // in-place transcript documents (S5, as `WorkflowAgentExecutionHitl`) and
+  // the thread's in-card gates (S10, as the structurally-identical
+  // `WorkflowThreadHitl`), so a gate's spinner/error is pixel-identical on
+  // every surface. Deps are the individual fields (DD-010): the bundle's
+  // ref must survive unrelated churn on `actions` (a lifecycle action's
+  // isSubmitting flip), so consumers re-render only when a gate's own
   // in-flight/error state moves.
-  const transcriptHitl = useMemo<WorkflowAgentExecutionHitl>(
+  const childGateHitl = useMemo<WorkflowAgentExecutionHitl>(
     () => ({
       submitApproval: actions.submitApproval,
       approvalSubmittingToolCallIds: actions.approvalSubmittingToolCallIds,
@@ -348,26 +351,37 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
 
   // HITL attention + snapshot freshness (S9, the drawer's replacement).
   // A `waiting_approval` boundary crossing means the mount snapshot's gate
-  // lists are stale → refetch (stale-while-revalidate; no skeleton). A gate
-  // OPENING additionally auto-selects its task through the explicit-gesture
-  // path — the one deliberate exception to "auto-focus never force-opens a
-  // collapsed panel": the run is blocked on a decision the user cannot see
-  // otherwise (Nielsen #1). Concurrent gates: last one wins the selection;
-  // every gating card stays amber in the thread and the graph. Gated on
-  // `isRunning` so terminal-execution history replay (which crosses the
-  // boundary for long-decided gates) triggers neither.
+  // lists are stale → refetch (stale-while-revalidate; no skeleton) — in
+  // BOTH center views: the thread's in-card gates read those lists.
+  //
+  // A gate OPENING additionally auto-selects its task. HOW depends on the
+  // center view (D-T02-13, amending the S9 exception):
+  // - Graph view: through the explicit-gesture path, force-opening the
+  //   panel onto Inspect — there the panel is the ONLY decision surface and
+  //   the run is blocked on a decision the user cannot see otherwise
+  //   (Nielsen #1).
+  // - Thread view: plain auto-select (highlight + the card's shipped
+  //   scroll-into-view reveal) WITHOUT yanking the panel open — since S10
+  //   the card itself carries the decision surface (or a one-click path to
+  //   it), so the S9 force-open rationale no longer applies there.
+  // Concurrent gates: last one wins the selection; every gating card stays
+  // amber in the thread and the graph. Gated on `isRunning` so
+  // terminal-execution history replay (which crosses the boundary for
+  // long-decided gates) triggers neither.
   const handleApprovalBoundary = useCallback(
     (crossing: ApprovalBoundaryCrossing) => {
       refetchExecution();
       const gated = crossing.entered[crossing.entered.length - 1];
-      if (gated) handleSelectTask(gated);
+      if (!gated) return;
+      if (centerView === "graph") handleSelectTask(gated);
+      else handleAutoSelectTask(gated);
     },
-    [refetchExecution, handleSelectTask],
+    [refetchExecution, handleSelectTask, handleAutoSelectTask, centerView],
   );
   useApprovalBoundary(effectiveTaskStates, isRunning, handleApprovalBoundary);
 
   // The Inspect facet's HITL wiring — the same single actions instance,
-  // narrowed per-field (DD-010) exactly like `transcriptHitl` above, so a
+  // narrowed per-field (DD-010) exactly like `childGateHitl` above, so a
   // gate's spinner/error is identical in the Inspect facet and the
   // transcript. Carries all three gate kinds (tool approvals, human_input,
   // file reviews): the Inspect Approval tab is the execution-level HITL
@@ -605,6 +619,12 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
             selectedTaskName={selectedTaskName}
             onTaskSelect={handleSelectTask}
             onOpenAgentExecution={panel.openAgentExecution}
+            // In-card HITL (S10): the SAME bundle the transcript documents
+            // use, plus the snapshot gate lists (kept fresh by the approval
+            // boundary's refetch above).
+            hitl={childGateHitl}
+            pendingApprovals={execution?.status?.pendingApprovals}
+            pendingFileReviews={execution?.status?.pendingFileReviews}
             className="h-full"
           />
         </div>
@@ -647,7 +667,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
               onSelectTask={handleSelectTask}
               onNavigateToAgentExecution={onNavigateToAgentExecution}
               onApplyFix={onNavigateToWorkflowEditor ? handleApplyFix : undefined}
-              transcriptHitl={transcriptHitl}
+              transcriptHitl={childGateHitl}
             />
           ) : null
         }

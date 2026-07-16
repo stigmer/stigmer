@@ -5,10 +5,15 @@ import {
   WorkflowEventType,
   TaskStartedPayloadSchema,
   TaskCompletedPayloadSchema,
+  TaskFailedPayloadSchema,
+  AgentCallStartedPayloadSchema,
+  AgentCallProgressPayloadSchema,
   ApprovalRequestedPayloadSchema,
   ApprovalResolvedPayloadSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import { ExecutionPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { WorkflowExecutionEventStore } from "../workflow-execution-event-store";
 
 // ---------------------------------------------------------------------------
@@ -93,6 +98,84 @@ function makeApprovalResolvedEvent(
       value: create(ApprovalResolvedPayloadSchema, {
         resolvedBy: opts.resolvedBy ?? "alice",
         waitDurationMs: opts.waitDurationMs ?? BigInt(5000),
+      }),
+    },
+  });
+}
+
+function makeTaskFailedEvent(
+  seq: number,
+  taskName: string,
+  opts: { willRetry?: boolean; attemptNumber?: number; error?: string } = {},
+): WorkflowExecutionEvent {
+  return create(WorkflowExecutionEventSchema, {
+    eventId: `evt-${seq}`,
+    sequenceNumber: BigInt(seq),
+    occurredAt: "2026-05-22T00:00:00Z",
+    taskName,
+    eventType: WorkflowEventType.task_failed,
+    payload: {
+      case: "taskFailed",
+      value: create(TaskFailedPayloadSchema, {
+        taskKind: WorkflowTaskKind.agent_call,
+        willRetry: opts.willRetry ?? false,
+        attemptNumber: opts.attemptNumber ?? 1,
+        error: opts.error ?? "boom",
+        durationMs: BigInt(100),
+      }),
+    },
+  });
+}
+
+function makeAgentCallStartedEvent(
+  seq: number,
+  taskName: string,
+  opts: { childExecutionId?: string; agentSlug?: string } = {},
+): WorkflowExecutionEvent {
+  return create(WorkflowExecutionEventSchema, {
+    eventId: `evt-${seq}`,
+    sequenceNumber: BigInt(seq),
+    occurredAt: "2026-05-22T00:00:00Z",
+    taskName,
+    eventType: WorkflowEventType.agent_call_started,
+    payload: {
+      case: "agentCallStarted",
+      value: create(AgentCallStartedPayloadSchema, {
+        childExecutionId: opts.childExecutionId ?? "aex_child_1",
+        agentSlug: opts.agentSlug ?? "helper",
+        messageSummary: "do the thing",
+      }),
+    },
+  });
+}
+
+/**
+ * The REAL event shape the call-agent orchestrator emits on its 15s poll —
+ * `agentPhase` is the child AgentExecution's phase. The store derives the
+ * parent task's `waiting_approval` state from it (child gates are surfaced
+ * snapshot-only; no approval_requested event exists for agent_call tasks).
+ */
+function makeAgentCallProgressEvent(
+  seq: number,
+  taskName: string,
+  agentPhase: AgentExecutionPhase,
+  opts: { childExecutionId?: string; currentToolName?: string } = {},
+): WorkflowExecutionEvent {
+  return create(WorkflowExecutionEventSchema, {
+    eventId: `evt-${seq}`,
+    sequenceNumber: BigInt(seq),
+    occurredAt: "2026-05-22T00:00:00Z",
+    taskName,
+    eventType: WorkflowEventType.agent_call_progress,
+    payload: {
+      case: "agentCallProgress",
+      value: create(AgentCallProgressPayloadSchema, {
+        childExecutionId: opts.childExecutionId ?? "aex_child_1",
+        agentPhase,
+        currentToolName: opts.currentToolName ?? "",
+        tokensConsumed: BigInt(0),
+        messagesCount: 0,
+        toolCallsCount: 0,
       }),
     },
   });
@@ -236,6 +319,138 @@ describe("WorkflowExecutionEventStore", () => {
 
       const states = store.getTaskStates();
       expect(states.has("unknownTask")).toBe(false);
+    });
+  });
+
+  // Child gates are surfaced snapshot-only (no approval_requested event for
+  // agent_call tasks) — the parent task's waiting_approval state is DERIVED
+  // from the child phase carried on agent_call_progress events. These tests
+  // pin every transition of that derivation (D-T02-14).
+  describe("deriveTaskStates — child-gate derivation from agent_call_progress", () => {
+    const AGENT_CALL = { taskKind: WorkflowTaskKind.agent_call };
+
+    /** A running agent_call task bound to its child — the common arrange. */
+    function runningAgentCall(store: WorkflowExecutionEventStore, task = "call-helper") {
+      store.appendEvents([
+        makeTaskStartedEvent(1, task, AGENT_CALL),
+        makeAgentCallStartedEvent(2, task),
+      ]);
+    }
+
+    it("child phase WAITING_FOR_APPROVAL gates a running task", () => {
+      const store = new WorkflowExecutionEventStore();
+      runningAgentCall(store);
+      store.appendEvents([
+        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+      ]);
+
+      const task = store.getTaskStates().get("call-helper")!;
+      expect(task.status).toBe("waiting_approval");
+      // The status flip must not drop the merged progress fields.
+      expect(task.childExecutionId).toBe("aex_child_1");
+      expect(task.agentSlug).toBe("helper");
+    });
+
+    it("child phase IN_PROGRESS un-gates a waiting task (child resumed)", () => {
+      const store = new WorkflowExecutionEventStore();
+      runningAgentCall(store);
+      store.appendEvents([
+        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.EXECUTION_IN_PROGRESS),
+      ]);
+
+      expect(store.getTaskStates().get("call-helper")!.status).toBe("running");
+    });
+
+    it("phase UNSPECIFIED never un-gates a waiting task (the orchestrator's null-progress emits carry phase 0)", () => {
+      const store = new WorkflowExecutionEventStore();
+      runningAgentCall(store);
+      store.appendEvents([
+        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.EXECUTION_PHASE_UNSPECIFIED),
+      ]);
+
+      expect(store.getTaskStates().get("call-helper")!.status).toBe("waiting_approval");
+    });
+
+    it("non-waiting phases leave a running task running (PENDING and UNSPECIFIED are not gates)", () => {
+      const store = new WorkflowExecutionEventStore();
+      runningAgentCall(store);
+      store.appendEvents([
+        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.EXECUTION_PHASE_UNSPECIFIED),
+        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.EXECUTION_PENDING),
+        makeAgentCallProgressEvent(5, "call-helper", AgentExecutionPhase.EXECUTION_IN_PROGRESS),
+      ]);
+
+      expect(store.getTaskStates().get("call-helper")!.status).toBe("running");
+    });
+
+    it("taskCompleted settles a gated task (the task's own events stay authoritative)", () => {
+      const store = new WorkflowExecutionEventStore();
+      runningAgentCall(store);
+      store.appendEvents([
+        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+        makeTaskCompletedEvent(4, "call-helper"),
+      ]);
+
+      expect(store.getTaskStates().get("call-helper")!.status).toBe("completed");
+    });
+
+    it("a stale WAITING progress event cannot re-gate a settled task", () => {
+      const store = new WorkflowExecutionEventStore();
+      runningAgentCall(store);
+      store.appendEvents([
+        makeTaskCompletedEvent(3, "call-helper"),
+        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+      ]);
+
+      expect(store.getTaskStates().get("call-helper")!.status).toBe("completed");
+    });
+
+    it("a WAITING progress event cannot clobber a retrying task", () => {
+      const store = new WorkflowExecutionEventStore();
+      runningAgentCall(store);
+      store.appendEvents([
+        makeTaskFailedEvent(3, "call-helper", { willRetry: true }),
+        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+      ]);
+
+      expect(store.getTaskStates().get("call-helper")!.status).toBe("retrying");
+    });
+
+    it("terminal child phase on progress un-gates; task settlement follows from task events", () => {
+      const store = new WorkflowExecutionEventStore();
+      runningAgentCall(store);
+      store.appendEvents([
+        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.EXECUTION_COMPLETED),
+      ]);
+      expect(store.getTaskStates().get("call-helper")!.status).toBe("running");
+
+      store.appendEvents([makeTaskCompletedEvent(5, "call-helper")]);
+      expect(store.getTaskStates().get("call-helper")!.status).toBe("completed");
+    });
+
+    it("replaying a terminal history ends settled, not gated (history replay is safe)", () => {
+      const store = new WorkflowExecutionEventStore();
+      store.appendEvents([
+        makeTaskStartedEvent(1, "call-helper", AGENT_CALL),
+        makeAgentCallStartedEvent(2, "call-helper"),
+        makeAgentCallProgressEvent(3, "call-helper", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+        makeAgentCallProgressEvent(4, "call-helper", AgentExecutionPhase.EXECUTION_IN_PROGRESS),
+        makeTaskCompletedEvent(5, "call-helper"),
+      ]);
+
+      expect(store.getTaskStates().get("call-helper")!.status).toBe("completed");
+    });
+
+    it("a progress event without a prior taskStarted is a no-op (prev is undefined)", () => {
+      const store = new WorkflowExecutionEventStore();
+      store.appendEvents([
+        makeAgentCallProgressEvent(1, "ghost", AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL),
+      ]);
+
+      expect(store.getTaskStates().has("ghost")).toBe(false);
     });
   });
 

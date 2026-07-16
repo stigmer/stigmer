@@ -1,11 +1,18 @@
-// Composition test for the execution-level HITL surface after the bottom
-// drawer's retirement (S9): a gate arriving on the live stream auto-selects
-// its task, the panel's Inspect facet renders the gate through the shared
-// session ApprovalCard (via WorkflowApprovalList), file reviews ride the
-// same tab through WorkflowFileReviewList, and every decision routes through
-// the single useWorkflowExecutionActions instance. Data hooks and heavy
-// leaves (React Flow graph) are mocked exactly as in the reconciliation
-// harness; this file proves the seam.
+// Composition test for the execution-level HITL surfaces after the
+// thread-primary pivot completed (S10): gating task cards carry their child
+// gates inline in the default Thread view (through the shared session
+// ApprovalCard via WorkflowApprovalList), the panel's Inspect Approval tab
+// remains the panel-side surface (S9), and every decision routes through the
+// single useWorkflowExecutionActions instance. Data hooks and heavy leaves
+// (React Flow graph) are mocked exactly as in the reconciliation harness;
+// this file proves the seams.
+//
+// REALISTIC FIXTURES (a hard S10 requirement): the gated task states are
+// produced by the REAL store derivation from REAL event shapes — an
+// agent_call_progress event carrying the child's WAITING_FOR_APPROVAL phase
+// (D-T02-14). S9's hand-crafted `waiting_approval` states masked that
+// production never emitted them for child gates; deriving through the store
+// keeps these tests honest about the production path.
 //
 // GUARDRAIL (S5 rationale): the entire render runs WITHOUT a StigmerProvider.
 // Any component reaching for a client hook (the child's agentExecution.*
@@ -24,12 +31,21 @@ import {
   ExecutionPhase,
   WorkflowTaskStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import {
+  WorkflowExecutionEventSchema,
+  WorkflowEventType,
+  TaskStartedPayloadSchema,
+  AgentCallStartedPayloadSchema,
+  AgentCallProgressPayloadSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import type {
-  DerivedCostSummary,
-  DerivedTaskState,
-} from "../../internal/store/workflow-execution-event-store";
+import {
+  ApprovalAction,
+  ExecutionPhase as AgentExecutionPhase,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { DerivedCostSummary } from "../../internal/store/workflow-execution-event-store";
+import { WorkflowExecutionEventStore } from "../../internal/store/workflow-execution-event-store";
 import { useWorkflowExecution } from "../useWorkflowExecution";
 import { useWorkflowExecutionEventStream } from "../useWorkflowExecutionEventStream";
 import { useWorkflowExecutionArtifacts } from "../useWorkflowExecutionArtifacts";
@@ -62,8 +78,9 @@ vi.mock("../execution-comparison/ExecutionComparisonPicker", () => ({
 }));
 
 // Streams its child (needs the provider this guardrail render deliberately
-// omits) — stubbed to prove the seam: the Inspect Approval tab hands it the
-// task-scoped references and the workflow-level decision submit.
+// omits) — stubbed to prove the seam: both the gating card and the Inspect
+// Approval tab hand it the task-scoped references and the workflow-level
+// decision submit.
 vi.mock("../WorkflowFileReviewList", () => ({
   WorkflowFileReviewList: ({
     pendingFileReviews,
@@ -106,30 +123,81 @@ const COST_SUMMARY: DerivedCostSummary = {
   thresholdBreached: false,
 };
 
-/** A waiting AGENT_CALL task bound to its child execution. */
-function gatedTask(name: string, childId: string): DerivedTaskState {
-  return {
-    taskName: name,
-    taskKind: WorkflowTaskKind.agent_call,
-    status: "waiting_approval",
-    durationMs: 0,
-    costMicros: 0n,
-    tokensUsed: 0n,
-    attemptNumber: 1,
-    error: "",
-    childExecutionId: childId,
-    agentSlug: "helper",
-    currentToolName: "",
-    messagesCount: 0,
-    toolCallsCount: 0,
-  } as DerivedTaskState;
+// ---------------------------------------------------------------------------
+// Realistic gated fixtures — REAL events through the REAL store derivation
+// ---------------------------------------------------------------------------
+
+function storeEvent(
+  seq: number,
+  taskName: string,
+  eventType: WorkflowEventType,
+  payload: WorkflowExecutionEvent["payload"],
+): WorkflowExecutionEvent {
+  return create(WorkflowExecutionEventSchema, {
+    eventId: `evt-${seq}`,
+    sequenceNumber: BigInt(seq),
+    occurredAt: "2026-07-16T00:00:00Z",
+    taskName,
+    eventType,
+    payload,
+  });
 }
 
 /**
- * Two parallel AGENT_CALL tasks, each waiting on its own child's gates. The
- * task snapshots carry `agent_execution_id` metadata — the inspector's
- * event-less path for resolving the AGENT_CALL child (and therefore the
- * per-task gate filter).
+ * Two parallel AGENT_CALL tasks, both gated by their children: the exact
+ * production event sequence — task_started, agent_call_started (child id),
+ * then the 15s-cadence agent_call_progress poll reporting the child's
+ * WAITING_FOR_APPROVAL phase. `deriveTaskStates` turns that LAST event into
+ * the parent's `waiting_approval` (D-T02-14).
+ */
+function buildGatedStore(): WorkflowExecutionEventStore {
+  const store = new WorkflowExecutionEventStore();
+  const started = (seq: number, task: string) =>
+    storeEvent(seq, task, WorkflowEventType.task_started, {
+      case: "taskStarted",
+      value: create(TaskStartedPayloadSchema, {
+        taskKind: WorkflowTaskKind.agent_call,
+        attemptNumber: 1,
+      }),
+    });
+  const agentStarted = (seq: number, task: string, childId: string) =>
+    storeEvent(seq, task, WorkflowEventType.agent_call_started, {
+      case: "agentCallStarted",
+      value: create(AgentCallStartedPayloadSchema, {
+        childExecutionId: childId,
+        agentSlug: "helper",
+        messageSummary: "run the task",
+      }),
+    });
+  const gatedProgress = (seq: number, task: string, childId: string) =>
+    storeEvent(seq, task, WorkflowEventType.agent_call_progress, {
+      case: "agentCallProgress",
+      value: create(AgentCallProgressPayloadSchema, {
+        childExecutionId: childId,
+        agentPhase: AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+        currentToolName: "",
+        tokensConsumed: BigInt(0),
+        messagesCount: 1,
+        toolCallsCount: 1,
+      }),
+    });
+
+  store.appendEvents([
+    started(1, "call-helper-a"),
+    agentStarted(2, "call-helper-a", "agx_child_a"),
+    started(3, "call-helper-b"),
+    agentStarted(4, "call-helper-b", "agx_child_b"),
+    gatedProgress(5, "call-helper-a", "agx_child_a"),
+    gatedProgress(6, "call-helper-b", "agx_child_b"),
+  ]);
+  return store;
+}
+
+/**
+ * The parent snapshot both gated children surfaced onto (via the
+ * call-agent orchestrator's UpdateWorkflowTaskApprovalStatus write). Task
+ * snapshots carry `agent_execution_id` metadata — the inspector's
+ * event-less path for resolving the AGENT_CALL child.
  */
 function makeExecutionWithGates(overrides?: {
   pendingApprovals?: unknown[];
@@ -212,6 +280,7 @@ function arrange(
   actions = mockActions(),
   executionOverrides?: Parameters<typeof makeExecutionWithGates>[0],
 ) {
+  const store = buildGatedStore();
   mockedUseWorkflowExecution.mockReturnValue({
     execution: makeExecutionWithGates(executionOverrides),
     isLoading: false,
@@ -219,11 +288,8 @@ function arrange(
     refetch: vi.fn(),
   } as unknown as ReturnType<typeof useWorkflowExecution>);
   mockedUseEventStream.mockReturnValue({
-    events: [],
-    taskStates: new Map([
-      ["call-helper-a", gatedTask("call-helper-a", "agx_child_a")],
-      ["call-helper-b", gatedTask("call-helper-b", "agx_child_b")],
-    ]),
+    events: store.getEvents(),
+    taskStates: store.getTaskStates(),
     costSummary: COST_SUMMARY,
     streamState: { stage: "streaming" },
     totalTasks: 2,
@@ -245,32 +311,55 @@ function arrange(
   return actions;
 }
 
+/** The thread card root element for a task (its header row's parent). */
+function cardRootOf(taskName: string): HTMLElement {
+  const headerButton = screen.getByRole("button", {
+    name: new RegExp(`^${taskName}`),
+  });
+  return headerButton.parentElement!.parentElement! as HTMLElement;
+}
+
 /** Select a task the way a user would — its thread card. */
 function selectThreadCard(taskName: string) {
   fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${taskName}`) }));
 }
 
-describe("WorkflowExecutionViewer Inspect-facet HITL (post-drawer, S9)", () => {
+describe("WorkflowExecutionViewer in-thread + Inspect HITL (S10)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
   });
   afterEach(cleanup);
 
-  it("gates auto-open the Inspect Approval tab rendering the shared 4-action ApprovalCard, per-task scoped", () => {
+  it("each gating card carries its own child's 4-action gate inline; the boundary selects the last gated card WITHOUT opening the panel", () => {
     arrange();
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
-    // Both tasks crossed into waiting_approval at mount; the LAST one wins
-    // the auto-selection, and the inspector lands on its Approval tab.
+    // Both tasks crossed into waiting_approval at mount. In Thread view the
+    // panel stays closed (D-T02-13) — the cards ARE the decision surface.
+    expect(screen.queryByRole("tab", { name: /Approval/ })).toBeNull();
     expect(
-      screen.getByRole("tab", { name: /Approval/, selected: true }),
+      screen
+        .getByRole("button", { name: /^call-helper-b/ })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+
+    // Per-task scoping ON the cards: each renders exactly its child's gate,
+    // with the full decision model of the shared session card — visible
+    // without expanding anything (D-T02-12).
+    const cardA = within(cardRootOf("call-helper-a"));
+    const cardB = within(cardRootOf("call-helper-b"));
+    const deleteCard = cardA.getByRole("alert", {
+      name: "Approval required for delete_file",
+    });
+    expect(
+      within(deleteCard).getByRole("button", { name: "Approve all file deletions" }),
     ).toBeTruthy();
-    const shellCard = screen.getByRole("alert", {
+    expect(cardA.queryByRole("alert", { name: "Approval required for shell" })).toBeNull();
+
+    const shellCard = cardB.getByRole("alert", {
       name: "Approval required for shell",
     });
-    // The full decision model — including the class-scoped lease — of the
-    // shared session card.
     expect(within(shellCard).getByRole("button", { name: "Approve" })).toBeTruthy();
     expect(within(shellCard).getByRole("button", { name: "Skip" })).toBeTruthy();
     expect(within(shellCard).getByRole("button", { name: "Reject" })).toBeTruthy();
@@ -279,50 +368,54 @@ describe("WorkflowExecutionViewer Inspect-facet HITL (post-drawer, S9)", () => {
     ).toBeTruthy();
     // The rich preview the retired thin card never had.
     expect(shellCard.textContent).toContain("npm test");
-
-    // Per-task scoping: the sibling child's gate is NOT on this surface.
-    expect(
-      screen.queryByRole("alert", { name: "Approval required for delete_file" }),
-    ).toBeNull();
-
-    // Selecting the sibling task swaps the surface to ITS gate.
-    selectThreadCard("call-helper-a");
-    const deleteCard = screen.getByRole("alert", {
-      name: "Approval required for delete_file",
-    });
-    expect(
-      within(deleteCard).getByRole("button", { name: "Approve all file deletions" }),
-    ).toBeTruthy();
-    expect(
-      screen.queryByRole("alert", { name: "Approval required for shell" }),
-    ).toBeNull();
   });
 
-  it("routes every decision through the workflow-level actions instance with the gate's toolCallId", () => {
+  it("routes every in-card decision through the workflow-level actions instance with the gate's toolCallId", () => {
     const submitApproval = vi.fn();
     arrange(mockActions({ submitApproval }));
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
-    // Auto-selected call-helper-b → the shell gate.
-    const shellCard = screen.getByRole("alert", {
-      name: "Approval required for shell",
-    });
     fireEvent.click(
-      within(shellCard).getByRole("button", { name: "Approve all shell commands" }),
+      within(cardRootOf("call-helper-b")).getByRole("button", {
+        name: "Approve all shell commands",
+      }),
     );
-
-    selectThreadCard("call-helper-a");
-    const deleteCard = screen.getByRole("alert", {
-      name: "Approval required for delete_file",
-    });
-    fireEvent.click(within(deleteCard).getByRole("button", { name: "Reject" }));
+    fireEvent.click(
+      within(cardRootOf("call-helper-a")).getByRole("button", { name: "Reject" }),
+    );
 
     expect(submitApproval).toHaveBeenNthCalledWith(1, "tc_shell", ApprovalAction.APPROVE_ALL, undefined);
     expect(submitApproval).toHaveBeenNthCalledWith(2, "tc_delete", ApprovalAction.REJECT, undefined);
   });
 
+  it("selecting a card opens Inspect on its Approval tab — the panel-side surface renders the SAME gate, still task-scoped", () => {
+    arrange();
+    render(<WorkflowExecutionViewer executionId="wex_1" />);
+
+    // The boundary auto-selected call-helper-b (highlight only); clicking
+    // the NOT-selected sibling is the explicit gesture that opens the panel
+    // (clicking the selected card would toggle it off — the S8 contract).
+    selectThreadCard("call-helper-a");
+
+    // The inspector's status transition lands on the Approval tab (S9
+    // behavior, unchanged).
+    expect(
+      screen.getByRole("tab", { name: /Approval/, selected: true }),
+    ).toBeTruthy();
+    // The selected task's gate now renders on BOTH surfaces (card +
+    // Inspect) from the one snapshot + one actions instance…
+    expect(
+      screen.getAllByRole("alert", { name: "Approval required for delete_file" }),
+    ).toHaveLength(2);
+    // …while the sibling's gate stays only on its own card.
+    expect(
+      screen.getAllByRole("alert", { name: "Approval required for shell" }),
+    ).toHaveLength(1);
+  });
+
   it("keeps in-flight and error state per gate: one gate's failure never leaks to its sibling or the banner", () => {
-    // Both gates on ONE child so both cards share the surface.
+    // Both gates on ONE child so one card carries both — the tightest
+    // adjacency for leak detection.
     arrange(
       mockActions({
         approvalSubmittingToolCallIds: new Set(["tc_shell"]),
@@ -371,7 +464,7 @@ describe("WorkflowExecutionViewer Inspect-facet HITL (post-drawer, S9)", () => {
     expect(screen.queryByRole("button", { name: "Dismiss" })).toBeNull();
   });
 
-  it("file reviews ride the same Approval tab, task-scoped, wired to the workflow-level submit", () => {
+  it("file reviews render on their own card, child-scoped, wired to the workflow-level submit", () => {
     const submitFileDecision = vi.fn();
     arrange(mockActions({ submitFileDecision }), {
       pendingApprovals: [],
@@ -382,13 +475,13 @@ describe("WorkflowExecutionViewer Inspect-facet HITL (post-drawer, S9)", () => {
     });
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
-    // Auto-selected call-helper-b → only ITS child's review reference.
-    const list = screen.getByTestId("file-review-list-stub");
-    expect(within(list).getByText("decide-files-agx_child_b")).toBeTruthy();
-    expect(within(list).queryByText("decide-files-agx_child_a")).toBeNull();
+    // Each gating card hands ITS child's reference to the (stubbed) list.
+    const cardB = within(cardRootOf("call-helper-b"));
+    expect(cardB.getByText("decide-files-agx_child_b")).toBeTruthy();
+    expect(cardB.queryByText("decide-files-agx_child_a")).toBeNull();
 
     // Decisions forward to the single actions instance (workflow RPC).
-    fireEvent.click(within(list).getByText("decide-files-agx_child_b"));
+    fireEvent.click(cardB.getByText("decide-files-agx_child_b"));
     expect(submitFileDecision).toHaveBeenCalledWith("agx_child_b", "cs_2", 1);
   });
 });

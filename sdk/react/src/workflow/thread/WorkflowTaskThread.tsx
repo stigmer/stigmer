@@ -1,17 +1,53 @@
 "use client";
 
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
+import type {
+  WorkflowPendingApproval,
+  WorkflowPendingFileReview,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
 import { useAutoScroll } from "../../internal/useAutoScroll.js";
 import { JumpToLatestButton } from "../../internal/JumpToLatestButton.js";
 import { BoundedContent } from "../../internal/BoundedContent.js";
 import { formatMetaChips } from "../format-utils.js";
+import type { UseWorkflowExecutionActionsReturn } from "../useWorkflowExecutionActions.js";
+import { WorkflowApprovalList } from "../WorkflowApprovalList.js";
+import { WorkflowFileReviewList } from "../WorkflowFileReviewList.js";
 import { useWorkflowThreadItems } from "./useWorkflowThreadItems.js";
 import type {
   WorkflowThreadItem,
   WorkflowThreadProgress,
 } from "./project-thread-items.js";
+
+/**
+ * The workflow-level HITL wiring a decision-capable thread needs — a `Pick`
+ * of the single `useWorkflowExecutionActions` instance's return (cannot
+ * drift; same convention as `WorkflowAgentExecutionHitl` and
+ * `WorkflowInspectHitl`). Decisions route through the WORKFLOW-level RPCs
+ * only — never the child's own `agentExecution.*` path, whose authorization
+ * checks the runner-spawned child rather than the workflow execution the
+ * operator owns (S5 rationale).
+ */
+export type WorkflowThreadHitl = Pick<
+  UseWorkflowExecutionActionsReturn,
+  | "submitApproval"
+  | "approvalSubmittingToolCallIds"
+  | "approvalErrorsByToolCallId"
+  | "submitFileDecision"
+  | "fileDecisionSubmittingKeys"
+  | "fileDecisionErrorsByKey"
+>;
+
+/**
+ * The pending gates surfaced for one task card's child agent execution —
+ * grouped once per thread render (memoized against the snapshot lists) so
+ * non-gating cards receive `undefined` and their `React.memo` bails hold.
+ */
+interface ThreadTaskGates {
+  readonly approvals: readonly WorkflowPendingApproval[];
+  readonly fileReviews: readonly WorkflowPendingFileReview[];
+}
 
 /** Props for {@link WorkflowTaskThread}. */
 export interface WorkflowTaskThreadProps {
@@ -38,6 +74,24 @@ export interface WorkflowTaskThreadProps {
     childExecutionId: string,
     taskName: string,
   ) => void;
+  /**
+   * Workflow-level HITL wiring (see {@link WorkflowThreadHitl}). When
+   * provided, a gating task's card renders its decision surface directly in
+   * the thread — always visible while the gate is pending, never behind the
+   * expand chevron (the run is blocked). Omitted → the thread is read-only
+   * and behaves exactly as before (DD-011; the S5 omitted-`hitl` precedent).
+   */
+  readonly hitl?: WorkflowThreadHitl;
+  /**
+   * The parent workflow's surfaced child tool-approval gates
+   * (`status.pending_approvals`). Only read when {@link hitl} is provided.
+   */
+  readonly pendingApprovals?: readonly WorkflowPendingApproval[];
+  /**
+   * The parent workflow's surfaced child file-review references
+   * (`status.pending_file_reviews`). Only read when {@link hitl} is provided.
+   */
+  readonly pendingFileReviews?: readonly WorkflowPendingFileReview[];
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -59,6 +113,12 @@ export interface WorkflowTaskThreadProps {
  * sentinel keeps the list pinned to the latest card until the user scrolls
  * up, with a jump-to-latest affordance to re-engage.
  *
+ * With `hitl` wired, a gating task's card carries its decision surface
+ * in-thread (S10): the canonical `ApprovalCard`s for child tool gates, the
+ * child-streaming `FileReviewCard`s for file gates, and a one-click
+ * "Open review" into the panel's Inspect Approval tab for task-level
+ * (human_input) gates — whose custom review renderers stay panel-side.
+ *
  * This component is designed to work identically whether rendered in the
  * Stigmer Console or embedded in a third-party dashboard. No dependencies
  * on Console routing, auth, or layout context.
@@ -70,11 +130,42 @@ export const WorkflowTaskThread = memo(function WorkflowTaskThread({
   selectedTaskName,
   onTaskSelect,
   onOpenAgentExecution,
+  hitl,
+  pendingApprovals,
+  pendingFileReviews,
   className,
 }: WorkflowTaskThreadProps) {
   const { items, progress } = useWorkflowThreadItems(taskStates, totalTasks);
   const { scrollRef, sentinelRef, contentRef, isFollowing, jumpToLatest } =
     useAutoScroll();
+
+  // Group the snapshot's gates by owning child ONCE per snapshot identity —
+  // the lists change only on a snapshot refetch, never on stream event
+  // appends, so during streaming every card's `gates` prop keeps a stable
+  // reference (`undefined` for non-gating cards) and memoized rows bail
+  // (DD-009/DD-010). Grouping is unconditional (it is cheap and usually
+  // empty); rendering is gated on `hitl` at the card.
+  const gatesByChild = useMemo((): ReadonlyMap<string, ThreadTaskGates> => {
+    const map = new Map<
+      string,
+      { approvals: WorkflowPendingApproval[]; fileReviews: WorkflowPendingFileReview[] }
+    >();
+    const bucket = (childId: string) => {
+      let entry = map.get(childId);
+      if (!entry) {
+        entry = { approvals: [], fileReviews: [] };
+        map.set(childId, entry);
+      }
+      return entry;
+    };
+    for (const pa of pendingApprovals ?? []) {
+      if (pa.childAgentExecutionId) bucket(pa.childAgentExecutionId).approvals.push(pa);
+    }
+    for (const ref of pendingFileReviews ?? []) {
+      if (ref.childAgentExecutionId) bucket(ref.childAgentExecutionId).fileReviews.push(ref);
+    }
+    return map;
+  }, [pendingApprovals, pendingFileReviews]);
 
   return (
     <div className={cn("relative flex h-full min-h-0 flex-col", className)}>
@@ -95,6 +186,18 @@ export const WorkflowTaskThread = memo(function WorkflowTaskThread({
                 isSelected={item.taskName === selectedTaskName}
                 onTaskSelect={onTaskSelect}
                 onOpenAgentExecution={onOpenAgentExecution}
+                // HITL props reach ONLY gating cards (DD-010): the bundle's
+                // identity moves whenever any gate's in-flight/error state
+                // flips (fresh Set/Map fields), so handing it to every card
+                // would re-render the whole column per spinner tick. Scoped
+                // here, non-gating cards keep `undefined === undefined` and
+                // their memo bails hold.
+                hitl={item.status === "waiting_approval" ? hitl : undefined}
+                gates={
+                  item.status === "waiting_approval" && item.childExecutionId
+                    ? gatesByChild.get(item.childExecutionId)
+                    : undefined
+                }
               />
             ))
           )}
@@ -164,14 +267,19 @@ function ThreadEmptyState({ isRunning }: { readonly isRunning: boolean }) {
 /**
  * One task card. Memoized against the structurally-shared item (DD-010):
  * during streaming only the actively-changing task's item gets a fresh
- * identity, so settled cards bail here. Expansion is local row state —
- * expanding one card never re-renders its siblings.
+ * identity, so settled cards bail here. `hitl`/`gates` arrive ONLY while
+ * this card is gating (the thread scopes them — see the render site), so
+ * gate-state churn (a decision's in-flight Set flip re-materializes the
+ * bundle) re-renders gating cards only, never the column. Expansion is
+ * local row state — expanding one card never re-renders its siblings.
  */
 const ThreadTaskCard = memo(function ThreadTaskCard({
   item,
   isSelected,
   onTaskSelect,
   onOpenAgentExecution,
+  hitl,
+  gates,
 }: {
   readonly item: WorkflowThreadItem;
   readonly isSelected: boolean;
@@ -180,6 +288,8 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
     childExecutionId: string,
     taskName: string,
   ) => void;
+  readonly hitl?: WorkflowThreadHitl;
+  readonly gates?: ThreadTaskGates;
 }) {
   const [expanded, setExpanded] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -261,6 +371,22 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
         </button>
       </div>
 
+      {/* In-thread HITL (S10): the decision surface renders whenever the
+          task is gating — ALWAYS visible, never behind the expand chevron
+          (the run is blocked; Nielsen #1). A sibling of the header row, not
+          nested in its button (no interactive nesting). */}
+      {hitl && item.status === "waiting_approval" && (
+        <div className="border-t border-border px-3 py-2">
+          <ThreadTaskCardHitl
+            item={item}
+            gates={gates}
+            hitl={hitl}
+            onTaskSelect={onTaskSelect}
+            onOpenAgentExecution={onOpenAgentExecution}
+          />
+        </div>
+      )}
+
       {expanded && (
         <div id={detailId} className="border-t border-border px-3 py-2">
           <ThreadTaskDetail
@@ -272,6 +398,123 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
     </div>
   );
 });
+
+// ---------------------------------------------------------------------------
+// In-thread HITL section (S10)
+// ---------------------------------------------------------------------------
+
+/**
+ * The decision surface on a gating card, resolved by gate kind:
+ *
+ * 1. Child gates surfaced on the parent snapshot → the shipped lists
+ *    (`WorkflowApprovalList` for tool approvals, `WorkflowFileReviewList`
+ *    for file reviews), filtered to this card's child. Decisions route
+ *    through the workflow-level RPCs on the supplied {@link
+ *    WorkflowThreadHitl} bundle.
+ * 2. An AGENT_CALL card with NO surfaced gates → the child is gated but the
+ *    snapshot has no entries: on cloud a brief refetch window; on OSS the
+ *    steady state until the T04 forwarder lands. The honest surface is the
+ *    child's own transcript (the S5 in-place expansion renders the child's
+ *    ApprovalCards) — offer it, never a dead-end spinner.
+ * 3. Any other gating card → a task-level (human_input) gate. Its decision
+ *    surface — outcomes, forms, custom review renderers — lives in the
+ *    panel's Inspect Approval tab; selecting the task IS the existing
+ *    gesture that opens it (deliberately select, not toggle: re-clicking
+ *    must re-open a closed panel, which `notifySelection` supports).
+ */
+function ThreadTaskCardHitl({
+  item,
+  gates,
+  hitl,
+  onTaskSelect,
+  onOpenAgentExecution,
+}: {
+  readonly item: WorkflowThreadItem;
+  readonly gates?: ThreadTaskGates;
+  readonly hitl: WorkflowThreadHitl;
+  readonly onTaskSelect?: (taskName: string | null) => void;
+  readonly onOpenAgentExecution?: (
+    childExecutionId: string,
+    taskName: string,
+  ) => void;
+}) {
+  const hasChildGates =
+    !!gates && (gates.approvals.length > 0 || gates.fileReviews.length > 0);
+
+  if (hasChildGates) {
+    return (
+      <div className="flex flex-col gap-3">
+        {gates.approvals.length > 0 && (
+          <WorkflowApprovalList
+            pendingApprovals={gates.approvals}
+            onSubmitApproval={hitl.submitApproval}
+            submittingToolCallIds={hitl.approvalSubmittingToolCallIds}
+            approvalErrors={hitl.approvalErrorsByToolCallId}
+          />
+        )}
+        {gates.fileReviews.length > 0 && (
+          <WorkflowFileReviewList
+            pendingFileReviews={gates.fileReviews}
+            onSubmitFileDecision={hitl.submitFileDecision}
+            submittingDecisionKeys={hitl.fileDecisionSubmittingKeys}
+            decisionErrors={hitl.fileDecisionErrorsByKey}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (item.variant === "agent-call") {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-xs text-muted-foreground">
+          The called agent is waiting for an approval. Decide it in the
+          agent&apos;s transcript.
+        </p>
+        {item.childExecutionId && onOpenAgentExecution && (
+          <ThreadActionButton
+            label="Open transcript"
+            onClick={() =>
+              onOpenAgentExecution(item.childExecutionId, item.taskName)
+            }
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <p className="text-xs text-muted-foreground">
+        Review required to continue this run.
+      </p>
+      {onTaskSelect && (
+        <ThreadActionButton
+          label="Open review"
+          onClick={() => onTaskSelect(item.taskName)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ThreadActionButton({
+  label,
+  onClick,
+}: {
+  readonly label: string;
+  readonly onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="shrink-0 rounded border border-border px-2 py-1 text-xs font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {label}
+    </button>
+  );
+}
 
 /**
  * Collapsed one-line preview per card variant — the thread's analog of the
@@ -354,15 +597,12 @@ function ThreadTaskDetail({
         item.childExecutionId &&
         onOpenAgentExecution && (
           <div>
-            <button
-              type="button"
+            <ThreadActionButton
+              label="Open transcript"
               onClick={() =>
                 onOpenAgentExecution(item.childExecutionId, item.taskName)
               }
-              className="rounded border border-border px-2 py-1 text-xs font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Open transcript
-            </button>
+            />
           </div>
         )}
     </div>

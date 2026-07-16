@@ -1,6 +1,9 @@
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+// The CHILD AgentExecution's phase enum (carried on agent_call_progress
+// payloads) — distinct from the workflow's own ExecutionPhase.
+import { ExecutionPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 // ---------------------------------------------------------------------------
 // Stream state (mirrors ConversationStore's StreamState shape)
@@ -325,6 +328,7 @@ function deriveTaskStates(
         if (prev) {
           map.set(taskName, {
             ...prev,
+            status: deriveChildGateStatus(prev.status, p.value.agentPhase),
             childExecutionId: p.value.childExecutionId || prev.childExecutionId,
             currentToolName: p.value.currentToolName || prev.currentToolName,
             messagesCount: p.value.messagesCount || prev.messagesCount,
@@ -362,6 +366,52 @@ function deriveTaskStates(
   }
 
   return map;
+}
+
+/**
+ * Derives the parent task's status from a child agent's phase on an
+ * `agent_call_progress` event — the ONLY live signal that an AGENT_CALL
+ * task is blocked on a child HITL gate.
+ *
+ * Why progress events drive gating: a child's tool/file gate is surfaced
+ * snapshot-only (`child_approval_required` signal → `status.pending_approvals`
+ * on the parent — no workflow event is emitted; source-confirmed in
+ * `test/conformance/src/suites-execution/workflowexecution-child-approval.conformance.test.ts`).
+ * The `approval_requested` event exists only for human_input tasks. Without
+ * this derivation the stream never shows an agent_call task as
+ * `waiting_approval`, and every waiting_approval consumer (thread/graph
+ * amber state, announcements, `useApprovalBoundary`'s snapshot refetch +
+ * gate auto-select) is blind to child gates. Deriving from the phase the
+ * progress payload already carries closes that gap with zero new events —
+ * and matches the documented task semantics
+ * (`apis/ai/stigmer/agentic/workflowexecution/docs/hitl-approvals.md`).
+ *
+ * Transition rules (deliberately narrow):
+ * - Only `running` can ENTER `waiting_approval` (child phase = WAITING).
+ * - Only `waiting_approval` can EXIT via a progress event, and only on a
+ *   KNOWN non-waiting phase. `UNSPECIFIED` is an explicit no-op: the
+ *   orchestrator's initial/fast-completion emits carry phase 0 (null
+ *   progress) and must never un-gate a blocked task.
+ * - Every other status (retrying, settled, pending) passes through — a
+ *   stale WAITING progress event can never resurrect or re-gate a task the
+ *   authoritative task_* events have already moved on.
+ */
+function deriveChildGateStatus(
+  status: DerivedTaskState["status"],
+  childPhase: AgentExecutionPhase,
+): DerivedTaskState["status"] {
+  if (status === "running") {
+    return childPhase === AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+      ? "waiting_approval"
+      : "running";
+  }
+  if (status === "waiting_approval") {
+    return childPhase === AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL ||
+      childPhase === AgentExecutionPhase.EXECUTION_PHASE_UNSPECIFIED
+      ? "waiting_approval"
+      : "running";
+  }
+  return status;
 }
 
 function deriveCostSummary(

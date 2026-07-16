@@ -4405,6 +4405,12 @@ Auto-follow uses the session thread's mechanism: an IntersectionObserver
 sentinel keeps the list pinned to the latest card until the user scrolls
 up, with a jump-to-latest affordance to re-engage.
 
+With `hitl` wired, a gating task's card carries its decision surface
+in-thread (S10): the canonical `ApprovalCard`s for child tool gates, the
+child-streaming `FileReviewCard`s for file gates, and a one-click
+"Open review" into the panel's Inspect Approval tab for task-level
+(human_input) gates — whose custom review renderers stay panel-side.
+
 This component is designed to work identically whether rendered in the
 Stigmer Console or embedded in a third-party dashboard. No dependencies
 on Console routing, auth, or layout context.
@@ -4417,9 +4423,12 @@ Props for [`WorkflowTaskThread`](#workflowtaskthread).
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    hitl: { type: "WorkflowThreadHitl", description: "Workflow-level HITL wiring (see WorkflowThreadHitl). When provided, a gating task's card renders its decision surface directly in the thread — always visible while the gate is pending, never behind the expand chevron (the run is blocked). Omitted → the thread is read-only and behaves exactly as before (DD-011; the S5 omitted-`hitl` precedent).", typeDescriptionLink: "#workflowthreadhitl" },
     isRunning: { type: "boolean", description: "Whether the execution is still running (drives streaming affordances).", required: true },
     onOpenAgentExecution: { type: "(childExecutionId: string, taskName: string) => void", description: "Callback to open an AGENT_CALL task's child transcript in the panel's editor area (the S4 in-place expansion). Omitted → the affordance is not rendered." },
     onTaskSelect: { type: "(taskName: string | null) => void", description: "Callback when the user selects a task card (or re-clicks the selected card to deselect — `null`). Same contract as a graph node click: the viewer opens the panel's Inspect facet on an explicit selection." },
+    pendingApprovals: { type: "readonly WorkflowPendingApproval[]", description: "The parent workflow's surfaced child tool-approval gates (`status.pending_approvals`). Only read when hitl is provided." },
+    pendingFileReviews: { type: "readonly WorkflowPendingFileReview[]", description: "The parent workflow's surfaced child file-review references (`status.pending_file_reviews`). Only read when hitl is provided." },
     selectedTaskName: { type: "string | null", description: "The task selected across the viewer (thread, graph, and panel).", required: true },
     taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Live derived task states from the execution event stream.", required: true },
     totalTasks: { type: "number", description: "Total planned tasks (from `execution_started`); `0` when unknown.", required: true },
@@ -4492,6 +4501,17 @@ kind-level special case for the flagship `agent_call` card.
 - `action` — everything else (invocations, data transforms, LLM calls);
   also the fallback for `unspecified` kinds, which the snapshot-derived
   fallback task map produces when the event log is empty.
+
+
+### WorkflowThreadHitl
+
+The workflow-level HITL wiring a decision-capable thread needs — a `Pick`
+of the single `useWorkflowExecutionActions` instance's return (cannot
+drift; same convention as `WorkflowAgentExecutionHitl` and
+`WorkflowInspectHitl`). Decisions route through the WORKFLOW-level RPCs
+only — never the child's own `agentExecution.*` path, whose authorization
+checks the runner-spawned child rather than the workflow execution the
+operator owns (S5 rationale).
 
 
 ### WorkflowThreadItem

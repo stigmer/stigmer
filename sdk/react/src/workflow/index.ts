@@ -648,6 +648,7 @@ export { useWorkflowThreadItems } from "./thread/useWorkflowThreadItems.js";
 export {
   WorkflowTaskThread,
   type WorkflowTaskThreadProps,
+  type WorkflowThreadHitl,
 } from "./thread/WorkflowTaskThread.js";
 
 // T11: Shortcut registry

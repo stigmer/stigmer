@@ -1729,6 +1729,8 @@ export type {
   WorkflowThreadProjection,
   WorkflowThreadCardVariant,
   WorkflowTaskThreadProps,
+  // S10: in-thread HITL wiring type
+  WorkflowThreadHitl,
   // S9: approval-boundary watcher types
   ApprovalBoundaryCrossing,
 } from "./workflow/index.js";

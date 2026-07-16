@@ -508,7 +508,7 @@ describe("WorkflowExecutionViewer (approval boundary, S9)", () => {
     } as unknown as ReturnType<typeof useWorkflowExecutionEventStream>);
   }
 
-  it("a gate opening mid-run refetches the snapshot and auto-selects the gating task onto Inspect", () => {
+  it("a gate opening mid-run in THREAD view refetches and selects the card WITHOUT opening the panel (D-T02-13)", () => {
     const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
     mockStream("running");
     const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
@@ -520,6 +520,31 @@ describe("WorkflowExecutionViewer (approval boundary, S9)", () => {
     // before re-reading the mocked stream — vary a benign prop to deliver
     // the new stream value (in production the store subscription re-renders
     // the viewer without any prop change).
+    mockStream("waiting_approval");
+    rerender(
+      <WorkflowExecutionViewer executionId="wex_1" className="pass-2" />,
+    );
+
+    expect(refetch).toHaveBeenCalledTimes(1);
+    // The gating card is selected (highlight + reveal)…
+    expect(
+      screen
+        .getByRole("button", { name: /^build-report/ })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+    // …but the panel is NOT yanked open: since S10 the card itself carries
+    // the decision surface, so the S9 force-open exception no longer
+    // applies in Thread view.
+    expect(screen.queryByTestId("inspector-stub")).toBeNull();
+  });
+
+  it("the same crossing in GRAPH view force-opens the panel onto Inspect (the panel is the only decision surface there)", () => {
+    localStorage.setItem("stgm-wf-exec-center-view.v2", "graph");
+    const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    mockStream("running");
+    const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
+    expect(screen.queryByTestId("inspector-stub")).toBeNull();
+
     mockStream("waiting_approval");
     rerender(
       <WorkflowExecutionViewer executionId="wex_1" className="pass-2" />,
