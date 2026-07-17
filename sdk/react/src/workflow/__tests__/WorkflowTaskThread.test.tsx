@@ -22,6 +22,7 @@ import {
 import type {
   WorkflowPendingApproval,
   WorkflowPendingFileReview,
+  WorkflowTask,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
@@ -103,6 +104,8 @@ function taskState(overrides: Partial<DerivedTaskState> & { taskName: string }):
     currentToolName: "",
     messagesCount: 0,
     toolCallsCount: 0,
+    inputSummary: null,
+    outputSummary: null,
     ...overrides,
   };
 }
@@ -271,7 +274,7 @@ describe("WorkflowTaskThread", () => {
     expect(onTaskSelect).toHaveBeenLastCalledWith(null);
   });
 
-  it("expands to the detail body and opens the transcript for an AGENT_CALL", () => {
+  it("renders an always-visible preview body for an AGENT_CALL (no chevron, T04) and opens the transcript", () => {
     const onOpenAgentExecution = vi.fn();
     render(
       <WorkflowTaskThread
@@ -293,21 +296,96 @@ describe("WorkflowTaskThread", () => {
       />,
     );
 
-    const chevron = screen.getByRole("button", { name: "Expand call-writer" });
-    expect(chevron.getAttribute("aria-expanded")).toBe("false");
-    fireEvent.click(chevron);
-    expect(chevron.getAttribute("aria-expanded")).toBe("true");
-
-    expect(screen.getByText("Status")).toBeTruthy();
-    expect(screen.getByText("Completed")).toBeTruthy();
-    // The agent slug appears in the collapsed preview AND the detail's
-    // definition list — assert the detail row specifically.
-    expect(screen.getByText("Agent").nextElementSibling?.textContent).toBe(
-      "blog-writer",
-    );
+    // Preview-kind cards carry no expand chevron — the body is always
+    // visible (the session preview-card model).
+    expect(screen.queryByRole("button", { name: "Expand call-writer" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Open transcript" }));
     expect(onOpenAgentExecution).toHaveBeenCalledWith("aex_child_1", "call-writer");
+  });
+
+  it("renders the task's output in the always-visible body from the snapshot (T04)", () => {
+    render(
+      <WorkflowTaskThread
+        taskStates={statesOf(
+          taskState({
+            taskName: "check_order",
+            taskKind: WorkflowTaskKind.validate,
+            status: "completed",
+            outputSummary: { valid: true },
+          }),
+        )}
+        totalTasks={1}
+        isRunning={false}
+        selectedTaskName={null}
+        taskSnapshotsByName={
+          new Map([
+            [
+              "check_order",
+              {
+                taskName: "check_order",
+                output: { valid: true, errors: [], data: { total: 120 } },
+                artifactIds: [],
+              } as unknown as WorkflowTask,
+            ],
+          ])
+        }
+      />,
+    );
+
+    // The collapsed line names the verdict; the body renders the FULL
+    // snapshot output without any expand gesture.
+    expect(screen.getByText("valid")).toBeTruthy();
+    expect(screen.getByText("Output")).toBeTruthy();
+    expect(screen.getByText("Valid")).toBeTruthy(); // humanized key
+    // Full-snapshot data — no truncation banner.
+    expect(screen.queryByText(/truncated summary/)).toBeNull();
+  });
+
+  it("falls back to the truncated event summary with an honesty banner when no snapshot is available (T04)", () => {
+    render(
+      <WorkflowTaskThread
+        taskStates={statesOf(
+          taskState({
+            taskName: "total",
+            taskKind: WorkflowTaskKind.transform,
+            status: "completed",
+            outputSummary: { result: 42 },
+          }),
+        )}
+        totalTasks={1}
+        isRunning={false}
+        selectedTaskName={null}
+      />,
+    );
+
+    expect(screen.getByText("Output")).toBeTruthy();
+    expect(screen.getByText(/truncated summary/)).toBeTruthy();
+    expect(screen.getByText("Result")).toBeTruthy(); // humanized key
+  });
+
+  it("shows the task input in a summary-kind card's chevron detail (T04)", () => {
+    render(
+      <WorkflowTaskThread
+        taskStates={statesOf(
+          taskState({
+            taskName: "seed_order",
+            taskKind: WorkflowTaskKind.set_vars,
+            status: "completed",
+            inputSummary: { variables: { order_id: "o-1" } },
+          }),
+        )}
+        totalTasks={1}
+        isRunning={false}
+        selectedTaskName={null}
+      />,
+    );
+
+    // Summary-kind cards keep the chevron; the detail carries the input.
+    const chevron = screen.getByRole("button", { name: "Expand seed_order" });
+    fireEvent.click(chevron);
+    expect(screen.getByText("Input")).toBeTruthy();
+    expect(screen.getByText("o-1")).toBeTruthy();
   });
 
   it("shows the full error in the expanded body", () => {
@@ -368,6 +446,70 @@ describe("WorkflowTaskThread", () => {
         .getByRole("button", { name: "Collapse settled" })
         .getAttribute("aria-expanded"),
     ).toBe("true");
+  });
+
+  it("a streaming append re-renders only the changed card — snapshot-map bodies never invalidate siblings (T04 perf probe)", () => {
+    // Both cards are I/O-bearing preview kinds with always-visible bodies
+    // fed from the SAME snapshot map. The formatMetaChips spy fires once
+    // per card render, so its call log is the per-card render probe.
+    const snapshots = new Map<string, WorkflowTask>([
+      [
+        "settled-check",
+        {
+          taskName: "settled-check",
+          output: { valid: true },
+          artifactIds: [],
+        } as unknown as WorkflowTask,
+      ],
+    ]);
+    const mkStates = (liveTokens: bigint) =>
+      statesOf(
+        taskState({
+          taskName: "settled-check",
+          taskKind: WorkflowTaskKind.validate,
+          status: "completed",
+          // Distinctive duration → uniquely identifiable in the call log.
+          durationMs: 7_777,
+        }),
+        taskState({
+          taskName: "live-llm",
+          taskKind: WorkflowTaskKind.llm_call,
+          status: "running",
+          durationMs: 0,
+          tokensUsed: liveTokens,
+        }),
+      );
+
+    const { rerender } = render(
+      <WorkflowTaskThread
+        taskStates={mkStates(100n)}
+        totalTasks={2}
+        isRunning
+        selectedTaskName={null}
+        taskSnapshotsByName={snapshots}
+      />,
+    );
+
+    const probe = vi.mocked(formatMetaChips);
+    probe.mockClear();
+    // A fresh map (as the store produces per event append) touching ONLY
+    // the live task. The settled card's item keeps identity (structural
+    // sharing), its snapshot lookup is unchanged, so its memo must bail.
+    rerender(
+      <WorkflowTaskThread
+        taskStates={mkStates(200n)}
+        totalTasks={2}
+        isRunning
+        selectedTaskName={null}
+        taskSnapshotsByName={snapshots}
+      />,
+    );
+
+    const renderedDurations = probe.mock.calls.map((c) => c[0]?.durationMs);
+    // The live card re-rendered (its token count moved)…
+    expect(renderedDurations).toContain(0);
+    // …but the settled preview-body card bailed (DD-009/DD-010).
+    expect(renderedDurations).not.toContain(7_777);
   });
 
   it("renders a fan-out as overlapping running cards in first-started order (D-T02-1)", () => {
@@ -531,9 +673,11 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
       />,
     );
 
-    // The decision surface is present while the card is COLLAPSED (D-T02-12).
-    const chevron = screen.getByRole("button", { name: "Expand call-helper" });
-    expect(chevron.getAttribute("aria-expanded")).toBe("false");
+    // The decision surface is present with no expand gesture at all —
+    // agent_call is a preview-kind card and carries no chevron (T04).
+    expect(
+      screen.queryByRole("button", { name: "Expand call-helper" }),
+    ).toBeNull();
     const card = screen.getByRole("alert", {
       name: "Approval required for delete_repository",
     });

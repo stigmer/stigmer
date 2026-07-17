@@ -16,6 +16,12 @@ import { ValueSchema } from "@bufbuild/protobuf/wkt";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
 import { kindToDisplayName } from "../kind-metadata.js";
 import { taskKindToString } from "../workflow-graph-conversions.js";
+import { buildIO, type TaskDetailIO } from "../task-detail/task-detail-io.js";
+
+// Re-exported from the shared task-detail module (T04 extraction) so this
+// module's public surface — and the barrels that re-export it — stay
+// byte-compatible.
+export type { TaskDetailIO };
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -46,13 +52,6 @@ export interface TaskDetailSummary {
   readonly outputTokens: bigint;
   readonly totalTokens: bigint;
   readonly attemptNumber: number;
-}
-
-export interface TaskDetailIO {
-  readonly data: JsonObject;
-  readonly summary: JsonObject | null;
-  readonly artifactIds: readonly string[];
-  readonly source: "snapshot" | "event-summary";
 }
 
 export interface TaskDetailError {
@@ -390,32 +389,6 @@ function buildSummary(
     totalTokens,
     attemptNumber,
   };
-}
-
-function buildIO(
-  snapshotData: JsonObject | undefined,
-  eventSummary: JsonObject | null,
-  artifactIds: readonly string[],
-): TaskDetailIO | null {
-  if (snapshotData && Object.keys(snapshotData).length > 0) {
-    return {
-      data: snapshotData,
-      summary: eventSummary,
-      artifactIds,
-      source: "snapshot",
-    };
-  }
-
-  if (eventSummary && Object.keys(eventSummary).length > 0) {
-    return {
-      data: eventSummary,
-      summary: eventSummary,
-      artifactIds,
-      source: "event-summary",
-    };
-  }
-
-  return null;
 }
 
 function buildError(buckets: EventBuckets, snapshotMetadata?: Record<string, unknown>): TaskDetailError | null {

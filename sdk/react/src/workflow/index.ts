@@ -644,6 +644,17 @@ export {
   threadCardVariant,
   type WorkflowThreadCardVariant,
 } from "./thread/thread-presentation.js";
+// T04: Session-parity task cards — headless per-kind presentation seam
+// (the workflow twin of the session's registerToolPresenter).
+export {
+  resolveTaskPreview,
+  registerTaskPresenter,
+  getTaskPresenter,
+  defaultDisclosureForKind,
+  type WorkflowTaskPresenter,
+  type WorkflowTaskPreview,
+  type WorkflowTaskDisclosure,
+} from "./thread/task-presentation.js";
 export { useWorkflowThreadItems } from "./thread/useWorkflowThreadItems.js";
 export {
   WorkflowTaskThread,

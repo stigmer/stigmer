@@ -1,8 +1,9 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 import { WorkflowTaskStatus, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
+import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { useWorkflowExecution } from "./useWorkflowExecution.js";
 import { useWorkflowExecutionEventStream } from "./useWorkflowExecutionEventStream.js";
@@ -236,6 +237,11 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         currentToolName: "",
         messagesCount: 0,
         toolCallsCount: 0,
+        // No event log → no truncated summaries. The card body still
+        // renders full I/O from this same snapshot (`status.tasks[]`), so
+        // the fallback path is never a blank card (T04).
+        inputSummary: null,
+        outputSummary: null,
       });
     }
     return map;
@@ -243,6 +249,21 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
 
   const effectiveTaskStates = fallbackTaskStates ?? taskStates;
   const effectiveTotalTasks = fallbackTaskStates ? fallbackTaskStates.size : totalTasks;
+
+  // Per-task snapshot lookup for the thread cards' I/O bodies (T04): an
+  // O(1) map, rebuilt only when the snapshot refetches — never on stream
+  // event appends — so memoized cards keep bailing during streaming.
+  const taskSnapshotsByName = useMemo(():
+    | ReadonlyMap<string, WorkflowTask>
+    | undefined => {
+    const tasks = execution?.status?.tasks;
+    if (!tasks || tasks.length === 0) return undefined;
+    const map = new Map<string, WorkflowTask>();
+    for (const t of tasks) {
+      if (t.taskName) map.set(t.taskName, t);
+    }
+    return map;
+  }, [execution?.status?.tasks]);
 
   const { artifacts } = useWorkflowExecutionArtifacts(executionId);
 
@@ -328,16 +349,34 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
 
   // Selection is OWNER state (it drives the thread-card and graph-node
   // highlights), reported into the panel controller from here — unlike the
-  // session, whose thread selection lives in the panel subtree. The two
-  // wrappers encode the one selection rule: an explicit user gesture (thread
-  // card, graph node, Usage row) opens the panel on Inspect; the runner's
-  // auto-focus only updates an already-open panel. A deselect (graph pane
-  // click, or toggling the selected card/node off) clears without opening.
+  // session, whose thread selection lives in the panel subtree. The three
+  // wrappers encode the selection rule, VIEW-SCOPED since T04 (extending
+  // the D-T02-13 discipline from gate auto-focus to plain selection):
+  // - `handleSelectTask` — a gesture whose surface IS the panel: a graph
+  //   node click (the node has no inline surface; Inspect is Graph view's
+  //   only detail surface), a Usage row (the user is already in the panel),
+  //   or a card's explicit Inspect affordance. Opens the panel on Inspect.
+  // - `handleThreadSelectTask` — a thread-card click. The card is the
+  //   surface (it carries the task's preview, I/O body, and HITL since
+  //   T04), so selecting it highlights + scrolls WITHOUT yanking the panel
+  //   open — the R1-2 fix. An already-open, un-stuck panel still follows
+  //   onto Inspect (the auto-focus semantic).
+  // - `handleAutoSelectTask` — the runner's auto-focus; only updates an
+  //   already-open panel.
+  // A deselect (graph pane click, or toggling the selected card/node off)
+  // clears without opening.
   const notifySelection = panel.notifySelection;
   const handleSelectTask = useCallback(
     (taskName: string | null) => {
       setSelectedTaskName(taskName);
       notifySelection(taskName, taskName !== null ? { open: true } : undefined);
+    },
+    [notifySelection],
+  );
+  const handleThreadSelectTask = useCallback(
+    (taskName: string | null) => {
+      setSelectedTaskName(taskName);
+      notifySelection(taskName);
     },
     [notifySelection],
   );
@@ -348,6 +387,35 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
     },
     [notifySelection],
   );
+  // The card's opt-in drill-down (T04): raw structured I/O, the per-task
+  // event log, retries — the density the card intentionally does not
+  // inline. Also the human_input review path ("Open review").
+  const handleInspectTask = useCallback(
+    (taskName: string) => handleSelectTask(taskName),
+    [handleSelectTask],
+  );
+
+  // Terminal-phase snapshot refetch (T04, DD-T04-4). While a run streams,
+  // the cards' collapsed lines and bodies work from the TRUNCATED event
+  // summaries; the full per-task output lands on `status.tasks[]` only when
+  // the runner persists the terminal snapshot. The stream store's stage is
+  // the live end-of-run signal (`"complete"` on the terminal event) — the
+  // snapshot's own `phase` cannot be the trigger, since it only moves on a
+  // refetch (the circularity behind the stale "Pending" header, R1-5).
+  // Scoped to the live→complete TRANSITION: a terminal-replay mount starts
+  // at "complete" without ever streaming and already fetched a settled
+  // snapshot, so it must not refetch again.
+  const prevStreamStageRef = useRef(streamState.stage);
+  useEffect(() => {
+    const prev = prevStreamStageRef.current;
+    prevStreamStageRef.current = streamState.stage;
+    if (
+      streamState.stage === "complete" &&
+      (prev === "streaming" || prev === "reconnecting")
+    ) {
+      refetchExecution();
+    }
+  }, [streamState.stage, refetchExecution]);
 
   // HITL attention + snapshot freshness (S9, the drawer's replacement).
   // A `waiting_approval` boundary crossing means the mount snapshot's gate
@@ -617,7 +685,11 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
             totalTasks={effectiveTotalTasks}
             isRunning={isRunning}
             selectedTaskName={selectedTaskName}
-            onTaskSelect={handleSelectTask}
+            // Thread selection never force-opens the panel (T04) — the card
+            // is the surface; the per-card Inspect affordance is the
+            // explicit drill-down gesture.
+            onTaskSelect={handleThreadSelectTask}
+            onInspectTask={handleInspectTask}
             onOpenAgentExecution={panel.openAgentExecution}
             // In-card HITL (S10): the SAME bundle the transcript documents
             // use, plus the snapshot gate lists (kept fresh by the approval
@@ -625,6 +697,9 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
             hitl={childGateHitl}
             pendingApprovals={execution?.status?.pendingApprovals}
             pendingFileReviews={execution?.status?.pendingFileReviews}
+            // Full per-task I/O for the card bodies (T04) — the same
+            // snapshot Inspect joins, as an O(1) per-card lookup.
+            taskSnapshotsByName={taskSnapshotsByName}
             className="h-full"
           />
         </div>

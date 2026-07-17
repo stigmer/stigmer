@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
-import { StructuredDataViewer } from "../execution-inspector/StructuredDataViewer";
+import { StructuredDataViewer } from "../task-detail/StructuredDataViewer";
 
 afterEach(cleanup);
 

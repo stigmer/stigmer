@@ -3,9 +3,9 @@
 import { memo, useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type { TaskDetailIO } from "./derive-task-detail.js";
+import type { TaskDetailIO } from "../task-detail/task-detail-io.js";
 import { formatJson } from "../../execution/tool-rendering-primitives.js";
-import { StructuredDataViewer } from "./StructuredDataViewer.js";
+import { StructuredDataViewer } from "../task-detail/StructuredDataViewer.js";
 
 type ViewMode = "structured" | "json";
 

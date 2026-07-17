@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { create } from "@bufbuild/protobuf";
+import type { JsonObject } from "@bufbuild/protobuf";
 import {
   WorkflowExecutionEventSchema,
   WorkflowEventType,
@@ -23,7 +24,11 @@ import { WorkflowExecutionEventStore } from "../workflow-execution-event-store";
 function makeTaskStartedEvent(
   seq: number,
   taskName: string,
-  opts: { taskKind?: number; attemptNumber?: number } = {},
+  opts: {
+    taskKind?: number;
+    attemptNumber?: number;
+    inputSummary?: JsonObject;
+  } = {},
 ): WorkflowExecutionEvent {
   return create(WorkflowExecutionEventSchema, {
     eventId: `evt-${seq}`,
@@ -36,6 +41,7 @@ function makeTaskStartedEvent(
       value: create(TaskStartedPayloadSchema, {
         taskKind: opts.taskKind ?? 1,
         attemptNumber: opts.attemptNumber ?? 1,
+        inputSummary: opts.inputSummary,
       }),
     },
   });
@@ -44,7 +50,12 @@ function makeTaskStartedEvent(
 function makeTaskCompletedEvent(
   seq: number,
   taskName: string,
-  opts: { durationMs?: bigint; costMicros?: bigint; tokensUsed?: bigint } = {},
+  opts: {
+    durationMs?: bigint;
+    costMicros?: bigint;
+    tokensUsed?: bigint;
+    outputSummary?: JsonObject;
+  } = {},
 ): WorkflowExecutionEvent {
   return create(WorkflowExecutionEventSchema, {
     eventId: `evt-${seq}`,
@@ -59,6 +70,7 @@ function makeTaskCompletedEvent(
         durationMs: opts.durationMs ?? BigInt(100),
         costMicros: opts.costMicros ?? BigInt(500),
         tokensUsed: opts.tokensUsed ?? BigInt(200),
+        outputSummary: opts.outputSummary,
       }),
     },
   });
@@ -490,6 +502,84 @@ describe("WorkflowExecutionEventStore", () => {
 
       store.reset();
       expect(listener).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // T04: the truncated I/O summaries are the live preview source for the
+  // thread cards — the store must capture them, reset them correctly on
+  // retries, and keep them REFERENCE-STABLE across re-derivations (the
+  // projection's structural sharing compares them by identity).
+  describe("I/O summary capture (T04)", () => {
+    it("captures input_summary from task_started and output_summary from task_completed", () => {
+      const store = new WorkflowExecutionEventStore();
+      store.appendEvents([
+        makeTaskStartedEvent(1, "seed", {
+          inputSummary: { variables: { order_id: "o-1" } },
+        }),
+        makeTaskCompletedEvent(2, "seed", {
+          outputSummary: { result: 42 },
+        }),
+      ]);
+
+      const state = store.getTaskStates().get("seed")!;
+      expect(state.inputSummary).toEqual({ variables: { order_id: "o-1" } });
+      expect(state.outputSummary).toEqual({ result: 42 });
+    });
+
+    it("defaults both summaries to null when the payloads omit them", () => {
+      const store = new WorkflowExecutionEventStore();
+      store.appendEvents([
+        makeTaskStartedEvent(1, "seed"),
+        makeTaskCompletedEvent(2, "seed"),
+      ]);
+
+      const state = store.getTaskStates().get("seed")!;
+      expect(state.inputSummary).toBeNull();
+      expect(state.outputSummary).toBeNull();
+    });
+
+    it("a restart invalidates the prior attempt's output but keeps the input", () => {
+      const store = new WorkflowExecutionEventStore();
+      store.appendEvents([
+        makeTaskStartedEvent(1, "flaky", { inputSummary: { url: "a" } }),
+        makeTaskCompletedEvent(2, "flaky", { outputSummary: { ok: true } }),
+        // The engine re-runs the task (e.g. a workflow-level replay).
+        makeTaskStartedEvent(3, "flaky", { attemptNumber: 2 }),
+      ]);
+
+      const state = store.getTaskStates().get("flaky")!;
+      expect(state.outputSummary).toBeNull();
+      expect(state.inputSummary).toEqual({ url: "a" });
+    });
+
+    it("a failure clears the output summary but keeps the input", () => {
+      const store = new WorkflowExecutionEventStore();
+      store.appendEvents([
+        makeTaskStartedEvent(1, "doomed", { inputSummary: { url: "a" } }),
+        makeTaskFailedEvent(2, "doomed"),
+      ]);
+
+      const state = store.getTaskStates().get("doomed")!;
+      expect(state.inputSummary).toEqual({ url: "a" });
+      expect(state.outputSummary).toBeNull();
+    });
+
+    it("keeps summary references stable across re-derivations (structural-sharing contract)", () => {
+      const store = new WorkflowExecutionEventStore();
+      store.appendEvents([
+        makeTaskStartedEvent(1, "seed", { inputSummary: { a: 1 } }),
+        makeTaskCompletedEvent(2, "seed", { outputSummary: { b: 2 } }),
+      ]);
+      const before = store.getTaskStates().get("seed")!;
+
+      // A later event for ANOTHER task invalidates the cache and forces a
+      // full re-derivation; "seed" summaries must keep object identity
+      // (they are read off the same immutable stored events).
+      store.appendEvents([makeTaskStartedEvent(3, "other")]);
+      const after = store.getTaskStates().get("seed")!;
+
+      expect(after.inputSummary).toBe(before.inputSummary);
+      expect(after.outputSummary).toBe(before.outputSummary);
     });
   });
 });

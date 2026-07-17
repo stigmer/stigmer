@@ -423,13 +423,69 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
     expect(graphRenders.count).toBe(rendersAfterMount);
   });
 
-  it("a thread card click opens the panel on Inspect (shared selection contract)", () => {
+  it("a thread card click selects WITHOUT opening the panel (T04 — the card is the surface)", () => {
     renderViewer();
 
     fireEvent.click(screen.getByRole("button", { name: /^build-report/ }));
 
+    // Selection is visible on the card…
+    expect(
+      screen
+        .getByRole("button", { name: /^build-report/ })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+    // …but the panel stays collapsed: no Inspect facet force-open (R1-2).
+    expect(screen.queryByTestId("inspector-stub")).toBeNull();
+    expect(screen.queryByRole("radio", { name: "Inspect" })).toBeNull();
+  });
+
+  it("the card's Inspect affordance is the explicit drill-down — it opens the panel on Inspect (T04)", () => {
+    renderViewer();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Inspect build-report" }),
+    );
+
     expect(screen.getByTestId("inspector-stub").textContent).toBe(
       "build-report",
+    );
+    expect(
+      screen
+        .getByRole("radio", { name: "Inspect" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+  });
+
+  it("a human_input gate's Open review still reaches the panel's Inspect surface (T04 guardrail)", () => {
+    // A running execution with a gating human_input task — the card offers
+    // "Open review"; the review surface lives in Inspect's Approval tab,
+    // so the affordance must keep force-opening the panel even though a
+    // plain card click no longer does.
+    arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    mockedUseEventStream.mockReturnValue({
+      events: [],
+      taskStates: new Map([
+        [
+          "review-gate",
+          {
+            ...taskState("review-gate"),
+            taskKind: 16, // WorkflowTaskKind.human_input
+            status: "waiting_approval",
+          },
+        ],
+      ]),
+      costSummary: COST_SUMMARY,
+      streamState: { stage: "streaming" },
+      totalTasks: 1,
+      error: null,
+      reconnect: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowExecutionEventStream>);
+    renderViewer();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open review" }));
+
+    expect(screen.getByTestId("inspector-stub").textContent).toBe(
+      "review-gate",
     );
     expect(
       screen
@@ -465,7 +521,8 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
     } as unknown as ReturnType<typeof useWorkflowExecutionEventStream>);
     renderViewer();
 
-    fireEvent.click(screen.getByRole("button", { name: "Expand call-writer" }));
+    // Preview-kind cards (agent_call) keep the transcript affordance in
+    // their always-visible body — no expand gesture required (T04).
     fireEvent.click(screen.getByRole("button", { name: "Open transcript" }));
 
     expect(screen.getByTestId("agent-doc-stub").textContent).toBe(
@@ -584,5 +641,78 @@ describe("WorkflowExecutionViewer (approval boundary, S9)", () => {
 
     expect(refetch).not.toHaveBeenCalled();
     expect(screen.queryByTestId("inspector-stub")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T04: terminal-phase snapshot refetch (DD-T04-4)
+// ---------------------------------------------------------------------------
+
+describe("WorkflowExecutionViewer (terminal-phase refetch, T04)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+  afterEach(cleanup);
+
+  // Re-mocks ONLY the stream stage (the execution mock — and its refetch
+  // spy — must stay stable across the flip; the assertions count its calls).
+  function mockStreamStage(stage: "streaming" | "reconnecting" | "complete") {
+    mockedUseEventStream.mockReturnValue({
+      events: [],
+      taskStates: new Map([
+        ["build-report", { ...taskState("build-report"), status: "running" }],
+      ]),
+      costSummary: COST_SUMMARY,
+      streamState:
+        stage === "reconnecting"
+          ? { stage, executionId: "wex_1", attempt: 1, error: new Error("drop") }
+          : { stage, executionId: "wex_1" },
+      totalTasks: 1,
+      error: null,
+      reconnect: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowExecutionEventStream>);
+  }
+
+  it("the live stream reaching its terminal event refetches the snapshot once — the cards' full I/O and the header phase land without a reload", () => {
+    const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    mockStreamStage("streaming");
+    const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
+    expect(refetch).not.toHaveBeenCalled();
+
+    // The stream delivers the terminal event → stage flips to complete.
+    // (Benign prop change to get past the viewer's memo — in production the
+    // store subscription re-renders the viewer without any prop change.)
+    mockStreamStage("complete");
+    rerender(
+      <WorkflowExecutionViewer executionId="wex_1" className="pass-2" />,
+    );
+    expect(refetch).toHaveBeenCalledTimes(1);
+
+    // Idempotent: staying complete never re-triggers.
+    rerender(
+      <WorkflowExecutionViewer executionId="wex_1" className="pass-3" />,
+    );
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("a reconnecting stream that resolves straight to complete also refetches", () => {
+    const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    mockStreamStage("reconnecting");
+    const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
+
+    mockStreamStage("complete");
+    rerender(
+      <WorkflowExecutionViewer executionId="wex_1" className="pass-2" />,
+    );
+
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("a terminal-replay mount (already complete, never streamed) does not refetch", () => {
+    const { refetch } = arrange(ExecutionPhase.EXECUTION_COMPLETED);
+    mockStreamStage("complete");
+    render(<WorkflowExecutionViewer executionId="wex_1" />);
+
+    expect(refetch).not.toHaveBeenCalled();
   });
 });

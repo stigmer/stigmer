@@ -1566,6 +1566,12 @@ export {
   threadCardVariant,
   useWorkflowThreadItems,
   WorkflowTaskThread,
+  // T04: session-parity task cards — per-kind presentation seam (the
+  // workflow twin of registerToolPresenter)
+  resolveTaskPreview,
+  registerTaskPresenter,
+  getTaskPresenter,
+  defaultDisclosureForKind,
   // S9: approval-boundary watcher (snapshot freshness + gate attention)
   useApprovalBoundary,
 } from "./workflow/index.js";
@@ -1729,6 +1735,10 @@ export type {
   WorkflowThreadProjection,
   WorkflowThreadCardVariant,
   WorkflowTaskThreadProps,
+  // T04: session-parity task cards — presentation seam types
+  WorkflowTaskPresenter,
+  WorkflowTaskPreview,
+  WorkflowTaskDisclosure,
   // S10: in-thread HITL wiring type
   WorkflowThreadHitl,
   // S9: approval-boundary watcher types

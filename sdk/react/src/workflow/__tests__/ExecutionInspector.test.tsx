@@ -65,6 +65,8 @@ function makeTaskState(
     currentToolName: "",
     messagesCount: 0,
     toolCallsCount: 0,
+    inputSummary: null,
+    outputSummary: null,
   };
 }
 

@@ -8,7 +8,7 @@ import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-compon
 import { DecisionButton, type DecisionVariant } from "../internal/DecisionButton.js";
 import { InCardDecisionError } from "../internal/InCardDecisionError.js";
 import { formatJson } from "../execution/tool-rendering-primitives.js";
-import { StructuredDataViewer } from "./execution-inspector/StructuredDataViewer.js";
+import { StructuredDataViewer } from "./task-detail/StructuredDataViewer.js";
 
 /** Outcome descriptor for UI rendering. */
 export interface TaskOutcome {

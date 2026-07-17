@@ -5,6 +5,7 @@ import { cn } from "@stigmer/theme";
 import type {
   WorkflowPendingApproval,
   WorkflowPendingFileReview,
+  WorkflowTask,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
 import { useAutoScroll } from "../../internal/useAutoScroll.js";
@@ -14,6 +15,8 @@ import { formatMetaChips } from "../format-utils.js";
 import type { UseWorkflowExecutionActionsReturn } from "../useWorkflowExecutionActions.js";
 import { WorkflowApprovalList } from "../WorkflowApprovalList.js";
 import { WorkflowFileReviewList } from "../WorkflowFileReviewList.js";
+import { buildIO, type TaskDetailIO } from "../task-detail/task-detail-io.js";
+import { StructuredDataViewer } from "../task-detail/StructuredDataViewer.js";
 import { useWorkflowThreadItems } from "./useWorkflowThreadItems.js";
 import type {
   WorkflowThreadItem,
@@ -61,10 +64,20 @@ export interface WorkflowTaskThreadProps {
   readonly selectedTaskName: string | null;
   /**
    * Callback when the user selects a task card (or re-clicks the selected
-   * card to deselect — `null`). Same contract as a graph node click: the
-   * viewer opens the panel's Inspect facet on an explicit selection.
+   * card to deselect — `null`). Since T04 this is a highlight+scroll
+   * gesture only — the card is the primary surface for the task's data, so
+   * the viewer no longer force-opens the panel's Inspect facet on it (the
+   * R1-2 fix). The explicit drill-down gesture is {@link onInspectTask}.
    */
   readonly onTaskSelect?: (taskName: string | null) => void;
+  /**
+   * Callback for the card's opt-in Inspect affordance (T04) — the
+   * drill-down to raw structured I/O, the per-task event log, and retries
+   * (the density the card intentionally does not inline). The viewer opens
+   * the panel's Inspect facet on it. Also carries the human_input "Open
+   * review" path. Omitted → the affordance is not rendered.
+   */
+  readonly onInspectTask?: (taskName: string) => void;
   /**
    * Callback to open an AGENT_CALL task's child transcript in the panel's
    * editor area (the S4 in-place expansion). Omitted → the affordance is
@@ -92,6 +105,16 @@ export interface WorkflowTaskThreadProps {
    * (`status.pending_file_reviews`). Only read when {@link hitl} is provided.
    */
   readonly pendingFileReviews?: readonly WorkflowPendingFileReview[];
+  /**
+   * Per-task status snapshots (`status.tasks[]`) keyed by task name — the
+   * FULL I/O source for card bodies (T04). An O(1) lookup per card, never
+   * an event-log scan: the full `deriveTaskDetail` join stays in the
+   * Inspect drill-down. The map's identity changes only on a snapshot
+   * refetch (rare), never on stream event appends, so memoized cards keep
+   * bailing during streaming. Omitted → bodies degrade to the truncated
+   * event summaries already on the items.
+   */
+  readonly taskSnapshotsByName?: ReadonlyMap<string, WorkflowTask>;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -104,10 +127,12 @@ export interface WorkflowTaskThreadProps {
  *
  * Pending tasks render no cards (D-T02-5); the progress header keeps
  * overall status visible. Retries collapse into one card with an attempt
- * indicator (D-T02-6). AGENT_CALL cards expand to a summary plus an
- * "Open transcript" affordance (D-T02-2) — the full transcript opens as a
- * panel document, never inline. Selecting a card is the "show me this
- * task" gesture (it opens Inspect), matching a DAG node click.
+ * indicator (D-T02-6). AGENT_CALL cards carry an always-visible body with
+ * an "Open transcript" affordance (D-T02-2) — the full transcript opens as
+ * a panel document, never inline. Since T04 the card is the PRIMARY surface
+ * for a task's data (kind-aware preview line + bounded I/O body): selecting
+ * a card highlights and scrolls but never force-opens the panel; the
+ * per-card Inspect affordance is the explicit drill-down.
  *
  * Auto-follow uses the session thread's mechanism: an IntersectionObserver
  * sentinel keeps the list pinned to the latest card until the user scrolls
@@ -129,10 +154,12 @@ export const WorkflowTaskThread = memo(function WorkflowTaskThread({
   isRunning,
   selectedTaskName,
   onTaskSelect,
+  onInspectTask,
   onOpenAgentExecution,
   hitl,
   pendingApprovals,
   pendingFileReviews,
+  taskSnapshotsByName,
   className,
 }: WorkflowTaskThreadProps) {
   const { items, progress } = useWorkflowThreadItems(taskStates, totalTasks);
@@ -185,6 +212,7 @@ export const WorkflowTaskThread = memo(function WorkflowTaskThread({
                 item={item}
                 isSelected={item.taskName === selectedTaskName}
                 onTaskSelect={onTaskSelect}
+                onInspectTask={onInspectTask}
                 onOpenAgentExecution={onOpenAgentExecution}
                 // HITL props reach ONLY gating cards (DD-010): the bundle's
                 // identity moves whenever any gate's in-flight/error state
@@ -198,6 +226,7 @@ export const WorkflowTaskThread = memo(function WorkflowTaskThread({
                     ? gatesByChild.get(item.childExecutionId)
                     : undefined
                 }
+                snapshot={taskSnapshotsByName?.get(item.taskName)}
               />
             ))
           )}
@@ -270,29 +299,70 @@ function ThreadEmptyState({ isRunning }: { readonly isRunning: boolean }) {
  * identity, so settled cards bail here. `hitl`/`gates` arrive ONLY while
  * this card is gating (the thread scopes them — see the render site), so
  * gate-state churn (a decision's in-flight Set flip re-materializes the
- * bundle) re-renders gating cards only, never the column. Expansion is
- * local row state — expanding one card never re-renders its siblings.
+ * bundle) re-renders gating cards only, never the column. `snapshot`
+ * changes identity only on a snapshot refetch, never on stream appends.
+ * Expansion is local row state — expanding one card never re-renders its
+ * siblings.
+ *
+ * Disclosure (T04, the session `ToolCallItem` rule — "does the body carry
+ * content the one-line row cannot?"):
+ * - `"preview"` kinds render an ALWAYS-VISIBLE bounded output body (no
+ *   card chevron — `BoundedContent` owns its own in-place reveal, so the
+ *   old "expand, then Show more" double control never comes back).
+ * - `"summary"` kinds keep the chevron-gated detail body.
  */
 const ThreadTaskCard = memo(function ThreadTaskCard({
   item,
   isSelected,
   onTaskSelect,
+  onInspectTask,
   onOpenAgentExecution,
   hitl,
   gates,
+  snapshot,
 }: {
   readonly item: WorkflowThreadItem;
   readonly isSelected: boolean;
   readonly onTaskSelect?: (taskName: string | null) => void;
+  readonly onInspectTask?: (taskName: string) => void;
   readonly onOpenAgentExecution?: (
     childExecutionId: string,
     taskName: string,
   ) => void;
   readonly hitl?: WorkflowThreadHitl;
   readonly gates?: ThreadTaskGates;
+  readonly snapshot?: WorkflowTask;
 }) {
   const [expanded, setExpanded] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
+
+  // The I/O fallback ladder (full snapshot value → truncated event summary
+  // → nothing) — an O(1) lookup, never an event-log scan (T04).
+  const outputIO = useMemo(
+    () => buildIO(snapshot?.output, item.outputSummary, snapshot?.artifactIds ?? []),
+    [snapshot, item.outputSummary],
+  );
+  const inputIO = useMemo(
+    () => buildIO(snapshot?.input, item.inputSummary, []),
+    [snapshot, item.inputSummary],
+  );
+
+  const isPreview = item.disclosure === "preview";
+  const showHitl = !!hitl && item.status === "waiting_approval";
+  // While gating, the in-card HITL section owns the card's affordances
+  // (including "Open transcript" when the child's gates aren't surfaced) —
+  // the preview body must not render a duplicate.
+  const showBodyTranscript =
+    item.variant === "agent-call" &&
+    !!item.childExecutionId &&
+    !!onOpenAgentExecution &&
+    !showHitl;
+  // The session's `showBody` gate: a preview body renders only when it has
+  // content the header cannot carry (output, an error, or the agent-call
+  // transcript affordance) — a content-less preview card collapses back to
+  // a clean one-line row.
+  const showPreviewBody =
+    isPreview && (outputIO !== null || !!item.error || showBodyTranscript);
 
   // Selection is shared across the viewer (graph node, Usage row, gate
   // auto-select) — when it lands on this card from OUTSIDE the thread, the
@@ -313,7 +383,10 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
     costMicros: item.costMicros,
     tokens: item.tokensUsed,
   });
-  const preview = collapsedPreview(item);
+  // Kind-aware one-liner resolved by `resolveTaskPreview` in the projection
+  // (T04) — a primitive on the item so this memoized card bails during
+  // streaming. The empty string means "nothing kind-specific to say".
+  const preview = item.previewLine || null;
 
   return (
     <div
@@ -359,38 +432,70 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
           )}
         </button>
 
-        <button
-          type="button"
-          aria-expanded={expanded}
-          aria-controls={detailId}
-          aria-label={expanded ? `Collapse ${item.taskName}` : `Expand ${item.taskName}`}
-          onClick={() => setExpanded((v) => !v)}
-          className="shrink-0 rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <ChevronIcon expanded={expanded} />
-        </button>
+        {/* The opt-in drill-down (T04) — the session tool card's Inspect
+            affordance: raw I/O, per-task events, retries in the panel. */}
+        {onInspectTask && (
+          <button
+            type="button"
+            aria-label={`Inspect ${item.taskName}`}
+            onClick={() => onInspectTask(item.taskName)}
+            className="shrink-0 rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <InspectIcon />
+          </button>
+        )}
+
+        {!isPreview && (
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={detailId}
+            aria-label={expanded ? `Collapse ${item.taskName}` : `Expand ${item.taskName}`}
+            onClick={() => setExpanded((v) => !v)}
+            className="shrink-0 rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ChevronIcon expanded={expanded} />
+          </button>
+        )}
       </div>
 
       {/* In-thread HITL (S10): the decision surface renders whenever the
           task is gating — ALWAYS visible, never behind the expand chevron
           (the run is blocked; Nielsen #1). A sibling of the header row, not
           nested in its button (no interactive nesting). */}
-      {hitl && item.status === "waiting_approval" && (
+      {showHitl && hitl && (
         <div className="border-t border-border px-3 py-2">
           <ThreadTaskCardHitl
             item={item}
             gates={gates}
             hitl={hitl}
             onTaskSelect={onTaskSelect}
+            onInspectTask={onInspectTask}
             onOpenAgentExecution={onOpenAgentExecution}
           />
         </div>
       )}
 
-      {expanded && (
+      {/* Always-visible bounded output body for I/O-bearing kinds (T04) —
+          the session's preview-card model. */}
+      {showPreviewBody && (
+        <div className="border-t border-border px-3 py-2">
+          <ThreadTaskPreviewBody
+            item={item}
+            outputIO={outputIO}
+            onOpenAgentExecution={
+              showBodyTranscript ? onOpenAgentExecution : undefined
+            }
+          />
+        </div>
+      )}
+
+      {!isPreview && expanded && (
         <div id={detailId} className="border-t border-border px-3 py-2">
           <ThreadTaskDetail
             item={item}
+            inputIO={inputIO}
+            outputIO={outputIO}
             onOpenAgentExecution={onOpenAgentExecution}
           />
         </div>
@@ -418,21 +523,23 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
  *    ApprovalCards) — offer it, never a dead-end spinner.
  * 3. Any other gating card → a task-level (human_input) gate. Its decision
  *    surface — outcomes, forms, custom review renderers — lives in the
- *    panel's Inspect Approval tab; selecting the task IS the existing
- *    gesture that opens it (deliberately select, not toggle: re-clicking
- *    must re-open a closed panel, which `notifySelection` supports).
+ *    panel's Inspect Approval tab; "Open review" routes through the
+ *    Inspect drill-down (T04: a plain thread selection no longer opens the
+ *    panel, so the review path must use the explicit force-open gesture).
  */
 function ThreadTaskCardHitl({
   item,
   gates,
   hitl,
   onTaskSelect,
+  onInspectTask,
   onOpenAgentExecution,
 }: {
   readonly item: WorkflowThreadItem;
   readonly gates?: ThreadTaskGates;
   readonly hitl: WorkflowThreadHitl;
   readonly onTaskSelect?: (taskName: string | null) => void;
+  readonly onInspectTask?: (taskName: string) => void;
   readonly onOpenAgentExecution?: (
     childExecutionId: string,
     taskName: string,
@@ -483,15 +590,20 @@ function ThreadTaskCardHitl({
     );
   }
 
+  // T04: the review surface lives in the panel's Inspect Approval tab, and
+  // a plain selection no longer opens the panel — route through the
+  // explicit Inspect gesture (fall back to selection for embedders that
+  // wired only `onTaskSelect`).
+  const openReview = onInspectTask ?? onTaskSelect;
   return (
     <div className="flex flex-wrap items-center gap-2">
       <p className="text-xs text-muted-foreground">
         Review required to continue this run.
       </p>
-      {onTaskSelect && (
+      {openReview && (
         <ThreadActionButton
           label="Open review"
-          onClick={() => onTaskSelect(item.taskName)}
+          onClick={() => openReview(item.taskName)}
         />
       )}
     </div>
@@ -516,45 +628,97 @@ function ThreadActionButton({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Card bodies (T04)
+// ---------------------------------------------------------------------------
+
 /**
- * Collapsed one-line preview per card variant — the thread's analog of the
- * session tool card's primary-arg line. Only fields already on the item
- * (i.e. on `DerivedTaskState`) appear here; deep detail stays in Inspect.
+ * One side of a task's I/O in the card, honest about provenance: the
+ * event-summary rung of the fallback ladder carries the same truncation
+ * banner Inspect uses. Bounded — the outer `BoundedContent` caps total
+ * height (single-level with `StructuredDataViewer`'s per-value reveals:
+ * different granularity, they never govern the same block).
  */
-function collapsedPreview(item: WorkflowThreadItem): string | null {
-  if (item.status === "waiting_approval") return "Awaiting approval";
-  if (item.status === "failed" && item.error) return firstLine(item.error);
-
-  if (item.variant === "agent-call") {
-    const parts: string[] = [];
-    if (item.agentSlug) parts.push(item.agentSlug);
-    if (item.status === "running" && item.currentToolName) {
-      parts.push(`running ${item.currentToolName}`);
-    }
-    if (item.messagesCount > 0 || item.toolCallsCount > 0) {
-      parts.push(`${item.messagesCount} msgs · ${item.toolCallsCount} tools`);
-    }
-    return parts.length > 0 ? parts.join(" · ") : null;
-  }
-
-  if (item.status === "skipped") return "Skipped";
-  return null;
+function ThreadTaskIOSection({
+  label,
+  io,
+}: {
+  readonly label: "Input" | "Output";
+  readonly io: TaskDetailIO;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      {io.source === "event-summary" && (
+        <p className="text-[10px] text-muted-foreground">
+          Showing truncated summary from the event log. Full data appears when
+          the run's snapshot is available.
+        </p>
+      )}
+      <BoundedContent>
+        <StructuredDataViewer data={io.data} />
+      </BoundedContent>
+    </div>
+  );
 }
 
-function firstLine(text: string): string {
-  const nl = text.indexOf("\n");
-  return nl === -1 ? text : text.slice(0, nl);
-}
-
-// ---------------------------------------------------------------------------
-// Expanded detail body
-// ---------------------------------------------------------------------------
-
-function ThreadTaskDetail({
+/**
+ * The always-visible body of a `"preview"`-kind card: the task's output
+ * (via the I/O fallback ladder), the failure detail when the task failed,
+ * and the agent-call transcript affordance. Content only — the header owns
+ * all metadata (session `ToolCallDetail` invariant).
+ */
+function ThreadTaskPreviewBody({
   item,
+  outputIO,
   onOpenAgentExecution,
 }: {
   readonly item: WorkflowThreadItem;
+  readonly outputIO: TaskDetailIO | null;
+  readonly onOpenAgentExecution?: (
+    childExecutionId: string,
+    taskName: string,
+  ) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      {item.error && (
+        <BoundedContent>
+          <pre className="whitespace-pre-wrap break-words text-xs text-destructive">
+            {item.error}
+          </pre>
+        </BoundedContent>
+      )}
+
+      {outputIO && <ThreadTaskIOSection label="Output" io={outputIO} />}
+
+      {item.variant === "agent-call" &&
+        item.childExecutionId &&
+        onOpenAgentExecution && (
+          <div>
+            <ThreadActionButton
+              label="Open transcript"
+              onClick={() =>
+                onOpenAgentExecution(item.childExecutionId, item.taskName)
+              }
+            />
+          </div>
+        )}
+    </div>
+  );
+}
+
+function ThreadTaskDetail({
+  item,
+  inputIO,
+  outputIO,
+  onOpenAgentExecution,
+}: {
+  readonly item: WorkflowThreadItem;
+  readonly inputIO: TaskDetailIO | null;
+  readonly outputIO: TaskDetailIO | null;
   readonly onOpenAgentExecution?: (
     childExecutionId: string,
     taskName: string,
@@ -592,6 +756,11 @@ function ThreadTaskDetail({
           </pre>
         </BoundedContent>
       )}
+
+      {/* The task's I/O in the thread (T04) — all task detail belongs to
+          the card; Inspect is the opt-in debug drill-down. */}
+      {inputIO && <ThreadTaskIOSection label="Input" io={inputIO} />}
+      {outputIO && <ThreadTaskIOSection label="Output" io={outputIO} />}
 
       {item.variant === "agent-call" &&
         item.childExecutionId &&
@@ -687,6 +856,26 @@ function StatusIcon({ status }: { readonly status: WorkflowThreadItem["status"] 
         />
       );
   }
+}
+
+/** The session tool card's magnifier glyph (`ToolCallItem.InspectIcon`). */
+function InspectIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="5.5" cy="5.5" r="3.5" />
+      <path d="M8 8L10.5 10.5" />
+    </svg>
+  );
 }
 
 function ChevronIcon({ expanded }: { readonly expanded: boolean }) {

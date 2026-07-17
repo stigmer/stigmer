@@ -319,9 +319,14 @@ function cardRootOf(taskName: string): HTMLElement {
   return headerButton.parentElement!.parentElement! as HTMLElement;
 }
 
-/** Select a task the way a user would — its thread card. */
+/** Select a task the way a user would — its thread card (highlight only). */
 function selectThreadCard(taskName: string) {
   fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${taskName}`) }));
+}
+
+/** The explicit drill-down gesture (T04) — the card's Inspect affordance. */
+function inspectThreadCard(taskName: string) {
+  fireEvent.click(screen.getByRole("button", { name: `Inspect ${taskName}` }));
 }
 
 describe("WorkflowExecutionViewer in-thread + Inspect HITL (S10)", () => {
@@ -388,14 +393,13 @@ describe("WorkflowExecutionViewer in-thread + Inspect HITL (S10)", () => {
     expect(submitApproval).toHaveBeenNthCalledWith(2, "tc_delete", ApprovalAction.REJECT, undefined);
   });
 
-  it("selecting a card opens Inspect on its Approval tab — the panel-side surface renders the SAME gate, still task-scoped", () => {
+  it("the card's Inspect drill-down opens the Approval tab — the panel-side surface renders the SAME gate, still task-scoped", () => {
     arrange();
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
-    // The boundary auto-selected call-helper-b (highlight only); clicking
-    // the NOT-selected sibling is the explicit gesture that opens the panel
-    // (clicking the selected card would toggle it off — the S8 contract).
-    selectThreadCard("call-helper-a");
+    // T04: a plain card click no longer opens the panel — the explicit
+    // Inspect affordance is the drill-down gesture.
+    inspectThreadCard("call-helper-a");
 
     // The inspector's status transition lands on the Approval tab (S9
     // behavior, unchanged).

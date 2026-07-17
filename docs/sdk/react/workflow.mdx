@@ -2512,6 +2512,15 @@ Uses pure CSS for rendering -- no recharts dependency needed.
 />
 
 
+### defaultDisclosureForKind
+
+Default disclosure mode for a task kind.
+
+```tsx
+function defaultDisclosureForKind(kind: WorkflowTaskKind): WorkflowTaskDisclosure
+```
+
+
 ### deriveExecutionRow
 
 Derives a UI-ready [`ExecutionRow`](#executionrow) from a raw `WorkflowExecution`.
@@ -2973,6 +2982,15 @@ function filterExecutionRows(rows: readonly ExecutionRow[], filters: ExecutionCl
 ```
 
 
+### getTaskPresenter
+
+Returns the registered presenter for a kind, if any.
+
+```tsx
+function getTaskPresenter(kind: WorkflowTaskKind): WorkflowTaskPresenter | undefined
+```
+
+
 ### graphToWorkflowInput
 
 Converts a graph model into a `WorkflowInput` suitable for
@@ -3108,6 +3126,37 @@ Lifecycle phases for the workflow refinement flow.
 - `ready` — agent finished without YAML (clarifying question / explanation),
   or user accepted/discarded a previous result
 - `error` — a failure occurred (RPC, stream)
+
+
+### registerTaskPresenter
+
+Registers a custom presenter for a `WorkflowTaskKind`, overriding
+the built-in preview line and/or disclosure. Call once at app startup.
+This is the extension point for platform builders embedding the workflow
+execution UI who want product-specific wording without forking the
+components — the same seam as the session's `registerToolPresenter`.
+
+Returns a disposer that unregisters the presenter, restoring the previous
+one for that kind (or the default). Most apps register once at startup
+and ignore it; tests and dynamic hosts use it to avoid leaking global
+state.
+
+```tsx
+function registerTaskPresenter(kind: WorkflowTaskKind, presenter: WorkflowTaskPresenter): () => void
+```
+
+
+### resolveTaskPreview
+
+Resolves the presentation primitives for one task card.
+
+Precedence for the line: universal status lines first (awaiting approval,
+the failure's first line, "Skipped") — these are correctness surfaces —
+then the registered presenter's line, then the built-in per-kind line.
+
+```tsx
+function resolveTaskPreview(state: DerivedTaskState): WorkflowTaskPreview
+```
 
 
 ### ReviewRendererProps
@@ -4291,6 +4340,17 @@ Pattern badges help users visually identify what a template
 demonstrates without reading the full YAML.
 
 
+### WorkflowTaskDisclosure
+
+Disclosure mode for a task card, mirroring the session's rule — "does the
+body carry content the one-line row cannot?":
+
+- `"preview"` — I/O-bearing kinds: the card keeps an always-visible,
+  bounded body of the task's output (the session's shell/edit/MCP model).
+- `"summary"` — thin/derived kinds: a compact row with a chevron-gated
+  detail body.
+
+
 ### WorkflowTaskList
 
 Compact list of tasks in a workflow specification.
@@ -4339,6 +4399,32 @@ Props for [`WorkflowTaskPalette`](#workflowtaskpalette).
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+  }}
+/>
+
+
+### WorkflowTaskPresenter
+
+Optional per-kind overrides for the preview line and disclosure — the
+workflow twin of the session's `ToolPresenter` (minus `runGroupable`:
+workflow tasks are one card per task).
+
+<TypeTable
+  type={{
+    disclosure: { type: "(state: DerivedTaskState) => WorkflowTaskDisclosure", description: "Overrides the default disclosure mode for the kind." },
+    previewLine: { type: "(state: DerivedTaskState) => string | null", description: "Overrides the kind-specific preview line. Return `null` to fall back to the built-in line for the kind. Status lines (awaiting approval, the failure message, \"Skipped\") always take precedence and are not overridable — they are correctness surfaces, not wording." },
+  }}
+/>
+
+
+### WorkflowTaskPreview
+
+The resolved presentation primitives for one task card.
+
+<TypeTable
+  type={{
+    disclosure: { type: "WorkflowTaskDisclosure", description: "Disclosure mode for the card. Pure function of the task kind.", required: true, typeDescriptionLink: "#workflowtaskdisclosure" },
+    previewLine: { type: "string", description: "Bounded one-line preview of what the task did (e.g. `set orderId, total`, `3 errors`, `emitted ticket.classified`). The empty string when there is nothing kind-specific to say — consumers hide the line rather than render filler.", required: true },
   }}
 />
 
@@ -4396,10 +4482,12 @@ per card — the workflow analog of the session viewer's tool-call cards.
 
 Pending tasks render no cards (D-T02-5); the progress header keeps
 overall status visible. Retries collapse into one card with an attempt
-indicator (D-T02-6). AGENT_CALL cards expand to a summary plus an
-"Open transcript" affordance (D-T02-2) — the full transcript opens as a
-panel document, never inline. Selecting a card is the "show me this
-task" gesture (it opens Inspect), matching a DAG node click.
+indicator (D-T02-6). AGENT_CALL cards carry an always-visible body with
+an "Open transcript" affordance (D-T02-2) — the full transcript opens as
+a panel document, never inline. Since T04 the card is the PRIMARY surface
+for a task's data (kind-aware preview line + bounded I/O body): selecting
+a card highlights and scrolls but never force-opens the panel; the
+per-card Inspect affordance is the explicit drill-down.
 
 Auto-follow uses the session thread's mechanism: an IntersectionObserver
 sentinel keeps the list pinned to the latest card until the user scrolls
@@ -4425,11 +4513,13 @@ Props for [`WorkflowTaskThread`](#workflowtaskthread).
     className: { type: "string", description: "Additional CSS class names for the root container." },
     hitl: { type: "WorkflowThreadHitl", description: "Workflow-level HITL wiring (see WorkflowThreadHitl). When provided, a gating task's card renders its decision surface directly in the thread — always visible while the gate is pending, never behind the expand chevron (the run is blocked). Omitted → the thread is read-only and behaves exactly as before (DD-011; the S5 omitted-`hitl` precedent).", typeDescriptionLink: "#workflowthreadhitl" },
     isRunning: { type: "boolean", description: "Whether the execution is still running (drives streaming affordances).", required: true },
+    onInspectTask: { type: "(taskName: string) => void", description: "Callback for the card's opt-in Inspect affordance (T04) — the drill-down to raw structured I/O, the per-task event log, and retries (the density the card intentionally does not inline). The viewer opens the panel's Inspect facet on it. Also carries the human_input \"Open review\" path. Omitted → the affordance is not rendered." },
     onOpenAgentExecution: { type: "(childExecutionId: string, taskName: string) => void", description: "Callback to open an AGENT_CALL task's child transcript in the panel's editor area (the S4 in-place expansion). Omitted → the affordance is not rendered." },
-    onTaskSelect: { type: "(taskName: string | null) => void", description: "Callback when the user selects a task card (or re-clicks the selected card to deselect — `null`). Same contract as a graph node click: the viewer opens the panel's Inspect facet on an explicit selection." },
+    onTaskSelect: { type: "(taskName: string | null) => void", description: "Callback when the user selects a task card (or re-clicks the selected card to deselect — `null`). Since T04 this is a highlight+scroll gesture only — the card is the primary surface for the task's data, so the viewer no longer force-opens the panel's Inspect facet on it (the R1-2 fix). The explicit drill-down gesture is onInspectTask." },
     pendingApprovals: { type: "readonly WorkflowPendingApproval[]", description: "The parent workflow's surfaced child tool-approval gates (`status.pending_approvals`). Only read when hitl is provided." },
     pendingFileReviews: { type: "readonly WorkflowPendingFileReview[]", description: "The parent workflow's surfaced child file-review references (`status.pending_file_reviews`). Only read when hitl is provided." },
     selectedTaskName: { type: "string | null", description: "The task selected across the viewer (thread, graph, and panel).", required: true },
+    taskSnapshotsByName: { type: "ReadonlyMap<string, WorkflowTask>", description: "Per-task status snapshots (`status.tasks[]`) keyed by task name — the FULL I/O source for card bodies (T04). An O(1) lookup per card, never an event-log scan: the full `deriveTaskDetail` join stays in the Inspect drill-down. The map's identity changes only on a snapshot refetch (rare), never on stream event appends, so memoized cards keep bailing during streaming. Omitted → bodies degrade to the truncated event summaries already on the items." },
     taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Live derived task states from the execution event stream.", required: true },
     totalTasks: { type: "number", description: "Total planned tasks (from `execution_started`); `0` when unknown.", required: true },
   }}
@@ -4527,10 +4617,14 @@ is a shallow field compare, which powers the structural sharing below.
     childExecutionId: { type: "string", description: "", required: true },
     costMicros: { type: "bigint", description: "", required: true },
     currentToolName: { type: "string", description: "", required: true },
+    disclosure: { type: "WorkflowTaskDisclosure", description: "Card disclosure mode (T04). Pure function of `taskKind` (like `variant`/`kindLabel`), so it is not part of the equality compare.", required: true, typeDescriptionLink: "#workflowtaskdisclosure" },
     durationMs: { type: "number", description: "", required: true },
     error: { type: "string", description: "", required: true },
+    inputSummary: { type: "JsonObject | null", description: "Truncated event summaries carried for the card body's fallback ladder (snapshot → event summary → none). Reference-stable: the store reads them off the same immutable events on every re-derivation, so the identity compare below holds across appends.", required: true },
     kindLabel: { type: "string", description: "Human label for the kind, from the canonical `kindToDisplayName`. The empty string for `unspecified` kinds (the snapshot-derived fallback map carries no kind) — consumers hide the kind chip rather than render a meaningless \"Unknown\" label.", required: true },
     messagesCount: { type: "number", description: "", required: true },
+    outputSummary: { type: "JsonObject | null", description: "", required: true },
+    previewLine: { type: "string", description: "Kind-aware one-line preview from `resolveTaskPreview` (T04) — a primitive computed HERE (not in a card hook) so the structural-sharing compare below stays a cheap string check. The empty string when there is nothing kind-specific to say.", required: true },
     status: { type: "\"completed\" | \"failed\" | \"pending\" | \"running\" | \"skipped\" | \"retrying\" | \"waiting_approval\"", description: "", required: true },
     taskKind: { type: "WorkflowTaskKind", description: "", required: true },
     taskName: { type: "string", description: "", required: true },

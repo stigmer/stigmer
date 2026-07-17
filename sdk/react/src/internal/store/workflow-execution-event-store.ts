@@ -1,6 +1,7 @@
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import type { JsonObject } from "@bufbuild/protobuf";
 // The CHILD AgentExecution's phase enum (carried on agent_call_progress
 // payloads) — distinct from the workflow's own ExecutionPhase.
 import { ExecutionPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -54,6 +55,20 @@ export interface DerivedTaskState {
   readonly currentToolName: string;
   readonly messagesCount: number;
   readonly toolCallsCount: number;
+  /**
+   * Truncated resolved-input summary from `task_started` (T04). `null`
+   * until the event arrives. Reference-stable across re-derivations: the
+   * value is read off the SAME immutable stored event each walk, so
+   * downstream identity compares (structural sharing) hold.
+   */
+  readonly inputSummary: JsonObject | null;
+  /**
+   * Truncated output summary from `task_completed` (T04). `null` while
+   * running and reset on a restart. The FULL output lives on the status
+   * snapshot (`status.tasks[].output`) — this is the live-stream preview
+   * source only (the event deliberately truncates to prevent bloat).
+   */
+  readonly outputSummary: JsonObject | null;
 }
 
 export interface DerivedCostSummary {
@@ -251,6 +266,9 @@ function deriveTaskStates(
           currentToolName: prev?.currentToolName ?? "",
           messagesCount: prev?.messagesCount ?? 0,
           toolCallsCount: prev?.toolCallsCount ?? 0,
+          inputSummary: p.value.inputSummary ?? prev?.inputSummary ?? null,
+          // A (re)start invalidates any prior attempt's output.
+          outputSummary: null,
         });
         break;
 
@@ -269,6 +287,8 @@ function deriveTaskStates(
           currentToolName: "",
           messagesCount: prev?.messagesCount ?? 0,
           toolCallsCount: prev?.toolCallsCount ?? 0,
+          inputSummary: prev?.inputSummary ?? null,
+          outputSummary: p.value.outputSummary ?? null,
         });
         break;
 
@@ -287,6 +307,8 @@ function deriveTaskStates(
           currentToolName: "",
           messagesCount: prev?.messagesCount ?? 0,
           toolCallsCount: prev?.toolCallsCount ?? 0,
+          inputSummary: prev?.inputSummary ?? null,
+          outputSummary: null,
         });
         break;
 
@@ -305,6 +327,8 @@ function deriveTaskStates(
           currentToolName: "",
           messagesCount: 0,
           toolCallsCount: 0,
+          inputSummary: null,
+          outputSummary: null,
         });
         break;
 
