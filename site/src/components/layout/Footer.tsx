@@ -58,9 +58,17 @@ function Footer({ className, ...props }: FooterProps) {
         {/* Bottom bar */}
         <div className="py-6 border-t border-border">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-subtle">
-              &copy; {new Date().getFullYear()} {SITE_CONFIG.copyright.holder}. All rights reserved.
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-subtle">
+                &copy; {new Date().getFullYear()} {SITE_CONFIG.copyright.holder}. All rights reserved.
+              </p>
+              <Link
+                href="/privacy"
+                className="text-sm text-subtle hover:text-foreground transition-colors"
+              >
+                Privacy
+              </Link>
+            </div>
             <div className="flex items-center gap-4">
               <a
                 href={SITE_CONFIG.social.discord}
