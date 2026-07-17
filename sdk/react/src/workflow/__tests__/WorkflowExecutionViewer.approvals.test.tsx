@@ -1,11 +1,10 @@
-// Composition test for the execution-level HITL surfaces after the
-// thread-primary pivot completed (S10): gating task cards carry their child
-// gates inline in the default Thread view (through the shared session
-// ApprovalCard via WorkflowApprovalList), the panel's Inspect Approval tab
-// remains the panel-side surface (S9), and every decision routes through the
-// single useWorkflowExecutionActions instance. Data hooks and heavy leaves
-// (React Flow graph) are mocked exactly as in the reconciliation harness;
-// this file proves the seams.
+// Composition test for the execution-level HITL surfaces (S10/T06): gating
+// task cards carry their child gates inline in the default Thread view
+// (through the shared session ApprovalCard via WorkflowApprovalList) — since
+// T06 the card is the ONLY decision surface (the Inspect drill-down is gone)
+// — and every decision routes through the single useWorkflowExecutionActions
+// instance. Data hooks and heavy leaves (React Flow graph) are mocked
+// exactly as in the reconciliation harness; this file proves the seams.
 //
 // REALISTIC FIXTURES (a hard S10 requirement): the gated task states are
 // produced by the REAL store derivation from REAL event shapes — an
@@ -312,45 +311,36 @@ function arrange(
 }
 
 /**
- * The thread card root element for a task. The shared shell (T05) renders
- * the interactive header as the card root's direct child.
+ * The thread card root element for a task. Since T06 a preview-kind card's
+ * header is a plain layout row (no role) — the shell's `data-cursor-target`
+ * is the stable, gesture-independent handle on a card.
  */
 function cardRootOf(taskName: string): HTMLElement {
-  const header = screen.getByRole("button", {
-    name: new RegExp(`^${taskName}`),
-  });
-  return header.parentElement! as HTMLElement;
+  const root = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      '[data-cursor-target="workflow-task-row"]',
+    ),
+  ).find((el) => el.textContent?.includes(taskName));
+  if (!root) throw new Error(`no card rendered for task "${taskName}"`);
+  return root;
 }
 
-/** Select a task the way a user would — its thread card (highlight only). */
-function selectThreadCard(taskName: string) {
-  fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${taskName}`) }));
-}
-
-/** The explicit drill-down gesture (T04) — the card's Inspect affordance. */
-function inspectThreadCard(taskName: string) {
-  fireEvent.click(screen.getByRole("button", { name: `Inspect ${taskName}` }));
-}
-
-describe("WorkflowExecutionViewer in-thread + Inspect HITL (S10)", () => {
+describe("WorkflowExecutionViewer in-thread HITL (S10/T06)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
   });
   afterEach(cleanup);
 
-  it("each gating card carries its own child's 4-action gate inline; the boundary selects the last gated card WITHOUT opening the panel", () => {
+  it("each gating card carries its own child's 4-action gate inline; the boundary never opens the panel (T06)", () => {
     arrange();
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
-    // Both tasks crossed into waiting_approval at mount. In Thread view the
-    // panel stays closed (D-T02-13) — the cards ARE the decision surface.
+    // Both tasks crossed into waiting_approval at mount. The panel stays
+    // closed — the cards ARE the (only) decision surface, and selection
+    // died with the Inspect drill-down.
     expect(screen.queryByRole("tab", { name: /Approval/ })).toBeNull();
-    expect(
-      screen
-        .getByRole("button", { name: /^call-helper-b/ })
-        .getAttribute("aria-pressed"),
-    ).toBe("true");
+    expect(document.querySelector("[aria-pressed]")).toBeNull();
 
     // Per-task scoping ON the cards: each renders exactly its child's gate,
     // with the full decision model of the shared session card — visible
@@ -396,28 +386,17 @@ describe("WorkflowExecutionViewer in-thread + Inspect HITL (S10)", () => {
     expect(submitApproval).toHaveBeenNthCalledWith(2, "tc_delete", ApprovalAction.REJECT, undefined);
   });
 
-  it("the card's Inspect drill-down opens the Approval tab — the panel-side surface renders the SAME gate, still task-scoped", () => {
+  it("each gate renders on exactly ONE surface — its own card (no Inspect duplicate exists, T06)", () => {
     arrange();
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
-    // T04: a plain card click no longer opens the panel — the explicit
-    // Inspect affordance is the drill-down gesture.
-    inspectThreadCard("call-helper-a");
-
-    // The inspector's status transition lands on the Approval tab (S9
-    // behavior, unchanged).
-    expect(
-      screen.getByRole("tab", { name: /Approval/, selected: true }),
-    ).toBeTruthy();
-    // The selected task's gate now renders on BOTH surfaces (card +
-    // Inspect) from the one snapshot + one actions instance…
     expect(
       screen.getAllByRole("alert", { name: "Approval required for delete_file" }),
-    ).toHaveLength(2);
-    // …while the sibling's gate stays only on its own card.
+    ).toHaveLength(1);
     expect(
       screen.getAllByRole("alert", { name: "Approval required for shell" }),
     ).toHaveLength(1);
+    expect(screen.queryByRole("tab", { name: /Approval/ })).toBeNull();
   });
 
   it("keeps in-flight and error state per gate: one gate's failure never leaks to its sibling or the banner", () => {

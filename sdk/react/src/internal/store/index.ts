@@ -21,9 +21,6 @@ export {
   type DerivedCostSummary,
 } from "./workflow-execution-event-store.js";
 
-export { SelectionStore } from "./selection-store.js";
-export type { SelectedThreadItem } from "./selection-store.js";
-
 export { WorkspaceFileSelectionStore } from "./workspace-file-selection-store.js";
 export type { SelectedWorkspaceFile } from "./workspace-file-selection-store.js";
 

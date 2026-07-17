@@ -19,6 +19,8 @@ function taskState(overrides: Partial<DerivedTaskState> & { taskName: string }):
     toolCallsCount: 0,
     inputSummary: null,
     outputSummary: null,
+    approvalRequest: null,
+    approvalResolution: null,
     ...overrides,
   };
 }

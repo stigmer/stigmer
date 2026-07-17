@@ -15,11 +15,10 @@ import { ChevronIcon } from "./glyphs.js";
  * mega-prop card — each thread's composition stays explicit):
  *
  * - {@link ThreadCardShell} — the chrome: bordered card vs divider row,
- *   selection ring, pending-gate accent.
+ *   pending-gate accent.
  * - {@link ThreadCardHeader} — the one-line header region with a
- *   per-surface primary gesture: `expand` (session summary rows,
- *   `aria-expanded`, appends the chevron), `select` (workflow cards,
- *   `aria-pressed`), or `none` (preview rows — their body is always
+ *   primary gesture: `expand` (summary rows, `aria-expanded`, appends
+ *   the chevron) or `none` (preview rows — their body is always
  *   visible, so the header has no job beyond layout).
  * - {@link ThreadCardBody} — the disclosed content area's padding
  *   contract.
@@ -30,10 +29,10 @@ import { ChevronIcon } from "./glyphs.js";
  * and stable callbacks, so it never disturbs their memo bails
  * (DD-009/DD-010).
  *
- * Interactive headers are `div[role=button]`, not `<button>` — they carry
- * nested action buttons (Inspect, the workflow's Expand), and a `<button>`
- * may not contain another. Nested buttons must `stopPropagation` so their
- * click never fires the header's primary gesture.
+ * Interactive headers are `div[role=button]`, not `<button>` — they may
+ * carry nested action buttons, and a `<button>` may not contain another.
+ * Nested buttons must `stopPropagation` so their click never fires the
+ * header's primary gesture.
  *
  * @internal Not part of the public API.
  */
@@ -51,8 +50,6 @@ export interface ThreadCardShellProps {
    * row degrades to a divider-separated row to avoid a card-in-a-card.
    */
   readonly bordered?: boolean;
-  /** Whether the row is the thread's current selection (ring highlight). */
-  readonly selected?: boolean;
   /**
    * A restrained left accent for a row awaiting a human decision —
    * `"warning"` for ordinary gates, `"destructive"` for delete gates.
@@ -70,7 +67,6 @@ export interface ThreadCardShellProps {
 /** The thread card's outer chrome. See the module doc for the full contract. */
 export function ThreadCardShell({
   bordered = true,
-  selected = false,
   accent = null,
   cursorTarget,
   className,
@@ -85,12 +81,8 @@ export function ThreadCardShell({
         "rounded-lg border border-border-prominent overflow-hidden",
         accent === "warning" && "border-l-2 border-l-warning",
         accent === "destructive" && "border-l-2 border-l-destructive",
-        selected && "ring-1 ring-primary/40",
       )
-    : cn(
-        "border-b border-border-muted last:border-b-0",
-        selected && "ring-1 ring-primary/40 rounded-sm",
-      );
+    : "border-b border-border-muted last:border-b-0";
 
   return (
     <div ref={ref} data-cursor-target={cursorTarget} className={cn(chrome, className)}>
@@ -105,10 +97,9 @@ export function ThreadCardShell({
 
 /**
  * The header's primary gesture. `expand` toggles a chevron-gated body
- * (`aria-expanded`; the chevron is appended automatically). `select`
- * toggles the thread's shared selection (`aria-pressed`; any expand
- * affordance is the consumer's own trailing button). `none` renders a
- * non-interactive layout row.
+ * (`aria-expanded`; the chevron is appended automatically). `none` renders
+ * a non-interactive layout row (preview cards — their body is always
+ * visible).
  */
 export type ThreadCardHeaderGesture =
   | { readonly kind: "none" }
@@ -116,11 +107,6 @@ export type ThreadCardHeaderGesture =
       readonly kind: "expand";
       readonly expanded: boolean;
       readonly onToggle: () => void;
-    }
-  | {
-      readonly kind: "select";
-      readonly selected: boolean;
-      readonly onSelect: () => void;
     };
 
 /** Props for {@link ThreadCardHeader}. */
@@ -151,17 +137,13 @@ export function ThreadCardHeader({
     return <div className={HEADER_LAYOUT}>{children}</div>;
   }
 
-  const onActivate =
-    gesture.kind === "expand" ? gesture.onToggle : gesture.onSelect;
-
   return (
     <div
       role="button"
       tabIndex={0}
       aria-label={ariaLabel}
-      aria-expanded={gesture.kind === "expand" ? gesture.expanded : undefined}
-      aria-pressed={gesture.kind === "select" ? gesture.selected : undefined}
-      onClick={onActivate}
+      aria-expanded={gesture.expanded}
+      onClick={gesture.onToggle}
       onKeyDown={(e) => {
         // Only when the header itself is focused: a nested action button's
         // Enter/Space fires its own click and must not ALSO trigger the
@@ -169,17 +151,17 @@ export function ThreadCardHeader({
         if (e.target !== e.currentTarget) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onActivate();
+          gesture.onToggle();
         }
       }}
       className={cn(
         HEADER_LAYOUT,
         HEADER_INTERACTIVE,
-        gesture.kind === "expand" && gesture.expanded && "bg-muted-faint",
+        gesture.expanded && "bg-muted-faint",
       )}
     >
       {children}
-      {gesture.kind === "expand" && <ChevronIcon expanded={gesture.expanded} />}
+      <ChevronIcon expanded={gesture.expanded} />
     </div>
   );
 }

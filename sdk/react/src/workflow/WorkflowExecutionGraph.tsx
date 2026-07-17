@@ -11,7 +11,7 @@ import {
   useReactFlow,
   ReactFlowProvider,
 } from "@xyflow/react";
-import type { Node, NodeChange, Viewport } from "@xyflow/react";
+import type { NodeChange, Viewport } from "@xyflow/react";
 import { cn } from "@stigmer/theme";
 import { WorkflowNode } from "./WorkflowNode.js";
 import { CanvasTransitionEdge } from "./CanvasTransitionEdge.js";
@@ -22,7 +22,7 @@ import { useWorkflowExecutionGraph } from "./useWorkflowExecutionGraph.js";
 import type { UseWorkflowExecutionGraphReturn } from "./useWorkflowExecutionGraph.js";
 import type { DerivedTaskState } from "../internal/store/workflow-execution-event-store.js";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import { useFollowExecution, computeFollowSelection } from "./useFollowExecution.js";
+import { useFollowExecution } from "./useFollowExecution.js";
 import { useActiveTaskName } from "./useActiveTaskName.js";
 import { ExecutionActiveTaskIndicator } from "./ExecutionActiveTaskIndicator.js";
 import { useExecutionAnnouncements } from "./useExecutionAnnouncements.js";
@@ -32,8 +32,6 @@ import { getAnimationDuration } from "../internal/motion-preference.js";
 export interface WorkflowExecutionGraphProps {
   /** ID of the workflow execution to visualize. */
   readonly executionId: string;
-  /** Callback when a task node is selected or deselected. */
-  readonly onTaskSelect?: (taskName: string | null) => void;
   /** When true, the viewport auto-pans to follow the currently running node. */
   readonly followExecution?: boolean;
   /**
@@ -48,12 +46,6 @@ export interface WorkflowExecutionGraphProps {
    * Pass `undefined` (or omit) for standalone usage.
    */
   readonly taskStates?: ReadonlyMap<string, DerivedTaskState>;
-  /**
-   * Callback invoked when the graph auto-selects a failed task on
-   * terminal executions. Wire this to the parent's selected-task
-   * state to keep sibling components (like the inspector) in sync.
-   */
-  readonly onAutoSelectTask?: (taskName: string) => void;
   /**
    * Pixel width of a panel that **overlays** (absolutely positioned over)
    * the graph viewport, occluding the right side. The follow-execution
@@ -101,7 +93,10 @@ const defaultEdgeOptions = {
 };
 
 /**
- * Read-only execution graph canvas for workflow executions.
+ * Read-only execution graph canvas for workflow executions — a PASSIVE
+ * topology visualization (T06): status colors, live overlays, pan/zoom,
+ * and follow-the-run camera, with no node selection or click actions. A
+ * task's detail lives on its thread card, the single home for task data.
  *
  * Reuses the same `WorkflowNode` / `NodeShell` node rendering system from
  * the visual editor, wrapped in execution mode context to show live status
@@ -112,10 +107,7 @@ const defaultEdgeOptions = {
  *
  * @example
  * ```tsx
- * <WorkflowExecutionGraph
- *   executionId="wex_abc123"
- *   onTaskSelect={(name) => setInspectedTask(name)}
- * />
+ * <WorkflowExecutionGraph executionId="wex_abc123" />
  * ```
  */
 export const WorkflowExecutionGraph = memo(function WorkflowExecutionGraph(
@@ -132,11 +124,9 @@ const TERMINAL_EXECUTION_PHASES = new Set([3, 4, 5, 6]);
 
 function WorkflowExecutionGraphInner({
   executionId,
-  onTaskSelect,
   followExecution = false,
   execution: externalExecution,
   taskStates: externalTaskStates,
-  onAutoSelectTask,
   panelOffsetPx = 0,
   announceTaskStates = true,
   nodesDraggable: draggable = false,
@@ -146,7 +136,6 @@ function WorkflowExecutionGraphInner({
     executionId,
     execution: externalExecution,
     taskStates: externalTaskStates,
-    onAutoSelectTask,
     nodesDraggable: draggable,
   });
   const {
@@ -154,8 +143,6 @@ function WorkflowExecutionGraphInner({
     edges,
     isLoading,
     error,
-    selectedTaskName,
-    setSelectedTaskName,
     versionMismatch,
     taskStates,
     executionPhase,
@@ -241,43 +228,10 @@ function WorkflowExecutionGraphInner({
     panelOffsetPx,
   });
 
-  // ── Follow-selection: auto-select the active task while following ──
-  // Couples node selection to the follow state machine so "Follow" means
-  // viewport centering + node highlighting + inspector display.
-  useEffect(() => {
-    const taskToSelect = computeFollowSelection({
-      isFollowing,
-      activeTaskName: activeTaskInfo?.taskName ?? null,
-      currentSelectedTask: selectedTaskName,
-    });
-    if (!taskToSelect) return;
-    setSelectedTaskName(taskToSelect);
-    onTaskSelect?.(taskToSelect);
-  }, [isFollowing, activeTaskInfo?.taskName, selectedTaskName, setSelectedTaskName, onTaskSelect]);
-
   // Screen reader announcements for task state changes (standalone
   // embedding). The viewer sets `announceTaskStates={false}` and owns a
   // shared announcer instead — see the prop docs.
   const announcement = useExecutionAnnouncements(taskStates);
-
-  const handleNodeClick = useCallback(
-    (_event: React.MouseEvent, node: Node) => {
-      const data = node.data as CanvasTaskNodeData;
-      if (data.isSentinel) return;
-      const name = data.taskName;
-      const next = name === selectedTaskName ? null : name;
-      setSelectedTaskName(next);
-      onTaskSelect?.(next);
-      if (isFollowing) disableFollow();
-    },
-    [selectedTaskName, setSelectedTaskName, onTaskSelect, isFollowing, disableFollow],
-  );
-
-  const handlePaneClick = useCallback(() => {
-    setSelectedTaskName(null);
-    onTaskSelect?.(null);
-    if (isFollowing) disableFollow();
-  }, [setSelectedTaskName, onTaskSelect, isFollowing, disableFollow]);
 
   const onMoveStart = useCallback(
     (event: MouseEvent | TouchEvent | null, viewport: Viewport) => {
@@ -286,19 +240,14 @@ function WorkflowExecutionGraphInner({
     [handleMoveStart],
   );
 
-  // Mark selected node + apply drag position overrides
-  const nodesWithSelection = useMemo(
+  // Apply ephemeral drag position overrides
+  const nodesWithPositions = useMemo(
     () =>
       nodes.map((n) => {
-        const selected = (n.data as CanvasTaskNodeData).taskName === selectedTaskName;
         const pos = dragPositions[n.id];
-        return pos
-          ? { ...n, selected, position: pos }
-          : selected !== n.selected
-            ? { ...n, selected }
-            : n;
+        return pos ? { ...n, position: pos } : n;
       }),
-    [nodes, selectedTaskName, dragPositions],
+    [nodes, dragPositions],
   );
 
   if (isLoading) {
@@ -359,27 +308,25 @@ function WorkflowExecutionGraphInner({
         )}
 
         <ReactFlow
-          nodes={nodesWithSelection}
+          nodes={nodesWithPositions}
           edges={edges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
           onInit={handleInit}
-          onNodeClick={handleNodeClick}
-          onPaneClick={handlePaneClick}
           onMoveStart={onMoveStart}
           onNodesChange={draggable ? handleNodesChange : undefined}
           nodesDraggable={draggable}
           nodesConnectable={false}
-          nodesFocusable={true}
-          elementsSelectable={true}
+          nodesFocusable={false}
+          elementsSelectable={false}
           panOnDrag={true}
           zoomOnScroll={true}
           fitView={false}
           minZoom={0.2}
           maxZoom={2}
           proOptions={{ hideAttribution: true }}
-          aria-label="Workflow execution graph. Use Tab to navigate between tasks."
+          aria-label="Workflow execution graph"
         >
           <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
           <Controls showInteractive={false} />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import type { Node, Edge } from "@xyflow/react";
 import type { WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import type { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/enum_pb";
@@ -42,16 +42,6 @@ export interface UseWorkflowExecutionGraphOptions {
   readonly taskStates?: ReadonlyMap<string, DerivedTaskState>;
 
   /**
-   * Callback invoked once when the hook auto-selects a failed task
-   * on a terminal execution. The parent can wire this to its own
-   * `setSelectedTaskName` to keep the inspector in sync.
-   *
-   * Without this, auto-selection only affects the hook's internal
-   * `selectedTaskName` state and is invisible to sibling components.
-   */
-  readonly onAutoSelectTask?: (taskName: string) => void;
-
-  /**
    * When `true`, non-sentinel nodes are marked `draggable: true` so
    * the parent component can allow ephemeral drag repositioning.
    * Sentinel nodes (Start/End) remain non-draggable regardless.
@@ -68,10 +58,6 @@ export interface UseWorkflowExecutionGraphReturn {
   readonly edges: Edge[];
   /** Current execution lifecycle phase. */
   readonly executionPhase: ExecutionPhase | undefined;
-  /** Currently selected task name in the graph. */
-  readonly selectedTaskName: string | null;
-  /** Set the selected task in the graph. */
-  readonly setSelectedTaskName: (name: string | null) => void;
   /** `true` while the graph model is being loaded (workflow fetch + parse). */
   readonly isLoading: boolean;
   /** Error from workflow fetch or graph building. */
@@ -87,12 +73,9 @@ export interface UseWorkflowExecutionGraphReturn {
    * the current definition as a fallback but this is an imprecise view.
    */
   readonly versionResolutionFailed: boolean;
-  /** Task states from the event stream (for the inspector). */
+  /** Task states from the event stream (for the graph's status overlays). */
   readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
 }
-
-const EMPTY_TASK_STATES: ReadonlyMap<string, DerivedTaskState> = new Map();
-const TERMINAL_PHASES = new Set([3, 4, 5, 6]);
 
 type WorkflowFetchResult = {
   yaml: string;
@@ -130,10 +113,8 @@ async function fetchLiveWorkflowFallback(
 export function useWorkflowExecutionGraph(
   options: UseWorkflowExecutionGraphOptions,
 ): UseWorkflowExecutionGraphReturn {
-  const { executionId, onAutoSelectTask, nodesDraggable = false } = options;
+  const { executionId, nodesDraggable = false } = options;
   const stigmer = useStigmer();
-
-  const [selectedTaskName, setSelectedTaskName] = useState<string | null>(null);
 
   // ── Execution data: use external or fetch own ────────────────────
 
@@ -377,31 +358,10 @@ export function useWorkflowExecutionGraph(
     ?? (!isLoading && !baseElements && effectiveWorkflowId ? "Unable to build workflow graph" : null)
     ?? null;
 
-  // ── Auto-select failed task (fires once on terminal phase) ───────
-
-  const didAutoSelectRef = useRef(false);
-
-  useEffect(() => {
-    if (didAutoSelectRef.current) return;
-    if (!phase || !TERMINAL_PHASES.has(phase)) return;
-    if (selectedTaskName) return;
-
-    for (const [name, state] of taskStates) {
-      if (state.status === "failed") {
-        didAutoSelectRef.current = true;
-        setSelectedTaskName(name);
-        onAutoSelectTask?.(name);
-        return;
-      }
-    }
-  }, [phase, taskStates, selectedTaskName, onAutoSelectTask]);
-
   return {
     nodes: nodesWithExecution,
     edges: edgesWithExecution,
     executionPhase: phase,
-    selectedTaskName,
-    setSelectedTaskName,
     isLoading,
     error,
     versionMismatch,

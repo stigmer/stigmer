@@ -46,17 +46,16 @@ import {
   workflowArtifactTabPath,
   type WorkflowExecutionPanelController,
 } from "./useWorkflowExecutionPanel.js";
-import {
-  useWorkflowExecutionRailViews,
-  type WorkflowInspectHitl,
-  type WorkflowInspectViewOptions,
-} from "./useWorkflowExecutionRailViews.js";
+import { useWorkflowExecutionRailViews } from "./useWorkflowExecutionRailViews.js";
 import {
   DIAGNOSIS_DOCUMENT_ENTRY_ID,
   DIAGNOSIS_DOCUMENT_PATH,
 } from "./diagnosis-document.js";
 import { WorkflowArtifactDocument } from "./WorkflowArtifactDocument.js";
-import { WorkflowTaskThread } from "./thread/WorkflowTaskThread.js";
+import {
+  WorkflowTaskThread,
+  type WorkflowThreadHitl,
+} from "./thread/WorkflowTaskThread.js";
 import { useExecutionAnnouncements } from "./useExecutionAnnouncements.js";
 import {
   useApprovalBoundary,
@@ -133,13 +132,12 @@ export interface WorkflowExecutionViewerProps {
  *
  * Wires together all execution hooks and sub-components into a two-column
  * layout: the center column (the session-style task thread by default, with
- * the DAG graph behind a view toggle) and a single collapsible
- * `WorkspaceSurface` panel carrying the facets (Inspect/Artifacts/Changes/
- * Usage on the rail) and the rich documents (transcripts, diffs, artifacts,
- * AI diagnosis in the editor area). Selecting a task — thread card, graph
- * node, Usage row — opens the panel on its Inspect facet; an approval gate
- * arriving mid-run auto-selects its task so the decision surface is never
- * hidden.
+ * the DAG graph behind a view toggle — a passive visualization) and a single
+ * collapsible `WorkspaceSurface` panel carrying the execution-level facets
+ * (Artifacts/Changes/Usage on the rail) and the rich documents (transcripts,
+ * diffs, artifacts, AI diagnosis in the editor area). A task's detail —
+ * preview, I/O, errors, and every HITL decision surface — lives on its
+ * thread card, the single home for task data (T06).
  *
  * This component is designed to work identically whether rendered
  * in the Stigmer Console or embedded in a third-party dashboard.
@@ -237,11 +235,14 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
         currentToolName: "",
         messagesCount: 0,
         toolCallsCount: 0,
-        // No event log → no truncated summaries. The card body still
-        // renders full I/O from this same snapshot (`status.tasks[]`), so
-        // the fallback path is never a blank card (T04).
+        // No event log → no truncated summaries and no gate record. The
+        // card body still renders full I/O from this same snapshot
+        // (`status.tasks[]`), so the fallback path is never a blank card
+        // (T04); a decided human_input degrades to its raw output there.
         inputSummary: null,
         outputSummary: null,
+        approvalRequest: null,
+        approvalResolution: null,
       });
     }
     return map;
@@ -281,14 +282,12 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   });
 
   // The child-gate HITL wiring — ONE bundle from the single actions
-  // instance, narrowed to the six child-gate fields, consumed by BOTH the
-  // in-place transcript documents (S5, as `WorkflowAgentExecutionHitl`) and
-  // the thread's in-card gates (S10, as the structurally-identical
-  // `WorkflowThreadHitl`), so a gate's spinner/error is pixel-identical on
-  // every surface. Deps are the individual fields (DD-010): the bundle's
-  // ref must survive unrelated churn on `actions` (a lifecycle action's
-  // isSubmitting flip), so consumers re-render only when a gate's own
-  // in-flight/error state moves.
+  // instance, narrowed to the six child-gate fields, consumed by the
+  // in-place transcript documents (S5, as `WorkflowAgentExecutionHitl`), so
+  // a gate's spinner/error is pixel-identical on every surface. Deps are
+  // the individual fields (DD-010): the bundle's ref must survive unrelated
+  // churn on `actions` (a lifecycle action's isSubmitting flip), so
+  // consumers re-render only when a gate's own in-flight/error state moves.
   const childGateHitl = useMemo<WorkflowAgentExecutionHitl>(
     () => ({
       submitApproval: actions.submitApproval,
@@ -308,13 +307,33 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
     ],
   );
 
+  // The thread's HITL bundle (T06): the child-gate fields PLUS the
+  // task-level (human_input) approval wiring — since the gating card is
+  // the only decision surface, the thread carries all three gate kinds.
+  // A separate memo from `childGateHitl` so a human_input decision's
+  // in-flight flip re-renders the gating card, never the open transcript
+  // documents (DD-010).
+  const threadHitl = useMemo<WorkflowThreadHitl>(
+    () => ({
+      ...childGateHitl,
+      submitTaskApproval: actions.submitTaskApproval,
+      taskApprovalSubmittingTaskNames: actions.taskApprovalSubmittingTaskNames,
+      taskApprovalErrorsByTaskName: actions.taskApprovalErrorsByTaskName,
+    }),
+    [
+      childGateHitl,
+      actions.submitTaskApproval,
+      actions.taskApprovalSubmittingTaskNames,
+      actions.taskApprovalErrorsByTaskName,
+    ],
+  );
+
   // The execution-level workspace panel (facets + virtual document
   // tabs). The controller lives at the owner level — the editors-store
   // SUBSCRIPTION stays inside ExecutionWorkspacePanel so tab churn re-renders
   // only the panel subtree, never the streaming graph (DD-009/DD-010).
   const panel = useWorkflowExecutionPanel();
 
-  const [selectedTaskName, setSelectedTaskName] = useState<string | null>(null);
   const [showComparePicker, setShowComparePicker] = useState(false);
   const [compareTargetId, setCompareTargetId] = useState<string | null>(null);
 
@@ -347,54 +366,6 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
   // Thread view. One always-visible announcer serves both center views.
   const announcement = useExecutionAnnouncements(effectiveTaskStates);
 
-  // Selection is OWNER state (it drives the thread-card and graph-node
-  // highlights), reported into the panel controller from here — unlike the
-  // session, whose thread selection lives in the panel subtree. The three
-  // wrappers encode the selection rule, VIEW-SCOPED since T04 (extending
-  // the D-T02-13 discipline from gate auto-focus to plain selection):
-  // - `handleSelectTask` — a gesture whose surface IS the panel: a graph
-  //   node click (the node has no inline surface; Inspect is Graph view's
-  //   only detail surface), a Usage row (the user is already in the panel),
-  //   or a card's explicit Inspect affordance. Opens the panel on Inspect.
-  // - `handleThreadSelectTask` — a thread-card click. The card is the
-  //   surface (it carries the task's preview, I/O body, and HITL since
-  //   T04), so selecting it highlights + scrolls WITHOUT yanking the panel
-  //   open — the R1-2 fix. An already-open, un-stuck panel still follows
-  //   onto Inspect (the auto-focus semantic).
-  // - `handleAutoSelectTask` — the runner's auto-focus; only updates an
-  //   already-open panel.
-  // A deselect (graph pane click, or toggling the selected card/node off)
-  // clears without opening.
-  const notifySelection = panel.notifySelection;
-  const handleSelectTask = useCallback(
-    (taskName: string | null) => {
-      setSelectedTaskName(taskName);
-      notifySelection(taskName, taskName !== null ? { open: true } : undefined);
-    },
-    [notifySelection],
-  );
-  const handleThreadSelectTask = useCallback(
-    (taskName: string | null) => {
-      setSelectedTaskName(taskName);
-      notifySelection(taskName);
-    },
-    [notifySelection],
-  );
-  const handleAutoSelectTask = useCallback(
-    (taskName: string) => {
-      setSelectedTaskName(taskName);
-      notifySelection(taskName);
-    },
-    [notifySelection],
-  );
-  // The card's opt-in drill-down (T04): raw structured I/O, the per-task
-  // event log, retries — the density the card intentionally does not
-  // inline. Also the human_input review path ("Open review").
-  const handleInspectTask = useCallback(
-    (taskName: string) => handleSelectTask(taskName),
-    [handleSelectTask],
-  );
-
   // Terminal-phase snapshot refetch (T04, DD-T04-4). While a run streams,
   // the cards' collapsed lines and bodies work from the TRUNCATED event
   // summaries; the full per-task output lands on `status.tasks[]` only when
@@ -417,92 +388,22 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
     }
   }, [streamState.stage, refetchExecution]);
 
-  // HITL attention + snapshot freshness (S9, the drawer's replacement).
-  // A `waiting_approval` boundary crossing means the mount snapshot's gate
-  // lists are stale → refetch (stale-while-revalidate; no skeleton) — in
-  // BOTH center views: the thread's in-card gates read those lists.
-  //
-  // A gate OPENING additionally auto-selects its task. HOW depends on the
-  // center view (D-T02-13, amending the S9 exception):
-  // - Graph view: through the explicit-gesture path, force-opening the
-  //   panel onto Inspect — there the panel is the ONLY decision surface and
-  //   the run is blocked on a decision the user cannot see otherwise
-  //   (Nielsen #1).
-  // - Thread view: plain auto-select (highlight + the card's shipped
-  //   scroll-into-view reveal) WITHOUT yanking the panel open — since S10
-  //   the card itself carries the decision surface (or a one-click path to
-  //   it), so the S9 force-open rationale no longer applies there.
-  // Concurrent gates: last one wins the selection; every gating card stays
-  // amber in the thread and the graph. Gated on `isRunning` so
-  // terminal-execution history replay (which crosses the boundary for
-  // long-decided gates) triggers neither.
+  // Snapshot freshness across HITL boundaries (S9, the drawer's
+  // replacement). A `waiting_approval` boundary crossing — in EITHER
+  // direction — means the mount snapshot's gate lists are stale → refetch
+  // (stale-while-revalidate; no skeleton): the thread's in-card gates read
+  // those lists. No auto-select accompanies it (T06 — selection is gone):
+  // the gating card is amber, carries its decision surface, and the aria
+  // announcer + auto-follow + jump-to-latest cover attention. Gated on
+  // `isRunning` so terminal-execution history replay (which crosses the
+  // boundary for long-decided gates) never refetches.
   const handleApprovalBoundary = useCallback(
-    (crossing: ApprovalBoundaryCrossing) => {
+    (_crossing: ApprovalBoundaryCrossing) => {
       refetchExecution();
-      const gated = crossing.entered[crossing.entered.length - 1];
-      if (!gated) return;
-      if (centerView === "graph") handleSelectTask(gated);
-      else handleAutoSelectTask(gated);
     },
-    [refetchExecution, handleSelectTask, handleAutoSelectTask, centerView],
+    [refetchExecution],
   );
   useApprovalBoundary(effectiveTaskStates, isRunning, handleApprovalBoundary);
-
-  // The Inspect facet's HITL wiring — the same single actions instance,
-  // narrowed per-field (DD-010) exactly like `childGateHitl` above, so a
-  // gate's spinner/error is identical in the Inspect facet and the
-  // transcript. Carries all three gate kinds (tool approvals, human_input,
-  // file reviews): the Inspect Approval tab is the execution-level HITL
-  // surface since the bottom drawer's retirement (S9).
-  const inspectHitl = useMemo<WorkflowInspectHitl>(
-    () => ({
-      submitApproval: actions.submitApproval,
-      approvalSubmittingToolCallIds: actions.approvalSubmittingToolCallIds,
-      approvalErrorsByToolCallId: actions.approvalErrorsByToolCallId,
-      submitTaskApproval: actions.submitTaskApproval,
-      taskApprovalSubmittingTaskNames: actions.taskApprovalSubmittingTaskNames,
-      taskApprovalErrorsByTaskName: actions.taskApprovalErrorsByTaskName,
-      submitFileDecision: actions.submitFileDecision,
-      fileDecisionSubmittingKeys: actions.fileDecisionSubmittingKeys,
-      fileDecisionErrorsByKey: actions.fileDecisionErrorsByKey,
-    }),
-    [
-      actions.submitApproval,
-      actions.approvalSubmittingToolCallIds,
-      actions.approvalErrorsByToolCallId,
-      actions.submitTaskApproval,
-      actions.taskApprovalSubmittingTaskNames,
-      actions.taskApprovalErrorsByTaskName,
-      actions.submitFileDecision,
-      actions.fileDecisionSubmittingKeys,
-      actions.fileDecisionErrorsByKey,
-    ],
-  );
-
-  // The Inspect facet's grouped inputs (memoized so the rail assembly
-  // re-derives the Inspect element only when these move).
-  const inspect = useMemo<WorkflowInspectViewOptions>(
-    () => ({
-      selectedTaskName,
-      events,
-      taskSnapshots: execution?.status?.tasks,
-      pendingApprovals: execution?.status?.pendingApprovals,
-      pendingFileReviews: execution?.status?.pendingFileReviews,
-      onNavigateToAgentExecution,
-      onOpenAgentExecution: panel.openAgentExecution,
-      hitl: inspectHitl,
-    }),
-    [
-      selectedTaskName,
-      events,
-      execution?.status?.tasks,
-      execution?.status?.pendingApprovals,
-      execution?.status?.pendingFileReviews,
-      onNavigateToAgentExecution,
-      panel.openAgentExecution,
-      inspectHitl,
-    ],
-  );
 
   const handleOpenComparePicker = useCallback(() => {
     setShowComparePicker(true);
@@ -674,8 +575,9 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
 
         {/* Primary area: thread and graph, both mounted, inactive one
             CSS-hidden (stable tree positions — no React Flow remount, no
-            stream reconnect, expanded cards survive a toggle). Per-task
-            detail lives in the panel's Inspect facet either way. */}
+            stream reconnect, expanded cards survive a toggle). The thread
+            card is the single home for a task's detail (T06); the graph is
+            a passive topology visualization. */}
         <div
           data-center-view="thread"
           className={cn("min-h-0 flex-1", centerView !== "thread" && "hidden")}
@@ -684,21 +586,15 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
             taskStates={effectiveTaskStates}
             totalTasks={effectiveTotalTasks}
             isRunning={isRunning}
-            selectedTaskName={selectedTaskName}
-            // Thread selection never force-opens the panel (T04) — the card
-            // is the surface; the per-card Inspect affordance is the
-            // explicit drill-down gesture.
-            onTaskSelect={handleThreadSelectTask}
-            onInspectTask={handleInspectTask}
             onOpenAgentExecution={panel.openAgentExecution}
-            // In-card HITL (S10): the SAME bundle the transcript documents
-            // use, plus the snapshot gate lists (kept fresh by the approval
-            // boundary's refetch above).
-            hitl={childGateHitl}
+            // In-card HITL (S10/T06): all three gate kinds decide on the
+            // gating card, backed by the snapshot gate lists (kept fresh
+            // by the approval boundary's refetch above).
+            hitl={threadHitl}
             pendingApprovals={execution?.status?.pendingApprovals}
             pendingFileReviews={execution?.status?.pendingFileReviews}
-            // Full per-task I/O for the card bodies (T04) — the same
-            // snapshot Inspect joins, as an O(1) per-card lookup.
+            // Full per-task I/O for the card bodies (T04) — an O(1)
+            // per-card snapshot lookup.
             taskSnapshotsByName={taskSnapshotsByName}
             className="h-full"
           />
@@ -711,8 +607,6 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
             executionId={executionId}
             execution={execution}
             taskStates={effectiveTaskStates}
-            onTaskSelect={handleSelectTask}
-            onAutoSelectTask={handleAutoSelectTask}
             // Gated on the graph being visible: camera moves against a
             // display:none (zero-size) viewport are degenerate.
             followExecution={isRunning && centerView === "graph"}
@@ -734,12 +628,10 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
               panel={panel}
               executionId={executionId}
               org={org}
-              inspect={inspect}
               artifacts={artifacts}
               fileChangesState={fileChangesState}
               costSummary={costSummary}
               taskStates={effectiveTaskStates}
-              onSelectTask={handleSelectTask}
               onNavigateToAgentExecution={onNavigateToAgentExecution}
               onApplyFix={onNavigateToWorkflowEditor ? handleApplyFix : undefined}
               transcriptHitl={childGateHitl}
@@ -760,21 +652,19 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
 /**
  * The workflow analog of the session viewer's panel region: subscribes to the
  * open-editor group (keeping that subscription out of the streaming owner),
- * assembles the rail facets (including the selection-driven Inspect view),
- * and resolves open virtual-document tabs back to their records (artifact
- * tabs → `Artifact`, file-change tabs → the current net `FileChange`,
- * transcript tabs → their child id, the diagnosis tab → `WorkflowRepairCard`).
+ * assembles the rail facets, and resolves open virtual-document tabs back to
+ * their records (artifact tabs → `Artifact`, file-change tabs → the current
+ * net `FileChange`, transcript tabs → their child id, the diagnosis tab →
+ * `WorkflowRepairCard`).
  */
 function ExecutionWorkspacePanel({
   panel,
   executionId,
   org,
-  inspect,
   artifacts,
   fileChangesState,
   costSummary,
   taskStates,
-  onSelectTask,
   onNavigateToAgentExecution,
   onApplyFix,
   transcriptHitl,
@@ -782,13 +672,10 @@ function ExecutionWorkspacePanel({
   readonly panel: WorkflowExecutionPanelController;
   readonly executionId: string;
   readonly org?: string;
-  /** Inputs for the Inspect rail view (memoized by the owner, DD-010). */
-  readonly inspect: WorkflowInspectViewOptions;
   readonly artifacts: readonly Artifact[];
   readonly fileChangesState: UseWorkflowExecutionFileChangesReturn;
   readonly costSummary: DerivedCostSummary;
   readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
-  readonly onSelectTask: (taskName: string) => void;
   readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
   /** "Apply Fix" from the diagnosis document — host-routed (DD-004). */
   readonly onApplyFix?: (yaml: string) => void;
@@ -806,7 +693,6 @@ function ExecutionWorkspacePanel({
       : null;
 
   const railViews = useWorkflowExecutionRailViews({
-    inspect,
     artifacts,
     onOpenArtifact: panel.openArtifact,
     onActivateArtifact: panel.pinArtifact,
@@ -818,7 +704,6 @@ function ExecutionWorkspacePanel({
     onOpenFileChange: panel.openFileChange,
     costSummary,
     taskStates,
-    onSelectTask,
   });
 
   // Resolve open artifact tabs to their records by the same tab-path identity

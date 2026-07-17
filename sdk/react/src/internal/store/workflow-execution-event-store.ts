@@ -1,4 +1,8 @@
-import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import type {
+  WorkflowExecutionEvent,
+  ApprovalRequestedPayload,
+  ApprovalResolvedPayload,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
@@ -69,6 +73,24 @@ export interface DerivedTaskState {
    * source only (the event deliberately truncates to prevent bloat).
    */
   readonly outputSummary: JsonObject | null;
+  /**
+   * The `approval_requested` payload for a human_input gate (T06) — the
+   * review material (prompt, outcomes, form schema, payload/artifact ref,
+   * ui hint) the gating card's in-thread review surface renders. `null`
+   * until the event arrives; reset on a restart (a new attempt re-emits
+   * its own request). Reference-stable like the summaries: the value IS
+   * the stored immutable event's payload message, so downstream identity
+   * compares (structural sharing) hold across re-derivations.
+   */
+  readonly approvalRequest: ApprovalRequestedPayload | null;
+  /**
+   * The `approval_resolved` payload once the gate is decided (T06) —
+   * reviewer, comment, wait duration. Persists through the task's
+   * remaining lifecycle (completed/failed) so the card's resolved-decision
+   * summary survives settlement; reset on a restart. Reference-stable, as
+   * above.
+   */
+  readonly approvalResolution: ApprovalResolvedPayload | null;
 }
 
 export interface DerivedCostSummary {
@@ -267,8 +289,10 @@ function deriveTaskStates(
           messagesCount: prev?.messagesCount ?? 0,
           toolCallsCount: prev?.toolCallsCount ?? 0,
           inputSummary: p.value.inputSummary ?? prev?.inputSummary ?? null,
-          // A (re)start invalidates any prior attempt's output.
+          // A (re)start invalidates any prior attempt's output and gate.
           outputSummary: null,
+          approvalRequest: null,
+          approvalResolution: null,
         });
         break;
 
@@ -289,6 +313,10 @@ function deriveTaskStates(
           toolCallsCount: prev?.toolCallsCount ?? 0,
           inputSummary: prev?.inputSummary ?? null,
           outputSummary: p.value.outputSummary ?? null,
+          // The gate record survives settlement — the card's resolved
+          // decision summary reads it after the task completes.
+          approvalRequest: prev?.approvalRequest ?? null,
+          approvalResolution: prev?.approvalResolution ?? null,
         });
         break;
 
@@ -309,6 +337,8 @@ function deriveTaskStates(
           toolCallsCount: prev?.toolCallsCount ?? 0,
           inputSummary: prev?.inputSummary ?? null,
           outputSummary: null,
+          approvalRequest: prev?.approvalRequest ?? null,
+          approvalResolution: prev?.approvalResolution ?? null,
         });
         break;
 
@@ -329,6 +359,8 @@ function deriveTaskStates(
           toolCallsCount: 0,
           inputSummary: null,
           outputSummary: null,
+          approvalRequest: null,
+          approvalResolution: null,
         });
         break;
 
@@ -377,13 +409,26 @@ function deriveTaskStates(
 
       case "approvalRequested":
         if (prev) {
-          map.set(taskName, { ...prev, status: "waiting_approval" });
+          map.set(taskName, {
+            ...prev,
+            status: "waiting_approval",
+            // The stored event's payload message itself — reference-stable
+            // across re-derivations, so the gating card's memo compares hold.
+            approvalRequest: p.value,
+            approvalResolution: null,
+          });
         }
         break;
 
       case "approvalResolved":
-        if (prev && prev.status === "waiting_approval") {
-          map.set(taskName, { ...prev, status: "running" });
+        if (prev) {
+          map.set(taskName, {
+            ...prev,
+            // Only a waiting gate resumes; the resolution record is kept
+            // either way (an out-of-order event must not lose the decision).
+            status: prev.status === "waiting_approval" ? "running" : prev.status,
+            approvalResolution: p.value,
+          });
         }
         break;
     }

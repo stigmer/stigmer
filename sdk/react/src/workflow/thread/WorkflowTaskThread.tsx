@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import type {
   WorkflowPendingApproval,
@@ -21,14 +21,20 @@ import {
   XCircleIcon,
   DotIcon,
   SlashCircleIcon,
-  InspectIcon,
-  ChevronIcon,
 } from "../../internal/thread-card/index.js";
 import { formatMetaChips } from "../format-utils.js";
 import type { UseWorkflowExecutionActionsReturn } from "../useWorkflowExecutionActions.js";
 import { WorkflowApprovalList } from "../WorkflowApprovalList.js";
 import { WorkflowFileReviewList } from "../WorkflowFileReviewList.js";
+import { WorkflowTaskReviewGate } from "../WorkflowTaskReviewGate.js";
+import { WorkflowTaskApprovalSummary } from "../WorkflowTaskApprovalSummary.js";
 import { buildIO, type TaskDetailIO } from "../task-detail/task-detail-io.js";
+import {
+  deriveTaskApprovalRequest,
+  deriveTaskApprovalDecision,
+  type TaskApprovalRequestView,
+  type TaskDetailApprovalDecision,
+} from "../task-detail/task-approval.js";
 import { StructuredDataViewer } from "../task-detail/StructuredDataViewer.js";
 import { useWorkflowThreadItems } from "./useWorkflowThreadItems.js";
 import type {
@@ -39,17 +45,22 @@ import type {
 /**
  * The workflow-level HITL wiring a decision-capable thread needs — a `Pick`
  * of the single `useWorkflowExecutionActions` instance's return (cannot
- * drift; same convention as `WorkflowAgentExecutionHitl` and
- * `WorkflowInspectHitl`). Decisions route through the WORKFLOW-level RPCs
- * only — never the child's own `agentExecution.*` path, whose authorization
- * checks the runner-spawned child rather than the workflow execution the
- * operator owns (S5 rationale).
+ * drift; same convention as `WorkflowAgentExecutionHitl`). Covers all three
+ * gate kinds: child tool approvals, child file reviews, and task-level
+ * (human_input) approvals — since T06 the gating card is the ONLY decision
+ * surface, so the thread carries the full set. Decisions route through the
+ * WORKFLOW-level RPCs only — never the child's own `agentExecution.*` path,
+ * whose authorization checks the runner-spawned child rather than the
+ * workflow execution the operator owns (S5 rationale).
  */
 export type WorkflowThreadHitl = Pick<
   UseWorkflowExecutionActionsReturn,
   | "submitApproval"
   | "approvalSubmittingToolCallIds"
   | "approvalErrorsByToolCallId"
+  | "submitTaskApproval"
+  | "taskApprovalSubmittingTaskNames"
+  | "taskApprovalErrorsByTaskName"
   | "submitFileDecision"
   | "fileDecisionSubmittingKeys"
   | "fileDecisionErrorsByKey"
@@ -73,24 +84,6 @@ export interface WorkflowTaskThreadProps {
   readonly totalTasks: number;
   /** Whether the execution is still running (drives streaming affordances). */
   readonly isRunning: boolean;
-  /** The task selected across the viewer (thread, graph, and panel). */
-  readonly selectedTaskName: string | null;
-  /**
-   * Callback when the user selects a task card (or re-clicks the selected
-   * card to deselect — `null`). Since T04 this is a highlight+scroll
-   * gesture only — the card is the primary surface for the task's data, so
-   * the viewer no longer force-opens the panel's Inspect facet on it (the
-   * R1-2 fix). The explicit drill-down gesture is {@link onInspectTask}.
-   */
-  readonly onTaskSelect?: (taskName: string | null) => void;
-  /**
-   * Callback for the card's opt-in Inspect affordance (T04) — the
-   * drill-down to raw structured I/O, the per-task event log, and retries
-   * (the density the card intentionally does not inline). The viewer opens
-   * the panel's Inspect facet on it. Also carries the human_input "Open
-   * review" path. Omitted → the affordance is not rendered.
-   */
-  readonly onInspectTask?: (taskName: string) => void;
   /**
    * Callback to open an AGENT_CALL task's child transcript in the panel's
    * editor area (the S4 in-place expansion). Omitted → the affordance is
@@ -120,12 +113,11 @@ export interface WorkflowTaskThreadProps {
   readonly pendingFileReviews?: readonly WorkflowPendingFileReview[];
   /**
    * Per-task status snapshots (`status.tasks[]`) keyed by task name — the
-   * FULL I/O source for card bodies (T04). An O(1) lookup per card, never
-   * an event-log scan: the full `deriveTaskDetail` join stays in the
-   * Inspect drill-down. The map's identity changes only on a snapshot
-   * refetch (rare), never on stream event appends, so memoized cards keep
-   * bailing during streaming. Omitted → bodies degrade to the truncated
-   * event summaries already on the items.
+   * FULL I/O source for card bodies (T04), never an event-log scan
+   * (DD-T04-5). The map's identity changes only on a snapshot refetch
+   * (rare), never on stream event appends, so memoized cards keep bailing
+   * during streaming. Omitted → bodies degrade to the truncated event
+   * summaries already on the items.
    */
   readonly taskSnapshotsByName?: ReadonlyMap<string, WorkflowTask>;
   /** Additional CSS class names for the root container. */
@@ -143,19 +135,20 @@ export interface WorkflowTaskThreadProps {
  * indicator (D-T02-6). AGENT_CALL cards carry an always-visible body with
  * an "Open transcript" affordance (D-T02-2) — the full transcript opens as
  * a panel document, never inline. Since T04 the card is the PRIMARY surface
- * for a task's data (kind-aware preview line + bounded I/O body): selecting
- * a card highlights and scrolls but never force-opens the panel; the
- * per-card Inspect affordance is the explicit drill-down.
+ * for a task's data (kind-aware preview line + bounded I/O body); since T06
+ * it is the ONLY one — the Inspect drill-down is gone, and cards compose
+ * the session card language exactly (expand-or-none headers, no selection).
  *
  * Auto-follow uses the session thread's mechanism: an IntersectionObserver
  * sentinel keeps the list pinned to the latest card until the user scrolls
  * up, with a jump-to-latest affordance to re-engage.
  *
  * With `hitl` wired, a gating task's card carries its decision surface
- * in-thread (S10): the canonical `ApprovalCard`s for child tool gates, the
- * child-streaming `FileReviewCard`s for file gates, and a one-click
- * "Open review" into the panel's Inspect Approval tab for task-level
- * (human_input) gates — whose custom review renderers stay panel-side.
+ * in-thread (S10/T06): the canonical `ApprovalCard`s for child tool gates,
+ * the child-streaming `FileReviewCard`s for file gates, and the full
+ * `WorkflowTaskReviewGate` (custom review renderers included) for
+ * task-level human_input gates — with a read-only
+ * `WorkflowTaskApprovalSummary` once the gate resolves.
  *
  * This component is designed to work identically whether rendered in the
  * Stigmer Console or embedded in a third-party dashboard. No dependencies
@@ -165,9 +158,6 @@ export const WorkflowTaskThread = memo(function WorkflowTaskThread({
   taskStates,
   totalTasks,
   isRunning,
-  selectedTaskName,
-  onTaskSelect,
-  onInspectTask,
   onOpenAgentExecution,
   hitl,
   pendingApprovals,
@@ -223,9 +213,6 @@ export const WorkflowTaskThread = memo(function WorkflowTaskThread({
               <ThreadTaskCard
                 key={item.taskName}
                 item={item}
-                isSelected={item.taskName === selectedTaskName}
-                onTaskSelect={onTaskSelect}
-                onInspectTask={onInspectTask}
                 onOpenAgentExecution={onOpenAgentExecution}
                 // HITL props reach ONLY gating cards (DD-010): the bundle's
                 // identity moves whenever any gate's in-flight/error state
@@ -322,22 +309,17 @@ function ThreadEmptyState({ isRunning }: { readonly isRunning: boolean }) {
  * - `"preview"` kinds render an ALWAYS-VISIBLE bounded output body (no
  *   card chevron — `BoundedContent` owns its own in-place reveal, so the
  *   old "expand, then Show more" double control never comes back).
- * - `"summary"` kinds keep the chevron-gated detail body.
+ * - `"summary"` kinds expand from the header — the session card's own
+ *   gesture, the chevron appended by the shell (T06).
  */
 const ThreadTaskCard = memo(function ThreadTaskCard({
   item,
-  isSelected,
-  onTaskSelect,
-  onInspectTask,
   onOpenAgentExecution,
   hitl,
   gates,
   snapshot,
 }: {
   readonly item: WorkflowThreadItem;
-  readonly isSelected: boolean;
-  readonly onTaskSelect?: (taskName: string | null) => void;
-  readonly onInspectTask?: (taskName: string) => void;
   readonly onOpenAgentExecution?: (
     childExecutionId: string,
     taskName: string,
@@ -347,7 +329,6 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
   readonly snapshot?: WorkflowTask;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const cardRef = useRef<HTMLDivElement | null>(null);
 
   // The I/O fallback ladder (full snapshot value → truncated event summary
   // → nothing) — an O(1) lookup, never an event-log scan (T04).
@@ -360,6 +341,25 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
     [snapshot, item.inputSummary],
   );
 
+  // The human_input gate record (T06): the review material for a pending
+  // gate, the decision report for a resolved one. Memoized on the captured
+  // payloads' identities — the store keeps them reference-stable, so these
+  // recompute only when a gate opens/resolves or the snapshot refetches.
+  const approvalRequestView = useMemo(
+    () =>
+      item.approvalRequest
+        ? deriveTaskApprovalRequest(item.approvalRequest)
+        : null,
+    [item.approvalRequest],
+  );
+  const approvalDecision = useMemo(
+    () =>
+      item.approvalRequest
+        ? deriveTaskApprovalDecision(item.approvalResolution, snapshot?.output)
+        : null,
+    [item.approvalRequest, item.approvalResolution, snapshot],
+  );
+
   const isPreview = item.disclosure === "preview";
   const showHitl = !!hitl && item.status === "waiting_approval";
   // While gating, the in-card HITL section owns the card's affordances
@@ -370,27 +370,22 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
     !!item.childExecutionId &&
     !!onOpenAgentExecution &&
     !showHitl;
+  // A resolved human_input gate presents its decision report in place of
+  // the raw output Struct (the output IS the decision record — the report
+  // is the readable rendering of it).
+  const showApprovalSummary =
+    !showHitl && approvalRequestView !== null && approvalDecision !== null;
   // The session's `showBody` gate: a preview body renders only when it has
-  // content the header cannot carry (output, an error, or the agent-call
-  // transcript affordance) — a content-less preview card collapses back to
-  // a clean one-line row.
+  // content the header cannot carry (output, an error, the agent-call
+  // transcript affordance, or a gate's decision report) — a content-less
+  // preview card collapses back to a clean one-line row.
   const showPreviewBody =
-    isPreview && (outputIO !== null || !!item.error || showBodyTranscript);
+    isPreview &&
+    (outputIO !== null ||
+      !!item.error ||
+      showBodyTranscript ||
+      showApprovalSummary);
 
-  // Selection is shared across the viewer (graph node, Usage row, gate
-  // auto-select) — when it lands on this card from OUTSIDE the thread, the
-  // card may be off-screen. Reveal it on the selected edge only; `nearest`
-  // makes an already-visible card (e.g. the user's own click) a no-op.
-  // If this scrolls away from the bottom, the auto-follow sentinel
-  // disengages follow mode — correct: the user is inspecting. Optional
-  // call: jsdom has no `scrollIntoView`.
-  useEffect(() => {
-    if (!isSelected) return;
-    cardRef.current?.scrollIntoView?.({ block: "nearest" });
-  }, [isSelected]);
-
-  // Task names are user-authored (may contain spaces); sanitize for the id.
-  const detailId = `stgm-thread-task-${item.taskName.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
   const meta = formatMetaChips({
     durationMs: item.durationMs,
     costMicros: item.costMicros,
@@ -403,24 +398,21 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
 
   return (
     <ThreadCardShell
-      ref={cardRef}
-      selected={isSelected}
       accent={item.status === "waiting_approval" ? "warning" : null}
       cursorTarget="workflow-task-row"
     >
-      {/* The header's primary gesture is SELECTION — same contract as a DAG
-          node click (highlight + scroll, shared with graph and panel). The
-          session card's header toggles expand instead; the shell expresses
-          both without forking the layout (DD-T05-3). */}
+      {/* The session card's gestures exactly (T06): summary rows expand
+          from the header (chevron appended by the shell); preview rows'
+          bodies are always visible, so the header is a plain layout row. */}
       <ThreadCardHeader
         gesture={
-          onTaskSelect
-            ? {
-                kind: "select",
-                selected: isSelected,
-                onSelect: () => onTaskSelect(isSelected ? null : item.taskName),
+          isPreview
+            ? { kind: "none" }
+            : {
+                kind: "expand",
+                expanded,
+                onToggle: () => setExpanded((v) => !v),
               }
-            : { kind: "none" }
         }
       >
         <StatusGlyph status={item.status} />
@@ -450,40 +442,6 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
             {meta}
           </span>
         )}
-
-        {/* The opt-in drill-down (T04) — the session tool card's Inspect
-            affordance: raw I/O, per-task events, retries in the panel.
-            Nested in the interactive header; stopPropagation so the click
-            never doubles as a selection. */}
-        {onInspectTask && (
-          <button
-            type="button"
-            aria-label={`Inspect ${item.taskName}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onInspectTask(item.taskName);
-            }}
-            className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          >
-            <InspectIcon />
-          </button>
-        )}
-
-        {!isPreview && (
-          <button
-            type="button"
-            aria-expanded={expanded}
-            aria-controls={detailId}
-            aria-label={expanded ? `Collapse ${item.taskName}` : `Expand ${item.taskName}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              setExpanded((v) => !v);
-            }}
-            className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          >
-            <ChevronIcon expanded={expanded} />
-          </button>
-        )}
       </ThreadCardHeader>
 
       {/* In-thread HITL (S10): the decision surface renders whenever the
@@ -495,8 +453,7 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
             item={item}
             gates={gates}
             hitl={hitl}
-            onTaskSelect={onTaskSelect}
-            onInspectTask={onInspectTask}
+            approvalRequestView={approvalRequestView}
             onOpenAgentExecution={onOpenAgentExecution}
           />
         </ThreadCardBody>
@@ -509,6 +466,14 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
           <ThreadTaskPreviewBody
             item={item}
             outputIO={outputIO}
+            approvalSummary={
+              showApprovalSummary && approvalRequestView
+                ? {
+                    request: approvalRequestView,
+                    decision: approvalDecision,
+                  }
+                : undefined
+            }
             onOpenAgentExecution={
               showBodyTranscript ? onOpenAgentExecution : undefined
             }
@@ -517,7 +482,7 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
       )}
 
       {!isPreview && expanded && (
-        <ThreadCardBody id={detailId}>
+        <ThreadCardBody>
           <ThreadTaskDetail
             item={item}
             inputIO={inputIO}
@@ -547,25 +512,25 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
  *    steady state until the T04 forwarder lands. The honest surface is the
  *    child's own transcript (the S5 in-place expansion renders the child's
  *    ApprovalCards) — offer it, never a dead-end spinner.
- * 3. Any other gating card → a task-level (human_input) gate. Its decision
- *    surface — outcomes, forms, custom review renderers — lives in the
- *    panel's Inspect Approval tab; "Open review" routes through the
- *    Inspect drill-down (T04: a plain thread selection no longer opens the
- *    panel, so the review path must use the explicit force-open gesture).
+ * 3. Any other gating card → a task-level (human_input) gate. The full
+ *    review surface — outcomes, forms, artifact-backed payloads, custom
+ *    review renderers — renders right here (T06): the card is the only
+ *    decision surface, so it carries the real `WorkflowTaskReviewGate`,
+ *    not a link to one. Degrades to an honest waiting notice when the
+ *    request payload is unavailable (no event stream — the snapshot
+ *    fallback path).
  */
 function ThreadTaskCardHitl({
   item,
   gates,
   hitl,
-  onTaskSelect,
-  onInspectTask,
+  approvalRequestView,
   onOpenAgentExecution,
 }: {
   readonly item: WorkflowThreadItem;
   readonly gates?: ThreadTaskGates;
   readonly hitl: WorkflowThreadHitl;
-  readonly onTaskSelect?: (taskName: string | null) => void;
-  readonly onInspectTask?: (taskName: string) => void;
+  readonly approvalRequestView: TaskApprovalRequestView | null;
   readonly onOpenAgentExecution?: (
     childExecutionId: string,
     taskName: string,
@@ -616,23 +581,29 @@ function ThreadTaskCardHitl({
     );
   }
 
-  // T04: the review surface lives in the panel's Inspect Approval tab, and
-  // a plain selection no longer opens the panel — route through the
-  // explicit Inspect gesture (fall back to selection for embedders that
-  // wired only `onTaskSelect`).
-  const openReview = onInspectTask ?? onTaskSelect;
+  if (approvalRequestView) {
+    return (
+      <WorkflowTaskReviewGate
+        taskName={item.taskName}
+        prompt={approvalRequestView.prompt}
+        outcomes={approvalRequestView.outcomes}
+        formSchema={approvalRequestView.formSchema ?? undefined}
+        payload={approvalRequestView.payload}
+        uiHint={approvalRequestView.uiHint}
+        payloadArtifactId={approvalRequestView.payloadArtifactId}
+        onSubmit={hitl.submitTaskApproval}
+        isSubmitting={hitl.taskApprovalSubmittingTaskNames.has(item.taskName)}
+        error={hitl.taskApprovalErrorsByTaskName.get(item.taskName) ?? null}
+      />
+    );
+  }
+
+  // No captured request payload (event stream unavailable) — state the
+  // block honestly rather than rendering a gate with no material.
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <p className="text-xs text-muted-foreground">
-        Review required to continue this run.
-      </p>
-      {openReview && (
-        <ThreadActionButton
-          label="Open review"
-          onClick={() => openReview(item.taskName)}
-        />
-      )}
-    </div>
+    <p className="text-xs text-muted-foreground">
+      Review required to continue this run.
+    </p>
   );
 }
 
@@ -695,14 +666,23 @@ function ThreadTaskIOSection({
  * (via the I/O fallback ladder), the failure detail when the task failed,
  * and the agent-call transcript affordance. Content only — the header owns
  * all metadata (session `ToolCallDetail` invariant).
+ *
+ * A resolved human_input gate supplies `approvalSummary` and gets the
+ * read-only decision report instead of the raw output Struct — the output
+ * IS the decision record, and the report is its readable rendering (T06).
  */
 function ThreadTaskPreviewBody({
   item,
   outputIO,
+  approvalSummary,
   onOpenAgentExecution,
 }: {
   readonly item: WorkflowThreadItem;
   readonly outputIO: TaskDetailIO | null;
+  readonly approvalSummary?: {
+    readonly request: TaskApprovalRequestView;
+    readonly decision: TaskDetailApprovalDecision | null;
+  };
   readonly onOpenAgentExecution?: (
     childExecutionId: string,
     taskName: string,
@@ -718,7 +698,16 @@ function ThreadTaskPreviewBody({
         </BoundedContent>
       )}
 
-      {outputIO && <ThreadTaskIOSection label="Output" io={outputIO} />}
+      {approvalSummary ? (
+        <WorkflowTaskApprovalSummary
+          taskName={item.taskName}
+          prompt={approvalSummary.request.prompt}
+          outcomes={approvalSummary.request.outcomes}
+          decision={approvalSummary.decision}
+        />
+      ) : (
+        outputIO && <ThreadTaskIOSection label="Output" io={outputIO} />
+      )}
 
       {item.variant === "agent-call" &&
         item.childExecutionId &&

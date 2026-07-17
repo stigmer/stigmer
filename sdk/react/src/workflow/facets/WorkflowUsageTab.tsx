@@ -21,12 +21,6 @@ export interface WorkflowUsageTabProps {
   readonly costSummary: DerivedCostSummary;
   /** Per-task derived states — drives the per-task breakdown list. */
   readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
-  /**
-   * Select a task in the host viewer (graph node + inspector), completing the
-   * operator loop: spot the expensive task here, inspect it there. Omit in
-   * standalone embeds — rows then render as static (non-interactive) entries.
-   */
-  readonly onSelectTask?: (taskName: string) => void;
 }
 
 /**
@@ -49,7 +43,6 @@ export interface WorkflowUsageTabProps {
 export function WorkflowUsageTab({
   costSummary,
   taskStates,
-  onSelectTask,
 }: WorkflowUsageTabProps) {
   const items = useMemo(
     () => deriveWorkflowUsageItems(taskStates),
@@ -81,13 +74,7 @@ export function WorkflowUsageTab({
           </h3>
           <ul role="list" className="flex flex-col">
             {items.map((item) => (
-              <UsageRow
-                key={item.taskName}
-                item={item}
-                onSelect={
-                  onSelectTask ? () => onSelectTask(item.taskName) : undefined
-                }
-              />
+              <UsageRow key={item.taskName} item={item} />
             ))}
           </ul>
         </div>
@@ -206,57 +193,28 @@ function BudgetGauge({
 }
 
 /**
- * One per-task usage row. With an `onSelect` handler the row is a button
- * that selects the task in the host viewer; without one it renders the same
- * content statically — a button that does nothing would be dishonest UI.
+ * One per-task usage row — a static entry: the task's own card in the
+ * thread is where its detail lives (T06), so the breakdown reports rather
+ * than navigates.
  */
-function UsageRow({
-  item,
-  onSelect,
-}: {
-  readonly item: WorkflowUsageItem;
-  readonly onSelect?: () => void;
-}) {
-  const content = (
-    <>
-      <span className="min-w-0 flex-1 truncate text-foreground">
-        {item.taskName}
-        <span className="ml-1.5 text-[0.65rem] text-muted-foreground">
-          {item.kindLabel}
-          {isInFlight(item.status) && ` · ${statusLabel(item.status)}`}
-        </span>
-      </span>
-      <span className="shrink-0 tabular-nums text-foreground">
-        {formatMicroUsd(item.costMicros)}
-      </span>
-      <span className="w-14 shrink-0 text-right tabular-nums text-[0.65rem] text-muted-foreground-faint">
-        {formatTokenCount(item.tokensUsed)} tok
-      </span>
-    </>
-  );
-
-  const rowClasses =
-    "flex min-w-0 flex-1 items-center gap-2 px-2 py-1 text-left text-xs";
-
+function UsageRow({ item }: { readonly item: WorkflowUsageItem }) {
   return (
     <li className="flex items-stretch">
-      {onSelect ? (
-        <button
-          type="button"
-          onClick={onSelect}
-          title={`Select ${item.taskName} in the execution graph`}
-          className={cn(
-            rowClasses,
-            "text-muted-foreground transition-colors",
-            "hover:bg-muted hover:text-foreground",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-          )}
-        >
-          {content}
-        </button>
-      ) : (
-        <div className={cn(rowClasses, "text-muted-foreground")}>{content}</div>
-      )}
+      <div className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1 text-left text-xs text-muted-foreground">
+        <span className="min-w-0 flex-1 truncate text-foreground">
+          {item.taskName}
+          <span className="ml-1.5 text-[0.65rem] text-muted-foreground">
+            {item.kindLabel}
+            {isInFlight(item.status) && ` · ${statusLabel(item.status)}`}
+          </span>
+        </span>
+        <span className="shrink-0 tabular-nums text-foreground">
+          {formatMicroUsd(item.costMicros)}
+        </span>
+        <span className="w-14 shrink-0 text-right tabular-nums text-[0.65rem] text-muted-foreground-faint">
+          {formatTokenCount(item.tokensUsed)} tok
+        </span>
+      </div>
     </li>
   );
 }

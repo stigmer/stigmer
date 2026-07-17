@@ -211,7 +211,6 @@ export type {
   SessionAudience,
   SetupTabProps,
   SetupTabMutationCallbacks,
-  SelectedThreadItem,
 } from "./session/index.js";
 
 // Activity — unified recent activity (sessions + workflow executions)
@@ -1474,7 +1473,6 @@ export {
   WorkflowDetailView,
   WorkflowExecutionViewer,
   WorkflowExecutionHeader,
-  WorkflowExecutionTaskPanel,
   useWorkflowExecutionPanel,
   workflowArtifactTabPath,
   DIAGNOSIS_DOCUMENT_ENTRY_ID,
@@ -1616,13 +1614,9 @@ export type {
   WorkflowDetailViewProps,
   WorkflowExecutionViewerProps,
   WorkflowExecutionHeaderProps,
-  WorkflowExecutionTaskPanelProps,
   WorkflowExecutionPanelController,
   UseWorkflowExecutionPanelOptions,
-  NotifySelectionOptions,
   UseWorkflowExecutionRailViewsOptions,
-  WorkflowInspectViewOptions,
-  WorkflowInspectHitl,
   WorkflowArtifactsTabProps,
   WorkflowChangesTabProps,
   WorkflowUsageTabProps,

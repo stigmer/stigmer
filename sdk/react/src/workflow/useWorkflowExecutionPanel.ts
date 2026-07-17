@@ -3,7 +3,7 @@
 // State + actions for the workflow execution viewer's WorkspaceSurface panel.
 // Domain: workflow (the lean analog of session/useSessionPanel).
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Artifact } from "@stigmer/protos/ai/stigmer/agentic/artifact/v1/api_pb";
 import type { FileChange } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
@@ -40,29 +40,16 @@ export function workflowArtifactTabPath(artifact: Artifact): string {
   return `${id}/${name}`;
 }
 
-/** Options for {@link WorkflowExecutionPanelController.notifySelection}. */
-export interface NotifySelectionOptions {
-  /**
-   * Treat this selection as an explicit user gesture (thread card, graph
-   * node click, Usage row): expand the panel and land on Inspect,
-   * overriding a sticky rail pick. Omit for the runner's auto-focus, which
-   * only surfaces Inspect in an already-open panel.
-   */
-  readonly open?: boolean;
-}
-
 /**
  * State + actions for the workflow execution panel — the SINGLE right-side
  * `WorkspaceSurface` of `WorkflowExecutionViewer` (facets on the rail,
- * documents in the editor area). Collapsed by default (graph-dominant);
+ * documents in the editor area). Collapsed by default (thread-dominant);
  * `isOpen` + `view` describe it fully.
  *
  * Deliberately NOT a shared extraction with `useSessionPanel`: the two
  * controllers share the same primitives (the generic
- * {@link WorkspaceEditorsStore} and the surface itself) and the same
- * selection→Inspect idea, but their auto-switch semantics differ where the
- * domains differ — see {@link notifySelection} for the workflow's
- * node-click-opens divergence.
+ * {@link WorkspaceEditorsStore} and the surface itself), but their document
+ * families and view semantics are domain-specific.
  */
 export interface WorkflowExecutionPanelController {
   /** The open-editor group store; subscribe with `useWorkspaceEditors`. */
@@ -75,27 +62,8 @@ export interface WorkflowExecutionPanelController {
   readonly openPanel: () => void;
   /** Collapse the panel to the chip, preserving editors and view. */
   readonly closePanel: () => void;
-  /**
-   * Explicit view pick from the rail. Sticky: auto-switching (the runner's
-   * auto-focus) yields to it until an explicit selection or a cleared
-   * selection resets it.
-   */
+  /** Explicit view pick from the rail. */
   readonly setView: (viewId: string) => void;
-  /**
-   * Report the viewer's selected task so the panel can surface the Inspect
-   * facet. The one deliberate divergence from the session's
-   * `notifySelection`: with `open` set (an explicit user gesture — in a DAG
-   * the node click IS the "show me this task" action, not an auxiliary
-   * selection) the panel expands and lands on Inspect, overriding a sticky
-   * rail pick. Without it (the runner auto-focusing the running task) the
-   * session semantics apply: switch only in an already-open, un-stuck panel,
-   * and never force a deliberately-collapsed panel open mid-run. A `null`
-   * selection leaves Inspect (its content is gone) and unsticks.
-   */
-  readonly notifySelection: (
-    taskName: string | null,
-    options?: NotifySelectionOptions,
-  ) => void;
   /**
    * Open (or focus) the AI-diagnosis conversation as a pinned editor-pane
    * document tab and expand the panel — the singleton analog of the
@@ -185,61 +153,10 @@ export function useWorkflowExecutionPanel({
   const [isOpen, setIsOpen] = useState(false);
   const [view, setViewState] = useState(defaultView);
 
-  // Sticky explicit pick (rail click) — auto-switching yields to it until an
-  // explicit selection or a cleared selection resets it (same semantics as
-  // the session controller's sticky pick).
-  const userPickedViewRef = useRef(false);
-  // Render-synced mirrors so imperative callbacks read current state without
-  // re-binding on state changes. Load-bearing for `notifySelection`, which
-  // the viewer folds into the graph's selection props: an `isOpen`-dependent
-  // callback would hand the memoized React Flow graph a fresh identity on
-  // every panel toggle (DD-010).
-  const viewRef = useRef(view);
-  viewRef.current = view;
-  const isOpenRef = useRef(isOpen);
-  isOpenRef.current = isOpen;
-  // Last selection reported by the viewer; consulted by openPanel, which
-  // fires where selection state is deliberately not subscribed.
-  const selectionRef = useRef<string | null>(null);
-
-  const openPanel = useCallback(() => {
-    setIsOpen(true);
-    // Re-derive the auto view on entry: a task auto-focused while collapsed
-    // surfaces as Inspect now (the collapsed panel ignored it by design).
-    if (!userPickedViewRef.current && selectionRef.current) {
-      setViewState("inspect");
-    }
-  }, []);
+  const openPanel = useCallback(() => setIsOpen(true), []);
   const closePanel = useCallback(() => setIsOpen(false), []);
 
-  const setView = useCallback((viewId: string) => {
-    userPickedViewRef.current = true;
-    setViewState(viewId);
-  }, []);
-
-  const notifySelection = useCallback(
-    (taskName: string | null, options?: NotifySelectionOptions) => {
-      // No same-selection early return (unlike the session): re-clicking the
-      // already-selected node must still re-open a closed panel. All state
-      // writes below are idempotent, so a repeat is otherwise a no-op.
-      selectionRef.current = taskName;
-      if (taskName) {
-        if (options?.open) {
-          userPickedViewRef.current = false;
-          setViewState("inspect");
-          setIsOpen(true);
-        } else if (isOpenRef.current && !userPickedViewRef.current) {
-          setViewState("inspect");
-        }
-      } else if (viewRef.current === "inspect") {
-        // Selection cleared: leave Inspect (its content is gone) and
-        // unstick, returning to the panel's home view.
-        userPickedViewRef.current = false;
-        setViewState(defaultView);
-      }
-    },
-    [defaultView],
-  );
+  const setView = useCallback((viewId: string) => setViewState(viewId), []);
 
   const openDiagnosis = useCallback(() => {
     editorsStore.openPinned(
@@ -340,7 +257,6 @@ export function useWorkflowExecutionPanel({
       openPanel,
       closePanel,
       setView,
-      notifySelection,
       openDiagnosis,
       openFile,
       activateEditor,
@@ -360,7 +276,6 @@ export function useWorkflowExecutionPanel({
       openPanel,
       closePanel,
       setView,
-      notifySelection,
       openDiagnosis,
       openFile,
       activateEditor,

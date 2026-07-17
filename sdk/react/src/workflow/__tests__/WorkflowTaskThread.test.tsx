@@ -1,7 +1,8 @@
 // Behavior tests for the WorkflowTaskThread organism: progress header,
-// per-variant card previews, the select and expand gestures, the AGENT_CALL
+// per-variant card previews, the expand gesture (T06: headers expand or are
+// plain rows — selection died with the Inspect drill-down), the AGENT_CALL
 // transcript affordance (D-T02-2), empty states (DD-006), and the in-thread
-// HITL section (S10).
+// HITL section (S10/T06 — including the in-card human_input review gate).
 //
 // GUARDRAIL (S5 rationale): the entire file renders WITHOUT a StigmerProvider.
 // Any component reaching for a client hook (the child's agentExecution.*
@@ -9,7 +10,10 @@
 // receiving decisions proves in-card gates route through the WORKFLOW-level
 // wiring only. (WorkflowFileReviewList streams its child itself and therefore
 // NEEDS the provider — it is stubbed at the module seam here; its own suite
-// covers the real child-derived rendering.)
+// covers the real child-derived rendering. The review gate's inline-payload
+// path is provider-free by design — useReviewPayload touches the client only
+// for artifact-backed payloads — so the human_input tests exercise the REAL
+// gate.)
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
@@ -24,6 +28,10 @@ import type {
   WorkflowPendingFileReview,
   WorkflowTask,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import {
+  ApprovalRequestedPayloadSchema,
+  ApprovalResolvedPayloadSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
 import type { WorkflowFileDecisionSubmit } from "../WorkflowFileReviewList";
@@ -106,6 +114,8 @@ function taskState(overrides: Partial<DerivedTaskState> & { taskName: string }):
     toolCallsCount: 0,
     inputSummary: null,
     outputSummary: null,
+    approvalRequest: null,
+    approvalResolution: null,
     ...overrides,
   };
 }
@@ -114,15 +124,32 @@ function statesOf(...states: DerivedTaskState[]): ReadonlyMap<string, DerivedTas
   return new Map(states.map((s) => [s.taskName, s]));
 }
 
+/**
+ * All card root elements, in thread order. Since T06 a preview-kind card's
+ * header is a plain layout row (no role) — the shell's `data-cursor-target`
+ * is the stable, gesture-independent handle on a card.
+ */
+function cardRoots(container: HTMLElement): HTMLElement[] {
+  return Array.from(
+    container.querySelectorAll<HTMLElement>(
+      '[data-cursor-target="workflow-task-row"]',
+    ),
+  );
+}
+
+/** The card root whose header names the task. */
+function cardRootOf(container: HTMLElement, taskName: string): HTMLElement {
+  const root = cardRoots(container).find((el) =>
+    el.textContent?.includes(taskName),
+  );
+  if (!root) throw new Error(`no card rendered for task "${taskName}"`);
+  return root;
+}
+
 describe("WorkflowTaskThread", () => {
   it("renders the streaming empty state while running with no tasks yet", () => {
     render(
-      <WorkflowTaskThread
-        taskStates={new Map()}
-        totalTasks={0}
-        isRunning
-        selectedTaskName={null}
-      />,
+      <WorkflowTaskThread taskStates={new Map()} totalTasks={0} isRunning />,
     );
     expect(screen.getByText("Waiting for the first task to start…")).toBeTruthy();
   });
@@ -133,7 +160,6 @@ describe("WorkflowTaskThread", () => {
         taskStates={new Map()}
         totalTasks={0}
         isRunning={false}
-        selectedTaskName={null}
       />,
     );
     expect(
@@ -150,7 +176,6 @@ describe("WorkflowTaskThread", () => {
         )}
         totalTasks={5}
         isRunning
-        selectedTaskName={null}
       />,
     );
     expect(screen.getByText("1 of 5 tasks")).toBeTruthy();
@@ -158,11 +183,7 @@ describe("WorkflowTaskThread", () => {
   });
 
   it("renders one card per task in map order with kind labels", () => {
-    // T05: the header is the select gesture (`role=button`, `aria-pressed`)
-    // only when a selection handler is wired — the shell renders no dead
-    // affordance without one. These header-role queries wire the handler,
-    // matching the viewer's production composition.
-    render(
+    const { container } = render(
       <WorkflowTaskThread
         taskStates={statesOf(
           taskState({ taskName: "fetch-data" }),
@@ -170,11 +191,9 @@ describe("WorkflowTaskThread", () => {
         )}
         totalTasks={2}
         isRunning={false}
-        selectedTaskName={null}
-        onTaskSelect={vi.fn()}
       />,
     );
-    const cards = screen.getAllByRole("button", { pressed: false });
+    const cards = cardRoots(container);
     expect(cards[0].textContent).toContain("fetch-data");
     expect(cards[0].textContent).toContain("HTTP Call");
     expect(cards[1].textContent).toContain("notify");
@@ -182,7 +201,7 @@ describe("WorkflowTaskThread", () => {
   });
 
   it("previews the live agent on a running AGENT_CALL card", () => {
-    render(
+    const { container } = render(
       <WorkflowTaskThread
         taskStates={statesOf(
           taskState({
@@ -197,18 +216,16 @@ describe("WorkflowTaskThread", () => {
         )}
         totalTasks={1}
         isRunning
-        selectedTaskName={null}
-        onTaskSelect={vi.fn()}
       />,
     );
-    const card = screen.getByRole("button", { name: /^call-writer/ });
+    const card = cardRootOf(container, "call-writer");
     expect(card.textContent).toContain("blog-writer");
     expect(card.textContent).toContain("running web_search");
     expect(card.textContent).toContain("7 msgs · 3 tools");
   });
 
   it("previews the first error line on a failed card and shows the attempt count", () => {
-    render(
+    const { container } = render(
       <WorkflowTaskThread
         taskStates={statesOf(
           taskState({
@@ -220,18 +237,17 @@ describe("WorkflowTaskThread", () => {
         )}
         totalTasks={1}
         isRunning={false}
-        selectedTaskName={null}
-        onTaskSelect={vi.fn()}
       />,
     );
-    const card = screen.getByRole("button", { name: /^flaky/ });
-    expect(card.textContent).toContain("connection refused");
-    expect(card.textContent).not.toContain("long stack trace");
+    const card = cardRootOf(container, "flaky");
+    // The header previews only the first line; the always-visible body of
+    // this preview-kind card carries the rest (asserted in its own test).
+    expect(within(card).getAllByText(/connection refused/).length).toBeGreaterThan(0);
     expect(card.textContent).toContain("attempt 3");
   });
 
   it("previews waiting approval regardless of variant", () => {
-    render(
+    const { container } = render(
       <WorkflowTaskThread
         taskStates={statesOf(
           taskState({
@@ -242,44 +258,26 @@ describe("WorkflowTaskThread", () => {
         )}
         totalTasks={1}
         isRunning
-        selectedTaskName={null}
-        onTaskSelect={vi.fn()}
       />,
     );
-    expect(
-      screen.getByRole("button", { name: /^review-gate/ }).textContent,
-    ).toContain("Awaiting approval");
+    expect(cardRootOf(container, "review-gate").textContent).toContain(
+      "Awaiting approval",
+    );
   });
 
-  it("selects on card click and deselects on re-click (graph node contract)", () => {
-    const onTaskSelect = vi.fn();
-    const { rerender } = render(
+  it("renders no selection or Inspect affordance — the card IS the surface (T06)", () => {
+    const { container } = render(
       <WorkflowTaskThread
         taskStates={statesOf(taskState({ taskName: "fetch-data" }))}
         totalTasks={1}
         isRunning={false}
-        selectedTaskName={null}
-        onTaskSelect={onTaskSelect}
       />,
     );
-
-    fireEvent.click(screen.getByRole("button", { name: /^fetch-data/ }));
-    expect(onTaskSelect).toHaveBeenLastCalledWith("fetch-data");
-
-    rerender(
-      <WorkflowTaskThread
-        taskStates={statesOf(taskState({ taskName: "fetch-data" }))}
-        totalTasks={1}
-        isRunning={false}
-        selectedTaskName="fetch-data"
-        onTaskSelect={onTaskSelect}
-      />,
-    );
-    const selected = screen.getByRole("button", { name: /^fetch-data/ });
-    expect(selected.getAttribute("aria-pressed")).toBe("true");
-
-    fireEvent.click(selected);
-    expect(onTaskSelect).toHaveBeenLastCalledWith(null);
+    // A preview-kind card renders NO interactive header at all: no
+    // aria-pressed select gesture, no magnifier — nothing to click but the
+    // body's own affordances.
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(container.querySelector("[aria-pressed]")).toBeNull();
   });
 
   it("renders an always-visible preview body for an AGENT_CALL (no chevron, T04) and opens the transcript", () => {
@@ -299,7 +297,6 @@ describe("WorkflowTaskThread", () => {
         )}
         totalTasks={1}
         isRunning={false}
-        selectedTaskName={null}
         onOpenAgentExecution={onOpenAgentExecution}
       />,
     );
@@ -325,7 +322,6 @@ describe("WorkflowTaskThread", () => {
         )}
         totalTasks={1}
         isRunning={false}
-        selectedTaskName={null}
         taskSnapshotsByName={
           new Map([
             [
@@ -363,7 +359,6 @@ describe("WorkflowTaskThread", () => {
         )}
         totalTasks={1}
         isRunning={false}
-        selectedTaskName={null}
       />,
     );
 
@@ -387,13 +382,14 @@ describe("WorkflowTaskThread", () => {
         )}
         totalTasks={1}
         isRunning={false}
-        selectedTaskName={null}
       />,
     );
 
-    // Summary-kind cards keep the chevron; the detail carries the input.
-    const chevron = screen.getByRole("button", { name: "Expand brief_pause" });
-    fireEvent.click(chevron);
+    // Summary-kind cards expand from the header itself (the session card's
+    // own gesture — T06); the detail carries the input.
+    const header = screen.getByRole("button", { name: /^brief_pause/ });
+    expect(header.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(header);
     expect(screen.getByText("Input")).toBeTruthy();
     expect(screen.getByText("10s")).toBeTruthy();
   });
@@ -412,7 +408,6 @@ describe("WorkflowTaskThread", () => {
         )}
         totalTasks={1}
         isRunning={false}
-        selectedTaskName={null}
       />,
     );
     expect(screen.queryByRole("button", { name: "Expand flaky" })).toBeNull();
@@ -432,10 +427,9 @@ describe("WorkflowTaskThread", () => {
         )}
         totalTasks={1}
         isRunning={false}
-        selectedTaskName={null}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Expand flaky" }));
+    fireEvent.click(screen.getByRole("button", { name: /^flaky/ }));
     expect(screen.getByText(/at dial tcp 10\.0\.0\.1:443/)).toBeTruthy();
   });
 
@@ -450,13 +444,12 @@ describe("WorkflowTaskThread", () => {
         taskStates={running()}
         totalTasks={2}
         isRunning
-        selectedTaskName={null}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Expand settled" }));
+    fireEvent.click(screen.getByRole("button", { name: /^settled/ }));
     expect(
       screen
-        .getByRole("button", { name: "Collapse settled" })
+        .getByRole("button", { name: /^settled/ })
         .getAttribute("aria-expanded"),
     ).toBe("true");
 
@@ -470,12 +463,11 @@ describe("WorkflowTaskThread", () => {
         )}
         totalTasks={2}
         isRunning
-        selectedTaskName={null}
       />,
     );
     expect(
       screen
-        .getByRole("button", { name: "Collapse settled" })
+        .getByRole("button", { name: /^settled/ })
         .getAttribute("aria-expanded"),
     ).toBe("true");
   });
@@ -517,7 +509,6 @@ describe("WorkflowTaskThread", () => {
         taskStates={mkStates(100n)}
         totalTasks={2}
         isRunning
-        selectedTaskName={null}
         taskSnapshotsByName={snapshots}
       />,
     );
@@ -532,7 +523,6 @@ describe("WorkflowTaskThread", () => {
         taskStates={mkStates(200n)}
         totalTasks={2}
         isRunning
-        selectedTaskName={null}
         taskSnapshotsByName={snapshots}
       />,
     );
@@ -548,7 +538,7 @@ describe("WorkflowTaskThread", () => {
     // The concurrency shape of the fan-out fixture (four branches live at
     // once after prepare settled): the flat model shows parallelism as
     // multiple simultaneously-running cards under an honest progress line.
-    render(
+    const { container } = render(
       <WorkflowTaskThread
         taskStates={statesOf(
           taskState({ taskName: "prepare", status: "completed" }),
@@ -559,12 +549,10 @@ describe("WorkflowTaskThread", () => {
         )}
         totalTasks={6}
         isRunning
-        selectedTaskName={null}
-        onTaskSelect={vi.fn()}
       />,
     );
 
-    const cards = screen.getAllByRole("button", { pressed: false });
+    const cards = cardRoots(container);
     const expectedOrder = [
       "prepare",
       "fetch-us",
@@ -580,44 +568,12 @@ describe("WorkflowTaskThread", () => {
     expect(screen.getByText("4 active")).toBeTruthy();
   });
 
-  it("reveals a card selected from outside the thread (shared-selection scroll)", () => {
-    const scrollIntoView = vi.fn();
-    Element.prototype.scrollIntoView = scrollIntoView;
-
-    const states = statesOf(
-      taskState({ taskName: "a" }),
-      taskState({ taskName: "b" }),
-    );
-    const { rerender } = render(
-      <WorkflowTaskThread
-        taskStates={states}
-        totalTasks={2}
-        isRunning={false}
-        selectedTaskName={null}
-      />,
-    );
-    scrollIntoView.mockClear();
-
-    // Selection arriving via props (graph node, Usage row, gate
-    // auto-select) — the newly selected card reveals itself.
-    rerender(
-      <WorkflowTaskThread
-        taskStates={states}
-        totalTasks={2}
-        isRunning={false}
-        selectedTaskName="b"
-      />,
-    );
-    expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
-  });
-
   it("mounts the jump-to-latest affordance (hidden while following)", () => {
     const { container } = render(
       <WorkflowTaskThread
         taskStates={statesOf(taskState({ taskName: "a" }))}
         totalTasks={1}
         isRunning
-        selectedTaskName={null}
       />,
     );
     // Following is the initial auto-scroll state, so the button is mounted
@@ -638,6 +594,9 @@ function makeHitl(overrides: Partial<WorkflowThreadHitl> = {}): WorkflowThreadHi
     submitApproval: vi.fn(),
     approvalSubmittingToolCallIds: new Set<string>(),
     approvalErrorsByToolCallId: new Map<string, Error>(),
+    submitTaskApproval: vi.fn(),
+    taskApprovalSubmittingTaskNames: new Set<string>(),
+    taskApprovalErrorsByTaskName: new Map<string, Error>(),
     submitFileDecision: vi.fn(),
     fileDecisionSubmittingKeys: new Set<string>(),
     fileDecisionErrorsByKey: new Map<string, Error>(),
@@ -685,16 +644,27 @@ function gatedAgentCall(taskName: string, childId: string): DerivedTaskState {
 }
 
 /**
- * The card root element for a task. The shell renders the interactive
- * header as the card root's direct child (T05), and the header's role is
- * present only when a selection handler is wired — HITL tests that use
- * this helper pass `onTaskSelect`.
+ * A gating human_input task carrying its captured `approval_requested`
+ * payload — the shape the store derives once the gate's event arrives.
  */
-function cardRootOf(taskName: string): HTMLElement {
-  const header = screen.getByRole("button", {
-    name: new RegExp(`^${taskName}`),
+function gatedHumanInput(
+  taskName: string,
+  overrides: Partial<DerivedTaskState> = {},
+): DerivedTaskState {
+  return taskState({
+    taskName,
+    taskKind: WorkflowTaskKind.human_input,
+    status: "waiting_approval",
+    durationMs: 0,
+    approvalRequest: create(ApprovalRequestedPayloadSchema, {
+      prompt: "Ship the release?",
+      outcomes: [
+        { name: "ship", label: "Ship It" },
+        { name: "hold", label: "Hold" },
+      ],
+    }),
+    ...overrides,
   });
-  return header.parentElement! as HTMLElement;
 }
 
 describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
@@ -705,7 +675,6 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
         taskStates={statesOf(gatedAgentCall("call-helper", "aex_1"))}
         totalTasks={1}
         isRunning
-        selectedTaskName={null}
         hitl={hitl}
         pendingApprovals={[pendingApproval("aex_1", "tc-1")]}
       />,
@@ -730,7 +699,7 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
   });
 
   it("scopes each gate to its owning card when parallel children gate at once", () => {
-    render(
+    const { container } = render(
       <WorkflowTaskThread
         taskStates={statesOf(
           gatedAgentCall("call-a", "aex_a"),
@@ -738,8 +707,6 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
         )}
         totalTasks={2}
         isRunning
-        selectedTaskName={null}
-        onTaskSelect={vi.fn()}
         hitl={makeHitl()}
         pendingApprovals={[
           pendingApproval("aex_a", "tc-a", "tool_for_a"),
@@ -749,17 +716,17 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
     );
 
     expect(
-      within(cardRootOf("call-a")).getByRole("alert", {
+      within(cardRootOf(container, "call-a")).getByRole("alert", {
         name: "Approval required for tool_for_a",
       }),
     ).toBeTruthy();
     expect(
-      within(cardRootOf("call-b")).getByRole("alert", {
+      within(cardRootOf(container, "call-b")).getByRole("alert", {
         name: "Approval required for tool_for_b",
       }),
     ).toBeTruthy();
     expect(
-      within(cardRootOf("call-a")).queryByRole("alert", {
+      within(cardRootOf(container, "call-a")).queryByRole("alert", {
         name: "Approval required for tool_for_b",
       }),
     ).toBeNull();
@@ -772,7 +739,6 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
         taskStates={statesOf(gatedAgentCall("call-helper", "aex_1"))}
         totalTasks={1}
         isRunning
-        selectedTaskName={null}
         hitl={hitl}
         pendingFileReviews={[
           pendingFileReview("aex_1", ["cs-1"]),
@@ -790,8 +756,34 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
     expect(hitl.submitFileDecision).toHaveBeenCalledWith("aex_1", "cs-1", 1);
   });
 
-  it("renders a task-level gate as the Open review affordance (select, not toggle)", () => {
-    const onTaskSelect = vi.fn();
+  it("renders the FULL review gate on a pending human_input card and routes the decision through the workflow-level submit (T06)", () => {
+    const hitl = makeHitl();
+    render(
+      <WorkflowTaskThread
+        taskStates={statesOf(gatedHumanInput("review-gate"))}
+        totalTasks={1}
+        isRunning
+        hitl={hitl}
+      />,
+    );
+
+    // The real decision surface — prompt, configured outcomes — right on
+    // the card, no drill-down gesture in between.
+    const form = screen.getByRole("form", {
+      name: "Approval decision for review-gate",
+    });
+    expect(within(form).getByText("Ship the release?")).toBeTruthy();
+
+    fireEvent.click(within(form).getByRole("button", { name: "Ship It" }));
+    expect(hitl.submitTaskApproval).toHaveBeenCalledWith(
+      "review-gate",
+      "ship",
+      undefined,
+      undefined,
+    );
+  });
+
+  it("degrades to an honest waiting notice when the gate's request payload was never captured (snapshot fallback path)", () => {
     render(
       <WorkflowTaskThread
         taskStates={statesOf(
@@ -800,21 +792,59 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
             taskKind: WorkflowTaskKind.human_input,
             status: "waiting_approval",
             durationMs: 0,
+            // No approvalRequest: an event-less mount (terminal snapshot
+            // fallback) cannot present review material it does not have.
           }),
         )}
         totalTasks={1}
         isRunning
-        selectedTaskName="review-gate"
-        onTaskSelect={onTaskSelect}
         hitl={makeHitl()}
       />,
     );
 
     expect(screen.getByText("Review required to continue this run.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Open review" }));
-    // Even though the card is ALREADY selected, the affordance re-selects
-    // (never deselects): re-opening a closed panel must always work.
-    expect(onTaskSelect).toHaveBeenCalledWith("review-gate");
+    expect(screen.queryByRole("form")).toBeNull();
+  });
+
+  it("reports a resolved gate's decision read-only in the card body — never a second decision surface (T06)", () => {
+    render(
+      <WorkflowTaskThread
+        taskStates={statesOf(
+          gatedHumanInput("review-gate", {
+            status: "completed",
+            durationMs: 900,
+            approvalResolution: create(ApprovalResolvedPayloadSchema, {
+              resolvedBy: "alice",
+              comment: "LGTM",
+              waitDurationMs: 30_000n,
+            }),
+          }),
+        )}
+        totalTasks={1}
+        isRunning={false}
+        hitl={makeHitl()}
+        taskSnapshotsByName={
+          new Map([
+            [
+              "review-gate",
+              {
+                taskName: "review-gate",
+                // The canonical decision record: the runner persists the
+                // reviewer's response as the task output.
+                output: { outcome: "ship", reviewer: "alice", comment: "LGTM" },
+                artifactIds: [],
+              } as unknown as WorkflowTask,
+            ],
+          ])
+        }
+      />,
+    );
+
+    // The decision report renders the chosen outcome's configured label…
+    expect(screen.getByText("Ship It")).toBeTruthy();
+    expect(screen.getByText(/alice/)).toBeTruthy();
+    // …and no decision-collecting form is offered again.
+    expect(screen.queryByRole("form")).toBeNull();
   });
 
   it("offers the child transcript when an agent-call gates with no surfaced snapshot gates (the cloud refetch window / the OSS steady state)", () => {
@@ -824,7 +854,6 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
         taskStates={statesOf(gatedAgentCall("call-helper", "aex_1"))}
         totalTasks={1}
         isRunning
-        selectedTaskName={null}
         onOpenAgentExecution={onOpenAgentExecution}
         hitl={makeHitl()}
         pendingApprovals={[]}
@@ -844,22 +873,16 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
       <WorkflowTaskThread
         taskStates={statesOf(
           gatedAgentCall("call-helper", "aex_1"),
-          taskState({
-            taskName: "review-gate",
-            taskKind: WorkflowTaskKind.human_input,
-            status: "waiting_approval",
-            durationMs: 0,
-          }),
+          gatedHumanInput("review-gate"),
         )}
         totalTasks={2}
         isRunning
-        selectedTaskName={null}
         pendingApprovals={[pendingApproval("aex_1", "tc-1")]}
       />,
     );
 
     expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Open review" })).toBeNull();
+    expect(screen.queryByRole("form")).toBeNull();
     expect(screen.queryByText(/waiting for an approval/)).toBeNull();
   });
 
@@ -869,7 +892,6 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
         taskStates={statesOf(gatedAgentCall("call-helper", "aex_1"))}
         totalTasks={1}
         isRunning
-        selectedTaskName={null}
         hitl={makeHitl({
           approvalErrorsByToolCallId: new Map([
             ["tc-1", new Error("boom-42: gate submit failed")],
@@ -896,7 +918,6 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
         taskStates={taskStates}
         totalTasks={2}
         isRunning
-        selectedTaskName={null}
         hitl={makeHitl()}
         pendingApprovals={approvals}
       />,
@@ -912,7 +933,6 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
         taskStates={taskStates}
         totalTasks={2}
         isRunning
-        selectedTaskName={null}
         hitl={makeHitl({ approvalSubmittingToolCallIds: new Set(["tc-1"]) })}
         pendingApprovals={approvals}
       />,

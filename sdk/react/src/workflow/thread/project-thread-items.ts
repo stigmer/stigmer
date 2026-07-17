@@ -17,6 +17,10 @@
 
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type { JsonObject } from "@bufbuild/protobuf";
+import type {
+  ApprovalRequestedPayload,
+  ApprovalResolvedPayload,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
 import { kindToDisplayName } from "../kind-metadata.js";
 import { taskKindToString } from "../workflow-graph-conversions.js";
@@ -80,6 +84,15 @@ export interface WorkflowThreadItem {
    */
   readonly inputSummary: JsonObject | null;
   readonly outputSummary: JsonObject | null;
+  /**
+   * The human_input gate's captured request/resolution payloads (T06) —
+   * the in-card review surface's data. Reference-stable like the
+   * summaries: the store carries the immutable events' payload messages,
+   * so the identity compare below holds across appends and only the
+   * gating card's item changes identity when a gate opens or resolves.
+   */
+  readonly approvalRequest: ApprovalRequestedPayload | null;
+  readonly approvalResolution: ApprovalResolvedPayload | null;
 }
 
 /**
@@ -169,6 +182,8 @@ export function projectThreadItems(
       disclosure: preview.disclosure,
       inputSummary: state.inputSummary,
       outputSummary: state.outputSummary,
+      approvalRequest: state.approvalRequest,
+      approvalResolution: state.approvalResolution,
     };
 
     const previous = previousByName.get(state.taskName);
@@ -207,10 +222,13 @@ function threadItemEqual(
     a.messagesCount === b.messagesCount &&
     a.toolCallsCount === b.toolCallsCount &&
     a.previewLine === b.previewLine &&
-    // The summaries are read off the same immutable stored events on every
-    // re-derivation, so identity is the correct (and cheap) compare here.
+    // The summaries and gate payloads are read off the same immutable
+    // stored events on every re-derivation, so identity is the correct
+    // (and cheap) compare here.
     a.inputSummary === b.inputSummary &&
-    a.outputSummary === b.outputSummary
+    a.outputSummary === b.outputSummary &&
+    a.approvalRequest === b.approvalRequest &&
+    a.approvalResolution === b.approvalResolution
     // kindLabel/variant/disclosure are pure functions of taskKind — no need
     // to compare.
   );

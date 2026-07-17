@@ -5,8 +5,8 @@ import { renderHook, cleanup } from "@testing-library/react";
 // useSessionRailViews composes the session facets as injected rail views for
 // the workspace surface. The facet components themselves have their own
 // suites; here we prove the composition rules — ordering, contextual
-// visibility (Changes/Artifacts only with data, Inspect only with a
-// selection), and count badges — by mocking the aggregation hooks.
+// visibility (Changes/Artifacts only with data), and count badges — by
+// mocking the aggregation hooks.
 // ---------------------------------------------------------------------------
 
 const writeBacksState = { hasWriteBacks: false, writeBackCount: 0 };
@@ -21,7 +21,6 @@ vi.mock("../useSessionArtifacts", () => ({
 
 import { useSessionRailViews } from "../useSessionRailViews";
 import type { SetupTabProps } from "../facets/SetupTab";
-import type { SelectedThreadItem } from "../../internal/store/selection-store";
 
 const sessionConfig = {
   agentRef: null,
@@ -42,7 +41,6 @@ function renderViews(
       allExecutions: [],
       org: "acme",
       sessionConfig,
-      selectedItem: null,
       ...overrides,
     }),
   );
@@ -57,7 +55,7 @@ afterEach(() => {
 });
 
 describe("useSessionRailViews", () => {
-  it("always offers Config and Usage; Changes/Artifacts/Inspect are contextual", () => {
+  it("always offers Config and Usage; Changes/Artifacts are contextual", () => {
     const { result } = renderViews();
     expect(result.current.map((v) => v.id)).toEqual(["configure", "usage"]);
   });
@@ -100,37 +98,17 @@ describe("useSessionRailViews", () => {
     expect(artifacts?.badge).toBe(4);
   });
 
-  it("surfaces Inspect only while a thread item is selected", () => {
-    const selectedItem = { kind: "toolCall" } as unknown as SelectedThreadItem;
-    const { result, rerender } = renderHook(
-      ({ item }: { item: SelectedThreadItem | null }) =>
-        useSessionRailViews({
-          allExecutions: [],
-          org: "acme",
-          sessionConfig,
-          selectedItem: item,
-        }),
-      { initialProps: { item: selectedItem as SelectedThreadItem | null } },
-    );
-    expect(result.current.some((v) => v.id === "inspect")).toBe(true);
-    rerender({ item: null });
-    expect(result.current.some((v) => v.id === "inspect")).toBe(false);
-  });
-
-  it("keeps full inspector ordering: Config, Changes, Artifacts, Usage, Inspect", () => {
+  it("keeps full inspector ordering: Config, Changes, Artifacts, Usage", () => {
     writeBacksState.hasWriteBacks = true;
     writeBacksState.writeBackCount = 1;
     artifactsState.hasArtifacts = true;
     artifactsState.artifactCount = 1;
-    const { result } = renderViews({
-      selectedItem: { kind: "toolCall" } as unknown as SelectedThreadItem,
-    });
+    const { result } = renderViews();
     expect(result.current.map((v) => v.id)).toEqual([
       "configure",
       "changes",
       "artifacts",
       "usage",
-      "inspect",
     ]);
   });
 });

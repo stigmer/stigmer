@@ -326,11 +326,76 @@ describe("WorkflowExecutionEventStore", () => {
     });
 
     it("approvalRequested without prior taskStarted is no-op (prev is undefined)", () => {
-      const store = new WorkflowExecutionEventStore();
-      store.appendEvents([makeApprovalRequestedEvent(1, "unknownTask")]);
+      const states = new WorkflowExecutionEventStore();
+      states.appendEvents([makeApprovalRequestedEvent(1, "unknownTask")]);
 
-      const states = store.getTaskStates();
-      expect(states.has("unknownTask")).toBe(false);
+      expect(states.getTaskStates().has("unknownTask")).toBe(false);
+    });
+  });
+
+  // T06: the gate's request/resolution payloads are captured on the derived
+  // state — the thread card's in-place review surface reads them, so the
+  // capture must be reference-stable (structural sharing) and survive the
+  // task's settlement, while a restart resets it (a new attempt re-emits).
+  describe("deriveTaskStates — human_input gate capture (T06)", () => {
+    it("captures the approval_requested payload, reference-stable across unrelated appends", () => {
+      const store = new WorkflowExecutionEventStore();
+      store.appendEvents([
+        makeTaskStartedEvent(1, "reviewGate", { taskKind: 16 }),
+        makeApprovalRequestedEvent(2, "reviewGate", "Ship it?"),
+      ]);
+      const first = store.getTaskStates().get("reviewGate")!.approvalRequest;
+      expect(first?.prompt).toBe("Ship it?");
+
+      // An unrelated task's event invalidates the cache and re-derives the
+      // whole map — the captured payload must keep its identity, or every
+      // memoized gating card would re-render per stream append.
+      store.appendEvents([makeTaskStartedEvent(3, "other-task", { taskKind: 1 })]);
+      expect(store.getTaskStates().get("reviewGate")!.approvalRequest).toBe(first);
+    });
+
+    it("captures the approval_resolved payload and keeps both records through settlement", () => {
+      const store = new WorkflowExecutionEventStore();
+      store.appendEvents([
+        makeTaskStartedEvent(1, "reviewGate", { taskKind: 16 }),
+        makeApprovalRequestedEvent(2, "reviewGate"),
+        makeApprovalResolvedEvent(3, "reviewGate", { resolvedBy: "alice" }),
+        makeTaskCompletedEvent(4, "reviewGate"),
+      ]);
+
+      const task = store.getTaskStates().get("reviewGate")!;
+      expect(task.status).toBe("completed");
+      expect(task.approvalRequest?.prompt).toBe("Please review");
+      expect(task.approvalResolution?.resolvedBy).toBe("alice");
+    });
+
+    it("a restart resets the gate record — a new attempt re-emits its own request", () => {
+      const store = new WorkflowExecutionEventStore();
+      store.appendEvents([
+        makeTaskStartedEvent(1, "reviewGate", { taskKind: 16 }),
+        makeApprovalRequestedEvent(2, "reviewGate"),
+        makeApprovalResolvedEvent(3, "reviewGate"),
+        makeTaskStartedEvent(4, "reviewGate", { taskKind: 16, attemptNumber: 2 }),
+      ]);
+
+      const task = store.getTaskStates().get("reviewGate")!;
+      expect(task.approvalRequest).toBeNull();
+      expect(task.approvalResolution).toBeNull();
+    });
+
+    it("a fresh request clears a stale resolution (re-gated task never reports the old decision)", () => {
+      const store = new WorkflowExecutionEventStore();
+      store.appendEvents([
+        makeTaskStartedEvent(1, "reviewGate", { taskKind: 16 }),
+        makeApprovalRequestedEvent(2, "reviewGate", "First review"),
+        makeApprovalResolvedEvent(3, "reviewGate"),
+        makeApprovalRequestedEvent(4, "reviewGate", "Second review"),
+      ]);
+
+      const task = store.getTaskStates().get("reviewGate")!;
+      expect(task.status).toBe("waiting_approval");
+      expect(task.approvalRequest?.prompt).toBe("Second review");
+      expect(task.approvalResolution).toBeNull();
     });
   });
 

@@ -1,8 +1,9 @@
-// Contract tests for the shared thread-card shell (T05): the chrome axes
-// (bordered vs divider row, selection ring, gate accent), the per-surface
-// header gestures with their ARIA semantics, and the nested-button keydown
-// guard. The two consuming threads pin their own compositions; this file
-// pins what they share.
+// Contract tests for the shared thread-card shell (T05/T06): the chrome
+// axes (bordered vs divider row, gate accent), the header gestures
+// (`expand` / `none` — `select` died with the Inspect drill-down, T06)
+// with their ARIA semantics, and the nested-button keydown guard. The two
+// consuming threads pin their own compositions; this file pins what they
+// share.
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
@@ -34,14 +35,13 @@ describe("ThreadCardShell chrome", () => {
     expect(root().className).not.toContain("border-border-prominent");
   });
 
-  it("carries the selection ring and the gate accent", () => {
+  it("carries the gate accent", () => {
     const { container } = render(
-      <ThreadCardShell cursorTarget="row" selected accent="warning">
+      <ThreadCardShell cursorTarget="row" accent="warning">
         <ThreadCardHeader>content</ThreadCardHeader>
       </ThreadCardShell>,
     );
     const root = container.querySelector('[data-cursor-target="row"]') as HTMLElement;
-    expect(root.className).toContain("ring-primary/40");
     expect(root.className).toContain("border-l-warning");
   });
 });
@@ -64,46 +64,31 @@ describe("ThreadCardHeader gestures", () => {
     expect(onToggle).toHaveBeenCalledTimes(3);
   });
 
-  it("select gesture: aria-pressed header", () => {
-    const onSelect = vi.fn();
-    render(
-      <ThreadCardHeader gesture={{ kind: "select", selected: true, onSelect }}>
-        row content
-      </ThreadCardHeader>,
-    );
-    const header = screen.getByRole("button");
-    expect(header.getAttribute("aria-pressed")).toBe("true");
-    expect(header.getAttribute("aria-expanded")).toBeNull();
-
-    fireEvent.click(header);
-    expect(onSelect).toHaveBeenCalledTimes(1);
-  });
-
   it("a nested action button's Enter never doubles as the header gesture", () => {
-    const onSelect = vi.fn();
+    const onToggle = vi.fn();
     const onAction = vi.fn();
     render(
-      <ThreadCardHeader gesture={{ kind: "select", selected: false, onSelect }}>
+      <ThreadCardHeader gesture={{ kind: "expand", expanded: false, onToggle }}>
         <button
           type="button"
-          aria-label="Inspect"
+          aria-label="Copy"
           onClick={(e) => {
             e.stopPropagation();
             onAction();
           }}
         >
-          i
+          c
         </button>
       </ThreadCardHeader>,
     );
 
-    const nested = screen.getByRole("button", { name: "Inspect" });
+    const nested = screen.getByRole("button", { name: "Copy" });
     // The keydown bubbles to the header, whose guard must ignore it because
     // the event target is the nested button, not the header itself.
     fireEvent.keyDown(nested, { key: "Enter" });
     fireEvent.click(nested);
     expect(onAction).toHaveBeenCalledTimes(1);
-    expect(onSelect).not.toHaveBeenCalled();
+    expect(onToggle).not.toHaveBeenCalled();
   });
 
   it("none gesture renders a non-interactive layout row", () => {

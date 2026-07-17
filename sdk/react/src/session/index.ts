@@ -139,9 +139,6 @@ export {
 // existing session-path importers are unchanged.
 export { ARTIFACT_DOCUMENT_ENTRY_ID } from "../execution/artifact-document.js";
 
-// Selection types (for platform builders composing their own Inspect facet)
-export type { SelectedThreadItem } from "../internal/store/selection-store.js";
-
 // Session facet components — the panel's rail views (Config et al.), also
 // independently importable (DD-003).
 export { SetupTab } from "./facets/index.js";

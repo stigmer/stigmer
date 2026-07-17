@@ -21,7 +21,6 @@ import {
   XCircleIcon,
   DotIcon,
   SlashCircleIcon,
-  InspectIcon,
 } from "../internal/thread-card/index.js";
 import { ToolCallDetail, formatDuration } from "./ToolCallDetail.js";
 import { SubAgentSection } from "./SubAgentSection.js";
@@ -32,7 +31,6 @@ import type { FileReviewRowState } from "./file-review-status.js";
 import { FilePathLink } from "./FilePathLink.js";
 import { isFileCategory, type ToolCategory } from "./tool-categories.js";
 import { useToolPresentation } from "./tool-presenter.js";
-import { useThreadSelection } from "./useThreadSelection.js";
 
 /** Props for {@link ToolCallItem}. */
 export interface ToolCallItemProps {
@@ -147,8 +145,6 @@ export const ToolCallItem = memo(function ToolCallItem({
   const reviewState = useFileReviewRowState(toolCall.fileChangeSetId, primaryArg);
   const reviewBadge = reviewState ? REVIEW_BADGE[reviewState] : null;
 
-  const selection = useThreadSelection("tool-call", toolCall.id);
-
   // Search/list show their query/path as the header subtitle (truncated). Track
   // whether it actually clips so the expanded detail can restate the full,
   // wrapping value only when needed — avoiding a redundant repeat of a short
@@ -220,24 +216,6 @@ export const ToolCallItem = memo(function ToolCallItem({
           {duration}
         </span>
       )}
-
-      {selection && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            selection.select();
-          }}
-          className={cn(
-            "shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors",
-            selection.isSelected && "text-primary",
-          )}
-          aria-label="Inspect tool call"
-          aria-pressed={selection.isSelected}
-        >
-          <InspectIcon />
-        </button>
-      )}
     </>
   );
 
@@ -245,7 +223,6 @@ export const ToolCallItem = memo(function ToolCallItem({
     return (
       <ThreadCardShell
         bordered={bordered}
-        selected={selection?.isSelected}
         accent={gateAccent}
         cursorTarget="tool-call-row"
         className={className}
@@ -359,7 +336,6 @@ export const ToolCallItem = memo(function ToolCallItem({
     return (
       <ThreadCardShell
         bordered={bordered}
-        selected={selection?.isSelected}
         accent={gateAccent}
         cursorTarget="tool-call-row"
         className={className}
@@ -374,12 +350,10 @@ export const ToolCallItem = memo(function ToolCallItem({
 
   // Summary / sub-agent layout: a chevron-gated header disclosing a body hidden
   // by default. The shell's `expand` gesture renders the div[role=button]
-  // header (it carries the nested "Inspect tool call" <button>; a <button> may
-  // not contain another) with Enter/Space keyboard parity and the chevron.
+  // header with Enter/Space keyboard parity and the chevron.
   return (
     <ThreadCardShell
       bordered={bordered}
-      selected={selection?.isSelected}
       accent={gateAccent}
       cursorTarget="tool-call-row"
       className={className}

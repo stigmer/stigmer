@@ -34,6 +34,8 @@ function makeDerivedState(
     toolCallsCount: 0,
     inputSummary: null,
     outputSummary: null,
+    approvalRequest: null,
+    approvalResolution: null,
     ...overrides,
   };
 }
