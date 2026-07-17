@@ -60,8 +60,8 @@
       "slug": "channel",
       "title": "channel",
       "description": "",
-      "hooks": 8,
-      "components": 5
+      "hooks": 9,
+      "components": 6
     },
     {
       "slug": "channel-app",

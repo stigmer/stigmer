@@ -1379,16 +1379,14 @@ workspace surface's activity rail — the workflow-domain half of the panel,
 mirroring `useSessionRailViews` (domain-specific assembler over the
 domain-pure surface).
 
-The Inspect view is CONTEXTUAL (present only while a task is selected —
-the session's rule for its selection-driven view) and `fitted`: the
-inspector owns its header, tab strip, and scroll, so the surface hands it
-a bare slot instead of the shared facet envelope. The execution-level
-facets (Artifacts/Changes/Usage) are ALWAYS offered while the panel
-renders (the session gates its execution facets behind
-`includeExecutionFacets` only for the pre-session launcher — the workflow
-viewer has no such pre-execution state). Empty data is handled by each
-facet's empty state, not by dropping the view: an empty rail would strand
-the surface's view fallback on nothing.
+The panel carries the execution-level facets only (Artifacts / Changes /
+Usage): per-task detail lives on the thread cards, the single home for a
+task's data (T06 — the Inspect drill-down is gone). The facets are ALWAYS
+offered while the panel renders (the session gates its execution facets
+behind `includeExecutionFacets` only for the pre-session launcher — the
+workflow viewer has no such pre-execution state). Empty data is handled by
+each facet's empty state, not by dropping the view: an empty rail would
+strand the surface's view fallback on nothing.
 
 **Signature**
 
@@ -2292,7 +2290,6 @@ is a backend-gated later slice, not a frontend omission.
 <TypeTable
   type={{
     costSummary: { type: "DerivedCostSummary", description: "Execution-level cost/budget rollup (from `useWorkflowExecutionEventStream`).", required: true },
-    onSelectTask: { type: "(taskName: string) => void", description: "Select a task in the host viewer (graph node + inspector), completing the operator loop: spot the expensive task here, inspect it there. Omit in standalone embeds — rows then render as static (non-interactive) entries." },
     taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Per-task derived states — drives the per-task breakdown list.", required: true },
   }}
 />
@@ -3047,17 +3044,6 @@ Props for [`HealthMetricsStrip`](#healthmetricsstrip).
 />
 
 
-### NotifySelectionOptions
-
-Options for `WorkflowExecutionPanelController.notifySelection`.
-
-<TypeTable
-  type={{
-    open: { type: "boolean", description: "Treat this selection as an explicit user gesture (thread card, graph node click, Usage row): expand the panel and land on Inspect, overriding a sticky rail pick. Omit for the runner's auto-focus, which only surfaces Inspect in an already-open panel." },
-  }}
-/>
-
-
 ### parseWorkflowYaml
 
 Parses a Stigmer Workflow YAML string into a `WorkflowInput` suitable
@@ -3687,11 +3673,9 @@ Options for [`useWorkflowExecutionRailViews`](#useworkflowexecutionrailviews).
     fileChangesError: { type: "Error | null", description: "Child-fetch error for the Changes facet, or `null`." },
     fileChangesLoading: { type: "boolean", description: "First-load state of the file-change rollup (Changes facet skeleton)." },
     fileChangesRefetching: { type: "boolean", description: "Background-refresh state of the file-change rollup." },
-    inspect: { type: "WorkflowInspectViewOptions", description: "Inputs for the Inspect facet. When provided AND a task is selected, an Inspect view leads the rail; omitted (standalone panel embeds), the rail carries the execution-level facets only.", typeDescriptionLink: "#workflowinspectviewoptions" },
     onActivateArtifact: { type: "(artifact: Artifact) => void", description: "Pin an artifact's document tab — the double-click half of open/activate." },
     onOpenArtifact: { type: "(artifact: Artifact) => void", description: "Open an artifact as an editor-pane document tab (preview slot).", required: true },
     onOpenFileChange: { type: "(change: FileChange) => void", description: "Open a file change's diff as an editor-pane document tab (preview slot).", required: true },
-    onSelectTask: { type: "(taskName: string) => void", description: "Select a task in the host viewer from a Usage breakdown row." },
     taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Per-task derived states — drives the Usage facet's per-task breakdown.", required: true },
   }}
 />
@@ -4017,15 +4001,13 @@ Props for [`WorkflowExecutionHistory`](#workflowexecutionhistory).
 
 State + actions for the workflow execution panel — the SINGLE right-side
 `WorkspaceSurface` of `WorkflowExecutionViewer` (facets on the rail,
-documents in the editor area). Collapsed by default (graph-dominant);
+documents in the editor area). Collapsed by default (thread-dominant);
 `isOpen` + `view` describe it fully.
 
 Deliberately NOT a shared extraction with `useSessionPanel`: the two
 controllers share the same primitives (the generic
-`WorkspaceEditorsStore` and the surface itself) and the same
-selection→Inspect idea, but their auto-switch semantics differ where the
-domains differ — see `notifySelection` for the workflow's
-node-click-opens divergence.
+`WorkspaceEditorsStore` and the surface itself), but their document
+families and view semantics are domain-specific.
 
 <TypeTable
   type={{
@@ -4034,7 +4016,6 @@ node-click-opens divergence.
     closePanel: { type: "() => void", description: "Collapse the panel to the chip, preserving editors and view.", required: true },
     editorsStore: { type: "WorkspaceEditorsStore", description: "The open-editor group store; subscribe with `useWorkspaceEditors`.", required: true },
     isOpen: { type: "boolean", description: "Whether the panel is expanded or collapsed to the chip.", required: true },
-    notifySelection: { type: "(taskName: string | null, options?: NotifySelectionOptions) => void", description: "Report the viewer's selected task so the panel can surface the Inspect facet. The one deliberate divergence from the session's `notifySelection`: with `open` set (an explicit user gesture — in a DAG the node click IS the \"show me this task\" action, not an auxiliary selection) the panel expands and lands on Inspect, overriding a sticky rail pick. Without it (the runner auto-focusing the running task) the session semantics apply: switch only in an already-open, un-stuck panel, and never force a deliberately-collapsed panel open mid-run. A `null` selection leaves Inspect (its content is gone) and unsticks.", required: true },
     openAgentExecution: { type: "(childExecutionId: string, taskName: string) => void", description: "Open (or focus) a child AgentExecution's transcript as an editor-pane document tab and expand the panel — the S4 in-place expansion. Same preview-slot semantics as openArtifact: casually stepping through agent calls reuses one tab; pinning keeps one around.", required: true },
     openArtifact: { type: "(artifact: Artifact) => void", description: "Open (or focus) an artifact as an editor-pane document tab and expand the panel. Uses the PREVIEW slot — casual artifact browsing reuses one tab (single-click) and double-clicking pins it, matching the session panel's artifact-tab semantics.", required: true },
     openDiagnosis: { type: "() => void", description: "Open (or focus) the AI-diagnosis conversation as a pinned editor-pane document tab and expand the panel — the singleton analog of the session's `openPlanDocument`. Idempotent: the tab (not an owner-level boolean) is the single source of truth for \"diagnosis is active\", so re-invoking Diagnose focuses the existing conversation.", required: true },
@@ -4045,7 +4026,7 @@ node-click-opens divergence.
     pinArtifact: { type: "(artifact: Artifact) => void", description: "Pin an artifact's tab — the double-click half of the open/activate split. A no-op if the artifact is not open.", required: true },
     pinEditor: { type: "(entryId: string, path: string) => void", description: "Pin an editor tab (clear its preview state).", required: true },
     pinFileChange: { type: "(change: FileChange) => void", description: "Pin a file change's diff tab — the double-click half of the open/activate split. A no-op if the change is not open.", required: true },
-    setView: { type: "(viewId: string) => void", description: "Explicit view pick from the rail. Sticky: auto-switching (the runner's auto-focus) yields to it until an explicit selection or a cleared selection resets it.", required: true },
+    setView: { type: "(viewId: string) => void", description: "Explicit view pick from the rail.", required: true },
     view: { type: "string", description: "The active rail view id (an injected facet — `\"artifacts\"` today).", required: true },
   }}
 />
@@ -4077,44 +4058,18 @@ Props for [`WorkflowExecutionPhaseBadge`](#workflowexecutionphasebadge).
 />
 
 
-### WorkflowExecutionTaskPanel
-
-Sidebar panel showing the status of each task in the workflow
-execution. Tasks are ordered by their first appearance in the
-event stream.
-
-Clicking a task row invokes `onSelectTask` which can be used
-to scroll the timeline to events for that task.
-
-
-### WorkflowExecutionTaskPanelProps
-
-Props for [`WorkflowExecutionTaskPanel`](#workflowexecutiontaskpanel).
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names." },
-    onSelectTask: { type: "(taskName: string) => void", description: "Callback when a task row is clicked." },
-    selectedTaskName: { type: "string | null", description: "Currently selected task name (for highlighting)." },
-    taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Derived task states from the event store.", required: true },
-    totalTasks: { type: "number", description: "Total number of tasks declared in the workflow.", required: true },
-  }}
-/>
-
-
 ### WorkflowExecutionViewer
 
 Top-level composed viewer for a single workflow execution.
 
 Wires together all execution hooks and sub-components into a two-column
 layout: the center column (the session-style task thread by default, with
-the DAG graph behind a view toggle) and a single collapsible
-`WorkspaceSurface` panel carrying the facets (Inspect/Artifacts/Changes/
-Usage on the rail) and the rich documents (transcripts, diffs, artifacts,
-AI diagnosis in the editor area). Selecting a task — thread card, graph
-node, Usage row — opens the panel on its Inspect facet; an approval gate
-arriving mid-run auto-selects its task so the decision surface is never
-hidden.
+the DAG graph behind a view toggle — a passive visualization) and a single
+collapsible `WorkspaceSurface` panel carrying the execution-level facets
+(Artifacts/Changes/Usage on the rail) and the rich documents (transcripts,
+diffs, artifacts, AI diagnosis in the editor area). A task's detail —
+preview, I/O, errors, and every HITL decision surface — lives on its
+thread card, the single home for task data (T06).
 
 This component is designed to work identically whether rendered
 in the Stigmer Console or embedded in a third-party dashboard.
@@ -4250,19 +4205,6 @@ Sentinel nodes (`__start__`, `__end__`) use `WorkflowTaskKind` value 0
 />
 
 
-### WorkflowInspectHitl
-
-The HITL wiring for the Inspect facet: the slice of
-[`UseWorkflowExecutionActionsReturn`](#useworkflowexecutionactionsreturn) the inspector's Approval tab
-needs to decide agent-tool, `human_input`, and file-review gates.
-
-A `Pick` (not a new shape) so the bundle can never drift from the actions
-hook — the same idiom as the transcript document's
-`WorkflowAgentExecutionHitl`. The viewer builds it from its single
-`useWorkflowExecutionActions` instance, so a gate's in-flight/error state
-is identical wherever that gate is shown (Inspect facet, transcript).
-
-
 ### WorkflowInspectorPanel
 
 Inspector panel for the visual canvas editor.
@@ -4308,26 +4250,6 @@ Props for [`WorkflowInspectorPanel`](#workflowinspectorpanel).
     onWrapInTryCatch: { type: "(nodeId: string) => void", description: "Called to wrap a node in a try/catch container." },
     selection: { type: "CanvasSelection | null", description: "Currently selected element on the canvas.", required: true },
     validationErrors: { type: "ReadonlyMap<string, readonly string[]>", description: "Validation errors keyed by node ID." },
-  }}
-/>
-
-
-### WorkflowInspectViewOptions
-
-Inputs for the contextual Inspect rail view — the per-task detail facet.
-Grouped (and memoized by the caller) so the rail assembly re-derives the
-Inspect element only when its own inputs move, never on unrelated churn.
-
-<TypeTable
-  type={{
-    events: { type: "readonly WorkflowExecutionEvent[]", description: "All events from the execution event stream (per-task event log).", required: true },
-    hitl: { type: "WorkflowInspectHitl", description: "Approval/decision wiring — see WorkflowInspectHitl.", required: true, typeDescriptionLink: "#workflowinspecthitl" },
-    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Navigate to a child agent execution as a standalone page (DD-004)." },
-    onOpenAgentExecution: { type: "(childExecutionId: string, taskName: string) => void", description: "Open an AGENT_CALL child's transcript in the panel's editor area." },
-    pendingApprovals: { type: "readonly WorkflowPendingApproval[]", description: "Pending agent tool approvals from `execution.status.pending_approvals`." },
-    pendingFileReviews: { type: "readonly WorkflowPendingFileReview[]", description: "Pending file reviews from `execution.status.pending_file_reviews`." },
-    selectedTaskName: { type: "string | null", description: "The selected task the facet inspects. The view exists only with one.", required: true },
-    taskSnapshots: { type: "readonly WorkflowTask[]", description: "Task snapshots from `execution.status.tasks` for full I/O data." },
   }}
 />
 
@@ -4485,19 +4407,20 @@ overall status visible. Retries collapse into one card with an attempt
 indicator (D-T02-6). AGENT_CALL cards carry an always-visible body with
 an "Open transcript" affordance (D-T02-2) — the full transcript opens as
 a panel document, never inline. Since T04 the card is the PRIMARY surface
-for a task's data (kind-aware preview line + bounded I/O body): selecting
-a card highlights and scrolls but never force-opens the panel; the
-per-card Inspect affordance is the explicit drill-down.
+for a task's data (kind-aware preview line + bounded I/O body); since T06
+it is the ONLY one — the Inspect drill-down is gone, and cards compose
+the session card language exactly (expand-or-none headers, no selection).
 
 Auto-follow uses the session thread's mechanism: an IntersectionObserver
 sentinel keeps the list pinned to the latest card until the user scrolls
 up, with a jump-to-latest affordance to re-engage.
 
 With `hitl` wired, a gating task's card carries its decision surface
-in-thread (S10): the canonical `ApprovalCard`s for child tool gates, the
-child-streaming `FileReviewCard`s for file gates, and a one-click
-"Open review" into the panel's Inspect Approval tab for task-level
-(human_input) gates — whose custom review renderers stay panel-side.
+in-thread (S10/T06): the canonical `ApprovalCard`s for child tool gates,
+the child-streaming `FileReviewCard`s for file gates, and the full
+`WorkflowTaskReviewGate` (custom review renderers included) for
+task-level human_input gates — with a read-only
+`WorkflowTaskApprovalSummary` once the gate resolves.
 
 This component is designed to work identically whether rendered in the
 Stigmer Console or embedded in a third-party dashboard. No dependencies
@@ -4513,13 +4436,10 @@ Props for [`WorkflowTaskThread`](#workflowtaskthread).
     className: { type: "string", description: "Additional CSS class names for the root container." },
     hitl: { type: "WorkflowThreadHitl", description: "Workflow-level HITL wiring (see WorkflowThreadHitl). When provided, a gating task's card renders its decision surface directly in the thread — always visible while the gate is pending, never behind the expand chevron (the run is blocked). Omitted → the thread is read-only and behaves exactly as before (DD-011; the S5 omitted-`hitl` precedent).", typeDescriptionLink: "#workflowthreadhitl" },
     isRunning: { type: "boolean", description: "Whether the execution is still running (drives streaming affordances).", required: true },
-    onInspectTask: { type: "(taskName: string) => void", description: "Callback for the card's opt-in Inspect affordance (T04) — the drill-down to raw structured I/O, the per-task event log, and retries (the density the card intentionally does not inline). The viewer opens the panel's Inspect facet on it. Also carries the human_input \"Open review\" path. Omitted → the affordance is not rendered." },
     onOpenAgentExecution: { type: "(childExecutionId: string, taskName: string) => void", description: "Callback to open an AGENT_CALL task's child transcript in the panel's editor area (the S4 in-place expansion). Omitted → the affordance is not rendered." },
-    onTaskSelect: { type: "(taskName: string | null) => void", description: "Callback when the user selects a task card (or re-clicks the selected card to deselect — `null`). Since T04 this is a highlight+scroll gesture only — the card is the primary surface for the task's data, so the viewer no longer force-opens the panel's Inspect facet on it (the R1-2 fix). The explicit drill-down gesture is onInspectTask." },
     pendingApprovals: { type: "readonly WorkflowPendingApproval[]", description: "The parent workflow's surfaced child tool-approval gates (`status.pending_approvals`). Only read when hitl is provided." },
     pendingFileReviews: { type: "readonly WorkflowPendingFileReview[]", description: "The parent workflow's surfaced child file-review references (`status.pending_file_reviews`). Only read when hitl is provided." },
-    selectedTaskName: { type: "string | null", description: "The task selected across the viewer (thread, graph, and panel).", required: true },
-    taskSnapshotsByName: { type: "ReadonlyMap<string, WorkflowTask>", description: "Per-task status snapshots (`status.tasks[]`) keyed by task name — the FULL I/O source for card bodies (T04). An O(1) lookup per card, never an event-log scan: the full `deriveTaskDetail` join stays in the Inspect drill-down. The map's identity changes only on a snapshot refetch (rare), never on stream event appends, so memoized cards keep bailing during streaming. Omitted → bodies degrade to the truncated event summaries already on the items." },
+    taskSnapshotsByName: { type: "ReadonlyMap<string, WorkflowTask>", description: "Per-task status snapshots (`status.tasks[]`) keyed by task name — the FULL I/O source for card bodies (T04), never an event-log scan (DD-T04-5). The map's identity changes only on a snapshot refetch (rare), never on stream event appends, so memoized cards keep bailing during streaming. Omitted → bodies degrade to the truncated event summaries already on the items." },
     taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Live derived task states from the execution event stream.", required: true },
     totalTasks: { type: "number", description: "Total planned tasks (from `execution_started`); `0` when unknown.", required: true },
   }}
@@ -4597,11 +4517,13 @@ kind-level special case for the flagship `agent_call` card.
 
 The workflow-level HITL wiring a decision-capable thread needs — a `Pick`
 of the single `useWorkflowExecutionActions` instance's return (cannot
-drift; same convention as `WorkflowAgentExecutionHitl` and
-`WorkflowInspectHitl`). Decisions route through the WORKFLOW-level RPCs
-only — never the child's own `agentExecution.*` path, whose authorization
-checks the runner-spawned child rather than the workflow execution the
-operator owns (S5 rationale).
+drift; same convention as `WorkflowAgentExecutionHitl`). Covers all three
+gate kinds: child tool approvals, child file reviews, and task-level
+(human_input) approvals — since T06 the gating card is the ONLY decision
+surface, so the thread carries the full set. Decisions route through the
+WORKFLOW-level RPCs only — never the child's own `agentExecution.*` path,
+whose authorization checks the runner-spawned child rather than the
+workflow execution the operator owns (S5 rationale).
 
 
 ### WorkflowThreadItem
@@ -4613,6 +4535,8 @@ is a shallow field compare, which powers the structural sharing below.
 <TypeTable
   type={{
     agentSlug: { type: "string", description: "", required: true },
+    approvalRequest: { type: "ApprovalRequestedPayload | null", description: "The human_input gate's captured request/resolution payloads (T06) — the in-card review surface's data. Reference-stable like the summaries: the store carries the immutable events' payload messages, so the identity compare below holds across appends and only the gating card's item changes identity when a gate opens or resolves.", required: true },
+    approvalResolution: { type: "ApprovalResolvedPayload | null", description: "", required: true },
     attemptNumber: { type: "number", description: "", required: true },
     childExecutionId: { type: "string", description: "", required: true },
     costMicros: { type: "bigint", description: "", required: true },

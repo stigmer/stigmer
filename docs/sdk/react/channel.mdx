@@ -91,6 +91,52 @@ const { channels, isLoading, refetch } = useAgentChannelList(
 ```
 
 
+### useChannelSessions
+
+Data hook that loads the conversations an `AgentChannel` created —
+the Slack/WhatsApp sessions the channel runtime owns (design decision
+012: channel-session read-only observability).
+
+The server enforces the visibility boundary twice: the caller must hold
+`can_view` on the channel, and results are filtered to sessions the
+caller can individually view. Open a returned session with
+`SessionViewer` — it self-selects the read-only `"observer"` audience
+for channel-originated sessions.
+
+Pass an empty `channelId` to skip fetching (stable no-op) — useful
+while the channel list is still loading.
+
+**Signature**
+
+```tsx
+function useChannelSessions(channelId: string): UseChannelSessionsReturn
+```
+
+<TypeTable
+  type={{
+    channelId: { type: "string", description: "", required: true },
+  }}
+/>
+
+**Returns** — `UseChannelSessionsReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy. A PERMISSION_DENIED here means the caller cannot view the channel — conversations are visible to exactly the channel's viewers (the connector and org admins)." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight and no data is shown." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
+    refetch: { type: "() => void", description: "Re-fetch the conversations from the server." },
+    sessions: { type: "readonly Session[]", description: "The channel's conversations (one session per external conversation), newest activity first. Empty while loading, on error, or when nobody has messaged the channel yet — `sessions.length === 0 && !isLoading && !error` means \"no conversations yet\"." },
+  }}
+/>
+
+```tsx
+const { sessions, isLoading, error } = useChannelSessions(
+  channel.metadata?.id ?? "",
+);
+```
+
+
 ### useChannelToolReadiness
 
 Channel-scoped wrapper over [`useToolCredentialsReadiness`](/docs/sdk/react/environment#usetoolcredentialsreadiness):
@@ -360,6 +406,36 @@ This is an SDK component (DD-001) — embeddable by platform builders.
     channelAppsHref: { type: "string", description: "Where the host manages Channel Apps (the console passes `/settings/channel-apps`). Threaded to the connect dialog's \"Register a channel app\" affordance; absent, the affordance degrades to plain guidance text." },
     className: { type: "string", description: "Additional CSS class names." },
     onConnectExternal: { type: "(channel: AgentChannel | null) => void", description: "When provided, connect actions for redirect-style providers (Slack) delegate to the host instead of running the in-app popup flow. For hosts whose webview cannot open popups (the desktop app): the delegate typically opens the web console in the system browser. Called with the channel being (re)connected, or `null` for a brand-new connection. Direct-install providers (WhatsApp) always connect in-app — their flow is a plain API call with nothing for a popup to do — so they never invoke the delegate." },
+    sessionHref: { type: "(sessionId: string) => string", description: "Maps a session id to the host's session route (the console passes `` (id) => `/sessions/${id}` ``). Threaded to each card's Conversations dialog so rows link to the read-only transcript; absent, the rows render without links (DD-004 — the SDK never assumes a routing scheme)." },
+  }}
+/>
+
+
+### ChannelConversationsDialog
+
+Lists the conversations a channel created — the Slack/WhatsApp sessions
+the channel runtime owns, visible to exactly the channel's viewers (the
+connector and org admins; design decision 012).
+
+Each row shows the conversation subject, the external platform user it
+belongs to (an opaque provider id in v1), and the last activity time.
+Rows link to the host's session route, where `SessionViewer` renders the
+transcript read-only (the observer audience — channel viewers hold
+`can_view` only, never `can_create_execution_in`).
+
+Built on the native `<dialog>` element, matching the SDK's modal
+convention. Most hosts mount it via [`AgentChannelsPanel`](#agentchannelspanel)'s
+channel card action.
+
+**Props** — `ChannelConversationsDialogProps`
+
+<TypeTable
+  type={{
+    channel: { type: "AgentChannel", description: "The channel whose conversations are listed.", required: true },
+    modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — for embedding in constrained surfaces (documentation demos, visual tests). Interactive hosts keep the default." },
+    onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog requests an open-state change.", required: true },
+    open: { type: "boolean", description: "Whether the dialog is open.", required: true },
+    sessionHref: { type: "(sessionId: string) => string", description: "Maps a session id to the host's session route (the console passes `` (id) => `/sessions/${id}` ``). When absent, rows render without links — the SDK never assumes a routing scheme (DD-004)." },
   }}
 />
 

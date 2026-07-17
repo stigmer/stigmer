@@ -1162,14 +1162,11 @@ Owns `useSessionPageFlow` internally and composes:
   banners + `SessionComposer`
 - **Session panel** (secondary): the unified `WorkspaceSurface` — explorer,
   search, read-only editor, and the session facets (Config, Changes,
-  Artifacts, Usage, Inspect) as injected rail views. Collapsed by default
+  Artifacts, Usage) as injected rail views. Collapsed by default
   to a top-right chip; opening a file (tree, search, or a transcript path)
   expands it.
 
 Connected via `ResizableSplit` with persisted chat width.
-
-Thread selection is provided via `ThreadSelectionContext` (Phase 2
-opt-in) for render-isolated per-item selection.
 
 Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
 apps inject platform-specific values via props (DD-004/DD-016).
@@ -1179,7 +1176,7 @@ apps inject platform-specific values via props (DD-004/DD-016).
 <TypeTable
   type={{
     accessSlot: { type: "ReactNode", description: "Host-injected access management control (e.g. the Console's `ManageAccessButton` with its own permission gating). Rendered inside the panel's Config facet rather than the header — access is session configuration, not a moment-to-moment action (DD-004 slot injection)." },
-    audience: { type: "SessionAudience", description: "Presentation audience for the viewer. `\"endUser\"` locks the session's agent and hides the MCP server, skill, and session-variable configuration in both the composer and the inspector's Setup tab — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, attachments, and workspace picker remain.  `\"guest\"` (anonymous visitor with a guest token) is pure chat: it additionally hides the model/mode pickers, attachments, the workspace picker, and the session panel, and skips the org-level reads a guest principal cannot make — follow-ups simply continue on the session's bound agent instance.  See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
+    audience: { type: "SessionAudience", description: "Presentation audience for the viewer. `\"endUser\"` locks the session's agent and hides the MCP server, skill, and session-variable configuration in both the composer and the inspector's Setup tab — for product-embedded chat where the agent is configured upstream by the platform. The model selector, interaction mode, attachments, and workspace picker remain.  `\"guest\"` (anonymous visitor with a guest token) is pure chat: it additionally hides the model/mode pickers, attachments, the workspace picker, and the session panel, and skips the org-level reads a guest principal cannot make — follow-ups simply continue on the session's bound agent instance.  `\"observer\"` is a read-only transcript: no composer, no approval/edit/retry/build affordances, no access management. The viewer also self-selects observer for channel-originated sessions (the `stigmer.ai/channel-id` label) regardless of this prop, since channel viewers hold `can_view` only.  See SessionAudience.", typeDescriptionLink: "#sessionaudience" },
     className: { type: "string", description: "Additional CSS classes for the root container." },
     enableGitHub: { type: "boolean", description: "Whether to enable GitHub workspace features in the composer." },
     enableLocal: { type: "boolean", description: "Whether to enable local workspace features in the composer. Web passes `deploymentMode === \"local\"`, desktop passes `true`." },
@@ -1271,6 +1268,26 @@ label with cross-directory disambiguation for free.
 
 ```tsx
 function artifactKey(artifact: ExecutionArtifact): string
+```
+
+
+### CHANNEL_SESSION_LABELS
+
+Metadata labels the cloud channel runtime stamps on every session it
+creates (one per external conversation). Mirrors
+`ChannelRuntimeConstants` in the Stigmer Cloud backend — the single
+continuity/audit key set for channel conversations. Console-created
+sessions never carry any of them.
+
+
+### channelSessionExternalUserKey
+
+The external platform user a channel session belongs to, or `undefined`
+for non-channel sessions. An opaque provider id (e.g. `U0AB12CD3`) in
+v1 — display-name resolution is a future enhancement.
+
+```tsx
+function channelSessionExternalUserKey(session: Session | null | undefined): string | undefined
 ```
 
 
@@ -1385,6 +1402,21 @@ function GroupedSessionList() {
     </div>
   );
 }
+```
+
+
+### isChannelOriginSession
+
+Whether a session was created by the channel runtime (a Slack/WhatsApp
+conversation) rather than by a person in the console.
+
+Channel viewers hold read-only access (`can_view` without
+`can_create_execution_in`), so session organisms use this to
+self-select the `"observer"` audience — every entry point renders
+read-only without host wiring.
+
+```tsx
+function isChannelOriginSession(session: Session | null | undefined): boolean
 ```
 
 
@@ -1597,6 +1629,20 @@ presented to.
   org-level reads a guest principal cannot make (default-agent
   resolution, session→agent derivation, personal environments) and
   never fall back to the org's default agent.
+- `"observer"` — a read-only transcript for someone watching a
+  conversation they cannot participate in, e.g. a channel connector
+  or org admin reviewing a Slack/WhatsApp conversation the channel
+  runtime owns. No composer, no approval/edit/retry/build
+  affordances, no access management — the server enforces the same
+  boundary (channel viewers hold `can_view` only, never
+  `can_create_execution_in`), so the presentation simply never
+  offers what the caller could not do. The session panel stays
+  available read-only: usage, artifacts, and setup inspection are
+  the point of observability. `SessionViewer` also self-selects this
+  audience for channel-originated sessions (the
+  `stigmer.ai/channel-id` label), so every entry point — a
+  conversations list, a pasted URL — renders read-only without host
+  wiring.
 
 A preset rather than individual flags: each audience is a product
 intent, and keeping it in one place lets the SDK evolve what that
@@ -1628,8 +1674,8 @@ it fully.
 
 Owns the `WorkspaceEditorsStore` (the open-editor group) and the view
 FSM ported from the retired inspector tabs: explicit picks are sticky until
-a meaningful state change (selection cleared, running⇄terminal transition)
-resets them back to the `defaultView`. Both are decoupled from any store
+a meaningful state change (the running⇄terminal transition) resets them
+back to the `defaultView`. Both are decoupled from any store
 subscription at the owner level: callbacks mutate imperatively so a file
 open/switch re-renders only the subscribing panel subtree, never the
 streaming conversation column (DD-009/DD-010, invariant 2).
@@ -1641,10 +1687,9 @@ streaming conversation column (DD-009/DD-010, invariant 2).
     closePanel: { type: "() => void", description: "Collapse the panel to the chip, preserving editors and view.", required: true },
     editorsStore: { type: "WorkspaceEditorsStore", description: "The open-editor group store; subscribe with `useWorkspaceEditors`.", required: true },
     isOpen: { type: "boolean", description: "Whether the panel is expanded (chat narrow) or collapsed to the chip.", required: true },
-    notifySelection: { type: "(item: SelectedThreadItem | null) => void", description: "Report the current thread-item selection. Called from an effect inside the panel subtree (the level that subscribes to the selection store), keeping the owner subscription-free. While the panel is open, a new selection auto-switches to the Inspect view (unless the user picked one explicitly); a collapsed panel deliberately ignores selections — Inspect has no auto-open (it must never pull the user out of the chat).", required: true },
     openArtifact: { type: "(artifact: ExecutionArtifact) => void", description: "Open (or focus) an artifact as an editor-pane document tab and expand the panel. Uses the PREVIEW slot — like files and content-search hits, casual artifact browsing reuses one tab (single-click), and double-clicking the tab pins it. Distinct from `openPlanDocument`, which pins its single tab: a plan is the turn's deliverable, artifacts are browsable outputs. The artifact's artifactKey is the tab identity, shared with the `SurfaceVirtualDocument` the viewer builds for the open tab.", required: true },
     openFile: { type: "(entryId: string, path: string, options?: OpenFileOptions) => void", description: "Open a file as a preview tab and expand the panel. Pass `options.line` to jump to and highlight a specific 1-based line (e.g. a content-search hit) — the file opens in its line-faithful File view scrolled to that line.", required: true },
-    openPanel: { type: "() => void", description: "Expand the panel, restoring the previous view (or Inspect if a thread item is selected).", required: true },
+    openPanel: { type: "() => void", description: "Expand the panel, restoring the previous view.", required: true },
     openPlanDocument: { type: "() => void", description: "Open (or focus) the plan document tab and expand the panel. The tab is **pinned**, never the recyclable preview slot — file browsing must not evict the plan — and it activates, replacing the focused tab: the plan is the deliverable being reviewed. Fired by the thread cards' \"Open plan\" (the live `PlanStreamingCard` and the settled `PlanArtifactCard`), the Artifacts facet's `plan.md`, and the new-plan auto-open — which triggers both when a plan STARTS STREAMING and when it publishes (see `planKey`).", required: true },
     pinArtifact: { type: "(artifact: ExecutionArtifact) => void", description: "Pin an artifact's tab (clear its preview state) — the double-click half of the open/activate split, the encapsulated sibling of openArtifact. Delegates to the editors store's generic `pin`, exactly as the file tree pins via `pinEditor`: the leading single-click of the double-click has already opened the preview tab, so this promotes it to a persistent tab. A no-op if the artifact is not open.", required: true },
     pinEditor: { type: "(entryId: string, path: string) => void", description: "Pin an editor tab (clear its preview state).", required: true },
@@ -1765,7 +1810,7 @@ Options for [`useSessionPanel`](#usesessionpanel).
 
 <TypeTable
   type={{
-    defaultView: { type: "string", description: "The panel's home view — the view it opens on and the one every automatic reset returns to (running⇄terminal transition, selection cleared). Defaults to `\"files\"` (the Explorer), which suits the session viewer. The launcher passes `\"configure\"`: pre-session there is no workspace, so the Config facet — carrying the run defaults (harness/model) — is the useful landing view. Auto-switches (Changes/Inspect) and explicit rail picks still take over from here exactly as before." },
+    defaultView: { type: "string", description: "The panel's home view — the view it opens on and the one every automatic reset returns to (running⇄terminal transition, selection cleared). Defaults to `\"files\"` (the Explorer), which suits the session viewer. The launcher passes `\"configure\"`: pre-session there is no workspace, so the Config facet — carrying the run defaults (harness/model) — is the useful landing view. Auto-switches (Changes) and explicit rail picks still take over from here exactly as before." },
     hasChanges: { type: "boolean", description: "Whether the session has git write-backs. The first arrival auto-surfaces the Changes view — but only while the panel is open; a collapsed panel signals through badges instead of pulling the user out of the chat.", required: true },
     phase: { type: "ExecutionPhase | null", description: "The display execution's phase, or `null` before any execution exists. A transition between running and terminal resets the user's sticky view pick (mirroring the retired inspector-tab FSM).", required: true },
     planKey: { type: "string | null", description: "Identity of the session's current plan, or `null` when none exists. Two identity families, supplied by the viewer: `<executionId>:streaming` while the active turn is WRITING a plan (see `findStreamingPlan`), then the published identity (`planDraftKey`) once the artifact exists. A NEW identity — a plan starting to stream, the first published plan, or a refined plan superseding it — auto-opens the plan document tab (see SessionPanelController.openPlanDocument), expanding a collapsed panel. This deliberately breaks the Changes/Inspect \"never open a collapsed panel\" convention: a plan is not ambient state, it is the deliverable of the turn the user just requested, and with the thread showing only a compact card there is no other review surface — live or settled. The streaming→published transition is itself a new identity, harmlessly re-firing the (idempotent) open as the tab's content settles. Keyed on plan IDENTITY, not presence, so a refined plan re-surfaces too; the identity present at mount is swallowed (loading a session with an old plan — or mid-stream — never hijacks the layout)." },
