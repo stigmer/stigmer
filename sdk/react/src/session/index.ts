@@ -3,6 +3,11 @@ export type { ExecutionTargetOption } from "./execution-target.js";
 
 export type { RuntimeEnvProvider } from "./runtime-env.js";
 export type { SessionAudience } from "./audience.js";
+export {
+  CHANNEL_SESSION_LABELS,
+  isChannelOriginSession,
+  channelSessionExternalUserKey,
+} from "./channelOrigin.js";
 
 export { useCreateSession } from "./useCreateSession.js";
 export type {
@@ -133,9 +138,6 @@ export {
 // workflow panel); re-exported here so `@stigmer/react`'s public export and
 // existing session-path importers are unchanged.
 export { ARTIFACT_DOCUMENT_ENTRY_ID } from "../execution/artifact-document.js";
-
-// Selection types (for platform builders composing their own Inspect facet)
-export type { SelectedThreadItem } from "../internal/store/selection-store.js";
 
 // Session facet components — the panel's rail views (Config et al.), also
 // independently importable (DD-003).

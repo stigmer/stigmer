@@ -1,4 +1,4 @@
 {
   "title": "Guides",
-  "pages": ["editors", "integrations", "sharing", "authentication", "workflows", "runners"]
+  "pages": ["editors", "integrations", "sharing", "channels", "authentication", "workflows", "runners"]
 }

@@ -184,26 +184,18 @@ export {
   type WorkflowExecutionHeaderProps,
 } from "./WorkflowExecutionHeader.js";
 
-export {
-  WorkflowExecutionTaskPanel,
-  type WorkflowExecutionTaskPanelProps,
-} from "./WorkflowExecutionTaskPanel.js";
-
-// Execution panel — the single WorkspaceSurface-based side panel (Inspect/
-// Artifacts/Changes/Usage facets, virtual document tabs) and its
+// Execution panel — the single WorkspaceSurface-based side panel
+// (Artifacts/Changes/Usage facets, virtual document tabs) and its
 // controller/assembler hooks.
 export {
   useWorkflowExecutionPanel,
   workflowArtifactTabPath,
   type WorkflowExecutionPanelController,
   type UseWorkflowExecutionPanelOptions,
-  type NotifySelectionOptions,
 } from "./useWorkflowExecutionPanel.js";
 export {
   useWorkflowExecutionRailViews,
   type UseWorkflowExecutionRailViewsOptions,
-  type WorkflowInspectViewOptions,
-  type WorkflowInspectHitl,
 } from "./useWorkflowExecutionRailViews.js";
 export {
   DIAGNOSIS_DOCUMENT_ENTRY_ID,
@@ -393,8 +385,6 @@ export {
   type AgentCallFormProps,
   HttpCallForm,
   type HttpCallFormProps,
-  ExecutionInspectorAdapter,
-  type ExecutionInspectorAdapterProps,
   taskToYaml,
   type InspectorMutations,
   type InspectorNodeIdentity,
@@ -612,26 +602,18 @@ export {
   formatMetaChips,
 } from "./format-utils.js";
 
-// T05: Runtime inspector — behavior hook + types
+// T06: Shared task-detail primitives — the card bodies' I/O ladder and the
+// human_input gate's review/decision projections.
 export {
-  useExecutionTaskDetail,
-  type UseExecutionTaskDetailReturn,
-  type TaskDetail,
-  type TaskDetailSummary,
+  buildIO,
   type TaskDetailIO,
-  type TaskDetailError,
-  type TaskDetailRetryHistory,
-  type TaskDetailRetryAttempt,
-  type TaskDetailAgentCall,
-  type TaskDetailApproval,
+  deriveTaskApprovalRequest,
+  deriveTaskApprovalDecision,
+  type TaskApprovalRequestView,
   type TaskDetailApprovalDecision,
-} from "./execution-inspector/index.js";
-
-// T05: Runtime inspector — styled component
-export {
-  ExecutionInspector,
-  type ExecutionInspectorProps,
-} from "./execution-inspector/index.js";
+  StructuredDataViewer,
+  type StructuredDataViewerProps,
+} from "./task-detail/index.js";
 
 // S8: Workflow task thread — pure projection + behavior hook + styled component
 export {
@@ -644,10 +626,22 @@ export {
   threadCardVariant,
   type WorkflowThreadCardVariant,
 } from "./thread/thread-presentation.js";
+// T04: Session-parity task cards — headless per-kind presentation seam
+// (the workflow twin of the session's registerToolPresenter).
+export {
+  resolveTaskPreview,
+  registerTaskPresenter,
+  getTaskPresenter,
+  defaultDisclosureForKind,
+  type WorkflowTaskPresenter,
+  type WorkflowTaskPreview,
+  type WorkflowTaskDisclosure,
+} from "./thread/task-presentation.js";
 export { useWorkflowThreadItems } from "./thread/useWorkflowThreadItems.js";
 export {
   WorkflowTaskThread,
   type WorkflowTaskThreadProps,
+  type WorkflowThreadHitl,
 } from "./thread/WorkflowTaskThread.js";
 
 // T11: Shortcut registry

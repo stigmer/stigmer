@@ -7,7 +7,7 @@ import { cn } from "@stigmer/theme";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components.js";
 import { formatDuration, formatTimestamp } from "./format-utils.js";
 import type { TaskOutcome } from "./WorkflowTaskApprovalCard.js";
-import type { TaskDetailApprovalDecision } from "./execution-inspector/index.js";
+import type { TaskDetailApprovalDecision } from "./task-detail/task-approval.js";
 
 /** Props for {@link WorkflowTaskApprovalSummary}. */
 export interface WorkflowTaskApprovalSummaryProps {
@@ -40,11 +40,11 @@ export interface WorkflowTaskApprovalSummaryProps {
  *
  * Renders the prompt, the chosen outcome, the reviewer and timing, and any
  * comment or form answers captured with the decision — sourced entirely
- * from the canonical task-output record (see `derive-task-detail`). This is
- * the resolved counterpart to {@link WorkflowTaskApprovalCard}: the card
- * collects a decision while a gate is `waiting_approval`; this component
- * presents the decision once it is made, so the Approval tab never offers
- * an already-answered gate for a second decision.
+ * from the canonical task-output record (see `task-detail/task-approval`).
+ * This is the resolved counterpart to {@link WorkflowTaskApprovalCard}: the
+ * card collects a decision while a gate is `waiting_approval`; this
+ * component presents the decision once it is made, so a settled gate is
+ * never offered for a second decision.
  *
  * Designed for embedding in both the Stigmer Console and third-party
  * dashboards — no routing, auth, or app-shell dependencies (DD-004). All

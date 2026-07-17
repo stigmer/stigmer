@@ -9,9 +9,12 @@ package ai.stigmer.agentic.agentchannel.v1;
  * <pre>
  * Output of the initiate-install RPC.
  *
- * The caller redirects the user to authorization_url; the provider
+ * Two install styles share this output. For redirect-installed providers
+ * (Slack) the caller redirects the user to authorization_url; the provider
  * redirects back to the console, which completes the install with the
- * completeInstall RPC.
+ * completeInstall RPC. For direct-installed providers (WhatsApp) the
+ * install completes inside this RPC: completed is true and there is
+ * nothing to redirect to — refresh the channel to see its install facts.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput}
@@ -64,7 +67,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Provider authorization URL to redirect the installing user to
-   * (for Slack: the "Add to Slack" consent screen).
+   * (for Slack: the "Add to Slack" consent screen). Empty when the
+   * install completed directly.
    * </pre>
    *
    * <code>string authorization_url = 1 [json_name = "authorizationUrl"];</code>
@@ -86,7 +90,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Provider authorization URL to redirect the installing user to
-   * (for Slack: the "Add to Slack" consent screen).
+   * (for Slack: the "Add to Slack" consent screen). Empty when the
+   * install completed directly.
    * </pre>
    *
    * <code>string authorization_url = 1 [json_name = "authorizationUrl"];</code>
@@ -113,6 +118,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Single-use opaque state parameter bound to this install attempt.
+   * Empty when the install completed directly.
    *
    * &#64;internal
    * Persisted server-side (PendingOAuthStateDocument pattern) and consumed
@@ -138,6 +144,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Single-use opaque state parameter bound to this install attempt.
+   * Empty when the install completed directly.
    *
    * &#64;internal
    * Persisted server-side (PendingOAuthStateDocument pattern) and consumed
@@ -162,6 +169,29 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int COMPLETED_FIELD_NUMBER = 3;
+  private boolean completed_ = false;
+  /**
+   * <pre>
+   * True when the install completed synchronously inside this RPC
+   * (direct-installed providers). Clients branch on this field — never on
+   * provider knowledge of their own — so the server stays the single
+   * source of install-style truth.
+   *
+   * &#64;internal
+   * DD-WA-1b. The seam behind it is the sealed ChannelInstaller split:
+   * AuthorizationRedirectInstaller populates authorization_url + state;
+   * DirectInstaller populates completed.
+   * </pre>
+   *
+   * <code>bool completed = 3 [json_name = "completed"];</code>
+   * @return The completed.
+   */
+  @java.lang.Override
+  public boolean getCompleted() {
+    return completed_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -182,6 +212,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(state_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, state_);
     }
+    if (completed_ != false) {
+      output.writeBool(3, completed_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -196,6 +229,10 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(state_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, state_);
+    }
+    if (completed_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(3, completed_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -216,6 +253,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getAuthorizationUrl())) return false;
     if (!getState()
         .equals(other.getState())) return false;
+    if (getCompleted()
+        != other.getCompleted()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -231,6 +270,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getAuthorizationUrl().hashCode();
     hash = (37 * hash) + STATE_FIELD_NUMBER;
     hash = (53 * hash) + getState().hashCode();
+    hash = (37 * hash) + COMPLETED_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getCompleted());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -332,9 +374,12 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Output of the initiate-install RPC.
    *
-   * The caller redirects the user to authorization_url; the provider
+   * Two install styles share this output. For redirect-installed providers
+   * (Slack) the caller redirects the user to authorization_url; the provider
    * redirects back to the console, which completes the install with the
-   * completeInstall RPC.
+   * completeInstall RPC. For direct-installed providers (WhatsApp) the
+   * install completes inside this RPC: completed is true and there is
+   * nothing to redirect to — refresh the channel to see its install facts.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput}
@@ -372,6 +417,7 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       authorizationUrl_ = "";
       state_ = "";
+      completed_ = false;
       return this;
     }
 
@@ -411,6 +457,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.state_ = state_;
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.completed_ = completed_;
+      }
     }
 
     @java.lang.Override
@@ -434,6 +483,9 @@ private static final long serialVersionUID = 0L;
         state_ = other.state_;
         bitField0_ |= 0x00000002;
         onChanged();
+      }
+      if (other.getCompleted() != false) {
+        setCompleted(other.getCompleted());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -471,6 +523,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
+            case 24: {
+              completed_ = input.readBool();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 24
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -492,7 +549,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provider authorization URL to redirect the installing user to
-     * (for Slack: the "Add to Slack" consent screen).
+     * (for Slack: the "Add to Slack" consent screen). Empty when the
+     * install completed directly.
      * </pre>
      *
      * <code>string authorization_url = 1 [json_name = "authorizationUrl"];</code>
@@ -513,7 +571,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provider authorization URL to redirect the installing user to
-     * (for Slack: the "Add to Slack" consent screen).
+     * (for Slack: the "Add to Slack" consent screen). Empty when the
+     * install completed directly.
      * </pre>
      *
      * <code>string authorization_url = 1 [json_name = "authorizationUrl"];</code>
@@ -535,7 +594,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provider authorization URL to redirect the installing user to
-     * (for Slack: the "Add to Slack" consent screen).
+     * (for Slack: the "Add to Slack" consent screen). Empty when the
+     * install completed directly.
      * </pre>
      *
      * <code>string authorization_url = 1 [json_name = "authorizationUrl"];</code>
@@ -553,7 +613,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provider authorization URL to redirect the installing user to
-     * (for Slack: the "Add to Slack" consent screen).
+     * (for Slack: the "Add to Slack" consent screen). Empty when the
+     * install completed directly.
      * </pre>
      *
      * <code>string authorization_url = 1 [json_name = "authorizationUrl"];</code>
@@ -568,7 +629,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Provider authorization URL to redirect the installing user to
-     * (for Slack: the "Add to Slack" consent screen).
+     * (for Slack: the "Add to Slack" consent screen). Empty when the
+     * install completed directly.
      * </pre>
      *
      * <code>string authorization_url = 1 [json_name = "authorizationUrl"];</code>
@@ -589,6 +651,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Single-use opaque state parameter bound to this install attempt.
+     * Empty when the install completed directly.
      *
      * &#64;internal
      * Persisted server-side (PendingOAuthStateDocument pattern) and consumed
@@ -613,6 +676,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Single-use opaque state parameter bound to this install attempt.
+     * Empty when the install completed directly.
      *
      * &#64;internal
      * Persisted server-side (PendingOAuthStateDocument pattern) and consumed
@@ -638,6 +702,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Single-use opaque state parameter bound to this install attempt.
+     * Empty when the install completed directly.
      *
      * &#64;internal
      * Persisted server-side (PendingOAuthStateDocument pattern) and consumed
@@ -659,6 +724,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Single-use opaque state parameter bound to this install attempt.
+     * Empty when the install completed directly.
      *
      * &#64;internal
      * Persisted server-side (PendingOAuthStateDocument pattern) and consumed
@@ -677,6 +743,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Single-use opaque state parameter bound to this install attempt.
+     * Empty when the install completed directly.
      *
      * &#64;internal
      * Persisted server-side (PendingOAuthStateDocument pattern) and consumed
@@ -693,6 +760,74 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       state_ = value;
       bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
+    private boolean completed_ ;
+    /**
+     * <pre>
+     * True when the install completed synchronously inside this RPC
+     * (direct-installed providers). Clients branch on this field — never on
+     * provider knowledge of their own — so the server stays the single
+     * source of install-style truth.
+     *
+     * &#64;internal
+     * DD-WA-1b. The seam behind it is the sealed ChannelInstaller split:
+     * AuthorizationRedirectInstaller populates authorization_url + state;
+     * DirectInstaller populates completed.
+     * </pre>
+     *
+     * <code>bool completed = 3 [json_name = "completed"];</code>
+     * @return The completed.
+     */
+    @java.lang.Override
+    public boolean getCompleted() {
+      return completed_;
+    }
+    /**
+     * <pre>
+     * True when the install completed synchronously inside this RPC
+     * (direct-installed providers). Clients branch on this field — never on
+     * provider knowledge of their own — so the server stays the single
+     * source of install-style truth.
+     *
+     * &#64;internal
+     * DD-WA-1b. The seam behind it is the sealed ChannelInstaller split:
+     * AuthorizationRedirectInstaller populates authorization_url + state;
+     * DirectInstaller populates completed.
+     * </pre>
+     *
+     * <code>bool completed = 3 [json_name = "completed"];</code>
+     * @param value The completed to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCompleted(boolean value) {
+
+      completed_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * True when the install completed synchronously inside this RPC
+     * (direct-installed providers). Clients branch on this field — never on
+     * provider knowledge of their own — so the server stays the single
+     * source of install-style truth.
+     *
+     * &#64;internal
+     * DD-WA-1b. The seam behind it is the sealed ChannelInstaller split:
+     * AuthorizationRedirectInstaller populates authorization_url + state;
+     * DirectInstaller populates completed.
+     * </pre>
+     *
+     * <code>bool completed = 3 [json_name = "completed"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearCompleted() {
+      bitField0_ = (bitField0_ & ~0x00000004);
+      completed_ = false;
       onChanged();
       return this;
     }

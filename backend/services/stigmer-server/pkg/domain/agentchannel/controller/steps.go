@@ -98,13 +98,25 @@ func (s *resolveChannelDefaultsStep) Execute(ctx *pipeline.RequestContext[*agent
 		)
 	}
 
+	// WhatsApp is BYO-only (DD-WA-2): there is no platform Meta app, so a
+	// channel without an app binding could never install — refuse at
+	// write time with copy naming the fix rather than letting the user
+	// discover it at install time. Byte-identical with the cloud
+	// edition's AgentChannelDefaultsResolver. Enforced here, not in a
+	// field-level CEL, because the rule conditions on the oneof case.
+	appRef := channel.GetSpec().GetAppRef()
+	if channel.GetSpec().GetWhatsapp() != nil && appRef.GetSlug() == "" {
+		return grpclib.InvalidArgumentError(
+			"spec.app_ref is required for WhatsApp channels — register your Meta app as a channel app and reference it",
+		)
+	}
+
 	// The BYO app must be the channel's own org's (secrets never cross
 	// orgs — the T06 invariant, applied to app credentials; T04 item 2).
 	// Normalized and checked before the agent load for the same
 	// no-probing reason. Deliberately NO existence or provider-match
 	// check: like environment_refs, enforcement lives at resolution time
 	// (the cloud install flow fails closed; OSS has no install flow).
-	appRef := channel.GetSpec().GetAppRef()
 	if appRef.GetSlug() != "" {
 		appRefOrg := appRef.GetOrg()
 		if appRefOrg == "" {
@@ -241,9 +253,12 @@ func (s *validateChannelUpdateStep) Execute(ctx *pipeline.RequestContext[*agentc
 // validateAppRefUpdate enforces the app_ref rules on update (T04 item 2),
 // byte-identical with the cloud edition's ValidateChannelUpdate:
 //
+//   - required for whatsapp (DD-WA-2): the binding may change while
+//     uninstalled, but never disappear (repeated here because update does
+//     not run the defaults resolver; provider immutability above
+//     guarantees the existing channel is also whatsapp);
 //   - same-org always: a channel must never install through another org's
-//     app credentials (repeated here because update does not run the
-//     defaults resolver);
+//     app credentials;
 //   - frozen while installed: the workspace granted THAT app and the
 //     stored bot token belongs to it. Pending and revoked channels may
 //     rebind freely — switching apps before (re-)installing is a
@@ -254,6 +269,12 @@ func validateAppRefUpdate(
 ) error {
 	inputAppRef := ctx.Input().GetSpec().GetAppRef()
 	existingAppRef := existing.GetSpec().GetAppRef()
+
+	if ctx.Input().GetSpec().GetWhatsapp() != nil && inputAppRef.GetSlug() == "" {
+		return grpclib.InvalidArgumentError(
+			"spec.app_ref is required for WhatsApp channels — register your Meta app as a channel app and reference it",
+		)
+	}
 
 	inputAppOrg := ""
 	if inputAppRef.GetSlug() != "" {

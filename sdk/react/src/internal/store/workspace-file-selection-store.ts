@@ -1,6 +1,4 @@
-// Which workspace file is open in the viewer. Sibling to SelectionStore (which
-// owns thread-item inspect selection) — the two are orthogonal domains with
-// different lifecycles, so they stay separate stores rather than one fused FSM.
+// Which workspace file is open in the viewer.
 
 /**
  * A file selected for viewing.
@@ -23,8 +21,7 @@ type Listener = () => void;
 /**
  * Framework-agnostic store for the currently-open workspace file.
  *
- * Implements the `useSyncExternalStore` contract identical to
- * {@link import("./selection-store.js").SelectionStore}: the context carries the
+ * Implements the `useSyncExternalStore` contract: the context carries the
  * store instance (stable ref), and `getSelection` returns the stored object
  * reference — a new object is allocated only inside `select` — so `getSnapshot`
  * never triggers a re-render loop.

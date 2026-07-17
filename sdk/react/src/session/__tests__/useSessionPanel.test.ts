@@ -10,17 +10,14 @@ import { useSessionPanel, type UseSessionPanelOptions } from "../useSessionPanel
 import { PLAN_DOCUMENT_ENTRY_ID, PLAN_DOCUMENT_PATH } from "../plan-document";
 import { ARTIFACT_DOCUMENT_ENTRY_ID } from "../../execution/artifact-document";
 import { artifactKey } from "../useSessionArtifacts";
-import type { SelectedThreadItem } from "../../internal/store/selection-store";
 
 // ---------------------------------------------------------------------------
 // The unified-panel controller: collapsed-by-default state, the open-editor
 // group, and the rail-view FSM ported from the retired inspector tabs. The
 // FSM rules under test: explicit picks are sticky; auto-switching happens only
-// in an OPEN panel (arrivals/selections never auto-open); running⇄terminal
-// transitions reset stickiness.
+// in an OPEN panel (arrivals never auto-open); running⇄terminal transitions
+// reset stickiness.
 // ---------------------------------------------------------------------------
-
-const item = { kind: "toolCall" } as unknown as SelectedThreadItem;
 
 function renderPanel(initial?: Partial<UseSessionPanelOptions>) {
   return renderHook(
@@ -73,49 +70,6 @@ describe("useSessionPanel — open/collapse", () => {
   });
 });
 
-describe("useSessionPanel — selection (Inspect)", () => {
-  it("auto-surfaces Inspect for a selection while the panel is open", () => {
-    const { result } = renderPanel();
-    act(() => result.current.openPanel());
-    act(() => result.current.notifySelection(item));
-    expect(result.current.view).toBe("inspect");
-  });
-
-  it("never auto-opens a collapsed panel on selection", () => {
-    const { result } = renderPanel();
-    act(() => result.current.notifySelection(item));
-    expect(result.current.isOpen).toBe(false);
-    expect(result.current.view).toBe("files");
-  });
-
-  it("surfaces a selection made while collapsed when the panel opens", () => {
-    const { result } = renderPanel();
-    act(() => result.current.notifySelection(item));
-    act(() => result.current.openPanel());
-    expect(result.current.view).toBe("inspect");
-  });
-
-  it("yields to an explicit pick (sticky) over selection auto-switch", () => {
-    const { result } = renderPanel();
-    act(() => result.current.openPanel());
-    act(() => result.current.setView("usage"));
-    act(() => result.current.notifySelection(item));
-    expect(result.current.view).toBe("usage");
-  });
-
-  it("leaves Inspect (and unsticks) when the selection clears", () => {
-    const { result } = renderPanel();
-    act(() => result.current.openPanel());
-    act(() => result.current.notifySelection(item));
-    expect(result.current.view).toBe("inspect");
-    act(() => result.current.notifySelection(null));
-    expect(result.current.view).toBe("files");
-    // Unstuck: the next selection auto-surfaces Inspect again.
-    act(() => result.current.notifySelection(item));
-    expect(result.current.view).toBe("inspect");
-  });
-});
-
 describe("useSessionPanel — arrivals and phase", () => {
   it("auto-surfaces Changes on first write-back while the panel is open", () => {
     const { result, rerender } = renderPanel();
@@ -150,9 +104,9 @@ describe("useSessionPanel — arrivals and phase", () => {
       hasChanges: false,
     });
     expect(result.current.view).toBe("files");
-    // Unstuck: a selection now auto-surfaces Inspect.
-    act(() => result.current.notifySelection(item));
-    expect(result.current.view).toBe("inspect");
+    // Unstuck: the next arrival auto-switch takes effect again.
+    rerender({ phase: ExecutionPhase.EXECUTION_COMPLETED, hasChanges: true });
+    expect(result.current.view).toBe("changes");
   });
 });
 
@@ -342,15 +296,6 @@ describe("useSessionPanel — defaultView (home view)", () => {
       hasChanges: false,
       defaultView: "configure",
     });
-    expect(result.current.view).toBe("configure");
-  });
-
-  it("returns to defaultView (not files) when a selection clears", () => {
-    const { result } = renderPanel({ defaultView: "configure" });
-    act(() => result.current.openPanel());
-    act(() => result.current.notifySelection(item));
-    expect(result.current.view).toBe("inspect");
-    act(() => result.current.notifySelection(null));
     expect(result.current.view).toBe("configure");
   });
 

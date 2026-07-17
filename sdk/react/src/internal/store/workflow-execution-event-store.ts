@@ -1,6 +1,14 @@
-import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import type {
+  WorkflowExecutionEvent,
+  ApprovalRequestedPayload,
+  ApprovalResolvedPayload,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowEventType } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import type { JsonObject } from "@bufbuild/protobuf";
+// The CHILD AgentExecution's phase enum (carried on agent_call_progress
+// payloads) — distinct from the workflow's own ExecutionPhase.
+import { ExecutionPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 // ---------------------------------------------------------------------------
 // Stream state (mirrors ConversationStore's StreamState shape)
@@ -51,6 +59,38 @@ export interface DerivedTaskState {
   readonly currentToolName: string;
   readonly messagesCount: number;
   readonly toolCallsCount: number;
+  /**
+   * Truncated resolved-input summary from `task_started` (T04). `null`
+   * until the event arrives. Reference-stable across re-derivations: the
+   * value is read off the SAME immutable stored event each walk, so
+   * downstream identity compares (structural sharing) hold.
+   */
+  readonly inputSummary: JsonObject | null;
+  /**
+   * Truncated output summary from `task_completed` (T04). `null` while
+   * running and reset on a restart. The FULL output lives on the status
+   * snapshot (`status.tasks[].output`) — this is the live-stream preview
+   * source only (the event deliberately truncates to prevent bloat).
+   */
+  readonly outputSummary: JsonObject | null;
+  /**
+   * The `approval_requested` payload for a human_input gate (T06) — the
+   * review material (prompt, outcomes, form schema, payload/artifact ref,
+   * ui hint) the gating card's in-thread review surface renders. `null`
+   * until the event arrives; reset on a restart (a new attempt re-emits
+   * its own request). Reference-stable like the summaries: the value IS
+   * the stored immutable event's payload message, so downstream identity
+   * compares (structural sharing) hold across re-derivations.
+   */
+  readonly approvalRequest: ApprovalRequestedPayload | null;
+  /**
+   * The `approval_resolved` payload once the gate is decided (T06) —
+   * reviewer, comment, wait duration. Persists through the task's
+   * remaining lifecycle (completed/failed) so the card's resolved-decision
+   * summary survives settlement; reset on a restart. Reference-stable, as
+   * above.
+   */
+  readonly approvalResolution: ApprovalResolvedPayload | null;
 }
 
 export interface DerivedCostSummary {
@@ -248,6 +288,11 @@ function deriveTaskStates(
           currentToolName: prev?.currentToolName ?? "",
           messagesCount: prev?.messagesCount ?? 0,
           toolCallsCount: prev?.toolCallsCount ?? 0,
+          inputSummary: p.value.inputSummary ?? prev?.inputSummary ?? null,
+          // A (re)start invalidates any prior attempt's output and gate.
+          outputSummary: null,
+          approvalRequest: null,
+          approvalResolution: null,
         });
         break;
 
@@ -266,6 +311,12 @@ function deriveTaskStates(
           currentToolName: "",
           messagesCount: prev?.messagesCount ?? 0,
           toolCallsCount: prev?.toolCallsCount ?? 0,
+          inputSummary: prev?.inputSummary ?? null,
+          outputSummary: p.value.outputSummary ?? null,
+          // The gate record survives settlement — the card's resolved
+          // decision summary reads it after the task completes.
+          approvalRequest: prev?.approvalRequest ?? null,
+          approvalResolution: prev?.approvalResolution ?? null,
         });
         break;
 
@@ -284,6 +335,10 @@ function deriveTaskStates(
           currentToolName: "",
           messagesCount: prev?.messagesCount ?? 0,
           toolCallsCount: prev?.toolCallsCount ?? 0,
+          inputSummary: prev?.inputSummary ?? null,
+          outputSummary: null,
+          approvalRequest: prev?.approvalRequest ?? null,
+          approvalResolution: prev?.approvalResolution ?? null,
         });
         break;
 
@@ -302,6 +357,10 @@ function deriveTaskStates(
           currentToolName: "",
           messagesCount: 0,
           toolCallsCount: 0,
+          inputSummary: null,
+          outputSummary: null,
+          approvalRequest: null,
+          approvalResolution: null,
         });
         break;
 
@@ -325,6 +384,7 @@ function deriveTaskStates(
         if (prev) {
           map.set(taskName, {
             ...prev,
+            status: deriveChildGateStatus(prev.status, p.value.agentPhase),
             childExecutionId: p.value.childExecutionId || prev.childExecutionId,
             currentToolName: p.value.currentToolName || prev.currentToolName,
             messagesCount: p.value.messagesCount || prev.messagesCount,
@@ -349,19 +409,78 @@ function deriveTaskStates(
 
       case "approvalRequested":
         if (prev) {
-          map.set(taskName, { ...prev, status: "waiting_approval" });
+          map.set(taskName, {
+            ...prev,
+            status: "waiting_approval",
+            // The stored event's payload message itself — reference-stable
+            // across re-derivations, so the gating card's memo compares hold.
+            approvalRequest: p.value,
+            approvalResolution: null,
+          });
         }
         break;
 
       case "approvalResolved":
-        if (prev && prev.status === "waiting_approval") {
-          map.set(taskName, { ...prev, status: "running" });
+        if (prev) {
+          map.set(taskName, {
+            ...prev,
+            // Only a waiting gate resumes; the resolution record is kept
+            // either way (an out-of-order event must not lose the decision).
+            status: prev.status === "waiting_approval" ? "running" : prev.status,
+            approvalResolution: p.value,
+          });
         }
         break;
     }
   }
 
   return map;
+}
+
+/**
+ * Derives the parent task's status from a child agent's phase on an
+ * `agent_call_progress` event — the ONLY live signal that an AGENT_CALL
+ * task is blocked on a child HITL gate.
+ *
+ * Why progress events drive gating: a child's tool/file gate is surfaced
+ * snapshot-only (`child_approval_required` signal → `status.pending_approvals`
+ * on the parent — no workflow event is emitted; source-confirmed in
+ * `test/conformance/src/suites-execution/workflowexecution-child-approval.conformance.test.ts`).
+ * The `approval_requested` event exists only for human_input tasks. Without
+ * this derivation the stream never shows an agent_call task as
+ * `waiting_approval`, and every waiting_approval consumer (thread/graph
+ * amber state, announcements, `useApprovalBoundary`'s snapshot refetch +
+ * gate auto-select) is blind to child gates. Deriving from the phase the
+ * progress payload already carries closes that gap with zero new events —
+ * and matches the documented task semantics
+ * (`apis/ai/stigmer/agentic/workflowexecution/docs/hitl-approvals.md`).
+ *
+ * Transition rules (deliberately narrow):
+ * - Only `running` can ENTER `waiting_approval` (child phase = WAITING).
+ * - Only `waiting_approval` can EXIT via a progress event, and only on a
+ *   KNOWN non-waiting phase. `UNSPECIFIED` is an explicit no-op: the
+ *   orchestrator's initial/fast-completion emits carry phase 0 (null
+ *   progress) and must never un-gate a blocked task.
+ * - Every other status (retrying, settled, pending) passes through — a
+ *   stale WAITING progress event can never resurrect or re-gate a task the
+ *   authoritative task_* events have already moved on.
+ */
+function deriveChildGateStatus(
+  status: DerivedTaskState["status"],
+  childPhase: AgentExecutionPhase,
+): DerivedTaskState["status"] {
+  if (status === "running") {
+    return childPhase === AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+      ? "waiting_approval"
+      : "running";
+  }
+  if (status === "waiting_approval") {
+    return childPhase === AgentExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL ||
+      childPhase === AgentExecutionPhase.EXECUTION_PHASE_UNSPECIFIED
+      ? "waiting_approval"
+      : "running";
+  }
+  return status;
 }
 
 function deriveCostSummary(

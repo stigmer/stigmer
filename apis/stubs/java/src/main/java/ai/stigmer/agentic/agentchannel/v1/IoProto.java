@@ -96,18 +96,19 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "PageInfoR\010pageInfo\0329\n\013LabelsEntry\022\020\n\003key" +
       "\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"F\n" +
       "\033InitiateChannelInstallInput\022\'\n\013resource" +
-      "_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId\"a\n\034Initiat" +
+      "_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId\"\177\n\034Initiat" +
       "eChannelInstallOutput\022+\n\021authorization_u" +
       "rl\030\001 \001(\tR\020authorizationUrl\022\024\n\005state\030\002 \001(" +
-      "\tR\005state\"\200\001\n\033CompleteChannelInstallInput" +
-      "\022\'\n\013resource_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceI" +
-      "d\022\034\n\005state\030\002 \001(\tB\006\272H\003\310\001\001R\005state\022\032\n\004code\030" +
-      "\003 \001(\tB\006\272H\003\310\001\001R\004codeB\266\001B\007IoProtoP\001\242\002\004ASAA" +
-      "\252\002\"Ai.Stigmer.Agentic.Agentchannel.V1\312\002\"" +
-      "Ai\\Stigmer\\Agentic\\Agentchannel\\V1\342\002.Ai\\" +
-      "Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetad" +
-      "ata\352\002&Ai::Stigmer::Agentic::Agentchannel" +
-      "::V1b\006proto3"
+      "\tR\005state\022\034\n\tcompleted\030\003 \001(\010R\tcompleted\"\200" +
+      "\001\n\033CompleteChannelInstallInput\022\'\n\013resour" +
+      "ce_id\030\001 \001(\tB\006\272H\003\310\001\001R\nresourceId\022\034\n\005state" +
+      "\030\002 \001(\tB\006\272H\003\310\001\001R\005state\022\032\n\004code\030\003 \001(\tB\006\272H\003" +
+      "\310\001\001R\004codeB\266\001B\007IoProtoP\001\242\002\004ASAA\252\002\"Ai.Stig" +
+      "mer.Agentic.Agentchannel.V1\312\002\"Ai\\Stigmer" +
+      "\\Agentic\\Agentchannel\\V1\342\002.Ai\\Stigmer\\Ag" +
+      "entic\\Agentchannel\\V1\\GPBMetadata\352\002&Ai::" +
+      "Stigmer::Agentic::Agentchannel::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -157,7 +158,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentchannel_v1_InitiateChannelInstallOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_InitiateChannelInstallOutput_descriptor,
-        new java.lang.String[] { "AuthorizationUrl", "State", });
+        new java.lang.String[] { "AuthorizationUrl", "State", "Completed", });
     internal_static_ai_stigmer_agentic_agentchannel_v1_CompleteChannelInstallInput_descriptor =
       getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_agentic_agentchannel_v1_CompleteChannelInstallInput_fieldAccessorTable = new

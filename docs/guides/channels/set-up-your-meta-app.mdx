@@ -1,0 +1,114 @@
+---
+title: Set Up Your Meta App
+description:
+  Register your Meta app in Stigmer so an Agent can serve a WhatsApp number.
+  Every WhatsApp channel connects through an app you own — this setup comes
+  first.
+---
+
+WhatsApp channels always connect through your own Meta app. Unlike Slack, there
+is no shared platform app to fall back on: Meta's WhatsApp Cloud API ties every
+number to the business that owns it, so Stigmer serves your number through your
+app's credentials. You register those credentials once as a **Channel App** —
+then any Agent in your Organization can connect a WhatsApp number through it.
+
+<Callout type="info">
+  This is a prerequisite for [Connect an Agent to
+  WhatsApp](/docs/guides/channels/connect-whatsapp). The connect flow requires a
+  registered Meta app — with none in your Organization, it asks you to register
+  one first.
+</Callout>
+
+## What you need
+
+- A [Meta Business portfolio](https://business.facebook.com/) with a WhatsApp
+  Business Account (WABA) and a phone number, and admin access to both.
+- Permission to manage Channel Apps in your Stigmer Organization.
+
+Setup happens in two steps on the Stigmer side, because each side mints
+something the other needs: Meta mints the app's credentials, and Stigmer mints
+the app's webhook address once the Channel App exists.
+
+## Step 1 — Create the Meta app and gather its credentials
+
+1. On [developers.facebook.com](https://developers.facebook.com/apps), create a
+   **Business**-type app and add the **WhatsApp** product. Skip Meta's webhook
+   configuration for now — the webhook address comes from Stigmer in step 3.
+2. From **App settings → Basic**, copy the **App ID** and **App secret**.
+3. Create a long-lived access token in Meta **Business settings**: under
+   **System users**, add a system user, assign it your app and your WhatsApp
+   account, and generate a token with the **whatsapp_business_messaging**,
+   **whatsapp_business_management**, and **business_management** permissions.
+   Copy the token — Meta shows it once.
+
+<Callout type="warn">
+  Do not use the temporary access token from the app's API Setup panel. It
+  expires within a day, and WhatsApp gives no revocation signal — the channel
+  keeps looking healthy until a reply fails to send. The system-user token does
+  not expire.
+</Callout>
+
+## Step 2 — Register the app in Stigmer
+
+1. In the web console, open **Settings → Channel Apps** and click **Register
+   channel app**.
+2. Under **Provider**, pick **WhatsApp**.
+3. Enter the **Name**. It identifies the app inside Stigmer — for example
+   `Acme WhatsApp`.
+4. Paste the **App ID**, **App secret**, and **Access token** from step 1.
+   Stigmer encrypts the secrets at rest and never shows them again.
+5. Keep the generated **Verify token** — a strong random value Meta will echo
+   back when it verifies your webhook. Replace it only if your Meta app already
+   has one configured.
+6. Click **Register channel app**.
+
+## Step 3 — Finish setup in Meta
+
+The saved Channel App now has its own webhook address — the URL Meta delivers
+this app's messages to. The app's detail panel shows it under **Finish setup in
+Meta**, together with the verify token from registration.
+
+<Callout>
+  The verify token is visible on this screen only once, right after
+  registration. Complete this step before leaving the page — if you lose the
+  token, paste a new one into the app's credentials and use that in Meta
+  instead.
+</Callout>
+
+1. Copy the **Callback URL** and **Verify token** from the detail panel.
+2. On your Meta app's **WhatsApp → Configuration** page, paste them into the
+   **Callback URL** and **Verify token** fields and click **Verify and save**.
+   Meta verifies immediately — verification passes because Stigmer checks the
+   echoed token against the one you registered.
+3. On the same page, subscribe to the **messages** webhook field. This is the
+   only field Stigmer needs — it carries the incoming messages your Agent
+   answers.
+
+## Connect an Agent through the app
+
+Registration done, the connect flow picks it up automatically: open the Agent
+under **Library → Agents**, go to the **Channels** tab, and click **Connect to
+WhatsApp**. The dialog offers your app under **Serving app** — with a single
+registered app, it is already selected. Continue with
+[Connect an Agent to WhatsApp](/docs/guides/channels/connect-whatsapp).
+
+## Rotate credentials or remove the app
+
+Back in **Settings → Channel Apps**, the app's detail panel manages its
+lifecycle:
+
+- **Rotate a secret** — stored secrets display as `***REDACTED***`. Leave a
+  field untouched to keep its value, or paste a new one to rotate it. If you
+  rotate the verify token, update Meta's webhook configuration to the same
+  value.
+- **Delete the app** — Stigmer refuses the deletion while any channel still
+  connects through the app. Disconnect those channels first, then delete.
+
+## What's next
+
+Your Meta app is registered and its webhook is verified. Put an Agent behind
+your WhatsApp number. →
+[Connect an Agent to WhatsApp](/docs/guides/channels/connect-whatsapp)
+
+For every field on the resource, see the
+[ChannelApp reference](/docs/sdk/resources/channel-app).

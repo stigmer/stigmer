@@ -36,6 +36,11 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_channelapp_v1_SlackChannelAppConfig_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_channelapp_v1_WhatsAppChannelAppConfig_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_channelapp_v1_WhatsAppChannelAppConfig_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -47,14 +52,21 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n+ai/stigmer/agentic/channelapp/v1/spec." +
       "proto\022 ai.stigmer.agentic.channelapp.v1\032" +
-      "\033buf/validate/validate.proto\"{\n\016ChannelA" +
-      "ppSpec\022O\n\005slack\030\001 \001(\01327.ai.stigmer.agent" +
-      "ic.channelapp.v1.SlackChannelAppConfigH\000" +
-      "R\005slackB\030\n\017provider_config\022\005\272H\002\010\001\"\233\001\n\025Sl" +
-      "ackChannelAppConfig\022$\n\tclient_id\030\001 \001(\tB\007" +
-      "\272H\004r\002\020\001R\010clientId\022,\n\rclient_secret\030\002 \001(\t" +
-      "B\007\272H\004r\002\020\001R\014clientSecret\022.\n\016signing_secre" +
-      "t\030\003 \001(\tB\007\272H\004r\002\020\001R\rsigningSecretB\260\001B\tSpec" +
+      "\033buf/validate/validate.proto\"\325\001\n\016Channel" +
+      "AppSpec\022O\n\005slack\030\001 \001(\01327.ai.stigmer.agen" +
+      "tic.channelapp.v1.SlackChannelAppConfigH" +
+      "\000R\005slack\022X\n\010whatsapp\030\002 \001(\0132:.ai.stigmer." +
+      "agentic.channelapp.v1.WhatsAppChannelApp" +
+      "ConfigH\000R\010whatsappB\030\n\017provider_config\022\005\272" +
+      "H\002\010\001\"\233\001\n\025SlackChannelAppConfig\022$\n\tclient" +
+      "_id\030\001 \001(\tB\007\272H\004r\002\020\001R\010clientId\022,\n\rclient_s" +
+      "ecret\030\002 \001(\tB\007\272H\004r\002\020\001R\014clientSecret\022.\n\016si" +
+      "gning_secret\030\003 \001(\tB\007\272H\004r\002\020\001R\rsigningSecr" +
+      "et\"\272\001\n\030WhatsAppChannelAppConfig\022\036\n\006app_i" +
+      "d\030\001 \001(\tB\007\272H\004r\002\020\001R\005appId\022&\n\napp_secret\030\002 " +
+      "\001(\tB\007\272H\004r\002\020\001R\tappSecret\022*\n\014access_token\030" +
+      "\003 \001(\tB\007\272H\004r\002\020\001R\013accessToken\022*\n\014verify_to" +
+      "ken\030\004 \001(\tB\007\272H\004r\002\020\001R\013verifyTokenB\260\001B\tSpec" +
       "ProtoP\001\242\002\004ASAC\252\002 Ai.Stigmer.Agentic.Chan" +
       "nelapp.V1\312\002 Ai\\Stigmer\\Agentic\\Channelap" +
       "p\\V1\342\002,Ai\\Stigmer\\Agentic\\Channelapp\\V1\\" +
@@ -71,13 +83,19 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_channelapp_v1_ChannelAppSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_channelapp_v1_ChannelAppSpec_descriptor,
-        new java.lang.String[] { "Slack", "ProviderConfig", });
+        new java.lang.String[] { "Slack", "Whatsapp", "ProviderConfig", });
     internal_static_ai_stigmer_agentic_channelapp_v1_SlackChannelAppConfig_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_channelapp_v1_SlackChannelAppConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_channelapp_v1_SlackChannelAppConfig_descriptor,
         new java.lang.String[] { "ClientId", "ClientSecret", "SigningSecret", });
+    internal_static_ai_stigmer_agentic_channelapp_v1_WhatsAppChannelAppConfig_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_channelapp_v1_WhatsAppChannelAppConfig_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_channelapp_v1_WhatsAppChannelAppConfig_descriptor,
+        new java.lang.String[] { "AppId", "AppSecret", "AccessToken", "VerifyToken", });
     descriptor.resolveAllFeaturesImmutable();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

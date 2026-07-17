@@ -151,6 +151,9 @@ export {
   useSessionSearch,
   PENDING_SUBJECT,
   resolvedSubject,
+  CHANNEL_SESSION_LABELS,
+  isChannelOriginSession,
+  channelSessionExternalUserKey,
   SessionViewer,
   NewSessionViewer,
   useSessionPanel,
@@ -208,7 +211,6 @@ export type {
   SessionAudience,
   SetupTabProps,
   SetupTabMutationCallbacks,
-  SelectedThreadItem,
 } from "./session/index.js";
 
 // Activity — unified recent activity (sessions + workflow executions)
@@ -1072,8 +1074,9 @@ export type {
   ShareToolReadiness,
 } from "./sharing/index.js";
 
-// Channel — agent channels on external messaging platforms (Slack in v1):
-// the Channels tab panel, the Slack connect dialog, and the AgentChannel hooks.
+// Channel — agent channels on external messaging platforms (Slack + WhatsApp):
+// the Channels tab panel, the per-provider connect dialogs, and the
+// AgentChannel hooks.
 export {
   useAgentChannelList,
   useAgentChannel,
@@ -1082,11 +1085,15 @@ export {
   useCreateAgentChannel,
   useDeleteAgentChannel,
   useConnectSlackChannel,
+  useInstallChannel,
   useChannelToolReadiness,
+  useChannelSessions,
   AgentChannelsPanel,
   ConnectSlackDialog,
+  ConnectWhatsAppDialog,
   ChannelCredentialsDialog,
   ChannelToolCredentials,
+  ChannelConversationsDialog,
 } from "./channel/index.js";
 export type {
   UseAgentChannelListReturn,
@@ -1096,10 +1103,15 @@ export type {
   UseDeleteAgentChannelReturn,
   UseConnectSlackChannelReturn,
   SlackConnectPhase,
+  UseInstallChannelReturn,
+  InstallChannelPhase,
+  UseChannelSessionsReturn,
   AgentChannelsPanelProps,
   ConnectSlackDialogProps,
+  ConnectWhatsAppDialogProps,
   ChannelCredentialsDialogProps,
   ChannelToolCredentialsProps,
+  ChannelConversationsDialogProps,
 } from "./channel/index.js";
 
 // Error — structured error display with classification, retry, and contextual guidance
@@ -1461,7 +1473,6 @@ export {
   WorkflowDetailView,
   WorkflowExecutionViewer,
   WorkflowExecutionHeader,
-  WorkflowExecutionTaskPanel,
   useWorkflowExecutionPanel,
   workflowArtifactTabPath,
   DIAGNOSIS_DOCUMENT_ENTRY_ID,
@@ -1566,6 +1577,12 @@ export {
   threadCardVariant,
   useWorkflowThreadItems,
   WorkflowTaskThread,
+  // T04: session-parity task cards — per-kind presentation seam (the
+  // workflow twin of registerToolPresenter)
+  resolveTaskPreview,
+  registerTaskPresenter,
+  getTaskPresenter,
+  defaultDisclosureForKind,
   // S9: approval-boundary watcher (snapshot freshness + gate attention)
   useApprovalBoundary,
 } from "./workflow/index.js";
@@ -1597,13 +1614,9 @@ export type {
   WorkflowDetailViewProps,
   WorkflowExecutionViewerProps,
   WorkflowExecutionHeaderProps,
-  WorkflowExecutionTaskPanelProps,
   WorkflowExecutionPanelController,
   UseWorkflowExecutionPanelOptions,
-  NotifySelectionOptions,
   UseWorkflowExecutionRailViewsOptions,
-  WorkflowInspectViewOptions,
-  WorkflowInspectHitl,
   WorkflowArtifactsTabProps,
   WorkflowChangesTabProps,
   WorkflowUsageTabProps,
@@ -1729,6 +1742,12 @@ export type {
   WorkflowThreadProjection,
   WorkflowThreadCardVariant,
   WorkflowTaskThreadProps,
+  // T04: session-parity task cards — presentation seam types
+  WorkflowTaskPresenter,
+  WorkflowTaskPreview,
+  WorkflowTaskDisclosure,
+  // S10: in-thread HITL wiring type
+  WorkflowThreadHitl,
   // S9: approval-boundary watcher types
   ApprovalBoundaryCrossing,
 } from "./workflow/index.js";

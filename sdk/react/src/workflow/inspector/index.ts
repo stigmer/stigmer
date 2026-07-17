@@ -34,10 +34,6 @@ export type { AdvancedTabProps } from "./tabs/AdvancedTab.js";
 export { DocsTab } from "./tabs/DocsTab.js";
 export type { DocsTabProps } from "./tabs/DocsTab.js";
 
-// Execution mode adapter
-export { ExecutionInspectorAdapter } from "./ExecutionInspectorAdapter.js";
-export type { ExecutionInspectorAdapterProps } from "./ExecutionInspectorAdapter.js";
-
 // Per-kind forms
 export { AgentCallForm } from "./forms/AgentCallForm.js";
 export type { AgentCallFormProps } from "./forms/AgentCallForm.js";

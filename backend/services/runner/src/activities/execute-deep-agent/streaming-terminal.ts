@@ -57,6 +57,16 @@ export function handleStop(
   };
 }
 
+/**
+ * Stable prefix of the recursion-limit terminal error. This is a cross-repo
+ * contract: consumers that need to distinguish "ran out of tool-call budget"
+ * from other TERMINATED causes (e.g. Stigmer Cloud's ChannelReplyExtractor,
+ * which shows channel users a friendly limit message instead of generic
+ * error copy) match on this prefix, because AgentExecutionStatus carries no
+ * structured termination reason. Do not reword without updating them.
+ */
+export const TOOL_CALL_LIMIT_ERROR_PREFIX = "Agent reached the tool-call limit";
+
 export function handleRecursionLimit(
   writer: ExecutionStatusWriter,
   eventsProcessed: number,
@@ -67,7 +77,7 @@ export function handleRecursionLimit(
   status.phase = ExecutionPhase.EXECUTION_TERMINATED;
   status.completedAt = utcTimestamp();
   status.error =
-    `Agent reached the tool-call limit after processing ${eventsProcessed} events. ` +
+    `${TOOL_CALL_LIMIT_ERROR_PREFIX} after processing ${eventsProcessed} events. ` +
     `Send another message to continue.`;
   status.messages.push(create(AgentMessageSchema, {
     type: MessageType.MESSAGE_SYSTEM,

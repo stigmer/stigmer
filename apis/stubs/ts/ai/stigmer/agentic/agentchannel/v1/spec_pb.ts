@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEivwUKEEFnZW50Q2hhbm5lbFNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRwoFc2xhY2sYAyABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLlNsYWNrQ2hhbm5lbENvbmZpZ0gAEsgBChBlbnZpcm9ubWVudF9yZWZzGAQgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQni6SHGSAW4ibLoBaQoVZW52aXJvbm1lbnRfcmVmcy5raW5kEj9lbnZpcm9ubWVudF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9ZW52aXJvbm1lbnQaD3RoaXMua2luZCA9PSA1M+CFLDUSvAEKB2FwcF9yZWYYBSABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCdbpIbroBawoMYXBwX3JlZi5raW5kEjdhcHBfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWNoYW5uZWxfYXBwGiJ0aGlzLnNsdWcgPT0gJycgfHwgdGhpcy5raW5kID09IDQ44IUsMEIYCg9wcm92aWRlcl9jb25maWcSBbpIAggBIhQKElNsYWNrQ2hhbm5lbENvbmZpZ2IGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEijgYKEEFnZW50Q2hhbm5lbFNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRwoFc2xhY2sYAyABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLlNsYWNrQ2hhbm5lbENvbmZpZ0gAEk0KCHdoYXRzYXBwGAYgASgLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5XaGF0c0FwcENoYW5uZWxDb25maWdIABLIAQoQZW52aXJvbm1lbnRfcmVmcxgEIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ4ukhxkgFuImy6AWkKFWVudmlyb25tZW50X3JlZnMua2luZBI/ZW52aXJvbm1lbnRfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPWVudmlyb25tZW50Gg90aGlzLmtpbmQgPT0gNTPghSw1ErwBCgdhcHBfcmVmGAUgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQnW6SG66AWsKDGFwcF9yZWYua2luZBI3YXBwX3JlZiBtdXN0IHJlZmVyZW5jZSBhIHJlc291cmNlIHdpdGgga2luZD1jaGFubmVsX2FwcBoidGhpcy5zbHVnID09ICcnIHx8IHRoaXMua2luZCA9PSA0OOCFLDBCGAoPcHJvdmlkZXJfY29uZmlnEgW6SAIIASIUChJTbGFja0NoYW5uZWxDb25maWciOQoVV2hhdHNBcHBDaGFubmVsQ29uZmlnEiAKD3Bob25lX251bWJlcl9pZBgBIAEoCUIHukgEcgIQAWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentChannelSpec defines the configurable properties of an agent channel.
@@ -83,6 +83,14 @@ export type AgentChannelSpec = Message<"ai.stigmer.agentic.agentchannel.v1.Agent
      */
     value: SlackChannelConfig;
     case: "slack";
+  } | {
+    /**
+     * WhatsApp Business number connection (Meta Cloud API).
+     *
+     * @generated from field: ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6;
+     */
+    value: WhatsAppChannelConfig;
+    case: "whatsapp";
   } | { case: undefined; value?: undefined };
 
   /**
@@ -117,10 +125,12 @@ export type AgentChannelSpec = Message<"ai.stigmer.agentic.agentchannel.v1.Agent
   /**
    * Reference to the ChannelApp this channel installs through.
    *
-   * Absent means the channel uses the platform's shared Stigmer app —
-   * the zero-setup default. Set it to install through your own provider
-   * app instead: the bot carries the app's name and icon, and each app
-   * is its own bot identity, so multiple agents can serve one workspace.
+   * For Slack, absent means the channel uses the platform's shared
+   * Stigmer app — the zero-setup default. Set it to install through your
+   * own provider app instead: the bot carries the app's name and icon,
+   * and each app is its own bot identity, so multiple agents can serve
+   * one workspace. For WhatsApp the reference is required — every
+   * WhatsApp channel installs through your own Meta app (DD-WA-2).
    *
    * @internal
    * T04 item 2. Invariants (enforced in handlers of both editions):
@@ -168,4 +178,45 @@ export type SlackChannelConfig = Message<"ai.stigmer.agentic.agentchannel.v1.Sla
  */
 export const SlackChannelConfigSchema: GenMessage<SlackChannelConfig> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentchannel_v1_spec, 1);
+
+/**
+ * WhatsAppChannelConfig selects WhatsApp as the channel provider and names
+ * the WhatsApp Business phone number the channel serves.
+ *
+ * WhatsApp channels install through your own Meta app registered as a
+ * ChannelApp: `spec.app_ref` is required for this provider (there is no
+ * shared platform WhatsApp app). Installing validates the number against
+ * the Meta Cloud API and records the observed facts in status.
+ *
+ * @internal
+ * DD-WA-2: unlike Slack, WhatsApp v1 is BYO-only — app_ref presence is
+ * enforced in the create/update/apply handlers of both editions (the
+ * oneof-conditional rule does not fit a field-level CEL). phone_number_id
+ * lives in SPEC because it is genuinely user-declared (a WABA holds many
+ * numbers; the owner picks which one this agent serves) — the P1
+ * honest-modeling rule, not an exception to it. The install flow echoes it
+ * into status.whatsapp as the routing/uniqueness fact, mirroring
+ * status.slack.team_id.
+ *
+ * @generated from message ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig
+ */
+export type WhatsAppChannelConfig = Message<"ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig"> & {
+  /**
+   * Phone number ID of the WhatsApp Business number this channel serves,
+   * from Meta's WhatsApp Manager (API Setup), e.g. "106540352242922".
+   *
+   * This is the Cloud API's identifier for the number — not the phone
+   * number itself.
+   *
+   * @generated from field: string phone_number_id = 1;
+   */
+  phoneNumberId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig.
+ * Use `create(WhatsAppChannelConfigSchema)` to create a new message.
+ */
+export const WhatsAppChannelConfigSchema: GenMessage<WhatsAppChannelConfig> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_spec, 2);
 

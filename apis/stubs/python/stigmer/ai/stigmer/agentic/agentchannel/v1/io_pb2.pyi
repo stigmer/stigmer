@@ -57,12 +57,14 @@ class InitiateChannelInstallInput(_message.Message):
     def __init__(self, resource_id: _Optional[str] = ...) -> None: ...
 
 class InitiateChannelInstallOutput(_message.Message):
-    __slots__ = ("authorization_url", "state")
+    __slots__ = ("authorization_url", "state", "completed")
     AUTHORIZATION_URL_FIELD_NUMBER: _ClassVar[int]
     STATE_FIELD_NUMBER: _ClassVar[int]
+    COMPLETED_FIELD_NUMBER: _ClassVar[int]
     authorization_url: str
     state: str
-    def __init__(self, authorization_url: _Optional[str] = ..., state: _Optional[str] = ...) -> None: ...
+    completed: bool
+    def __init__(self, authorization_url: _Optional[str] = ..., state: _Optional[str] = ..., completed: bool = ...) -> None: ...
 
 class CompleteChannelInstallInput(_message.Message):
     __slots__ = ("resource_id", "state", "code")

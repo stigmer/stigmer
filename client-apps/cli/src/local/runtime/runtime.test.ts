@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CliExitError } from "../../errors/cli-exit-error.js";
-import { MIN_NODE_MAJOR, MIN_NODE_MINOR_ON_MAJOR, resolveNode } from "./node.js";
+import { resolveNode } from "./node.js";
 import { acquireRunner, resolveRunner } from "./runner.js";
 import { resolveServerBinary } from "./server.js";
 import { which } from "./which.js";
@@ -50,15 +50,37 @@ describe("which", () => {
   });
 });
 
+// A fake "node" whose --version and capability-probe behavior the test
+// controls, making these tests deterministic regardless of which Node runs
+// the suite itself.
+function fakeNodeBinary(opts: { version: string; hasSqlite: boolean }): string {
+  const bin = join(tempDir("stigmer-node-"), "node");
+  writeFileSync(
+    bin,
+    `#!/bin/sh\nif [ "$1" = "--version" ]; then echo "${opts.version}"; exit 0; fi\nexit ${opts.hasSqlite ? 0 : 1}\n`,
+  );
+  chmodSync(bin, 0o755);
+  return bin;
+}
+
 describe("resolveNode", () => {
-  it("defaults to the current Node runtime", () => {
+  it("resolves the current runtime iff it provides node:sqlite", () => {
+    // The contract, not an environment assumption: on a supported Node the
+    // own-runtime path resolves; on an unsupported one (e.g. 23.0-23.3, the
+    // gap the old version-table gate let through) it must throw the
+    // capability error rather than hand the runner a Node it will crash on.
     delete process.env.STIGMER_NODE_BIN;
-    expect(resolveNode()).toBe(process.execPath);
+    if (process.getBuiltinModule?.("node:sqlite") !== undefined) {
+      expect(resolveNode()).toBe(process.execPath);
+    } else {
+      expect(() => resolveNode()).toThrow(/node:sqlite/);
+    }
   });
 
-  it("honors a valid override", () => {
-    process.env.STIGMER_NODE_BIN = process.execPath; // a real Node >= 22.13
-    expect(resolveNode()).toBe(process.execPath);
+  it("honors an override that passes the capability probe", () => {
+    const bin = fakeNodeBinary({ version: "v22.13.0", hasSqlite: true });
+    process.env.STIGMER_NODE_BIN = bin;
+    expect(resolveNode()).toBe(bin);
   });
 
   it("rejects an override that is not a working Node", () => {
@@ -66,9 +88,12 @@ describe("resolveNode", () => {
     expect(() => resolveNode()).toThrow(CliExitError);
   });
 
-  it("requires Node >= 22.13 (the node:sqlite floor)", () => {
-    expect(MIN_NODE_MAJOR).toBe(22);
-    expect(MIN_NODE_MINOR_ON_MAJOR).toBe(13);
+  it("rejects a Node without node:sqlite, naming the version and capability", () => {
+    // The shape of a real 23.0-23.3 binary: healthy --version, no node:sqlite.
+    process.env.STIGMER_NODE_BIN = fakeNodeBinary({ version: "v23.1.0", hasSqlite: false });
+
+    expect(() => resolveNode()).toThrow(/node:sqlite/);
+    expect(() => resolveNode()).toThrow(/v23\.1\.0/);
   });
 });
 

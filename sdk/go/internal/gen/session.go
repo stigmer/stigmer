@@ -64,6 +64,11 @@ func (s *SessionClient) ListByAgentInstance(ctx context.Context, input *sessionv
 	return resp, wrapErr(err)
 }
 
+func (s *SessionClient) ListByChannel(ctx context.Context, input *sessionv1.ListSessionsByChannelRequest) (*sessionv1.SessionList, error) {
+	resp, err := s.query.ListByChannel(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // SessionInput holds the fields for creating/updating a Session.
 type SessionInput struct {
 	Name             string

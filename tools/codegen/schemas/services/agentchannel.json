@@ -38,7 +38,7 @@
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput",
           "outputType": "InitiateChannelInstallOutput",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput",
-          "description": "Start the provider install flow for an agent channel.\n\n Returns the provider authorization URL to redirect the installing\n user to, plus the single-use state that completeInstall verifies.\n\n @internal\n Authorization: requires can_edit on the agent channel — installing\n grants a workspace access to the agent runtime, the same bar as\n enabling. Generates and persists the single-use state (pending-state\n pattern from MCP OAuth). Cloud-first runtime: the OSS edition stores\n channel resources but returns FAILED_PRECONDITION here (documented\n posture, decision 001 D-g / T02 §0-b)."
+          "description": "Start the provider install flow for an agent channel.\n\n For redirect-installed providers (Slack) the output carries the\n provider authorization URL to redirect the installing user to, plus\n the single-use state that completeInstall verifies. For\n direct-installed providers (WhatsApp) the install runs to completion\n inside this RPC and the output carries completed=true instead.\n\n Refusals a client should branch on carry a google.rpc.ErrorInfo\n detail (domain \"stigmer.ai\") on the standard grpc-status-details-bin\n trailer, alongside the human-readable FAILED_PRECONDITION message:\n\n   - WHATSAPP_NUMBER_ALREADY_CONNECTED — the WhatsApp Business number\n     already serves an agent through this channel app (one agent per\n     number per app). Metadata: display_phone_number (the occupied\n     number), channel_app_id (the serving app).\n\n @internal\n Authorization: requires can_edit on the agent channel — installing\n grants a workspace access to the agent runtime, the same bar as\n enabling. Redirect style generates and persists the single-use state\n (pending-state pattern from MCP OAuth); direct style validates\n against the provider, persists the status, and maps the\n duplicate-number refusal (the completeInstall duplicate-workspace\n mechanism). Cloud-first runtime: the OSS edition stores channel\n resources but returns FAILED_PRECONDITION here (documented posture,\n decision 001 D-g / T02 §0-b)."
         },
         {
           "name": "CompleteInstall",
@@ -122,7 +122,7 @@
     },
     {
       "name": "InitiateChannelInstallOutput",
-      "description": "Output of the initiate-install RPC.\n\n The caller redirects the user to authorization_url; the provider\n redirects back to the console, which completes the install with the\n completeInstall RPC.",
+      "description": "Output of the initiate-install RPC.\n\n Two install styles share this output. For redirect-installed providers\n (Slack) the caller redirects the user to authorization_url; the provider\n redirects back to the console, which completes the install with the\n completeInstall RPC. For direct-installed providers (WhatsApp) the\n install completes inside this RPC: completed is true and there is\n nothing to redirect to — refresh the channel to see its install facts.",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput",
       "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/io.proto",
       "fields": [
@@ -133,7 +133,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Provider authorization URL to redirect the installing user to\n (for Slack: the \"Add to Slack\" consent screen).",
+          "description": "Provider authorization URL to redirect the installing user to\n (for Slack: the \"Add to Slack\" consent screen). Empty when the\n install completed directly.",
           "required": false
         },
         {
@@ -143,7 +143,17 @@
           "type": {
             "kind": "string"
           },
-          "description": "Single-use opaque state parameter bound to this install attempt.\n\n @internal\n Persisted server-side (PendingOAuthStateDocument pattern) and consumed\n atomically by completeInstall; expired or replayed states are rejected.",
+          "description": "Single-use opaque state parameter bound to this install attempt.\n Empty when the install completed directly.\n\n @internal\n Persisted server-side (PendingOAuthStateDocument pattern) and consumed\n atomically by completeInstall; expired or replayed states are rejected.",
+          "required": false
+        },
+        {
+          "name": "Completed",
+          "jsonName": "completed",
+          "protoField": "completed",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "True when the install completed synchronously inside this RPC\n (direct-installed providers). Clients branch on this field — never on\n provider knowledge of their own — so the server stays the single\n source of install-style truth.\n\n @internal\n DD-WA-1b. The seam behind it is the sealed ChannelInstaller split:\n AuthorizationRedirectInstaller populates authorization_url + state;\n DirectInstaller populates completed.",
           "required": false
         }
       ]
@@ -632,6 +642,18 @@
         "oneofGroup": "provider_status"
       },
       {
+        "name": "Whatsapp",
+        "jsonName": "whatsapp",
+        "protoField": "whatsapp",
+        "type": {
+          "kind": "message",
+          "messageType": "WhatsAppInstallStatus"
+        },
+        "description": "WhatsApp Business number install facts.",
+        "required": false,
+        "oneofGroup": "provider_status"
+      },
+      {
         "name": "CredentialsEnvironmentId",
         "jsonName": "credentialsEnvironmentId",
         "protoField": "credentials_environment_id",
@@ -850,6 +872,64 @@
             "kind": "string"
           },
           "description": "ID of the ChannelApp the install went through; empty for installs\n of the platform's shared Stigmer app.\n\n @internal\n Written by the install completion path from the resolved\n spec.app_ref (sole writer, like every install fact). Discriminates\n routing and workspace uniqueness once multiple apps can serve one\n workspace: lookups key on (team_id, channel_app_id) and the\n partial-unique installed index is compound over both (decision 007\n as amended by T04 item 2). Existing platform installs predate the\n field; a missing value means the platform app — no backfill.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "WhatsAppInstallStatus",
+      "description": "WhatsAppInstallStatus holds the facts observed when a WhatsApp Business\n number was connected through the Meta Cloud API.\n\n @internal\n Written by the direct-install path (sole writer, DD-WA-1): the installer\n validates spec.whatsapp.phone_number_id against the Graph API and echoes\n it here alongside the observed display facts. The echo is deliberate —\n routing and uniqueness read STATUS (the install fact), mirroring\n status.slack.team_id, so a later spec edit can never silently re-route\n live traffic; the number binding changes only through a re-install.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/status.proto",
+      "fields": [
+        {
+          "name": "PhoneNumberId",
+          "jsonName": "phoneNumberId",
+          "protoField": "phone_number_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Phone number ID the install validated and bound, e.g. \"106540352242922\".\n\n @internal\n The inbound routing key: the webhook receiver resolves the\n AgentChannel from the event payload's metadata.phone_number_id. One\n INSTALLED channel per (phone_number_id, channel_app_id), enforced by\n a compound partial-unique index on installed rows — the\n status.slack.team_id mechanism (decision 007) applied to WhatsApp.",
+          "required": false
+        },
+        {
+          "name": "DisplayPhoneNumber",
+          "jsonName": "displayPhoneNumber",
+          "protoField": "display_phone_number",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable phone number at install time, e.g. \"+1 555 025 3483\".",
+          "required": false
+        },
+        {
+          "name": "VerifiedName",
+          "jsonName": "verifiedName",
+          "protoField": "verified_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "WhatsApp Business verified display name of the number at install time.",
+          "required": false
+        },
+        {
+          "name": "ChannelAppId",
+          "jsonName": "channelAppId",
+          "protoField": "channel_app_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the ChannelApp the install went through. Always set for\n WhatsApp — every WhatsApp channel installs through your own Meta app.\n\n @internal\n Same discriminator role as SlackInstallStatus.channel_app_id; never\n empty because WhatsApp has no platform app (DD-WA-2).",
+          "required": false
+        },
+        {
+          "name": "InstalledAt",
+          "jsonName": "installedAt",
+          "protoField": "installed_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the install completed.",
           "required": false
         }
       ]

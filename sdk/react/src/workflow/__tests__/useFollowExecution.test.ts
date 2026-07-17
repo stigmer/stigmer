@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { computeFollowCenter, computeFollowSelection } from "../useFollowExecution";
-import type { FollowCenterInput, FollowSelectionInput } from "../useFollowExecution";
+import { computeFollowCenter } from "../useFollowExecution";
+import type { FollowCenterInput } from "../useFollowExecution";
 
 function defaultInput(overrides: Partial<FollowCenterInput> = {}): FollowCenterInput {
   return {
@@ -101,92 +101,5 @@ describe("computeFollowCenter", () => {
     expect(atZoom1.x).toBe(expectedX);
     expect(atZoom2.x).toBe(expectedX);
     expect(atZoomLow.x).toBe(expectedX);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// computeFollowSelection
-// ---------------------------------------------------------------------------
-
-function selectionInput(overrides: Partial<FollowSelectionInput> = {}): FollowSelectionInput {
-  return {
-    isFollowing: true,
-    activeTaskName: "analyze_data",
-    currentSelectedTask: null,
-    ...overrides,
-  };
-}
-
-describe("computeFollowSelection", () => {
-  it("returns the active task name when following and no task is selected", () => {
-    const result = computeFollowSelection(selectionInput());
-
-    expect(result).toBe("analyze_data");
-  });
-
-  it("returns the active task name when a different task is selected", () => {
-    const result = computeFollowSelection(
-      selectionInput({ currentSelectedTask: "fetch_data" }),
-    );
-
-    expect(result).toBe("analyze_data");
-  });
-
-  it("returns null when the active task is already selected", () => {
-    const result = computeFollowSelection(
-      selectionInput({ currentSelectedTask: "analyze_data" }),
-    );
-
-    expect(result).toBeNull();
-  });
-
-  it("returns null when not following", () => {
-    const result = computeFollowSelection(
-      selectionInput({ isFollowing: false }),
-    );
-
-    expect(result).toBeNull();
-  });
-
-  it("returns null when there is no active task", () => {
-    const result = computeFollowSelection(
-      selectionInput({ activeTaskName: null }),
-    );
-
-    expect(result).toBeNull();
-  });
-
-  it("returns null when not following even if active task differs from selection", () => {
-    const result = computeFollowSelection(
-      selectionInput({
-        isFollowing: false,
-        activeTaskName: "new_task",
-        currentSelectedTask: "old_task",
-      }),
-    );
-
-    expect(result).toBeNull();
-  });
-
-  it("returns null when following but active task is null despite having a selection", () => {
-    const result = computeFollowSelection(
-      selectionInput({
-        activeTaskName: null,
-        currentSelectedTask: "some_task",
-      }),
-    );
-
-    expect(result).toBeNull();
-  });
-
-  it("selects the new active task when the running task changes", () => {
-    const result = computeFollowSelection(
-      selectionInput({
-        activeTaskName: "generate_report",
-        currentSelectedTask: "analyze_data",
-      }),
-    );
-
-    expect(result).toBe("generate_report");
   });
 });

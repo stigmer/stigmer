@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { describe, it, expect, afterEach } from "vitest";
+import { render, screen, cleanup } from "@testing-library/react";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import type {
   DerivedCostSummary,
@@ -32,6 +32,10 @@ function taskState(overrides: Partial<DerivedTaskState> & { taskName: string }):
     currentToolName: "",
     messagesCount: 0,
     toolCallsCount: 0,
+    inputSummary: null,
+    outputSummary: null,
+    approvalRequest: null,
+    approvalResolution: null,
     ...overrides,
   };
 }
@@ -144,22 +148,7 @@ describe("WorkflowUsageTab", () => {
     expect(screen.getByRole("listitem").textContent).toContain("running");
   });
 
-  it("selects the task when a breakdown row is clicked", () => {
-    const onSelectTask = vi.fn();
-    render(
-      <WorkflowUsageTab
-        costSummary={costSummary({ costConsumedMicros: 100_000n })}
-        taskStates={statesOf(
-          taskState({ taskName: "expensive_task", costMicros: 100_000n }),
-        )}
-        onSelectTask={onSelectTask}
-      />,
-    );
-    fireEvent.click(screen.getByRole("button", { name: /expensive_task/ }));
-    expect(onSelectTask).toHaveBeenCalledWith("expensive_task");
-  });
-
-  it("renders rows as static (non-interactive) entries without onSelectTask", () => {
+  it("renders rows as static (non-interactive) entries — the breakdown reports, never navigates (T06)", () => {
     render(
       <WorkflowUsageTab
         costSummary={costSummary({ costConsumedMicros: 100_000n })}

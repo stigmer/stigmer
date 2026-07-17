@@ -8,7 +8,14 @@ export { CHANNEL_PROVIDERS, channelProviderOf } from "./providers.js";
 export type {
   ChannelProviderDescriptor,
   ChannelProviderId,
+  ChannelInstallStyle,
 } from "./providers.js";
+
+export {
+  channelPresentationOf,
+  DEFAULT_CHANNEL_PRESENTATION,
+} from "./providerPresentation.js";
+export type { ChannelProviderPresentation } from "./providerPresentation.js";
 
 export { useAgentChannel } from "./useAgentChannel.js";
 export type { UseAgentChannelReturn } from "./useAgentChannel.js";
@@ -28,7 +35,16 @@ export type {
   SlackConnectPhase,
 } from "./useConnectSlackChannel.js";
 
+export { useInstallChannel } from "./useInstallChannel.js";
+export type {
+  UseInstallChannelReturn,
+  InstallChannelPhase,
+} from "./useInstallChannel.js";
+
 export { useChannelToolReadiness } from "./useChannelToolReadiness.js";
+
+export { useChannelSessions } from "./useChannelSessions.js";
+export type { UseChannelSessionsReturn } from "./useChannelSessions.js";
 
 export { AgentChannelsPanel } from "./AgentChannelsPanel.js";
 export type { AgentChannelsPanelProps } from "./AgentChannelsPanel.js";
@@ -36,8 +52,14 @@ export type { AgentChannelsPanelProps } from "./AgentChannelsPanel.js";
 export { ConnectSlackDialog } from "./ConnectSlackDialog.js";
 export type { ConnectSlackDialogProps } from "./ConnectSlackDialog.js";
 
+export { ConnectWhatsAppDialog } from "./ConnectWhatsAppDialog.js";
+export type { ConnectWhatsAppDialogProps } from "./ConnectWhatsAppDialog.js";
+
 export { ChannelCredentialsDialog } from "./ChannelCredentialsDialog.js";
 export type { ChannelCredentialsDialogProps } from "./ChannelCredentialsDialog.js";
 
 export { ChannelToolCredentials } from "./ChannelToolCredentials.js";
 export type { ChannelToolCredentialsProps } from "./ChannelToolCredentials.js";
+
+export { ChannelConversationsDialog } from "./ChannelConversationsDialog.js";
+export type { ChannelConversationsDialogProps } from "./ChannelConversationsDialog.js";

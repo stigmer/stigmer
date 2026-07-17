@@ -85,12 +85,18 @@ type AgentChannelInput struct {
 	AgentRef        ResourceRef
 	Enabled         bool
 	Slack           *SlackChannelConfigInput
+	Whatsapp        *WhatsAppChannelConfigInput
 	EnvironmentRefs []ResourceRef
 	AppRef          ResourceRef
 }
 
 // SlackChannelConfigInput is the SDK input type for SlackChannelConfig.
 type SlackChannelConfigInput struct {
+}
+
+// WhatsAppChannelConfigInput is the SDK input type for WhatsAppChannelConfig.
+type WhatsAppChannelConfigInput struct {
+	PhoneNumberId string
 }
 
 func (i *AgentChannelInput) toProto() *agentchannelv1.AgentChannel {
@@ -115,6 +121,11 @@ func (i *AgentChannelInput) toProto() *agentchannelv1.AgentChannel {
 	if i.Slack != nil {
 		m := &agentchannelv1.SlackChannelConfig{}
 		resource.Spec.ProviderConfig = &agentchannelv1.AgentChannelSpec_Slack{Slack: m}
+	}
+	if i.Whatsapp != nil {
+		m := &agentchannelv1.WhatsAppChannelConfig{}
+		m.PhoneNumberId = i.Whatsapp.PhoneNumberId
+		resource.Spec.ProviderConfig = &agentchannelv1.AgentChannelSpec_Whatsapp{Whatsapp: m}
 	}
 	for _, r := range i.EnvironmentRefs {
 		ref := r.toProto()
@@ -152,6 +163,11 @@ func AgentChannelInputFromProto(p *agentchannelv1.AgentChannel) *AgentChannelInp
 		if ov := s.GetSlack(); ov != nil {
 			input.Slack = &SlackChannelConfigInput{}
 		}
+		if ov := s.GetWhatsapp(); ov != nil {
+			input.Whatsapp = &WhatsAppChannelConfigInput{
+				PhoneNumberId: ov.GetPhoneNumberId(),
+			}
+		}
 	}
 	return input
 }
@@ -161,5 +177,14 @@ func slackChannelConfigInputFromProto(p *agentchannelv1.SlackChannelConfig) *Sla
 		return nil
 	}
 	input := &SlackChannelConfigInput{}
+	return input
+}
+
+func whatsAppChannelConfigInputFromProto(p *agentchannelv1.WhatsAppChannelConfig) *WhatsAppChannelConfigInput {
+	if p == nil {
+		return nil
+	}
+	input := &WhatsAppChannelConfigInput{}
+	input.PhoneNumberId = p.GetPhoneNumberId()
 	return input
 }

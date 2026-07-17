@@ -56,6 +56,9 @@ message ChannelDelivery {
   oneof delivery_context {
     // Slack delivery context.
     SlackDeliveryContext slack = 12;
+
+    // WhatsApp delivery context.
+    WhatsAppDeliveryContext whatsapp = 16;
   }
 
   // When the delivery record was created (webhook time).
@@ -107,4 +110,21 @@ message SlackDeliveryContext {
   // Assistant DM path uses assistant.threads.setStatus and carries no
   // placeholder timestamp.
   string placeholder_ts = 3;
+}
+
+// WhatsAppDeliveryContext carries what the WhatsApp deliverer needs to
+// send the reply through the Meta Cloud API.
+//
+// @internal
+// No placeholder field: WhatsApp cannot edit a sent message, so there is
+// no "thinking" message to update (the Slack chat.update UX has no
+// analog). No credentials either — the deliverer loads the channel by
+// agent_channel_id and resolves the access token from its ChannelApp
+// (DD-WA-3), the SlackOutboundDeliverer channel-load pattern.
+message WhatsAppDeliveryContext {
+  // Phone number ID the reply sends FROM (the business number).
+  string phone_number_id = 1;
+
+  // WhatsApp user id (wa_id) the reply sends TO.
+  string recipient_wa_id = 2;
 }

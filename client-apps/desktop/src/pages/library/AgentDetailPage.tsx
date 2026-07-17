@@ -72,8 +72,10 @@ export default function AgentDetailPage() {
 
   // Tauri's Wry webview blocks window.open(), so the OAuth popup flow
   // cannot run in-app (the same posture as MCP OAuth, which is web-only).
-  // Connect hands off to the web console in the system browser, landing
-  // on this agent's Channels tab via the ?tab= deep link.
+  // Redirect-style connects (Slack) hand off to the web console in the
+  // system browser, landing on this agent's Channels tab via the ?tab=
+  // deep link. Direct-install providers (WhatsApp) never invoke this —
+  // the panel runs their flow in-app, popup-free.
   const handleConnectExternal = useCallback(() => {
     void invoke("open_auth_in_browser", {
       authUrl: `${CONSOLE_URL}/library/agents/${org}/${slug}?tab=channels`,
@@ -92,6 +94,14 @@ export default function AgentDetailPage() {
                 <AgentChannelsPanel
                   agent={agent}
                   onConnectExternal={handleConnectExternal}
+                  // A plain-anchor hash URL: the in-app WhatsApp connect
+                  // dialog links here, and the hash router picks it up
+                  // without a reload (DD-016 parity with the web's
+                  // /settings/channel-apps).
+                  channelAppsHref="#/settings/channel-apps"
+                  // Channel conversations open in the standard session route;
+                  // SessionViewer renders them read-only (observer audience).
+                  sessionHref={(id) => `#/sessions/${id}`}
                 />
               ),
             },

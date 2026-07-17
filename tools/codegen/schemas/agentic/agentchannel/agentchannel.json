@@ -43,6 +43,18 @@
       "oneofGroup": "provider_config"
     },
     {
+      "name": "Whatsapp",
+      "jsonName": "whatsapp",
+      "protoField": "whatsapp",
+      "type": {
+        "kind": "message",
+        "messageType": "WhatsAppChannelConfig"
+      },
+      "description": "WhatsApp Business number connection (Meta Cloud API).",
+      "required": false,
+      "oneofGroup": "provider_config"
+    },
+    {
       "name": "EnvironmentRefs",
       "jsonName": "environmentRefs",
       "protoField": "environment_refs",
@@ -65,7 +77,7 @@
         "kind": "message",
         "messageType": "ApiResourceReference"
       },
-      "description": "Reference to the ChannelApp this channel installs through.\n\n Absent means the channel uses the platform's shared Stigmer app —\n the zero-setup default. Set it to install through your own provider\n app instead: the bot carries the app's name and icon, and each app\n is its own bot identity, so multiple agents can serve one workspace.\n\n @internal\n T04 item 2. Invariants (enforced in handlers of both editions):\n app_ref.org must equal metadata.org (secrets never cross orgs — the\n agent_ref rule), and the ref is immutable while install_state ==\n installed (the workspace granted THAT app; switching apps requires\n re-install, so pending/revoked channels may rebind freely). No\n write-time existence or provider-match check, matching the\n environment_refs posture: the install flow resolves the app and\n fails closed on a missing or wrong-provider reference.",
+      "description": "Reference to the ChannelApp this channel installs through.\n\n For Slack, absent means the channel uses the platform's shared\n Stigmer app — the zero-setup default. Set it to install through your\n own provider app instead: the bot carries the app's name and icon,\n and each app is its own bot identity, so multiple agents can serve\n one workspace. For WhatsApp the reference is required — every\n WhatsApp channel installs through your own Meta app (DD-WA-2).\n\n @internal\n T04 item 2. Invariants (enforced in handlers of both editions):\n app_ref.org must equal metadata.org (secrets never cross orgs — the\n agent_ref rule), and the ref is immutable while install_state ==\n installed (the workspace granted THAT app; switching apps requires\n re-install, so pending/revoked channels may rebind freely). No\n write-time existence or provider-match check, matching the\n environment_refs posture: the install flow resolves the app and\n fails closed on a missing or wrong-provider reference.",
       "required": false,
       "referenceKind": 48
     }

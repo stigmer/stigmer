@@ -101,6 +101,7 @@ class AgentChannelInput:
     visibility: int = 0
     enabled: bool = False
     slack: SlackChannelConfigInput | None = None
+    whatsapp: WhatsAppChannelConfigInput | None = None
     environment_refs: list[ResourceRef] = field(default_factory=list)
     app_ref: ResourceRef | None = None
 
@@ -114,6 +115,8 @@ class AgentChannelInput:
             spec.agent_ref.CopyFrom(_ref)
         if self.slack is not None:
             spec.slack.CopyFrom(self.slack._to_proto())
+        if self.whatsapp is not None:
+            spec.whatsapp.CopyFrom(self.whatsapp._to_proto())
         for ref in self.environment_refs:
             _ref = ref._to_proto()
             _ref.kind = 53
@@ -147,5 +150,18 @@ class SlackChannelConfigInput:
 
     def _to_proto(self) -> spec_pb2.SlackChannelConfig:
         msg = spec_pb2.SlackChannelConfig()
+        return msg
+
+
+@dataclass
+class WhatsAppChannelConfigInput:
+    """SDK input type for WhatsAppChannelConfig."""
+
+    phone_number_id: str = ""
+
+    def _to_proto(self) -> spec_pb2.WhatsAppChannelConfig:
+        msg = spec_pb2.WhatsAppChannelConfig(
+            phone_number_id=self.phone_number_id,
+        )
         return msg
 

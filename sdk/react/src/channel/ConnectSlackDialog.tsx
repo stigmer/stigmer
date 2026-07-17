@@ -1,17 +1,22 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
-import { getErrorReason, getUserMessage, type ResourceRef } from "@stigmer/sdk";
+import { getErrorReason, type ResourceRef } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
-import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
 import { Button } from "../button/Button.js";
 import { useChannelAppList } from "../channel-app/useChannelAppList.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
-import { ChannelToolCredentials } from "./ChannelToolCredentials.js";
+import {
+  RegisterChannelAppAffordance,
+  ServingAppSection,
+} from "./connect/ServingAppSection.js";
+import { ToolCredentialsSection } from "./connect/ToolCredentialsSection.js";
+import { RefusalBox, VerbatimRefusal } from "./connect/VerbatimRefusal.js";
+import { CheckIcon, CloseIcon, Spinner } from "./connect/icons.js";
 import { useConnectSlackChannel, type SlackConnectPhase } from "./useConnectSlackChannel.js";
 import { useCreateAgentChannel } from "./useCreateAgentChannel.js";
 import { useOrgAgentChannelList } from "./useOrgAgentChannelList.js";
@@ -339,6 +344,24 @@ function ConnectSlackDialogBody({
                 onChange={setAppRef}
                 disabled={busy}
                 channelAppsHref={channelAppsHref}
+                idPrefix="stgm-slack-app"
+                platformOption={{
+                  label: "Stigmer app",
+                  hint: "Fastest — no setup, the bot is named Stigmer",
+                }}
+                appHint="Your app — your bot name and icon"
+                emptyBody={
+                  <p className="text-xs text-muted-foreground">
+                    The platform{" "}
+                    <span className="font-medium text-foreground">Stigmer</span>{" "}
+                    app — no setup needed. Want the bot to carry your own name
+                    and icon, or several agents in one workspace?{" "}
+                    <RegisterChannelAppAffordance channelAppsHref={channelAppsHref}>
+                      Register a channel app
+                    </RegisterChannelAppAffordance>
+                    .
+                  </p>
+                }
               />
             )}
 
@@ -398,6 +421,7 @@ function ConnectSlackDialogBody({
               onClick={() => void handleConnect()}
               disabled={busy}
               icon={<SlackMarkIcon className="size-3.5" />}
+              data-cursor-target="dialog-connect-slack"
             >
               {error ? "Try again" : channel ? "Reconnect to Slack" : "Connect to Slack"}
             </Button>
@@ -409,127 +433,8 @@ function ConnectSlackDialogBody({
 }
 
 // ---------------------------------------------------------------------------
-// Serving app — the platform Stigmer app vs one of the org's own apps
+// Install refusal — guided for the duplicate-workspace reason
 // ---------------------------------------------------------------------------
-
-/**
- * "Connect as whom" for create mode (T04 item 2): the platform's shared
- * Stigmer app (zero setup, bot named "Stigmer") or one of the org's own
- * channel apps (the bot carries that app's brand, and because each app is
- * its own bot identity, multiple agents can serve one workspace).
- *
- * Always rendered so the choice — and the path to registering an app —
- * is discoverable before the first BYO app exists. With no registered
- * apps it states the default plainly instead of a one-option radio group
- * (which would be noise); with apps it offers the picker. Both shapes
- * carry the register affordance: a link when the host provided
- * `channelAppsHref`, plain guidance text otherwise.
- */
-function ServingAppSection({
-  org,
-  apps,
-  value,
-  onChange,
-  disabled,
-  channelAppsHref,
-}: {
-  readonly org: string;
-  readonly apps: readonly ChannelApp[];
-  readonly value: ResourceRef | null;
-  readonly onChange: (ref: ResourceRef | null) => void;
-  readonly disabled: boolean;
-  readonly channelAppsHref?: string;
-}) {
-  if (apps.length === 0) {
-    return (
-      <section aria-label="Connect as">
-        <h3 className="mb-1.5 text-xs font-medium text-foreground">
-          Connect as
-        </h3>
-        <p className="text-xs text-muted-foreground">
-          The platform{" "}
-          <span className="font-medium text-foreground">Stigmer</span> app —
-          no setup needed. Want the bot to carry your own name and icon, or
-          several agents in one workspace?{" "}
-          <RegisterChannelAppAffordance channelAppsHref={channelAppsHref}>
-            Register a channel app
-          </RegisterChannelAppAffordance>
-          .
-        </p>
-      </section>
-    );
-  }
-
-  return (
-    <fieldset>
-      <legend className="mb-1.5 block text-xs font-medium text-foreground">
-        Connect as
-      </legend>
-      <div role="radiogroup" className="space-y-1.5">
-        <ServingAppOption
-          id="stgm-slack-app-platform"
-          label="Stigmer app"
-          hint="Fastest — no setup, the bot is named Stigmer"
-          checked={value === null}
-          onSelect={() => onChange(null)}
-          disabled={disabled}
-        />
-        {apps.map((app) => {
-          const slug = app.metadata?.slug ?? "";
-          const checked = value?.slug === slug;
-          return (
-            <ServingAppOption
-              key={app.metadata?.id ?? slug}
-              id={`stgm-slack-app-${slug}`}
-              label={app.metadata?.name ?? slug}
-              hint="Your app — your bot name and icon"
-              checked={checked}
-              onSelect={() => onChange({ org, slug })}
-              disabled={disabled}
-            />
-          );
-        })}
-      </div>
-      <p className="mt-1.5 text-xs text-muted-foreground">
-        <RegisterChannelAppAffordance channelAppsHref={channelAppsHref}>
-          Register a channel app
-        </RegisterChannelAppAffordance>
-        .
-      </p>
-    </fieldset>
-  );
-}
-
-/**
- * The path from the connect flow to Channel App registration. A link
- * when the host told us where registration lives; otherwise the label
- * plus the console location, so embedded hosts without the route still
- * leave the user oriented. Children are the label ("Register a channel
- * app" / "register a channel app") so each call site reads as a sentence.
- */
-function RegisterChannelAppAffordance({
-  channelAppsHref,
-  children,
-}: {
-  readonly channelAppsHref?: string;
-  readonly children: ReactNode;
-}) {
-  if (!channelAppsHref) {
-    return <>{children} under Settings → Channel Apps</>;
-  }
-  return (
-    <a
-      href={channelAppsHref}
-      className={cn(
-        "font-medium underline underline-offset-2",
-        "hover:no-underline",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
-      )}
-    >
-      {children}
-    </a>
-  );
-}
 
 /**
  * The reason code the server attaches (google.rpc.ErrorInfo, domain
@@ -555,22 +460,12 @@ function InstallRefusal({
 }) {
   const reason = getErrorReason(error);
   if (reason?.reason !== REASON_WORKSPACE_ALREADY_CONNECTED) {
-    return (
-      <div
-        role="alert"
-        className="rounded-md border border-destructive/30 bg-destructive-subtle px-3 py-2 text-xs text-destructive"
-      >
-        {getUserMessage(error)}
-      </div>
-    );
+    return <VerbatimRefusal error={error} />;
   }
 
   const team = reason.metadata.team_name || "This workspace";
   return (
-    <div
-      role="alert"
-      className="space-y-1 rounded-md border border-destructive/30 bg-destructive-subtle px-3 py-2 text-xs text-destructive"
-    >
+    <RefusalBox>
       <p>
         <span className="font-medium">{team}</span> already hosts an agent
         through this app — a workspace hosts one agent per Slack app.
@@ -582,7 +477,7 @@ function InstallRefusal({
         </RegisterChannelAppAffordance>{" "}
         and connect through that instead.
       </p>
-    </div>
+    </RefusalBox>
   );
 }
 
@@ -620,107 +515,6 @@ function AlreadyServedNote({
         );
       })}
     </div>
-  );
-}
-
-function ServingAppOption({
-  id,
-  label,
-  hint,
-  checked,
-  onSelect,
-  disabled,
-}: {
-  readonly id: string;
-  readonly label: string;
-  readonly hint: string;
-  readonly checked: boolean;
-  readonly onSelect: () => void;
-  readonly disabled: boolean;
-}) {
-  return (
-    <label
-      htmlFor={id}
-      className={cn(
-        "flex cursor-pointer items-start gap-2 rounded-md border px-2.5 py-1.5",
-        checked ? "border-ring bg-accent" : "border-border hover:bg-accent-hover",
-        disabled && "pointer-events-none opacity-50",
-      )}
-    >
-      <input
-        id={id}
-        type="radio"
-        name="stgm-slack-serving-app"
-        checked={checked}
-        onChange={onSelect}
-        disabled={disabled}
-        className="mt-0.5 accent-current"
-      />
-      <span className="min-w-0">
-        <span className="block text-xs font-medium text-foreground">{label}</span>
-        <span className="block text-[0.65rem] text-muted-foreground">{hint}</span>
-      </span>
-    </label>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Tool credentials — org-shared environments bound at connect time
-// ---------------------------------------------------------------------------
-
-/**
- * Collapsible credential-binding section for create mode (the
- * ShareAgentDialog ToolCredentialsSection pattern). Expanded by default
- * when the agent uses MCP tools — for those agents this is essential
- * configuration, not an advanced option: without a binding, every
- * workspace message that needs a tool is refused.
- */
-function ToolCredentialsSection({
-  agent,
-  org,
-  value,
-  onChange,
-  disabled,
-}: {
-  readonly agent: Agent;
-  readonly org: string;
-  readonly value: readonly ResourceRef[];
-  readonly onChange: (refs: ResourceRef[]) => void;
-  readonly disabled: boolean;
-}) {
-  const hasMcpTools = (agent.spec?.mcpServerUsages?.length ?? 0) > 0;
-  const [expanded, setExpanded] = useState(hasMcpTools || value.length > 0);
-
-  return (
-    <section>
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-        className={cn(
-          "inline-flex items-center gap-1 text-xs font-medium text-muted-foreground",
-          "hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
-        )}
-      >
-        <ChevronIcon
-          className={cn("size-3 transition-transform", expanded && "rotate-90")}
-        />
-        Tool credentials
-      </button>
-
-      {expanded && (
-        <div className="mt-2">
-          <ChannelToolCredentials
-            agent={agent}
-            org={org}
-            value={value}
-            onChange={onChange}
-            disabled={disabled}
-          />
-        </div>
-      )}
-    </section>
   );
 }
 
@@ -815,39 +609,3 @@ function InstalledSummary({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Icons
-// ---------------------------------------------------------------------------
-
-function CloseIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-      <path d="m3 3 8 8M11 3l-8 8" />
-    </svg>
-  );
-}
-
-function CheckIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m3 8.5 3.5 3.5L13 5" />
-    </svg>
-  );
-}
-
-function ChevronIcon({ className }: { readonly className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m4.5 2.5 3.5 3.5-3.5 3.5" />
-    </svg>
-  );
-}
-
-function Spinner({ className }: { readonly className?: string }) {
-  return (
-    <svg className={cn("animate-spin", className)} viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
-      <path d="M14.5 8A6.5 6.5 0 0 0 8 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}

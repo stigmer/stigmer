@@ -30,6 +30,7 @@ const (
 	providerImmutableMessage = "spec provider is immutable (channel provider is %s) — create a new channel for a different provider"
 	appRefCrossOrgMessage    = "spec.app_ref.org must match metadata.org — a channel can only install through its own organization's channel app"
 	appRefFrozenMessage      = "spec.app_ref cannot change while the channel is installed — the workspace authorized the current app; uninstall or disconnect first, then rebind and re-install"
+	whatsappAppRefRequired   = "spec.app_ref is required for WhatsApp channels — register your Meta app as a channel app and reference it"
 )
 
 // contextWithKind simulates the apiresource interceptor, which injects the
@@ -122,6 +123,32 @@ func createTestChannel(t *testing.T, tc *testControllers, agent *agentv1.Agent, 
 		t.Fatalf("channel Create failed: %v", err)
 	}
 	return created
+}
+
+// whatsAppChannelFor builds a named WhatsApp channel for an agent — the
+// channelFor shape with the whatsapp provider arm (T05). No app_ref by
+// default so tests exercise the DD-WA-2 requirement explicitly.
+func whatsAppChannelFor(agent *agentv1.Agent, name string) *agentchannelv1.AgentChannel {
+	return &agentchannelv1.AgentChannel{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "AgentChannel",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: name,
+			Org:  agent.GetMetadata().GetOrg(),
+		},
+		Spec: &agentchannelv1.AgentChannelSpec{
+			AgentRef: &apiresource.ApiResourceReference{
+				Kind: apiresourcekind.ApiResourceKind_agent,
+				Slug: agent.GetMetadata().GetSlug(),
+			},
+			Enabled: true,
+			ProviderConfig: &agentchannelv1.AgentChannelSpec_Whatsapp{
+				Whatsapp: &agentchannelv1.WhatsAppChannelConfig{
+					PhoneNumberId: "106540352242922",
+				},
+			},
+		},
+	}
 }
 
 func TestAgentChannelController_Create(t *testing.T) {
@@ -718,6 +745,108 @@ func TestAgentChannelController_AppRef(t *testing.T) {
 		unchanged.Spec.AppRef = appRef(agent.GetMetadata().GetOrg(), "granted-app")
 		if _, err := tc.channels.Update(channelCtx(), unchanged); err != nil {
 			t.Errorf("an unchanged app_ref on an installed channel must pass: %v", err)
+		}
+	})
+}
+
+// TestAgentChannelController_WhatsAppAppRef pins the DD-WA-2 rule in the
+// OSS edition (T05 Phase 5 parity): WhatsApp is BYO-only, so app_ref is
+// required on every write path — create, apply, and update — with copy
+// byte-identical to the cloud edition's AgentChannelDefaultsResolver /
+// AgentChannelUpdateHandler. Slack's "absent = platform app" default is
+// untouched (covered by TestAgentChannelController_AppRef above).
+func TestAgentChannelController_WhatsAppAppRef(t *testing.T) {
+	tc := newTestControllers(t)
+
+	appRef := func(slug string) *apiresource.ApiResourceReference {
+		return &apiresource.ApiResourceReference{
+			Kind: apiresourcekind.ApiResourceKind_channel_app,
+			Slug: slug,
+		}
+	}
+
+	t.Run("create without app_ref is INVALID_ARGUMENT with the shared copy", func(t *testing.T) {
+		agent := createTestAgent(t, tc, "WA No App Agent")
+
+		_, err := tc.channels.Create(channelCtx(), whatsAppChannelFor(agent, "WA No App"))
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected INVALID_ARGUMENT for whatsapp without app_ref, got %s (%v)",
+				status.Code(err), err)
+		}
+		if got := status.Convert(err).Message(); got != whatsappAppRefRequired {
+			t.Errorf("whatsapp app_ref-required copy must match the cloud edition:\n  want %q\n  got  %q",
+				whatsappAppRefRequired, got)
+		}
+	})
+
+	t.Run("apply without app_ref is refused on the same path", func(t *testing.T) {
+		agent := createTestAgent(t, tc, "WA Apply Agent")
+
+		_, err := tc.channels.Apply(channelCtx(), whatsAppChannelFor(agent, "WA Apply"))
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected INVALID_ARGUMENT for whatsapp apply without app_ref, got %s (%v)",
+				status.Code(err), err)
+		}
+	})
+
+	t.Run("create with app_ref passes and persists the binding", func(t *testing.T) {
+		agent := createTestAgent(t, tc, "WA Bound Agent")
+		channel := whatsAppChannelFor(agent, "WA Bound")
+		channel.Spec.AppRef = appRef("acme-meta-app")
+
+		created, err := tc.channels.Create(channelCtx(), channel)
+		if err != nil {
+			t.Fatalf("Create with app_ref failed: %v", err)
+		}
+		if got := created.GetSpec().GetAppRef().GetSlug(); got != "acme-meta-app" {
+			t.Errorf("app_ref slug must persist, got %q", got)
+		}
+		if got := created.GetSpec().GetAppRef().GetOrg(); got != agent.GetMetadata().GetOrg() {
+			t.Errorf("an empty app_ref org must normalize to the channel's org, got %q", got)
+		}
+	})
+
+	t.Run("update clearing app_ref is INVALID_ARGUMENT — the binding may change, never disappear", func(t *testing.T) {
+		agent := createTestAgent(t, tc, "WA Unbind Agent")
+		channel := whatsAppChannelFor(agent, "WA Unbind")
+		channel.Spec.AppRef = appRef("acme-meta-app")
+		created, err := tc.channels.Create(channelCtx(), channel)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		unbound := whatsAppChannelFor(agent, "WA Unbind")
+		unbound.Metadata.Id = created.GetMetadata().GetId()
+		unbound.Metadata.Slug = created.GetMetadata().GetSlug()
+
+		_, err = tc.channels.Update(channelCtx(), unbound)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected INVALID_ARGUMENT for clearing whatsapp app_ref, got %s (%v)",
+				status.Code(err), err)
+		}
+		if got := status.Convert(err).Message(); got != whatsappAppRefRequired {
+			t.Errorf("whatsapp app_ref-required copy must match the cloud edition:\n  want %q\n  got  %q",
+				whatsappAppRefRequired, got)
+		}
+	})
+
+	t.Run("update keeping the binding passes (uninstalled rebind stays legitimate)", func(t *testing.T) {
+		agent := createTestAgent(t, tc, "WA Rebind Agent")
+		channel := whatsAppChannelFor(agent, "WA Rebind")
+		channel.Spec.AppRef = appRef("first-meta-app")
+		created, err := tc.channels.Create(channelCtx(), channel)
+		if err != nil {
+			t.Fatalf("Create failed: %v", err)
+		}
+
+		rebound := created
+		rebound.Spec.AppRef = appRef("second-meta-app")
+		updated, err := tc.channels.Update(channelCtx(), rebound)
+		if err != nil {
+			t.Fatalf("rebinding a pending whatsapp channel must pass: %v", err)
+		}
+		if got := updated.GetSpec().GetAppRef().GetSlug(); got != "second-meta-app" {
+			t.Errorf("the rebind must persist, got %q", got)
 		}
 	})
 }

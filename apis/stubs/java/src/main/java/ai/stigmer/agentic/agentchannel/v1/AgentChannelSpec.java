@@ -75,6 +75,7 @@ private static final long serialVersionUID = 0L;
       implements com.google.protobuf.Internal.EnumLite,
           com.google.protobuf.AbstractMessage.InternalOneOfEnum {
     SLACK(3),
+    WHATSAPP(6),
     PROVIDERCONFIG_NOT_SET(0);
     private final int value;
     private ProviderConfigCase(int value) {
@@ -93,6 +94,7 @@ private static final long serialVersionUID = 0L;
     public static ProviderConfigCase forNumber(int value) {
       switch (value) {
         case 3: return SLACK;
+        case 6: return WHATSAPP;
         case 0: return PROVIDERCONFIG_NOT_SET;
         default: return null;
       }
@@ -229,6 +231,49 @@ private static final long serialVersionUID = 0L;
        return (ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig) providerConfig_;
     }
     return ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig.getDefaultInstance();
+  }
+
+  public static final int WHATSAPP_FIELD_NUMBER = 6;
+  /**
+   * <pre>
+   * WhatsApp Business number connection (Meta Cloud API).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6 [json_name = "whatsapp"];</code>
+   * @return Whether the whatsapp field is set.
+   */
+  @java.lang.Override
+  public boolean hasWhatsapp() {
+    return providerConfigCase_ == 6;
+  }
+  /**
+   * <pre>
+   * WhatsApp Business number connection (Meta Cloud API).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6 [json_name = "whatsapp"];</code>
+   * @return The whatsapp.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig getWhatsapp() {
+    if (providerConfigCase_ == 6) {
+       return (ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig) providerConfig_;
+    }
+    return ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * WhatsApp Business number connection (Meta Cloud API).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6 [json_name = "whatsapp"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfigOrBuilder getWhatsappOrBuilder() {
+    if (providerConfigCase_ == 6) {
+       return (ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig) providerConfig_;
+    }
+    return ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig.getDefaultInstance();
   }
 
   public static final int ENVIRONMENT_REFS_FIELD_NUMBER = 4;
@@ -408,10 +453,12 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Reference to the ChannelApp this channel installs through.
    *
-   * Absent means the channel uses the platform's shared Stigmer app —
-   * the zero-setup default. Set it to install through your own provider
-   * app instead: the bot carries the app's name and icon, and each app
-   * is its own bot identity, so multiple agents can serve one workspace.
+   * For Slack, absent means the channel uses the platform's shared
+   * Stigmer app — the zero-setup default. Set it to install through your
+   * own provider app instead: the bot carries the app's name and icon,
+   * and each app is its own bot identity, so multiple agents can serve
+   * one workspace. For WhatsApp the reference is required — every
+   * WhatsApp channel installs through your own Meta app (DD-WA-2).
    *
    * &#64;internal
    * T04 item 2. Invariants (enforced in handlers of both editions):
@@ -435,10 +482,12 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Reference to the ChannelApp this channel installs through.
    *
-   * Absent means the channel uses the platform's shared Stigmer app —
-   * the zero-setup default. Set it to install through your own provider
-   * app instead: the bot carries the app's name and icon, and each app
-   * is its own bot identity, so multiple agents can serve one workspace.
+   * For Slack, absent means the channel uses the platform's shared
+   * Stigmer app — the zero-setup default. Set it to install through your
+   * own provider app instead: the bot carries the app's name and icon,
+   * and each app is its own bot identity, so multiple agents can serve
+   * one workspace. For WhatsApp the reference is required — every
+   * WhatsApp channel installs through your own Meta app (DD-WA-2).
    *
    * &#64;internal
    * T04 item 2. Invariants (enforced in handlers of both editions):
@@ -462,10 +511,12 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Reference to the ChannelApp this channel installs through.
    *
-   * Absent means the channel uses the platform's shared Stigmer app —
-   * the zero-setup default. Set it to install through your own provider
-   * app instead: the bot carries the app's name and icon, and each app
-   * is its own bot identity, so multiple agents can serve one workspace.
+   * For Slack, absent means the channel uses the platform's shared
+   * Stigmer app — the zero-setup default. Set it to install through your
+   * own provider app instead: the bot carries the app's name and icon,
+   * and each app is its own bot identity, so multiple agents can serve
+   * one workspace. For WhatsApp the reference is required — every
+   * WhatsApp channel installs through your own Meta app (DD-WA-2).
    *
    * &#64;internal
    * T04 item 2. Invariants (enforced in handlers of both editions):
@@ -514,6 +565,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(5, getAppRef());
     }
+    if (providerConfigCase_ == 6) {
+      output.writeMessage(6, (ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig) providerConfig_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -547,6 +601,10 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getAppRef());
+    }
+    if (providerConfigCase_ == 6) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(6, (ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig) providerConfig_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -583,6 +641,10 @@ private static final long serialVersionUID = 0L;
         if (!getSlack()
             .equals(other.getSlack())) return false;
         break;
+      case 6:
+        if (!getWhatsapp()
+            .equals(other.getWhatsapp())) return false;
+        break;
       case 0:
       default:
     }
@@ -616,6 +678,10 @@ private static final long serialVersionUID = 0L;
       case 3:
         hash = (37 * hash) + SLACK_FIELD_NUMBER;
         hash = (53 * hash) + getSlack().hashCode();
+        break;
+      case 6:
+        hash = (37 * hash) + WHATSAPP_FIELD_NUMBER;
+        hash = (53 * hash) + getWhatsapp().hashCode();
         break;
       case 0:
       default:
@@ -786,13 +852,16 @@ private static final long serialVersionUID = 0L;
       if (slackBuilder_ != null) {
         slackBuilder_.clear();
       }
+      if (whatsappBuilder_ != null) {
+        whatsappBuilder_.clear();
+      }
       if (environmentRefsBuilder_ == null) {
         environmentRefs_ = java.util.Collections.emptyList();
       } else {
         environmentRefs_ = null;
         environmentRefsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000010);
       appRef_ = null;
       if (appRefBuilder_ != null) {
         appRefBuilder_.dispose();
@@ -835,9 +904,9 @@ private static final long serialVersionUID = 0L;
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec result) {
       if (environmentRefsBuilder_ == null) {
-        if (((bitField0_ & 0x00000008) != 0)) {
+        if (((bitField0_ & 0x00000010) != 0)) {
           environmentRefs_ = java.util.Collections.unmodifiableList(environmentRefs_);
-          bitField0_ = (bitField0_ & ~0x00000008);
+          bitField0_ = (bitField0_ & ~0x00000010);
         }
         result.environmentRefs_ = environmentRefs_;
       } else {
@@ -857,7 +926,7 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.enabled_ = enabled_;
       }
-      if (((from_bitField0_ & 0x00000010) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.appRef_ = appRefBuilder_ == null
             ? appRef_
             : appRefBuilder_.build();
@@ -872,6 +941,10 @@ private static final long serialVersionUID = 0L;
       if (providerConfigCase_ == 3 &&
           slackBuilder_ != null) {
         result.providerConfig_ = slackBuilder_.build();
+      }
+      if (providerConfigCase_ == 6 &&
+          whatsappBuilder_ != null) {
+        result.providerConfig_ = whatsappBuilder_.build();
       }
     }
 
@@ -897,7 +970,7 @@ private static final long serialVersionUID = 0L;
         if (!other.environmentRefs_.isEmpty()) {
           if (environmentRefs_.isEmpty()) {
             environmentRefs_ = other.environmentRefs_;
-            bitField0_ = (bitField0_ & ~0x00000008);
+            bitField0_ = (bitField0_ & ~0x00000010);
           } else {
             ensureEnvironmentRefsIsMutable();
             environmentRefs_.addAll(other.environmentRefs_);
@@ -910,7 +983,7 @@ private static final long serialVersionUID = 0L;
             environmentRefsBuilder_.dispose();
             environmentRefsBuilder_ = null;
             environmentRefs_ = other.environmentRefs_;
-            bitField0_ = (bitField0_ & ~0x00000008);
+            bitField0_ = (bitField0_ & ~0x00000010);
             environmentRefsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetEnvironmentRefsFieldBuilder() : null;
@@ -925,6 +998,10 @@ private static final long serialVersionUID = 0L;
       switch (other.getProviderConfigCase()) {
         case SLACK: {
           mergeSlack(other.getSlack());
+          break;
+        }
+        case WHATSAPP: {
+          mergeWhatsapp(other.getWhatsapp());
           break;
         }
         case PROVIDERCONFIG_NOT_SET: {
@@ -993,9 +1070,16 @@ private static final long serialVersionUID = 0L;
               input.readMessage(
                   internalGetAppRefFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000020;
               break;
             } // case 42
+            case 50: {
+              input.readMessage(
+                  internalGetWhatsappFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              providerConfigCase_ = 6;
+              break;
+            } // case 50
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1488,12 +1572,190 @@ private static final long serialVersionUID = 0L;
       return slackBuilder_;
     }
 
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig, ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig.Builder, ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfigOrBuilder> whatsappBuilder_;
+    /**
+     * <pre>
+     * WhatsApp Business number connection (Meta Cloud API).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6 [json_name = "whatsapp"];</code>
+     * @return Whether the whatsapp field is set.
+     */
+    @java.lang.Override
+    public boolean hasWhatsapp() {
+      return providerConfigCase_ == 6;
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number connection (Meta Cloud API).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6 [json_name = "whatsapp"];</code>
+     * @return The whatsapp.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig getWhatsapp() {
+      if (whatsappBuilder_ == null) {
+        if (providerConfigCase_ == 6) {
+          return (ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig) providerConfig_;
+        }
+        return ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig.getDefaultInstance();
+      } else {
+        if (providerConfigCase_ == 6) {
+          return whatsappBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number connection (Meta Cloud API).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6 [json_name = "whatsapp"];</code>
+     */
+    public Builder setWhatsapp(ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig value) {
+      if (whatsappBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        providerConfig_ = value;
+        onChanged();
+      } else {
+        whatsappBuilder_.setMessage(value);
+      }
+      providerConfigCase_ = 6;
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number connection (Meta Cloud API).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6 [json_name = "whatsapp"];</code>
+     */
+    public Builder setWhatsapp(
+        ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig.Builder builderForValue) {
+      if (whatsappBuilder_ == null) {
+        providerConfig_ = builderForValue.build();
+        onChanged();
+      } else {
+        whatsappBuilder_.setMessage(builderForValue.build());
+      }
+      providerConfigCase_ = 6;
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number connection (Meta Cloud API).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6 [json_name = "whatsapp"];</code>
+     */
+    public Builder mergeWhatsapp(ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig value) {
+      if (whatsappBuilder_ == null) {
+        if (providerConfigCase_ == 6 &&
+            providerConfig_ != ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig.getDefaultInstance()) {
+          providerConfig_ = ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig.newBuilder((ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig) providerConfig_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          providerConfig_ = value;
+        }
+        onChanged();
+      } else {
+        if (providerConfigCase_ == 6) {
+          whatsappBuilder_.mergeFrom(value);
+        } else {
+          whatsappBuilder_.setMessage(value);
+        }
+      }
+      providerConfigCase_ = 6;
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number connection (Meta Cloud API).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6 [json_name = "whatsapp"];</code>
+     */
+    public Builder clearWhatsapp() {
+      if (whatsappBuilder_ == null) {
+        if (providerConfigCase_ == 6) {
+          providerConfigCase_ = 0;
+          providerConfig_ = null;
+          onChanged();
+        }
+      } else {
+        if (providerConfigCase_ == 6) {
+          providerConfigCase_ = 0;
+          providerConfig_ = null;
+        }
+        whatsappBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number connection (Meta Cloud API).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6 [json_name = "whatsapp"];</code>
+     */
+    public ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig.Builder getWhatsappBuilder() {
+      return internalGetWhatsappFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number connection (Meta Cloud API).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6 [json_name = "whatsapp"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfigOrBuilder getWhatsappOrBuilder() {
+      if ((providerConfigCase_ == 6) && (whatsappBuilder_ != null)) {
+        return whatsappBuilder_.getMessageOrBuilder();
+      } else {
+        if (providerConfigCase_ == 6) {
+          return (ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig) providerConfig_;
+        }
+        return ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * WhatsApp Business number connection (Meta Cloud API).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6 [json_name = "whatsapp"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig, ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig.Builder, ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfigOrBuilder> 
+        internalGetWhatsappFieldBuilder() {
+      if (whatsappBuilder_ == null) {
+        if (!(providerConfigCase_ == 6)) {
+          providerConfig_ = ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig.getDefaultInstance();
+        }
+        whatsappBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig, ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig.Builder, ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfigOrBuilder>(
+                (ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig) providerConfig_,
+                getParentForChildren(),
+                isClean());
+        providerConfig_ = null;
+      }
+      providerConfigCase_ = 6;
+      onChanged();
+      return whatsappBuilder_;
+    }
+
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> environmentRefs_ =
       java.util.Collections.emptyList();
     private void ensureEnvironmentRefsIsMutable() {
-      if (!((bitField0_ & 0x00000008) != 0)) {
+      if (!((bitField0_ & 0x00000010) != 0)) {
         environmentRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(environmentRefs_);
-        bitField0_ |= 0x00000008;
+        bitField0_ |= 0x00000010;
        }
     }
 
@@ -1929,7 +2191,7 @@ private static final long serialVersionUID = 0L;
     public Builder clearEnvironmentRefs() {
       if (environmentRefsBuilder_ == null) {
         environmentRefs_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000008);
+        bitField0_ = (bitField0_ & ~0x00000010);
         onChanged();
       } else {
         environmentRefsBuilder_.clear();
@@ -2188,7 +2450,7 @@ private static final long serialVersionUID = 0L;
         environmentRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 environmentRefs_,
-                ((bitField0_ & 0x00000008) != 0),
+                ((bitField0_ & 0x00000010) != 0),
                 getParentForChildren(),
                 isClean());
         environmentRefs_ = null;
@@ -2203,10 +2465,12 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the ChannelApp this channel installs through.
      *
-     * Absent means the channel uses the platform's shared Stigmer app —
-     * the zero-setup default. Set it to install through your own provider
-     * app instead: the bot carries the app's name and icon, and each app
-     * is its own bot identity, so multiple agents can serve one workspace.
+     * For Slack, absent means the channel uses the platform's shared
+     * Stigmer app — the zero-setup default. Set it to install through your
+     * own provider app instead: the bot carries the app's name and icon,
+     * and each app is its own bot identity, so multiple agents can serve
+     * one workspace. For WhatsApp the reference is required — every
+     * WhatsApp channel installs through your own Meta app (DD-WA-2).
      *
      * &#64;internal
      * T04 item 2. Invariants (enforced in handlers of both editions):
@@ -2223,16 +2487,18 @@ private static final long serialVersionUID = 0L;
      * @return Whether the appRef field is set.
      */
     public boolean hasAppRef() {
-      return ((bitField0_ & 0x00000010) != 0);
+      return ((bitField0_ & 0x00000020) != 0);
     }
     /**
      * <pre>
      * Reference to the ChannelApp this channel installs through.
      *
-     * Absent means the channel uses the platform's shared Stigmer app —
-     * the zero-setup default. Set it to install through your own provider
-     * app instead: the bot carries the app's name and icon, and each app
-     * is its own bot identity, so multiple agents can serve one workspace.
+     * For Slack, absent means the channel uses the platform's shared
+     * Stigmer app — the zero-setup default. Set it to install through your
+     * own provider app instead: the bot carries the app's name and icon,
+     * and each app is its own bot identity, so multiple agents can serve
+     * one workspace. For WhatsApp the reference is required — every
+     * WhatsApp channel installs through your own Meta app (DD-WA-2).
      *
      * &#64;internal
      * T04 item 2. Invariants (enforced in handlers of both editions):
@@ -2259,10 +2525,12 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the ChannelApp this channel installs through.
      *
-     * Absent means the channel uses the platform's shared Stigmer app —
-     * the zero-setup default. Set it to install through your own provider
-     * app instead: the bot carries the app's name and icon, and each app
-     * is its own bot identity, so multiple agents can serve one workspace.
+     * For Slack, absent means the channel uses the platform's shared
+     * Stigmer app — the zero-setup default. Set it to install through your
+     * own provider app instead: the bot carries the app's name and icon,
+     * and each app is its own bot identity, so multiple agents can serve
+     * one workspace. For WhatsApp the reference is required — every
+     * WhatsApp channel installs through your own Meta app (DD-WA-2).
      *
      * &#64;internal
      * T04 item 2. Invariants (enforced in handlers of both editions):
@@ -2286,7 +2554,7 @@ private static final long serialVersionUID = 0L;
       } else {
         appRefBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2294,10 +2562,12 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the ChannelApp this channel installs through.
      *
-     * Absent means the channel uses the platform's shared Stigmer app —
-     * the zero-setup default. Set it to install through your own provider
-     * app instead: the bot carries the app's name and icon, and each app
-     * is its own bot identity, so multiple agents can serve one workspace.
+     * For Slack, absent means the channel uses the platform's shared
+     * Stigmer app — the zero-setup default. Set it to install through your
+     * own provider app instead: the bot carries the app's name and icon,
+     * and each app is its own bot identity, so multiple agents can serve
+     * one workspace. For WhatsApp the reference is required — every
+     * WhatsApp channel installs through your own Meta app (DD-WA-2).
      *
      * &#64;internal
      * T04 item 2. Invariants (enforced in handlers of both editions):
@@ -2319,7 +2589,7 @@ private static final long serialVersionUID = 0L;
       } else {
         appRefBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -2327,10 +2597,12 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the ChannelApp this channel installs through.
      *
-     * Absent means the channel uses the platform's shared Stigmer app —
-     * the zero-setup default. Set it to install through your own provider
-     * app instead: the bot carries the app's name and icon, and each app
-     * is its own bot identity, so multiple agents can serve one workspace.
+     * For Slack, absent means the channel uses the platform's shared
+     * Stigmer app — the zero-setup default. Set it to install through your
+     * own provider app instead: the bot carries the app's name and icon,
+     * and each app is its own bot identity, so multiple agents can serve
+     * one workspace. For WhatsApp the reference is required — every
+     * WhatsApp channel installs through your own Meta app (DD-WA-2).
      *
      * &#64;internal
      * T04 item 2. Invariants (enforced in handlers of both editions):
@@ -2347,7 +2619,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeAppRef(ai.stigmer.commons.apiresource.ApiResourceReference value) {
       if (appRefBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0) &&
+        if (((bitField0_ & 0x00000020) != 0) &&
           appRef_ != null &&
           appRef_ != ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance()) {
           getAppRefBuilder().mergeFrom(value);
@@ -2358,7 +2630,7 @@ private static final long serialVersionUID = 0L;
         appRefBuilder_.mergeFrom(value);
       }
       if (appRef_ != null) {
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       return this;
@@ -2367,10 +2639,12 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the ChannelApp this channel installs through.
      *
-     * Absent means the channel uses the platform's shared Stigmer app —
-     * the zero-setup default. Set it to install through your own provider
-     * app instead: the bot carries the app's name and icon, and each app
-     * is its own bot identity, so multiple agents can serve one workspace.
+     * For Slack, absent means the channel uses the platform's shared
+     * Stigmer app — the zero-setup default. Set it to install through your
+     * own provider app instead: the bot carries the app's name and icon,
+     * and each app is its own bot identity, so multiple agents can serve
+     * one workspace. For WhatsApp the reference is required — every
+     * WhatsApp channel installs through your own Meta app (DD-WA-2).
      *
      * &#64;internal
      * T04 item 2. Invariants (enforced in handlers of both editions):
@@ -2386,7 +2660,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
      */
     public Builder clearAppRef() {
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000020);
       appRef_ = null;
       if (appRefBuilder_ != null) {
         appRefBuilder_.dispose();
@@ -2399,10 +2673,12 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the ChannelApp this channel installs through.
      *
-     * Absent means the channel uses the platform's shared Stigmer app —
-     * the zero-setup default. Set it to install through your own provider
-     * app instead: the bot carries the app's name and icon, and each app
-     * is its own bot identity, so multiple agents can serve one workspace.
+     * For Slack, absent means the channel uses the platform's shared
+     * Stigmer app — the zero-setup default. Set it to install through your
+     * own provider app instead: the bot carries the app's name and icon,
+     * and each app is its own bot identity, so multiple agents can serve
+     * one workspace. For WhatsApp the reference is required — every
+     * WhatsApp channel installs through your own Meta app (DD-WA-2).
      *
      * &#64;internal
      * T04 item 2. Invariants (enforced in handlers of both editions):
@@ -2418,7 +2694,7 @@ private static final long serialVersionUID = 0L;
      * <code>.ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5 [json_name = "appRef", (.buf.validate.field) = { ... }</code>
      */
     public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getAppRefBuilder() {
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000020;
       onChanged();
       return internalGetAppRefFieldBuilder().getBuilder();
     }
@@ -2426,10 +2702,12 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the ChannelApp this channel installs through.
      *
-     * Absent means the channel uses the platform's shared Stigmer app —
-     * the zero-setup default. Set it to install through your own provider
-     * app instead: the bot carries the app's name and icon, and each app
-     * is its own bot identity, so multiple agents can serve one workspace.
+     * For Slack, absent means the channel uses the platform's shared
+     * Stigmer app — the zero-setup default. Set it to install through your
+     * own provider app instead: the bot carries the app's name and icon,
+     * and each app is its own bot identity, so multiple agents can serve
+     * one workspace. For WhatsApp the reference is required — every
+     * WhatsApp channel installs through your own Meta app (DD-WA-2).
      *
      * &#64;internal
      * T04 item 2. Invariants (enforced in handlers of both editions):
@@ -2456,10 +2734,12 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Reference to the ChannelApp this channel installs through.
      *
-     * Absent means the channel uses the platform's shared Stigmer app —
-     * the zero-setup default. Set it to install through your own provider
-     * app instead: the bot carries the app's name and icon, and each app
-     * is its own bot identity, so multiple agents can serve one workspace.
+     * For Slack, absent means the channel uses the platform's shared
+     * Stigmer app — the zero-setup default. Set it to install through your
+     * own provider app instead: the bot carries the app's name and icon,
+     * and each app is its own bot identity, so multiple agents can serve
+     * one workspace. For WhatsApp the reference is required — every
+     * WhatsApp channel installs through your own Meta app (DD-WA-2).
      *
      * &#64;internal
      * T04 item 2. Invariants (enforced in handlers of both editions):

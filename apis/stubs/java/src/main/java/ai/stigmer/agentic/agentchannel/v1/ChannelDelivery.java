@@ -81,6 +81,7 @@ private static final long serialVersionUID = 0L;
       implements com.google.protobuf.Internal.EnumLite,
           com.google.protobuf.AbstractMessage.InternalOneOfEnum {
     SLACK(12),
+    WHATSAPP(16),
     DELIVERYCONTEXT_NOT_SET(0);
     private final int value;
     private DeliveryContextCase(int value) {
@@ -99,6 +100,7 @@ private static final long serialVersionUID = 0L;
     public static DeliveryContextCase forNumber(int value) {
       switch (value) {
         case 12: return SLACK;
+        case 16: return WHATSAPP;
         case 0: return DELIVERYCONTEXT_NOT_SET;
         default: return null;
       }
@@ -625,6 +627,49 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.agentchannel.v1.SlackDeliveryContext.getDefaultInstance();
   }
 
+  public static final int WHATSAPP_FIELD_NUMBER = 16;
+  /**
+   * <pre>
+   * WhatsApp delivery context.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16 [json_name = "whatsapp"];</code>
+   * @return Whether the whatsapp field is set.
+   */
+  @java.lang.Override
+  public boolean hasWhatsapp() {
+    return deliveryContextCase_ == 16;
+  }
+  /**
+   * <pre>
+   * WhatsApp delivery context.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16 [json_name = "whatsapp"];</code>
+   * @return The whatsapp.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext getWhatsapp() {
+    if (deliveryContextCase_ == 16) {
+       return (ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext) deliveryContext_;
+    }
+    return ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * WhatsApp delivery context.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16 [json_name = "whatsapp"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContextOrBuilder getWhatsappOrBuilder() {
+    if (deliveryContextCase_ == 16) {
+       return (ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext) deliveryContext_;
+    }
+    return ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext.getDefaultInstance();
+  }
+
   public static final int CREATED_AT_FIELD_NUMBER = 13;
   private com.google.protobuf.Timestamp createdAt_;
   /**
@@ -798,6 +843,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(15, getNextAttemptAt());
     }
+    if (deliveryContextCase_ == 16) {
+      output.writeMessage(16, (ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext) deliveryContext_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -858,6 +906,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(15, getNextAttemptAt());
     }
+    if (deliveryContextCase_ == 16) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(16, (ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext) deliveryContext_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -915,6 +967,10 @@ private static final long serialVersionUID = 0L;
         if (!getSlack()
             .equals(other.getSlack())) return false;
         break;
+      case 16:
+        if (!getWhatsapp()
+            .equals(other.getWhatsapp())) return false;
+        break;
       case 0:
       default:
     }
@@ -967,6 +1023,10 @@ private static final long serialVersionUID = 0L;
       case 12:
         hash = (37 * hash) + SLACK_FIELD_NUMBER;
         hash = (53 * hash) + getSlack().hashCode();
+        break;
+      case 16:
+        hash = (37 * hash) + WHATSAPP_FIELD_NUMBER;
+        hash = (53 * hash) + getWhatsapp().hashCode();
         break;
       case 0:
       default:
@@ -1139,6 +1199,9 @@ private static final long serialVersionUID = 0L;
       if (slackBuilder_ != null) {
         slackBuilder_.clear();
       }
+      if (whatsappBuilder_ != null) {
+        whatsappBuilder_.clear();
+      }
       createdAt_ = null;
       if (createdAtBuilder_ != null) {
         createdAtBuilder_.dispose();
@@ -1224,19 +1287,19 @@ private static final long serialVersionUID = 0L;
         result.idempotencyKey_ = idempotencyKey_;
       }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00001000) != 0)) {
+      if (((from_bitField0_ & 0x00002000) != 0)) {
         result.createdAt_ = createdAtBuilder_ == null
             ? createdAt_
             : createdAtBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
-      if (((from_bitField0_ & 0x00002000) != 0)) {
+      if (((from_bitField0_ & 0x00004000) != 0)) {
         result.updatedAt_ = updatedAtBuilder_ == null
             ? updatedAt_
             : updatedAtBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
-      if (((from_bitField0_ & 0x00004000) != 0)) {
+      if (((from_bitField0_ & 0x00008000) != 0)) {
         result.nextAttemptAt_ = nextAttemptAtBuilder_ == null
             ? nextAttemptAt_
             : nextAttemptAtBuilder_.build();
@@ -1251,6 +1314,10 @@ private static final long serialVersionUID = 0L;
       if (deliveryContextCase_ == 12 &&
           slackBuilder_ != null) {
         result.deliveryContext_ = slackBuilder_.build();
+      }
+      if (deliveryContextCase_ == 16 &&
+          whatsappBuilder_ != null) {
+        result.deliveryContext_ = whatsappBuilder_.build();
       }
     }
 
@@ -1329,6 +1396,10 @@ private static final long serialVersionUID = 0L;
       switch (other.getDeliveryContextCase()) {
         case SLACK: {
           mergeSlack(other.getSlack());
+          break;
+        }
+        case WHATSAPP: {
+          mergeWhatsapp(other.getWhatsapp());
           break;
         }
         case DELIVERYCONTEXT_NOT_SET: {
@@ -1427,23 +1498,30 @@ private static final long serialVersionUID = 0L;
               input.readMessage(
                   internalGetCreatedAtFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00001000;
+              bitField0_ |= 0x00002000;
               break;
             } // case 106
             case 114: {
               input.readMessage(
                   internalGetUpdatedAtFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00002000;
+              bitField0_ |= 0x00004000;
               break;
             } // case 114
             case 122: {
               input.readMessage(
                   internalGetNextAttemptAtFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00004000;
+              bitField0_ |= 0x00008000;
               break;
             } // case 122
+            case 130: {
+              input.readMessage(
+                  internalGetWhatsappFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              deliveryContextCase_ = 16;
+              break;
+            } // case 130
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2608,6 +2686,184 @@ private static final long serialVersionUID = 0L;
       return slackBuilder_;
     }
 
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext, ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext.Builder, ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContextOrBuilder> whatsappBuilder_;
+    /**
+     * <pre>
+     * WhatsApp delivery context.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16 [json_name = "whatsapp"];</code>
+     * @return Whether the whatsapp field is set.
+     */
+    @java.lang.Override
+    public boolean hasWhatsapp() {
+      return deliveryContextCase_ == 16;
+    }
+    /**
+     * <pre>
+     * WhatsApp delivery context.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16 [json_name = "whatsapp"];</code>
+     * @return The whatsapp.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext getWhatsapp() {
+      if (whatsappBuilder_ == null) {
+        if (deliveryContextCase_ == 16) {
+          return (ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext) deliveryContext_;
+        }
+        return ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext.getDefaultInstance();
+      } else {
+        if (deliveryContextCase_ == 16) {
+          return whatsappBuilder_.getMessage();
+        }
+        return ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * WhatsApp delivery context.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16 [json_name = "whatsapp"];</code>
+     */
+    public Builder setWhatsapp(ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext value) {
+      if (whatsappBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        deliveryContext_ = value;
+        onChanged();
+      } else {
+        whatsappBuilder_.setMessage(value);
+      }
+      deliveryContextCase_ = 16;
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp delivery context.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16 [json_name = "whatsapp"];</code>
+     */
+    public Builder setWhatsapp(
+        ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext.Builder builderForValue) {
+      if (whatsappBuilder_ == null) {
+        deliveryContext_ = builderForValue.build();
+        onChanged();
+      } else {
+        whatsappBuilder_.setMessage(builderForValue.build());
+      }
+      deliveryContextCase_ = 16;
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp delivery context.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16 [json_name = "whatsapp"];</code>
+     */
+    public Builder mergeWhatsapp(ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext value) {
+      if (whatsappBuilder_ == null) {
+        if (deliveryContextCase_ == 16 &&
+            deliveryContext_ != ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext.getDefaultInstance()) {
+          deliveryContext_ = ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext.newBuilder((ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext) deliveryContext_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          deliveryContext_ = value;
+        }
+        onChanged();
+      } else {
+        if (deliveryContextCase_ == 16) {
+          whatsappBuilder_.mergeFrom(value);
+        } else {
+          whatsappBuilder_.setMessage(value);
+        }
+      }
+      deliveryContextCase_ = 16;
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp delivery context.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16 [json_name = "whatsapp"];</code>
+     */
+    public Builder clearWhatsapp() {
+      if (whatsappBuilder_ == null) {
+        if (deliveryContextCase_ == 16) {
+          deliveryContextCase_ = 0;
+          deliveryContext_ = null;
+          onChanged();
+        }
+      } else {
+        if (deliveryContextCase_ == 16) {
+          deliveryContextCase_ = 0;
+          deliveryContext_ = null;
+        }
+        whatsappBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * WhatsApp delivery context.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16 [json_name = "whatsapp"];</code>
+     */
+    public ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext.Builder getWhatsappBuilder() {
+      return internalGetWhatsappFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * WhatsApp delivery context.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16 [json_name = "whatsapp"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContextOrBuilder getWhatsappOrBuilder() {
+      if ((deliveryContextCase_ == 16) && (whatsappBuilder_ != null)) {
+        return whatsappBuilder_.getMessageOrBuilder();
+      } else {
+        if (deliveryContextCase_ == 16) {
+          return (ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext) deliveryContext_;
+        }
+        return ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * WhatsApp delivery context.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16 [json_name = "whatsapp"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext, ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext.Builder, ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContextOrBuilder> 
+        internalGetWhatsappFieldBuilder() {
+      if (whatsappBuilder_ == null) {
+        if (!(deliveryContextCase_ == 16)) {
+          deliveryContext_ = ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext.getDefaultInstance();
+        }
+        whatsappBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext, ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext.Builder, ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContextOrBuilder>(
+                (ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext) deliveryContext_,
+                getParentForChildren(),
+                isClean());
+        deliveryContext_ = null;
+      }
+      deliveryContextCase_ = 16;
+      onChanged();
+      return whatsappBuilder_;
+    }
+
     private com.google.protobuf.Timestamp createdAt_;
     private com.google.protobuf.SingleFieldBuilder<
         com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> createdAtBuilder_;
@@ -2620,7 +2876,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the createdAt field is set.
      */
     public boolean hasCreatedAt() {
-      return ((bitField0_ & 0x00001000) != 0);
+      return ((bitField0_ & 0x00002000) != 0);
     }
     /**
      * <pre>
@@ -2653,7 +2909,7 @@ private static final long serialVersionUID = 0L;
       } else {
         createdAtBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -2671,7 +2927,7 @@ private static final long serialVersionUID = 0L;
       } else {
         createdAtBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return this;
     }
@@ -2684,7 +2940,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeCreatedAt(com.google.protobuf.Timestamp value) {
       if (createdAtBuilder_ == null) {
-        if (((bitField0_ & 0x00001000) != 0) &&
+        if (((bitField0_ & 0x00002000) != 0) &&
           createdAt_ != null &&
           createdAt_ != com.google.protobuf.Timestamp.getDefaultInstance()) {
           getCreatedAtBuilder().mergeFrom(value);
@@ -2695,7 +2951,7 @@ private static final long serialVersionUID = 0L;
         createdAtBuilder_.mergeFrom(value);
       }
       if (createdAt_ != null) {
-        bitField0_ |= 0x00001000;
+        bitField0_ |= 0x00002000;
         onChanged();
       }
       return this;
@@ -2708,7 +2964,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp created_at = 13 [json_name = "createdAt"];</code>
      */
     public Builder clearCreatedAt() {
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00002000);
       createdAt_ = null;
       if (createdAtBuilder_ != null) {
         createdAtBuilder_.dispose();
@@ -2725,7 +2981,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp created_at = 13 [json_name = "createdAt"];</code>
      */
     public com.google.protobuf.Timestamp.Builder getCreatedAtBuilder() {
-      bitField0_ |= 0x00001000;
+      bitField0_ |= 0x00002000;
       onChanged();
       return internalGetCreatedAtFieldBuilder().getBuilder();
     }
@@ -2777,7 +3033,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the updatedAt field is set.
      */
     public boolean hasUpdatedAt() {
-      return ((bitField0_ & 0x00002000) != 0);
+      return ((bitField0_ & 0x00004000) != 0);
     }
     /**
      * <pre>
@@ -2810,7 +3066,7 @@ private static final long serialVersionUID = 0L;
       } else {
         updatedAtBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -2828,7 +3084,7 @@ private static final long serialVersionUID = 0L;
       } else {
         updatedAtBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return this;
     }
@@ -2841,7 +3097,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeUpdatedAt(com.google.protobuf.Timestamp value) {
       if (updatedAtBuilder_ == null) {
-        if (((bitField0_ & 0x00002000) != 0) &&
+        if (((bitField0_ & 0x00004000) != 0) &&
           updatedAt_ != null &&
           updatedAt_ != com.google.protobuf.Timestamp.getDefaultInstance()) {
           getUpdatedAtBuilder().mergeFrom(value);
@@ -2852,7 +3108,7 @@ private static final long serialVersionUID = 0L;
         updatedAtBuilder_.mergeFrom(value);
       }
       if (updatedAt_ != null) {
-        bitField0_ |= 0x00002000;
+        bitField0_ |= 0x00004000;
         onChanged();
       }
       return this;
@@ -2865,7 +3121,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp updated_at = 14 [json_name = "updatedAt"];</code>
      */
     public Builder clearUpdatedAt() {
-      bitField0_ = (bitField0_ & ~0x00002000);
+      bitField0_ = (bitField0_ & ~0x00004000);
       updatedAt_ = null;
       if (updatedAtBuilder_ != null) {
         updatedAtBuilder_.dispose();
@@ -2882,7 +3138,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp updated_at = 14 [json_name = "updatedAt"];</code>
      */
     public com.google.protobuf.Timestamp.Builder getUpdatedAtBuilder() {
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00004000;
       onChanged();
       return internalGetUpdatedAtFieldBuilder().getBuilder();
     }
@@ -2934,7 +3190,7 @@ private static final long serialVersionUID = 0L;
      * @return Whether the nextAttemptAt field is set.
      */
     public boolean hasNextAttemptAt() {
-      return ((bitField0_ & 0x00004000) != 0);
+      return ((bitField0_ & 0x00008000) != 0);
     }
     /**
      * <pre>
@@ -2967,7 +3223,7 @@ private static final long serialVersionUID = 0L;
       } else {
         nextAttemptAtBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -2985,7 +3241,7 @@ private static final long serialVersionUID = 0L;
       } else {
         nextAttemptAtBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return this;
     }
@@ -2998,7 +3254,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder mergeNextAttemptAt(com.google.protobuf.Timestamp value) {
       if (nextAttemptAtBuilder_ == null) {
-        if (((bitField0_ & 0x00004000) != 0) &&
+        if (((bitField0_ & 0x00008000) != 0) &&
           nextAttemptAt_ != null &&
           nextAttemptAt_ != com.google.protobuf.Timestamp.getDefaultInstance()) {
           getNextAttemptAtBuilder().mergeFrom(value);
@@ -3009,7 +3265,7 @@ private static final long serialVersionUID = 0L;
         nextAttemptAtBuilder_.mergeFrom(value);
       }
       if (nextAttemptAt_ != null) {
-        bitField0_ |= 0x00004000;
+        bitField0_ |= 0x00008000;
         onChanged();
       }
       return this;
@@ -3022,7 +3278,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp next_attempt_at = 15 [json_name = "nextAttemptAt"];</code>
      */
     public Builder clearNextAttemptAt() {
-      bitField0_ = (bitField0_ & ~0x00004000);
+      bitField0_ = (bitField0_ & ~0x00008000);
       nextAttemptAt_ = null;
       if (nextAttemptAtBuilder_ != null) {
         nextAttemptAtBuilder_.dispose();
@@ -3039,7 +3295,7 @@ private static final long serialVersionUID = 0L;
      * <code>.google.protobuf.Timestamp next_attempt_at = 15 [json_name = "nextAttemptAt"];</code>
      */
     public com.google.protobuf.Timestamp.Builder getNextAttemptAtBuilder() {
-      bitField0_ |= 0x00004000;
+      bitField0_ |= 0x00008000;
       onChanged();
       return internalGetNextAttemptAtFieldBuilder().getBuilder();
     }

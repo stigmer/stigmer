@@ -309,7 +309,6 @@ export function NewSessionViewer({
     allExecutions: [],
     org,
     sessionConfig,
-    selectedItem: null,
     includeExecutionFacets: false,
   });
 

@@ -103,6 +103,33 @@ public interface AgentChannelSpecOrBuilder extends
 
   /**
    * <pre>
+   * WhatsApp Business number connection (Meta Cloud API).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6 [json_name = "whatsapp"];</code>
+   * @return Whether the whatsapp field is set.
+   */
+  boolean hasWhatsapp();
+  /**
+   * <pre>
+   * WhatsApp Business number connection (Meta Cloud API).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6 [json_name = "whatsapp"];</code>
+   * @return The whatsapp.
+   */
+  ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig getWhatsapp();
+  /**
+   * <pre>
+   * WhatsApp Business number connection (Meta Cloud API).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig whatsapp = 6 [json_name = "whatsapp"];</code>
+   */
+  ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfigOrBuilder getWhatsappOrBuilder();
+
+  /**
+   * <pre>
    * References to Environment resources whose values are provided to
    * conversations on this channel.
    *
@@ -259,10 +286,12 @@ public interface AgentChannelSpecOrBuilder extends
    * <pre>
    * Reference to the ChannelApp this channel installs through.
    *
-   * Absent means the channel uses the platform's shared Stigmer app —
-   * the zero-setup default. Set it to install through your own provider
-   * app instead: the bot carries the app's name and icon, and each app
-   * is its own bot identity, so multiple agents can serve one workspace.
+   * For Slack, absent means the channel uses the platform's shared
+   * Stigmer app — the zero-setup default. Set it to install through your
+   * own provider app instead: the bot carries the app's name and icon,
+   * and each app is its own bot identity, so multiple agents can serve
+   * one workspace. For WhatsApp the reference is required — every
+   * WhatsApp channel installs through your own Meta app (DD-WA-2).
    *
    * &#64;internal
    * T04 item 2. Invariants (enforced in handlers of both editions):
@@ -283,10 +312,12 @@ public interface AgentChannelSpecOrBuilder extends
    * <pre>
    * Reference to the ChannelApp this channel installs through.
    *
-   * Absent means the channel uses the platform's shared Stigmer app —
-   * the zero-setup default. Set it to install through your own provider
-   * app instead: the bot carries the app's name and icon, and each app
-   * is its own bot identity, so multiple agents can serve one workspace.
+   * For Slack, absent means the channel uses the platform's shared
+   * Stigmer app — the zero-setup default. Set it to install through your
+   * own provider app instead: the bot carries the app's name and icon,
+   * and each app is its own bot identity, so multiple agents can serve
+   * one workspace. For WhatsApp the reference is required — every
+   * WhatsApp channel installs through your own Meta app (DD-WA-2).
    *
    * &#64;internal
    * T04 item 2. Invariants (enforced in handlers of both editions):
@@ -307,10 +338,12 @@ public interface AgentChannelSpecOrBuilder extends
    * <pre>
    * Reference to the ChannelApp this channel installs through.
    *
-   * Absent means the channel uses the platform's shared Stigmer app —
-   * the zero-setup default. Set it to install through your own provider
-   * app instead: the bot carries the app's name and icon, and each app
-   * is its own bot identity, so multiple agents can serve one workspace.
+   * For Slack, absent means the channel uses the platform's shared
+   * Stigmer app — the zero-setup default. Set it to install through your
+   * own provider app instead: the bot carries the app's name and icon,
+   * and each app is its own bot identity, so multiple agents can serve
+   * one workspace. For WhatsApp the reference is required — every
+   * WhatsApp channel installs through your own Meta app (DD-WA-2).
    *
    * &#64;internal
    * T04 item 2. Invariants (enforced in handlers of both editions):

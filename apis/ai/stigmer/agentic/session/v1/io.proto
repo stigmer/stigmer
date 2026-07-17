@@ -48,6 +48,18 @@ message ListSessionsByAgentInstanceRequest {
   string page_token = 3;
 }
 
+// ListSessionsByChannelRequest lists the conversations an agent channel created.
+message ListSessionsByChannelRequest {
+  // Agent channel ID to filter by.
+  string channel_id = 1 [(buf.validate.field).required = true];
+
+  // Maximum number of sessions to return per page.
+  int32 page_size = 2;
+
+  // Token for pagination, obtained from previous response.
+  string page_token = 3;
+}
+
 // UpdateSessionSubjectRequest sets the conversation title for a session.
 //
 // @internal

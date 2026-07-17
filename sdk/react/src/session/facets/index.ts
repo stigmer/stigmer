@@ -7,9 +7,6 @@ export type { ArtifactsTabProps } from "./ArtifactsTab.js";
 export { UsageTab } from "./UsageTab.js";
 export type { UsageTabProps } from "./UsageTab.js";
 
-export { InspectTab } from "./InspectTab.js";
-export type { InspectTabProps } from "./InspectTab.js";
-
 export { SetupTab } from "./SetupTab.js";
 export type {
   SetupTabProps,

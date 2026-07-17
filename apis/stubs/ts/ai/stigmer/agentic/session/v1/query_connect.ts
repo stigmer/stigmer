@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ListSessionsByAgentInstanceRequest, ListSessionsRequest, SessionId, SessionList } from "./io_pbjs";
+import { ListSessionsByAgentInstanceRequest, ListSessionsByChannelRequest, ListSessionsRequest, SessionId, SessionList } from "./io_pbjs";
 import { Session } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -52,6 +52,28 @@ export const SessionQueryController = {
     listByAgentInstance: {
       name: "listByAgentInstance",
       I: ListSessionsByAgentInstanceRequest,
+      O: SessionList,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List the conversations an agent channel created.
+     *
+     * Returns the sessions the channel runtime (Slack, WhatsApp) created for
+     * the given agent channel, newest first. The caller must be able to view
+     * the channel; results are additionally filtered to sessions the caller
+     * can view.
+     *
+     * @internal
+     * Authorization is two-stage in the handler: an explicit can_view check on
+     * the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
+     * then an FGA query for authorized session_ids intersected with the
+     * stigmer.ai/channel-id label filter.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.listByChannel
+     */
+    listByChannel: {
+      name: "listByChannel",
+      I: ListSessionsByChannelRequest,
       O: SessionList,
       kind: MethodKind.Unary,
     },

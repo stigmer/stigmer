@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { WorkflowTaskApprovalSummary } from "../WorkflowTaskApprovalSummary";
 import type { TaskOutcome } from "../WorkflowTaskApprovalCard";
-import type { TaskDetailApprovalDecision } from "../execution-inspector";
+import type { TaskDetailApprovalDecision } from "../task-detail/task-approval";
 
 function makeDecision(
   overrides: Partial<TaskDetailApprovalDecision> = {},

@@ -1,0 +1,201 @@
+---
+title: Connect an Agent to WhatsApp
+description:
+  Put your Agent behind a WhatsApp Business number so people can chat with it
+  from the messaging app they already use every day.
+---
+
+Connecting a WhatsApp channel puts your Agent behind a WhatsApp Business number.
+People send a message to that number and the Agent answers right there — with
+your Organization's policies, rate limits, and billing enforced by Stigmer. This
+guide shows you how to connect a number, give the Agent its tool credentials,
+and manage the connection afterward.
+
+<Callout type="info">
+  Connecting to WhatsApp requires Stigmer Cloud. On a local backend you can
+  manage channel configuration, but the connection itself runs through the
+  platform's hosted webhook infrastructure.
+</Callout>
+
+<DemoConnectWhatsAppChannel />
+
+## Before you start
+
+You need four things:
+
+- A registered Meta app in your Organization — WhatsApp channels always connect
+  through your own app. If **Settings → Channel Apps** has none, follow
+  [Set up your Meta app](/docs/guides/channels/set-up-your-meta-app) first; the
+  connect dialog will also point you there.
+- The **phone number ID** of the WhatsApp Business number the Agent should
+  answer. It is on your Meta app's **API Setup** panel — the numeric ID next to
+  the number, not the phone number itself.
+- An Agent in your Organization, and permission to edit it.
+- Credits in your Organization — conversations from WhatsApp are billed to it.
+
+## Connect the number
+
+1. Open your Agent in the web console under **Library → Agents**.
+2. Open the **Channels** tab and click **Connect to WhatsApp**.
+3. Keep the suggested channel name, or pick your own. The name identifies the
+   connection in Stigmer — useful when you connect more than one number.
+4. Enter the **Phone number ID**.
+5. Under **Serving app**, pick the Meta app that owns the number. With a single
+   registered app, it is already selected.
+6. If your Agent uses tools, bind credentials under **Tool credentials** — see
+   [Give the Agent its tool credentials](#give-the-agent-its-tool-credentials)
+   below. You can also do this after connecting.
+7. Click **Connect to WhatsApp**. Stigmer verifies the number with WhatsApp
+   through the selected app's credentials — the connection completes right in
+   the dialog, with no browser hand-off. On success, the dialog names the
+   verified number.
+
+The channel starts serving immediately. Its card in the **Channels** tab shows
+the number, the verified business name, and an on/off switch.
+
+If the connection fails, the dialog keeps your input editable — fix the number
+or pick a different app and click **Try again**. A failed attempt still saves
+the channel, so you can also come back later and click **Connect** on its card.
+
+## Say hello on WhatsApp
+
+Send a WhatsApp message to the connected number and ask a question. The answer
+comes from your Agent, under the number's own business name.
+
+A few things to know about the conversation:
+
+- Each person has one continuous conversation with the Agent — WhatsApp has no
+  threads, so context carries across messages naturally.
+- The Agent marks your message as read and shows a typing indicator while it
+  works. WhatsApp clears the indicator after about half a minute, so on longer
+  questions the reply can arrive after the indicator is gone. It is still
+  coming.
+- Send text. Images, voice notes, and reactions are ignored in this version.
+
+## Give the Agent its tool credentials
+
+If your Agent uses MCP servers, its tools need credentials — API keys stored in
+an Environment. Conversations from WhatsApp use only the credentials bound to
+the channel, so a channel without bindings refuses the first message that needs
+a tool.
+
+1. Create an Environment with only the credentials the Agent needs, and set its
+   visibility to **Organization** under **Settings → Environments**. A private
+   Environment cannot serve WhatsApp users.
+2. Bind it to the channel — in the connect dialog under **Tool credentials**, or
+   any time later from the channel card's actions menu (⋯ → **Tool
+   credentials**).
+
+The channel card warns you when the Agent uses tools but the channel has no
+usable bindings — including when a bound Environment is still private.
+
+## One number, one agent per app
+
+A WhatsApp number serves **one Agent per Meta app**. If the number is already
+connected to an Agent through the same app, Stigmer refuses the second
+connection and names the number that is taken. You then have two options:
+
+- Disconnect the existing channel, freeing the number for this Agent.
+- Connect a different number to this Agent.
+
+The connect dialog also warns you up front when the number you entered is
+already served through the selected app by one of your Organization's channels.
+
+## Who pays for WhatsApp conversations
+
+Conversations from WhatsApp use your Organization's credits — for everyone who
+messages the connected number. Stigmer protects your balance automatically:
+messages are rate limited per person and across the channel, and if your
+Organization runs out of credits, the Agent answers with a short unavailable
+message instead of overdrawing your balance.
+
+## Review conversations from the console
+
+You can read what people ask the Agent without leaving Stigmer. Open the channel
+card's actions menu (⋯) and pick **Conversations** — each entry is one person's
+conversation with the number, newest activity first. Click one to read the full
+transcript, including the tools the Agent used.
+
+Two things to know:
+
+- **Reading is limited to the people responsible for the channel** — whoever
+  connected it, plus your Organization's admins. Other members cannot see these
+  conversations, and they never appear in anyone's home-page recents.
+- **Reading is all you can do.** The transcript has no message box — replies
+  belong to the person on WhatsApp, so you cannot answer on the Agent's behalf
+  from the console.
+
+## Pause, disconnect, or reconnect
+
+The channel card gives you three levels of control:
+
+- **Turn it off** — flip the card's switch. The Agent stops answering, but the
+  number binding and its configuration stay. Flip it back on any time.
+- **Disconnect** — in the card's actions menu (⋯). This removes the channel and
+  its number binding; people can no longer reach the Agent on that number. Your
+  Meta app and its credentials are untouched — they live on the Channel App and
+  serve any other channels through it.
+- **Reconnect** — a channel whose connection never completed shows **Connect**
+  on its card; clicking it reopens the dialog with the number and app editable.
+
+One caution that has no in-product signal: WhatsApp does not tell Stigmer when
+your Meta app's access token stops working. A revoked or expired token shows up
+only when a reply fails to send. If replies stop arriving, check the token first
+— rotate it under **Settings → Channel Apps**.
+
+## Manage the channel declaratively
+
+The connection lives in its own resource — an `AgentChannel` — separate from the
+Agent it points at. If you manage resources with YAML manifests, manage the
+channel the same way:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: AgentChannel
+metadata:
+  name: support-agent-whatsapp
+  org: acme-corp
+spec:
+  agent_ref:
+    kind: agent
+    org: acme-corp
+    slug: support-agent
+  enabled: true
+  whatsapp:
+    phone_number_id: "106540352242922"
+  app_ref:
+    kind: channel_app
+    org: acme-corp
+    slug: acme-whatsapp
+  environment_refs:
+    - kind: environment
+      org: acme-corp
+      slug: support-tools-credentials
+```
+
+Apply it with `stigmer apply -f channel.yaml`. The manifest manages the
+channel's configuration — which Agent it serves, whether it is on, which number
+it declares. The verification against WhatsApp always happens through the
+console's connect flow: the verified number facts live in the channel's status,
+and applying a manifest never touches them.
+
+See the [AgentChannel reference](/docs/sdk/resources/agent-channel) for every
+field.
+
+## Limitations
+
+- The Agent never starts a conversation — it only answers messages people send
+  to the number. Outbound campaigns and message templates are not supported.
+- Text only: images, voice notes, documents, and reactions are ignored.
+- A number serves one Agent per Meta app. To serve several Agents, use a
+  different number for each.
+- A revoked Meta access token is only discovered at send time — there is no
+  revoked state on the channel card.
+
+## What's next
+
+Your Agent answers on WhatsApp — through the Meta app you registered. To
+understand or revisit that app's setup, webhook, and credential rotation, see
+[Set up your Meta app](/docs/guides/channels/set-up-your-meta-app). To put the
+same Agent in your team's Slack workspace, see
+[Connect an Agent to Slack](/docs/guides/channels/connect-slack).

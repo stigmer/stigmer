@@ -58,6 +58,33 @@ public interface AgentChannelStatusOrBuilder extends
 
   /**
    * <pre>
+   * WhatsApp Business number install facts.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4 [json_name = "whatsapp"];</code>
+   * @return Whether the whatsapp field is set.
+   */
+  boolean hasWhatsapp();
+  /**
+   * <pre>
+   * WhatsApp Business number install facts.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4 [json_name = "whatsapp"];</code>
+   * @return The whatsapp.
+   */
+  ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus getWhatsapp();
+  /**
+   * <pre>
+   * WhatsApp Business number install facts.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatus whatsapp = 4 [json_name = "whatsapp"];</code>
+   */
+  ai.stigmer.agentic.agentchannel.v1.WhatsAppInstallStatusOrBuilder getWhatsappOrBuilder();
+
+  /**
+   * <pre>
    * ID of the system-managed Environment holding this connection's
    * provider credentials (e.g. the Slack bot token).
    *

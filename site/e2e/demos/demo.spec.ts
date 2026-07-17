@@ -124,15 +124,19 @@ async function checkScrollTargets(
 // ---------------------------------------------------------------------------
 
 for (const entry of manifest) {
-  test(`${entry.scenarioId} on ${entry.pagePath}`, async ({ page }) => {
+  // demoIndex disambiguates pages that embed the same scenario twice
+  // (e.g. review-payload-gate renders two demos on review-payloads).
+  test(`${entry.scenarioId} #${entry.demoIndex} on ${entry.pagePath}`, async ({ page }) => {
     test.setTimeout(PLAYBACK_TIMEOUT_MS + 30_000);
 
     const pageErrors = collectPageErrors(page);
     const pageUrl = `${entry.pagePath}?__test_speed=${TEST_SPEED}`;
     await page.goto(pageUrl, { waitUntil: "networkidle" });
 
-    // Find the Nth play button on the page
-    const playButtons = page.getByRole("button", { name: "Play demo" });
+    // Find the Nth play button on the page. The poster label depends on
+    // narration: "Play demo" for silent demos, "Play walkthrough with
+    // narration" for narrated ones — match both.
+    const playButtons = page.getByRole("button", { name: /^Play / });
     const buttonCount = await playButtons.count();
 
     if (buttonCount <= entry.demoIndex) {
@@ -154,7 +158,7 @@ for (const entry of manifest) {
     await page.waitForFunction(
       (idx) => {
         const buttons = document.querySelectorAll(
-          '[role="button"][aria-label="Play demo"]',
+          '[role="button"][aria-label^="Play "]',
         );
         return buttons.length > idx;
       },
@@ -165,7 +169,7 @@ for (const entry of manifest) {
     for (let attempt = 0; attempt < 5; attempt++) {
       const clicked = await page.evaluate((idx) => {
         const buttons = document.querySelectorAll(
-          '[role="button"][aria-label="Play demo"]',
+          '[role="button"][aria-label^="Play "]',
         );
         const btn = buttons[idx] as HTMLElement | undefined;
         if (!btn) return false;
@@ -180,7 +184,7 @@ for (const entry of manifest) {
       await page.waitForTimeout(1_000);
       const stillVisible = await page.evaluate((idx) => {
         const buttons = document.querySelectorAll(
-          '[role="button"][aria-label="Play demo"]',
+          '[role="button"][aria-label^="Play "]',
         );
         return buttons.length > idx &&
           (buttons[idx] as HTMLElement).offsetParent !== null;

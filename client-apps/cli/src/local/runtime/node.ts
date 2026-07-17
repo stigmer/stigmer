@@ -6,80 +6,92 @@
 // download (DD-002: keep the base install lean; nothing to acquire that the host
 // already guarantees). This is exactly what the conformance harness does
 // (`spawn(process.execPath, ...)`). An explicit STIGMER_NODE_BIN override is
-// honored and version-checked for advanced/multi-runtime setups.
+// honored and capability-checked for advanced/multi-runtime setups.
+//
+// The gate is a CAPABILITY probe, not a version check. The runner's durable
+// local checkpointer imports Node's built-in `node:sqlite`, available unflagged
+// from 22.13 in the 22.x line and only from 23.4 in the 23.x line — a gap
+// (23.0–23.3) that a previous version-table gate here missed, letting those
+// Nodes through to crash at runner boot with a raw ERR_UNKNOWN_BUILTIN_MODULE.
+// Probing "can this binary provide node:sqlite?" directly cannot drift; the
+// version floors survive only in the error message, where staleness is
+// harmless. The runner performs the same probe on its own boot (see
+// backend/services/runner/src/preflight.ts) — this one exists to fail at
+// resolve time with CLI-appropriate guidance instead of a subprocess crash.
 
 import { execFileSync } from "node:child_process";
 import { CliExitError } from "../../errors/cli-exit-error.js";
 import { ExitCode } from "../../errors/exit-codes.js";
 
-/**
- * Minimum Node version the runner requires: 22.13. The runner's durable local
- * checkpointer imports Node's built-in `node:sqlite`, which is only available
- * WITHOUT the --experimental-sqlite flag from v22.13 (and v23.4) onward. A
- * major-only gate would let 22.0-22.12 pass and then crash at checkpointer
- * creation, so the minor is enforced when the major is exactly 22.
- */
-export const MIN_NODE_MAJOR = 22;
-export const MIN_NODE_MINOR_ON_MAJOR = 13;
+// Exits 0 when the binary provides `node:sqlite`, 1 otherwise.
+//
+// Probe notes (each verified against real binaries; do not "simplify"):
+// - `process.getBuiltinModule(id)` returns the module when present and
+//   `undefined` when absent — no throw. The `?.` guard covers Nodes older than
+//   22.3, where `getBuiltinModule` itself does not exist (no `node:sqlite`
+//   there either, so exiting 1 is correct).
+// - `module.builtinModules` is NOT a valid alternative: it omits experimental
+//   builtins, so it reports no `sqlite` even on Nodes where `node:sqlite`
+//   loads fine (e.g. 22.13+). Gating on it would reject every supported Node.
+// - The probe runs in a SUBPROCESS with stdio suppressed even for the CLI's
+//   own runtime: `getBuiltinModule` loads the module, which on 22.x emits an
+//   `ExperimentalWarning` on stderr that must not leak into the CLI's output.
+const NODE_SQLITE_PROBE =
+  "process.exit(process.getBuiltinModule?.('node:sqlite') === undefined ? 1 : 0)";
 
-interface NodeVersion {
-  major: number;
-  minor: number;
-}
-
 /**
- * Resolve the Node binary to launch the runner with. Honors STIGMER_NODE_BIN
- * (version-checked); otherwise returns the current runtime.
+ * Resolve the Node binary to launch the runner with. Honors STIGMER_NODE_BIN;
+ * otherwise returns the current runtime. Either way the binary is probed for
+ * the runner's `node:sqlite` requirement; an unsuitable binary throws an
+ * actionable CliExitError. The probe cost is one silent subprocess spawn on
+ * runner-launch paths only (ensureRunner), never on ordinary CLI commands.
  */
 export function resolveNode(): string {
   const override = process.env.STIGMER_NODE_BIN;
-  if (override !== undefined && override !== "") {
-    assertVersion(override, probeNodeVersion(override));
-    return override;
-  }
-  // The CLI's own runtime: version is readable directly, no subprocess needed.
-  assertVersion(process.execPath, parseVersion(process.versions.node));
-  return process.execPath;
+  const bin = override !== undefined && override !== "" ? override : process.execPath;
+  assertProvidesNodeSqlite(bin);
+  return bin;
 }
 
-function probeNodeVersion(bin: string): NodeVersion | null {
+/** Best-effort `--version` for error messages only; null when the spawn fails. */
+function probeNodeVersion(bin: string): string | null {
   try {
-    const out = execFileSync(bin, ["--version"], { encoding: "utf8" });
-    return parseVersion(out.trim());
+    const out = execFileSync(bin, ["--version"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return out.trim();
   } catch {
     return null;
   }
 }
 
-// Parses "v22.22.2" or "22.22.2" to its major/minor numbers.
-function parseVersion(version: string): NodeVersion | null {
-  const match = /^v?(\d+)\.(\d+)\./.exec(version.trim());
-  if (match === null) return null;
-  const major = Number.parseInt(match[1], 10);
-  const minor = Number.parseInt(match[2], 10);
-  if (!Number.isInteger(major) || !Number.isInteger(minor)) return null;
-  return { major, minor };
-}
+function assertProvidesNodeSqlite(bin: string): void {
+  let exitStatus: number | null;
+  try {
+    execFileSync(bin, ["-e", NODE_SQLITE_PROBE], { stdio: "ignore" });
+    return;
+  } catch (err) {
+    // execFileSync reports a nonzero exit via `status`; a spawn failure
+    // (ENOENT, not executable) leaves it null/undefined.
+    exitStatus = (err as { status?: number | null }).status ?? null;
+  }
 
-// True when the version is at or above the 22.13 floor.
-function meetsFloor(v: NodeVersion): boolean {
-  if (v.major > MIN_NODE_MAJOR) return true;
-  return v.major === MIN_NODE_MAJOR && v.minor >= MIN_NODE_MINOR_ON_MAJOR;
-}
-
-function assertVersion(bin: string, version: NodeVersion | null): void {
-  const floor = `${MIN_NODE_MAJOR}.${MIN_NODE_MINOR_ON_MAJOR}`;
-  if (version === null) {
-    throw new CliExitError(`could not determine the Node version of ${bin}`, ExitCode.General, [
-      `Ensure ${bin} is a working Node >= ${floor} runtime.`,
+  if (exitStatus === null) {
+    throw new CliExitError(`could not run ${bin} to verify the runner's Node requirements`, ExitCode.General, [
+      `Ensure ${bin} is a working Node >= 22.13 runtime (>= 23.4 in the 23.x line).`,
     ]);
   }
-  if (!meetsFloor(version)) {
-    throw new CliExitError(
-      `Node >= ${floor} is required to run the runner ` +
-        `(found ${version.major}.${version.minor} at ${bin})`,
-      ExitCode.General,
-      [`Upgrade Node to ${floor} or newer, or point STIGMER_NODE_BIN at one.`],
-    );
-  }
+
+  const version = probeNodeVersion(bin) ?? "unknown version";
+  throw new CliExitError(
+    `Node at ${bin} (${version}) cannot run the runner: it does not provide the built-in node:sqlite module`,
+    ExitCode.General,
+    [
+      "The runner's durable checkpointer requires node:sqlite, which is available",
+      "unflagged from Node 22.13 (22.x line) and 23.4 (23.x and later) — note that",
+      "23.0-23.3 lack it.",
+      "Upgrade Node, or point STIGMER_NODE_BIN at a suitable runtime.",
+    ],
+  );
 }

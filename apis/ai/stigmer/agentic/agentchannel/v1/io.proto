@@ -63,20 +63,36 @@ message InitiateChannelInstallInput {
 
 // Output of the initiate-install RPC.
 //
-// The caller redirects the user to authorization_url; the provider
+// Two install styles share this output. For redirect-installed providers
+// (Slack) the caller redirects the user to authorization_url; the provider
 // redirects back to the console, which completes the install with the
-// completeInstall RPC.
+// completeInstall RPC. For direct-installed providers (WhatsApp) the
+// install completes inside this RPC: completed is true and there is
+// nothing to redirect to — refresh the channel to see its install facts.
 message InitiateChannelInstallOutput {
   // Provider authorization URL to redirect the installing user to
-  // (for Slack: the "Add to Slack" consent screen).
+  // (for Slack: the "Add to Slack" consent screen). Empty when the
+  // install completed directly.
   string authorization_url = 1;
 
   // Single-use opaque state parameter bound to this install attempt.
+  // Empty when the install completed directly.
   //
   // @internal
   // Persisted server-side (PendingOAuthStateDocument pattern) and consumed
   // atomically by completeInstall; expired or replayed states are rejected.
   string state = 2;
+
+  // True when the install completed synchronously inside this RPC
+  // (direct-installed providers). Clients branch on this field — never on
+  // provider knowledge of their own — so the server stays the single
+  // source of install-style truth.
+  //
+  // @internal
+  // DD-WA-1b. The seam behind it is the sealed ChannelInstaller split:
+  // AuthorizationRedirectInstaller populates authorization_url + state;
+  // DirectInstaller populates completed.
+  bool completed = 3;
 }
 
 // Input for completing a provider install flow.

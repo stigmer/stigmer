@@ -20,10 +20,7 @@ import {
 import type { InteractionModeOption, SessionComposerHandle, SessionComposerSubmitContext } from "../composer/index.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { ResizableSplit } from "../internal/ResizableSplit.js";
-import { SelectionStore } from "../internal/store/selection-store.js";
 import { useWorkspaceEditors, isVirtualEntryId } from "../internal/store/index.js";
-import { ThreadSelectionContext } from "../execution/ThreadSelectionContext.js";
-import { useSelectedThreadItem } from "../execution/useThreadSelection.js";
 import { isTerminalPhase } from "../execution/execution-phases.js";
 import { MessageThread, type MessageThreadSlots } from "../execution/MessageThread.js";
 import { FileChangeProgressBar } from "../execution/FileChangeProgressBar.js";
@@ -43,6 +40,7 @@ import {
 } from "../library/detect-plan-artifact.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
 import { useSessionPageFlow } from "./useSessionPageFlow.js";
+import { isChannelOriginSession } from "./channelOrigin.js";
 import { useOpenFileChange } from "./useOpenFileChange.js";
 import { usePlanDraft, planDraftKey, type PlanDraftController } from "./usePlanDraft.js";
 import { PlanEditor } from "./PlanEditor.js";
@@ -217,6 +215,12 @@ export interface SessionViewerProps {
    * reads a guest principal cannot make — follow-ups simply continue
    * on the session's bound agent instance.
    *
+   * `"observer"` is a read-only transcript: no composer, no
+   * approval/edit/retry/build affordances, no access management. The
+   * viewer also self-selects observer for channel-originated sessions
+   * (the `stigmer.ai/channel-id` label) regardless of this prop, since
+   * channel viewers hold `can_view` only.
+   *
    * See {@link SessionAudience}.
    *
    * @default "integrator"
@@ -259,14 +263,11 @@ export interface SessionViewerProps {
  *   banners + `SessionComposer`
  * - **Session panel** (secondary): the unified `WorkspaceSurface` — explorer,
  *   search, read-only editor, and the session facets (Config, Changes,
- *   Artifacts, Usage, Inspect) as injected rail views. Collapsed by default
+ *   Artifacts, Usage) as injected rail views. Collapsed by default
  *   to a top-right chip; opening a file (tree, search, or a transcript path)
  *   expands it.
  *
  * Connected via `ResizableSplit` with persisted chat width.
- *
- * Thread selection is provided via `ThreadSelectionContext` (Phase 2
- * opt-in) for render-isolated per-item selection.
  *
  * Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
  * apps inject platform-specific values via props (DD-004/DD-016).
@@ -313,19 +314,21 @@ export function SessionViewer({
   const flow = useSessionPageFlow({ sessionId, org, getRuntimeEnv, audience });
   const { conv } = flow;
   const isGuest = audience === "guest";
-  // Both curated audiences (endUser, guest) lock the agent and hide the
-  // integrator configuration; guest adds its own restrictions below.
-  const isCurated = audience !== "integrator";
+  // Channel-originated sessions (Slack/WhatsApp conversations owned by the
+  // channel runtime) are read-only for every console caller — the server
+  // grants channel viewers can_view without can_create_execution_in — so the
+  // viewer self-selects the observer presentation regardless of the host's
+  // audience. Every entry point (a conversations list, a pasted URL) renders
+  // read-only without host wiring.
+  const isObserver =
+    audience === "observer" || isChannelOriginSession(conv.session);
+  // Curated audiences (endUser, guest, observer) lock the agent and hide the
+  // integrator configuration; guest and observer add their own restrictions.
+  const isCurated = audience !== "integrator" || isObserver;
 
   const [modelId, setModelId] = flow.model;
   const [interactionMode, setInteractionMode] = flow.interactionMode;
   const composerRef = useRef<SessionComposerHandle>(null);
-
-  const selectionStoreRef = useRef<SelectionStore | null>(null);
-  if (!selectionStoreRef.current) {
-    selectionStoreRef.current = new SelectionStore();
-  }
-  const selectionStore = selectionStoreRef.current;
 
   const phase =
     flow.displayExecution?.status?.phase ??
@@ -567,75 +570,82 @@ export function SessionViewer({
         )}
       </div>
 
-      <ThreadSelectionContext.Provider value={selectionStore}>
-        {/* One layout, collapsed by default: chat fills the row until the panel
-            opens, then becomes the fixed narrow pane on the left while the
-            panel takes the flexible region. Collapsing goes through the
-            split's `collapsedPane` (CSS, not conditional structure), so the
-            conversation is always the same first child and an open/close never
-            remounts it (invariant 1). */}
-        <ResizableSplit
-          resizablePane="primary"
-          collapsedPane={panel.isOpen ? "none" : "secondary"}
-          defaultSize={420}
-          minSize={320}
-          maxSize={640}
-          storageKey="stgm-session-chat-width"
-          responsiveCollapse={panel.isOpen ? "primary" : "none"}
-          ariaLabel="Resize chat panel"
-          className="min-h-0 flex-1"
-          primary={
-            <ConversationColumn
+      {/* One layout, collapsed by default: chat fills the row until the panel
+          opens, then becomes the fixed narrow pane on the left while the
+          panel takes the flexible region. Collapsing goes through the
+          split's `collapsedPane` (CSS, not conditional structure), so the
+          conversation is always the same first child and an open/close never
+          remounts it (invariant 1). */}
+      <ResizableSplit
+        resizablePane="primary"
+        collapsedPane={panel.isOpen ? "none" : "secondary"}
+        defaultSize={420}
+        minSize={320}
+        maxSize={640}
+        storageKey="stgm-session-chat-width"
+        responsiveCollapse={panel.isOpen ? "primary" : "none"}
+        ariaLabel="Resize chat panel"
+        className="min-h-0 flex-1"
+        primary={
+          <ConversationColumn
+            flow={flow}
+            modelId={modelId}
+            setModelId={setModelId}
+            interactionMode={interactionMode}
+            setInteractionMode={setInteractionMode}
+            composerRef={composerRef}
+            org={org}
+            gitHubConnection={gitHubConnection}
+            enableGitHub={enableGitHub}
+            enableLocal={enableLocal}
+            onBrowseLocalFolder={onBrowseLocalFolder}
+            onBuildFromPlan={handleBuildFromPlan}
+            onOpenPlan={handleOpenPlan}
+            isBuildingFromPlan={isBuildingFromPlan}
+            planAttachFailed={planAttachFailed}
+            onDismissPlanAttachFailed={() => setPlanAttachFailed(false)}
+            onFilePathClick={handleTranscriptFilePathClick}
+            isCurated={isCurated}
+            isGuest={isGuest}
+            isObserver={isObserver}
+            threadSlots={threadSlots}
+          />
+        }
+        secondary={
+          panel.isOpen && !isGuest ? (
+            <SessionPanelRegion
               flow={flow}
-              modelId={modelId}
-              setModelId={setModelId}
-              interactionMode={interactionMode}
-              setInteractionMode={setInteractionMode}
-              composerRef={composerRef}
               org={org}
-              gitHubConnection={gitHubConnection}
-              enableGitHub={enableGitHub}
+              panel={panel}
+              // Observers cannot manage access (no can_grant_access /
+              // can_view_access on a channel session) — the control is
+              // withheld rather than left to fail server-side.
+              accessSlot={isObserver ? undefined : accessSlot}
+              onApplied={onApplied}
+              // Implementing a plan submits an execution — a write an
+              // observer cannot make (can_create_execution_in is
+              // owner/viewer-only).
+              onImplementPlan={isObserver ? undefined : handleBuildFromPlan}
+              implementPlanDisabled={
+                isObserver || !conv.canSendFollowUp || isBuildingFromPlan
+              }
+              sessionPlan={sessionPlan}
+              streamingPlan={streamingPlan}
+              planDraft={planDraft}
+              openPlanExecutionId={openPlanExecutionId}
+              onOpenPlan={handleOpenPlan}
+              onOpenArtifact={handleOpenArtifact}
+              onActivateArtifact={handleActivateArtifact}
               enableLocal={enableLocal}
               onBrowseLocalFolder={onBrowseLocalFolder}
-              onBuildFromPlan={handleBuildFromPlan}
-              onOpenPlan={handleOpenPlan}
-              isBuildingFromPlan={isBuildingFromPlan}
-              planAttachFailed={planAttachFailed}
-              onDismissPlanAttachFailed={() => setPlanAttachFailed(false)}
-              onFilePathClick={handleTranscriptFilePathClick}
+              workspaceFileLister={workspaceFileLister}
+              workspaceFileReader={workspaceFileReader}
+              workspaceContentSearcher={workspaceContentSearcher}
               isCurated={isCurated}
-              isGuest={isGuest}
-              threadSlots={threadSlots}
             />
-          }
-          secondary={
-            panel.isOpen && !isGuest ? (
-              <SessionPanelRegion
-                flow={flow}
-                org={org}
-                panel={panel}
-                accessSlot={accessSlot}
-                onApplied={onApplied}
-                onImplementPlan={handleBuildFromPlan}
-                implementPlanDisabled={!conv.canSendFollowUp || isBuildingFromPlan}
-                sessionPlan={sessionPlan}
-                streamingPlan={streamingPlan}
-                planDraft={planDraft}
-                openPlanExecutionId={openPlanExecutionId}
-                onOpenPlan={handleOpenPlan}
-                onOpenArtifact={handleOpenArtifact}
-                onActivateArtifact={handleActivateArtifact}
-                enableLocal={enableLocal}
-                onBrowseLocalFolder={onBrowseLocalFolder}
-                workspaceFileLister={workspaceFileLister}
-                workspaceFileReader={workspaceFileReader}
-                workspaceContentSearcher={workspaceContentSearcher}
-                isCurated={isCurated}
-              />
-            ) : null
-          }
-        />
-      </ThreadSelectionContext.Provider>
+          ) : null
+        }
+      />
     </div>
   );
 }
@@ -670,10 +680,16 @@ interface ConversationColumnProps {
    * let the path keep its copy / GitHub-link behavior.
    */
   readonly onFilePathClick: (path: string) => boolean;
-  /** Curated audience (endUser or guest): locked agent, no integrator pickers. */
+  /** Curated audience (endUser, guest, or observer): locked agent, no integrator pickers. */
   readonly isCurated: boolean;
   /** Guest audience: pure chat — additionally no model picker, mode picker, attachments, or workspace. */
   readonly isGuest: boolean;
+  /**
+   * Observer audience: a read-only transcript. No composer, no
+   * approval/edit/retry/build affordances, no decision surfaces — live
+   * stream indicators stay (watching an in-flight turn is the point).
+   */
+  readonly isObserver: boolean;
   readonly threadSlots?: MessageThreadSlots;
 }
 
@@ -697,6 +713,7 @@ const ConversationColumn = memo(function ConversationColumn({
   onFilePathClick,
   isCurated,
   isGuest,
+  isObserver,
   threadSlots,
 }: ConversationColumnProps) {
   const { conv } = flow;
@@ -794,20 +811,28 @@ const ConversationColumn = memo(function ConversationColumn({
         activeStreamExecution={conv.activeStreamExecution}
         pendingUserMessage={conv.pendingUserMessage}
         pendingMessageFailed={!!conv.sendError && !!conv.pendingUserMessage}
-        onRetrySend={conv.retryLastSend}
-        onRetryExecution={onRetryExecution}
-        onApprovalSubmit={flow.submitApproval}
+        // Observers get a pure transcript: every interaction affordance
+        // (retry, approvals, edit, build-from-plan) is opt-in via its
+        // callback, so passing none removes the controls entirely. Opening
+        // a plan read-only in the panel remains — reading is the point.
+        onRetrySend={isObserver ? undefined : conv.retryLastSend}
+        onRetryExecution={isObserver ? undefined : onRetryExecution}
+        onApprovalSubmit={isObserver ? undefined : flow.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
         approvalErrors={conv.approvalErrors}
         showFileReviewRecords
-        onEditMessage={conv.isStoppable ? handleEditMessage : undefined}
+        onEditMessage={
+          isObserver || !conv.isStoppable ? undefined : handleEditMessage
+        }
         workspaceEntries={conv.workspaceEntries}
         onFilePathClick={onFilePathClick}
         sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
-        onBuildFromPlan={onBuildFromPlan}
+        onBuildFromPlan={isObserver ? undefined : onBuildFromPlan}
         onOpenPlan={onOpenPlan}
         org={org}
-        planActionsDisabled={!conv.canSendFollowUp || isBuildingFromPlan}
+        planActionsDisabled={
+          isObserver || !conv.canSendFollowUp || isBuildingFromPlan
+        }
         planBuildPending={isBuildingFromPlan}
         contentColumn="center"
         slots={threadSlots}
@@ -817,6 +842,8 @@ const ConversationColumn = memo(function ConversationColumn({
         {planAttachFailed && (
           <PlanAttachFailedNotice onDismiss={onDismissPlanAttachFailed} />
         )}
+        {/* Live stream indicators stay for observers — watching an
+            in-flight conversation is the point of observability. */}
         {conv.isReconnecting && <ReconnectingIndicator />}
         {conv.connectTimedOut && (
           <ConnectTimedOutBanner onRetry={conv.reconnectStream} />
@@ -828,65 +855,73 @@ const ConversationColumn = memo(function ConversationColumn({
             onReconnect={conv.reconnectStream}
           />
         )}
-        {sendError && <SendErrorBanner error={sendError} />}
-        {flow.autoApproveAll && (
+        {!isObserver && sendError && <SendErrorBanner error={sendError} />}
+        {!isObserver && flow.autoApproveAll && (
           <AutoApproveIndicator onTurnOff={() => flow.setAutoApproveAll(false)} />
         )}
         {/* Pending file reviews dock here — pinned above the composer so the
             decision the agent is blocked on can never scroll out of view. The
             thread renders only observational rows (badges) and read-only
-            settled records; this is the one decision surface. */}
+            settled records; this is the one decision surface. Observers get
+            the read-only progress strip but never the decision dock. */}
         <FilePathContext.Provider value={dockFilePathCtx}>
           {/* Mid-run live capture (DD-32): the "N files changed so far" strip for
               a still-running turn. Mutually exclusive with the dock below —
               progress shows while CAPTURING, the dock once AWAITING_REVIEW — so it
               hands off cleanly when review opens. Non-interactive. */}
           <FileChangeProgressBar progress={conv.fileChangeProgress} />
-          <FileReviewDock
-            changeSets={conv.fileChangeSets}
-            onSubmit={conv.submitFileDecision}
-            submittingDecisionKeys={conv.submittingFileDecisionKeys}
-            decisionErrors={conv.fileDecisionErrors}
-          />
+          {!isObserver && (
+            <FileReviewDock
+              changeSets={conv.fileChangeSets}
+              onSubmit={conv.submitFileDecision}
+              submittingDecisionKeys={conv.submittingFileDecisionKeys}
+              decisionErrors={conv.fileDecisionErrors}
+            />
+          )}
         </FilePathContext.Provider>
-        <SessionComposer
-          ref={composerRef}
-          onSubmit={handleComposerSubmit}
-          isSubmitting={conv.isSending}
-          disabled={!conv.canSendFollowUp}
-          onStop={conv.isStoppable ? handleStop : undefined}
-          isStopping={conv.isStopping}
-          isEditing={editingExecutionId != null}
-          onCancelEdit={handleCancelEdit}
-          org={org}
-          harness={flow.harness}
-          defaultModelId={modelId}
-          onModelChange={setModelId}
-          interactionMode={interactionMode}
-          onInteractionModeChange={setInteractionMode}
-          showInteractionModePicker={!isGuest}
-          showModelSelector={!isGuest}
-          enableAttachments={!isGuest}
-          workspace={isGuest ? undefined : flow.workspace}
-          gitHubConnection={isGuest ? undefined : gitHubConnection}
-          enableGitHub={enableGitHub && !isGuest}
-          enableLocal={enableLocal && !isGuest}
-          onBrowseLocalFolder={onBrowseLocalFolder}
-          agentRef={flow.agentRef}
-          // Guests get no agent machinery: the session's agent is already
-          // bound server-side, and the picker's resolution path performs
-          // org reads a guest token cannot make.
-          onAgentRefChange={isGuest ? undefined : flow.setAgentRef}
-          onAgentResolutionChange={isGuest ? undefined : flow.setResolution}
-          isDefaultAgent={flow.isDefaultAgent}
-          lockAgent={isCurated}
-          mcpServerUsages={isCurated ? undefined : flow.mcpServerUsages}
-          onMcpServerUsagesChange={isCurated ? undefined : flow.setMcpServerUsages}
-          skillRefs={isCurated ? undefined : flow.skillRefs}
-          onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
-          sessionVariables={isCurated ? undefined : flow.sessionVariables}
-          className="px-4 py-3"
-        />
+        {/* Observers never get a composer: the server denies them
+            can_create_execution_in, so the send surface simply is not
+            offered — read-only by construction, not by a disabled state. */}
+        {!isObserver && (
+          <SessionComposer
+            ref={composerRef}
+            onSubmit={handleComposerSubmit}
+            isSubmitting={conv.isSending}
+            disabled={!conv.canSendFollowUp}
+            onStop={conv.isStoppable ? handleStop : undefined}
+            isStopping={conv.isStopping}
+            isEditing={editingExecutionId != null}
+            onCancelEdit={handleCancelEdit}
+            org={org}
+            harness={flow.harness}
+            defaultModelId={modelId}
+            onModelChange={setModelId}
+            interactionMode={interactionMode}
+            onInteractionModeChange={setInteractionMode}
+            showInteractionModePicker={!isGuest}
+            showModelSelector={!isGuest}
+            enableAttachments={!isGuest}
+            workspace={isGuest ? undefined : flow.workspace}
+            gitHubConnection={isGuest ? undefined : gitHubConnection}
+            enableGitHub={enableGitHub && !isGuest}
+            enableLocal={enableLocal && !isGuest}
+            onBrowseLocalFolder={onBrowseLocalFolder}
+            agentRef={flow.agentRef}
+            // Guests get no agent machinery: the session's agent is already
+            // bound server-side, and the picker's resolution path performs
+            // org reads a guest token cannot make.
+            onAgentRefChange={isGuest ? undefined : flow.setAgentRef}
+            onAgentResolutionChange={isGuest ? undefined : flow.setResolution}
+            isDefaultAgent={flow.isDefaultAgent}
+            lockAgent={isCurated}
+            mcpServerUsages={isCurated ? undefined : flow.mcpServerUsages}
+            onMcpServerUsagesChange={isCurated ? undefined : flow.setMcpServerUsages}
+            skillRefs={isCurated ? undefined : flow.skillRefs}
+            onSkillRefsChange={isCurated ? undefined : flow.setSkillRefs}
+            sessionVariables={isCurated ? undefined : flow.sessionVariables}
+            className="px-4 py-3"
+          />
+        )}
       </div>
     </div>
   );
@@ -965,7 +1000,6 @@ function SessionPanelRegion({
   workspaceContentSearcher,
   isCurated,
 }: SessionPanelRegionProps) {
-  const selectedItem = useSelectedThreadItem();
   const { editors, activeKey, activeFile, reveal } = useWorkspaceEditors(
     panel.editorsStore,
   );
@@ -978,13 +1012,6 @@ function SessionPanelRegion({
   // activeKey, so a stale reveal for another tab is naturally ignored.
   const activeReveal =
     reveal && reveal.key === activeKey ? reveal : undefined;
-
-  // This region is the level that subscribes to thread selection; report it to
-  // the controller so an open panel can auto-surface the Inspect view. (A
-  // collapsed panel never sees — and deliberately never reacts to — selection.)
-  useEffect(() => {
-    panel.notifySelection(selectedItem);
-  }, [selectedItem, panel.notifySelection]);
 
   // Correlate the active file with its session change for diff-as-default
   // (DD-06 parity with the transcript's rendering of the same change). A
@@ -1170,13 +1197,12 @@ function SessionPanelRegion({
     flow.displayExecution?.status?.phase ??
     ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
 
-  // The session facets (Config / Changes / Artifacts / Usage / Inspect) as
+  // The session facets (Config / Changes / Artifacts / Usage) as
   // injected rail views — the full inspector feature set inside one panel.
   const railViews = useSessionRailViews({
     allExecutions: flow.allExecutions,
     org,
     sessionConfig,
-    selectedItem,
     onApplied,
     onImplementPlan,
     onOpenPlan,

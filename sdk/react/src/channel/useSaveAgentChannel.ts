@@ -17,10 +17,13 @@ import { toError } from "../internal/toError.js";
  * save({ ...agentChannelToInput(channel), enabled: false });
  * ```
  *
- * Provider config carries over structurally (the Slack config is an
- * empty marker message in v1 — all concrete facts are OAuth-observed and
- * live in `status`, which survives every save verbatim). The channel's
- * bound tool credentials (`environment_refs`) and its channel-app binding
+ * Provider config carries over per arm: the Slack config is an empty
+ * marker message in v1 (all concrete facts are OAuth-observed and live
+ * in `status`, which survives every save verbatim); the WhatsApp config
+ * carries its declared `phone_number_id`. Dropping the arm is never an
+ * option — the provider oneof is immutable server-side, so a save
+ * without it would be refused outright. The channel's bound tool
+ * credentials (`environment_refs`) and its channel-app binding
  * (`app_ref`) carry over too — apply semantics would otherwise silently
  * unbind them on every toggle (and an installed channel's app_ref is
  * frozen server-side, so dropping it would refuse the save outright).
@@ -43,6 +46,9 @@ export function agentChannelToInput(channel: AgentChannel): AgentChannelInput {
     },
     enabled: spec?.enabled ?? false,
     ...(spec?.providerConfig?.case === "slack" ? { slack: {} } : {}),
+    ...(spec?.providerConfig?.case === "whatsapp"
+      ? { whatsapp: { phoneNumberId: spec.providerConfig.value.phoneNumberId } }
+      : {}),
     ...(spec?.appRef?.slug
       ? {
           appRef: {

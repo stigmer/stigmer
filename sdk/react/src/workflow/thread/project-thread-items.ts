@@ -16,6 +16,11 @@
  */
 
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
+import type { JsonObject } from "@bufbuild/protobuf";
+import type {
+  ApprovalRequestedPayload,
+  ApprovalResolvedPayload,
+} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store.js";
 import { kindToDisplayName } from "../kind-metadata.js";
 import { taskKindToString } from "../workflow-graph-conversions.js";
@@ -23,6 +28,10 @@ import {
   threadCardVariant,
   type WorkflowThreadCardVariant,
 } from "./thread-presentation.js";
+import {
+  resolveTaskPreview,
+  type WorkflowTaskDisclosure,
+} from "./task-presentation.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -55,6 +64,35 @@ export interface WorkflowThreadItem {
   readonly currentToolName: string;
   readonly messagesCount: number;
   readonly toolCallsCount: number;
+  /**
+   * Kind-aware one-line preview from `resolveTaskPreview` (T04) — a
+   * primitive computed HERE (not in a card hook) so the structural-sharing
+   * compare below stays a cheap string check. The empty string when there
+   * is nothing kind-specific to say.
+   */
+  readonly previewLine: string;
+  /**
+   * Card disclosure mode (T04). Pure function of `taskKind` (like
+   * `variant`/`kindLabel`), so it is not part of the equality compare.
+   */
+  readonly disclosure: WorkflowTaskDisclosure;
+  /**
+   * Truncated event summaries carried for the card body's fallback ladder
+   * (snapshot → event summary → none). Reference-stable: the store reads
+   * them off the same immutable events on every re-derivation, so the
+   * identity compare below holds across appends.
+   */
+  readonly inputSummary: JsonObject | null;
+  readonly outputSummary: JsonObject | null;
+  /**
+   * The human_input gate's captured request/resolution payloads (T06) —
+   * the in-card review surface's data. Reference-stable like the
+   * summaries: the store carries the immutable events' payload messages,
+   * so the identity compare below holds across appends and only the
+   * gating card's item changes identity when a gate opens or resolves.
+   */
+  readonly approvalRequest: ApprovalRequestedPayload | null;
+  readonly approvalResolution: ApprovalResolvedPayload | null;
 }
 
 /**
@@ -120,6 +158,7 @@ export function projectThreadItems(
     if (SETTLED_STATUSES.has(state.status)) settledTasks += 1;
     else if (ACTIVE_STATUSES.has(state.status)) activeTasks += 1;
 
+    const preview = resolveTaskPreview(state);
     const fresh: WorkflowThreadItem = {
       taskName: state.taskName,
       taskKind: state.taskKind,
@@ -139,6 +178,12 @@ export function projectThreadItems(
       currentToolName: state.currentToolName,
       messagesCount: state.messagesCount,
       toolCallsCount: state.toolCallsCount,
+      previewLine: preview.previewLine,
+      disclosure: preview.disclosure,
+      inputSummary: state.inputSummary,
+      outputSummary: state.outputSummary,
+      approvalRequest: state.approvalRequest,
+      approvalResolution: state.approvalResolution,
     };
 
     const previous = previousByName.get(state.taskName);
@@ -175,7 +220,16 @@ function threadItemEqual(
     a.agentSlug === b.agentSlug &&
     a.currentToolName === b.currentToolName &&
     a.messagesCount === b.messagesCount &&
-    a.toolCallsCount === b.toolCallsCount
-    // kindLabel/variant are pure functions of taskKind — no need to compare.
+    a.toolCallsCount === b.toolCallsCount &&
+    a.previewLine === b.previewLine &&
+    // The summaries and gate payloads are read off the same immutable
+    // stored events on every re-derivation, so identity is the correct
+    // (and cheap) compare here.
+    a.inputSummary === b.inputSummary &&
+    a.outputSummary === b.outputSummary &&
+    a.approvalRequest === b.approvalRequest &&
+    a.approvalResolution === b.approvalResolution
+    // kindLabel/variant/disclosure are pure functions of taskKind — no need
+    // to compare.
   );
 }

@@ -36,6 +36,11 @@ public final class DeliveryProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentchannel_v1_SlackDeliveryContext_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentchannel_v1_WhatsAppDeliveryContext_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentchannel_v1_WhatsAppDeliveryContext_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -48,7 +53,7 @@ public final class DeliveryProto extends com.google.protobuf.GeneratedFile {
       "\n1ai/stigmer/agentic/agentchannel/v1/del" +
       "ivery.proto\022\"ai.stigmer.agentic.agentcha" +
       "nnel.v1\032\037google/protobuf/timestamp.proto" +
-      "\"\336\005\n\017ChannelDelivery\022\037\n\013delivery_id\030\001 \001(" +
+      "\"\271\006\n\017ChannelDelivery\022\037\n\013delivery_id\030\001 \001(" +
       "\tR\ndeliveryId\022(\n\020agent_channel_id\030\002 \001(\tR" +
       "\016agentChannelId\022\020\n\003org\030\003 \001(\tR\003org\022!\n\014exe" +
       "cution_id\030\004 \001(\tR\013executionId\022\035\n\nsession_" +
@@ -61,23 +66,28 @@ public final class DeliveryProto extends com.google.protobuf.GeneratedFile {
       "astError\022\'\n\017idempotency_key\030\013 \001(\tR\016idemp" +
       "otencyKey\022P\n\005slack\030\014 \001(\01328.ai.stigmer.ag" +
       "entic.agentchannel.v1.SlackDeliveryConte" +
-      "xtH\000R\005slack\0229\n\ncreated_at\030\r \001(\0132\032.google" +
-      ".protobuf.TimestampR\tcreatedAt\0229\n\nupdate" +
-      "d_at\030\016 \001(\0132\032.google.protobuf.TimestampR\t" +
-      "updatedAt\022B\n\017next_attempt_at\030\017 \001(\0132\032.goo" +
-      "gle.protobuf.TimestampR\rnextAttemptAtB\022\n" +
-      "\020delivery_context\"y\n\024SlackDeliveryContex" +
-      "t\022\035\n\nchannel_id\030\001 \001(\tR\tchannelId\022\033\n\tthre" +
-      "ad_ts\030\002 \001(\tR\010threadTs\022%\n\016placeholder_ts\030" +
-      "\003 \001(\tR\rplaceholderTs*x\n\025ChannelDeliveryS" +
-      "tatus\022\'\n#channel_delivery_status_unspeci" +
-      "fied\020\000\022\013\n\007pending\020\001\022\016\n\ndelivering\020\002\022\r\n\td" +
-      "elivered\020\003\022\n\n\006failed\020\004B\274\001B\rDeliveryProto" +
-      "P\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agentic.Agentchan" +
-      "nel.V1\312\002\"Ai\\Stigmer\\Agentic\\Agentchannel" +
-      "\\V1\342\002.Ai\\Stigmer\\Agentic\\Agentchannel\\V1" +
-      "\\GPBMetadata\352\002&Ai::Stigmer::Agentic::Age" +
-      "ntchannel::V1b\006proto3"
+      "xtH\000R\005slack\022Y\n\010whatsapp\030\020 \001(\0132;.ai.stigm" +
+      "er.agentic.agentchannel.v1.WhatsAppDeliv" +
+      "eryContextH\000R\010whatsapp\0229\n\ncreated_at\030\r \001" +
+      "(\0132\032.google.protobuf.TimestampR\tcreatedA" +
+      "t\0229\n\nupdated_at\030\016 \001(\0132\032.google.protobuf." +
+      "TimestampR\tupdatedAt\022B\n\017next_attempt_at\030" +
+      "\017 \001(\0132\032.google.protobuf.TimestampR\rnextA" +
+      "ttemptAtB\022\n\020delivery_context\"y\n\024SlackDel" +
+      "iveryContext\022\035\n\nchannel_id\030\001 \001(\tR\tchanne" +
+      "lId\022\033\n\tthread_ts\030\002 \001(\tR\010threadTs\022%\n\016plac" +
+      "eholder_ts\030\003 \001(\tR\rplaceholderTs\"i\n\027Whats" +
+      "AppDeliveryContext\022&\n\017phone_number_id\030\001 " +
+      "\001(\tR\rphoneNumberId\022&\n\017recipient_wa_id\030\002 " +
+      "\001(\tR\rrecipientWaId*x\n\025ChannelDeliverySta" +
+      "tus\022\'\n#channel_delivery_status_unspecifi" +
+      "ed\020\000\022\013\n\007pending\020\001\022\016\n\ndelivering\020\002\022\r\n\tdel" +
+      "ivered\020\003\022\n\n\006failed\020\004B\274\001B\rDeliveryProtoP\001" +
+      "\242\002\004ASAA\252\002\"Ai.Stigmer.Agentic.Agentchanne" +
+      "l.V1\312\002\"Ai\\Stigmer\\Agentic\\Agentchannel\\V" +
+      "1\342\002.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\G" +
+      "PBMetadata\352\002&Ai::Stigmer::Agentic::Agent" +
+      "channel::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -89,13 +99,19 @@ public final class DeliveryProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentchannel_v1_ChannelDelivery_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_ChannelDelivery_descriptor,
-        new java.lang.String[] { "DeliveryId", "AgentChannelId", "Org", "ExecutionId", "SessionId", "ConversationKey", "ExternalUserKey", "Status", "Attempts", "LastError", "IdempotencyKey", "Slack", "CreatedAt", "UpdatedAt", "NextAttemptAt", "DeliveryContext", });
+        new java.lang.String[] { "DeliveryId", "AgentChannelId", "Org", "ExecutionId", "SessionId", "ConversationKey", "ExternalUserKey", "Status", "Attempts", "LastError", "IdempotencyKey", "Slack", "Whatsapp", "CreatedAt", "UpdatedAt", "NextAttemptAt", "DeliveryContext", });
     internal_static_ai_stigmer_agentic_agentchannel_v1_SlackDeliveryContext_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_agentchannel_v1_SlackDeliveryContext_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_SlackDeliveryContext_descriptor,
         new java.lang.String[] { "ChannelId", "ThreadTs", "PlaceholderTs", });
+    internal_static_ai_stigmer_agentic_agentchannel_v1_WhatsAppDeliveryContext_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_agentchannel_v1_WhatsAppDeliveryContext_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentchannel_v1_WhatsAppDeliveryContext_descriptor,
+        new java.lang.String[] { "PhoneNumberId", "RecipientWaId", });
     descriptor.resolveAllFeaturesImmutable();
     com.google.protobuf.TimestampProto.getDescriptor();
   }

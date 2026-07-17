@@ -252,6 +252,33 @@ public interface ChannelDeliveryOrBuilder extends
 
   /**
    * <pre>
+   * WhatsApp delivery context.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16 [json_name = "whatsapp"];</code>
+   * @return Whether the whatsapp field is set.
+   */
+  boolean hasWhatsapp();
+  /**
+   * <pre>
+   * WhatsApp delivery context.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16 [json_name = "whatsapp"];</code>
+   * @return The whatsapp.
+   */
+  ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext getWhatsapp();
+  /**
+   * <pre>
+   * WhatsApp delivery context.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16 [json_name = "whatsapp"];</code>
+   */
+  ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContextOrBuilder getWhatsappOrBuilder();
+
+  /**
+   * <pre>
    * When the delivery record was created (webhook time).
    * </pre>
    *

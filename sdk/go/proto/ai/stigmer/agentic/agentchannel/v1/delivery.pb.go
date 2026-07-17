@@ -131,6 +131,7 @@ type ChannelDelivery struct {
 	// Types that are valid to be assigned to DeliveryContext:
 	//
 	//	*ChannelDelivery_Slack
+	//	*ChannelDelivery_Whatsapp
 	DeliveryContext isChannelDelivery_DeliveryContext `protobuf_oneof:"delivery_context"`
 	// When the delivery record was created (webhook time).
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
@@ -265,6 +266,15 @@ func (x *ChannelDelivery) GetSlack() *SlackDeliveryContext {
 	return nil
 }
 
+func (x *ChannelDelivery) GetWhatsapp() *WhatsAppDeliveryContext {
+	if x != nil {
+		if x, ok := x.DeliveryContext.(*ChannelDelivery_Whatsapp); ok {
+			return x.Whatsapp
+		}
+	}
+	return nil
+}
+
 func (x *ChannelDelivery) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
@@ -295,7 +305,14 @@ type ChannelDelivery_Slack struct {
 	Slack *SlackDeliveryContext `protobuf:"bytes,12,opt,name=slack,proto3,oneof"`
 }
 
+type ChannelDelivery_Whatsapp struct {
+	// WhatsApp delivery context.
+	Whatsapp *WhatsAppDeliveryContext `protobuf:"bytes,16,opt,name=whatsapp,proto3,oneof"`
+}
+
 func (*ChannelDelivery_Slack) isChannelDelivery_DeliveryContext() {}
+
+func (*ChannelDelivery_Whatsapp) isChannelDelivery_DeliveryContext() {}
 
 // SlackDeliveryContext carries what the Slack deliverer needs to post or
 // update the reply.
@@ -367,11 +384,74 @@ func (x *SlackDeliveryContext) GetPlaceholderTs() string {
 	return ""
 }
 
+// WhatsAppDeliveryContext carries what the WhatsApp deliverer needs to
+// send the reply through the Meta Cloud API.
+//
+// @internal
+// No placeholder field: WhatsApp cannot edit a sent message, so there is
+// no "thinking" message to update (the Slack chat.update UX has no
+// analog). No credentials either — the deliverer loads the channel by
+// agent_channel_id and resolves the access token from its ChannelApp
+// (DD-WA-3), the SlackOutboundDeliverer channel-load pattern.
+type WhatsAppDeliveryContext struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Phone number ID the reply sends FROM (the business number).
+	PhoneNumberId string `protobuf:"bytes,1,opt,name=phone_number_id,json=phoneNumberId,proto3" json:"phone_number_id,omitempty"`
+	// WhatsApp user id (wa_id) the reply sends TO.
+	RecipientWaId string `protobuf:"bytes,2,opt,name=recipient_wa_id,json=recipientWaId,proto3" json:"recipient_wa_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WhatsAppDeliveryContext) Reset() {
+	*x = WhatsAppDeliveryContext{}
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WhatsAppDeliveryContext) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WhatsAppDeliveryContext) ProtoMessage() {}
+
+func (x *WhatsAppDeliveryContext) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WhatsAppDeliveryContext.ProtoReflect.Descriptor instead.
+func (*WhatsAppDeliveryContext) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *WhatsAppDeliveryContext) GetPhoneNumberId() string {
+	if x != nil {
+		return x.PhoneNumberId
+	}
+	return ""
+}
+
+func (x *WhatsAppDeliveryContext) GetRecipientWaId() string {
+	if x != nil {
+		return x.RecipientWaId
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agentchannel_v1_delivery_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc = "" +
 	"\n" +
-	"1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xde\x05\n" +
+	"1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb9\x06\n" +
 	"\x0fChannelDelivery\x12\x1f\n" +
 	"\vdelivery_id\x18\x01 \x01(\tR\n" +
 	"deliveryId\x12(\n" +
@@ -388,7 +468,8 @@ const file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc = "" +
 	"last_error\x18\n" +
 	" \x01(\tR\tlastError\x12'\n" +
 	"\x0fidempotency_key\x18\v \x01(\tR\x0eidempotencyKey\x12P\n" +
-	"\x05slack\x18\f \x01(\v28.ai.stigmer.agentic.agentchannel.v1.SlackDeliveryContextH\x00R\x05slack\x129\n" +
+	"\x05slack\x18\f \x01(\v28.ai.stigmer.agentic.agentchannel.v1.SlackDeliveryContextH\x00R\x05slack\x12Y\n" +
+	"\bwhatsapp\x18\x10 \x01(\v2;.ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContextH\x00R\bwhatsapp\x129\n" +
 	"\n" +
 	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
@@ -399,7 +480,10 @@ const file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc = "" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\tR\tchannelId\x12\x1b\n" +
 	"\tthread_ts\x18\x02 \x01(\tR\bthreadTs\x12%\n" +
-	"\x0eplaceholder_ts\x18\x03 \x01(\tR\rplaceholderTs*x\n" +
+	"\x0eplaceholder_ts\x18\x03 \x01(\tR\rplaceholderTs\"i\n" +
+	"\x17WhatsAppDeliveryContext\x12&\n" +
+	"\x0fphone_number_id\x18\x01 \x01(\tR\rphoneNumberId\x12&\n" +
+	"\x0frecipient_wa_id\x18\x02 \x01(\tR\rrecipientWaId*x\n" +
 	"\x15ChannelDeliveryStatus\x12'\n" +
 	"#channel_delivery_status_unspecified\x10\x00\x12\v\n" +
 	"\apending\x10\x01\x12\x0e\n" +
@@ -423,24 +507,26 @@ func file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDescGZIP() []byte
 }
 
 var file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_goTypes = []any{
-	(ChannelDeliveryStatus)(0),    // 0: ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
-	(*ChannelDelivery)(nil),       // 1: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery
-	(*SlackDeliveryContext)(nil),  // 2: ai.stigmer.agentic.agentchannel.v1.SlackDeliveryContext
-	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
+	(ChannelDeliveryStatus)(0),      // 0: ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
+	(*ChannelDelivery)(nil),         // 1: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery
+	(*SlackDeliveryContext)(nil),    // 2: ai.stigmer.agentic.agentchannel.v1.SlackDeliveryContext
+	(*WhatsAppDeliveryContext)(nil), // 3: ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext
+	(*timestamppb.Timestamp)(nil),   // 4: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.status:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
 	2, // 1: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.slack:type_name -> ai.stigmer.agentic.agentchannel.v1.SlackDeliveryContext
-	3, // 2: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.created_at:type_name -> google.protobuf.Timestamp
-	3, // 3: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.updated_at:type_name -> google.protobuf.Timestamp
-	3, // 4: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.next_attempt_at:type_name -> google.protobuf.Timestamp
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	3, // 2: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.whatsapp:type_name -> ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext
+	4, // 3: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.created_at:type_name -> google.protobuf.Timestamp
+	4, // 4: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.updated_at:type_name -> google.protobuf.Timestamp
+	4, // 5: ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.next_attempt_at:type_name -> google.protobuf.Timestamp
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_init() }
@@ -450,6 +536,7 @@ func file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_init() {
 	}
 	file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_msgTypes[0].OneofWrappers = []any{
 		(*ChannelDelivery_Slack)(nil),
+		(*ChannelDelivery_Whatsapp)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -457,7 +544,7 @@ func file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc), len(file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

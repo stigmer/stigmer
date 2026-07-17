@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/delivery.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_delivery: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2RlbGl2ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIqoECg9DaGFubmVsRGVsaXZlcnkSEwoLZGVsaXZlcnlfaWQYASABKAkSGAoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCRILCgNvcmcYAyABKAkSFAoMZXhlY3V0aW9uX2lkGAQgASgJEhIKCnNlc3Npb25faWQYBSABKAkSGAoQY29udmVyc2F0aW9uX2tleRgGIAEoCRIZChFleHRlcm5hbF91c2VyX2tleRgHIAEoCRJJCgZzdGF0dXMYCCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxEZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgJIAEoBRISCgpsYXN0X2Vycm9yGAogASgJEhcKD2lkZW1wb3RlbmN5X2tleRgLIAEoCRJJCgVzbGFjaxgMIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuU2xhY2tEZWxpdmVyeUNvbnRleHRIABIuCgpjcmVhdGVkX2F0GA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GA4gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIzCg9uZXh0X2F0dGVtcHRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQhIKEGRlbGl2ZXJ5X2NvbnRleHQiVQoUU2xhY2tEZWxpdmVyeUNvbnRleHQSEgoKY2hhbm5lbF9pZBgBIAEoCRIRCgl0aHJlYWRfdHMYAiABKAkSFgoOcGxhY2Vob2xkZXJfdHMYAyABKAkqeAoVQ2hhbm5lbERlbGl2ZXJ5U3RhdHVzEicKI2NoYW5uZWxfZGVsaXZlcnlfc3RhdHVzX3Vuc3BlY2lmaWVkEAASCwoHcGVuZGluZxABEg4KCmRlbGl2ZXJpbmcQAhINCglkZWxpdmVyZWQQAxIKCgZmYWlsZWQQBGIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2RlbGl2ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIvsECg9DaGFubmVsRGVsaXZlcnkSEwoLZGVsaXZlcnlfaWQYASABKAkSGAoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCRILCgNvcmcYAyABKAkSFAoMZXhlY3V0aW9uX2lkGAQgASgJEhIKCnNlc3Npb25faWQYBSABKAkSGAoQY29udmVyc2F0aW9uX2tleRgGIAEoCRIZChFleHRlcm5hbF91c2VyX2tleRgHIAEoCRJJCgZzdGF0dXMYCCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxEZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgJIAEoBRISCgpsYXN0X2Vycm9yGAogASgJEhcKD2lkZW1wb3RlbmN5X2tleRgLIAEoCRJJCgVzbGFjaxgMIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuU2xhY2tEZWxpdmVyeUNvbnRleHRIABJPCgh3aGF0c2FwcBgQIAEoCzI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuV2hhdHNBcHBEZWxpdmVyeUNvbnRleHRIABIuCgpjcmVhdGVkX2F0GA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GA4gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIzCg9uZXh0X2F0dGVtcHRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQhIKEGRlbGl2ZXJ5X2NvbnRleHQiVQoUU2xhY2tEZWxpdmVyeUNvbnRleHQSEgoKY2hhbm5lbF9pZBgBIAEoCRIRCgl0aHJlYWRfdHMYAiABKAkSFgoOcGxhY2Vob2xkZXJfdHMYAyABKAkiSwoXV2hhdHNBcHBEZWxpdmVyeUNvbnRleHQSFwoPcGhvbmVfbnVtYmVyX2lkGAEgASgJEhcKD3JlY2lwaWVudF93YV9pZBgCIAEoCSp4ChVDaGFubmVsRGVsaXZlcnlTdGF0dXMSJwojY2hhbm5lbF9kZWxpdmVyeV9zdGF0dXNfdW5zcGVjaWZpZWQQABILCgdwZW5kaW5nEAESDgoKZGVsaXZlcmluZxACEg0KCWRlbGl2ZXJlZBADEgoKBmZhaWxlZBAEYgZwcm90bzM", [file_google_protobuf_timestamp]);
 
 /**
  * ChannelDelivery tracks the delivery of one agent reply to one external
@@ -123,6 +123,14 @@ export type ChannelDelivery = Message<"ai.stigmer.agentic.agentchannel.v1.Channe
      */
     value: SlackDeliveryContext;
     case: "slack";
+  } | {
+    /**
+     * WhatsApp delivery context.
+     *
+     * @generated from field: ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext whatsapp = 16;
+     */
+    value: WhatsAppDeliveryContext;
+    case: "whatsapp";
   } | { case: undefined; value?: undefined };
 
   /**
@@ -194,6 +202,42 @@ export type SlackDeliveryContext = Message<"ai.stigmer.agentic.agentchannel.v1.S
  */
 export const SlackDeliveryContextSchema: GenMessage<SlackDeliveryContext> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentchannel_v1_delivery, 1);
+
+/**
+ * WhatsAppDeliveryContext carries what the WhatsApp deliverer needs to
+ * send the reply through the Meta Cloud API.
+ *
+ * @internal
+ * No placeholder field: WhatsApp cannot edit a sent message, so there is
+ * no "thinking" message to update (the Slack chat.update UX has no
+ * analog). No credentials either — the deliverer loads the channel by
+ * agent_channel_id and resolves the access token from its ChannelApp
+ * (DD-WA-3), the SlackOutboundDeliverer channel-load pattern.
+ *
+ * @generated from message ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext
+ */
+export type WhatsAppDeliveryContext = Message<"ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext"> & {
+  /**
+   * Phone number ID the reply sends FROM (the business number).
+   *
+   * @generated from field: string phone_number_id = 1;
+   */
+  phoneNumberId: string;
+
+  /**
+   * WhatsApp user id (wa_id) the reply sends TO.
+   *
+   * @generated from field: string recipient_wa_id = 2;
+   */
+  recipientWaId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext.
+ * Use `create(WhatsAppDeliveryContextSchema)` to create a new message.
+ */
+export const WhatsAppDeliveryContextSchema: GenMessage<WhatsAppDeliveryContext> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_delivery, 2);
 
 /**
  * ChannelDeliveryStatus is the delivery record lifecycle.

@@ -1,0 +1,197 @@
+---
+title: Connect an Agent to Slack
+description:
+  Put your Agent in a Slack workspace so your team can chat with it from direct
+  messages and channel mentions — no new tab, no new tool.
+---
+
+Connecting a channel puts your Agent inside Slack. Workspace members send it a
+direct message or @mention it in a channel, and it answers right there — with
+your Organization's policies, rate limits, and billing enforced by Stigmer. This
+guide shows you how to connect a workspace, give the Agent its tool credentials,
+and manage the connection afterward.
+
+<Callout type="info">
+  Connecting to Slack requires Stigmer Cloud. On a local backend you can manage
+  channel configuration, but the install itself uses the platform's hosted Slack
+  app.
+</Callout>
+
+<DemoConnectSlackChannel />
+
+## Before you start
+
+You need three things:
+
+- An Agent in your Organization, and permission to edit it.
+- Permission to install apps in the Slack workspace. If your workspace restricts
+  app installs, a Slack admin has to approve the install.
+- Credits in your Organization — conversations from Slack are billed to it.
+
+## Connect the workspace
+
+1. Open your Agent in the web console under **Library → Agents**.
+2. Open the **Channels** tab and click **Connect to Slack**.
+3. Keep the suggested channel name, or pick your own. The name identifies the
+   connection in Stigmer — useful when you connect more than one workspace.
+4. Under **Connect as**, keep the platform **Stigmer** app. It needs no setup.
+   If you want the bot to carry your own name and icon, see
+   [Bring your own Slack app](/docs/guides/channels/bring-your-own-slack-app).
+5. If your Agent uses tools, bind credentials under **Tool credentials** — see
+   [Give the Agent its tool credentials](#give-the-agent-its-tool-credentials)
+   below. You can also do this after connecting.
+6. Click **Connect to Slack**. A Slack window opens and asks which workspace to
+   add the bot to.
+
+<Callout type="warn">
+  Check the workspace name in the top-right corner of Slack's consent page
+  before you approve. Slack preselects the workspace your browser is signed into
+  — use the picker there to switch if it is not the one where your team should
+  chat with this Agent.
+</Callout>
+
+7. Review the permissions and click **Allow**. Back in Stigmer, the dialog
+   confirms the connection and names the workspace.
+
+The channel starts serving immediately. Its card in the **Channels** tab shows
+the workspace, the install state, and an on/off switch.
+
+<Callout>
+  Right after the install, Slack posts an admin notice in the workspace: "You
+  have installed Stigmer, which has an AI Assistant or Agent…" This is Slack's
+  standard notice for any AI app. No action is needed.
+</Callout>
+
+## Say hello in Slack
+
+Members reach the Agent by the **app's** name, not the Agent's:
+
+- **Direct message** — open a DM with **Stigmer** (or your own app's name if you
+  connected through one) and ask a question.
+- **Channel mention** — type `@` in any channel, pick **Stigmer** from the list,
+  and write your question. The bot replies in a thread.
+- **Assistant pane** — in workspaces with Slack's AI assistant view, Stigmer
+  appears there too, with suggested prompts for your Agent.
+
+The answers come from your Agent. Mention the bot with no question and it
+introduces itself and the Agent it fronts. While it works on an answer, Slack
+shows a thinking indicator; longer questions can take a while.
+
+## Give the Agent its tool credentials
+
+If your Agent uses MCP servers, its tools need credentials — API keys stored in
+an Environment. Conversations from Slack use only the credentials bound to the
+channel, so a channel without bindings refuses the first message that needs a
+tool.
+
+1. Create an Environment with only the credentials the Agent needs, and set its
+   visibility to **Organization** under **Settings → Environments**. A private
+   Environment cannot serve workspace members.
+2. Bind it to the channel — in the connect dialog under **Tool credentials**, or
+   any time later from the channel card's actions menu (⋯ → **Tool
+   credentials**).
+
+The channel card warns you when the Agent uses tools but the channel has no
+usable bindings — including when a bound Environment is still private.
+
+## One workspace, one agent per app
+
+A Slack workspace hosts **one Agent per Slack app**. If the workspace already
+has an Agent connected through the same app, Stigmer refuses the second install
+and names the workspace that is taken. You then have two options:
+
+- Disconnect the existing channel, freeing the workspace for this Agent.
+- [Register your own Slack app](/docs/guides/channels/bring-your-own-slack-app)
+  and connect through it. Each app is its own bot, so several Agents can serve
+  the same workspace side by side.
+
+The connect dialog also warns you up front when the app you picked already
+serves a workspace through one of your Organization's channels.
+
+## Who pays for Slack conversations
+
+Conversations from Slack use your Organization's credits — for every workspace
+member who chats with the bot. Stigmer protects your balance automatically:
+messages are rate limited per user and across the workspace, and if your
+Organization runs out of credits, the bot answers with a short unavailable
+message instead of overdrawing your balance.
+
+## Review conversations from the console
+
+You can read what people ask the bot without leaving Stigmer. Open the channel
+card's actions menu (⋯) and pick **Conversations** — each entry is one person's
+conversation, newest activity first. Click one to read the full transcript,
+including the tools the Agent used.
+
+Two things to know:
+
+- **Reading is limited to the people responsible for the channel** — whoever
+  connected it, plus your Organization's admins. Other members cannot see these
+  conversations, and they never appear in anyone's home-page recents.
+- **Reading is all you can do.** The transcript has no message box — replies
+  belong to the person in Slack, so you cannot answer on the Agent's behalf from
+  the console.
+
+## Pause, disconnect, or reconnect
+
+The channel card gives you three levels of control:
+
+- **Turn it off** — flip the card's switch. The bot stops answering, but the
+  workspace connection and its configuration stay. Flip it back on any time.
+- **Disconnect** — in the card's actions menu (⋯). This removes the channel and
+  its stored Slack install, including credentials. Members can no longer reach
+  the Agent, and reconnecting later means going through the Slack consent again.
+- **Reconnect** — if someone removes the app from the workspace on the Slack
+  side, the card shows **Revoked**. Your configuration survives; click
+  **Reconnect** to run the install again.
+
+## Manage the channel declaratively
+
+The connection lives in its own resource — an `AgentChannel` — separate from the
+Agent it points at. If you manage resources with YAML manifests, manage the
+channel the same way:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: AgentChannel
+metadata:
+  name: support-agent-slack
+  org: acme-corp
+spec:
+  agent_ref:
+    kind: agent
+    org: acme-corp
+    slug: support-agent
+  enabled: true
+  slack: {}
+  environment_refs:
+    - kind: environment
+      org: acme-corp
+      slug: support-tools-credentials
+```
+
+Apply it with `stigmer apply -f channel.yaml`. The manifest manages the
+channel's configuration — which Agent it serves, whether it is on, which
+credentials it binds. The Slack install itself always happens through the
+console's connect flow: workspace identity and provider credentials live in the
+channel's status, and applying a manifest never touches them.
+
+See the [AgentChannel reference](/docs/sdk/resources/agent-channel) for every
+field.
+
+## Limitations
+
+- A workspace hosts one Agent per Slack app. Register additional
+  [Channel Apps](/docs/guides/channels/bring-your-own-slack-app) to serve more
+  Agents in one workspace.
+- Slack Enterprise Grid org-wide installs are not supported. Install into
+  individual workspaces instead.
+- Members chat with the bot under the app's name (**Stigmer** by default).
+  Per-workspace bot naming is a Slack platform restriction — to control the
+  name, bring your own app.
+
+## What's next
+
+Your bot answers as **Stigmer**. To make it carry your team's own name and icon
+— or to put several Agents in one workspace — register your own Slack app. →
+[Bring your own Slack app](/docs/guides/channels/bring-your-own-slack-app)

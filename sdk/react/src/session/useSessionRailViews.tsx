@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { SurfaceRailView } from "../workspace/WorkspaceSurface.js";
-import type { SelectedThreadItem } from "../internal/store/selection-store.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
 import { useSessionWriteBacks } from "./useSessionWriteBacks.js";
 import {
@@ -14,7 +13,6 @@ import { SetupTab, type SetupTabProps } from "./facets/SetupTab.js";
 import { ChangesTab } from "./facets/ChangesTab.js";
 import { ArtifactsTab } from "./facets/ArtifactsTab.js";
 import { UsageTab } from "./facets/UsageTab.js";
-import { InspectTab } from "./facets/InspectTab.js";
 
 /** Options for {@link useSessionRailViews}. */
 export interface UseSessionRailViewsOptions {
@@ -24,8 +22,6 @@ export interface UseSessionRailViewsOptions {
   readonly org: string;
   /** Session configuration for the Config facet. */
   readonly sessionConfig: SetupTabProps | undefined;
-  /** Currently selected thread item — surfaces the Inspect facet. */
-  readonly selectedItem: SelectedThreadItem | null;
   /** Called after a resource is applied from the Artifacts facet. */
   readonly onApplied?: (result: ApplyResourceResult) => void;
   /** Implement a plan — the Artifacts facet's preview action for `plan.md`. */
@@ -72,20 +68,19 @@ export interface UseSessionRailViewsOptions {
 }
 
 /**
- * Composes the session facets (Config / Changes / Artifacts / Usage / Inspect)
+ * Composes the session facets (Config / Changes / Artifacts / Usage)
  * as {@link SurfaceRailView}s for the workspace surface's activity rail.
  *
  * This is the session-domain half of the unified panel: the surface stays a
  * domain-pure workspace organism and these views are injected into its rail
  * (DD-004 composition). Contextual visibility mirrors the retired inspector's
  * tab rules — Changes/Artifacts surface only when data exists (with count
- * badges), Inspect only when a thread item is selected.
+ * badges).
  */
 export function useSessionRailViews({
   allExecutions,
   org,
   sessionConfig,
-  selectedItem,
   onApplied,
   onImplementPlan,
   onOpenPlan,
@@ -158,15 +153,6 @@ export function useSessionRailViews({
       });
     }
 
-    if (selectedItem) {
-      views.push({
-        id: "inspect",
-        label: "Inspect",
-        icon: <InspectIcon />,
-        content: <InspectTab selectedItem={selectedItem} />,
-      });
-    }
-
     return views;
   }, [
     sessionConfig,
@@ -184,7 +170,6 @@ export function useSessionRailViews({
     onOpenPlan,
     onOpenArtifact,
     onActivateArtifact,
-    selectedItem,
   ]);
 }
 
@@ -233,16 +218,6 @@ function UsageIcon() {
       <path d="M11 20V9" />
       <path d="M16 20v-9" />
       <path d="M21 20V5" />
-    </svg>
-  );
-}
-
-/** Crosshair glyph — inspecting a selected thread item. */
-function InspectIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="7" />
-      <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
     </svg>
   );
 }

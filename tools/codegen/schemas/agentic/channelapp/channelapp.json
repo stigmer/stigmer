@@ -16,6 +16,18 @@
       "description": "Slack app credentials.",
       "required": false,
       "oneofGroup": "provider_config"
+    },
+    {
+      "name": "Whatsapp",
+      "jsonName": "whatsapp",
+      "protoField": "whatsapp",
+      "type": {
+        "kind": "message",
+        "messageType": "WhatsAppChannelAppConfig"
+      },
+      "description": "WhatsApp (Meta) app credentials.",
+      "required": false,
+      "oneofGroup": "provider_config"
     }
   ]
 }

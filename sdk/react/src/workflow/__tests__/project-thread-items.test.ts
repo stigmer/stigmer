@@ -33,6 +33,10 @@ function taskState(overrides: Partial<DerivedTaskState> & { taskName: string }):
     currentToolName: "",
     messagesCount: 0,
     toolCallsCount: 0,
+    inputSummary: null,
+    outputSummary: null,
+    approvalRequest: null,
+    approvalResolution: null,
     ...overrides,
   };
 }
@@ -186,6 +190,127 @@ describe("projectThreadItems", () => {
       );
       expect(second.items[0]).not.toBe(first.items[0]);
       expect(second.items[0].status).toBe("completed");
+    });
+
+    it("keeps the bail when the preview-affecting fields are unchanged (T04)", () => {
+      // Same summary OBJECT identity across projections — the store contract
+      // (summaries are read off the same immutable stored events).
+      const output = { valid: true };
+      const first = projectThreadItems(
+        statesOf(
+          taskState({
+            taskName: "check",
+            taskKind: WorkflowTaskKind.validate,
+            outputSummary: output,
+          }),
+        ),
+        1,
+      );
+      const second = projectThreadItems(
+        statesOf(
+          taskState({
+            taskName: "check",
+            taskKind: WorkflowTaskKind.validate,
+            outputSummary: output,
+          }),
+        ),
+        1,
+        first.items,
+      );
+      expect(second.items[0]).toBe(first.items[0]);
+    });
+
+    it("gate payloads ride the identity compare: same capture bails, a gate opening produces a fresh item (T06)", () => {
+      const request = { prompt: "Ship it?" } as never;
+      const gated = () =>
+        taskState({
+          taskName: "review",
+          status: "waiting_approval",
+          approvalRequest: request,
+        });
+
+      const first = projectThreadItems(statesOf(gated()), 1);
+      // Same captured payload identity (the store contract) → bail holds.
+      const second = projectThreadItems(statesOf(gated()), 1, first.items);
+      expect(second.items[0]).toBe(first.items[0]);
+      expect(second.items[0].approvalRequest).toBe(request);
+
+      // The gate resolving (fresh resolution payload) breaks the bail.
+      const third = projectThreadItems(
+        statesOf(
+          taskState({
+            taskName: "review",
+            status: "running",
+            approvalRequest: request,
+            approvalResolution: { resolvedBy: "alice" } as never,
+          }),
+        ),
+        1,
+        second.items,
+      );
+      expect(third.items[0]).not.toBe(second.items[0]);
+    });
+
+    it("produces a fresh item when the output summary arrives (preview change, T04)", () => {
+      const first = projectThreadItems(
+        statesOf(
+          taskState({
+            taskName: "check",
+            taskKind: WorkflowTaskKind.validate,
+            status: "running",
+          }),
+        ),
+        1,
+      );
+      const second = projectThreadItems(
+        statesOf(
+          taskState({
+            taskName: "check",
+            taskKind: WorkflowTaskKind.validate,
+            status: "completed",
+            outputSummary: { valid: false, errors: [{ rule: "r" }] },
+          }),
+        ),
+        1,
+        first.items,
+      );
+      expect(second.items[0]).not.toBe(first.items[0]);
+      expect(second.items[0].previewLine).toBe("1 error");
+    });
+  });
+
+  describe("preview resolution (T04)", () => {
+    it("populates previewLine and disclosure from resolveTaskPreview", () => {
+      const { items } = projectThreadItems(
+        statesOf(
+          taskState({
+            taskName: "check",
+            taskKind: WorkflowTaskKind.validate,
+            outputSummary: { valid: true },
+          }),
+          taskState({
+            taskName: "pause",
+            taskKind: WorkflowTaskKind.wait,
+            inputSummary: { duration: { seconds: 5 } },
+          }),
+        ),
+        2,
+      );
+      expect(items[0]).toMatchObject({ previewLine: "valid", disclosure: "preview" });
+      expect(items[1]).toMatchObject({ previewLine: "waited 5.0s", disclosure: "summary" });
+    });
+
+    it("carries the summary references onto the item for the card body", () => {
+      const input = { variables: { a: "1" } };
+      const output = { done: true };
+      const { items } = projectThreadItems(
+        statesOf(
+          taskState({ taskName: "t", inputSummary: input, outputSummary: output }),
+        ),
+        1,
+      );
+      expect(items[0].inputSummary).toBe(input);
+      expect(items[0].outputSummary).toBe(output);
     });
   });
 });

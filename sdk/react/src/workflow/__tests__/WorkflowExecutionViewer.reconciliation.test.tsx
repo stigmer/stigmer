@@ -1,14 +1,16 @@
-// Composition test for the reconciled single-panel layout: the viewer's real
-// wiring from a task selection to the panel's Inspect facet, the header's
-// Diagnose button to the diagnosis editor document, and the Usage facet's
-// absorbed budget gauge. Data hooks and heavy leaves (React Flow graph,
-// streaming repair card, inspector internals) are mocked — each has its own
+// Composition test for the reconciled single-panel layout (T06 shape): the
+// thread-primary center with the passive graph behind the toggle, the
+// workspace-only side panel (Artifacts/Changes/Usage — no Inspect facet
+// anywhere), the header's Diagnose button to the diagnosis editor document,
+// and the Usage facet's absorbed budget gauge. Data hooks and heavy leaves
+// (React Flow graph, streaming repair card) are mocked — each has its own
 // suite; this file proves the seams between them.
 
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import { ApprovalRequestedPayloadSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import {
   ExecutionPhase,
   WorkflowTaskStatus,
@@ -40,39 +42,23 @@ vi.mock("../useWorkflowExecutionActions", () => ({
   useWorkflowExecutionActions: vi.fn(),
 }));
 
-// The graph is React Flow — replaced with a stub that exposes the two
-// selection callbacks the viewer wires (user click vs. runner auto-focus).
-// memo + a render counter make it double as the DD-009 probe: if the viewer
-// hands the graph a fresh prop identity on selection changes (e.g. an
-// inline handler), the memo stops bailing and the counter catches it.
+// The graph is React Flow — replaced with a memoized stub whose render
+// counter is the DD-009 probe: if the viewer hands the graph a fresh prop
+// identity on panel interactions (e.g. an inline handler), the memo stops
+// bailing and the counter catches it. Since T06 the graph is a passive
+// visualization — the stub records its props so the suite can assert no
+// selection callback is ever wired.
 const graphRenders = { count: 0 };
+const graphProps = { last: {} as Record<string, unknown> };
 vi.mock("../WorkflowExecutionGraph", async () => {
   const { memo } = await import("react");
   return {
-    WorkflowExecutionGraph: memo(function WorkflowExecutionGraphStub({
-      onTaskSelect,
-      onAutoSelectTask,
-    }: {
-      onTaskSelect?: (name: string | null) => void;
-      onAutoSelectTask?: (name: string) => void;
-    }) {
+    WorkflowExecutionGraph: memo(function WorkflowExecutionGraphStub(
+      props: Record<string, unknown>,
+    ) {
       graphRenders.count += 1;
-      return (
-        <div data-testid="graph-stub">
-          <button type="button" onClick={() => onTaskSelect?.("build-report")}>
-            click-node
-          </button>
-          <button type="button" onClick={() => onTaskSelect?.(null)}>
-            click-pane
-          </button>
-          <button
-            type="button"
-            onClick={() => onAutoSelectTask?.("build-report")}
-          >
-            auto-focus-node
-          </button>
-        </div>
-      );
+      graphProps.last = props;
+      return <div data-testid="graph-stub" />;
     }),
   };
 });
@@ -87,16 +73,6 @@ vi.mock("../WorkflowRepairCard", () => ({
       </button>
     </div>
   ),
-}));
-
-// The inspector has its own suite; here it only needs to prove WHERE it
-// renders and WHICH task it received.
-vi.mock("../execution-inspector/ExecutionInspector", () => ({
-  ExecutionInspector: ({
-    selectedTaskName,
-  }: {
-    selectedTaskName: string | null;
-  }) => <div data-testid="inspector-stub">{selectedTaskName}</div>,
 }));
 
 vi.mock("../execution-comparison/ExecutionComparisonPicker", () => ({
@@ -169,6 +145,10 @@ function taskState(name: string): DerivedTaskState {
     currentToolName: "",
     messagesCount: 0,
     toolCallsCount: 0,
+    inputSummary: null,
+    outputSummary: null,
+    approvalRequest: null,
+    approvalResolution: null,
   } as DerivedTaskState;
 }
 
@@ -245,7 +225,6 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
     renderViewer();
     // Both center views are mounted (the inactive one CSS-hidden).
     expect(screen.getByTestId("graph-stub")).toBeTruthy();
-    expect(screen.queryByTestId("inspector-stub")).toBeNull();
     // The retired aside's empty-state hint must be gone.
     expect(
       screen.queryByText("Click a node to view execution details"),
@@ -259,43 +238,21 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
     expect(screen.queryByRole("button", { name: /^Approvals/ })).toBeNull();
   });
 
-  it("a node click opens the panel on the Inspect facet showing that task", () => {
+  it("wires no selection callbacks into the graph — a passive visualization (T06)", () => {
     renderViewer();
-
-    fireEvent.click(screen.getByRole("button", { name: "click-node" }));
-
-    const inspector = screen.getByTestId("inspector-stub");
-    expect(inspector.textContent).toBe("build-report");
-    expect(
-      screen.getByRole("radio", { name: "Inspect" }).getAttribute(
-        "aria-checked",
-      ),
-    ).toBe("true");
+    expect("onTaskSelect" in graphProps.last).toBe(false);
+    expect("onAutoSelectTask" in graphProps.last).toBe(false);
   });
 
-  it("the runner's auto-focus never opens a collapsed panel", () => {
+  it("the open panel offers exactly Artifacts, Changes, and Usage — no Inspect facet exists (T06)", () => {
     renderViewer();
 
-    fireEvent.click(screen.getByRole("button", { name: "auto-focus-node" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
 
-    expect(screen.queryByTestId("inspector-stub")).toBeNull();
-  });
-
-  it("deselecting (pane click) drops the contextual Inspect view for the home facet", () => {
-    renderViewer();
-    fireEvent.click(screen.getByRole("button", { name: "click-node" }));
-    expect(screen.getByTestId("inspector-stub")).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: "click-pane" }));
-
-    expect(screen.queryByTestId("inspector-stub")).toBeNull();
+    expect(screen.getByRole("radio", { name: "Artifacts" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Changes" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Usage" })).toBeTruthy();
     expect(screen.queryByRole("radio", { name: "Inspect" })).toBeNull();
-    // Panel stays open on its home facet — deselection is not a dismissal.
-    expect(
-      screen
-        .getByRole("radio", { name: "Artifacts" })
-        .getAttribute("aria-checked"),
-    ).toBe("true");
   });
 
   it("Diagnose opens the diagnosis document in the panel's editor area; its close button closes the tab", () => {
@@ -326,7 +283,7 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
 
   it("the Usage facet carries the absorbed budget gauge (the retired cost panel's bars)", () => {
     renderViewer();
-    fireEvent.click(screen.getByRole("button", { name: "click-node" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
     fireEvent.click(screen.getByRole("radio", { name: "Usage" }));
 
     // Cost limit known (remaining >= 0) → one gauge at 50%.
@@ -335,14 +292,14 @@ describe("WorkflowExecutionViewer (reconciled single-panel layout)", () => {
     expect(screen.getByText("50%")).toBeTruthy();
   });
 
-  it("selection and panel interactions never re-render the graph (DD-009/DD-010)", () => {
+  it("panel interactions never re-render the graph (DD-009/DD-010)", () => {
     renderViewer();
     const rendersAfterMount = graphRenders.count;
 
-    // Node select → panel opens to Inspect; facet switch; deselect.
-    fireEvent.click(screen.getByRole("button", { name: "click-node" }));
+    // Panel open → facet switch → collapse.
+    fireEvent.click(screen.getByRole("button", { name: "Show panel" }));
     fireEvent.click(screen.getByRole("radio", { name: "Usage" }));
-    fireEvent.click(screen.getByRole("button", { name: "click-pane" }));
+    fireEvent.click(screen.getByRole("button", { name: "Hide panel" }));
 
     expect(graphRenders.count).toBe(rendersAfterMount);
   });
@@ -423,19 +380,61 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
     expect(graphRenders.count).toBe(rendersAfterMount);
   });
 
-  it("a thread card click opens the panel on Inspect (shared selection contract)", () => {
+  it("a thread card offers no selection or drill-down gesture — the card IS the surface (T06)", () => {
     renderViewer();
 
-    fireEvent.click(screen.getByRole("button", { name: /^build-report/ }));
-
-    expect(screen.getByTestId("inspector-stub").textContent).toBe(
-      "build-report",
-    );
+    // build-report has kind 0 (unspecified → summary disclosure): its header
+    // is the expand gesture, never a selection.
+    const header = screen.getByRole("button", { name: /^build-report/ });
+    expect(header.getAttribute("aria-expanded")).toBe("false");
+    expect(header.getAttribute("aria-pressed")).toBeNull();
     expect(
-      screen
-        .getByRole("radio", { name: "Inspect" })
-        .getAttribute("aria-checked"),
-    ).toBe("true");
+      screen.queryByRole("button", { name: "Inspect build-report" }),
+    ).toBeNull();
+
+    fireEvent.click(header);
+
+    // Expansion is card-local; the panel never opens on a card gesture.
+    expect(header.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.queryByRole("radio", { name: "Inspect" })).toBeNull();
+  });
+
+  it("a gating human_input renders its review form ON the card — the viewer threads the task-approval wiring (T06)", () => {
+    arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    mockedUseEventStream.mockReturnValue({
+      events: [],
+      taskStates: new Map([
+        [
+          "review-gate",
+          {
+            ...taskState("review-gate"),
+            taskKind: 16, // WorkflowTaskKind.human_input
+            status: "waiting_approval",
+            approvalRequest: create(ApprovalRequestedPayloadSchema, {
+              prompt: "Ship it?",
+              outcomes: [{ name: "ship", label: "Ship It" }],
+            }),
+          },
+        ],
+      ]),
+      costSummary: COST_SUMMARY,
+      streamState: { stage: "streaming" },
+      totalTasks: 1,
+      error: null,
+      reconnect: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowExecutionEventStream>);
+    renderViewer();
+
+    const form = screen.getByRole("form", {
+      name: "Approval decision for review-gate",
+    });
+    expect(form).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Ship It" }));
+    expect(
+      vi.mocked(useWorkflowExecutionActions).mock.results.at(-1)?.value
+        .submitTaskApproval,
+    ).toHaveBeenCalledWith("review-gate", "ship", undefined, undefined);
   });
 
   it("an AGENT_CALL card's Open transcript opens the S4 document in the panel", () => {
@@ -465,7 +464,8 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
     } as unknown as ReturnType<typeof useWorkflowExecutionEventStream>);
     renderViewer();
 
-    fireEvent.click(screen.getByRole("button", { name: "Expand call-writer" }));
+    // Preview-kind cards (agent_call) keep the transcript affordance in
+    // their always-visible body — no expand gesture required (T04).
     fireEvent.click(screen.getByRole("button", { name: "Open transcript" }));
 
     expect(screen.getByTestId("agent-doc-stub").textContent).toBe(
@@ -508,12 +508,11 @@ describe("WorkflowExecutionViewer (approval boundary, S9)", () => {
     } as unknown as ReturnType<typeof useWorkflowExecutionEventStream>);
   }
 
-  it("a gate opening mid-run refetches the snapshot and auto-selects the gating task onto Inspect", () => {
+  it("a gate opening mid-run refetches the snapshot WITHOUT opening the panel or selecting anything (T06)", () => {
     const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
     mockStream("running");
     const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
     expect(refetch).not.toHaveBeenCalled();
-    expect(screen.queryByTestId("inspector-stub")).toBeNull();
 
     // The stream flips the task across the waiting_approval boundary. The
     // viewer is memoized, so a rerender with identical props would bail
@@ -525,15 +524,13 @@ describe("WorkflowExecutionViewer (approval boundary, S9)", () => {
       <WorkflowExecutionViewer executionId="wex_1" className="pass-2" />,
     );
 
+    // The refetch materializes the snapshot's gate lists for the in-card
+    // decision surfaces…
     expect(refetch).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId("inspector-stub").textContent).toBe(
-      "build-report",
-    );
-    expect(
-      screen
-        .getByRole("radio", { name: "Inspect" })
-        .getAttribute("aria-checked"),
-    ).toBe("true");
+    // …with no auto-select and no panel yank: the gating card is amber and
+    // carries its own decision surface (selection died with Inspect, T06).
+    expect(document.querySelector("[aria-pressed]")).toBeNull();
+    expect(screen.queryByRole("radio", { name: "Inspect" })).toBeNull();
   });
 
   it("a gate resolving also refetches — decided gates never linger", () => {
@@ -552,12 +549,84 @@ describe("WorkflowExecutionViewer (approval boundary, S9)", () => {
     expect(refetch).toHaveBeenCalledTimes(2);
   });
 
-  it("terminal-execution replay never refetches nor auto-selects", () => {
+  it("terminal-execution replay never refetches", () => {
     const { refetch } = arrange(ExecutionPhase.EXECUTION_COMPLETED);
     mockStream("waiting_approval");
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
     expect(refetch).not.toHaveBeenCalled();
-    expect(screen.queryByTestId("inspector-stub")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T04: terminal-phase snapshot refetch (DD-T04-4)
+// ---------------------------------------------------------------------------
+
+describe("WorkflowExecutionViewer (terminal-phase refetch, T04)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+  afterEach(cleanup);
+
+  // Re-mocks ONLY the stream stage (the execution mock — and its refetch
+  // spy — must stay stable across the flip; the assertions count its calls).
+  function mockStreamStage(stage: "streaming" | "reconnecting" | "complete") {
+    mockedUseEventStream.mockReturnValue({
+      events: [],
+      taskStates: new Map([
+        ["build-report", { ...taskState("build-report"), status: "running" }],
+      ]),
+      costSummary: COST_SUMMARY,
+      streamState:
+        stage === "reconnecting"
+          ? { stage, executionId: "wex_1", attempt: 1, error: new Error("drop") }
+          : { stage, executionId: "wex_1" },
+      totalTasks: 1,
+      error: null,
+      reconnect: vi.fn(),
+    } as unknown as ReturnType<typeof useWorkflowExecutionEventStream>);
+  }
+
+  it("the live stream reaching its terminal event refetches the snapshot once — the cards' full I/O and the header phase land without a reload", () => {
+    const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    mockStreamStage("streaming");
+    const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
+    expect(refetch).not.toHaveBeenCalled();
+
+    // The stream delivers the terminal event → stage flips to complete.
+    // (Benign prop change to get past the viewer's memo — in production the
+    // store subscription re-renders the viewer without any prop change.)
+    mockStreamStage("complete");
+    rerender(
+      <WorkflowExecutionViewer executionId="wex_1" className="pass-2" />,
+    );
+    expect(refetch).toHaveBeenCalledTimes(1);
+
+    // Idempotent: staying complete never re-triggers.
+    rerender(
+      <WorkflowExecutionViewer executionId="wex_1" className="pass-3" />,
+    );
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("a reconnecting stream that resolves straight to complete also refetches", () => {
+    const { refetch } = arrange(ExecutionPhase.EXECUTION_IN_PROGRESS);
+    mockStreamStage("reconnecting");
+    const { rerender } = render(<WorkflowExecutionViewer executionId="wex_1" />);
+
+    mockStreamStage("complete");
+    rerender(
+      <WorkflowExecutionViewer executionId="wex_1" className="pass-2" />,
+    );
+
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("a terminal-replay mount (already complete, never streamed) does not refetch", () => {
+    const { refetch } = arrange(ExecutionPhase.EXECUTION_COMPLETED);
+    mockStreamStage("complete");
+    render(<WorkflowExecutionViewer executionId="wex_1" />);
+
+    expect(refetch).not.toHaveBeenCalled();
   });
 });

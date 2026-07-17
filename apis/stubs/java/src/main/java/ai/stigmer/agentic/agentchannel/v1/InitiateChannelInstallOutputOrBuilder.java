@@ -13,7 +13,8 @@ public interface InitiateChannelInstallOutputOrBuilder extends
   /**
    * <pre>
    * Provider authorization URL to redirect the installing user to
-   * (for Slack: the "Add to Slack" consent screen).
+   * (for Slack: the "Add to Slack" consent screen). Empty when the
+   * install completed directly.
    * </pre>
    *
    * <code>string authorization_url = 1 [json_name = "authorizationUrl"];</code>
@@ -23,7 +24,8 @@ public interface InitiateChannelInstallOutputOrBuilder extends
   /**
    * <pre>
    * Provider authorization URL to redirect the installing user to
-   * (for Slack: the "Add to Slack" consent screen).
+   * (for Slack: the "Add to Slack" consent screen). Empty when the
+   * install completed directly.
    * </pre>
    *
    * <code>string authorization_url = 1 [json_name = "authorizationUrl"];</code>
@@ -35,6 +37,7 @@ public interface InitiateChannelInstallOutputOrBuilder extends
   /**
    * <pre>
    * Single-use opaque state parameter bound to this install attempt.
+   * Empty when the install completed directly.
    *
    * &#64;internal
    * Persisted server-side (PendingOAuthStateDocument pattern) and consumed
@@ -48,6 +51,7 @@ public interface InitiateChannelInstallOutputOrBuilder extends
   /**
    * <pre>
    * Single-use opaque state parameter bound to this install attempt.
+   * Empty when the install completed directly.
    *
    * &#64;internal
    * Persisted server-side (PendingOAuthStateDocument pattern) and consumed
@@ -59,4 +63,22 @@ public interface InitiateChannelInstallOutputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getStateBytes();
+
+  /**
+   * <pre>
+   * True when the install completed synchronously inside this RPC
+   * (direct-installed providers). Clients branch on this field — never on
+   * provider knowledge of their own — so the server stays the single
+   * source of install-style truth.
+   *
+   * &#64;internal
+   * DD-WA-1b. The seam behind it is the sealed ChannelInstaller split:
+   * AuthorizationRedirectInstaller populates authorization_url + state;
+   * DirectInstaller populates completed.
+   * </pre>
+   *
+   * <code>bool completed = 3 [json_name = "completed"];</code>
+   * @return The completed.
+   */
+  boolean getCompleted();
 }

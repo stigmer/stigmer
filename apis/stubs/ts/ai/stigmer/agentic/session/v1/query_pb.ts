@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { SessionSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_session_v1_api } from "./api_pb.js";
-import type { ListSessionsByAgentInstanceRequestSchema, ListSessionsRequestSchema, SessionIdSchema, SessionListSchema } from "./io_pb.js";
+import type { ListSessionsByAgentInstanceRequestSchema, ListSessionsByChannelRequestSchema, ListSessionsRequestSchema, SessionIdSchema, SessionListSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_session_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/session/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9xdWVyeS5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEyoQMKFlNlc3Npb25RdWVyeUNvbnRyb2xsZXIShQEKA2dldBIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25JZBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iLMK4GCgIARAqIgV2YWx1ZSobdW5hdXRob3JpemVkIHRvIGdldCBzZXNzaW9uEmwKBGxpc3QSMi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbnNSZXF1ZXN0GiouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkxpc3QiBNC4GAESigEKE2xpc3RCeUFnZW50SW5zdGFuY2USQS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbnNCeUFnZW50SW5zdGFuY2VSZXF1ZXN0GiouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkxpc3QiBNC4GAEaBKD/KypiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9xdWVyeS5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEyoQQKFlNlc3Npb25RdWVyeUNvbnRyb2xsZXIShQEKA2dldBIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25JZBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iLMK4GCgIARAqIgV2YWx1ZSobdW5hdXRob3JpemVkIHRvIGdldCBzZXNzaW9uEmwKBGxpc3QSMi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbnNSZXF1ZXN0GiouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkxpc3QiBNC4GAESigEKE2xpc3RCeUFnZW50SW5zdGFuY2USQS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbnNCeUFnZW50SW5zdGFuY2VSZXF1ZXN0GiouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkxpc3QiBNC4GAESfgoNbGlzdEJ5Q2hhbm5lbBI7LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkxpc3RTZXNzaW9uc0J5Q2hhbm5lbFJlcXVlc3QaKi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uTGlzdCIE0LgYARoEoP8rKmIGcHJvdG8z", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * SessionQueryController handles read operations for agent sessions.
@@ -58,6 +58,27 @@ export const SessionQueryController: GenService<{
   listByAgentInstance: {
     methodKind: "unary";
     input: typeof ListSessionsByAgentInstanceRequestSchema;
+    output: typeof SessionListSchema;
+  },
+  /**
+   * List the conversations an agent channel created.
+   *
+   * Returns the sessions the channel runtime (Slack, WhatsApp) created for
+   * the given agent channel, newest first. The caller must be able to view
+   * the channel; results are additionally filtered to sessions the caller
+   * can view.
+   *
+   * @internal
+   * Authorization is two-stage in the handler: an explicit can_view check on
+   * the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
+   * then an FGA query for authorized session_ids intersected with the
+   * stigmer.ai/channel-id label filter.
+   *
+   * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.listByChannel
+   */
+  listByChannel: {
+    methodKind: "unary";
+    input: typeof ListSessionsByChannelRequestSchema;
     output: typeof SessionListSchema;
   },
 }> = /*@__PURE__*/
