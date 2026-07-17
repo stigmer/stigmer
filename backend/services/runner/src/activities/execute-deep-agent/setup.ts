@@ -73,6 +73,10 @@ import {
 import { filterSkills, SKILL_COUNT_THRESHOLD } from "../../shared/skill-relevance.js";
 import { injectAttachments } from "./attachment-injector.js";
 import { transformAndCompileSubagents } from "./subagent-transformer.js";
+import {
+  resolveRecursionLimit,
+  UNBOUNDED_ADVISORY_RECURSION_LIMIT,
+} from "../../shared/tool-rounds.js";
 
 export interface SetupResult {
   readonly agentGraph: AgentGraph;
@@ -472,6 +476,11 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       : null;
 
     const maxCostUsd = execConfig?.maxCostUsd ?? 0;
+    // max_tool_rounds → recursion limit (proto contract: 0/unset = unlimited,
+    // set = clamped 10–1000 and enforced). One resolved value feeds BOTH the
+    // hard stop on the invoke config below and the budget middleware's ~80%
+    // wrap-up advisory, so the warning and the enforcement can never disagree.
+    const recursionLimit = resolveRecursionLimit(execConfig?.maxToolRounds);
     const { middleware, gracefulStop, costCap: costCapMiddleware } = buildMiddlewareStack({
       loopDetection: {
         historySize: 20,
@@ -479,9 +488,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         totalThreshold: 20,
       },
       executionBudget: {
-        recursionLimit: execConfig?.maxToolRounds
-          ? execConfig.maxToolRounds * 6
-          : 6000,
+        recursionLimit: recursionLimit ?? UNBOUNDED_ADVISORY_RECURSION_LIMIT,
         warningPct: 80,
       },
       toolTruncation: {
@@ -600,6 +607,12 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
 
     const langgraphConfig: Record<string, unknown> = {
       configurable: { thread_id: threadId },
+      // Hard enforcement of max_tool_rounds (null = unlimited, the default):
+      // when the graph exhausts this, the streaming loop's GraphRecursionError
+      // handler terminates gracefully with work saved ("send another message
+      // to continue"). The middleware's wrap-up advisory fires at ~80% of the
+      // same value, so a healthy run finishes normally before ever hitting it.
+      ...(recursionLimit !== null ? { recursionLimit } : {}),
     };
 
     const streamVersion: "v2" | "v3" =
