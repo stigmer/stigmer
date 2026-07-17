@@ -45,6 +45,7 @@ import type { TodoTracker } from "./todo-tracker.js";
 import type { StreamingUpdateScheduler } from "../../shared/streaming-scheduler.js";
 import type { UsageAccumulator } from "./usage-accumulator.js";
 import type { createCursorEventRecorder } from "./cursor-event-recorder.js";
+import { costCapExceeded } from "./cost-guard.js";
 
 /**
  * The subset of the Cursor SDK `Run` the stream phase consumes. Kept structural
@@ -69,7 +70,8 @@ export type TurnStreamReason =
   | "paused"
   | "stalled"
   | "first-denial"
-  | "platform-stop";
+  | "platform-stop"
+  | "cost-cap";
 
 /**
  * Single owner for every flag the turn's stream produces. Before this, these
@@ -97,6 +99,8 @@ export interface TurnStreamState {
   denialCancelSettled: Promise<void> | undefined;
   /** Written by: the loop (a platform STOP signal from persist). Read by: the loop + epilogue. */
   platformStopSignaled: boolean;
+  /** Written by: onDelta (a turn-ended usage delta pushed the estimate past max_cost_usd). Read by: the loop (cancel + break) + epilogue. */
+  costCapExceeded: boolean;
   /** Written by: the loop (a stream ERROR status event) + the retry setup (reset). Read by: error classification. */
   streamErrorMessage: string | undefined;
   /** Written by: the loop (each tool_call). Read by: the stall-watchdog (message enrichment). */
@@ -118,6 +122,7 @@ export function newTurnStreamState(): TurnStreamState {
     denialLedgerDirty: false,
     denialCancelSettled: undefined,
     platformStopSignaled: false,
+    costCapExceeded: false,
     streamErrorMessage: undefined,
     lastToolName: undefined,
     eventCount: 0,
@@ -139,6 +144,13 @@ export interface TurnOnDeltaDeps {
   readonly promptEstimatedTokens: number;
   readonly executionId: string;
   readonly state: TurnStreamState;
+  /**
+   * ExecutionConfig.max_cost_usd — 0/unset disables the cap. Checked by
+   * onDelta after each turn-ended usage delta lands (the only point the
+   * running estimate advances); the loop performs the actual run.cancel().
+   * See cost-guard.ts for the semantics.
+   */
+  readonly maxCostUsd: number;
 }
 
 export interface CursorTurnStreamDeps extends TurnOnDeltaDeps {
@@ -170,7 +182,7 @@ export interface CursorTurnStreamDeps extends TurnOnDeltaDeps {
 export function makeCursorTurnOnDelta(
   deps: TurnOnDeltaDeps,
 ): (event: { update: InteractionUpdate }) => void {
-  const { usageAccumulator, deltaEnricher, heartbeat, promptEstimatedTokens, executionId, state } =
+  const { usageAccumulator, deltaEnricher, heartbeat, promptEstimatedTokens, executionId, state, maxCostUsd } =
     deps;
   return ({ update }) => {
     // Reset the stall timer on the delta channel too: a long model generation
@@ -179,6 +191,19 @@ export function makeCursorTurnOnDelta(
     state.stallWatchdog?.recordActivity();
     if (update.type === "turn-ended" && update.usage) {
       usageAccumulator.addTurn(update.usage);
+
+      // max_cost_usd enforcement (cost-guard.ts): the running estimate only
+      // advances here, so this is the single check point. onDelta cannot reach
+      // the run — the loop reads the flag and performs the clean cancel.
+      if (!state.costCapExceeded
+          && costCapExceeded(maxCostUsd, usageAccumulator.snapshot().estimatedCostUsd)) {
+        state.costCapExceeded = true;
+        console.warn(
+          `ExecuteCursor cost cap exceeded: execution=${executionId}, ` +
+            `estimatedCostUsd=${usageAccumulator.snapshot().estimatedCostUsd.toFixed(4)}, ` +
+            `maxCostUsd=${maxCostUsd.toFixed(2)}`,
+        );
+      }
 
       if (!state.firstTurnAttributionLogged) {
         state.firstTurnAttributionLogged = true;
@@ -271,6 +296,26 @@ export async function consumeCursorTurnStream(
         break;
       }
       if (state.stallDetected) break;
+
+      // Cost cap (cost-guard.ts): onDelta flagged the overrun on a turn-ended
+      // usage delta; end the run through the same clean-cancel pattern as the
+      // stall watchdog and the first-denial stop. Fire-and-forget is correct
+      // here — nothing downstream waits on this turn's agent (unlike the
+      // first-denial stop, whose ledger read needs a stopped agent).
+      if (state.costCapExceeded) {
+        console.log(
+          `ExecuteCursor stopping stream at cost cap: execution=${executionId}`,
+        );
+        if (run.supports?.("cancel")) {
+          void run.cancel().catch((cancelErr) => {
+            console.warn(
+              `ExecuteCursor run.cancel() after cost cap failed (non-fatal): execution=${executionId}, ` +
+                `error=${cancelErr instanceof Error ? cancelErr.message : cancelErr}`,
+            );
+          });
+        }
+        break;
+      }
 
       // Progress: reset the stall timer on every stream event.
       state.stallWatchdog.recordActivity();
@@ -397,14 +442,18 @@ export async function consumeCursorTurnStream(
       }
     }
   } catch (streamErr) {
-    // run.cancel() — from the stall watchdog or the first-denial stop — can make
-    // the stream iterator reject as it tears down; that is the expected teardown
-    // for both, so swallow it and fall through. Anything else is a genuine stream
-    // failure — rethrow it to the activity's error handler.
-    if (!state.stallDetected && !state.firstDenialDetected) throw streamErr;
+    // run.cancel() — from the stall watchdog, the first-denial stop, or the
+    // cost-cap stop — can make the stream iterator reject as it tears down;
+    // that is the expected teardown for all three, so swallow it and fall
+    // through. Anything else is a genuine stream failure — rethrow it to the
+    // activity's error handler.
+    if (!state.stallDetected && !state.firstDenialDetected && !state.costCapExceeded) {
+      throw streamErr;
+    }
     console.warn(
       `ExecuteCursor stream ended via cancel: execution=${executionId}, ` +
-        `stall=${state.stallDetected}, firstDenial=${state.firstDenialDetected}`,
+        `stall=${state.stallDetected}, firstDenial=${state.firstDenialDetected}, ` +
+        `costCap=${state.costCapExceeded}`,
     );
   } finally {
     state.stallWatchdog.stop();
@@ -412,10 +461,12 @@ export async function consumeCursorTurnStream(
 
   // Report why the stream ended, in the same precedence the activity's epilogue
   // applies: a stall (an EXECUTION_FAILED terminal) outranks everything; a
-  // platform stop and a first denial are distinct proceed/return outcomes; a
-  // pause is the fallback for a cancellation with no other cause.
+  // platform stop, a cost-cap stop, and a first denial are distinct
+  // return/proceed outcomes; a pause is the fallback for a cancellation with
+  // no other cause.
   if (state.stallDetected) return "stalled";
   if (state.platformStopSignaled) return "platform-stop";
+  if (state.costCapExceeded) return "cost-cap";
   if (state.firstDenialDetected) return "first-denial";
   if (state.pauseDetected || isCancelled()) return "paused";
   return "completed";

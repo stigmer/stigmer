@@ -23,6 +23,21 @@ const DEFAULT_AGENT_TIMEOUT_MS = 10_000;
 
 const STORAGE_KEY_HARNESS = "stigmer:session:harness";
 
+/**
+ * Platform policy for guest (share/embed) sessions: the cursor harness with
+ * the Auto model (an omitted modelName resolves to cursor's "default"/Auto in
+ * the runner).
+ *
+ * This lives CLIENT-side deliberately — it is the only layer that can. The
+ * SDK's guest audience covers both public visitors (guest tokens) and org
+ * members chatting via an org-audience share (their own member tokens, which
+ * carry no share linkage in Phase A) — the server cannot distinguish the
+ * latter from ordinary Console traffic, so share-surface policy must be
+ * applied where the surface is known. Server-side guest-token gates own the
+ * abuse controls (rate limits, bounded execution profile).
+ */
+const GUEST_HARNESS: HarnessOption = "cursor";
+
 function modelStorageKey(harness: HarnessOption): string {
   return harness === "cursor"
     ? "stigmer:session:model:cursor"
@@ -77,6 +92,10 @@ export interface UseNewSessionFlowOptions {
    * Read once on mount. The user's own selection — persisted to
    * localStorage on explicit change — always takes precedence on
    * subsequent visits.
+   *
+   * Ignored for the `"guest"` audience: guest sessions always run the
+   * platform's share-surface policy (cursor harness, Auto model), never an
+   * embedder preference or a stored Console choice.
    *
    * @default DEFAULT_HARNESS ("native")
    */
@@ -205,6 +224,10 @@ export function useNewSessionFlow(
   const adapter = useRunnerAdapter();
 
   const [harness, setHarnessRaw] = useState<HarnessOption>(() => {
+    // Guests get the fixed platform policy (see GUEST_HARNESS) and never
+    // touch localStorage: a browser previously used in the Console must not
+    // leak its stored harness into a share/embed session.
+    if (isGuest) return GUEST_HARNESS;
     if (typeof window === "undefined") return defaultHarness ?? DEFAULT_HARNESS;
     // Only explicit user choices are persisted (see setHarness), so a
     // stored value always outranks the embedder's defaultHarness.
@@ -241,6 +264,9 @@ export function useNewSessionFlow(
   const setHarness = useCallback(
     (h: HarnessOption) => {
       setHarnessRaw(h);
+      // Guests have no harness picker; if a caller invokes this anyway, the
+      // guest surface must never write into the Console's preference keys.
+      if (isGuest) return;
       // Persist only explicit choices — never the seeded value — so the
       // embedder's defaultHarness keeps applying until the user decides.
       localStorage.setItem(STORAGE_KEY_HARNESS, h);
@@ -248,13 +274,16 @@ export function useNewSessionFlow(
       const plain = storedModel ? (parseModelKey(storedModel)?.modelId ?? storedModel) : undefined;
       setModelId(plain);
     },
-    [],
+    [isGuest],
   );
 
   // Restore persisted model — only after the registry has loaded so
   // getModel can actually validate the stored ID against live data.
+  // Guests skip the restore: modelId stays undefined, the create omits
+  // modelName, and the cursor harness resolves it to Auto — a Console-used
+  // browser must not leak its stored model into a share/embed session.
   useEffect(() => {
-    if (isModelsLoading) return;
+    if (isGuest || isModelsLoading) return;
     const stored = localStorage.getItem(modelStorageKey(harness));
     if (stored) {
       const plain = parseModelKey(stored)?.modelId ?? stored;
@@ -262,16 +291,18 @@ export function useNewSessionFlow(
         setModelId(plain);
       }
     }
-  }, [getModel, harness, isModelsLoading]);
+  }, [getModel, harness, isGuest, isModelsLoading]);
 
   // Persist model on change (using current harness key).
   // Strip compound keys (e.g. "cursor/default") to plain modelId before storing.
+  // Guests never persist — the symmetric half of the isolation above.
   useEffect(() => {
+    if (isGuest) return;
     if (modelId) {
       const plain = parseModelKey(modelId)?.modelId ?? modelId;
       localStorage.setItem(modelStorageKey(harness), plain);
     }
-  }, [modelId, harness]);
+  }, [modelId, harness, isGuest]);
 
   const submit = useCallback(
     async (

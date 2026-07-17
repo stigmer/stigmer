@@ -249,8 +249,19 @@ export function useSessionPageFlow(
   const executionTarget: ExecutionTargetOption | undefined = fromProtoExecutionTarget(
     conv.session?.spec?.executionTarget ?? ExecutionTarget.UNSPECIFIED,
   );
-  const [persistedModelId, setPersistedModelId] = usePersistedModel({ harness });
+  // Guests never read or write the Console's persisted model preference —
+  // their follow-ups carry no modelName, and the session's harness (cursor
+  // for share surfaces) resolves the model server-side.
+  const [persistedModelId, setPersistedModelId] = usePersistedModel({
+    harness,
+    enabled: !isGuest,
+  });
 
+  // Guest note: this stays undefined for guests by construction — guest
+  // executions never carry a modelName (the first message omits it and the
+  // server-side guest execution profile owns the field thereafter). The
+  // guest flow test asserts that invariant; if it ever breaks, fix the
+  // server profile rather than special-casing here.
   const lastExecModelId = useMemo(() => {
     const lastExec = conv.completedExecutions.at(-1);
     return lastExec?.spec?.executionConfig?.modelName || undefined;

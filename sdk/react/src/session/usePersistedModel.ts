@@ -15,6 +15,17 @@ export interface UsePersistedModelOptions {
    * When `"native"` or omitted, the default key and registry apply.
    */
   readonly harness?: HarnessOption;
+  /**
+   * When `false`, the hook is a stable no-op: it never reads or writes
+   * localStorage and always returns `undefined` with a no-op setter.
+   *
+   * Guest (share/embed) surfaces disable persistence so a browser previously
+   * used in the Console cannot leak its stored model into a guest session,
+   * and a guest session never pollutes the Console's preference keys.
+   *
+   * @default true
+   */
+  readonly enabled?: boolean;
 }
 
 /** Return value of {@link usePersistedModel}. */
@@ -60,32 +71,43 @@ export function usePersistedModel(
   options?: UsePersistedModelOptions,
 ): UsePersistedModelReturn {
   const harness = options?.harness;
+  const enabled = options?.enabled ?? true;
   const { getModel } = useModelRegistry({ harness });
   const key = storageKey(harness);
   const prevKeyRef = useRef(key);
 
   const [modelId, setModelId] = useState<string | undefined>(() => {
-    if (typeof window === "undefined") return undefined;
+    if (!enabled || typeof window === "undefined") return undefined;
     const raw = localStorage.getItem(key);
     return raw ? extractPlainModelId(raw) : undefined;
   });
 
   // Re-read from localStorage when the storage key changes (harness transition).
   useEffect(() => {
+    if (!enabled) return;
     if (prevKeyRef.current === key) return;
     prevKeyRef.current = key;
 
     if (typeof window === "undefined") return;
     const raw = localStorage.getItem(key);
     setModelId(raw ? extractPlainModelId(raw) : undefined);
-  }, [key]);
+  }, [enabled, key]);
 
   useEffect(() => {
+    if (!enabled) return;
     if (modelId) {
       localStorage.setItem(key, modelId);
     }
-  }, [modelId, key]);
+  }, [enabled, modelId, key]);
+
+  if (!enabled) {
+    // Stable no-op shape: undefined model, inert setter. Returned after the
+    // hooks above so the hook order is identical whether enabled or not.
+    return [undefined, NOOP_SET_MODEL] as const;
+  }
 
   const validModelId = modelId && getModel(modelId) ? modelId : undefined;
   return [validModelId, setModelId] as const;
 }
+
+const NOOP_SET_MODEL: (id: string) => void = () => {};

@@ -90,6 +90,7 @@ import {
   type CursorTurnStreamDeps,
   type TurnOnDeltaDeps,
 } from "./turn-stream.js";
+import { formatCostLimitError, COST_LIMIT_USER_COPY } from "./cost-guard.js";
 import {
   captureFileChangeProgress,
   newProgressCaptureState,
@@ -950,6 +951,7 @@ async function executeCursorInner(
     // The shared onDelta only needs the usage/enricher/heartbeat/state subset,
     // and it is wired at SEND time — before the accumulator exists — so it takes
     // the narrow deps. The primary send and both retry sends reuse this object.
+    const maxCostUsd = spec.executionConfig?.maxCostUsd ?? 0;
     const onDeltaDeps: TurnOnDeltaDeps = {
       usageAccumulator,
       deltaEnricher,
@@ -957,6 +959,7 @@ async function executeCursorInner(
       promptEstimatedTokens,
       executionId,
       state: turnState,
+      maxCostUsd,
     };
 
     // Periodic heartbeat keeps Temporal informed during silent SDK operations
@@ -1067,6 +1070,7 @@ async function executeCursorInner(
         turnState.pauseDetected ||
         workerShutdownDetected ||
         turnState.stallDetected ||
+        turnState.costCapExceeded ||
         Context.current().cancellationSignal.aborted
       ) {
         accumulator.cancelInProgressSubAgents();
@@ -1114,6 +1118,32 @@ async function executeCursorInner(
         }));
         await persist(status);
         console.warn(`ExecuteCursor stalled: execution=${executionId}, events=${turnState.eventCount}, error=${status.error}`);
+        return { kind: "return" };
+      }
+
+      // Cost cap (cost-guard.ts): onDelta flagged the overrun and the loop
+      // cancelled the run. EXECUTION_TERMINATED, not FAILED — the platform
+      // deliberately stopped the run, work is checkpointed, and the
+      // conversation continues on the next message (the recursion-limit
+      // precedent in execute-deep-agent/streaming-terminal.ts). RETURN (not
+      // throw): a Temporal retry would re-run the identical prompt and burn
+      // the same budget again.
+      if (turnState.costCapExceeded) {
+        const estimated = usageAccumulator.snapshot().estimatedCostUsd;
+        status.phase = ExecutionPhase.EXECUTION_TERMINATED;
+        status.error = formatCostLimitError(maxCostUsd, estimated);
+        status.completedAt = utcTimestamp();
+        status.messages.push(create(AgentMessageSchema, {
+          type: MessageType.MESSAGE_SYSTEM,
+          content: COST_LIMIT_USER_COPY,
+          timestamp: utcTimestamp(),
+        }));
+        await persist(status);
+        try { resolution.agent.close(); } catch { /* best effort */ }
+        console.warn(
+          `ExecuteCursor terminated (cost cap): execution=${executionId}, ` +
+          `estimatedCostUsd=${estimated.toFixed(4)}, maxCostUsd=${maxCostUsd.toFixed(2)}`,
+        );
         return { kind: "return" };
       }
 

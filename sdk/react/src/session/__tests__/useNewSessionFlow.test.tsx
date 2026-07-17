@@ -801,6 +801,70 @@ describe("useNewSessionFlow", () => {
       expect(opts.onError).toHaveBeenCalled();
     });
 
+    it("always uses the cursor harness, ignoring a stored Console choice", () => {
+      // A browser previously used in the Console must not leak its stored
+      // harness into a share/embed session.
+      localStorage.setItem(STORAGE_KEY_HARNESS, "native");
+      const opts = { ...defaultOptions(), audience: "guest" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      expect(result.current.harness).toBe("cursor");
+    });
+
+    it("ignores the embedder's defaultHarness — guests get platform policy", () => {
+      const opts = {
+        ...defaultOptions(),
+        audience: "guest" as const,
+        defaultHarness: "native" as const,
+      };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      expect(result.current.harness).toBe("cursor");
+    });
+
+    it("does not restore a stored model — modelId stays undefined", () => {
+      localStorage.setItem(STORAGE_KEY_MODEL_CURSOR, DEFAULT_CURSOR_MODEL_ID);
+      const opts = { ...defaultOptions(), audience: "guest" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      expect(result.current.modelId).toBeUndefined();
+    });
+
+    it("never writes Console preference keys", () => {
+      const opts = { ...defaultOptions(), audience: "guest" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      act(() => result.current.setHarness("native"));
+      act(() => result.current.setModelId(DEFAULT_CURSOR_MODEL_ID));
+
+      expect(localStorage.getItem(STORAGE_KEY_HARNESS)).toBeNull();
+      expect(localStorage.getItem(STORAGE_KEY_MODEL_NATIVE)).toBeNull();
+      expect(localStorage.getItem(STORAGE_KEY_MODEL_CURSOR)).toBeNull();
+    });
+
+    it("submits with the cursor harness and NO model (server resolves Auto)", async () => {
+      // Stored values simulate a Console-used browser: neither may leak.
+      localStorage.setItem(STORAGE_KEY_HARNESS, "native");
+      localStorage.setItem(STORAGE_KEY_MODEL_CURSOR, DEFAULT_CURSOR_MODEL_ID);
+      const opts = { ...defaultOptions(), audience: "guest" as const };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      act(() => {
+        result.current.setAgentRef({ org: "acme", slug: "support-bot" });
+        result.current.setResolution({ mode: "saved", instanceId: "shared-inst" });
+      });
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.sessionSpec.harness).toBe("cursor");
+      // Omitted model = cursor's Auto ("default") in the runner. If this ever
+      // carries a value, guest follow-ups would silently pin to it via
+      // lastExecModelId in useSessionPageFlow.
+      expect(execInput.modelName).toBeUndefined();
+    });
+
     it("surfaces launch-gate refusal copy verbatim from the status description", async () => {
       // The backend resolves owner-customizable refusal copy server-side and
       // carries it in the gRPC status description — the flow must hand it to

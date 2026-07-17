@@ -111,6 +111,7 @@ function buildDeps(overrides: Partial<CursorTurnStreamDeps> = {}): BuiltDeps {
     promptEstimatedTokens: 100,
     executionId: "exec-test",
     state,
+    maxCostUsd: 0,
     // CursorTurnStreamDeps
     status,
     accumulator,
@@ -261,6 +262,78 @@ describe("consumeCursorTurnStream", () => {
     });
   });
 
+  describe("cost-cap stop", () => {
+    it("cancels the run, stops the stream, and returns 'cost-cap' when onDelta flagged the overrun", async () => {
+      const state = newTurnStreamState();
+      state.costCapExceeded = true; // onDelta's write, simulated
+      const { deps, accumulator } = buildDeps({ state });
+      const run = mockRun([ev({ type: "assistant" }), ev({ type: "assistant" })]);
+
+      const reason = await consumeCursorTurnStream(run, deps);
+
+      expect(reason).toBe("cost-cap");
+      expect(run.cancel).toHaveBeenCalled();
+      // The break happens before the event is processed — no post-cap content.
+      expect(accumulator.processEvent).not.toHaveBeenCalled();
+    });
+
+    it("detects the flag mid-stream when onDelta sets it between events", async () => {
+      const state = newTurnStreamState();
+      const { deps, accumulator } = buildDeps({ state });
+      // Simulate onDelta's write landing between event 1 and event 2 — the
+      // realistic shape: a turn-ended usage delta crosses the cap while the
+      // loop is between stream events.
+      async function* gen(): AsyncIterable<SDKMessage> {
+        yield ev({ type: "assistant" });
+        state.costCapExceeded = true;
+        yield ev({ type: "assistant" });
+      }
+      const run: MockRun = {
+        stream: () => gen(),
+        supports: () => true,
+        cancel: vi.fn(async () => {}),
+      };
+
+      const reason = await consumeCursorTurnStream(run, deps);
+
+      expect(reason).toBe("cost-cap");
+      expect(run.cancel).toHaveBeenCalled();
+      // Event 1 was processed; event 2 hit the break before processing.
+      expect(accumulator.processEvent).toHaveBeenCalledTimes(1);
+    });
+
+    it("swallows the cancel-induced teardown rejection (expected, not a failure)", async () => {
+      const state = newTurnStreamState();
+      state.costCapExceeded = true;
+      const { deps } = buildDeps({ state });
+      // The break exits the for-await, which invokes the iterator's return();
+      // a cancelled SDK run can reject there. The catch must exempt cost-cap
+      // teardown exactly like stall/first-denial teardown.
+      const events = [ev({ type: "assistant" })];
+      let i = 0;
+      const run: MockRun = {
+        stream: () => ({
+          [Symbol.asyncIterator]: () => ({
+            next: async () =>
+              i < events.length
+                ? { value: events[i++], done: false as const }
+                : { value: undefined, done: true as const },
+            return: async () => {
+              throw new Error("run cancelled");
+            },
+          }),
+        }),
+        supports: () => true,
+        cancel: vi.fn(async () => {}),
+      };
+
+      const reason = await consumeCursorTurnStream(run, deps);
+
+      expect(reason).toBe("cost-cap");
+      expect(run.cancel).toHaveBeenCalled();
+    });
+  });
+
   it("returns 'stalled' and cancels the run when the stall watchdog fires", async () => {
     vi.useFakeTimers();
     // The generator yields one event, then awaits a promise resolved only by
@@ -305,6 +378,7 @@ describe("makeCursorTurnOnDelta", () => {
       promptEstimatedTokens: 10,
       executionId: "e",
       state,
+      maxCostUsd: 0,
     });
 
     expect(() => onDelta({ update: { type: "text" } as never })).not.toThrow();
@@ -322,6 +396,7 @@ describe("makeCursorTurnOnDelta", () => {
       promptEstimatedTokens: 10,
       executionId: "e",
       state,
+      maxCostUsd: 0,
     });
 
     expect(() => onDelta({ update: { type: "text" } as never })).toThrow("boom");
@@ -338,6 +413,7 @@ describe("makeCursorTurnOnDelta", () => {
       promptEstimatedTokens: 10,
       executionId: "e",
       state,
+      maxCostUsd: 0,
     });
 
     onDelta({ update: { type: "turn-ended", usage: { inputTokens: 100 } } as never });
@@ -345,5 +421,47 @@ describe("makeCursorTurnOnDelta", () => {
 
     expect(usageAccumulator.addTurn).toHaveBeenCalledTimes(2);
     expect(state.firstTurnAttributionLogged).toBe(true);
+  });
+
+  it("flags costCapExceeded when a turn-ended usage delta pushes the estimate past the cap", () => {
+    const state = newTurnStreamState();
+    const usageAccumulator = {
+      ...stubUsageAccumulator(),
+      snapshot: vi.fn(() => ({ estimatedCostUsd: 0.51 })),
+    };
+    const onDelta = makeCursorTurnOnDelta({
+      usageAccumulator: usageAccumulator as never,
+      deltaEnricher: stubEnricher() as never,
+      heartbeat: vi.fn(),
+      promptEstimatedTokens: 10,
+      executionId: "e",
+      state,
+      maxCostUsd: 0.5,
+    });
+
+    onDelta({ update: { type: "turn-ended", usage: { inputTokens: 100 } } as never });
+
+    expect(state.costCapExceeded).toBe(true);
+  });
+
+  it("never flags costCapExceeded when no cap is configured", () => {
+    const state = newTurnStreamState();
+    const usageAccumulator = {
+      ...stubUsageAccumulator(),
+      snapshot: vi.fn(() => ({ estimatedCostUsd: 999 })),
+    };
+    const onDelta = makeCursorTurnOnDelta({
+      usageAccumulator: usageAccumulator as never,
+      deltaEnricher: stubEnricher() as never,
+      heartbeat: vi.fn(),
+      promptEstimatedTokens: 10,
+      executionId: "e",
+      state,
+      maxCostUsd: 0,
+    });
+
+    onDelta({ update: { type: "turn-ended", usage: { inputTokens: 100 } } as never });
+
+    expect(state.costCapExceeded).toBe(false);
   });
 });

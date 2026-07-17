@@ -70,6 +70,42 @@ describe("usePersistedModel", () => {
     });
   });
 
+  describe("disabled mode (guest isolation)", () => {
+    it("returns undefined even when a valid model is stored", () => {
+      localStorage.setItem(STORAGE_KEY_NATIVE, DEFAULT_MODEL_ID);
+      const { result } = renderHook(
+        () => usePersistedModel({ harness: "native", enabled: false }),
+        { wrapper: createWrapper() },
+      );
+      expect(result.current[0]).toBeUndefined();
+    });
+
+    it("never writes localStorage through the setter", () => {
+      const { result } = renderHook(
+        () => usePersistedModel({ harness: "native", enabled: false }),
+        { wrapper: createWrapper() },
+      );
+
+      act(() => result.current[1](DEFAULT_MODEL_ID));
+
+      expect(localStorage.getItem(STORAGE_KEY_NATIVE)).toBeNull();
+      expect(result.current[0]).toBeUndefined();
+    });
+
+    it("does not re-read storage on a harness transition", () => {
+      localStorage.setItem(STORAGE_KEY_CURSOR, DEFAULT_CURSOR_MODEL_ID);
+      const { result, rerender } = renderHook(
+        ({ harness }: { harness: "native" | "cursor" }) =>
+          usePersistedModel({ harness, enabled: false }),
+        { initialProps: { harness: "native" as "native" | "cursor" }, wrapper: createWrapper() },
+      );
+
+      rerender({ harness: "cursor" });
+
+      expect(result.current[0]).toBeUndefined();
+    });
+  });
+
   describe("compound key handling", () => {
     it("extracts plain modelId from compound key in localStorage", () => {
       localStorage.setItem(STORAGE_KEY_CURSOR, "cursor/default");
