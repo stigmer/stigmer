@@ -3,6 +3,7 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest;
+import ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest;
 import ai.stigmer.agentic.session.v1.ListSessionsRequest;
 import ai.stigmer.agentic.session.v1.Session;
 import ai.stigmer.agentic.session.v1.SessionCommandControllerGrpc;
@@ -68,6 +69,12 @@ public final class SessionClient {
     public SessionList listByAgentInstance(ListSessionsByAgentInstanceRequest input) {
         try {
             return query.listByAgentInstance(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public SessionList listByChannel(ListSessionsByChannelRequest input) {
+        try {
+            return query.listByChannel(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

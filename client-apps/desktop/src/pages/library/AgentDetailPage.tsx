@@ -99,6 +99,9 @@ export default function AgentDetailPage() {
                   // without a reload (DD-016 parity with the web's
                   // /settings/channel-apps).
                   channelAppsHref="#/settings/channel-apps"
+                  // Channel conversations open in the standard session route;
+                  // SessionViewer renders them read-only (observer audience).
+                  sessionHref={(id) => `#/sessions/${id}`}
                 />
               ),
             },

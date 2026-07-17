@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { KeyRound, MoreHorizontal, Trash2 } from "lucide-react";
+import { KeyRound, MessageSquare, MoreHorizontal, Trash2 } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -19,6 +19,7 @@ import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
+import { ChannelConversationsDialog } from "./ChannelConversationsDialog.js";
 import { ChannelCredentialsDialog } from "./ChannelCredentialsDialog.js";
 import { ConnectSlackDialog } from "./ConnectSlackDialog.js";
 import { ConnectWhatsAppDialog } from "./ConnectWhatsAppDialog.js";
@@ -58,6 +59,14 @@ export interface AgentChannelsPanelProps {
    * degrades to plain guidance text.
    */
   readonly channelAppsHref?: string;
+  /**
+   * Maps a session id to the host's session route (the console passes
+   * `` (id) => `/sessions/${id}` ``). Threaded to each card's
+   * Conversations dialog so rows link to the read-only transcript;
+   * absent, the rows render without links (DD-004 — the SDK never
+   * assumes a routing scheme).
+   */
+  readonly sessionHref?: (sessionId: string) => string;
   /** Additional CSS class names. */
   readonly className?: string;
 }
@@ -89,6 +98,7 @@ export function AgentChannelsPanel({
   agent,
   onConnectExternal,
   channelAppsHref,
+  sessionHref,
   className,
 }: AgentChannelsPanelProps) {
   const agentId = agent.metadata?.id ?? "";
@@ -130,6 +140,11 @@ export function AgentChannelsPanel({
 
   // The channel whose tool-credential bindings are being edited.
   const [editingCredentials, setEditingCredentials] =
+    useState<AgentChannel | null>(null);
+
+  // The channel whose conversations are being viewed (DD-012: read-only
+  // channel-session observability for the channel's viewers).
+  const [viewingConversations, setViewingConversations] =
     useState<AgentChannel | null>(null);
 
   const handleConnect = useCallback(
@@ -273,6 +288,7 @@ export function AgentChannelsPanel({
                   onConnectClick={() => handleConnect(channel, cardProvider)}
                   onDeleteClick={() => void handleDelete(channel)}
                   onEditCredentials={() => setEditingCredentials(channel)}
+                  onViewConversations={() => setViewingConversations(channel)}
                   refetch={refetch}
                 />
               );
@@ -317,6 +333,17 @@ export function AgentChannelsPanel({
         />
       )}
 
+      {viewingConversations && (
+        <ChannelConversationsDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setViewingConversations(null);
+          }}
+          channel={viewingConversations}
+          sessionHref={sessionHref}
+        />
+      )}
+
       <ConfirmDialog
         state={confirmState}
         onConfirm={handleConfirm}
@@ -339,6 +366,7 @@ interface ChannelCardProps {
   readonly onConnectClick: () => void;
   readonly onDeleteClick: () => void;
   readonly onEditCredentials: () => void;
+  readonly onViewConversations: () => void;
   readonly refetch: () => void;
 }
 
@@ -350,6 +378,7 @@ function ChannelCard({
   onConnectClick,
   onDeleteClick,
   onEditCredentials,
+  onViewConversations,
   refetch,
 }: ChannelCardProps) {
   const meta = channel.metadata;
@@ -449,34 +478,42 @@ function ChannelCard({
                   : "Connect"}
               </Button>
             )}
-          {(canEdit || canDelete) && (
-            <ActionMenu>
-              <ActionMenu.Trigger
-                aria-label={`Actions for ${meta?.name || meta?.slug}`}
+          {/* The menu always renders: everyone who can see the card holds
+              can_view on the channel (the FGA-filtered list), which is
+              exactly the bar for viewing its conversations (DD-012). */}
+          <ActionMenu>
+            <ActionMenu.Trigger
+              aria-label={`Actions for ${meta?.name || meta?.slug}`}
+            >
+              <MoreHorizontal className="size-4" />
+            </ActionMenu.Trigger>
+            <ActionMenu.Content>
+              <ActionMenu.Item
+                icon={<MessageSquare />}
+                onSelect={onViewConversations}
+                data-cursor-target="channel-conversations"
               >
-                <MoreHorizontal className="size-4" />
-              </ActionMenu.Trigger>
-              <ActionMenu.Content>
-                {canEdit && (
-                  <ActionMenu.Item
-                    icon={<KeyRound />}
-                    onSelect={onEditCredentials}
-                  >
-                    Tool credentials
-                  </ActionMenu.Item>
-                )}
-                {canDelete && (
-                  <ActionMenu.Item
-                    icon={<Trash2 />}
-                    variant="destructive"
-                    onSelect={onDeleteClick}
-                  >
-                    Disconnect
-                  </ActionMenu.Item>
-                )}
-              </ActionMenu.Content>
-            </ActionMenu>
-          )}
+                Conversations
+              </ActionMenu.Item>
+              {canEdit && (
+                <ActionMenu.Item
+                  icon={<KeyRound />}
+                  onSelect={onEditCredentials}
+                >
+                  Tool credentials
+                </ActionMenu.Item>
+              )}
+              {canDelete && (
+                <ActionMenu.Item
+                  icon={<Trash2 />}
+                  variant="destructive"
+                  onSelect={onDeleteClick}
+                >
+                  Disconnect
+                </ActionMenu.Item>
+              )}
+            </ActionMenu.Content>
+          </ActionMenu>
         </div>
       </div>
 

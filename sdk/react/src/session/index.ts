@@ -3,6 +3,11 @@ export type { ExecutionTargetOption } from "./execution-target.js";
 
 export type { RuntimeEnvProvider } from "./runtime-env.js";
 export type { SessionAudience } from "./audience.js";
+export {
+  CHANNEL_SESSION_LABELS,
+  isChannelOriginSession,
+  channelSessionExternalUserKey,
+} from "./channelOrigin.js";
 
 export { useCreateSession } from "./useCreateSession.js";
 export type {

@@ -418,7 +418,15 @@ describe("AgentChannelsPanel", () => {
 
     expect(screen.queryByRole("switch")).toBeNull();
     expect(screen.queryByRole("button", { name: /connect to slack/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /actions for/i })).toBeNull();
+
+    // The card menu still renders: Conversations is a viewer-level action
+    // (everyone who sees the card holds can_view on the channel — the same
+    // bar as viewing its conversations, DD-012). Mutation items stay
+    // permission-gated and absent.
+    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+    expect(screen.getByRole("menuitem", { name: /conversations/i })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: /tool credentials/i })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: /disconnect/i })).toBeNull();
   });
 
   it("warns on an installed card when a tool-using agent has no credentials bound", async () => {

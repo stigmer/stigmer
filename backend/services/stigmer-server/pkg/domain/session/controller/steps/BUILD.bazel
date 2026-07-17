@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "steps",
-    srcs = ["filter_by_agent_instance.go"],
+    srcs = [
+        "filter_by_agent_instance.go",
+        "filter_by_channel.go",
+    ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller/steps",
     visibility = ["//visibility:public"],
     deps = [

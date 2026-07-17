@@ -9,6 +9,7 @@ go_library(
         "get.go",
         "list.go",
         "list_by_agent_instance.go",
+        "list_by_channel.go",
         "session_controller.go",
         "update.go",
         "update_subject.go",
@@ -44,6 +45,7 @@ go_test(
     name = "controller_test",
     srcs = [
         "delete_test.go",
+        "list_by_channel_test.go",
         "session_controller_test.go",
         "update_subject_test.go",
     ],

@@ -26,11 +26,12 @@ var File_ai_stigmer_agentic_session_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_query_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/session/v1/query.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xa1\x03\n" +
+	")ai/stigmer/agentic/session/v1/query.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xa1\x04\n" +
 	"\x16SessionQueryController\x12\x85\x01\n" +
 	"\x03get\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\",¸\x18(\b\x01\x10*\"\x05value*\x1bunauthorized to get session\x12l\n" +
 	"\x04list\x122.ai.stigmer.agentic.session.v1.ListSessionsRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04и\x18\x01\x12\x8a\x01\n" +
-	"\x13listByAgentInstance\x12A.ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04и\x18\x01\x1a\x04\xa0\xff+*B\x9a\x02\n" +
+	"\x13listByAgentInstance\x12A.ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04и\x18\x01\x12~\n" +
+	"\rlistByChannel\x12;.ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04и\x18\x01\x1a\x04\xa0\xff+*B\x9a\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\n" +
 	"QueryProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
@@ -38,18 +39,21 @@ var file_ai_stigmer_agentic_session_v1_query_proto_goTypes = []any{
 	(*SessionId)(nil),                          // 0: ai.stigmer.agentic.session.v1.SessionId
 	(*ListSessionsRequest)(nil),                // 1: ai.stigmer.agentic.session.v1.ListSessionsRequest
 	(*ListSessionsByAgentInstanceRequest)(nil), // 2: ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest
-	(*Session)(nil),                            // 3: ai.stigmer.agentic.session.v1.Session
-	(*SessionList)(nil),                        // 4: ai.stigmer.agentic.session.v1.SessionList
+	(*ListSessionsByChannelRequest)(nil),       // 3: ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest
+	(*Session)(nil),                            // 4: ai.stigmer.agentic.session.v1.Session
+	(*SessionList)(nil),                        // 5: ai.stigmer.agentic.session.v1.SessionList
 }
 var file_ai_stigmer_agentic_session_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.session.v1.SessionQueryController.get:input_type -> ai.stigmer.agentic.session.v1.SessionId
 	1, // 1: ai.stigmer.agentic.session.v1.SessionQueryController.list:input_type -> ai.stigmer.agentic.session.v1.ListSessionsRequest
 	2, // 2: ai.stigmer.agentic.session.v1.SessionQueryController.listByAgentInstance:input_type -> ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest
-	3, // 3: ai.stigmer.agentic.session.v1.SessionQueryController.get:output_type -> ai.stigmer.agentic.session.v1.Session
-	4, // 4: ai.stigmer.agentic.session.v1.SessionQueryController.list:output_type -> ai.stigmer.agentic.session.v1.SessionList
-	4, // 5: ai.stigmer.agentic.session.v1.SessionQueryController.listByAgentInstance:output_type -> ai.stigmer.agentic.session.v1.SessionList
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	3, // 3: ai.stigmer.agentic.session.v1.SessionQueryController.listByChannel:input_type -> ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest
+	4, // 4: ai.stigmer.agentic.session.v1.SessionQueryController.get:output_type -> ai.stigmer.agentic.session.v1.Session
+	5, // 5: ai.stigmer.agentic.session.v1.SessionQueryController.list:output_type -> ai.stigmer.agentic.session.v1.SessionList
+	5, // 6: ai.stigmer.agentic.session.v1.SessionQueryController.listByAgentInstance:output_type -> ai.stigmer.agentic.session.v1.SessionList
+	5, // 7: ai.stigmer.agentic.session.v1.SessionQueryController.listByChannel:output_type -> ai.stigmer.agentic.session.v1.SessionList
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

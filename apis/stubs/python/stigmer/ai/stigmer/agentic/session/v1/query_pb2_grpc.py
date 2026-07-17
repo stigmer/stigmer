@@ -31,6 +31,11 @@ class SessionQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsByAgentInstanceRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionList.FromString,
                 _registered_method=True)
+        self.listByChannel = channel.unary_unary(
+                '/ai.stigmer.agentic.session.v1.SessionQueryController/listByChannel',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsByChannelRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionList.FromString,
+                _registered_method=True)
 
 
 class SessionQueryControllerServicer(object):
@@ -65,6 +70,24 @@ class SessionQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def listByChannel(self, request, context):
+        """List the conversations an agent channel created.
+
+        Returns the sessions the channel runtime (Slack, WhatsApp) created for
+        the given agent channel, newest first. The caller must be able to view
+        the channel; results are additionally filtered to sessions the caller
+        can view.
+
+        @internal
+        Authorization is two-stage in the handler: an explicit can_view check on
+        the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
+        then an FGA query for authorized session_ids intersected with the
+        stigmer.ai/channel-id label filter.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SessionQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -81,6 +104,11 @@ def add_SessionQueryControllerServicer_to_server(servicer, server):
             'listByAgentInstance': grpc.unary_unary_rpc_method_handler(
                     servicer.listByAgentInstance,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsByAgentInstanceRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionList.SerializeToString,
+            ),
+            'listByChannel': grpc.unary_unary_rpc_method_handler(
+                    servicer.listByChannel,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsByChannelRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionList.SerializeToString,
             ),
     }
@@ -165,6 +193,33 @@ class SessionQueryController(object):
             target,
             '/ai.stigmer.agentic.session.v1.SessionQueryController/listByAgentInstance',
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsByAgentInstanceRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listByChannel(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.session.v1.SessionQueryController/listByChannel',
+            ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.ListSessionsByChannelRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_session_dot_v1_dot_io__pb2.SessionList.FromString,
             options,
             channel_credentials,

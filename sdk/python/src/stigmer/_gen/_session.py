@@ -74,6 +74,12 @@ class SessionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list_by_channel(self, input: io_pb2.ListSessionsByChannelRequest) -> io_pb2.SessionList:
+        try:
+            return self._query.listByChannel(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class SessionInput:

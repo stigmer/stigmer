@@ -87,6 +87,9 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
                 <AgentChannelsPanel
                   agent={agent}
                   channelAppsHref="/settings/channel-apps"
+                  // Channel conversations open in the standard session route;
+                  // SessionViewer renders them read-only (observer audience).
+                  sessionHref={(id) => `/sessions/${id}`}
                 />
               ),
             },

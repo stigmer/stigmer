@@ -65,6 +65,7 @@ Session session = client.sessions().get("ses_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`get`](#get) | Get a single session by ID. |
 | [`list`](#list) | List all sessions with pagination and optional filtering. |
 | [`listByAgentInstance`](#listbyagentinstance) | List all sessions for a specific agent instance. |
+| [`listByChannel`](#listbychannel) | List the conversations an agent channel created. |
 | [`apply`](#apply) | Create or update a session. |
 | [`create`](#create) | Create a session. |
 | [`update`](#update) | Update an existing session (e.g., subject, thread_id). |
@@ -197,6 +198,55 @@ SessionList result = client.sessions().listByAgentInstance(ListSessionsByAgentIn
 </SDKTabs>
 
 **Parameters**: [`ListSessionsByAgentInstanceRequest`](#listsessionsbyagentinstancerequest)
+
+**Returns**: [`SessionList`](#sessionlist)
+
+### listByChannel
+
+List the conversations an agent channel created.
+
+Returns the sessions the channel runtime (Slack, WhatsApp) created for the given agent channel, newest first. The caller must be able to view the channel; results are additionally filtered to sessions the caller can view.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.session.listByChannel({
+  channelId: "...",
+  pageSize: 0,
+  pageToken: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.Session.ListByChannel(ctx, &stigmer.ListSessionsByChannelRequest{
+  ChannelId: "...",
+  PageSize:  0,
+  PageToken: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.sessions.list_by_channel(ListSessionsByChannelRequest(
+    channel_id="...",
+    page_size=0,
+    page_token="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SessionList result = client.sessions().listByChannel(ListSessionsByChannelRequest.builder()
+    .channelId("...")
+    .pageSize(0)
+    .pageToken("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListSessionsByChannelRequest`](#listsessionsbychannelrequest)
 
 **Returns**: [`SessionList`](#sessionlist)
 
@@ -706,6 +756,18 @@ ListSessionsByAgentInstanceRequest lists all sessions for a specific agent insta
 <TypeTable
   type={{
     agentInstanceId: { type: "string", description: "Agent instance ID to filter by.", required: true },
+    pageSize: { type: "number", description: "Maximum number of sessions to return per page." },
+    pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
+  }}
+/>
+
+### ListSessionsByChannelRequest
+
+ListSessionsByChannelRequest lists the conversations an agent channel created.
+
+<TypeTable
+  type={{
+    channelId: { type: "string", description: "Agent channel ID to filter by.", required: true },
     pageSize: { type: "number", description: "Maximum number of sessions to return per page." },
     pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
   }}

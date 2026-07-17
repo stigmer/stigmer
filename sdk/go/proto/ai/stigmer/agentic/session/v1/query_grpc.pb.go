@@ -22,6 +22,7 @@ const (
 	SessionQueryController_Get_FullMethodName                 = "/ai.stigmer.agentic.session.v1.SessionQueryController/get"
 	SessionQueryController_List_FullMethodName                = "/ai.stigmer.agentic.session.v1.SessionQueryController/list"
 	SessionQueryController_ListByAgentInstance_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionQueryController/listByAgentInstance"
+	SessionQueryController_ListByChannel_FullMethodName       = "/ai.stigmer.agentic.session.v1.SessionQueryController/listByChannel"
 )
 
 // SessionQueryControllerClient is the client API for SessionQueryController service.
@@ -43,6 +44,19 @@ type SessionQueryControllerClient interface {
 	// Authorization is handled in handler via FGA query for authorized
 	// session_ids, then filtered by agent_instance_id.
 	ListByAgentInstance(ctx context.Context, in *ListSessionsByAgentInstanceRequest, opts ...grpc.CallOption) (*SessionList, error)
+	// List the conversations an agent channel created.
+	//
+	// Returns the sessions the channel runtime (Slack, WhatsApp) created for
+	// the given agent channel, newest first. The caller must be able to view
+	// the channel; results are additionally filtered to sessions the caller
+	// can view.
+	//
+	// @internal
+	// Authorization is two-stage in the handler: an explicit can_view check on
+	// the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
+	// then an FGA query for authorized session_ids intersected with the
+	// stigmer.ai/channel-id label filter.
+	ListByChannel(ctx context.Context, in *ListSessionsByChannelRequest, opts ...grpc.CallOption) (*SessionList, error)
 }
 
 type sessionQueryControllerClient struct {
@@ -83,6 +97,16 @@ func (c *sessionQueryControllerClient) ListByAgentInstance(ctx context.Context, 
 	return out, nil
 }
 
+func (c *sessionQueryControllerClient) ListByChannel(ctx context.Context, in *ListSessionsByChannelRequest, opts ...grpc.CallOption) (*SessionList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SessionList)
+	err := c.cc.Invoke(ctx, SessionQueryController_ListByChannel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SessionQueryControllerServer is the server API for SessionQueryController service.
 // All implementations should embed UnimplementedSessionQueryControllerServer
 // for forward compatibility.
@@ -102,6 +126,19 @@ type SessionQueryControllerServer interface {
 	// Authorization is handled in handler via FGA query for authorized
 	// session_ids, then filtered by agent_instance_id.
 	ListByAgentInstance(context.Context, *ListSessionsByAgentInstanceRequest) (*SessionList, error)
+	// List the conversations an agent channel created.
+	//
+	// Returns the sessions the channel runtime (Slack, WhatsApp) created for
+	// the given agent channel, newest first. The caller must be able to view
+	// the channel; results are additionally filtered to sessions the caller
+	// can view.
+	//
+	// @internal
+	// Authorization is two-stage in the handler: an explicit can_view check on
+	// the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
+	// then an FGA query for authorized session_ids intersected with the
+	// stigmer.ai/channel-id label filter.
+	ListByChannel(context.Context, *ListSessionsByChannelRequest) (*SessionList, error)
 }
 
 // UnimplementedSessionQueryControllerServer should be embedded to have
@@ -119,6 +156,9 @@ func (UnimplementedSessionQueryControllerServer) List(context.Context, *ListSess
 }
 func (UnimplementedSessionQueryControllerServer) ListByAgentInstance(context.Context, *ListSessionsByAgentInstanceRequest) (*SessionList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListByAgentInstance not implemented")
+}
+func (UnimplementedSessionQueryControllerServer) ListByChannel(context.Context, *ListSessionsByChannelRequest) (*SessionList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListByChannel not implemented")
 }
 func (UnimplementedSessionQueryControllerServer) testEmbeddedByValue() {}
 
@@ -194,6 +234,24 @@ func _SessionQueryController_ListByAgentInstance_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SessionQueryController_ListByChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSessionsByChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionQueryControllerServer).ListByChannel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionQueryController_ListByChannel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionQueryControllerServer).ListByChannel(ctx, req.(*ListSessionsByChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SessionQueryController_ServiceDesc is the grpc.ServiceDesc for SessionQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -212,6 +270,10 @@ var SessionQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "listByAgentInstance",
 			Handler:    _SessionQueryController_ListByAgentInstance_Handler,
+		},
+		{
+			MethodName: "listByChannel",
+			Handler:    _SessionQueryController_ListByChannel_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

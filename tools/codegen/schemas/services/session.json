@@ -78,6 +78,14 @@
           "outputType": "SessionList",
           "outputFullType": "ai.stigmer.agentic.session.v1.SessionList",
           "description": "List all sessions for a specific agent instance.\n\n @internal\n Authorization is handled in handler via FGA query for authorized\n session_ids, then filtered by agent_instance_id."
+        },
+        {
+          "name": "ListByChannel",
+          "inputType": "ListSessionsByChannelRequest",
+          "inputFullType": "ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest",
+          "outputType": "SessionList",
+          "outputFullType": "ai.stigmer.agentic.session.v1.SessionList",
+          "description": "List the conversations an agent channel created.\n\n Returns the sessions the channel runtime (Slack, WhatsApp) created for\n the given agent channel, newest first. The caller must be able to view\n the channel; results are additionally filtered to sessions the caller\n can view.\n\n @internal\n Authorization is two-stage in the handler: an explicit can_view check on\n the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),\n then an FGA query for authorized session_ids intersected with the\n stigmer.ai/channel-id label filter."
         }
       ]
     }
@@ -201,6 +209,47 @@
             "kind": "string"
           },
           "description": "Agent instance ID to filter by.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of sessions to return per page.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Token for pagination, obtained from previous response.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListSessionsByChannelRequest",
+      "description": "ListSessionsByChannelRequest lists the conversations an agent channel created.",
+      "protoType": "ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest",
+      "protoFile": "apis/ai/stigmer/agentic/session/v1/io.proto",
+      "fields": [
+        {
+          "name": "ChannelId",
+          "jsonName": "channelId",
+          "protoField": "channel_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Agent channel ID to filter by.",
           "required": true,
           "validation": {
             "required": true

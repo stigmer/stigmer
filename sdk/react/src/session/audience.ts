@@ -20,9 +20,23 @@
  *   org-level reads a guest principal cannot make (default-agent
  *   resolution, session→agent derivation, personal environments) and
  *   never fall back to the org's default agent.
+ * - `"observer"` — a read-only transcript for someone watching a
+ *   conversation they cannot participate in, e.g. a channel connector
+ *   or org admin reviewing a Slack/WhatsApp conversation the channel
+ *   runtime owns. No composer, no approval/edit/retry/build
+ *   affordances, no access management — the server enforces the same
+ *   boundary (channel viewers hold `can_view` only, never
+ *   `can_create_execution_in`), so the presentation simply never
+ *   offers what the caller could not do. The session panel stays
+ *   available read-only: usage, artifacts, and setup inspection are
+ *   the point of observability. `SessionViewer` also self-selects this
+ *   audience for channel-originated sessions (the
+ *   `stigmer.ai/channel-id` label), so every entry point — a
+ *   conversations list, a pasted URL — renders read-only without host
+ *   wiring.
  *
  * A preset rather than individual flags: each audience is a product
  * intent, and keeping it in one place lets the SDK evolve what that
  * presentation means without breaking embedders.
  */
-export type SessionAudience = "integrator" | "endUser" | "guest";
+export type SessionAudience = "integrator" | "endUser" | "guest" | "observer";

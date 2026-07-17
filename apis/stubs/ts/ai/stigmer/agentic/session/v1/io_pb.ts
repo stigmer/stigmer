@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIlsKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkoKE0xpc3RTZXNzaW9uc1JlcXVlc3QSEQoJcGFnZV9zaXplGAEgASgFEhIKCnBhZ2VfdG9rZW4YAiABKAkSDAoEdGFncxgDIAMoCSJuCiJMaXN0U2Vzc2lvbnNCeUFnZW50SW5zdGFuY2VSZXF1ZXN0EiEKEWFnZW50X2luc3RhbmNlX2lkGAEgASgJQga6SAPIAQESEQoJcGFnZV9zaXplGAIgASgFEhIKCnBhZ2VfdG9rZW4YAyABKAkiQgobVXBkYXRlU2Vzc2lvblN1YmplY3RSZXF1ZXN0EhIKAmlkGAEgASgJQga6SAPIAQESDwoHc3ViamVjdBgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_session_v1_api, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIlsKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkoKE0xpc3RTZXNzaW9uc1JlcXVlc3QSEQoJcGFnZV9zaXplGAEgASgFEhIKCnBhZ2VfdG9rZW4YAiABKAkSDAoEdGFncxgDIAMoCSJuCiJMaXN0U2Vzc2lvbnNCeUFnZW50SW5zdGFuY2VSZXF1ZXN0EiEKEWFnZW50X2luc3RhbmNlX2lkGAEgASgJQga6SAPIAQESEQoJcGFnZV9zaXplGAIgASgFEhIKCnBhZ2VfdG9rZW4YAyABKAkiYQocTGlzdFNlc3Npb25zQnlDaGFubmVsUmVxdWVzdBIaCgpjaGFubmVsX2lkGAEgASgJQga6SAPIAQESEQoJcGFnZV9zaXplGAIgASgFEhIKCnBhZ2VfdG9rZW4YAyABKAkiQgobVXBkYXRlU2Vzc2lvblN1YmplY3RSZXF1ZXN0EhIKAmlkGAEgASgJQga6SAPIAQESDwoHc3ViamVjdBgCIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_session_v1_api, file_buf_validate_validate]);
 
 /**
  * SessionId wraps a session identifier.
@@ -152,6 +152,41 @@ export const ListSessionsByAgentInstanceRequestSchema: GenMessage<ListSessionsBy
   messageDesc(file_ai_stigmer_agentic_session_v1_io, 4);
 
 /**
+ * ListSessionsByChannelRequest lists the conversations an agent channel created.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest
+ */
+export type ListSessionsByChannelRequest = Message<"ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest"> & {
+  /**
+   * Agent channel ID to filter by.
+   *
+   * @generated from field: string channel_id = 1;
+   */
+  channelId: string;
+
+  /**
+   * Maximum number of sessions to return per page.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+
+  /**
+   * Token for pagination, obtained from previous response.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest.
+ * Use `create(ListSessionsByChannelRequestSchema)` to create a new message.
+ */
+export const ListSessionsByChannelRequestSchema: GenMessage<ListSessionsByChannelRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 5);
+
+/**
  * UpdateSessionSubjectRequest sets the conversation title for a session.
  *
  * @internal
@@ -182,5 +217,5 @@ export type UpdateSessionSubjectRequest = Message<"ai.stigmer.agentic.session.v1
  * Use `create(UpdateSessionSubjectRequestSchema)` to create a new message.
  */
 export const UpdateSessionSubjectRequestSchema: GenMessage<UpdateSessionSubjectRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_session_v1_io, 5);
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 6);
 

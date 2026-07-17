@@ -48,6 +48,16 @@ class ListSessionsByAgentInstanceRequest(_message.Message):
     page_token: str
     def __init__(self, agent_instance_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
 
+class ListSessionsByChannelRequest(_message.Message):
+    __slots__ = ("channel_id", "page_size", "page_token")
+    CHANNEL_ID_FIELD_NUMBER: _ClassVar[int]
+    PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
+    PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    channel_id: str
+    page_size: int
+    page_token: str
+    def __init__(self, channel_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+
 class UpdateSessionSubjectRequest(_message.Message):
     __slots__ = ("id", "subject")
     ID_FIELD_NUMBER: _ClassVar[int]

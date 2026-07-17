@@ -43,6 +43,7 @@ import {
 } from "../library/detect-plan-artifact.js";
 import { findStreamingPlan } from "../library/detect-streaming-plan.js";
 import { useSessionPageFlow } from "./useSessionPageFlow.js";
+import { isChannelOriginSession } from "./channelOrigin.js";
 import { useOpenFileChange } from "./useOpenFileChange.js";
 import { usePlanDraft, planDraftKey, type PlanDraftController } from "./usePlanDraft.js";
 import { PlanEditor } from "./PlanEditor.js";
@@ -217,6 +218,12 @@ export interface SessionViewerProps {
    * reads a guest principal cannot make — follow-ups simply continue
    * on the session's bound agent instance.
    *
+   * `"observer"` is a read-only transcript: no composer, no
+   * approval/edit/retry/build affordances, no access management. The
+   * viewer also self-selects observer for channel-originated sessions
+   * (the `stigmer.ai/channel-id` label) regardless of this prop, since
+   * channel viewers hold `can_view` only.
+   *
    * See {@link SessionAudience}.
    *
    * @default "integrator"
@@ -313,9 +320,17 @@ export function SessionViewer({
   const flow = useSessionPageFlow({ sessionId, org, getRuntimeEnv, audience });
   const { conv } = flow;
   const isGuest = audience === "guest";
-  // Both curated audiences (endUser, guest) lock the agent and hide the
-  // integrator configuration; guest adds its own restrictions below.
-  const isCurated = audience !== "integrator";
+  // Channel-originated sessions (Slack/WhatsApp conversations owned by the
+  // channel runtime) are read-only for every console caller — the server
+  // grants channel viewers can_view without can_create_execution_in — so the
+  // viewer self-selects the observer presentation regardless of the host's
+  // audience. Every entry point (a conversations list, a pasted URL) renders
+  // read-only without host wiring.
+  const isObserver =
+    audience === "observer" || isChannelOriginSession(conv.session);
+  // Curated audiences (endUser, guest, observer) lock the agent and hide the
+  // integrator configuration; guest and observer add their own restrictions.
+  const isCurated = audience !== "integrator" || isObserver;
 
   const [modelId, setModelId] = flow.model;
   const [interactionMode, setInteractionMode] = flow.interactionMode;
@@ -605,6 +620,7 @@ export function SessionViewer({
               onFilePathClick={handleTranscriptFilePathClick}
               isCurated={isCurated}
               isGuest={isGuest}
+              isObserver={isObserver}
               threadSlots={threadSlots}
             />
           }
@@ -614,10 +630,18 @@ export function SessionViewer({
                 flow={flow}
                 org={org}
                 panel={panel}
-                accessSlot={accessSlot}
+                // Observers cannot manage access (no can_grant_access /
+                // can_view_access on a channel session) — the control is
+                // withheld rather than left to fail server-side.
+                accessSlot={isObserver ? undefined : accessSlot}
                 onApplied={onApplied}
-                onImplementPlan={handleBuildFromPlan}
-                implementPlanDisabled={!conv.canSendFollowUp || isBuildingFromPlan}
+                // Implementing a plan submits an execution — a write an
+                // observer cannot make (can_create_execution_in is
+                // owner/viewer-only).
+                onImplementPlan={isObserver ? undefined : handleBuildFromPlan}
+                implementPlanDisabled={
+                  isObserver || !conv.canSendFollowUp || isBuildingFromPlan
+                }
                 sessionPlan={sessionPlan}
                 streamingPlan={streamingPlan}
                 planDraft={planDraft}
@@ -670,10 +694,16 @@ interface ConversationColumnProps {
    * let the path keep its copy / GitHub-link behavior.
    */
   readonly onFilePathClick: (path: string) => boolean;
-  /** Curated audience (endUser or guest): locked agent, no integrator pickers. */
+  /** Curated audience (endUser, guest, or observer): locked agent, no integrator pickers. */
   readonly isCurated: boolean;
   /** Guest audience: pure chat — additionally no model picker, mode picker, attachments, or workspace. */
   readonly isGuest: boolean;
+  /**
+   * Observer audience: a read-only transcript. No composer, no
+   * approval/edit/retry/build affordances, no decision surfaces — live
+   * stream indicators stay (watching an in-flight turn is the point).
+   */
+  readonly isObserver: boolean;
   readonly threadSlots?: MessageThreadSlots;
 }
 
@@ -697,6 +727,7 @@ const ConversationColumn = memo(function ConversationColumn({
   onFilePathClick,
   isCurated,
   isGuest,
+  isObserver,
   threadSlots,
 }: ConversationColumnProps) {
   const { conv } = flow;
@@ -794,20 +825,28 @@ const ConversationColumn = memo(function ConversationColumn({
         activeStreamExecution={conv.activeStreamExecution}
         pendingUserMessage={conv.pendingUserMessage}
         pendingMessageFailed={!!conv.sendError && !!conv.pendingUserMessage}
-        onRetrySend={conv.retryLastSend}
-        onRetryExecution={onRetryExecution}
-        onApprovalSubmit={flow.submitApproval}
+        // Observers get a pure transcript: every interaction affordance
+        // (retry, approvals, edit, build-from-plan) is opt-in via its
+        // callback, so passing none removes the controls entirely. Opening
+        // a plan read-only in the panel remains — reading is the point.
+        onRetrySend={isObserver ? undefined : conv.retryLastSend}
+        onRetryExecution={isObserver ? undefined : onRetryExecution}
+        onApprovalSubmit={isObserver ? undefined : flow.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
         approvalErrors={conv.approvalErrors}
         showFileReviewRecords
-        onEditMessage={conv.isStoppable ? handleEditMessage : undefined}
+        onEditMessage={
+          isObserver || !conv.isStoppable ? undefined : handleEditMessage
+        }
         workspaceEntries={conv.workspaceEntries}
         onFilePathClick={onFilePathClick}
         sandboxWorkspaceRoot={flow.sandboxWorkspaceRoot}
-        onBuildFromPlan={onBuildFromPlan}
+        onBuildFromPlan={isObserver ? undefined : onBuildFromPlan}
         onOpenPlan={onOpenPlan}
         org={org}
-        planActionsDisabled={!conv.canSendFollowUp || isBuildingFromPlan}
+        planActionsDisabled={
+          isObserver || !conv.canSendFollowUp || isBuildingFromPlan
+        }
         planBuildPending={isBuildingFromPlan}
         contentColumn="center"
         slots={threadSlots}
@@ -817,6 +856,8 @@ const ConversationColumn = memo(function ConversationColumn({
         {planAttachFailed && (
           <PlanAttachFailedNotice onDismiss={onDismissPlanAttachFailed} />
         )}
+        {/* Live stream indicators stay for observers — watching an
+            in-flight conversation is the point of observability. */}
         {conv.isReconnecting && <ReconnectingIndicator />}
         {conv.connectTimedOut && (
           <ConnectTimedOutBanner onRetry={conv.reconnectStream} />
@@ -828,27 +869,34 @@ const ConversationColumn = memo(function ConversationColumn({
             onReconnect={conv.reconnectStream}
           />
         )}
-        {sendError && <SendErrorBanner error={sendError} />}
-        {flow.autoApproveAll && (
+        {!isObserver && sendError && <SendErrorBanner error={sendError} />}
+        {!isObserver && flow.autoApproveAll && (
           <AutoApproveIndicator onTurnOff={() => flow.setAutoApproveAll(false)} />
         )}
         {/* Pending file reviews dock here — pinned above the composer so the
             decision the agent is blocked on can never scroll out of view. The
             thread renders only observational rows (badges) and read-only
-            settled records; this is the one decision surface. */}
+            settled records; this is the one decision surface. Observers get
+            the read-only progress strip but never the decision dock. */}
         <FilePathContext.Provider value={dockFilePathCtx}>
           {/* Mid-run live capture (DD-32): the "N files changed so far" strip for
               a still-running turn. Mutually exclusive with the dock below —
               progress shows while CAPTURING, the dock once AWAITING_REVIEW — so it
               hands off cleanly when review opens. Non-interactive. */}
           <FileChangeProgressBar progress={conv.fileChangeProgress} />
-          <FileReviewDock
-            changeSets={conv.fileChangeSets}
-            onSubmit={conv.submitFileDecision}
-            submittingDecisionKeys={conv.submittingFileDecisionKeys}
-            decisionErrors={conv.fileDecisionErrors}
-          />
+          {!isObserver && (
+            <FileReviewDock
+              changeSets={conv.fileChangeSets}
+              onSubmit={conv.submitFileDecision}
+              submittingDecisionKeys={conv.submittingFileDecisionKeys}
+              decisionErrors={conv.fileDecisionErrors}
+            />
+          )}
         </FilePathContext.Provider>
+        {/* Observers never get a composer: the server denies them
+            can_create_execution_in, so the send surface simply is not
+            offered — read-only by construction, not by a disabled state. */}
+        {!isObserver && (
         <SessionComposer
           ref={composerRef}
           onSubmit={handleComposerSubmit}
@@ -887,6 +935,7 @@ const ConversationColumn = memo(function ConversationColumn({
           sessionVariables={isCurated ? undefined : flow.sessionVariables}
           className="px-4 py-3"
         />
+        )}
       </div>
     </div>
   );

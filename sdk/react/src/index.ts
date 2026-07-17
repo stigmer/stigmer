@@ -151,6 +151,9 @@ export {
   useSessionSearch,
   PENDING_SUBJECT,
   resolvedSubject,
+  CHANNEL_SESSION_LABELS,
+  isChannelOriginSession,
+  channelSessionExternalUserKey,
   SessionViewer,
   NewSessionViewer,
   useSessionPanel,
@@ -1085,11 +1088,13 @@ export {
   useConnectSlackChannel,
   useInstallChannel,
   useChannelToolReadiness,
+  useChannelSessions,
   AgentChannelsPanel,
   ConnectSlackDialog,
   ConnectWhatsAppDialog,
   ChannelCredentialsDialog,
   ChannelToolCredentials,
+  ChannelConversationsDialog,
 } from "./channel/index.js";
 export type {
   UseAgentChannelListReturn,
@@ -1101,11 +1106,13 @@ export type {
   SlackConnectPhase,
   UseInstallChannelReturn,
   InstallChannelPhase,
+  UseChannelSessionsReturn,
   AgentChannelsPanelProps,
   ConnectSlackDialogProps,
   ConnectWhatsAppDialogProps,
   ChannelCredentialsDialogProps,
   ChannelToolCredentialsProps,
+  ChannelConversationsDialogProps,
 } from "./channel/index.js";
 
 // Error — structured error display with classification, retry, and contextual guidance

@@ -108,6 +108,37 @@ public final class SessionQueryControllerGrpc {
     return getListByAgentInstanceMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest,
+      ai.stigmer.agentic.session.v1.SessionList> getListByChannelMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listByChannel",
+      requestType = ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest.class,
+      responseType = ai.stigmer.agentic.session.v1.SessionList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest,
+      ai.stigmer.agentic.session.v1.SessionList> getListByChannelMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest, ai.stigmer.agentic.session.v1.SessionList> getListByChannelMethod;
+    if ((getListByChannelMethod = SessionQueryControllerGrpc.getListByChannelMethod) == null) {
+      synchronized (SessionQueryControllerGrpc.class) {
+        if ((getListByChannelMethod = SessionQueryControllerGrpc.getListByChannelMethod) == null) {
+          SessionQueryControllerGrpc.getListByChannelMethod = getListByChannelMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest, ai.stigmer.agentic.session.v1.SessionList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listByChannel"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.SessionList.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionQueryControllerMethodDescriptorSupplier("listByChannel"))
+              .build();
+        }
+      }
+    }
+    return getListByChannelMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -208,6 +239,25 @@ public final class SessionQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionList> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByAgentInstanceMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * List the conversations an agent channel created.
+     * Returns the sessions the channel runtime (Slack, WhatsApp) created for
+     * the given agent channel, newest first. The caller must be able to view
+     * the channel; results are additionally filtered to sessions the caller
+     * can view.
+     * &#64;internal
+     * Authorization is two-stage in the handler: an explicit can_view check on
+     * the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
+     * then an FGA query for authorized session_ids intersected with the
+     * stigmer.ai/channel-id label filter.
+     * </pre>
+     */
+    default void listByChannel(ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListByChannelMethod(), responseObserver);
+    }
   }
 
   /**
@@ -280,6 +330,26 @@ public final class SessionQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getListByAgentInstanceMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * List the conversations an agent channel created.
+     * Returns the sessions the channel runtime (Slack, WhatsApp) created for
+     * the given agent channel, newest first. The caller must be able to view
+     * the channel; results are additionally filtered to sessions the caller
+     * can view.
+     * &#64;internal
+     * Authorization is two-stage in the handler: an explicit can_view check on
+     * the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
+     * then an FGA query for authorized session_ids intersected with the
+     * stigmer.ai/channel-id label filter.
+     * </pre>
+     */
+    public void listByChannel(ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListByChannelMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -335,6 +405,25 @@ public final class SessionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getListByAgentInstanceMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * List the conversations an agent channel created.
+     * Returns the sessions the channel runtime (Slack, WhatsApp) created for
+     * the given agent channel, newest first. The caller must be able to view
+     * the channel; results are additionally filtered to sessions the caller
+     * can view.
+     * &#64;internal
+     * Authorization is two-stage in the handler: an explicit can_view check on
+     * the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
+     * then an FGA query for authorized session_ids intersected with the
+     * stigmer.ai/channel-id label filter.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.SessionList listByChannel(ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListByChannelMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -389,6 +478,25 @@ public final class SessionQueryControllerGrpc {
     public ai.stigmer.agentic.session.v1.SessionList listByAgentInstance(ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getListByAgentInstanceMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List the conversations an agent channel created.
+     * Returns the sessions the channel runtime (Slack, WhatsApp) created for
+     * the given agent channel, newest first. The caller must be able to view
+     * the channel; results are additionally filtered to sessions the caller
+     * can view.
+     * &#64;internal
+     * Authorization is two-stage in the handler: an explicit can_view check on
+     * the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
+     * then an FGA query for authorized session_ids intersected with the
+     * stigmer.ai/channel-id label filter.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.SessionList listByChannel(ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListByChannelMethod(), getCallOptions(), request);
     }
   }
 
@@ -448,11 +556,32 @@ public final class SessionQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getListByAgentInstanceMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * List the conversations an agent channel created.
+     * Returns the sessions the channel runtime (Slack, WhatsApp) created for
+     * the given agent channel, newest first. The caller must be able to view
+     * the channel; results are additionally filtered to sessions the caller
+     * can view.
+     * &#64;internal
+     * Authorization is two-stage in the handler: an explicit can_view check on
+     * the agent_channel (clean PERMISSION_DENIED, prevents channel-id probing),
+     * then an FGA query for authorized session_ids intersected with the
+     * stigmer.ai/channel-id label filter.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.SessionList> listByChannel(
+        ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListByChannelMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_LIST = 1;
   private static final int METHODID_LIST_BY_AGENT_INSTANCE = 2;
+  private static final int METHODID_LIST_BY_CHANNEL = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -481,6 +610,10 @@ public final class SessionQueryControllerGrpc {
           break;
         case METHODID_LIST_BY_AGENT_INSTANCE:
           serviceImpl.listByAgentInstance((ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionList>) responseObserver);
+          break;
+        case METHODID_LIST_BY_CHANNEL:
+          serviceImpl.listByChannel((ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.SessionList>) responseObserver);
           break;
         default:
@@ -522,6 +655,13 @@ public final class SessionQueryControllerGrpc {
               ai.stigmer.agentic.session.v1.ListSessionsByAgentInstanceRequest,
               ai.stigmer.agentic.session.v1.SessionList>(
                 service, METHODID_LIST_BY_AGENT_INSTANCE)))
+        .addMethod(
+          getListByChannelMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.ListSessionsByChannelRequest,
+              ai.stigmer.agentic.session.v1.SessionList>(
+                service, METHODID_LIST_BY_CHANNEL)))
         .build();
   }
 
@@ -573,6 +713,7 @@ public final class SessionQueryControllerGrpc {
               .addMethod(getGetMethod())
               .addMethod(getListMethod())
               .addMethod(getListByAgentInstanceMethod())
+              .addMethod(getListByChannelMethod())
               .build();
         }
       }

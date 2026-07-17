@@ -43,6 +43,9 @@ export type {
 
 export { useChannelToolReadiness } from "./useChannelToolReadiness.js";
 
+export { useChannelSessions } from "./useChannelSessions.js";
+export type { UseChannelSessionsReturn } from "./useChannelSessions.js";
+
 export { AgentChannelsPanel } from "./AgentChannelsPanel.js";
 export type { AgentChannelsPanelProps } from "./AgentChannelsPanel.js";
 
@@ -57,3 +60,6 @@ export type { ChannelCredentialsDialogProps } from "./ChannelCredentialsDialog.j
 
 export { ChannelToolCredentials } from "./ChannelToolCredentials.js";
 export type { ChannelToolCredentialsProps } from "./ChannelToolCredentials.js";
+
+export { ChannelConversationsDialog } from "./ChannelConversationsDialog.js";
+export type { ChannelConversationsDialogProps } from "./ChannelConversationsDialog.js";
