@@ -1072,8 +1072,9 @@ export type {
   ShareToolReadiness,
 } from "./sharing/index.js";
 
-// Channel — agent channels on external messaging platforms (Slack in v1):
-// the Channels tab panel, the Slack connect dialog, and the AgentChannel hooks.
+// Channel — agent channels on external messaging platforms (Slack + WhatsApp):
+// the Channels tab panel, the per-provider connect dialogs, and the
+// AgentChannel hooks.
 export {
   useAgentChannelList,
   useAgentChannel,
@@ -1082,9 +1083,11 @@ export {
   useCreateAgentChannel,
   useDeleteAgentChannel,
   useConnectSlackChannel,
+  useInstallChannel,
   useChannelToolReadiness,
   AgentChannelsPanel,
   ConnectSlackDialog,
+  ConnectWhatsAppDialog,
   ChannelCredentialsDialog,
   ChannelToolCredentials,
 } from "./channel/index.js";
@@ -1096,8 +1099,11 @@ export type {
   UseDeleteAgentChannelReturn,
   UseConnectSlackChannelReturn,
   SlackConnectPhase,
+  UseInstallChannelReturn,
+  InstallChannelPhase,
   AgentChannelsPanelProps,
   ConnectSlackDialogProps,
+  ConnectWhatsAppDialogProps,
   ChannelCredentialsDialogProps,
   ChannelToolCredentialsProps,
 } from "./channel/index.js";

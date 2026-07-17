@@ -173,14 +173,18 @@ await update({
 
 ### ChannelAppDetailPanel
 
-Detail view for one `ChannelApp`: the "finish setup in Slack"
-values (the app's own events webhook URL — phase two of the two-phase
-setup — plus the completed manifest), credential rotation, and
-deletion.
+Detail view for one `ChannelApp`: the "finish setup at the
+provider" values — phase two of the two-phase setup — plus credential
+rotation and deletion.
+
+Provider-shaped bodies on a shared frame: a Slack app shows its
+events webhook URL, OAuth redirect URL, and completed manifest; a
+Meta (WhatsApp) app shows its webhook URL and verify token (no
+manifest — Meta has no equivalent, so the guidance is a checklist).
 
 Secret fields are prefilled with the redaction marker; leaving them
 untouched preserves the stored values (rotate one secret without
-re-entering the other). Deletion is refused server-side while any
+re-entering the others). Deletion is refused server-side while any
 agent channel still installs through this app.
 
 **Props** — `ChannelAppDetailPanelProps`
@@ -189,7 +193,8 @@ agent channel still installs through this app.
   type={{
     channelApp: { type: "ChannelApp", description: "The channel app to display and edit (secret fields arrive redacted).", required: true },
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    consoleOrigin: { type: "string", description: "Console origin used to derive the OAuth redirect URL shown in the setup guidance. Defaults to the current window's origin." },
+    consoleOrigin: { type: "string", description: "Console origin used to derive the OAuth redirect URL shown in the Slack setup guidance. Defaults to the current window's origin." },
+    createHandoff: { type: "ChannelAppCreateHandoff", description: "Once-visible values threaded from the create flow (in memory only). The WhatsApp verify token is entered at registration but answers redacted from then on, and phase-two setup needs it *together with* the webhook URL that only exists now — this handoff lets the panel show both, exactly once. Absent on a later visit, the token renders redacted (rotate to get a fresh one)." },
     onBack: { type: "() => void", description: "Fired when the user navigates back to the list." },
     onDeleted: { type: "() => void", description: "Fired after the app is deleted." },
     onUpdated: { type: "(app: ChannelApp) => void", description: "Fired with the updated app after a successful save." },
@@ -200,10 +205,12 @@ agent channel still installs through this app.
 ### ChannelAppListPanel
 
 Displays the `ChannelApp` resources owned by an organization —
-the customer's own Slack apps that agent channels can install through.
+the customer's own provider apps (Slack, Meta/WhatsApp) that agent
+channels can install through.
 
-Each row shows the app name, provider, client ID (non-secret), and
-creation date. Secret fields never appear (they arrive redacted).
+Each row shows the app name, provider, the provider's non-secret app
+identifier, and creation date. Secret fields never appear (they
+arrive redacted).
 
 All visual properties flow through `--stgm-*` design tokens.
 
@@ -228,15 +235,20 @@ All visual properties flow through `--stgm-*` design tokens.
 
 ### CreateChannelAppForm
 
-Form for registering a customer-owned Slack app as a `ChannelApp`
-(bring your own app — the bot carries your name and icon, and each app
-is its own bot identity, so multiple agents can serve one workspace).
+Form for registering a customer-owned provider app as a
+`ChannelApp` (bring your own app — the bot carries your name
+and identity, and each app is its own bot identity).
 
-Setup is two-phase by nature (Slack mints the credentials, Stigmer
-mints the per-app webhook URL): this form covers phase one — a
-ready-to-paste app manifest plus the credential fields from the app's
-"Basic Information" page. The detail panel shown after creation
-carries phase two (the events webhook URL).
+Provider-shaped: a Slack app brings OAuth credentials plus a
+ready-to-paste manifest; a Meta (WhatsApp) app brings dashboard
+credentials plus a generated verify token — Meta has no manifest
+equivalent, so the guidance is a checklist.
+
+Setup is two-phase by nature for both providers (the provider mints
+the credentials, Stigmer mints the per-app webhook URL): this form
+covers phase one — the credentials. The detail panel shown after
+creation carries phase two (the events webhook URL, plus the verify
+token for WhatsApp).
 
 This is a pure presentational component with no dialog wrapper
 (headless-first). All visual properties flow through `--stgm-*`
@@ -247,9 +259,9 @@ design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
-    consoleOrigin: { type: "string", description: "Console origin used to derive the OAuth redirect URL shown in the setup guidance. Defaults to the current window's origin." },
+    consoleOrigin: { type: "string", description: "Console origin used to derive the OAuth redirect URL shown in the Slack setup guidance. Defaults to the current window's origin." },
     onCancel: { type: "() => void", description: "Fired when the user cancels creation." },
-    onCreated: { type: "(app: ChannelApp) => void", description: "Fired with the newly created channel app on success." },
+    onCreated: { type: "(app: ChannelApp, handoff: ChannelAppCreateHandoff) => void", description: "Fired with the newly created channel app on success. The handoff carries the once-visible secrets the detail panel shows for phase-two setup." },
     org: { type: "string", description: "Organization slug — the channel app will be created in this org.", required: true },
   }}
 />

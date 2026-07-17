@@ -167,6 +167,23 @@ describe("ConnectWhatsAppDialog", () => {
     );
   });
 
+  it("keeps the docs-demo cursor seam on the phone-number input", () => {
+    render(
+      <Providers client={createMockStigmer()}>
+        <ConnectWhatsAppDialog open onOpenChange={() => {}} agent={makeAgent()} />
+      </Providers>,
+    );
+
+    // The connect-whatsapp-channel docs demo types the number into this
+    // input via Scenar's `type` action, which resolves the target by
+    // this attribute — renaming it silently breaks the shipped demo.
+    expect(
+      screen
+        .getByLabelText(/phone number id/i)
+        .getAttribute("data-cursor-target"),
+    ).toBe("dialog-whatsapp-number");
+  });
+
   it("blocks on registering a Meta app first when the org has none", async () => {
     render(
       <Providers client={createMockStigmer({ channelApps: [] })}>

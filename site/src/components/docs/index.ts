@@ -29,6 +29,7 @@ export { PlatformClientTokenFlow as DemoPlatformClientTokenFlow } from "./demos/
 export { ThemingPlayground as DemoThemingPlayground } from "./demos/scenarios/theming-playground";
 export { ShareAgentDialogDemo as DemoShareAgentDialog } from "./demos/scenarios/share-agent-dialog";
 export { ConnectSlackChannel as DemoConnectSlackChannel } from "./demos/scenarios/connect-slack-channel";
+export { ConnectWhatsAppChannel as DemoConnectWhatsAppChannel } from "./demos/scenarios/connect-whatsapp-channel";
 export { ReviewPayloadRenderer as DemoReviewPayloadRenderer } from "./demos/scenarios/review-payload-gate";
 export { ReviewPayloadFallback as DemoReviewPayloadFallback } from "./demos/scenarios/review-payload-gate";
 export { glossary } from "./glossary";

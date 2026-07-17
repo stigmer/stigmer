@@ -617,43 +617,47 @@ One run of a Workflow from start to finish.
 
 #### Agent Channel
 
-A connection that puts an Agent into an external messaging platform---Slack
-today---so people can chat with it where they already work.
+A connection that puts an Agent into an external messaging platform---Slack or
+WhatsApp---so people can chat with it where they already work.
 
 - **Capitalize**: Yes, when referring to the Stigmer resource. Lowercase
   "channel" is fine in prose once the concept is established ("connect a
   channel," "the channel card").
 - **API surface**: `kind: AgentChannel`, prefix `ach`. proto:
   `agentchannel/v1/spec.proto`.
-- **Key fields**: `agent_ref`, `enabled`, `slack` (provider config),
-  `environment_refs`, `app_ref`.
+- **Key fields**: `agent_ref`, `enabled`, `slack` or `whatsapp` (provider
+  config), `environment_refs`, `app_ref` (optional for Slack, required for
+  WhatsApp).
 - **Context rule**: On the sales site, say "connect your Agent to Slack" without
   naming the resource. In how-to docs, introduce as "channel" with a gloss, then
   use "channel." In reference, use `AgentChannel`.
 - **Note**: Do not confuse with a Slack channel (a room inside a workspace). An
-  Agent Channel connects an Agent to a whole workspace; workspace members then
-  reach it from any conversation. Workspace identity and provider credentials
-  live in `status`, written by the install flow---applying a manifest never
-  touches them.
+  Agent Channel connects an Agent to a whole workspace (Slack) or a Business
+  phone number (WhatsApp); people then reach it from any conversation. Provider
+  identity facts and credentials live in `status`, written by the install
+  flow---applying a manifest never touches them.
 
 ---
 
 #### Channel App
 
-A customer-owned messaging-platform app (your own Slack app) that an Agent
-Channel can install through instead of the shared Stigmer app, so the bot
-carries your name.
+A customer-owned messaging-platform app (your own Slack app, or your Meta app
+with WhatsApp Business access) that Agent Channels install through.
 
 - **Capitalize**: Yes, two words: "Channel App."
 - **API surface**: `kind: ChannelApp`, prefix `chapp`. proto:
   `channelapp/v1/spec.proto`.
-- **Key fields**: `slack` (`client_id`, `client_secret`, `signing_secret`;
-  secrets are encrypted at rest and redacted in responses).
-- **Context rule**: How-to and reference only. The user-facing phrase is "bring
-  your own Slack app"; Channel App is the resource that stores it.
-- **Note**: Each app is its own bot identity. A workspace hosts one Agent per
-  app, so registering additional Channel Apps is also how several Agents serve
-  the same workspace.
+- **Key fields**: `slack` (`client_id`, `client_secret`, `signing_secret`) or
+  `whatsapp` (`app_id`, `app_secret`, `access_token`, `verify_token`); secrets
+  are encrypted at rest and redacted in responses.
+- **Context rule**: How-to and reference only. For Slack the user-facing phrase
+  is "bring your own Slack app"; for WhatsApp it is "your Meta app" (the only
+  install path---there is no shared platform app). Channel App is the resource
+  that stores either.
+- **Note**: Each app is its own bot identity. For Slack, a workspace hosts one
+  Agent per app, so registering additional Channel Apps is also how several
+  Agents serve the same workspace. For WhatsApp, a phone number serves one Agent
+  per app.
 
 ---
 

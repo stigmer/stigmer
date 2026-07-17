@@ -35,7 +35,7 @@ export const glossary: Record<string, string> = {
   Project:
     "A container within an Organization that groups related Agents, Workflows, and resources together.",
   "Agent Channel":
-    "A connection that puts an Agent into an external messaging platform — Slack today — so people can chat with it where they already work.",
+    "A connection that puts an Agent into an external messaging platform — Slack or WhatsApp — so people can chat with it where they already work.",
   "Channel App":
-    "A customer-owned messaging-platform app (your own Slack app) that an Agent Channel can install through instead of the shared Stigmer app, so the bot carries your name.",
+    "A customer-owned messaging-platform app (your own Slack app, or your Meta app with WhatsApp Business access) that Agent Channels install through.",
 };

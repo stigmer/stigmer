@@ -382,6 +382,7 @@ function ConnectWhatsAppDialogBody({
                 disabled={busy}
                 required
                 placeholder="106540352242922"
+                data-cursor-target="dialog-whatsapp-number"
                 className={cn(
                   "w-full rounded-md border border-input bg-background px-3 py-1.5",
                   "font-mono text-sm text-foreground placeholder:text-muted-foreground",

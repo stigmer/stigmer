@@ -252,6 +252,44 @@ const handleDelete = async () => {
 ```
 
 
+### useInstallChannel
+
+Behavior hook that runs a direct (non-redirect) channel install —
+WhatsApp today ([`useConnectSlackChannel`](#useconnectslackchannel) is the redirect
+counterpart). No popup, no callback route, no `completeInstall`.
+
+`initiateInstall` does not return the channel — callers refetch their
+channel (list) afterwards to observe the `installed` state, exactly
+like every other mutation-then-refetch flow in this package.
+
+**Signature**
+
+```tsx
+function useInstallChannel(): UseInstallChannelReturn
+```
+
+**Returns** — `UseInstallChannelReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset the hook to idle state." },
+    error: { type: "Error | null", description: "Error from the most recent unsuccessful attempt, or `null`." },
+    install: { type: "(channelId: string) => Promise<void>", description: "Run the direct install flow for a channel.  One `initiateInstall` call does everything: the server validates the declared provider identity against the provider's API, persists the install facts on status, and answers `completed=true` (DD-WA-1). Works for first installs and retries of a pending channel alike.  The server's `completed` field is the authoritative outcome (DD-WA-1b): `false` means this channel's provider actually wants the redirect flow — surfaced as an error rather than silently ignored, because this hook cannot run a consent redirect.  Failure modes surface as `error` with server-authored copy: bad or expired app credentials, an unrecognized provider identity, a dangling app reference, or a duplicate install (carrying a `google.rpc.ErrorInfo` reason readable via `getErrorReason`)." },
+    isInProgress: { type: "boolean", description: "`true` while the install call is in flight." },
+    phase: { type: "InstallChannelPhase", description: "Current phase of the install flow.", typeDescriptionLink: "#installchannelphase" },
+  }}
+/>
+
+```tsx
+const installer = useInstallChannel();
+
+async function handleConnect() {
+  await installer.install(channel.metadata.id);
+  refetch();
+}
+```
+
+
 ### useSaveAgentChannel
 
 Mutation hook that creates or updates an `AgentChannel`.
@@ -302,7 +340,8 @@ flows only when installed AND enabled. Channels always live in the
 agent's own org (no cross-org arm, unlike shares), so no org selector
 is needed.
 
-Connecting runs the [`ConnectSlackDialog`](#connectslackdialog) popup flow. On a
+Connecting runs the provider's own dialog — [`ConnectSlackDialog`](#connectslackdialog)
+(OAuth popup) or [`ConnectWhatsAppDialog`](#connectwhatsappdialog) (direct install). On a
 `local` (OSS) backend, channel CRUD works but installs are cloud-only —
 connect affordances are replaced by a cloud-feature notice, matching
 the server's FAILED_PRECONDITION posture.
@@ -320,7 +359,7 @@ This is an SDK component (DD-001) — embeddable by platform builders.
     agent: { type: "Agent", description: "The agent whose channels are managed.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
     channelAppsHref: { type: "string", description: "Where the host manages Channel Apps (the console passes `/settings/channel-apps`). Threaded to the connect dialog's \"Register a channel app\" affordance; absent, the affordance degrades to plain guidance text." },
     className: { type: "string", description: "Additional CSS class names." },
-    onConnectExternal: { type: "(channel: AgentChannel | null) => void", description: "When provided, connect actions delegate to the host instead of running the in-app popup flow. For hosts whose webview cannot open popups (the desktop app): the delegate typically opens the web console in the system browser. Called with the channel being (re)connected, or `null` for a brand-new connection." },
+    onConnectExternal: { type: "(channel: AgentChannel | null) => void", description: "When provided, connect actions for redirect-style providers (Slack) delegate to the host instead of running the in-app popup flow. For hosts whose webview cannot open popups (the desktop app): the delegate typically opens the web console in the system browser. Called with the channel being (re)connected, or `null` for a brand-new connection. Direct-install providers (WhatsApp) always connect in-app — their flow is a plain API call with nothing for a popup to do — so they never invoke the delegate." },
   }}
 />
 
@@ -410,6 +449,49 @@ Render it directly only when you own the open-state.
 />
 
 
+### ConnectWhatsAppDialog
+
+The connect flow for a WhatsApp channel: create the
+`AgentChannel` (create mode), then run the direct install — one
+server call that verifies the declared phone number against Meta's
+Graph API through the selected channel app's credentials (DD-WA-1).
+No consent popup, no callback route.
+
+WhatsApp is BYO-only (DD-WA-2): there is no platform Meta app, so a
+serving channel app is required — with none registered, the flow
+blocks on registering one first. The declared phone number ID is
+likewise required: the install proves it, and an empty value can only
+fail there.
+
+Requires Stigmer Cloud — on a `local` (OSS) backend the flow is
+preempted with a cloud-feature notice, matching the server's
+FAILED_PRECONDITION refusal. Install refusals render the server's
+copy verbatim except the duplicate-number refusal, which gets a
+guided treatment.
+
+Built on the native `<dialog>` element for focus trapping and escape
+handling, matching the SDK's modal convention
+([`ConnectSlackDialog`](#connectslackdialog)). All visual properties flow through
+`--stgm-*` design tokens.
+
+Most hosts mount it via [`AgentChannelsPanel`](#agentchannelspanel) (the Channels tab).
+Render it directly only when you own the open-state.
+
+**Props** — `ConnectWhatsAppDialogProps`
+
+<TypeTable
+  type={{
+    agent: { type: "Agent", description: "The agent the channel connects.", required: true, typeDescriptionLink: "/docs/sdk/resources/agent" },
+    channel: { type: "AgentChannel | null", description: "An existing channel to (re)connect — a `pending_install` channel whose install never completed. Unlike Slack's frozen reconnect, the number and serving app stay editable here: a failed direct install usually means one of them is wrong, and both are server-mutable while the channel isn't installed. When omitted, the dialog opens in **create mode**." },
+    channelAppsHref: { type: "string", description: "Where the host manages Channel Apps (the console passes `/settings/channel-apps`). When provided, the serving-app section and install refusals render a \"Register a channel app\" link there. SDK components never hardcode host routes — hosts inject the destination. Absent, the affordance degrades to plain guidance text." },
+    modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — no `showModal()`, no backdrop, no focus trap. For embedding the dialog in a constrained surface (documentation demos, visual tests). Interactive hosts keep the default." },
+    onChannelsChanged: { type: "() => void", description: "Called after the channel set changes (created, or install completed). Hosts typically pass the channel list's `refetch`." },
+    onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog requests an open-state change.", required: true },
+    open: { type: "boolean", description: "Whether the dialog is open.", required: true },
+  }}
+/>
+
+
 ## Types
 
 ### agentChannelToInput
@@ -424,10 +506,13 @@ field must supply the full configuration — this helper makes that safe:
 save({ ...agentChannelToInput(channel), enabled: false });
 ```
 
-Provider config carries over structurally (the Slack config is an
-empty marker message in v1 — all concrete facts are OAuth-observed and
-live in `status`, which survives every save verbatim). The channel's
-bound tool credentials (`environment_refs`) and its channel-app binding
+Provider config carries over per arm: the Slack config is an empty
+marker message in v1 (all concrete facts are OAuth-observed and live
+in `status`, which survives every save verbatim); the WhatsApp config
+carries its declared `phone_number_id`. Dropping the arm is never an
+option — the provider oneof is immutable server-side, so a save
+without it would be refused outright. The channel's bound tool
+credentials (`environment_refs`) and its channel-app binding
 (`app_ref`) carry over too — apply semantics would otherwise silently
 unbind them on every toggle (and an installed channel's app_ref is
 frozen server-side, so dropping it would refuse the save outright).
@@ -435,6 +520,14 @@ frozen server-side, so dropping it would refuse the save outright).
 ```tsx
 function agentChannelToInput(channel: AgentChannel): AgentChannelInput
 ```
+
+
+### InstallChannelPhase
+
+Progress phases of a direct channel install.
+
+One live phase only — a direct install has no consent redirect and no
+code exchange; the whole flow is the single `initiateInstall` call.
 
 
 ### SlackConnectPhase

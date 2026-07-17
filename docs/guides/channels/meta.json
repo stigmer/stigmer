@@ -1,4 +1,9 @@
 {
   "title": "Channels",
-  "pages": ["connect-slack", "bring-your-own-slack-app"]
+  "pages": [
+    "connect-slack",
+    "bring-your-own-slack-app",
+    "connect-whatsapp",
+    "set-up-your-meta-app"
+  ]
 }
