@@ -11,6 +11,19 @@ import type { DerivedTaskState } from "../../internal/store/workflow-execution-e
 import { useAutoScroll } from "../../internal/useAutoScroll.js";
 import { JumpToLatestButton } from "../../internal/JumpToLatestButton.js";
 import { BoundedContent } from "../../internal/BoundedContent.js";
+import {
+  ThreadCardShell,
+  ThreadCardHeader,
+  ThreadCardBody,
+  SpinnerIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  DotIcon,
+  SlashCircleIcon,
+  InspectIcon,
+  ChevronIcon,
+} from "../../internal/thread-card/index.js";
 import { formatMetaChips } from "../format-utils.js";
 import type { UseWorkflowExecutionActionsReturn } from "../useWorkflowExecutionActions.js";
 import { WorkflowApprovalList } from "../WorkflowApprovalList.js";
@@ -389,25 +402,30 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
   const preview = item.previewLine || null;
 
   return (
-    <div
+    <ThreadCardShell
       ref={cardRef}
-      className={cn(
-        "rounded-md border bg-card",
-        isSelected
-          ? "border-primary ring-1 ring-primary"
-          : "border-border",
-      )}
+      selected={isSelected}
+      accent={item.status === "waiting_approval" ? "warning" : null}
+      cursorTarget="workflow-task-row"
     >
-      <div className="flex items-center gap-1 pr-1">
-        {/* The selection gesture — same contract as a DAG node click. */}
-        <button
-          type="button"
-          aria-pressed={isSelected}
-          onClick={() => onTaskSelect?.(isSelected ? null : item.taskName)}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-3 py-2 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <StatusIcon status={item.status} />
-          <span className="truncate text-sm font-medium text-foreground">
+      {/* The header's primary gesture is SELECTION — same contract as a DAG
+          node click (highlight + scroll, shared with graph and panel). The
+          session card's header toggles expand instead; the shell expresses
+          both without forking the layout (DD-T05-3). */}
+      <ThreadCardHeader
+        gesture={
+          onTaskSelect
+            ? {
+                kind: "select",
+                selected: isSelected,
+                onSelect: () => onTaskSelect(isSelected ? null : item.taskName),
+              }
+            : { kind: "none" }
+        }
+      >
+        <StatusGlyph status={item.status} />
+        <span className="min-w-0 flex-1 flex items-baseline gap-1.5 overflow-hidden">
+          <span className="shrink-0 font-medium text-foreground">
             {item.taskName}
           </span>
           {item.kindLabel && (
@@ -416,30 +434,36 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
             </span>
           )}
           {item.attemptNumber > 1 && (
-            <span className="shrink-0 text-xs text-muted-foreground">
+            <span className="shrink-0 text-muted-foreground">
               attempt {item.attemptNumber}
             </span>
           )}
           {preview && (
-            <span className="min-w-0 truncate text-xs text-muted-foreground">
+            <span className="min-w-0 truncate text-muted-foreground">
               {preview}
             </span>
           )}
-          {meta && (
-            <span className="ml-auto shrink-0 text-xs tabular-nums text-muted-foreground">
-              {meta}
-            </span>
-          )}
-        </button>
+        </span>
+
+        {meta && (
+          <span className="shrink-0 tabular-nums text-muted-foreground">
+            {meta}
+          </span>
+        )}
 
         {/* The opt-in drill-down (T04) — the session tool card's Inspect
-            affordance: raw I/O, per-task events, retries in the panel. */}
+            affordance: raw I/O, per-task events, retries in the panel.
+            Nested in the interactive header; stopPropagation so the click
+            never doubles as a selection. */}
         {onInspectTask && (
           <button
             type="button"
             aria-label={`Inspect ${item.taskName}`}
-            onClick={() => onInspectTask(item.taskName)}
-            className="shrink-0 rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={(e) => {
+              e.stopPropagation();
+              onInspectTask(item.taskName);
+            }}
+            className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <InspectIcon />
           </button>
@@ -451,20 +475,22 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
             aria-expanded={expanded}
             aria-controls={detailId}
             aria-label={expanded ? `Collapse ${item.taskName}` : `Expand ${item.taskName}`}
-            onClick={() => setExpanded((v) => !v)}
-            className="shrink-0 rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded((v) => !v);
+            }}
+            className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <ChevronIcon expanded={expanded} />
           </button>
         )}
-      </div>
+      </ThreadCardHeader>
 
       {/* In-thread HITL (S10): the decision surface renders whenever the
           task is gating — ALWAYS visible, never behind the expand chevron
-          (the run is blocked; Nielsen #1). A sibling of the header row, not
-          nested in its button (no interactive nesting). */}
+          (the run is blocked; Nielsen #1). */}
       {showHitl && hitl && (
-        <div className="border-t border-border px-3 py-2">
+        <ThreadCardBody>
           <ThreadTaskCardHitl
             item={item}
             gates={gates}
@@ -473,13 +499,13 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
             onInspectTask={onInspectTask}
             onOpenAgentExecution={onOpenAgentExecution}
           />
-        </div>
+        </ThreadCardBody>
       )}
 
       {/* Always-visible bounded output body for I/O-bearing kinds (T04) —
           the session's preview-card model. */}
       {showPreviewBody && (
-        <div className="border-t border-border px-3 py-2">
+        <ThreadCardBody cursorTarget="task-preview">
           <ThreadTaskPreviewBody
             item={item}
             outputIO={outputIO}
@@ -487,20 +513,20 @@ const ThreadTaskCard = memo(function ThreadTaskCard({
               showBodyTranscript ? onOpenAgentExecution : undefined
             }
           />
-        </div>
+        </ThreadCardBody>
       )}
 
       {!isPreview && expanded && (
-        <div id={detailId} className="border-t border-border px-3 py-2">
+        <ThreadCardBody id={detailId}>
           <ThreadTaskDetail
             item={item}
             inputIO={inputIO}
             outputIO={outputIO}
             onOpenAgentExecution={onOpenAgentExecution}
           />
-        </div>
+        </ThreadCardBody>
       )}
-    </div>
+    </ThreadCardShell>
   );
 });
 
@@ -798,101 +824,33 @@ function statusLabel(status: WorkflowThreadItem["status"]): string {
 }
 
 // ---------------------------------------------------------------------------
-// Icons
+// Status glyph — the shared thread-card set, colored by status token (T05)
 // ---------------------------------------------------------------------------
 
-function StatusIcon({ status }: { readonly status: WorkflowThreadItem["status"] }) {
-  switch (status) {
-    case "running":
-    case "retrying":
-      return (
-        <span
-          aria-hidden="true"
-          className="size-2.5 shrink-0 animate-pulse rounded-full bg-primary"
-        />
-      );
-    case "waiting_approval":
-      return (
-        <span
-          aria-hidden="true"
-          className="size-2.5 shrink-0 rounded-full bg-[var(--stgm-warning,#f59e0b)]"
-        />
-      );
-    case "completed":
-      return (
-        <svg
-          aria-hidden="true"
-          className="size-3 shrink-0 text-[var(--stgm-success,#22c55e)]"
-          viewBox="0 0 12 12"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M2.5 6.5L5 9L9.5 3.5" />
-        </svg>
-      );
-    case "failed":
-      return (
-        <svg
-          aria-hidden="true"
-          className="size-3 shrink-0 text-destructive"
-          viewBox="0 0 12 12"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        >
-          <path d="M3 3L9 9M9 3L3 9" />
-        </svg>
-      );
-    case "skipped":
-    case "pending":
-      return (
-        <span
-          aria-hidden="true"
-          className="size-2.5 shrink-0 rounded-full border border-border"
-        />
-      );
-  }
-}
+/**
+ * Maps a task's derived status onto the shared glyph vocabulary the session
+ * tool card uses (`internal/thread-card/glyphs`), colored strictly through
+ * status token classes — the old dot set's hardcoded hex fallbacks were a
+ * Dont-Do #3 violation and died with it.
+ */
+const STATUS_GLYPH: Record<
+  WorkflowThreadItem["status"],
+  { readonly Icon: () => React.JSX.Element; readonly color: string }
+> = {
+  running: { Icon: SpinnerIcon, color: "text-foreground" },
+  retrying: { Icon: SpinnerIcon, color: "text-warning" },
+  waiting_approval: { Icon: ClockIcon, color: "text-warning" },
+  completed: { Icon: CheckCircleIcon, color: "text-success" },
+  failed: { Icon: XCircleIcon, color: "text-destructive" },
+  skipped: { Icon: SlashCircleIcon, color: "text-muted-foreground" },
+  pending: { Icon: DotIcon, color: "text-muted-foreground" },
+};
 
-/** The session tool card's magnifier glyph (`ToolCallItem.InspectIcon`). */
-function InspectIcon() {
+function StatusGlyph({ status }: { readonly status: WorkflowThreadItem["status"] }) {
+  const { Icon, color } = STATUS_GLYPH[status];
   return (
-    <svg
-      aria-hidden="true"
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="5.5" cy="5.5" r="3.5" />
-      <path d="M8 8L10.5 10.5" />
-    </svg>
-  );
-}
-
-function ChevronIcon({ expanded }: { readonly expanded: boolean }) {
-  return (
-    <svg
-      aria-hidden="true"
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={cn("transition-transform", expanded && "rotate-180")}
-    >
-      <path d="M3 4.5L6 7.5L9 4.5" />
-    </svg>
+    <span className={cn("shrink-0", color)} aria-hidden="true">
+      <Icon />
+    </span>
   );
 }

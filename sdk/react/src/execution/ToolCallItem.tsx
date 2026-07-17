@@ -11,6 +11,18 @@ import { cn } from "@stigmer/theme";
 import { useRenderTracer } from "../internal/dev/index.js";
 import { useAutoDisclosure } from "../internal/useAutoDisclosure.js";
 import { useIsTextTruncated } from "../internal/useIsTextTruncated.js";
+import {
+  ThreadCardShell,
+  ThreadCardHeader,
+  ThreadCardBody,
+  SpinnerIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  DotIcon,
+  SlashCircleIcon,
+  InspectIcon,
+} from "../internal/thread-card/index.js";
 import { ToolCallDetail, formatDuration } from "./ToolCallDetail.js";
 import { SubAgentSection } from "./SubAgentSection.js";
 import { ApprovalCardBody } from "./ApprovalCard.js";
@@ -146,28 +158,15 @@ export const ToolCallItem = memo(function ToolCallItem({
   const { ref: subtitleRef, isTruncated: primaryArgTruncated } =
     useIsTextTruncated<HTMLSpanElement>(measuresSubtitle);
 
-  // Cursor-style chrome: each tool call is its own self-contained card — a thin
-  // rounded neutral border. A pending gate carries a restrained left accent on
-  // the card itself (warning, or destructive for a delete); that accent is the
-  // only "awaiting you" cue now that the amber fill is gone. Nested inside a
-  // folded run chip the card degrades to a divider-separated row (via
-  // `bordered={false}`) so we never draw a card inside a card.
-  const cardClass = bordered
-    ? cn(
-        // border-prominent (not border): a transparent card needs a line the eye
-        // actually catches — the default border token is white at 14% opacity,
-        // which vanishes on the dark thread surface.
-        "rounded-lg border border-border-prominent overflow-hidden",
-        approval != null &&
-          (category === "delete"
-            ? "border-l-2 border-l-destructive"
-            : "border-l-2 border-l-warning"),
-        selection?.isSelected && "ring-1 ring-primary/40",
-      )
-    : cn(
-        "border-b border-border-muted last:border-b-0",
-        selection?.isSelected && "ring-1 ring-primary/40 rounded-sm",
-      );
+  // Cursor-style chrome via the shared ThreadCardShell (T05): each tool call
+  // is its own self-contained card — a thin rounded neutral border. A pending
+  // gate carries a restrained left accent on the card itself (warning, or
+  // destructive for a delete); that accent is the only "awaiting you" cue now
+  // that the amber fill is gone. Nested inside a folded run chip the card
+  // degrades to a divider-separated row (via `bordered={false}`) so we never
+  // draw a card inside a card.
+  const gateAccent =
+    approval != null ? (category === "delete" ? "destructive" : "warning") : null;
 
   // Completed/skipped Read items are non-expandable — the clickable
   // path in the row is the complete information. Failed reads remain
@@ -244,13 +243,14 @@ export const ToolCallItem = memo(function ToolCallItem({
 
   if (isNonExpandableRead) {
     return (
-      <div
-        data-cursor-target="tool-call-row"
-        className={cn(cardClass, className)}
+      <ThreadCardShell
+        bordered={bordered}
+        selected={selection?.isSelected}
+        accent={gateAccent}
+        cursorTarget="tool-call-row"
+        className={className}
       >
-        <div
-          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs"
-        >
+        <ThreadCardHeader>
           <span className="shrink-0 text-muted-foreground" aria-hidden="true">
             <CategoryIcon />
           </span>
@@ -265,8 +265,8 @@ export const ToolCallItem = memo(function ToolCallItem({
           </span>
 
           {trailingContent}
-        </div>
-      </div>
+        </ThreadCardHeader>
+      </ThreadCardShell>
     );
   }
 
@@ -357,56 +357,39 @@ export const ToolCallItem = memo(function ToolCallItem({
   if (isPreviewCategory) {
     const showBody = approval != null || result.type !== "empty";
     return (
-      <div
-        data-cursor-target="tool-call-row"
-        className={cn(cardClass, className)}
+      <ThreadCardShell
+        bordered={bordered}
+        selected={selection?.isSelected}
+        accent={gateAccent}
+        cursorTarget="tool-call-row"
+        className={className}
       >
-        <div className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs">
-          {headerInner}
-        </div>
+        <ThreadCardHeader>{headerInner}</ThreadCardHeader>
         {showBody && (
-          <div className="px-2.5 pb-2.5 pt-1" data-cursor-target="tool-preview">
-            {body}
-          </div>
+          <ThreadCardBody cursorTarget="tool-preview">{body}</ThreadCardBody>
         )}
-      </div>
+      </ThreadCardShell>
     );
   }
 
   // Summary / sub-agent layout: a chevron-gated header disclosing a body hidden
-  // by default. The header is a div[role=button], not a <button>, because it
-  // carries the nested "Inspect tool call" <button> (a <button> may not contain
-  // another); Enter/Space drive the toggle for keyboard parity.
+  // by default. The shell's `expand` gesture renders the div[role=button]
+  // header (it carries the nested "Inspect tool call" <button>; a <button> may
+  // not contain another) with Enter/Space keyboard parity and the chevron.
   return (
-    <div
-      data-cursor-target="tool-call-row"
-      className={cn(cardClass, className)}
+    <ThreadCardShell
+      bordered={bordered}
+      selected={selection?.isSelected}
+      accent={gateAccent}
+      cursorTarget="tool-call-row"
+      className={className}
     >
-      <div
-        role="button"
-        tabIndex={0}
-        aria-expanded={expanded}
-        onClick={handleToggle}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            handleToggle();
-          }
-        }}
-        className={cn(
-          "flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-left text-xs transition-colors",
-          "hover:bg-muted-subtle",
-          // ring-inset so the card's overflow-hidden does not clip the focus ring.
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-          expanded && "bg-muted-faint",
-        )}
-      >
+      <ThreadCardHeader gesture={{ kind: "expand", expanded, onToggle: handleToggle }}>
         {headerInner}
-        <ChevronIcon expanded={expanded} />
-      </div>
+      </ThreadCardHeader>
 
-      {expanded && <div className="px-2.5 pb-2.5 pt-1">{body}</div>}
-    </div>
+      {expanded && <ThreadCardBody>{body}</ThreadCardBody>}
+    </ThreadCardShell>
   );
 });
 
@@ -624,7 +607,7 @@ function McpPlugIcon() {
 }
 
 // ---------------------------------------------------------------------------
-// Status icons
+// Status icons — the shared thread-card glyph set (T05)
 // ---------------------------------------------------------------------------
 
 const STATUS_ICON: Record<ItemStatus, () => React.JSX.Element> = {
@@ -635,87 +618,3 @@ const STATUS_ICON: Record<ItemStatus, () => React.JSX.Element> = {
   pending: DotIcon,
   interrupted: SlashCircleIcon,
 };
-
-function SpinnerIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="animate-spin">
-      <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="6" cy="6" r="4.5" />
-      <path d="M6 3.5V6L7.5 7.5" />
-    </svg>
-  );
-}
-
-function CheckCircleIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="6" cy="6" r="4.5" />
-      <path d="M4 6L5.5 7.5L8 4.5" />
-    </svg>
-  );
-}
-
-function XCircleIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="6" cy="6" r="4.5" />
-      <path d="M4.5 4.5L7.5 7.5M7.5 4.5L4.5 7.5" />
-    </svg>
-  );
-}
-
-function DotIcon() {
-  return (
-    <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
-      <circle cx="4" cy="4" r="2.5" />
-    </svg>
-  );
-}
-
-/** Slashed circle for an interrupted call — settled, neutral, visibly "cut short". */
-function SlashCircleIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <circle cx="6" cy="6" r="4.5" />
-      <path d="M2.8 9.2L9.2 2.8" />
-    </svg>
-  );
-}
-
-function InspectIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="5.5" cy="5.5" r="3.5" />
-      <path d="M8 8L10.5 10.5" />
-    </svg>
-  );
-}
-
-function ChevronIcon({ expanded }: { expanded: boolean }) {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 10 10"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={cn(
-        "shrink-0 text-muted-foreground transition-transform duration-150",
-        expanded && "rotate-90",
-      )}
-      aria-hidden="true"
-    >
-      <path d="M3.5 2L6.5 5L3.5 8" />
-    </svg>
-  );
-}

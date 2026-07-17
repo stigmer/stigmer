@@ -158,6 +158,10 @@ describe("WorkflowTaskThread", () => {
   });
 
   it("renders one card per task in map order with kind labels", () => {
+    // T05: the header is the select gesture (`role=button`, `aria-pressed`)
+    // only when a selection handler is wired — the shell renders no dead
+    // affordance without one. These header-role queries wire the handler,
+    // matching the viewer's production composition.
     render(
       <WorkflowTaskThread
         taskStates={statesOf(
@@ -167,6 +171,7 @@ describe("WorkflowTaskThread", () => {
         totalTasks={2}
         isRunning={false}
         selectedTaskName={null}
+        onTaskSelect={vi.fn()}
       />,
     );
     const cards = screen.getAllByRole("button", { pressed: false });
@@ -193,6 +198,7 @@ describe("WorkflowTaskThread", () => {
         totalTasks={1}
         isRunning
         selectedTaskName={null}
+        onTaskSelect={vi.fn()}
       />,
     );
     const card = screen.getByRole("button", { name: /^call-writer/ });
@@ -215,6 +221,7 @@ describe("WorkflowTaskThread", () => {
         totalTasks={1}
         isRunning={false}
         selectedTaskName={null}
+        onTaskSelect={vi.fn()}
       />,
     );
     const card = screen.getByRole("button", { name: /^flaky/ });
@@ -236,6 +243,7 @@ describe("WorkflowTaskThread", () => {
         totalTasks={1}
         isRunning
         selectedTaskName={null}
+        onTaskSelect={vi.fn()}
       />,
     );
     expect(
@@ -365,14 +373,16 @@ describe("WorkflowTaskThread", () => {
   });
 
   it("shows the task input in a summary-kind card's chevron detail (T04)", () => {
+    // `wait` is one of the few kinds still in summary disclosure after the
+    // T05 coverage expansion — the chevron-detail input path lives there.
     render(
       <WorkflowTaskThread
         taskStates={statesOf(
           taskState({
-            taskName: "seed_order",
-            taskKind: WorkflowTaskKind.set_vars,
+            taskName: "brief_pause",
+            taskKind: WorkflowTaskKind.wait,
             status: "completed",
-            inputSummary: { variables: { order_id: "o-1" } },
+            inputSummary: { duration: "10s" },
           }),
         )}
         totalTasks={1}
@@ -382,18 +392,40 @@ describe("WorkflowTaskThread", () => {
     );
 
     // Summary-kind cards keep the chevron; the detail carries the input.
-    const chevron = screen.getByRole("button", { name: "Expand seed_order" });
+    const chevron = screen.getByRole("button", { name: "Expand brief_pause" });
     fireEvent.click(chevron);
     expect(screen.getByText("Input")).toBeTruthy();
-    expect(screen.getByText("o-1")).toBeTruthy();
+    expect(screen.getByText("10s")).toBeTruthy();
   });
 
-  it("shows the full error in the expanded body", () => {
+  it("shows the full error in the always-visible body of a failed preview-kind card (T05)", () => {
+    // http_call is a preview kind since T05 — a failure needs no expand
+    // gesture: the header carries the first line, the body the full error.
     render(
       <WorkflowTaskThread
         taskStates={statesOf(
           taskState({
             taskName: "flaky",
+            status: "failed",
+            error: "connection refused\nat dial tcp 10.0.0.1:443",
+          }),
+        )}
+        totalTasks={1}
+        isRunning={false}
+        selectedTaskName={null}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Expand flaky" })).toBeNull();
+    expect(screen.getByText(/at dial tcp 10\.0\.0\.1:443/)).toBeTruthy();
+  });
+
+  it("shows the full error in a summary-kind card's expanded body", () => {
+    render(
+      <WorkflowTaskThread
+        taskStates={statesOf(
+          taskState({
+            taskName: "flaky",
+            taskKind: WorkflowTaskKind.wait,
             status: "failed",
             error: "connection refused\nat dial tcp 10.0.0.1:443",
           }),
@@ -410,7 +442,7 @@ describe("WorkflowTaskThread", () => {
   it("keeps a card's expanded state across streaming updates (no remount)", () => {
     const running = () =>
       statesOf(
-        taskState({ taskName: "settled" }),
+        taskState({ taskName: "settled", taskKind: WorkflowTaskKind.wait }),
         taskState({ taskName: "live", status: "running", messagesCount: 1 }),
       );
     const { rerender } = render(
@@ -433,7 +465,7 @@ describe("WorkflowTaskThread", () => {
     rerender(
       <WorkflowTaskThread
         taskStates={statesOf(
-          taskState({ taskName: "settled" }),
+          taskState({ taskName: "settled", taskKind: WorkflowTaskKind.wait }),
           taskState({ taskName: "live", status: "running", messagesCount: 2 }),
         )}
         totalTasks={2}
@@ -528,6 +560,7 @@ describe("WorkflowTaskThread", () => {
         totalTasks={6}
         isRunning
         selectedTaskName={null}
+        onTaskSelect={vi.fn()}
       />,
     );
 
@@ -651,12 +684,17 @@ function gatedAgentCall(taskName: string, childId: string): DerivedTaskState {
   });
 }
 
-/** The card root element for a task (header row's parent). */
+/**
+ * The card root element for a task. The shell renders the interactive
+ * header as the card root's direct child (T05), and the header's role is
+ * present only when a selection handler is wired — HITL tests that use
+ * this helper pass `onTaskSelect`.
+ */
 function cardRootOf(taskName: string): HTMLElement {
-  const headerButton = screen.getByRole("button", {
+  const header = screen.getByRole("button", {
     name: new RegExp(`^${taskName}`),
   });
-  return headerButton.parentElement!.parentElement! as HTMLElement;
+  return header.parentElement! as HTMLElement;
 }
 
 describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
@@ -701,6 +739,7 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
         totalTasks={2}
         isRunning
         selectedTaskName={null}
+        onTaskSelect={vi.fn()}
         hitl={makeHitl()}
         pendingApprovals={[
           pendingApproval("aex_a", "tc-a", "tool_for_a"),

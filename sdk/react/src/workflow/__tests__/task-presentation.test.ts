@@ -358,6 +358,11 @@ type JsonValueLike = Parameters<typeof valueSnippet>[0];
 // ---------------------------------------------------------------------------
 
 describe("defaultDisclosureForKind", () => {
+  // T05 (DD-T05-5): every kind whose output CAN matter is a preview kind —
+  // the showBody gate keeps output-less cards as one-line rows, so preview
+  // disclosure costs nothing until the runner writes real output. Only
+  // genuinely body-less kinds (control flow, wait/listen, unspecified)
+  // remain summary.
   it.each([
     [WorkflowTaskKind.transform, "preview"],
     [WorkflowTaskKind.validate, "preview"],
@@ -366,19 +371,19 @@ describe("defaultDisclosureForKind", () => {
     [WorkflowTaskKind.emit_event, "preview"],
     [WorkflowTaskKind.notification, "preview"],
     [WorkflowTaskKind.agent_call, "preview"],
-    [WorkflowTaskKind.set_vars, "summary"],
+    [WorkflowTaskKind.set_vars, "preview"],
+    [WorkflowTaskKind.human_input, "preview"],
+    [WorkflowTaskKind.http_call, "preview"],
+    [WorkflowTaskKind.grpc_call, "preview"],
+    [WorkflowTaskKind.activity_call, "preview"],
+    [WorkflowTaskKind.run_workflow, "preview"],
     [WorkflowTaskKind.wait, "summary"],
     [WorkflowTaskKind.switch_case, "summary"],
     [WorkflowTaskKind.fork, "summary"],
     [WorkflowTaskKind.try_catch, "summary"],
     [WorkflowTaskKind.for_each, "summary"],
-    [WorkflowTaskKind.human_input, "summary"],
     [WorkflowTaskKind.listen, "summary"],
     [WorkflowTaskKind.raise_error, "summary"],
-    [WorkflowTaskKind.http_call, "summary"],
-    [WorkflowTaskKind.grpc_call, "summary"],
-    [WorkflowTaskKind.activity_call, "summary"],
-    [WorkflowTaskKind.run_workflow, "summary"],
     [WorkflowTaskKind.workflow_task_kind_unspecified, "summary"],
   ] as const)("kind %d defaults to %s", (kind, expected) => {
     expect(defaultDisclosureForKind(kind)).toBe(expected);

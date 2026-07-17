@@ -311,12 +311,15 @@ function arrange(
   return actions;
 }
 
-/** The thread card root element for a task (its header row's parent). */
+/**
+ * The thread card root element for a task. The shared shell (T05) renders
+ * the interactive header as the card root's direct child.
+ */
 function cardRootOf(taskName: string): HTMLElement {
-  const headerButton = screen.getByRole("button", {
+  const header = screen.getByRole("button", {
     name: new RegExp(`^${taskName}`),
   });
-  return headerButton.parentElement!.parentElement! as HTMLElement;
+  return header.parentElement! as HTMLElement;
 }
 
 /** Select a task the way a user would — its thread card (highlight only). */

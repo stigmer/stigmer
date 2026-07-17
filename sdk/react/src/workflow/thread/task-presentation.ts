@@ -117,11 +117,16 @@ export function getTaskPresenter(
 // ---------------------------------------------------------------------------
 
 /**
- * Kinds whose output is the point of the task — their cards keep an
- * always-visible bounded body (the session's "preview" categories).
- * Everything else (control flow, thin side-effect kinds, invocation kinds
- * pending the backend output-envelope follow-up, and the snapshot
- * fallback's `unspecified`) stays a compact summary row.
+ * Kinds whose output can be the point of the task — their cards keep an
+ * always-visible bounded body (the session's "preview" categories). The
+ * body renders only when output actually exists (the `showBody` gate), so
+ * a kind whose runner writes no output — today's invocation kinds, until
+ * the output-envelope follow-up standardizes them (DD-T04-3) — stays a
+ * clean one-line row with zero cost. `set_vars` earns its place from live
+ * data: the runner writes the seeded variables to task output (T05, R2-5).
+ *
+ * Only genuinely body-less kinds (control flow, `wait`/`listen`, and the
+ * snapshot fallback's `unspecified`) stay compact summary rows.
  */
 const PREVIEW_KINDS: ReadonlySet<WorkflowTaskKind> = new Set([
   WorkflowTaskKind.transform,
@@ -131,6 +136,12 @@ const PREVIEW_KINDS: ReadonlySet<WorkflowTaskKind> = new Set([
   WorkflowTaskKind.emit_event,
   WorkflowTaskKind.notification,
   WorkflowTaskKind.agent_call,
+  WorkflowTaskKind.set_vars,
+  WorkflowTaskKind.human_input,
+  WorkflowTaskKind.http_call,
+  WorkflowTaskKind.grpc_call,
+  WorkflowTaskKind.activity_call,
+  WorkflowTaskKind.run_workflow,
 ]);
 
 /** Default disclosure mode for a task kind. */
