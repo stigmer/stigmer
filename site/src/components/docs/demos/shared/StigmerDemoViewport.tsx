@@ -2,7 +2,12 @@
 
 import type { ReactNode, RefObject } from "react";
 import { DemoViewport, SCENAR_CLASS } from "@scenar/react";
-import { DEMO_PLAYER_CLASSES, DEMO_SHELL_HEIGHT } from "./tokens";
+import {
+  DEMO_CANONICAL_WIDTH,
+  DEMO_MIN_VIEWPORT_ZOOM,
+  DEMO_PLAYER_CLASSES,
+  DEMO_SHELL_HEIGHT,
+} from "./tokens";
 import { useDocsColorMode } from "./useDocsColorMode";
 
 interface StigmerDemoViewportProps {
@@ -19,6 +24,11 @@ interface StigmerDemoViewportProps {
  * so `--scenar-*` tokens resolve for shell components. The `dark`
  * modifier follows the docs reader's theme so the player chrome
  * matches the demo content inside it.
+ *
+ * All sizing (canonical width, minimum zoom, shell height) is passed
+ * explicitly from `tokens.ts` so that file is the single source of
+ * truth — never rely on `DemoViewport`'s internal defaults, which
+ * could drift across Scenar releases.
  */
 export function StigmerDemoViewport({
   containerRef,
@@ -33,6 +43,8 @@ export function StigmerDemoViewport({
       containerRef={containerRef}
       className={classes}
       wrapperClassName={DEMO_PLAYER_CLASSES}
+      canonicalWidth={DEMO_CANONICAL_WIDTH}
+      minZoom={DEMO_MIN_VIEWPORT_ZOOM}
       shellHeight={DEMO_SHELL_HEIGHT}
     >
       {children}

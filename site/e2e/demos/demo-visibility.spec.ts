@@ -143,10 +143,13 @@ for (const fixture of fixtures) {
 
       const demoIdx = fixture.demoIndex;
 
+      // The poster label depends on narration: "Play demo" for silent
+      // demos, "Play walkthrough with narration" for narrated ones —
+      // match both via the shared "Play " prefix.
       await page.waitForFunction(
         (idx) => {
           const buttons = document.querySelectorAll(
-            '[role="button"][aria-label="Play demo"]',
+            '[role="button"][aria-label^="Play "]',
           );
           return buttons.length > idx;
         },
@@ -157,7 +160,7 @@ for (const fixture of fixtures) {
       for (let attempt = 0; attempt < 5; attempt++) {
         const clicked = await page.evaluate((idx) => {
           const buttons = document.querySelectorAll(
-            '[role="button"][aria-label="Play demo"]',
+            '[role="button"][aria-label^="Play "]',
           );
           const btn = buttons[idx] as HTMLElement | undefined;
           if (!btn) return false;
@@ -171,7 +174,7 @@ for (const fixture of fixtures) {
         await page.waitForTimeout(1_000);
         const stillVisible = await page.evaluate((idx) => {
           const buttons = document.querySelectorAll(
-            '[role="button"][aria-label="Play demo"]',
+            '[role="button"][aria-label^="Play "]',
           );
           return buttons.length > idx &&
             (buttons[idx] as HTMLElement).offsetParent !== null;
