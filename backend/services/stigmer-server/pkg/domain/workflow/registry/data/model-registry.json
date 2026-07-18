@@ -141,74 +141,6 @@
       }
     },
     {
-      "id": "claude-opus-4",
-      "apiModelId": "claude-opus-4-20250514",
-      "displayName": "Claude Opus 4",
-      "shortDescription": "Deep reasoning, legacy",
-      "speedTier": "slow",
-      "provider": "anthropic",
-      "harness": "native",
-      "costTier": "premium",
-      "featured": false,
-      "pricing": {
-        "inputPricePerMillion": 15.0,
-        "outputPricePerMillion": 75.0,
-        "cacheWritePricePerMillion": 18.75,
-        "cacheReadPricePerMillion": 1.5,
-        "source": "anthropic_api",
-        "effectiveAt": "2026-05-03T00:00:00Z"
-      },
-      "contextWindowTokens": 200000,
-      "maxOutputTokens": 32768,
-      "tokenCounterMethod": "anthropic_native",
-      "summarization": {
-        "triggerThreshold": 180000,
-        "targetTokens": 160000,
-        "maxSummaryTokens": 2000
-      },
-      "capabilities": {
-        "toolUse": true,
-        "vision": true,
-        "streaming": true,
-        "thinking": true,
-        "adaptiveThinking": false
-      }
-    },
-    {
-      "id": "claude-sonnet-4",
-      "apiModelId": "claude-sonnet-4-20250514",
-      "displayName": "Claude Sonnet 4",
-      "shortDescription": "Original Claude Sonnet 4",
-      "speedTier": "fast",
-      "provider": "anthropic",
-      "harness": "native",
-      "costTier": "standard",
-      "featured": false,
-      "pricing": {
-        "inputPricePerMillion": 3.0,
-        "outputPricePerMillion": 15.0,
-        "cacheWritePricePerMillion": 3.75,
-        "cacheReadPricePerMillion": 0.3,
-        "source": "anthropic_api",
-        "effectiveAt": "2025-05-14T00:00:00Z"
-      },
-      "contextWindowTokens": 200000,
-      "maxOutputTokens": 65536,
-      "tokenCounterMethod": "anthropic_native",
-      "summarization": {
-        "triggerThreshold": 180000,
-        "targetTokens": 160000,
-        "maxSummaryTokens": 2000
-      },
-      "capabilities": {
-        "toolUse": true,
-        "vision": true,
-        "streaming": true,
-        "thinking": true,
-        "adaptiveThinking": false
-      }
-    },
-    {
       "id": "claude-haiku-4.5",
       "apiModelId": "claude-haiku-4-5-20251001",
       "displayName": "Claude Haiku 4.5",
@@ -768,7 +700,77 @@
       }
     },
     {
+      "id": "grok-4.5",
+      "displayName": "Grok 4.5",
+      "shortDescription": "Cursor + SpaceXAI long-running agent model",
+      "speedTier": "fast",
+      "provider": "cursor",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": true,
+      "pricing": {
+        "inputPricePerMillion": 2.0,
+        "outputPricePerMillion": 6.0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.5,
+        "source": "cursor_pricing_page",
+        "sourceNote": "First-party models pool (Auto/Composer/Grok 4.5) \u2014 exempt from Cursor Token Rate. Wire names arrive prefixed (e.g. cursor-grok-4.5-high-fast); CursorModelNormalizer strips the cursor- prefix and the effort/speed suffix.",
+        "effectiveAt": "2026-07-18T00:00:00Z"
+      },
+      "pricingVariants": {
+        "fast": {
+          "inputPricePerMillion": 4.0,
+          "outputPricePerMillion": 18.0,
+          "cacheWritePricePerMillion": 0,
+          "cacheReadPricePerMillion": 0.5,
+          "source": "cursor_grok_4_5_docs",
+          "sourceNote": "Fast variant input/output published at https://cursor.com/docs/models/grok-4-5; cache rates not published, inferred = standard Grok 4.5 cache (write 0, read 0.5).",
+          "effectiveAt": "2026-07-18T00:00:00Z"
+        }
+      }
+    },
+    {
       "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 Anthropic via Cursor \u2550\u2550\u2550"
+    },
+    {
+      "id": "claude-fable-5",
+      "displayName": "Claude Fable 5",
+      "shortDescription": "Anthropic's frontier agent model",
+      "speedTier": "slow",
+      "provider": "anthropic",
+      "harness": "cursor",
+      "costTier": "premium",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 10.0,
+        "outputPricePerMillion": 50.0,
+        "cacheWritePricePerMillion": 12.5,
+        "cacheReadPricePerMillion": 1.0,
+        "cursorTokenRatePerMillion": 0.25,
+        "source": "cursor_pricing_page",
+        "sourceNote": "Requires data retention approval for Teams/Enterprise and Privacy Mode users; guardrail-tripping requests auto-route to Claude Opus.",
+        "effectiveAt": "2026-07-18T00:00:00Z"
+      }
+    },
+    {
+      "id": "claude-sonnet-5",
+      "displayName": "Claude Sonnet 5",
+      "shortDescription": "Latest Sonnet via Cursor",
+      "speedTier": "fast",
+      "provider": "anthropic",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": true,
+      "pricing": {
+        "inputPricePerMillion": 3.0,
+        "outputPricePerMillion": 15.0,
+        "cacheWritePricePerMillion": 3.75,
+        "cacheReadPricePerMillion": 0.3,
+        "cursorTokenRatePerMillion": 0.25,
+        "source": "cursor_pricing_page",
+        "sourceNote": "Standard rates. Cursor runs a launch promotion ($2/M input, $10/M output) through 2026-08-31; registry keeps the standard post-promo rate since entries carry no effective-dating.",
+        "effectiveAt": "2026-07-18T00:00:00Z"
+      }
     },
     {
       "id": "claude-opus-4-8",
@@ -787,6 +789,18 @@
         "cursorTokenRatePerMillion": 0.25,
         "source": "anthropic_api",
         "effectiveAt": "2026-06-02T00:00:00Z"
+      },
+      "pricingVariants": {
+        "fast": {
+          "inputPricePerMillion": 10.0,
+          "outputPricePerMillion": 50.0,
+          "cacheWritePricePerMillion": 12.5,
+          "cacheReadPricePerMillion": 1.0,
+          "wireIds": ["claude-opus-4-8-fast"],
+          "source": "derived_from_notes",
+          "sourceNote": "Pricing-page note: \"Fast mode is 3x lower per-token pricing than Opus 4.7 fast mode\" \u2014 derived as Opus 4.7 fast (30/150/37.5/3) \u00f7 3. NEEDS HUMAN SIGN-OFF; wire id claude-opus-4-8-fast named in the same note.",
+          "effectiveAt": "2026-07-18T00:00:00Z"
+        }
       }
     },
     {
@@ -948,6 +962,99 @@
       "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 OpenAI via Cursor \u2550\u2550\u2550"
     },
     {
+      "id": "gpt-5.6-sol",
+      "displayName": "GPT-5.6 Sol",
+      "shortDescription": "Flagship GPT-5.6 variant",
+      "speedTier": "slow",
+      "provider": "openai",
+      "harness": "cursor",
+      "costTier": "premium",
+      "featured": true,
+      "pricing": {
+        "inputPricePerMillion": 5.0,
+        "outputPricePerMillion": 30.0,
+        "cacheWritePricePerMillion": 6.25,
+        "cacheReadPricePerMillion": 0.5,
+        "cursorTokenRatePerMillion": 0.25,
+        "source": "cursor_pricing_page",
+        "sourceNote": "Cache writes billed at 1.25x uncached input per pricing-page note.",
+        "effectiveAt": "2026-07-18T00:00:00Z"
+      },
+      "pricingVariants": {
+        "fast": {
+          "inputPricePerMillion": 10.0,
+          "outputPricePerMillion": 60.0,
+          "cacheWritePricePerMillion": 12.5,
+          "cacheReadPricePerMillion": 1.0,
+          "source": "derived_from_notes",
+          "sourceNote": "Pricing-page note: \"Fast mode is available at 2x pricing\" \u2014 derived as 2x all standard buckets. NEEDS HUMAN SIGN-OFF.",
+          "effectiveAt": "2026-07-18T00:00:00Z"
+        }
+      }
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "displayName": "GPT-5.6 Terra",
+      "shortDescription": "Mid-tier GPT-5.6 variant",
+      "speedTier": "fast",
+      "provider": "openai",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 2.5,
+        "outputPricePerMillion": 15.0,
+        "cacheWritePricePerMillion": 3.125,
+        "cacheReadPricePerMillion": 0.25,
+        "cursorTokenRatePerMillion": 0.25,
+        "source": "cursor_pricing_page",
+        "sourceNote": "Cache writes billed at 1.25x uncached input per pricing-page note.",
+        "effectiveAt": "2026-07-18T00:00:00Z"
+      },
+      "pricingVariants": {
+        "fast": {
+          "inputPricePerMillion": 5.0,
+          "outputPricePerMillion": 30.0,
+          "cacheWritePricePerMillion": 6.25,
+          "cacheReadPricePerMillion": 0.5,
+          "source": "derived_from_notes",
+          "sourceNote": "Pricing-page note: \"Fast mode is available at 2x pricing\" \u2014 derived as 2x all standard buckets. NEEDS HUMAN SIGN-OFF.",
+          "effectiveAt": "2026-07-18T00:00:00Z"
+        }
+      }
+    },
+    {
+      "id": "gpt-5.6-luna",
+      "displayName": "GPT-5.6 Luna",
+      "shortDescription": "Smallest GPT-5.6, cost-optimized",
+      "speedTier": "fastest",
+      "provider": "openai",
+      "harness": "cursor",
+      "costTier": "standard",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 1.0,
+        "outputPricePerMillion": 6.0,
+        "cacheWritePricePerMillion": 1.25,
+        "cacheReadPricePerMillion": 0.1,
+        "cursorTokenRatePerMillion": 0.25,
+        "source": "cursor_pricing_page",
+        "sourceNote": "Cache writes billed at 1.25x uncached input per pricing-page note.",
+        "effectiveAt": "2026-07-18T00:00:00Z"
+      },
+      "pricingVariants": {
+        "fast": {
+          "inputPricePerMillion": 2.0,
+          "outputPricePerMillion": 12.0,
+          "cacheWritePricePerMillion": 2.5,
+          "cacheReadPricePerMillion": 0.2,
+          "source": "derived_from_notes",
+          "sourceNote": "Pricing-page note: \"Fast mode is available at 2x pricing\" \u2014 derived as 2x all standard buckets. NEEDS HUMAN SIGN-OFF.",
+          "effectiveAt": "2026-07-18T00:00:00Z"
+        }
+      }
+    },
+    {
       "id": "gpt-5.5",
       "displayName": "GPT-5.5",
       "shortDescription": "Most capable GPT model",
@@ -983,6 +1090,17 @@
         "cursorTokenRatePerMillion": 0.25,
         "source": "openai_api",
         "effectiveAt": "2026-05-03T00:00:00Z"
+      },
+      "pricingVariants": {
+        "fast": {
+          "inputPricePerMillion": 5.0,
+          "outputPricePerMillion": 30.0,
+          "cacheWritePricePerMillion": 0,
+          "cacheReadPricePerMillion": 0.5,
+          "source": "derived_from_notes",
+          "sourceNote": "Pricing-page note: \"Fast mode is 15% faster with 2x pricing\" \u2014 derived as 2x all standard buckets. NEEDS HUMAN SIGN-OFF.",
+          "effectiveAt": "2026-07-18T00:00:00Z"
+        }
       }
     },
     {
@@ -1296,7 +1414,48 @@
       }
     },
     {
+      "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 Z.ai via Cursor \u2550\u2550\u2550"
+    },
+    {
+      "id": "glm-5.2",
+      "displayName": "GLM 5.2",
+      "shortDescription": "Z.ai's capable coding model",
+      "speedTier": "fast",
+      "provider": "zai",
+      "harness": "cursor",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 1.4,
+        "outputPricePerMillion": 4.4,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.26,
+        "cursorTokenRatePerMillion": 0.25,
+        "source": "cursor_pricing_page",
+        "effectiveAt": "2026-07-18T00:00:00Z"
+      }
+    },
+    {
       "$comment": "\u2550\u2550\u2550 CURSOR HARNESS \u2014 Moonshot via Cursor \u2550\u2550\u2550"
+    },
+    {
+      "id": "kimi-k2.7-code",
+      "displayName": "Kimi K2.7 Code",
+      "shortDescription": "Moonshot's code-focused model",
+      "speedTier": "fast",
+      "provider": "moonshot",
+      "harness": "cursor",
+      "costTier": "economy",
+      "featured": false,
+      "pricing": {
+        "inputPricePerMillion": 0.95,
+        "outputPricePerMillion": 4.0,
+        "cacheWritePricePerMillion": 0,
+        "cacheReadPricePerMillion": 0.19,
+        "cursorTokenRatePerMillion": 0.25,
+        "source": "cursor_pricing_page",
+        "effectiveAt": "2026-07-18T00:00:00Z"
+      }
     },
     {
       "id": "kimi-k2.5",
