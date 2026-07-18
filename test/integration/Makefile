@@ -374,6 +374,14 @@ capture-replay-histories: ensure-service-jar ## Capture Temporal event histories
 
 BENCHMARK_OUTPUT_DIR ?= .test-output-benchmark
 
+# Test selection for benchmark-cost. The default prefix matches every
+# TestCostBenchmark* test, including TestCostBenchmark_CursorLocalVsCloud_*,
+# which additionally require STIGMER_CURSOR_CLOUD_MODE_ENABLED=true (set only
+# by benchmark-cursor-modes). Narrow the pattern when running native-vs-cursor
+# comparisons alone, e.g.:
+#   make benchmark-cost BENCHMARK_RUN_PATTERN='TestCostBenchmark_(SimpleReply|MediumContext|ModelParity|MultiTurn|Report)'
+BENCHMARK_RUN_PATTERN ?= TestCostBenchmark
+
 .PHONY: benchmark-cost
 benchmark-cost: ensure-service-jar ## Run cost benchmarks comparing Native vs Cursor harness (requires both API keys)
 	@command -v gotestsum >/dev/null 2>&1 || { \
@@ -421,7 +429,7 @@ benchmark-cost: ensure-service-jar ## Run cost benchmarks comparing Native vs Cu
 		--jsonfile $(BENCHMARK_OUTPUT_DIR)/test-output.json \
 		--format testname \
 		--packages ./... \
-		-- -tags 'integration benchmark' -timeout 1800s -count=1 -run 'TestCostBenchmark'
+		-- -tags 'integration benchmark' -timeout 1800s -count=1 -run '$(BENCHMARK_RUN_PATTERN)'
 
 TRACED_OUTPUT_DIR ?= .test-output-traced
 

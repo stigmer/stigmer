@@ -322,14 +322,16 @@ func runMultiTurnBenchmark(
 	}
 }
 
+// requireBothHarnesses gates the aggregate report on the canonical
+// per-harness prerequisites: the unified runner plus each harness's upstream
+// API key. Delegating keeps this in lockstep with harness_config.go — the
+// legacy testHarness.AgentRunner / CursorRunner stub fields this used to
+// check are never assigned by the suite, so gating on them made this test
+// always skip.
 func requireBothHarnesses(t *testing.T) {
 	t.Helper()
-	if testHarness.AgentRunner == nil {
-		t.Skip("agent-runner not available — cannot run aggregate benchmark")
-	}
-	if testHarness.CursorRunner == nil {
-		t.Skip("cursor-runner not available — cannot run aggregate benchmark")
-	}
+	harness.RequireNativePrereqs(t, testHarness)
+	harness.RequireCursorPrereqs(t, testHarness)
 }
 
 // ═══════════════════════════════════════════════════════════════════
