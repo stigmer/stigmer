@@ -13,6 +13,8 @@ import {
   OrgSwitcher,
   useRecentActivity,
   groupRecentActivityByTime,
+  formatRelativeTime,
+  recentActivityStatusBadge,
 } from "@stigmer/react";
 import type { RecentActivityGroup, RecentActivityEntry } from "@stigmer/react";
 import { ScrollArea } from "../ui/scroll-area";
@@ -253,6 +255,7 @@ const ActivityEntry = memo(function ActivityEntry({
     ? `/sessions/${entry.id}`
     : `/executions/${entry.id}`;
   const TypeIcon = isSession ? MessageSquare : Workflow;
+  const statusBadge = recentActivityStatusBadge(entry);
 
   return (
     <li>
@@ -268,6 +271,25 @@ const ActivityEntry = memo(function ActivityEntry({
       >
         <TypeIcon className="mt-0.5 size-3 shrink-0 opacity-50" aria-hidden="true" />
         <span className="line-clamp-2 flex-1">{entry.subject}</span>
+        {/* Last-activity stamp + noteworthy status: the list sorts by
+            activity while execution names embed creation time, so the row
+            must say WHY it is here ("failed · 2h"). */}
+        <span className="flex shrink-0 flex-col items-end gap-0.5 text-[10px] leading-tight">
+          <span className="tabular-nums text-sidebar-muted-foreground">
+            {formatRelativeTime(entry.updatedAt)}
+          </span>
+          {statusBadge && (
+            <span
+              className={
+                statusBadge.tone === "destructive"
+                  ? "text-destructive"
+                  : "text-sidebar-muted-foreground"
+              }
+            >
+              {statusBadge.label}
+            </span>
+          )}
+        </span>
         {runningInBackground ? <BackgroundRunDot /> : null}
       </button>
     </li>

@@ -217,11 +217,14 @@ export type {
 export {
   useRecentActivity,
   groupRecentActivityByTime,
+  formatRelativeTime,
+  recentActivityStatusBadge,
 } from "./activity/index.js";
 export type {
   RecentActivityType,
   RecentActivityEntry,
   RecentActivityGroup,
+  RecentActivityStatusBadge,
   UseRecentActivityOptions,
   UseRecentActivityReturn,
 } from "./activity/index.js";
