@@ -10,6 +10,7 @@ import { relative } from "node:path";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ProvisionResult, GitMetadata } from "../../shared/workspace/types.js";
 import { SourceType } from "../../shared/workspace/types.js";
+import { formatContextBridgeText } from "../../shared/context-bridge.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
@@ -106,6 +107,15 @@ export interface PromptBuilderInput {
    * message itself is just a short label ("Build from plan").
    */
   buildFromPlan?: boolean;
+  /**
+   * Rollover context bridge (cloud DD-013): a digest of the previous
+   * session's conversation, read from `SessionSpec.metadata`. Injected on
+   * EVERY turn by design: the native system prompt is rebuilt per
+   * invocation (never checkpointed with the message history), so a
+   * first-turn-only injection would vanish from turn 2 onward. The bridge
+   * is standing session context, like skills.
+   */
+  contextBridge?: string;
 }
 
 export interface InjectedFile {
@@ -145,6 +155,12 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
 
   if (input.injectedFiles.length > 0) {
     prompt += buildInjectedFilesSection(input.injectedFiles);
+  }
+
+  if (input.contextBridge) {
+    prompt +=
+      "\n\n## Previous conversation context\n\n" +
+      formatContextBridgeText(input.contextBridge);
   }
 
   prompt += RESPONSE_RULES;

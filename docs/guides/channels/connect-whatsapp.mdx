@@ -66,6 +66,11 @@ A few things to know about the conversation:
 
 - Each person has one continuous conversation with the Agent — WhatsApp has no
   threads, so context carries across messages naturally.
+- The Agent remembers the conversation within limits. After about a day of
+  quiet, or when a long exchange reaches the conversation-length bound, it
+  rotates to a fresh conversation behind the scenes and carries over a short
+  summary of your recent exchange — it keeps the thread but may not recall every
+  earlier detail. For a complete clean slate, ask for one (see below).
 - The Agent marks your message as read and shows a typing indicator while it
   works. Replies usually land in seconds — conversations from WhatsApp run with
   a bounded, chat-tuned budget. On questions that need heavy tool work the reply
@@ -74,6 +79,14 @@ A few things to know about the conversation:
   turn allows, the Agent says so and picks up where it left off on your next
   message.
 - Send text. Images, voice notes, and reactions are ignored in this version.
+
+### Start a fresh conversation
+
+Send `/new` (or `/reset`) as the whole message. The Agent confirms, closes the
+current conversation, and your next message begins a new one with a clean slate
+— unlike the automatic rotation, nothing is carried over. Only the exact command
+counts: a message that merely contains it, like "how do I /reset my router?", is
+answered normally.
 
 ## Give the Agent its tool credentials
 

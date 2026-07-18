@@ -20,6 +20,7 @@ import { resolve } from "node:path";
 import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { formatContextBridgeText } from "../../shared/context-bridge.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
@@ -60,6 +61,14 @@ export interface EnhancedPromptOptions {
    * The user message itself is just a short label ("Build from plan").
    */
   buildFromPlan?: boolean;
+  /**
+   * Rollover context bridge (cloud DD-013): a digest of the previous
+   * session's conversation, read from `SessionSpec.metadata`. Lands in the
+   * first message, so it persists in the cursor agent's own conversation
+   * store for the session's lifetime — buildEnhancedPrompt firing only on
+   * first/fresh executions is exactly the right delivery.
+   */
+  contextBridge?: string;
 }
 
 /**
@@ -117,6 +126,14 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
 
   if (!options.instructions) {
     sections.push(formatResponseRules());
+  }
+
+  // The rollover context bridge sits directly before the protocol + task so
+  // the carried conversation is the freshest CONTEXT the model reads —
+  // while the approval protocol keeps its pinned last-before-task slot (it
+  // is an INSTRUCTION and must outweigh everything, including this bridge).
+  if (options.contextBridge) {
+    sections.push(formatContextBridgeSection(options.contextBridge));
   }
 
   // Always last before the task: the platform's tool-approval protocol. Placed
@@ -250,6 +267,10 @@ function isRunnerInternalPath(absolutePath: string): boolean {
 
 export function formatInstructions(instructions: string): string {
   return `<agent_instructions>\n${instructions}\n</agent_instructions>`;
+}
+
+export function formatContextBridgeSection(bridge: string): string {
+  return `<previous_conversation_context>\n${formatContextBridgeText(bridge)}\n</previous_conversation_context>`;
 }
 
 export function formatSkillsSection(skills: SkillMetadata[]): string {

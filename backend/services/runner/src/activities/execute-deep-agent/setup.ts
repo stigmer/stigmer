@@ -23,6 +23,7 @@ import type { DynamicStructuredTool } from "@langchain/core/tools";
 import type { Config } from "../../config.js";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import { createCheckpointer } from "../../shared/checkpointer/factory.js";
+import { readContextBridge } from "../../shared/context-bridge.js";
 import { connectMcpServers, type McpConnectionResult } from "../../shared/mcp-manager.js";
 import { resolveMcpServers } from "../../shared/mcp-resolver.js";
 import { backfillMcpServersIfNeeded } from "../../shared/connect-backfill.js";
@@ -386,6 +387,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       injectedFiles,
       interactionMode: execution.spec!.executionConfig?.interactionMode,
       buildFromPlan: execution.spec!.executionConfig?.buildFromPlan,
+      contextBridge: readContextBridge(session.spec!.metadata),
     });
 
     // Step 9: Construct the LLM model. Resolution to the provider API id

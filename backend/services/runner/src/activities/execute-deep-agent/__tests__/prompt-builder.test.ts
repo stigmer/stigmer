@@ -208,6 +208,35 @@ describe("buildEnhancedSystemPrompt", () => {
     expect(prompt).not.toContain("## Workspace");
   });
 
+  describe("rollover context bridge (DD-013)", () => {
+    const base = {
+      instructions: "Test",
+      provisionResults: [],
+      containerRoot: "",
+      skillsPromptSection: "",
+      workspaceFileRefs: [],
+      workspaceRoot: "",
+      injectedFiles: [],
+    };
+
+    it("appends the bridge as standing session context (every-turn injection)", () => {
+      const prompt = buildEnhancedSystemPrompt({
+        ...base,
+        contextBridge: "Subject: Orders\nUser: where is my order?\nAssistant: Shipped.",
+      });
+
+      expect(prompt).toContain("## Previous conversation context");
+      expect(prompt).toContain("User: where is my order?");
+      expect(prompt).toContain("Do not repeat it back");
+    });
+
+    it("omits the section when the session carries no bridge", () => {
+      const prompt = buildEnhancedSystemPrompt(base);
+
+      expect(prompt).not.toContain("## Previous conversation context");
+    });
+  });
+
   describe("plan mode", () => {
     const base = {
       instructions: "Test",

@@ -87,6 +87,38 @@ describe("buildPrompt", () => {
     expect(prompt).toContain(USER_MESSAGE);
   });
 
+  it("carries the rollover context bridge on the first execution (DD-013)", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "created_first_execution"),
+        contextBridge: "Subject: Orders\nUser: where is my order?\nAssistant: Shipped.",
+      }),
+    );
+    expect(prompt).toContain("<previous_conversation_context>");
+    expect(prompt).toContain("User: where is my order?");
+    // The bridge is CONTEXT; the approval protocol keeps its pinned
+    // last-before-task slot so instructions outweigh it.
+    expect(prompt.indexOf("<previous_conversation_context>"))
+      .toBeLessThan(prompt.indexOf("<tool_approval_protocol>"));
+  });
+
+  it("never bridges a successfully resumed agent — its native context IS the conversation", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "resumed_successfully"),
+        contextBridge: "Subject: Orders\nUser: hi\nAssistant: hello",
+      }),
+    );
+    expect(prompt).toBe(USER_MESSAGE);
+  });
+
+  it("omits the bridge section when the session carries none", () => {
+    const prompt = buildPrompt(
+      input({ resolution: resolution("local", "created_first_execution") }),
+    );
+    expect(prompt).not.toContain("<previous_conversation_context>");
+  });
+
   it("uses the reinvocation prompt for a HITL reinvocation (human-meaningful, no opaque ids)", () => {
     const approvalDecisions = new Map<string, ApprovalAction>([
       ["tool-call-1", ApprovalAction.APPROVE],

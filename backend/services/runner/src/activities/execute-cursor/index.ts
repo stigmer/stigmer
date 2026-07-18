@@ -45,6 +45,7 @@ import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_p
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
 import { MessageAccumulator, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
+import { readContextBridge } from "../../shared/context-bridge.js";
 import { withholdSecretContentFromMessages } from "../../shared/tool-row.js";
 import { StallTimeoutError, formatStallFailure } from "../../shared/stall-watchdog.js";
 import { resolveUsableArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
@@ -878,6 +879,7 @@ async function executeCursorInner(
       appliedToolCallIds,
       interactionMode,
       buildFromPlan,
+      contextBridge: readContextBridge(blueprint.sessionSpec.metadata),
     });
 
     // Phase 10a: Inject structured output instruction for Cursor harness
@@ -1460,6 +1462,7 @@ async function executeCursorInner(
             attachmentPaths,
             pendingApprovals: adjudicatedApprovals,
             interactionMode,
+            contextBridge: readContextBridge(blueprint.sessionSpec.metadata),
           });
 
           console.log(
@@ -2019,6 +2022,12 @@ export interface BuildPromptInput {
    * .build_from_plan): both prompt paths carry the implement-plan directive.
    */
   buildFromPlan?: boolean;
+  /**
+   * Rollover context bridge from `SessionSpec.metadata` (cloud DD-013).
+   * Only the enhanced-prompt path consumes it — a resumed agent's native
+   * context IS the previous conversation, so it needs no bridge.
+   */
+  contextBridge?: string;
 }
 
 /**
@@ -2083,7 +2092,8 @@ export function buildPrompt(input: BuildPromptInput): string {
   }
 
   // First execution, or a fresh agent created after a resume failure: there is
-  // no prior conversation to inherit, so start a new turn with full context.
+  // no prior conversation to inherit, so start a new turn with full context —
+  // including the rollover bridge, when the session carries one.
   return buildEnhancedPrompt({
     instructions,
     userMessage,
@@ -2094,6 +2104,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     attachmentPaths,
     interactionMode,
     buildFromPlan,
+    contextBridge: input.contextBridge,
   });
 }
 
