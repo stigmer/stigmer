@@ -119,6 +119,39 @@ describe("buildPrompt", () => {
     expect(prompt).not.toContain("<previous_conversation_context>");
   });
 
+  it("carries the channel sender identity on the first execution", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "created_first_execution"),
+        senderIdentity: { value: "15550001111", kind: "whatsapp_phone" },
+      }),
+    );
+    expect(prompt).toContain("<conversation_sender>");
+    expect(prompt).toContain("WhatsApp phone number");
+    expect(prompt).toContain("15550001111");
+    // Identity is CONTEXT like the bridge; the approval protocol keeps its
+    // pinned last-before-task slot.
+    expect(prompt.indexOf("<conversation_sender>"))
+      .toBeLessThan(prompt.indexOf("<tool_approval_protocol>"));
+  });
+
+  it("never re-sends the identity to a successfully resumed agent — its native context carries it", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "resumed_successfully"),
+        senderIdentity: { value: "U0USER", kind: "slack_user_id" },
+      }),
+    );
+    expect(prompt).toBe(USER_MESSAGE);
+  });
+
+  it("omits the sender section when the session carries no identity (console sessions)", () => {
+    const prompt = buildPrompt(
+      input({ resolution: resolution("local", "created_first_execution") }),
+    );
+    expect(prompt).not.toContain("<conversation_sender>");
+  });
+
   it("uses the reinvocation prompt for a HITL reinvocation (human-meaningful, no opaque ids)", () => {
     const approvalDecisions = new Map<string, ApprovalAction>([
       ["tool-call-1", ApprovalAction.APPROVE],

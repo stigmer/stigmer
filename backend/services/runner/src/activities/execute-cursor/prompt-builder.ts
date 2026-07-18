@@ -21,6 +21,10 @@ import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { formatContextBridgeText } from "../../shared/context-bridge.js";
+import {
+  formatSenderIdentityText,
+  type SenderIdentity,
+} from "../../shared/sender-identity.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
@@ -69,6 +73,14 @@ export interface EnhancedPromptOptions {
    * first/fresh executions is exactly the right delivery.
    */
   contextBridge?: string;
+  /**
+   * Channel sender identity (attribution, not authorization): the
+   * provider-verified identifier of the person on the channel, read from
+   * `SessionSpec.metadata`. Like the bridge, it lands in the first message
+   * and persists in the cursor agent's own conversation store — identity
+   * is constant per conversation (channel sessions are keyed per-sender).
+   */
+  senderIdentity?: SenderIdentity;
 }
 
 /**
@@ -126,6 +138,13 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
 
   if (!options.instructions) {
     sections.push(formatResponseRules());
+  }
+
+  // The sender identity precedes the bridge: it is standing context about
+  // WHO the conversation is with, which the carried conversation may refer
+  // back to.
+  if (options.senderIdentity) {
+    sections.push(formatSenderIdentitySection(options.senderIdentity));
   }
 
   // The rollover context bridge sits directly before the protocol + task so
@@ -271,6 +290,10 @@ export function formatInstructions(instructions: string): string {
 
 export function formatContextBridgeSection(bridge: string): string {
   return `<previous_conversation_context>\n${formatContextBridgeText(bridge)}\n</previous_conversation_context>`;
+}
+
+export function formatSenderIdentitySection(identity: SenderIdentity): string {
+  return `<conversation_sender>\n${formatSenderIdentityText(identity)}\n</conversation_sender>`;
 }
 
 export function formatSkillsSection(skills: SkillMetadata[]): string {

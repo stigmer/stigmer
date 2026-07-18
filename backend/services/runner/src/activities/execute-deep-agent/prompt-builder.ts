@@ -11,6 +11,10 @@ import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecuti
 import type { ProvisionResult, GitMetadata } from "../../shared/workspace/types.js";
 import { SourceType } from "../../shared/workspace/types.js";
 import { formatContextBridgeText } from "../../shared/context-bridge.js";
+import {
+  formatSenderIdentityText,
+  type SenderIdentity,
+} from "../../shared/sender-identity.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
@@ -116,6 +120,15 @@ export interface PromptBuilderInput {
    * is standing session context, like skills.
    */
   contextBridge?: string;
+  /**
+   * Channel sender identity (attribution, not authorization): the
+   * provider-verified identifier of the person on the channel, read from
+   * `SessionSpec.metadata`. Injected on EVERY turn like the bridge — the
+   * native system prompt is rebuilt per invocation, and the sender is
+   * constant for the session's lifetime (channel sessions are keyed
+   * per-sender).
+   */
+  senderIdentity?: SenderIdentity;
 }
 
 export interface InjectedFile {
@@ -155,6 +168,12 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
 
   if (input.injectedFiles.length > 0) {
     prompt += buildInjectedFilesSection(input.injectedFiles);
+  }
+
+  if (input.senderIdentity) {
+    prompt +=
+      "\n\n## Conversation sender\n\n" +
+      formatSenderIdentityText(input.senderIdentity);
   }
 
   if (input.contextBridge) {

@@ -46,6 +46,7 @@ import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
 import { MessageAccumulator, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
 import { readContextBridge } from "../../shared/context-bridge.js";
+import { readSenderIdentity } from "../../shared/sender-identity.js";
 import { withholdSecretContentFromMessages } from "../../shared/tool-row.js";
 import { StallTimeoutError, formatStallFailure } from "../../shared/stall-watchdog.js";
 import { resolveUsableArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
@@ -915,6 +916,7 @@ async function executeCursorInner(
       interactionMode,
       buildFromPlan,
       contextBridge: readContextBridge(blueprint.sessionSpec.metadata),
+      senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
     });
 
     // Phase 10a: Inject structured output instruction for Cursor harness
@@ -1492,6 +1494,7 @@ async function executeCursorInner(
             pendingApprovals: adjudicatedApprovals,
             interactionMode,
             contextBridge: readContextBridge(blueprint.sessionSpec.metadata),
+            senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
           });
 
           console.log(
@@ -2063,6 +2066,12 @@ export interface BuildPromptInput {
    * context IS the previous conversation, so it needs no bridge.
    */
   contextBridge?: string;
+  /**
+   * Channel sender identity from `SessionSpec.metadata`. Like the bridge,
+   * only the enhanced-prompt path consumes it — a resumed agent's native
+   * context already carries it from the session's first turn.
+   */
+  senderIdentity?: import("../../shared/sender-identity.js").SenderIdentity;
 }
 
 /**
@@ -2140,6 +2149,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     interactionMode,
     buildFromPlan,
     contextBridge: input.contextBridge,
+    senderIdentity: input.senderIdentity,
   });
 }
 

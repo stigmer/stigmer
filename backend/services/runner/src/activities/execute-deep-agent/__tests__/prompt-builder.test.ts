@@ -237,6 +237,35 @@ describe("buildEnhancedSystemPrompt", () => {
     });
   });
 
+  describe("channel sender identity", () => {
+    const base = {
+      instructions: "Test",
+      provisionResults: [],
+      containerRoot: "",
+      skillsPromptSection: "",
+      workspaceFileRefs: [],
+      workspaceRoot: "",
+      injectedFiles: [],
+    };
+
+    it("appends the sender as standing session context (every-turn injection)", () => {
+      const prompt = buildEnhancedSystemPrompt({
+        ...base,
+        senderIdentity: { value: "15550001111", kind: "whatsapp_phone" },
+      });
+
+      expect(prompt).toContain("## Conversation sender");
+      expect(prompt).toContain("WhatsApp phone number");
+      expect(prompt).toContain("15550001111");
+    });
+
+    it("omits the section when the session carries no identity (console sessions)", () => {
+      const prompt = buildEnhancedSystemPrompt(base);
+
+      expect(prompt).not.toContain("## Conversation sender");
+    });
+  });
+
   describe("plan mode", () => {
     const base = {
       instructions: "Test",
