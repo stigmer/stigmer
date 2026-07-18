@@ -960,4 +960,159 @@ describe("executeDoTasks", () => {
       expect(state.data.completed).toBe(true);
     });
   });
+
+  describe("task event I/O summaries (live card previews)", () => {
+    const notAvailable = () => { throw new Error("not available"); };
+
+    // Captures every emitted event flat, in emission order.
+    function makeEventCtx(overrides?: Partial<TaskExecutionContext>): {
+      ctx: TaskExecutionContext;
+      events: Array<Record<string, unknown>>;
+    } {
+      const events: Array<Record<string, unknown>> = [];
+      const ctx: TaskExecutionContext = {
+        evaluateExpressions: evaluateExpressionBatch,
+        doc,
+        sleep: async () => {},
+        listen: notAvailable,
+        runCommand: notAvailable,
+        runWorkflow: notAvailable,
+        awaitHumanInput: notAvailable,
+        callHttp: notAvailable,
+        callGrpc: notAvailable,
+        callFunction: notAvailable,
+        callAgent: notAvailable,
+        emitEvents: async (batch) => {
+          events.push(...(batch as unknown as Array<Record<string, unknown>>));
+        },
+        ...overrides,
+      };
+      return { ctx, events };
+    }
+
+    it("task_started carries the truncated resolved input as inputSummary", async () => {
+      const { ctx, events } = makeEventCtx();
+      const tasks: TaskList = [
+        {
+          key: "seed",
+          task: {
+            kind: "set",
+            set: { done: true },
+            input: { from: { order_id: "ORD-1", qty: 2 } },
+          },
+        },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch, ctx);
+
+      const started = events.find((e) => e.type === "task_started");
+      expect(started).toBeDefined();
+      expect(started!.inputSummary).toEqual({ order_id: "ORD-1", qty: 2 });
+    });
+
+    it("task_completed carries the truncated output as outputSummary", async () => {
+      const { ctx, events } = makeEventCtx();
+      const tasks: TaskList = [
+        { key: "seed", task: { kind: "set", set: { total: 150, currency: "USD" } } },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch, ctx);
+
+      const completed = events.find((e) => e.type === "task_completed");
+      expect(completed).toBeDefined();
+      expect(completed!.outputSummary).toEqual({ total: 150, currency: "USD" });
+    });
+
+    it("omits summaries for non-object I/O (proto Struct constraint)", async () => {
+      // A transform whose activity returns a scalar — the summary is
+      // dropped, mirroring the snapshot path's toJsonObject semantics.
+      const { ctx, events } = makeEventCtx({
+        callFunction: async () => 42,
+      });
+      const tasks: TaskList = [
+        {
+          key: "toScalar",
+          task: {
+            kind: "call:function",
+            call: "transform",
+            with: { engine: "JQ", expression: ".qty" },
+          },
+        },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch, ctx);
+
+      const started = events.find((e) => e.type === "task_started");
+      const completed = events.find((e) => e.type === "task_completed");
+      expect(started!.inputSummary).toBeUndefined();
+      expect(completed!.outputSummary).toBeUndefined();
+    });
+
+    it("replaces oversize payloads with the truncation marker (8KB event budget)", async () => {
+      const { ctx, events } = makeEventCtx();
+      const big = "x".repeat(10_000);
+      const tasks: TaskList = [
+        { key: "seed", task: { kind: "set", set: { big } } },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, null, state, doc, evaluateExpressionBatch, ctx);
+
+      const completed = events.find((e) => e.type === "task_completed");
+      const summary = completed!.outputSummary as Record<string, unknown>;
+      expect(summary._truncated).toBe(true);
+      expect(typeof summary._preview).toBe("string");
+      expect(JSON.stringify(summary).length).toBeLessThan(8_192);
+    });
+
+    it("replays the pre-patch order: task_started without inputSummary when the gate is off", async () => {
+      const { ctx, events } = makeEventCtx({
+        isPatched: () => false,
+      });
+      const tasks: TaskList = [
+        { key: "seed", task: { kind: "set", set: { done: true } } },
+      ];
+
+      const state = createState();
+      await executeDoTasks(tasks, { a: 1 }, state, doc, evaluateExpressionBatch, ctx);
+
+      const started = events.find((e) => e.type === "task_started");
+      expect(started).toBeDefined();
+      expect(started!.inputSummary).toBeUndefined();
+      // The completed-side summary is payload-only (no command-order
+      // change) and stays active regardless of the gate.
+      const completed = events.find((e) => e.type === "task_completed");
+      expect(completed!.outputSummary).toEqual({ done: true });
+    });
+
+    it("preserves the started→failed pair when input resolution fails", async () => {
+      const { ctx, events } = makeEventCtx();
+      const tasks: TaskList = [
+        {
+          key: "doomed",
+          task: {
+            kind: "set",
+            set: { unreachable: true },
+            input: { from: "${ .foo | not_a_jq_function }" },
+          },
+        },
+      ];
+
+      const state = createState();
+      await expect(
+        executeDoTasks(tasks, {}, state, doc, evaluateExpressionBatch, ctx),
+      ).rejects.toThrow();
+
+      const types = events.map((e) => e.type);
+      const startedIdx = types.indexOf("task_started");
+      const failedIdx = types.indexOf("task_failed");
+      expect(startedIdx).toBeGreaterThanOrEqual(0);
+      expect(failedIdx).toBeGreaterThan(startedIdx);
+      const started = events[startedIdx];
+      expect(started.inputSummary).toBeUndefined();
+    });
+  });
 });

@@ -13,7 +13,7 @@
  * type-only imports, and pure JS/TS logic.
  */
 
-import { proxyLocalActivities, proxyActivities, log, workflowInfo, sleep } from "@temporalio/workflow";
+import { proxyLocalActivities, proxyActivities, log, patched, workflowInfo, sleep } from "@temporalio/workflow";
 import { ApplicationFailure, CancelledFailure, ActivityFailure } from "@temporalio/workflow";
 import { recordExecutionStartMetric, recordExecutionEndMetric } from "./metrics-sink.js";
 
@@ -200,6 +200,10 @@ export async function runWorkflowEngine(
     checkPause: options?.checkPause,
     emitEvents,
     taskStatusAccumulator,
+    // Deterministic version gate for engine command-order changes (the
+    // kernel never imports Temporal APIs — it receives patched() as an
+    // opaque callback, like every other capability on this context).
+    isPatched: (changeId: string) => patched(changeId),
     sleep: async (durationMs: number) => {
       try {
         await sleep(durationMs);

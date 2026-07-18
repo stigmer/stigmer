@@ -450,6 +450,18 @@ export interface TaskExecutionContext {
   readonly checkPause?: () => Promise<void>;
 
   /**
+   * Deterministic version gate for engine behavior changes that alter
+   * the workflow's command sequence — Temporal `patched()` semantics:
+   * `true` for new executions (recording a marker) and for replays whose
+   * history carries the marker; `false` when replaying pre-change
+   * histories, which must re-execute the old command order. Wired to
+   * Temporal's `patched()` in the workflow function; the kernel stays
+   * Temporal-agnostic and treats an absent gate as "change active"
+   * (tests and the minimal context never replay old histories).
+   */
+  readonly isPatched?: (changeId: string) => boolean;
+
+  /**
    * Accumulates per-task status entries throughout the workflow run.
    * Passed to the emit activity on every event batch so the server
    * receives a complete snapshot of task statuses with each update.
@@ -764,6 +776,14 @@ export interface TaskStartedEvent extends EventBase {
   readonly type: "task_started";
   readonly taskKind: string;
   readonly attemptNumber: number;
+  /**
+   * Truncated resolved task input (proto `TaskStartedPayload.input_summary`).
+   * The live-stream preview source for task cards — the FULL input lives on
+   * the status snapshot. Only present when the input is a plain object
+   * (proto Struct constraint, mirroring `status.tasks[].input`) and when
+   * emission happens after input resolution (the patched()-gated path).
+   */
+  readonly inputSummary?: Record<string, unknown>;
 }
 
 export interface TaskCompletedEvent extends EventBase {
@@ -772,6 +792,13 @@ export interface TaskCompletedEvent extends EventBase {
   readonly durationMs: number;
   readonly costMicros: number;
   readonly tokensUsed: number;
+  /**
+   * Truncated task output (proto `TaskCompletedPayload.output_summary`).
+   * The live-stream preview source for task cards — the FULL output lives
+   * on the status snapshot. Only present when the output is a plain object
+   * (proto Struct constraint, mirroring `status.tasks[].output`).
+   */
+  readonly outputSummary?: Record<string, unknown>;
 }
 
 export interface TaskFailedEvent extends EventBase {

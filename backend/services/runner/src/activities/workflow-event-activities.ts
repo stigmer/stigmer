@@ -221,6 +221,7 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
         case: "taskStarted",
         value: create(TaskStartedPayloadSchema, {
           taskKind: TASK_KIND_MAP[desc.taskKind] ?? 0,
+          inputSummary: toJsonObject(desc.inputSummary),
           attemptNumber: desc.attemptNumber,
         }),
       };
@@ -233,6 +234,7 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
         value: create(TaskCompletedPayloadSchema, {
           taskKind: TASK_KIND_MAP[desc.taskKind] ?? 0,
           durationMs: BigInt(desc.durationMs),
+          outputSummary: toJsonObject(desc.outputSummary),
           costMicros: BigInt(desc.costMicros),
           tokensUsed: BigInt(desc.tokensUsed),
         }),

@@ -240,6 +240,35 @@ describe("toProtoEvent", () => {
       expect(evt.payload.value.taskKind).toBe(0);
     });
 
+    it("maps inputSummary onto the payload Struct", () => {
+      const evt = toProtoEvent({
+        type: "task_started",
+        taskName: "seed_order",
+        occurredAt: NOW,
+        taskKind: "set",
+        attemptNumber: 1,
+        inputSummary: { variables: { order_id: "ORD-1" } },
+      });
+
+      if (evt.payload.case !== "taskStarted") throw new Error("unexpected");
+      expect(evt.payload.value.inputSummary).toEqual({
+        variables: { order_id: "ORD-1" },
+      });
+    });
+
+    it("leaves inputSummary unset when the descriptor omits it", () => {
+      const evt = toProtoEvent({
+        type: "task_started",
+        taskName: "t",
+        occurredAt: NOW,
+        taskKind: "set",
+        attemptNumber: 1,
+      });
+
+      if (evt.payload.case !== "taskStarted") throw new Error("unexpected");
+      expect(evt.payload.value.inputSummary).toBeUndefined();
+    });
+
     it("maps call:agent to proto agent_call (13), not http_call (2)", () => {
       const evt = toProtoEvent({
         type: "task_started",
@@ -351,6 +380,37 @@ describe("toProtoEvent", () => {
       expect(evt.payload.value.durationMs).toBe(BigInt(5000));
       expect(evt.payload.value.costMicros).toBe(BigInt(100000));
       expect(evt.payload.value.tokensUsed).toBe(BigInt(800));
+    });
+
+    it("maps outputSummary onto the payload Struct", () => {
+      const evt = toProtoEvent({
+        type: "task_completed",
+        taskName: "total_order",
+        occurredAt: NOW,
+        taskKind: "call:function:transform",
+        durationMs: 160,
+        costMicros: 0,
+        tokensUsed: 0,
+        outputSummary: { total: 150, line_count: 2 },
+      });
+
+      if (evt.payload.case !== "taskCompleted") throw new Error("unexpected");
+      expect(evt.payload.value.outputSummary).toEqual({ total: 150, line_count: 2 });
+    });
+
+    it("leaves outputSummary unset when the descriptor omits it", () => {
+      const evt = toProtoEvent({
+        type: "task_completed",
+        taskName: "t",
+        occurredAt: NOW,
+        taskKind: "set",
+        durationMs: 1,
+        costMicros: 0,
+        tokensUsed: 0,
+      });
+
+      if (evt.payload.case !== "taskCompleted") throw new Error("unexpected");
+      expect(evt.payload.value.outputSummary).toBeUndefined();
     });
   });
 

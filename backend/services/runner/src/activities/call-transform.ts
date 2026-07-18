@@ -14,7 +14,11 @@
  */
 
 import { ApplicationFailure } from "@temporalio/activity";
-import { evaluateExpression } from "../workflow-engine/expression.js";
+import {
+  evaluateExpression,
+  isStrictExpr,
+  sanitizeExpr,
+} from "../workflow-engine/expression.js";
 
 export interface TransformConfig {
   readonly engine: string;
@@ -38,6 +42,13 @@ export async function transformAction(
       "TRANSFORM_MISSING_EXPRESSION",
     );
   }
+  if (typeof config.expression !== "string") {
+    throw ApplicationFailure.nonRetryable(
+      `transform: 'expression' must be a jq string, got ${typeof config.expression}. ` +
+        "Fix the expression in the workflow's transform task_config.",
+      "TRANSFORM_INVALID_EXPRESSION",
+    );
+  }
 
   const engine = normalizeEngine(config.engine || "JQ");
 
@@ -50,5 +61,12 @@ export async function transformAction(
 
   const data = config.input !== undefined ? config.input : taskInput;
 
-  return evaluateExpression(config.expression, data, {});
+  // The expression arrives unresolved (deferred code — see the
+  // call-function builder). Accept both the strict `${ ... }` wrapper
+  // and the bare jq form the converter emits.
+  const expression = isStrictExpr(config.expression)
+    ? sanitizeExpr(config.expression)
+    : config.expression;
+
+  return evaluateExpression(expression, data, {});
 }

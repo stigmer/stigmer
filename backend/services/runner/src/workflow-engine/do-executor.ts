@@ -43,6 +43,39 @@ import { extractRootErrorMessage, extractStructuredError } from "./error-utils.j
 import type { RecoveryContext } from "./recovery.js";
 
 /**
+ * Deterministic-version gate id for the task_started emission reorder
+ * (input resolution moved ahead of the event so it can carry
+ * `input_summary`). Pre-change histories replay the old order — emit
+ * first, resolve second — via `TaskExecutionContext.isPatched`.
+ */
+export const TASK_STARTED_INPUT_SUMMARY_PATCH = "task-started-input-summary";
+
+/**
+ * Truncation budget for event I/O summaries. Deliberately far below the
+ * 64KB snapshot cap: events are the live-stream preview source and the
+ * proto documents them as "truncated to prevent event bloat" — the full
+ * I/O lives on `status.tasks[]`.
+ */
+const EVENT_SUMMARY_MAX_BYTES = 8_192;
+
+/**
+ * Projects a task I/O value into the shape an event summary Struct can
+ * carry: truncated to the event budget, objects only (mirroring the
+ * snapshot path's `toJsonObject` semantics — proto Struct fields cannot
+ * carry scalars or arrays, and `status.tasks[].input/output` share the
+ * same limitation). Oversize values come back as `truncatePayload`'s
+ * `{_truncated, _preview}` marker object, which IS carried.
+ */
+function toEventSummary(value: unknown): Record<string, unknown> | undefined {
+  if (value === null || value === undefined) return undefined;
+  const truncated = truncatePayload(value, EVENT_SUMMARY_MAX_BYTES);
+  if (truncated === null || typeof truncated !== "object" || Array.isArray(truncated)) {
+    return undefined;
+  }
+  return truncated as Record<string, unknown>;
+}
+
+/**
  * Returns the task kind string used for event emission. For call:function
  * tasks, appends the specific function name (e.g., "call:function:llm")
  * so the event system can map to the precise proto WorkflowTaskKind
@@ -156,21 +189,42 @@ export async function executeDoTasks(
     const kind = eventTaskKind(entry);
     effectiveCtx.taskStatusAccumulator?.taskStarted(entry.key, kind);
     const attemptNumber = effectiveCtx.taskStatusAccumulator?.getAttempt(entry.key) ?? 1;
-    if (effectiveCtx.emitEvents) {
+
+    const emitTaskStarted = async (
+      inputSummary?: Record<string, unknown>,
+    ): Promise<void> => {
+      if (!effectiveCtx.emitEvents) return;
       await effectiveCtx.emitEvents([{
         type: "task_started",
         taskName: entry.key,
         occurredAt: new Date().toISOString(),
         taskKind: kind,
         attemptNumber,
+        inputSummary,
       }]);
+    };
+
+    // Emission-order gate: carrying `input_summary` on task_started
+    // requires resolving the input BEFORE emitting, which reorders two
+    // local-activity commands — a non-deterministic change for in-flight
+    // histories (a gated or waiting task can be parked across a deploy).
+    // Pre-change histories replay the old emit-then-resolve order.
+    const emitStartedAfterResolve =
+      effectiveCtx.isPatched?.(TASK_STARTED_INPUT_SUMMARY_PATCH) ?? true;
+    if (!emitStartedAfterResolve) {
+      await emitTaskStarted();
     }
+    let startedEmitted = !emitStartedAfterResolve;
 
     const taskStartMs = Date.now();
     let taskOutput: unknown;
     try {
       const effectiveInput = await resolveTaskInput(entry, input, state, effectiveCtx);
       effectiveCtx.taskStatusAccumulator?.taskStartedWithInput(entry.key, kind, truncatePayload(effectiveInput));
+      if (emitStartedAfterResolve) {
+        await emitTaskStarted(toEventSummary(effectiveInput));
+        startedEmitted = true;
+      }
       taskOutput = await runSingleTask(entry, effectiveInput, state, doc, effectiveCtx);
     } catch (taskErr) {
       const taskDurationMs = Date.now() - taskStartMs;
@@ -190,6 +244,12 @@ export async function executeDoTasks(
         });
       }
       if (effectiveCtx.emitEvents) {
+        // Input resolution failed before the reordered task_started could
+        // fire — emit it now so consumers always see the started→failed pair.
+        if (!startedEmitted) {
+          await emitTaskStarted();
+          startedEmitted = true;
+        }
         await effectiveCtx.emitEvents([{
           type: "task_failed",
           taskName: entry.key,
@@ -239,6 +299,10 @@ export async function executeDoTasks(
         durationMs: taskDurationMs,
         costMicros: costInfo.costMicros,
         tokensUsed: costInfo.inputTokens + costInfo.outputTokens,
+        // The live-stream preview source for task cards: post-promotion
+        // output (the artifact-promoted form is what downstream sees),
+        // truncated to the event budget. Full output rides the snapshot.
+        outputSummary: toEventSummary(promotedOutput),
       }];
       for (const evt of promotionEvents) {
         events.push(evt as unknown as (typeof events)[number]);

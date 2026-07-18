@@ -18,7 +18,11 @@
  */
 
 import { ApplicationFailure } from "@temporalio/activity";
-import { evaluateExpression } from "../workflow-engine/expression.js";
+import {
+  evaluateExpression,
+  isStrictExpr,
+  sanitizeExpr,
+} from "../workflow-engine/expression.js";
 
 export interface ValidateConfig {
   readonly input: unknown;
@@ -160,7 +164,28 @@ async function validateRules(
   const errors: ValidationError[] = [];
 
   for (const rule of rules) {
-    const result = await evaluateExpression(rule.expression, data, {});
+    // Config guard: the expression must be a jq string. Anything else is
+    // a workflow-definition defect (or an upstream resolution bug) — name
+    // the rule and what to fix instead of crashing in the jq engine.
+    if (typeof rule.expression !== "string" || rule.expression.length === 0) {
+      errors.push({
+        rule: rule.name,
+        message:
+          `Rule '${rule.name}' has an invalid 'expression': expected a jq ` +
+          `predicate string, got ${typeof rule.expression}. Fix the rule in ` +
+          `the workflow's validate task_config.`,
+      });
+      continue;
+    }
+
+    // Rule expressions arrive unresolved (deferred code — see the
+    // call-function builder). Accept both the strict `${ ... }` wrapper
+    // and a bare jq predicate.
+    const expr = isStrictExpr(rule.expression)
+      ? sanitizeExpr(rule.expression)
+      : rule.expression;
+
+    const result = await evaluateExpression(expr, data, {});
     if (!result) {
       errors.push({
         rule: rule.name,

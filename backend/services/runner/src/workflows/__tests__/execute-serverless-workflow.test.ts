@@ -33,6 +33,7 @@ vi.mock("@temporalio/workflow", () => ({
   setHandler: vi.fn(),
   condition: vi.fn(),
   sleep: vi.fn(),
+  patched: vi.fn(() => true),
   workflowInfo: vi.fn(() => ({ workflowId: "test-wf-id" })),
   ApplicationFailure: class ApplicationFailure extends Error {
     constructor(msg: string) { super(msg); }
