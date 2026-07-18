@@ -33,7 +33,15 @@ describe("loadConfig", () => {
     expect(config.proxyEndpoint).toBeNull();
     expect(config.maxConcurrentActivities).toBe(5);
     expect(config.cursorStreamStallTimeoutMs).toBe(180000);
+    expect(config.agentResolveTimeoutMs).toBe(120000);
     expect(config.workspaceLockTimeoutMs).toBe(900000);
+  });
+
+  it("respects CURSOR_AGENT_RESOLVE_TIMEOUT_MS", () => {
+    process.env.CURSOR_API_KEY = "test-key";
+    process.env.CURSOR_AGENT_RESOLVE_TIMEOUT_MS = "45000";
+    const config = loadConfig();
+    expect(config.agentResolveTimeoutMs).toBe(45000);
   });
 
   it("respects CURSOR_STREAM_STALL_TIMEOUT_MS", () => {

@@ -256,6 +256,7 @@ const memoryConfig: Config = {
   checkpointerProxyEndpoint: null,
   primaryModel: "claude-sonnet",
   cursorStreamStallTimeoutMs: 180000,
+  agentResolveTimeoutMs: 120000,
   workspaceLockTimeoutMs: 900000,
 };
 

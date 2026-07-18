@@ -24,7 +24,7 @@ import {
 } from "@temporalio/worker";
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
-import { DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
+import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
 import { resolveWorkflowSource, OTEL_WORKFLOW_INTERCEPTOR_MODULE } from "./workflow-source.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
@@ -90,6 +90,9 @@ export interface RunnerManagerOptions {
 
   /** No-progress bound for the Cursor harness stream (ms). @default 180000 */
   readonly cursorStreamStallTimeoutMs?: number;
+
+  /** Bound for Cursor Agent.create/resume (ms). @default 120000 */
+  readonly agentResolveTimeoutMs?: number;
 
   /** Max wait for the per-workspace turn lock (ms). @default 900000 */
   readonly workspaceLockTimeoutMs?: number;
@@ -598,6 +601,8 @@ export function mapManagerOptionsToConfig(
     primaryModel: options.primaryModel ?? "gpt-4.1",
     cursorStreamStallTimeoutMs:
       options.cursorStreamStallTimeoutMs ?? DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS,
+    agentResolveTimeoutMs:
+      options.agentResolveTimeoutMs ?? DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS,
     workspaceLockTimeoutMs:
       options.workspaceLockTimeoutMs ?? DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
   };

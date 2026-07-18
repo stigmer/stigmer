@@ -37,6 +37,17 @@ import { homedir, tmpdir } from "node:os";
  */
 export const DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS = 180_000;
 
+/**
+ * Default bound for Cursor Agent.create/Agent.resume (ms). These SDK calls
+ * have no timeout of their own; a degraded transport (dead proxy connection,
+ * stale HTTP/2 session) hangs them forever — which surfaces as an opaque
+ * Temporal heartbeat timeout minutes later instead of an actionable error.
+ * 120s comfortably covers a slow create (token exchange + workspace
+ * registration) while failing fast enough to diagnose. Single source of truth
+ * for env-loaded and options-mapped config (mirrors the stall timeout above).
+ */
+export const DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS = 120_000;
+
 // Re-exported so the runner/manager options mappers default the lock-wait
 // bound from the same constant the lock module owns (no drift across the
 // three construction sites — mirrors DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS).
@@ -89,6 +100,13 @@ export interface Config {
    * heartbeatTimeout (process liveness) and the 30s keep-alive heartbeat.
    */
   readonly cursorStreamStallTimeoutMs: number;
+  /**
+   * Bound (milliseconds) for Cursor Agent.create/Agent.resume. On expiry the
+   * execution fails fast with an explicit transport diagnosis instead of
+   * hanging into Temporal's heartbeat timeout. See
+   * {@link DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS} for why this exists.
+   */
+  readonly agentResolveTimeoutMs: number;
   /**
    * Max wait (milliseconds) for the per-workspace turn lock before failing
    * the execution with a "workspace is in use by another session" error.
@@ -174,6 +192,10 @@ export function loadConfig(): Config {
     ? parseInt(process.env.WORKSPACE_LOCK_TIMEOUT_MS, 10)
     : DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS;
 
+  const agentResolveTimeoutMs = process.env.CURSOR_AGENT_RESOLVE_TIMEOUT_MS
+    ? parseInt(process.env.CURSOR_AGENT_RESOLVE_TIMEOUT_MS, 10)
+    : DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS;
+
   return {
     taskQueue,
     temporalAddress,
@@ -191,6 +213,7 @@ export function loadConfig(): Config {
     checkpointerProxyEndpoint,
     primaryModel,
     cursorStreamStallTimeoutMs,
+    agentResolveTimeoutMs,
     workspaceLockTimeoutMs,
   };
 }

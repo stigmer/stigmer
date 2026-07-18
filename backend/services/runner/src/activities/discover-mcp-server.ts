@@ -25,6 +25,7 @@ import { StigmerClient } from "../client/stigmer-client.js";
 import { mcpServerToResolved } from "../shared/mcp-resolver.js";
 import { toMcpClientConfig } from "../shared/mcp-manager.js";
 import { detectOAuthChallenge } from "../shared/mcp-oauth-detect.js";
+import { withTimeout } from "../shared/with-timeout.js";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { Config } from "../config.js";
 
@@ -326,7 +327,12 @@ async function connectAndDiscover(
   const resourceTemplates: DiscoveredResourceTemplateResult[] = [];
 
   try {
-    await withTimeout(SESSION_INIT_TIMEOUT_MS, slug, async () => {
+    const timeoutMessage =
+      `MCP server '${slug}' did not respond within ` +
+      `${Math.round(SESSION_INIT_TIMEOUT_MS / 1000)}s. If this server requires compilation or ` +
+      `package installation on first run (e.g. go run, npx), the cold ` +
+      `start may have exceeded the discovery timeout.`;
+    await withTimeout(SESSION_INIT_TIMEOUT_MS, timeoutMessage, async () => {
       await client.initializeConnections();
 
       const mcpClient = await client.getClient(slug);
@@ -409,33 +415,6 @@ async function classifyHttpOAuthFailure(
     return null;
   }
   return detectOAuthChallenge(connection.url, connection.headers, slug);
-}
-
-async function withTimeout<T>(
-  ms: number,
-  serverSlug: string,
-  fn: () => Promise<T>,
-): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(
-        `MCP server '${serverSlug}' did not respond within ` +
-        `${Math.round(ms / 1000)}s. If this server requires compilation or ` +
-        `package installation on first run (e.g. go run, npx), the cold ` +
-        `start may have exceeded the discovery timeout.`,
-      ));
-    }, ms);
-
-    fn()
-      .then((result) => {
-        clearTimeout(timer);
-        resolve(result);
-      })
-      .catch((err) => {
-        clearTimeout(timer);
-        reject(err);
-      });
-  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

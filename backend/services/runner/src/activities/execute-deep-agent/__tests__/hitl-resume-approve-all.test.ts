@@ -296,6 +296,7 @@ const baseConfig: Config = {
   checkpointerProxyEndpoint: "http://localhost:7234",
   primaryModel: "claude-sonnet",
   cursorStreamStallTimeoutMs: 180000,
+  agentResolveTimeoutMs: 120000,
   workspaceLockTimeoutMs: 900000,
 };
 

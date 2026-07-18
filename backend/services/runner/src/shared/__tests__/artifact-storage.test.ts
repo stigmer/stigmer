@@ -430,6 +430,7 @@ describe("loadArtifactStorageConfig", () => {
     checkpointerProxyEndpoint: null,
     primaryModel: "gpt-4.1",
     cursorStreamStallTimeoutMs: 180000,
+    agentResolveTimeoutMs: 120000,
     workspaceLockTimeoutMs: 900000,
   };
 

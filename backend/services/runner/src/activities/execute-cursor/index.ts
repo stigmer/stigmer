@@ -116,6 +116,7 @@ import type { ClassifiedError } from "./error-classifier.js";
 import { createAgent, createCloudAgent } from "./session-lifecycle.js";
 import { setMaxListeners } from "node:events";
 import { startHeartbeat } from "../../shared/heartbeat.js";
+import { withTimeout } from "../../shared/with-timeout.js";
 import { getShutdownSignalForQueue } from "../../runner-manager.js";
 
 /**
@@ -258,6 +259,25 @@ async function executeCursorInner(
   // can be classified with the same context as the run.wait() error path.
   let errorContext = { model: "default", mode: "local", agentId: "" };
 
+  // Periodic heartbeat for the ENTIRE activity, started before any phase runs.
+  // Setup phases make network calls (blueprint resolution, workspace clone, MCP
+  // backfill, Agent.create) that can stall; the scattered manual heartbeat()
+  // pulses between them leave every individual call uncovered. The production
+  // stale-proxy incident hung inside Agent.create with zero heartbeats and
+  // surfaced as an opaque 5-minute Temporal timeout. The label names the
+  // current phase so a stall is attributed in Temporal heartbeat details, and
+  // cancellation stays observable throughout. Safe ONLY because every SDK call
+  // below is itself bounded (agentResolveTimeoutMs, stall watchdog) — an
+  // unbounded hang under a live heartbeat would keep a dead activity alive
+  // forever.
+  let heartbeatPhase = "setup";
+  const taskQueue = Context.current().info.taskQueue;
+  const shutdownSignal = getShutdownSignalForQueue(taskQueue);
+  periodicHeartbeat = startHeartbeat(30_000, () => ({
+    phase: heartbeatPhase,
+    execution: executionId,
+  }), { shutdownSignal });
+
   try {
     // Phase 1: Hydrate execution from DB
     await reportSetupProgress(client, executionId, "Fetching execution");
@@ -271,6 +291,7 @@ async function executeCursorInner(
     const blueprint = await resolveBlueprint(client, session, config.workspaceRootDir);
 
     // Phase 2b: Resolve execution environment (MCP server credentials)
+    heartbeatPhase = "resolving_environment";
     await reportSetupProgress(client, executionId, "Resolving environment");
     const { envVars, secretKeys } = await resolveExecutionEnv(client, executionId);
     heartbeat();
@@ -281,6 +302,7 @@ async function executeCursorInner(
     // disabled the runner must provision the workspace itself, mirroring the
     // native harness. Git provisioning is idempotent across multi-turn and
     // HITL reinvocations.
+    heartbeatPhase = "provisioning_workspace";
     await reportSetupProgress(client, executionId, "Provisioning workspace");
     const workspaceProvision = await provisionCursorWorkspace(
       config, session, envVars, sessionId ?? "",
@@ -555,6 +577,7 @@ async function executeCursorInner(
     );
 
     // Phase 4a: Connect backfill for undiscovered MCP servers
+    heartbeatPhase = "resolving_mcp_servers";
     const sessionOrg = session.metadata?.org ?? "";
     mcpResolution = await backfillMcpServersIfNeeded(
       client, mcpResolution, blueprint.mergedMcpServerUsages, envVars, sessionOrg,
@@ -816,10 +839,22 @@ async function executeCursorInner(
           agents: cursorSubAgents,
         };
 
-    let resolution: AgentResolution = await resolveAgent(
-      threadId,
-      createOptions,
-      agentMode,
+    // Agent.create/Agent.resume have no timeout of their own — a degraded
+    // transport (dead proxy connection, stale HTTP/2 session) hangs them
+    // forever, which the periodic heartbeat would happily keep alive. The
+    // bound converts that hang into an immediate, named transport failure.
+    // The message carries "timed out" so the error classifier's network
+    // patterns mark it retryable.
+    heartbeatPhase = "resolving_agent";
+    const resolveTimeoutSeconds = Math.round(config.agentResolveTimeoutMs / 1000);
+    let resolution: AgentResolution = await withTimeout(
+      config.agentResolveTimeoutMs,
+      () =>
+        `Cursor agent ${threadId ? "resume" : "create"} timed out after ${resolveTimeoutSeconds}s ` +
+        `(${config.proxyEndpoint ? `via proxy ${config.proxyEndpoint}` : "direct Cursor API connection"}). ` +
+        `The transport connection is likely dead. Retry the message; if this persists, ` +
+        `check proxy and network health.`,
+      () => resolveAgent(threadId, createOptions, agentMode),
     );
 
     console.log(
@@ -964,16 +999,10 @@ async function executeCursorInner(
       maxCostUsd,
     };
 
-    // Periodic heartbeat keeps Temporal informed during silent SDK operations
-    // (e.g. long tool calls, MCP requests, model thinking). Without this,
-    // the 2-minute heartbeat timeout can cancel the activity and mislabel
-    // the execution as "paused by user".
-    const taskQueue = Context.current().info.taskQueue;
-    const shutdownSignal = getShutdownSignalForQueue(taskQueue);
-    periodicHeartbeat = startHeartbeat(30_000, () => ({
-      phase: "cursor_streaming",
-      execution: executionId,
-    }), { shutdownSignal });
+    // The activity-wide periodic heartbeat (started at entry) keeps Temporal
+    // informed during silent SDK operations (long tool calls, MCP requests,
+    // model thinking); relabel it for the streaming phase.
+    heartbeatPhase = "cursor_streaming";
 
     // The Cursor SDK registers abort listeners on the cancellation signal for
     // each concurrent tool call (fetch, MCP, shell). With 10+ parallel tools,
@@ -1869,6 +1898,12 @@ async function executeCursorInner(
 
     return slimStatus(status);
   } finally {
+    // Stop the activity-wide periodic heartbeat on EVERY exit path
+    // (idempotent). The epilogue and catch stop it at the pause/shutdown
+    // disambiguation points; this covers early returns (e.g. the
+    // pure-reconcile resume) so no orphaned timer survives the activity.
+    periodicHeartbeat?.stop();
+
     // End the OTel turn span + record metrics with the final token snapshot on
     // EVERY exit path (idempotent). Placed here so the span covers any recovery
     // retry (whose tokens accrue after the primary stream) and never leaks on an
