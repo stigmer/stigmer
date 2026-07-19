@@ -1174,6 +1174,7 @@ export type {
   UseImportResourceReturn,
   ImportResourceDialogProps,
   VisibilitySelectorProps,
+  VisibilityBadgeProps,
   VisibilityLevelOption,
   BlueprintVisibilityLevelsContext,
   VisibilityResourceKind,

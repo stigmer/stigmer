@@ -409,28 +409,69 @@ function CaretIcon() {
   );
 }
 
+/** Props for {@link VisibilityBadge}. */
+export interface VisibilityBadgeProps {
+  /** The visibility level to display. */
+  readonly visibility: ApiResourceVisibility;
+  /** Additional CSS classes applied to the chip. */
+  readonly className?: string;
+  /**
+   * When provided, the badge renders as a button and invokes this on
+   * activation. Detail headers use it as a shortcut into the Manage access
+   * dialog, so the at-a-glance chip is also the entry point to editing —
+   * the chip stays navigation-only (the dialog remains the single writer
+   * for both access axes). Omit it for a plain, non-interactive badge.
+   */
+  readonly onClick?: () => void;
+}
+
 /**
- * Read-only visibility indicator with a matching icon, covering all four
- * levels (Private / Organization / Platform / Public).
+ * Visibility indicator with a matching icon, covering all four levels
+ * (Private / Organization / Platform / Public).
  *
  * Rendered wherever the interactive {@link VisibilitySelector} is not
  * available — for viewers who lack `can_edit`, and while a permission check
  * is in flight — so a resource's visibility is always legible rather than
  * silently blank. Shares the chip styling with the selector trigger so the
  * read-only and editable states are visually consistent.
+ *
+ * With {@link VisibilityBadgeProps.onClick} the chip becomes an accessible
+ * button (hover + focus affordances, "Manage access" label) that hosts wire
+ * to their access-management surface; the badge itself never edits.
  */
 export function VisibilityBadge({
   visibility,
   className,
-}: {
-  readonly visibility: ApiResourceVisibility;
-  readonly className?: string;
-}) {
+  onClick,
+}: VisibilityBadgeProps) {
   const option = visibilityOption(visibility);
-  return (
-    <span className={cn(VISIBILITY_CHIP_CLASS, className)}>
+  const content = (
+    <>
       <VisibilityIcon tone={option.tone} className="size-2.5" />
       {option.label}
-    </span>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        title="Manage access"
+        aria-label={`${option.label} visibility — manage access`}
+        className={cn(
+          VISIBILITY_CHIP_CLASS,
+          "transition-colors hover:bg-accent-hover hover:text-foreground",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          className,
+        )}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <span className={cn(VISIBILITY_CHIP_CLASS, className)}>{content}</span>
   );
 }

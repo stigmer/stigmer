@@ -289,10 +289,14 @@ export function WorkflowDetailView({
     <ValidationIndicator state={validationState} />
   ) : undefined;
 
-  // Inline visibility is read-only (at-a-glance); editing lives in the
-  // Manage access dialog, the single writer for both access axes.
+  // Inline visibility is at-a-glance AND a shortcut into the Manage access
+  // dialog — the single writer for both access axes. The chip is navigation
+  // only; it stays a static badge for users who cannot view access.
   const visibilityControl = meta ? (
-    <VisibilityBadge visibility={meta.visibility} />
+    <VisibilityBadge
+      visibility={meta.visibility}
+      onClick={access.action ? access.open : undefined}
+    />
   ) : undefined;
 
   const mergedActions = access.action

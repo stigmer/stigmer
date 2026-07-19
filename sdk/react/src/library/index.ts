@@ -76,7 +76,10 @@ export { ImportResourceDialog } from "./ImportResourceDialog.js";
 export type { ImportResourceDialogProps } from "./ImportResourceDialog.js";
 
 export { VisibilitySelector, VisibilityBadge } from "./VisibilitySelector.js";
-export type { VisibilitySelectorProps } from "./VisibilitySelector.js";
+export type {
+  VisibilitySelectorProps,
+  VisibilityBadgeProps,
+} from "./VisibilitySelector.js";
 
 export {
   blueprintVisibilityLevels,

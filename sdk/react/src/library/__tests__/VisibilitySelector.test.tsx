@@ -253,4 +253,42 @@ describe("VisibilityBadge", () => {
     render(<VisibilityBadge visibility={ApiResourceVisibility.visibility_platform} />);
     expect(screen.getByText("Platform")).toBeTruthy();
   });
+
+  it("is non-interactive without onClick — a plain badge, not a button", () => {
+    render(<VisibilityBadge visibility={ApiResourceVisibility.visibility_org} />);
+    expect(screen.getByText("Organization")).toBeTruthy();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("renders as an accessible Manage-access button when onClick is provided", () => {
+    const onClick = vi.fn();
+    render(
+      <VisibilityBadge
+        visibility={ApiResourceVisibility.visibility_org}
+        onClick={onClick}
+      />,
+    );
+
+    const button = screen.getByRole("button", {
+      name: /Organization visibility — manage access/i,
+    });
+    fireEvent.click(button);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("is keyboard-activatable when clickable (native button semantics)", () => {
+    const onClick = vi.fn();
+    render(
+      <VisibilityBadge
+        visibility={ApiResourceVisibility.visibility_private}
+        onClick={onClick}
+      />,
+    );
+
+    const button = screen.getByRole("button", { name: /manage access/i });
+    // A native <button type="button"> fires click on Enter/Space; assert the
+    // element is the real thing rather than a div with a handler.
+    expect(button.tagName).toBe("BUTTON");
+    expect(button.getAttribute("type")).toBe("button");
+  });
 });

@@ -360,10 +360,16 @@ export function AgentDetailView({
     updatedAt: specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null,
   };
 
-  // Inline visibility is read-only (at-a-glance); editing lives in the
-  // Manage access dialog, the single writer for both access axes.
+  // Inline visibility is at-a-glance AND a shortcut into the Manage access
+  // dialog — the single writer for both access axes. The chip is navigation
+  // only (never edits in place); it stays a static badge for users who
+  // cannot view access. An inert chip reads as "not editable" (2026-07-18
+  // dogfood friction), so the shortcut is the discoverability affordance.
   const visibilityControl = meta ? (
-    <VisibilityBadge visibility={meta.visibility} />
+    <VisibilityBadge
+      visibility={meta.visibility}
+      onClick={access.action ? access.open : undefined}
+    />
   ) : undefined;
 
   // Share — the sibling consent to Manage access: visibility governs who
