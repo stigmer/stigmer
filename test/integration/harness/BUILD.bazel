@@ -125,10 +125,15 @@ go_library(
 
 go_test(
     name = "harness_test",
-    srcs = ["ipc_fixtures_test.go"],
+    srcs = [
+        "benchmark_helpers_test.go",
+        "ipc_fixtures_test.go",
+    ],
     embed = [":harness"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
+        "@org_golang_google_grpc//:grpc",
     ],
 )
