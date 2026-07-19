@@ -30,7 +30,7 @@ func TestCostBenchmark_SimpleReply(t *testing.T) {
 	native, cursor := runScenarioBothHarnesses(t,
 		"simple-reply",
 		"Reply with exactly: hello",
-		"", // default model per harness
+		"", "", // default model per harness
 	)
 	harness.CompareBenchmarks(t, "simple-reply", native, cursor)
 }
@@ -47,26 +47,43 @@ Provide your one-sentence summary now.`
 	native, cursor := runScenarioBothHarnesses(t,
 		"medium-context",
 		prompt,
-		"", // default model per harness
+		"", "", // default model per harness
 	)
 	harness.CompareBenchmarks(t, "medium-context", native, cursor)
 }
 
-// --- Scenario: Model Parity (same model, both harnesses) ---
+// --- Scenario: Model Parity (same underlying model, both harnesses) ---
 //
 // This is the most scientifically valuable test: it isolates infrastructure
 // optimizations (caching, routing, context management) from pricing differences
-// by forcing both harnesses to use the same underlying model.
+// by pinning both harnesses to the same underlying model.
+//
+// The registry intentionally uses different id schemes per harness for the
+// same model (native "claude-sonnet-4.6" with a hyphenated apiModelId vs
+// cursor "claude-sonnet-4-6"), so parity must pin a per-harness id — a single
+// shared string only ever worked for single-token names like the EOL
+// "claude-sonnet-4". The native id resolves through the runner's registry
+// lookup; the cursor id must match the runner's cursor pricing map (a
+// Cursor-wire-style id would silently fall back to "default" there and
+// destroy the parity premise).
+//
+// Cursor auto-routes models server-side, so whether it honors the pin is
+// verified empirically from this run's report: the per-harness resolved
+// models are printed in every comparison. A divergence means cursor-side
+// parity is not achievable and these scenarios should be removed.
 
-func TestCostBenchmark_ModelParity_Sonnet4(t *testing.T) {
-	// "claude-sonnet-4" is available in both native and cursor harness
-	// entries in the model registry. This forces apples-to-apples comparison.
+const (
+	parityModelNative = "claude-sonnet-4.6"
+	parityModelCursor = "claude-sonnet-4-6"
+)
+
+func TestCostBenchmark_ModelParity_Sonnet46(t *testing.T) {
 	native, cursor := runScenarioBothHarnesses(t,
-		"model-parity-sonnet4",
+		"model-parity-sonnet46",
 		"Reply with exactly: hello",
-		"claude-sonnet-4",
+		parityModelNative, parityModelCursor,
 	)
-	harness.CompareBenchmarks(t, "model-parity-sonnet4", native, cursor)
+	harness.CompareBenchmarks(t, "model-parity-sonnet46", native, cursor)
 }
 
 func TestCostBenchmark_ModelParity_MediumContext(t *testing.T) {
@@ -75,7 +92,7 @@ func TestCostBenchmark_ModelParity_MediumContext(t *testing.T) {
 	native, cursor := runScenarioBothHarnesses(t,
 		"model-parity-medium",
 		prompt,
-		"claude-sonnet-4",
+		parityModelNative, parityModelCursor,
 	)
 	harness.CompareBenchmarks(t, "model-parity-medium", native, cursor)
 }
@@ -126,9 +143,10 @@ func TestCostBenchmark_Report(t *testing.T) {
 	requireBothHarnesses(t)
 
 	type scenario struct {
-		name      string
-		prompt    string
-		modelName string
+		name        string
+		prompt      string
+		nativeModel string
+		cursorModel string
 	}
 
 	scenarios := []scenario{
@@ -141,23 +159,25 @@ func TestCostBenchmark_Report(t *testing.T) {
 			prompt: "Explain in one sentence what a hash table is.",
 		},
 		{
-			name:      "report-parity-simple",
-			prompt:    "Reply with exactly: hello",
-			modelName: "claude-sonnet-4",
+			name:        "report-parity-simple",
+			prompt:      "Reply with exactly: hello",
+			nativeModel: parityModelNative,
+			cursorModel: parityModelCursor,
 		},
 		{
-			name:      "report-parity-medium",
-			prompt:    "Explain in one sentence what a hash table is.",
-			modelName: "claude-sonnet-4",
+			name:        "report-parity-medium",
+			prompt:      "Explain in one sentence what a hash table is.",
+			nativeModel: parityModelNative,
+			cursorModel: parityModelCursor,
 		},
 	}
 
 	var comparisons []*harness.BenchmarkComparison
 	for _, s := range scenarios {
 		native := harness.RunBenchmarkExecution(t, ctx, clients, waiter,
-			sessionv1.Harness_HARNESS_NATIVE, "native", s.prompt, s.name, s.modelName)
+			sessionv1.Harness_HARNESS_NATIVE, "native", s.prompt, s.name, s.nativeModel)
 		cursor := harness.RunBenchmarkExecution(t, ctx, clients, waiter,
-			sessionv1.Harness_HARNESS_CURSOR, "cursor", s.prompt, s.name, s.modelName)
+			sessionv1.Harness_HARNESS_CURSOR, "cursor", s.prompt, s.name, s.cursorModel)
 
 		comp := harness.CompareBenchmarks(t, s.name, native, cursor)
 		if comp != nil {
@@ -209,7 +229,11 @@ func TestCostBenchmark_Report(t *testing.T) {
 
 // --- Helpers ---
 
-func runScenarioBothHarnesses(t *testing.T, scenario, prompt, modelName string) (native, cursor *harness.BenchmarkResult) {
+// runScenarioBothHarnesses runs one prompt through both harnesses. Models are
+// pinned per harness because the registry ids for the same underlying model
+// differ between harness sections (see the Model Parity scenario comment).
+// Pass "" for both to use each harness's default model.
+func runScenarioBothHarnesses(t *testing.T, scenario, prompt, nativeModel, cursorModel string) (native, cursor *harness.BenchmarkResult) {
 	t.Helper()
 	require.NotNil(t, grpcConn)
 
@@ -220,12 +244,17 @@ func runScenarioBothHarnesses(t *testing.T, scenario, prompt, modelName string) 
 	harness.RequireServiceHealthy(t, ctx, clients)
 	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 
+	modelFor := map[string]string{
+		"native": nativeModel,
+		"cursor": cursorModel,
+	}
+
 	for _, h := range harness.Harnesses {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
 			result := harness.RunBenchmarkExecution(t, ctx, clients, waiter,
-				h.Harness, h.Name, prompt, scenario, modelName)
+				h.Harness, h.Name, prompt, scenario, modelFor[h.Name])
 
 			switch h.Name {
 			case "native":
@@ -285,21 +314,13 @@ func runMultiTurnBenchmark(
 
 	// Aggregate usage from the last execution's report (session-level would be ideal,
 	// but per-execution is sufficient for relative comparison)
-	time.Sleep(2 * time.Second)
-
-	report, err := clients.AgentExecutionQuery.GetExecutionUsageReport(ctx,
-		&agentexecv1.GetExecutionUsageReportInput{
-			ExecutionId: lastExecID,
-		})
+	report, err := harness.WaitForSettledUsageReport(ctx, clients.AgentExecutionQuery, lastExecID)
 	if err != nil {
-		t.Logf("WARNING [multi-turn/%s]: failed to get usage report: %v", h.Name, err)
+		t.Logf("WARNING [multi-turn/%s]: usage report did not settle: %v", h.Name, err)
 		return nil
 	}
 
 	agg := report.GetAggregate()
-	if agg == nil {
-		return nil
-	}
 
 	var model string
 	if breakdown := report.GetModelBreakdown(); len(breakdown) > 0 {

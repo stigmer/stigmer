@@ -382,8 +382,27 @@ BENCHMARK_OUTPUT_DIR ?= .test-output-benchmark
 #   make benchmark-cost BENCHMARK_RUN_PATTERN='TestCostBenchmark_(SimpleReply|MediumContext|ModelParity|MultiTurn|Report)'
 BENCHMARK_RUN_PATTERN ?= TestCostBenchmark
 
+# The unified runner requires node:sqlite (Cursor SDK local state). On a Node
+# without it (e.g. 23.1.0; needs 22.13+/23.4+) the runner prints one error and
+# dies — but the manager still reports ready, so every execution silently times
+# out at 4 minutes. On the benchmark lanes that burns a full paid run before
+# anyone notices, so those lanes assert the capability before spending money.
+.PHONY: check-runner-node
+check-runner-node:
+	@command -v node >/dev/null 2>&1 || { \
+		echo "error: node not found — the unified runner requires Node with node:sqlite"; \
+		echo "  fix: nvm use v22.22.1 (or any Node >= 22.13 / >= 23.4)"; \
+		exit 1; \
+	}
+	@node -e "require('node:sqlite')" >/dev/null 2>&1 || { \
+		echo "error: Node $$(node --version) lacks node:sqlite — the unified runner will die at startup"; \
+		echo "  and every benchmark execution would time out (~4 min each), wasting the whole run."; \
+		echo "  fix: nvm use v22.22.1 (or any Node >= 22.13 / >= 23.4)"; \
+		exit 1; \
+	}
+
 .PHONY: benchmark-cost
-benchmark-cost: ensure-service-jar ## Run cost benchmarks comparing Native vs Cursor harness (requires both API keys)
+benchmark-cost: ensure-service-jar check-runner-node ## Run cost benchmarks comparing Native vs Cursor harness (requires both API keys)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \
@@ -436,7 +455,7 @@ TRACED_OUTPUT_DIR ?= .test-output-traced
 CURSOR_MODE_OUTPUT_DIR ?= .test-output-cursor-modes
 
 .PHONY: benchmark-cursor-modes
-benchmark-cursor-modes: ensure-service-jar ## Compare Cursor local vs cloud runtime (requires CURSOR_API_KEY only)
+benchmark-cursor-modes: ensure-service-jar check-runner-node ## Compare Cursor local vs cloud runtime (requires CURSOR_API_KEY only)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \

@@ -8,7 +8,122 @@ import (
 
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	"google.golang.org/grpc"
 )
+
+// Usage-report settling. Billing records are written asynchronously after an
+// execution completes (the proxy dispatches each LLM call's record off the
+// stream thread), so a report fetched immediately after EXECUTION_COMPLETED
+// can be empty or partial. The benchmarks previously papered over this with a
+// fixed 2s sleep, which both under-waits (a slow record lands at 2.1s and the
+// run is silently under-counted) and over-waits (most records land well under
+// a second). WaitForSettledUsageReport replaces the sleep with a bounded
+// quiesce poll.
+const (
+	usageSettleTimeout      = 30 * time.Second
+	usageSettlePollInterval = 500 * time.Millisecond
+	// usageSettleStablePolls is how many consecutive unchanged re-reads the
+	// aggregate must survive before it counts as settled. Two polls at the
+	// production interval gives a ~1s quiet window — records from the same
+	// execution arrive within milliseconds of each other, so a full second of
+	// silence after the last write is a reliable completion signal.
+	usageSettleStablePolls = 2
+)
+
+// usageReportFetcher is the one-method slice of AgentExecutionQueryControllerClient
+// the settle loop needs, so the loop is unit-testable without a gRPC server.
+type usageReportFetcher interface {
+	GetExecutionUsageReport(ctx context.Context, in *agentexecv1.GetExecutionUsageReportInput,
+		opts ...grpc.CallOption) (*agentexecv1.GetExecutionUsageReportOutput, error)
+}
+
+// usageSnapshot captures the aggregate fields whose stability defines "settled".
+type usageSnapshot struct {
+	llmCallCount   int32
+	billableMicros int64
+	providerMicros int64
+	totalTokens    int64
+}
+
+func snapshotAggregate(agg *agentexecv1.UsageReportAggregate) usageSnapshot {
+	return usageSnapshot{
+		llmCallCount:   agg.GetLlmCallCount(),
+		billableMicros: agg.GetBillableCostMicros(),
+		providerMicros: agg.GetProviderCostMicros(),
+		totalTokens: agg.GetInputTokens() + agg.GetOutputTokens() +
+			agg.GetCacheCreationInputTokens() + agg.GetCacheReadInputTokens(),
+	}
+}
+
+// WaitForSettledUsageReport polls the execution's usage report until billing
+// has settled: at least one LLM-call record exists AND the aggregate is
+// unchanged for usageSettleStablePolls consecutive re-reads. Returns the
+// settled report, or an error when the deadline passes first.
+//
+// Transient RPC errors during polling are tolerated (retried until the
+// deadline); the last one is included in the timeout error for diagnosis.
+func WaitForSettledUsageReport(ctx context.Context, query usageReportFetcher,
+	executionID string) (*agentexecv1.GetExecutionUsageReportOutput, error) {
+	return waitForSettledUsageReport(ctx, query, executionID,
+		usageSettleTimeout, usageSettlePollInterval)
+}
+
+func waitForSettledUsageReport(ctx context.Context, query usageReportFetcher,
+	executionID string, timeout, pollInterval time.Duration,
+) (*agentexecv1.GetExecutionUsageReportOutput, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	var (
+		lastReport *agentexecv1.GetExecutionUsageReportOutput
+		lastSnap   usageSnapshot
+		stable     int
+		lastErr    error
+	)
+
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
+
+	for {
+		report, err := query.GetExecutionUsageReport(ctx,
+			&agentexecv1.GetExecutionUsageReportInput{ExecutionId: executionID})
+		switch {
+		case err != nil:
+			lastErr = err
+			stable = 0
+		case report.GetAggregate().GetLlmCallCount() == 0:
+			// No records yet (or a nil aggregate) — keep waiting.
+			stable = 0
+		default:
+			snap := snapshotAggregate(report.GetAggregate())
+			if lastReport != nil && snap == lastSnap {
+				stable++
+				if stable >= usageSettleStablePolls {
+					return report, nil
+				}
+			} else {
+				stable = 0
+			}
+			lastSnap = snap
+			lastReport = report
+		}
+
+		select {
+		case <-ctx.Done():
+			if lastErr != nil {
+				return nil, fmt.Errorf("usage report for execution %s did not settle within %v (last fetch error: %w)",
+					executionID, timeout, lastErr)
+			}
+			if lastReport == nil {
+				return nil, fmt.Errorf("usage report for execution %s has no LLM-call records after %v — billing never landed",
+					executionID, timeout)
+			}
+			return nil, fmt.Errorf("usage report for execution %s was still changing after %v (llm_calls=%d) — records may still be arriving",
+				executionID, timeout, lastSnap.llmCallCount)
+		case <-ticker.C:
+		}
+	}
+}
 
 // BenchmarkResult captures the cost, token usage, and timing for a single
 // agent execution through a specific harness. Used for cross-harness
@@ -98,25 +213,15 @@ func RunBenchmarkExecution(
 		return nil
 	}
 
-	// Allow billing finalization
-	time.Sleep(2 * time.Second)
-
 	executionID := result.GetMetadata().GetId()
 
-	report, err := clients.AgentExecutionQuery.GetExecutionUsageReport(ctx,
-		&agentexecv1.GetExecutionUsageReportInput{
-			ExecutionId: executionID,
-		})
+	report, err := WaitForSettledUsageReport(ctx, clients.AgentExecutionQuery, executionID)
 	if err != nil {
-		t.Logf("WARNING [%s/%s]: failed to get usage report: %v", scenarioName, harnessName, err)
+		t.Logf("WARNING [%s/%s]: usage report did not settle: %v", scenarioName, harnessName, err)
 		return nil
 	}
 
 	agg := report.GetAggregate()
-	if agg == nil {
-		t.Logf("WARNING [%s/%s]: usage report has nil aggregate", scenarioName, harnessName)
-		return nil
-	}
 
 	// Extract model info from aggregate (authoritative) with fallback to breakdown
 	model := agg.GetPrimaryModel()
@@ -302,24 +407,15 @@ func RunCursorModeBenchmark(
 		return nil
 	}
 
-	time.Sleep(2 * time.Second)
-
 	executionID := result.GetMetadata().GetId()
 
-	report, err := clients.AgentExecutionQuery.GetExecutionUsageReport(ctx,
-		&agentexecv1.GetExecutionUsageReportInput{
-			ExecutionId: executionID,
-		})
+	report, err := WaitForSettledUsageReport(ctx, clients.AgentExecutionQuery, executionID)
 	if err != nil {
-		t.Logf("WARNING [%s/cursor-%s]: failed to get usage report: %v", scenarioName, modeName, err)
+		t.Logf("WARNING [%s/cursor-%s]: usage report did not settle: %v", scenarioName, modeName, err)
 		return nil
 	}
 
 	agg := report.GetAggregate()
-	if agg == nil {
-		t.Logf("WARNING [%s/cursor-%s]: usage report has nil aggregate", scenarioName, modeName)
-		return nil
-	}
 
 	model := agg.GetPrimaryModel()
 	provider := agg.GetPrimaryProvider()
