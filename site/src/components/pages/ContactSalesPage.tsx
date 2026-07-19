@@ -50,7 +50,7 @@ function ContactSalesPage() {
 
     try {
       const res = await fetch(
-        `${SITE_CONFIG.leadsFormUrl}/submit/contact-sales`,
+        `${SITE_CONFIG.cloudApiUrl}/api/v1/public/leads/contact-sales`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

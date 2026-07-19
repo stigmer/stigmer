@@ -34,8 +34,6 @@ export const SITE_CONFIG = {
   cloudApiUrl: "https://api.stigmer.ai",
 
   contactSalesUrl: "/contact-sales",
-
-  leadsFormUrl: "https://leads.stigmer.ai",
 } as const;
 
 // ---------------------------------------------------------------------------
