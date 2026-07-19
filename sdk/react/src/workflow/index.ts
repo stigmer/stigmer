@@ -226,10 +226,10 @@ export {
   type WorkflowArtifactDocumentProps,
 } from "./WorkflowArtifactDocument.js";
 export {
-  WorkflowAgentExecutionDocument,
-  type WorkflowAgentExecutionDocumentProps,
+  WorkflowAgentCallTranscript,
+  type WorkflowAgentCallTranscriptProps,
   type WorkflowAgentExecutionHitl,
-} from "./WorkflowAgentExecutionDocument.js";
+} from "./WorkflowAgentCallTranscript.js";
 export {
   useWorkflowArtifactDownload,
   type UseWorkflowArtifactDownloadReturn,

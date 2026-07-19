@@ -27,15 +27,7 @@ import {
   FILE_CHANGE_DOCUMENT_ENTRY_ID,
   fileChangeTabPath,
 } from "../execution/file-change-document.js";
-import {
-  AGENT_EXECUTION_DOCUMENT_ENTRY_ID,
-  parseAgentExecutionTabPath,
-} from "../execution/agent-execution-document.js";
 import { FileChangeDiff } from "../execution/FileChangesView.js";
-import {
-  WorkflowAgentExecutionDocument,
-  type WorkflowAgentExecutionHitl,
-} from "./WorkflowAgentExecutionDocument.js";
 import {
   WorkspaceSurface,
   type SurfaceVirtualDocument,
@@ -281,14 +273,15 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
     onSuccess: refetchExecution,
   });
 
-  // The child-gate HITL wiring — ONE bundle from the single actions
-  // instance, narrowed to the six child-gate fields, consumed by the
-  // in-place transcript documents (S5, as `WorkflowAgentExecutionHitl`), so
-  // a gate's spinner/error is pixel-identical on every surface. Deps are
-  // the individual fields (DD-010): the bundle's ref must survive unrelated
-  // churn on `actions` (a lifecycle action's isSubmitting flip), so
-  // consumers re-render only when a gate's own in-flight/error state moves.
-  const childGateHitl = useMemo<WorkflowAgentExecutionHitl>(
+  // The thread's HITL bundle (T06/T07) — ONE bundle from the single actions
+  // instance, covering all three gate kinds: the child-gate fields (which
+  // the thread hands to gating agent-call cards' inline transcripts, as the
+  // `WorkflowAgentExecutionHitl` subset) plus the task-level (human_input)
+  // approval wiring. Deps are the individual fields (DD-010): the bundle's
+  // ref must survive unrelated churn on `actions` (a lifecycle action's
+  // isSubmitting flip), and the thread scopes it to gating cards, so a
+  // decision's in-flight flip re-renders the gating card only.
+  const threadHitl = useMemo<WorkflowThreadHitl>(
     () => ({
       submitApproval: actions.submitApproval,
       approvalSubmittingToolCallIds: actions.approvalSubmittingToolCallIds,
@@ -296,6 +289,9 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
       submitFileDecision: actions.submitFileDecision,
       fileDecisionSubmittingKeys: actions.fileDecisionSubmittingKeys,
       fileDecisionErrorsByKey: actions.fileDecisionErrorsByKey,
+      submitTaskApproval: actions.submitTaskApproval,
+      taskApprovalSubmittingTaskNames: actions.taskApprovalSubmittingTaskNames,
+      taskApprovalErrorsByTaskName: actions.taskApprovalErrorsByTaskName,
     }),
     [
       actions.submitApproval,
@@ -304,24 +300,6 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
       actions.submitFileDecision,
       actions.fileDecisionSubmittingKeys,
       actions.fileDecisionErrorsByKey,
-    ],
-  );
-
-  // The thread's HITL bundle (T06): the child-gate fields PLUS the
-  // task-level (human_input) approval wiring — since the gating card is
-  // the only decision surface, the thread carries all three gate kinds.
-  // A separate memo from `childGateHitl` so a human_input decision's
-  // in-flight flip re-renders the gating card, never the open transcript
-  // documents (DD-010).
-  const threadHitl = useMemo<WorkflowThreadHitl>(
-    () => ({
-      ...childGateHitl,
-      submitTaskApproval: actions.submitTaskApproval,
-      taskApprovalSubmittingTaskNames: actions.taskApprovalSubmittingTaskNames,
-      taskApprovalErrorsByTaskName: actions.taskApprovalErrorsByTaskName,
-    }),
-    [
-      childGateHitl,
       actions.submitTaskApproval,
       actions.taskApprovalSubmittingTaskNames,
       actions.taskApprovalErrorsByTaskName,
@@ -586,13 +564,12 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
             taskStates={effectiveTaskStates}
             totalTasks={effectiveTotalTasks}
             isRunning={isRunning}
-            onOpenAgentExecution={panel.openAgentExecution}
-            // In-card HITL (S10/T06): all three gate kinds decide on the
-            // gating card, backed by the snapshot gate lists (kept fresh
-            // by the approval boundary's refetch above).
+            onNavigateToAgentExecution={onNavigateToAgentExecution}
+            // In-card HITL (S10/T06/T07): all three gate kinds decide on
+            // the gating card — human_input on the card itself, child tool
+            // approvals and file reviews inside the card's inline child
+            // transcript (which streams them from the child directly).
             hitl={threadHitl}
-            pendingApprovals={execution?.status?.pendingApprovals}
-            pendingFileReviews={execution?.status?.pendingFileReviews}
             // Full per-task I/O for the card bodies (T04) — an O(1)
             // per-card snapshot lookup.
             taskSnapshotsByName={taskSnapshotsByName}
@@ -632,9 +609,7 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
               fileChangesState={fileChangesState}
               costSummary={costSummary}
               taskStates={effectiveTaskStates}
-              onNavigateToAgentExecution={onNavigateToAgentExecution}
               onApplyFix={onNavigateToWorkflowEditor ? handleApplyFix : undefined}
-              transcriptHitl={childGateHitl}
             />
           ) : null
         }
@@ -654,8 +629,9 @@ export const WorkflowExecutionViewer = memo(function WorkflowExecutionViewer({
  * open-editor group (keeping that subscription out of the streaming owner),
  * assembles the rail facets, and resolves open virtual-document tabs back to
  * their records (artifact tabs → `Artifact`, file-change tabs → the current
- * net `FileChange`, transcript tabs → their child id, the diagnosis tab →
- * `WorkflowRepairCard`).
+ * net `FileChange`, the diagnosis tab → `WorkflowRepairCard`). Child
+ * transcripts are NOT a document family here — since T07 they render inline
+ * in the thread's agent-call cards.
  */
 function ExecutionWorkspacePanel({
   panel,
@@ -665,9 +641,7 @@ function ExecutionWorkspacePanel({
   fileChangesState,
   costSummary,
   taskStates,
-  onNavigateToAgentExecution,
   onApplyFix,
-  transcriptHitl,
 }: {
   readonly panel: WorkflowExecutionPanelController;
   readonly executionId: string;
@@ -676,11 +650,8 @@ function ExecutionWorkspacePanel({
   readonly fileChangesState: UseWorkflowExecutionFileChangesReturn;
   readonly costSummary: DerivedCostSummary;
   readonly taskStates: ReadonlyMap<string, DerivedTaskState>;
-  readonly onNavigateToAgentExecution?: (agentExecutionId: string) => void;
   /** "Apply Fix" from the diagnosis document — host-routed (DD-004). */
   readonly onApplyFix?: (yaml: string) => void;
-  /** Workflow-level HITL wiring for open transcript documents (S5). */
-  readonly transcriptHitl: WorkflowAgentExecutionHitl;
 }) {
   const { editors, activeFile } = useWorkspaceEditors(panel.editorsStore);
 
@@ -732,7 +703,6 @@ function ExecutionWorkspacePanel({
           (editor) =>
             editor.entryId === ARTIFACT_DOCUMENT_ENTRY_ID ||
             editor.entryId === FILE_CHANGE_DOCUMENT_ENTRY_ID ||
-            editor.entryId === AGENT_EXECUTION_DOCUMENT_ENTRY_ID ||
             editor.entryId === DIAGNOSIS_DOCUMENT_ENTRY_ID,
         )
         .map((editor) => {
@@ -757,30 +727,6 @@ function ExecutionWorkspacePanel({
                       DIAGNOSIS_DOCUMENT_PATH,
                     )
                   }
-                />
-              ),
-            };
-          }
-          if (editor.entryId === AGENT_EXECUTION_DOCUMENT_ENTRY_ID) {
-            // The tab path CARRIES the child id (no lookup map — unlike the
-            // artifact/change families, a transcript needs only its id to
-            // fetch/stream itself). The suffix is the AGENT_CALL task name;
-            // its live state provides the agent slug for the header.
-            const childExecutionId = parseAgentExecutionTabPath(editor.path);
-            const taskName = editor.path.slice(childExecutionId.length + 1);
-            return {
-              entryId: AGENT_EXECUTION_DOCUMENT_ENTRY_ID,
-              path: editor.path,
-              // Keyed by tab path so the mounted fetch/stream survives
-              // unrelated editors churn while this tab stays active.
-              content: (
-                <WorkflowAgentExecutionDocument
-                  key={editor.path}
-                  childExecutionId={childExecutionId}
-                  taskName={taskName}
-                  agentSlug={taskStates.get(taskName)?.agentSlug || undefined}
-                  onNavigateToAgentExecution={onNavigateToAgentExecution}
-                  hitl={transcriptHitl}
                 />
               ),
             };
@@ -814,9 +760,6 @@ function ExecutionWorkspacePanel({
       editors,
       artifactByTabPath,
       fileChangeByTabPath,
-      taskStates,
-      onNavigateToAgentExecution,
-      transcriptHitl,
       executionId,
       org,
       onApplyFix,

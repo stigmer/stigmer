@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { isNotFound } from "@stigmer/sdk";
@@ -8,6 +8,23 @@ import { useStigmer } from "../hooks.js";
 import { useFetch } from "../internal/useFetch.js";
 import { isTerminalPhase } from "./execution-phases.js";
 import { useExecutionStream } from "./useExecutionStream.js";
+
+/** Options for {@link useLiveAgentExecution}. */
+export interface UseLiveAgentExecutionOptions {
+  /**
+   * Whether the live stream may be open. Defaults to `true`.
+   *
+   * When `false`, the snapshot fetch still runs (so consumers always have
+   * something to render) but no subscription is opened — the
+   * visibility-gating seam for surfaces that mount many executions at once
+   * (e.g. inline agent-call transcripts in the workflow task thread, where
+   * only on-screen cards stream). A `false → true` transition attaches the
+   * stream in place; a `true → false` transition pauses it while the
+   * last-streamed snapshot stays visible (the view never rewinds to the
+   * mount-time snapshot).
+   */
+  readonly live?: boolean;
+}
 
 /** Return value of {@link useLiveAgentExecution}. */
 export interface UseLiveAgentExecutionReturn {
@@ -67,8 +84,10 @@ export interface UseLiveAgentExecutionReturn {
  */
 export function useLiveAgentExecution(
   executionId: string | null,
+  options?: UseLiveAgentExecutionOptions,
 ): UseLiveAgentExecutionReturn {
   const stigmer = useStigmer();
+  const live = options?.live ?? true;
 
   const fetchFn = executionId
     ? async () => {
@@ -94,12 +113,31 @@ export function useLiveAgentExecution(
   // snapshot never advances, so a run that terminates mid-stream does not
   // flip this gate and unmount-thrash the subscription — useExecutionStream
   // ends itself on the terminal snapshot (completion is phase-driven).
+  // `live` is the consumer's visibility gate layered on top (an off-screen
+  // surface pauses its subscription without losing the fetch).
   const fetchedPhase =
     fetched?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
-  const shouldStream = fetched !== null && !isTerminalPhase(fetchedPhase);
+  const shouldStream =
+    live && fetched !== null && !isTerminalPhase(fetchedPhase);
   const stream = useExecutionStream(shouldStream ? executionId : null);
 
-  const execution = stream.execution ?? fetched;
+  // Retain the freshest snapshot ever shown for THIS execution across a
+  // stream pause (`live: true → false`): useExecutionStream resets its
+  // store when unsubscribed, so without this a paused surface would rewind
+  // to the mount-time fetch — visibly rolling the view backwards. Keyed by
+  // id so an execution switch never leaks the previous one's snapshot.
+  const lastStreamedRef = useRef<{
+    id: string;
+    execution: AgentExecution;
+  } | null>(null);
+  if (executionId && stream.execution) {
+    lastStreamedRef.current = { id: executionId, execution: stream.execution };
+  } else if (lastStreamedRef.current?.id !== executionId) {
+    lastStreamedRef.current = null;
+  }
+
+  const execution =
+    stream.execution ?? lastStreamedRef.current?.execution ?? fetched;
   const phase =
     execution?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
 

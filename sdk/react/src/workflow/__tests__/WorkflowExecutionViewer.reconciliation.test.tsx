@@ -79,19 +79,19 @@ vi.mock("../execution-comparison/ExecutionComparisonPicker", () => ({
   ExecutionComparisonPicker: () => null,
 }));
 
-// The child transcript document fetches and streams (its own suite covers
-// that); here it only proves the thread's "Open transcript" reaches the
-// panel's editor area with the right identity.
-vi.mock("../WorkflowAgentExecutionDocument", () => ({
-  WorkflowAgentExecutionDocument: ({
+// The inline child transcript fetches and streams (its own suite covers
+// that); here it only proves the thread mounts it in the AGENT_CALL card
+// with the right child identity (T07).
+vi.mock("../WorkflowAgentCallTranscript", () => ({
+  WorkflowAgentCallTranscript: ({
     childExecutionId,
-    taskName,
+    agentSlug,
   }: {
     childExecutionId: string;
-    taskName: string;
+    agentSlug?: string;
   }) => (
-    <div data-testid="agent-doc-stub">
-      {childExecutionId}:{taskName}
+    <div data-testid="agent-transcript-stub">
+      {childExecutionId}:{agentSlug ?? ""}
     </div>
   ),
 }));
@@ -437,7 +437,7 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
     ).toHaveBeenCalledWith("review-gate", "ship", undefined, undefined);
   });
 
-  it("an AGENT_CALL card's Open transcript opens the S4 document in the panel", () => {
+  it("an AGENT_CALL card renders the child's inline transcript in the thread — no document tab, no launcher (T07)", () => {
     // Add a settled agent-call task carrying its child execution id. The
     // stream stage must not be "complete" with zero events, or the viewer's
     // snapshot fallback would replace these derived states (its documented
@@ -464,13 +464,14 @@ describe("WorkflowExecutionViewer (center-column Thread|Graph toggle, S9)", () =
     } as unknown as ReturnType<typeof useWorkflowExecutionEventStream>);
     renderViewer();
 
-    // Preview-kind cards (agent_call) keep the transcript affordance in
-    // their always-visible body — no expand gesture required (T04).
-    fireEvent.click(screen.getByRole("button", { name: "Open transcript" }));
-
-    expect(screen.getByTestId("agent-doc-stub").textContent).toBe(
-      "aex_child_1:call-writer",
+    // The transcript is IN the card body, bound to the right child, with
+    // no launcher gesture in between — the card is the single home.
+    expect(screen.getByTestId("agent-transcript-stub").textContent).toBe(
+      "aex_child_1:blog-writer",
     );
+    expect(
+      screen.queryByRole("button", { name: "Open transcript" }),
+    ).toBeNull();
   });
 
   it("keeps exactly one aria-live announcer across both center views", () => {

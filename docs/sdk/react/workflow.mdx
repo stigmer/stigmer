@@ -3700,74 +3700,82 @@ Options for [`useWorkflowList`](#useworkflowlist).
 Human-readable labels for workflow template categories.
 
 
-### WorkflowAgentExecutionDocument
+### WorkflowAgentCallTranscript
 
-The editor-pane rendering of a child AgentExecution's transcript — the
-`SurfaceVirtualDocument` body the workflow execution panel mounts when an
-AGENT_CALL task is opened in place (S4 of the UX-parity project). This is
-the full session-grade experience — streaming `MessageThread` with tool
-calls, sub-agents, plan cards, and (with `hitl`) in-place HITL —
-replacing the inspector's cramped `max-h-[50vh]` thumbnail.
+A child AgentExecution's full transcript rendered inline in the
+AGENT_CALL task card — the session-grade `MessageThread` (tool calls,
+sub-agents, plan cards, and — with `hitl` — in-place HITL), streaming
+live while the child runs and serving the full history once settled.
+
+BOUNDED, NOT FULL-HEIGHT. The transcript caps at a generous viewport
+fraction and owns its own scroll + auto-follow inside that box
+(`MessageThread`'s scroll machine is reused unchanged). Once a transcript
+hits its cap it stops growing, so the card height stabilizes and the
+OUTER thread's auto-follow stops chasing it — the bound fixes both the
+inner and the outer scroll ergonomics at once.
+
+VIEWPORT-GATED STREAMING. Every mounted card fetches its (DD-014-cached)
+snapshot so the body renders immediately, but the live subscription opens
+only while the card is on-screen (`useInViewport` → the hook's `live`
+gate). Off-screen running children pause their stream and keep the
+last-streamed snapshot visible (never a rewind); scrolling back — or
+toggling back from the CSS-hidden Graph view — re-attaches in place. This
+preserves the bounded-concurrency intent of the S4 single-active-tab
+design (DD-LIVE-006) for fan-out workflows: N concurrent children cost at
+most the streams the user can actually see.
+
+MINIMAL CHROME. The card header already owns the task's identity and
+metrics (the `agentCallLine` preview: slug, current tool, message/tool
+counts, plus duration/cost chips and the running/settled status glyph).
+The transcript adds only what the header cannot express: a
+`Reconnecting…` notice for the CHILD stream and the "Open standalone"
+pop-out. Body = purely the conversation.
 
 HITL ROUTING. Child gates are decided through the WORKFLOW-level RPCs
 (`WorkflowExecution.submitApproval` / `submitFileDecision`), never the
 child's own `agentExecution.*` submit path. The two paths are
-server-equivalent (the workflow RPC forwards to the child — see
-workflowexecution command.proto), but they differ in authorization: the
-workflow RPC checks `can_edit` on the workflow execution — the resource
-the operator owns — while the child path checks the runner-spawned
-AgentExecution, which the operator may not. Every workflow HITL surface
-(bottom Approvals tab, inspector) routes this way; the transcript joins
-them via the same actions instance, so in-flight/error state never forks.
+server-equivalent (the workflow RPC forwards to the child), but they
+differ in authorization: the workflow RPC checks `can_edit` on the
+workflow execution — the resource the operator owns — while the child
+path checks the runner-spawned AgentExecution, which the operator may
+not (the S5 rationale).
 
 FILE-REVIEW DOCK. Pending (AWAITING_REVIEW) sets derive from the CHILD's
-own live stream — the freshest source this document already holds — not
-from the parent's `status.pending_file_reviews`: the parent snapshot is
-fetched once at mount and may lag a mid-run gate, which would blank the
-dock exactly when the reviewer is watching live. The server validates
-routing against its own (fresh) stored status at submit time, so a
-too-early decision degrades to a retryable in-card error, the same
-treatment tool approvals get. Docked below the thread (mirroring the
-session's composer dock) so a decision the agent is blocked on can never
-scroll out of view; settled sets render as read-only records in-thread
-(`showFileReviewRecords`), never in the dock — the two surfaces partition
-by the same pending test `MessageThread` uses.
-
-Lifecycle: the surface's editor area mounts only the ACTIVE virtual
-document, so `useLiveAgentExecution` fetches/streams only while this tab
-is foregrounded (DD-LIVE-006 — at most one child stream is ever live) and
-a tab-return re-renders instantly from the DD-014 fetch cache.
+own live stream — the freshest source this component already holds — not
+from the parent's `status.pending_file_reviews`, which is fetched once
+and may lag a mid-run gate. Docked below the thread so a decision the
+child is blocked on can never scroll out of view; settled sets render as
+read-only records in-thread (`showFileReviewRecords`) — the two surfaces
+partition by the same pending test `MessageThread` uses.
 
 All visual properties flow through `--stgm-*` tokens (DD-005).
 
 
-### WorkflowAgentExecutionDocumentProps
+### WorkflowAgentCallTranscriptProps
 
-Props for [`WorkflowAgentExecutionDocument`](#workflowagentexecutiondocument).
+Props for [`WorkflowAgentCallTranscript`](#workflowagentcalltranscript).
 
 <TypeTable
   type={{
-    agentSlug: { type: "string", description: "Slug of the agent the task called, when known (subtitle context)." },
+    agentSlug: { type: "string", description: "Slug of the agent the task called, when known (labels the region)." },
     childExecutionId: { type: "string", description: "ID of the child AgentExecution whose transcript to render.", required: true },
     className: { type: "string", description: "Additional CSS classes for the root element." },
-    hitl: { type: "WorkflowAgentExecutionHitl", description: "Workflow-level HITL handlers (S5 of the UX-parity project). When provided, the transcript becomes interactive: tool-approval gates render their decision cards inline on the gated rows, and pending file reviews dock at the bottom of the document. When omitted, the transcript is read-only — gates show status only (backward compatible, DD-011).", typeDescriptionLink: "#workflowagentexecutionhitl" },
-    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Open the child execution as a standalone page — the pop-out escape hatch preserved from the inspector's Agent tab. Host-routed (DD-004)." },
-    taskName: { type: "string", description: "The AGENT_CALL task that spawned the child — the document's title.", required: true },
+    hitl: { type: "WorkflowAgentExecutionHitl", description: "Workflow-level HITL handlers. When provided, the transcript is interactive: tool-approval gates render their decision cards inline on the gated rows, and pending file reviews dock at the bottom. When omitted, the transcript is read-only — gates show status only (backward compatible, DD-011).", typeDescriptionLink: "#workflowagentexecutionhitl" },
+    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Open the child execution as a standalone page — the deep-dive escape hatch now that the card is the transcript's single home. Host-routed (DD-004)." },
   }}
 />
 
 
 ### WorkflowAgentExecutionHitl
 
-The HITL wiring for a child transcript: the slice of
-[`UseWorkflowExecutionActionsReturn`](#useworkflowexecutionactionsreturn) the document needs to submit
-child-gate decisions at the WORKFLOW level.
+The HITL wiring for an inline child transcript: the slice of
+[`UseWorkflowExecutionActionsReturn`](#useworkflowexecutionactionsreturn) needed to submit child-gate
+decisions at the WORKFLOW level.
 
 A `Pick` (not a new shape) so the bundle can never drift from the actions
 hook — the viewer builds it from its single `useWorkflowExecutionActions`
-instance, which is the same keyed in-flight/error state the bottom
-Approvals tab renders. One instance, two surfaces: a spinner or failure on
-a gate is identical wherever that gate is shown.
+instance, so a gate's in-flight spinner or failure is identical wherever
+that gate is shown.
 
 
 ### WorkflowApprovalSubmit
@@ -4016,13 +4024,11 @@ families and view semantics are domain-specific.
     closePanel: { type: "() => void", description: "Collapse the panel to the chip, preserving editors and view.", required: true },
     editorsStore: { type: "WorkspaceEditorsStore", description: "The open-editor group store; subscribe with `useWorkspaceEditors`.", required: true },
     isOpen: { type: "boolean", description: "Whether the panel is expanded or collapsed to the chip.", required: true },
-    openAgentExecution: { type: "(childExecutionId: string, taskName: string) => void", description: "Open (or focus) a child AgentExecution's transcript as an editor-pane document tab and expand the panel — the S4 in-place expansion. Same preview-slot semantics as openArtifact: casually stepping through agent calls reuses one tab; pinning keeps one around.", required: true },
     openArtifact: { type: "(artifact: Artifact) => void", description: "Open (or focus) an artifact as an editor-pane document tab and expand the panel. Uses the PREVIEW slot — casual artifact browsing reuses one tab (single-click) and double-clicking pins it, matching the session panel's artifact-tab semantics.", required: true },
     openDiagnosis: { type: "() => void", description: "Open (or focus) the AI-diagnosis conversation as a pinned editor-pane document tab and expand the panel — the singleton analog of the session's `openPlanDocument`. Idempotent: the tab (not an owner-level boolean) is the single source of truth for \"diagnosis is active\", so re-invoking Diagnose focuses the existing conversation.", required: true },
     openFile: { type: "(entryId: string, path: string, options?: OpenFileOptions) => void", description: "Open a file as a preview tab and expand the panel. Unused until a workspace-source slice wires a lister, but part of the controller's stable surface so the viewer's editor wiring never changes shape.", required: true },
     openFileChange: { type: "(change: FileChange) => void", description: "Open (or focus) a file change's diff as an editor-pane document tab and expand the panel. Same preview-slot semantics as openArtifact — the slot is shared across families, so casually browsing changes and artifacts reuses one tab (true VS Code behavior).", required: true },
     openPanel: { type: "() => void", description: "Expand the panel.", required: true },
-    pinAgentExecution: { type: "(childExecutionId: string, taskName: string) => void", description: "Pin a child AgentExecution's transcript tab — the double-click half of the open/activate split. A no-op if the transcript is not open.", required: true },
     pinArtifact: { type: "(artifact: Artifact) => void", description: "Pin an artifact's tab — the double-click half of the open/activate split. A no-op if the artifact is not open.", required: true },
     pinEditor: { type: "(entryId: string, path: string) => void", description: "Pin an editor tab (clear its preview state).", required: true },
     pinFileChange: { type: "(change: FileChange) => void", description: "Pin a file change's diff tab — the double-click half of the open/activate split. A no-op if the change is not open.", required: true },
@@ -4404,22 +4410,24 @@ per card — the workflow analog of the session viewer's tool-call cards.
 
 Pending tasks render no cards (D-T02-5); the progress header keeps
 overall status visible. Retries collapse into one card with an attempt
-indicator (D-T02-6). AGENT_CALL cards carry an always-visible body with
-an "Open transcript" affordance (D-T02-2) — the full transcript opens as
-a panel document, never inline. Since T04 the card is the PRIMARY surface
-for a task's data (kind-aware preview line + bounded I/O body); since T06
-it is the ONLY one — the Inspect drill-down is gone, and cards compose
-the session card language exactly (expand-or-none headers, no selection).
+indicator (D-T02-6). AGENT_CALL cards render the child's FULL transcript
+inline as the card body (T07) — live-streaming while the child runs,
+complete history once settled — the session experience in place, with an
+"Open standalone" pop-out for a deep dive. Since T04 the card is the
+PRIMARY surface for a task's data (kind-aware preview line + bounded I/O
+body); since T06 it is the ONLY one — the Inspect drill-down is gone, and
+cards compose the session card language exactly (expand-or-none headers,
+no selection).
 
 Auto-follow uses the session thread's mechanism: an IntersectionObserver
 sentinel keeps the list pinned to the latest card until the user scrolls
 up, with a jump-to-latest affordance to re-engage.
 
 With `hitl` wired, a gating task's card carries its decision surface
-in-thread (S10/T06): the canonical `ApprovalCard`s for child tool gates,
-the child-streaming `FileReviewCard`s for file gates, and the full
-`WorkflowTaskReviewGate` (custom review renderers included) for
-task-level human_input gates — with a read-only
+in-thread (S10/T06/T07): the child's own inline transcript renders the
+canonical `ApprovalCard`s and `FileReviewCard`s for child gates, and the
+full `WorkflowTaskReviewGate` (custom review renderers included) renders
+for task-level human_input gates — with a read-only
 `WorkflowTaskApprovalSummary` once the gate resolves.
 
 This component is designed to work identically whether rendered in the
@@ -4436,9 +4444,7 @@ Props for [`WorkflowTaskThread`](#workflowtaskthread).
     className: { type: "string", description: "Additional CSS class names for the root container." },
     hitl: { type: "WorkflowThreadHitl", description: "Workflow-level HITL wiring (see WorkflowThreadHitl). When provided, a gating task's card renders its decision surface directly in the thread — always visible while the gate is pending, never behind the expand chevron (the run is blocked). Omitted → the thread is read-only and behaves exactly as before (DD-011; the S5 omitted-`hitl` precedent).", typeDescriptionLink: "#workflowthreadhitl" },
     isRunning: { type: "boolean", description: "Whether the execution is still running (drives streaming affordances).", required: true },
-    onOpenAgentExecution: { type: "(childExecutionId: string, taskName: string) => void", description: "Callback to open an AGENT_CALL task's child transcript in the panel's editor area (the S4 in-place expansion). Omitted → the affordance is not rendered." },
-    pendingApprovals: { type: "readonly WorkflowPendingApproval[]", description: "The parent workflow's surfaced child tool-approval gates (`status.pending_approvals`). Only read when hitl is provided." },
-    pendingFileReviews: { type: "readonly WorkflowPendingFileReview[]", description: "The parent workflow's surfaced child file-review references (`status.pending_file_reviews`). Only read when hitl is provided." },
+    onNavigateToAgentExecution: { type: "(agentExecutionId: string) => void", description: "Open an AGENT_CALL task's child execution as a standalone page — the inline transcript's deep-dive pop-out. Host-routed (DD-004). Omitted → the affordance is not rendered." },
     taskSnapshotsByName: { type: "ReadonlyMap<string, WorkflowTask>", description: "Per-task status snapshots (`status.tasks[]`) keyed by task name — the FULL I/O source for card bodies (T04), never an event-log scan (DD-T04-5). The map's identity changes only on a snapshot refetch (rare), never on stream event appends, so memoized cards keep bailing during streaming. Omitted → bodies degrade to the truncated event summaries already on the items." },
     taskStates: { type: "ReadonlyMap<string, DerivedTaskState>", description: "Live derived task states from the execution event stream.", required: true },
     totalTasks: { type: "number", description: "Total planned tasks (from `execution_started`); `0` when unknown.", required: true },

@@ -1,10 +1,11 @@
-// Composition test for the execution-level HITL surfaces (S10/T06): gating
-// task cards carry their child gates inline in the default Thread view
-// (through the shared session ApprovalCard via WorkflowApprovalList) — since
-// T06 the card is the ONLY decision surface (the Inspect drill-down is gone)
-// — and every decision routes through the single useWorkflowExecutionActions
-// instance. Data hooks and heavy leaves (React Flow graph) are mocked
-// exactly as in the reconciliation harness; this file proves the seams.
+// Composition test for the execution-level HITL surfaces (S10/T06/T07):
+// gating AGENT_CALL cards carry the child's INLINE TRANSCRIPT as their
+// decision surface — the child's gates decide inside it (the transcript's
+// own suite covers the ApprovalCard rendering and workflow-RPC routing) —
+// and the viewer's single useWorkflowExecutionActions instance is what
+// reaches every card. Data hooks and heavy leaves (React Flow graph, the
+// streaming transcript) are mocked exactly as in the reconciliation
+// harness; this file proves the seams.
 //
 // REALISTIC FIXTURES (a hard S10 requirement): the gated task states are
 // produced by the REAL store derivation from REAL event shapes — an
@@ -12,20 +13,11 @@
 // (D-T02-14). S9's hand-crafted `waiting_approval` states masked that
 // production never emitted them for child gates; deriving through the store
 // keeps these tests honest about the production path.
-//
-// GUARDRAIL (S5 rationale): the entire render runs WITHOUT a StigmerProvider.
-// Any component reaching for a client hook (the child's agentExecution.*
-// submit path) would throw — so a passing render plus the workflow actions
-// spy receiving the decision proves gates route through the WORKFLOW-level
-// RPC only. (WorkflowFileReviewList streams its child itself and therefore
-// NEEDS the provider — it is stubbed at the module seam here; its own suite
-// covers the real child-derived rendering.)
 
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
+import { render, screen, cleanup, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { WorkflowExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type { WorkflowPendingApproval, WorkflowPendingFileReview } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import {
   ExecutionPhase,
   WorkflowTaskStatus,
@@ -39,10 +31,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import type { WorkflowExecutionEvent } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import {
-  ApprovalAction,
-  ExecutionPhase as AgentExecutionPhase,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionPhase as AgentExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { DerivedCostSummary } from "../../internal/store/workflow-execution-event-store";
 import { WorkflowExecutionEventStore } from "../../internal/store/workflow-execution-event-store";
 import { useWorkflowExecution } from "../useWorkflowExecution";
@@ -50,7 +39,7 @@ import { useWorkflowExecutionEventStream } from "../useWorkflowExecutionEventStr
 import { useWorkflowExecutionArtifacts } from "../useWorkflowExecutionArtifacts";
 import { useWorkflowExecutionFileChanges } from "../useWorkflowExecutionFileChanges";
 import { useWorkflowExecutionActions } from "../useWorkflowExecutionActions";
-import type { WorkflowFileDecisionSubmit } from "../WorkflowFileReviewList";
+import type { WorkflowAgentCallTranscriptProps } from "../WorkflowAgentCallTranscript";
 import { WorkflowExecutionViewer } from "../WorkflowExecutionViewer";
 
 vi.mock("../useWorkflowExecution", () => ({
@@ -76,43 +65,29 @@ vi.mock("../execution-comparison/ExecutionComparisonPicker", () => ({
   ExecutionComparisonPicker: () => null,
 }));
 
-// Streams its child (needs the provider this guardrail render deliberately
-// omits) — stubbed to prove the seam: both the gating card and the Inspect
-// Approval tab hand it the task-scoped references and the workflow-level
-// decision submit.
-vi.mock("../WorkflowFileReviewList", () => ({
-  WorkflowFileReviewList: ({
-    pendingFileReviews,
-    onSubmitFileDecision,
-  }: {
-    pendingFileReviews: readonly WorkflowPendingFileReview[];
-    onSubmitFileDecision: WorkflowFileDecisionSubmit;
-  }) => (
-    <div data-testid="file-review-list-stub">
-      {pendingFileReviews.map((ref) => (
-        <button
-          key={ref.childAgentExecutionId}
-          type="button"
-          onClick={() =>
-            onSubmitFileDecision(
-              ref.childAgentExecutionId,
-              ref.changeSetId[0] ?? "",
-              1 as never,
-            )
-          }
-        >
-          decide-files-{ref.childAgentExecutionId}
-        </button>
-      ))}
-    </div>
+// Fetches and streams its child (its own suite covers that, including the
+// ApprovalCard rendering and the workflow-RPC routing guardrail) — stubbed
+// to a probe recording the seam under test here: which child each card
+// bound, and whether the viewer's hitl bundle reached it.
+vi.mock("../WorkflowAgentCallTranscript", () => ({
+  WorkflowAgentCallTranscript: vi.fn(
+    ({ childExecutionId, hitl }: WorkflowAgentCallTranscriptProps) => (
+      <div
+        data-testid="transcript-probe"
+        data-child-id={childExecutionId}
+        data-interactive={hitl ? "true" : "false"}
+      />
+    ),
   ),
 }));
+import { WorkflowAgentCallTranscript } from "../WorkflowAgentCallTranscript";
 
 const mockedUseWorkflowExecution = vi.mocked(useWorkflowExecution);
 const mockedUseEventStream = vi.mocked(useWorkflowExecutionEventStream);
 const mockedUseArtifacts = vi.mocked(useWorkflowExecutionArtifacts);
 const mockedUseFileChanges = vi.mocked(useWorkflowExecutionFileChanges);
 const mockedUseActions = vi.mocked(useWorkflowExecutionActions);
+const mockedTranscript = vi.mocked(WorkflowAgentCallTranscript);
 
 const COST_SUMMARY: DerivedCostSummary = {
   costConsumedMicros: 0n,
@@ -192,16 +167,8 @@ function buildGatedStore(): WorkflowExecutionEventStore {
   return store;
 }
 
-/**
- * The parent snapshot both gated children surfaced onto (via the
- * call-agent orchestrator's UpdateWorkflowTaskApprovalStatus write). Task
- * snapshots carry `agent_execution_id` metadata — the inspector's
- * event-less path for resolving the AGENT_CALL child.
- */
-function makeExecutionWithGates(overrides?: {
-  pendingApprovals?: unknown[];
-  pendingFileReviews?: unknown[];
-}) {
+/** The parent snapshot both gated children surfaced onto. */
+function makeExecutionWithGates() {
   return create(WorkflowExecutionSchema, {
     metadata: { id: "wex_1", name: "nightly-report" },
     spec: { workflowId: "wf_1" },
@@ -222,52 +189,25 @@ function makeExecutionWithGates(overrides?: {
           metadata: { agent_execution_id: "agx_child_b" },
         },
       ],
-      pendingApprovals: (overrides?.pendingApprovals ?? [
-        {
-          childAgentExecutionId: "agx_child_a",
-          approval: {
-            toolCallId: "tc_delete",
-            toolName: "delete_file",
-            argsPreview: '{"path":"/tmp/x"}',
-          },
-        },
-        {
-          childAgentExecutionId: "agx_child_b",
-          approval: {
-            toolCallId: "tc_shell",
-            toolName: "shell",
-            argsPreview: '{"command":"npm test"}',
-          },
-        },
-      ]) as WorkflowPendingApproval[],
-      pendingFileReviews: (overrides?.pendingFileReviews ??
-        []) as WorkflowPendingFileReview[],
     },
   });
 }
 
-function mockActions(overrides?: {
-  submitApproval?: ReturnType<typeof vi.fn>;
-  submitFileDecision?: ReturnType<typeof vi.fn>;
-  approvalSubmittingToolCallIds?: ReadonlySet<string>;
-  approvalErrorsByToolCallId?: ReadonlyMap<string, Error>;
-}) {
+function mockActions() {
   return {
     cancel: vi.fn(),
     terminate: vi.fn(),
     pause: vi.fn(),
     resume: vi.fn(),
     recover: vi.fn(),
-    submitApproval: overrides?.submitApproval ?? vi.fn(),
+    submitApproval: vi.fn(),
     submitTaskApproval: vi.fn(),
-    submitFileDecision: overrides?.submitFileDecision ?? vi.fn(),
+    submitFileDecision: vi.fn(),
     isSubmitting: false,
     error: null,
     clearError: vi.fn(),
-    approvalSubmittingToolCallIds:
-      overrides?.approvalSubmittingToolCallIds ?? new Set<string>(),
-    approvalErrorsByToolCallId:
-      overrides?.approvalErrorsByToolCallId ?? new Map<string, Error>(),
+    approvalSubmittingToolCallIds: new Set<string>(),
+    approvalErrorsByToolCallId: new Map<string, Error>(),
     taskApprovalSubmittingTaskNames: new Set<string>(),
     taskApprovalErrorsByTaskName: new Map<string, Error>(),
     fileDecisionSubmittingKeys: new Set<string>(),
@@ -275,13 +215,10 @@ function mockActions(overrides?: {
   } as unknown as ReturnType<typeof useWorkflowExecutionActions>;
 }
 
-function arrange(
-  actions = mockActions(),
-  executionOverrides?: Parameters<typeof makeExecutionWithGates>[0],
-) {
+function arrange(actions = mockActions()) {
   const store = buildGatedStore();
   mockedUseWorkflowExecution.mockReturnValue({
-    execution: makeExecutionWithGates(executionOverrides),
+    execution: makeExecutionWithGates(),
     isLoading: false,
     error: null,
     refetch: vi.fn(),
@@ -325,149 +262,73 @@ function cardRootOf(taskName: string): HTMLElement {
   return root;
 }
 
-describe("WorkflowExecutionViewer in-thread HITL (S10/T06)", () => {
+describe("WorkflowExecutionViewer in-thread HITL (S10/T06/T07)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
   });
   afterEach(cleanup);
 
-  it("each gating card carries its own child's 4-action gate inline; the boundary never opens the panel (T06)", () => {
+  it("each gating card carries its own child's INTERACTIVE transcript inline; the boundary never opens the panel", () => {
     arrange();
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
-    // Both tasks crossed into waiting_approval at mount. The panel stays
-    // closed — the cards ARE the (only) decision surface, and selection
-    // died with the Inspect drill-down.
+    // Both tasks crossed into waiting_approval at mount (derived by the
+    // REAL store from real agent_call_progress events — D-T02-14). The
+    // panel stays closed — the cards ARE the (only) decision surface, and
+    // selection died with the Inspect drill-down.
     expect(screen.queryByRole("tab", { name: /Approval/ })).toBeNull();
     expect(document.querySelector("[aria-pressed]")).toBeNull();
 
-    // Per-task scoping ON the cards: each renders exactly its child's gate,
-    // with the full decision model of the shared session card — visible
-    // without expanding anything (D-T02-12).
-    const cardA = within(cardRootOf("call-helper-a"));
-    const cardB = within(cardRootOf("call-helper-b"));
-    const deleteCard = cardA.getByRole("alert", {
-      name: "Approval required for delete_file",
-    });
-    expect(
-      within(deleteCard).getByRole("button", { name: "Approve all file deletions" }),
-    ).toBeTruthy();
-    expect(cardA.queryByRole("alert", { name: "Approval required for shell" })).toBeNull();
-
-    const shellCard = cardB.getByRole("alert", {
-      name: "Approval required for shell",
-    });
-    expect(within(shellCard).getByRole("button", { name: "Approve" })).toBeTruthy();
-    expect(within(shellCard).getByRole("button", { name: "Skip" })).toBeTruthy();
-    expect(within(shellCard).getByRole("button", { name: "Reject" })).toBeTruthy();
-    expect(
-      within(shellCard).getByRole("button", { name: "Approve all shell commands" }),
-    ).toBeTruthy();
-    // The rich preview the retired thin card never had.
-    expect(shellCard.textContent).toContain("npm test");
+    // Per-card scoping: each card mounts ITS child's transcript, made
+    // interactive by the gate (the hitl bundle reached it) — the child's
+    // ApprovalCards render inside it (the transcript's own suite).
+    const probeIn = (taskName: string) =>
+      within(cardRootOf(taskName)).getByTestId("transcript-probe");
+    expect(probeIn("call-helper-a").getAttribute("data-child-id")).toBe(
+      "agx_child_a",
+    );
+    expect(probeIn("call-helper-a").getAttribute("data-interactive")).toBe(
+      "true",
+    );
+    expect(probeIn("call-helper-b").getAttribute("data-child-id")).toBe(
+      "agx_child_b",
+    );
+    expect(probeIn("call-helper-b").getAttribute("data-interactive")).toBe(
+      "true",
+    );
   });
 
-  it("routes every in-card decision through the workflow-level actions instance with the gate's toolCallId", () => {
-    const submitApproval = vi.fn();
-    arrange(mockActions({ submitApproval }));
+  it("hands each transcript the viewer's SINGLE actions instance — decisions route through the workflow-level RPCs (S5 guardrail)", () => {
+    const actions = arrange();
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
-    fireEvent.click(
-      within(cardRootOf("call-helper-b")).getByRole("button", {
-        name: "Approve all shell commands",
-      }),
-    );
-    fireEvent.click(
-      within(cardRootOf("call-helper-a")).getByRole("button", { name: "Reject" }),
-    );
-
-    expect(submitApproval).toHaveBeenNthCalledWith(1, "tc_shell", ApprovalAction.APPROVE_ALL, undefined);
-    expect(submitApproval).toHaveBeenNthCalledWith(2, "tc_delete", ApprovalAction.REJECT, undefined);
+    // Identity, not equivalence: the transcript submits through the SAME
+    // workflow-level handlers every other surface uses, so in-flight and
+    // error state can never fork — and never the child's agentExecution.*
+    // path (checked exhaustively in WorkflowAgentCallTranscript.test.tsx).
+    for (const call of mockedTranscript.mock.calls) {
+      const hitl = call[0].hitl!;
+      expect(hitl.submitApproval).toBe(actions.submitApproval);
+      expect(hitl.submitFileDecision).toBe(actions.submitFileDecision);
+      expect(hitl.approvalSubmittingToolCallIds).toBe(
+        actions.approvalSubmittingToolCallIds,
+      );
+      expect(hitl.approvalErrorsByToolCallId).toBe(
+        actions.approvalErrorsByToolCallId,
+      );
+    }
   });
 
-  it("each gate renders on exactly ONE surface — its own card (no Inspect duplicate exists, T06)", () => {
+  it("renders each child's transcript on exactly ONE surface — its own card (no document tab, no Inspect duplicate)", () => {
     arrange();
     render(<WorkflowExecutionViewer executionId="wex_1" />);
 
+    const probes = screen.getAllByTestId("transcript-probe");
+    expect(probes).toHaveLength(2);
     expect(
-      screen.getAllByRole("alert", { name: "Approval required for delete_file" }),
-    ).toHaveLength(1);
-    expect(
-      screen.getAllByRole("alert", { name: "Approval required for shell" }),
-    ).toHaveLength(1);
-    expect(screen.queryByRole("tab", { name: /Approval/ })).toBeNull();
-  });
-
-  it("keeps in-flight and error state per gate: one gate's failure never leaks to its sibling or the banner", () => {
-    // Both gates on ONE child so one card carries both — the tightest
-    // adjacency for leak detection.
-    arrange(
-      mockActions({
-        approvalSubmittingToolCallIds: new Set(["tc_shell"]),
-        approvalErrorsByToolCallId: new Map([
-          ["tc_delete", new Error("gate already resolved")],
-        ]),
-      }),
-      {
-        pendingApprovals: [
-          {
-            childAgentExecutionId: "agx_child_b",
-            approval: {
-              toolCallId: "tc_delete",
-              toolName: "delete_file",
-              argsPreview: '{"path":"/tmp/x"}',
-            },
-          },
-          {
-            childAgentExecutionId: "agx_child_b",
-            approval: {
-              toolCallId: "tc_shell",
-              toolName: "shell",
-              argsPreview: '{"command":"npm test"}',
-            },
-          },
-        ],
-      },
-    );
-    const { container } = render(<WorkflowExecutionViewer executionId="wex_1" />);
-
-    // In-flight: only the shell gate's actions are disabled.
-    const shellCard = screen.getByRole("alert", { name: "Approval required for shell" });
-    const deleteCard = screen.getByRole("alert", { name: "Approval required for delete_file" });
-    expect(
-      (within(shellCard).getByRole("button", { name: "Approve" }) as HTMLButtonElement).disabled,
-    ).toBe(true);
-    expect(
-      (within(deleteCard).getByRole("button", { name: "Approve" }) as HTMLButtonElement).disabled,
-    ).toBe(false);
-
-    // Error: in-card on the failing gate only — never the lifecycle banner
-    // (actions.error is null, so no banner exists at all).
-    const errors = container.querySelectorAll('[data-cursor-target="approval-error"]');
-    expect(errors).toHaveLength(1);
-    expect(deleteCard.contains(errors[0]!)).toBe(true);
-    expect(screen.queryByRole("button", { name: "Dismiss" })).toBeNull();
-  });
-
-  it("file reviews render on their own card, child-scoped, wired to the workflow-level submit", () => {
-    const submitFileDecision = vi.fn();
-    arrange(mockActions({ submitFileDecision }), {
-      pendingApprovals: [],
-      pendingFileReviews: [
-        { childAgentExecutionId: "agx_child_a", changeSetId: ["cs_1"] },
-        { childAgentExecutionId: "agx_child_b", changeSetId: ["cs_2"] },
-      ],
-    });
-    render(<WorkflowExecutionViewer executionId="wex_1" />);
-
-    // Each gating card hands ITS child's reference to the (stubbed) list.
-    const cardB = within(cardRootOf("call-helper-b"));
-    expect(cardB.getByText("decide-files-agx_child_b")).toBeTruthy();
-    expect(cardB.queryByText("decide-files-agx_child_a")).toBeNull();
-
-    // Decisions forward to the single actions instance (workflow RPC).
-    fireEvent.click(cardB.getByText("decide-files-agx_child_b"));
-    expect(submitFileDecision).toHaveBeenCalledWith("agx_child_b", "cs_2", 1);
+      new Set(probes.map((p) => p.getAttribute("data-child-id"))).size,
+    ).toBe(2);
+    expect(screen.queryByRole("button", { name: "Open transcript" })).toBeNull();
   });
 });

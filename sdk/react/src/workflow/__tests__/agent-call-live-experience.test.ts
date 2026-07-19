@@ -370,10 +370,10 @@ describe("ExecutionBadge agent activity", () => {
 
 // NOTE: the "AgentCallTab view switching" suite that lived here tested the
 // tab's embedded-thumbnail subscription gating. S4 replaced the thumbnail
-// with a launcher (no subscription in the inspector at all); the launcher's
-// behavior is covered by component tests in agent-call-tab.test.tsx, and the
-// transcript's fetch/stream lifecycle by useLiveAgentExecution.test.tsx +
-// WorkflowAgentExecutionDocument.test.tsx.
+// with a launcher, and T07 replaced the launcher's document tab with the
+// inline in-card transcript; the transcript's fetch/stream lifecycle is
+// covered by useLiveAgentExecution.test.tsx +
+// WorkflowAgentCallTranscript.test.tsx.
 
 // ---------------------------------------------------------------------------
 // Inspector Approval tab visibility

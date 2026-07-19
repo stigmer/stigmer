@@ -9,7 +9,6 @@ import {
   FILE_CHANGE_DOCUMENT_ENTRY_ID,
   fileChangeTabPath,
 } from "../../execution/file-change-document";
-import { AGENT_EXECUTION_DOCUMENT_ENTRY_ID } from "../../execution/agent-execution-document";
 import {
   DIAGNOSIS_DOCUMENT_ENTRY_ID,
   DIAGNOSIS_DOCUMENT_PATH,
@@ -172,62 +171,6 @@ describe("useWorkflowExecutionPanel", () => {
     const { editors } = result.current.editorsStore.getSnapshot();
     expect(editors).toHaveLength(2);
     expect(new Set(editors.map((e) => e.entryId)).size).toBe(2);
-  });
-
-  it("openAgentExecution opens a preview tab in the transcript family and expands the panel", () => {
-    const { result } = renderHook(() => useWorkflowExecutionPanel());
-
-    act(() => result.current.openAgentExecution("aex_1", "summarize-report"));
-
-    expect(result.current.isOpen).toBe(true);
-    const { editors } = result.current.editorsStore.getSnapshot();
-    expect(editors).toEqual([
-      {
-        entryId: AGENT_EXECUTION_DOCUMENT_ENTRY_ID,
-        path: "aex_1/summarize-report",
-        preview: true,
-      },
-    ]);
-  });
-
-  it("the transcript preview shares the one slot with artifacts and changes", () => {
-    const { result } = renderHook(() => useWorkflowExecutionPanel());
-
-    act(() => {
-      result.current.openAgentExecution("aex_1", "call-agent");
-      result.current.openArtifact(artifact("art_1", "report.json"));
-    });
-
-    // Preview-tab semantics: the artifact open replaced the transcript.
-    const { editors } = result.current.editorsStore.getSnapshot();
-    expect(editors).toHaveLength(1);
-    expect(editors[0].entryId).toBe(ARTIFACT_DOCUMENT_ENTRY_ID);
-  });
-
-  it("pinAgentExecution makes the transcript's tab persistent", () => {
-    const { result } = renderHook(() => useWorkflowExecutionPanel());
-
-    act(() => {
-      result.current.openAgentExecution("aex_1", "call-agent");
-      result.current.pinAgentExecution("aex_1", "call-agent");
-    });
-
-    const { editors } = result.current.editorsStore.getSnapshot();
-    expect(editors[0].preview).toBe(false);
-  });
-
-  it("two AGENT_CALL tasks calling the same agent open distinct transcript tabs", () => {
-    const { result } = renderHook(() => useWorkflowExecutionPanel());
-
-    act(() => {
-      result.current.openAgentExecution("aex_1", "first-call");
-      result.current.pinAgentExecution("aex_1", "first-call");
-      result.current.openAgentExecution("aex_2", "second-call");
-    });
-
-    const { editors } = result.current.editorsStore.getSnapshot();
-    expect(editors).toHaveLength(2);
-    expect(new Set(editors.map((e) => e.path)).size).toBe(2);
   });
 
   it("closing an editor keeps the panel open (the panel is more than tabs)", () => {

@@ -1,73 +1,65 @@
 // Behavior tests for the WorkflowTaskThread organism: progress header,
 // per-variant card previews, the expand gesture (T06: headers expand or are
-// plain rows — selection died with the Inspect drill-down), the AGENT_CALL
-// transcript affordance (D-T02-2), empty states (DD-006), and the in-thread
-// HITL section (S10/T06 — including the in-card human_input review gate).
+// plain rows — selection died with the Inspect drill-down), the inline
+// AGENT_CALL transcript body (T07), empty states (DD-006), and the
+// in-thread HITL section (S10/T06 — the in-card human_input review gate).
 //
 // GUARDRAIL (S5 rationale): the entire file renders WITHOUT a StigmerProvider.
 // Any component reaching for a client hook (the child's agentExecution.*
 // submit path) would throw — so a passing render plus the hitl spies
 // receiving decisions proves in-card gates route through the WORKFLOW-level
-// wiring only. (WorkflowFileReviewList streams its child itself and therefore
-// NEEDS the provider — it is stubbed at the module seam here; its own suite
-// covers the real child-derived rendering. The review gate's inline-payload
-// path is provider-free by design — useReviewPayload touches the client only
-// for artifact-backed payloads — so the human_input tests exercise the REAL
-// gate.)
+// wiring only. (WorkflowAgentCallTranscript streams its child itself and
+// therefore NEEDS the provider — it is stubbed at the module seam here; its
+// own suite covers the real transcript rendering, viewport gating, and RPC
+// routing. The review gate's inline-payload path is provider-free by design
+// — useReviewPayload touches the client only for artifact-backed payloads —
+// so the human_input tests exercise the REAL gate.)
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { create } from "@bufbuild/protobuf";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
-import {
-  WorkflowPendingApprovalSchema,
-  WorkflowPendingFileReviewSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
-import type {
-  WorkflowPendingApproval,
-  WorkflowPendingFileReview,
-  WorkflowTask,
-} from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
+import type { WorkflowTask } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import {
   ApprovalRequestedPayloadSchema,
   ApprovalResolvedPayloadSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
-import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { DerivedTaskState } from "../../internal/store/workflow-execution-event-store";
-import type { WorkflowFileDecisionSubmit } from "../WorkflowFileReviewList";
+import type { WorkflowAgentCallTranscriptProps } from "../WorkflowAgentCallTranscript";
 import { formatMetaChips } from "../format-utils";
 import { WorkflowTaskThread, type WorkflowThreadHitl } from "../thread/WorkflowTaskThread";
 
 // Streams its child (needs the provider this guardrail file deliberately
-// omits) — stubbed to prove the seam: the gating card hands it the
-// task-scoped references and the workflow-level decision submit.
-vi.mock("../WorkflowFileReviewList", () => ({
-  WorkflowFileReviewList: ({
-    pendingFileReviews,
-    onSubmitFileDecision,
-  }: {
-    pendingFileReviews: readonly WorkflowPendingFileReview[];
-    onSubmitFileDecision: WorkflowFileDecisionSubmit;
-  }) => (
-    <div data-testid="file-review-list-stub">
-      {pendingFileReviews.map((ref) => (
-        <button
-          key={ref.childAgentExecutionId}
-          type="button"
-          onClick={() =>
-            onSubmitFileDecision(
-              ref.childAgentExecutionId,
-              ref.changeSetId[0] ?? "",
-              1 as never,
-            )
-          }
-        >
-          decide-files-{ref.childAgentExecutionId}
-        </button>
-      ))}
-    </div>
+// omits) — stubbed to prove the card-side seam: which child it is bound
+// to, whether the hitl bundle reached it, and the pop-out wiring. The real
+// component's behavior lives in WorkflowAgentCallTranscript.test.tsx.
+vi.mock("../WorkflowAgentCallTranscript", () => ({
+  WorkflowAgentCallTranscript: vi.fn(
+    ({
+      childExecutionId,
+      agentSlug,
+      hitl,
+      onNavigateToAgentExecution,
+    }: WorkflowAgentCallTranscriptProps) => (
+      <div
+        data-testid="agent-call-transcript-probe"
+        data-child-id={childExecutionId}
+        data-agent-slug={agentSlug ?? ""}
+        data-interactive={hitl ? "true" : "false"}
+      >
+        {onNavigateToAgentExecution && (
+          <button
+            type="button"
+            onClick={() => onNavigateToAgentExecution(childExecutionId)}
+          >
+            probe-pop-out-{childExecutionId}
+          </button>
+        )}
+      </div>
+    ),
   ),
 }));
+import { WorkflowAgentCallTranscript } from "../WorkflowAgentCallTranscript";
 
 // Spy-wrapped passthrough: every card render calls formatMetaChips with the
 // item's own metric fields, so its call log is a per-card render probe (the
@@ -280,8 +272,8 @@ describe("WorkflowTaskThread", () => {
     expect(container.querySelector("[aria-pressed]")).toBeNull();
   });
 
-  it("renders an always-visible preview body for an AGENT_CALL (no chevron, T04) and opens the transcript", () => {
-    const onOpenAgentExecution = vi.fn();
+  it("renders the child's inline transcript as an AGENT_CALL card's body — no button, no I/O summary (T07)", () => {
+    const onNavigateToAgentExecution = vi.fn();
     render(
       <WorkflowTaskThread
         taskStates={statesOf(
@@ -297,16 +289,61 @@ describe("WorkflowTaskThread", () => {
         )}
         totalTasks={1}
         isRunning={false}
-        onOpenAgentExecution={onOpenAgentExecution}
+        onNavigateToAgentExecution={onNavigateToAgentExecution}
+        taskSnapshotsByName={
+          new Map([
+            [
+              "call-writer",
+              {
+                taskName: "call-writer",
+                // The old summary body's source — must NOT render (T07):
+                // the transcript IS the body.
+                output: { agent_execution_id: "aex_child_1", final_text: "done" },
+                artifactIds: [],
+              } as unknown as WorkflowTask,
+            ],
+          ])
+        }
       />,
     );
 
-    // Preview-kind cards carry no expand chevron — the body is always
-    // visible (the session preview-card model).
+    // The card body IS the child transcript, bound to the right child…
+    const probe = screen.getByTestId("agent-call-transcript-probe");
+    expect(probe.getAttribute("data-child-id")).toBe("aex_child_1");
+    expect(probe.getAttribute("data-agent-slug")).toBe("blog-writer");
+    // …with no expand chevron, no launcher button, and none of the old
+    // id/final_text summary Struct.
     expect(screen.queryByRole("button", { name: "Expand call-writer" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open transcript" })).toBeNull();
+    expect(screen.queryByText("Output")).toBeNull();
+    expect(screen.queryByText(/final_text|done/)).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Open transcript" }));
-    expect(onOpenAgentExecution).toHaveBeenCalledWith("aex_child_1", "call-writer");
+    // The deep-dive pop-out routes through the host's navigation.
+    fireEvent.click(screen.getByText("probe-pop-out-aex_child_1"));
+    expect(onNavigateToAgentExecution).toHaveBeenCalledWith("aex_child_1");
+  });
+
+  it("falls back to the generic error body for an AGENT_CALL that failed before spawning a child (T07)", () => {
+    render(
+      <WorkflowTaskThread
+        taskStates={statesOf(
+          taskState({
+            taskName: "call-broken",
+            taskKind: WorkflowTaskKind.agent_call,
+            status: "failed",
+            childExecutionId: "", // never spawned — agent resolution failed
+            error: "agent not found: org/missing-agent\nresolution trace",
+          }),
+        )}
+        totalTasks={1}
+        isRunning={false}
+      />,
+    );
+
+    // No child → no transcript to render…
+    expect(screen.queryByTestId("agent-call-transcript-probe")).toBeNull();
+    // …but the failure must still surface in full (the correctness case).
+    expect(screen.getByText(/resolution trace/)).toBeTruthy();
   });
 
   it("renders the task's output in the always-visible body from the snapshot (T04)", () => {
@@ -604,33 +641,6 @@ function makeHitl(overrides: Partial<WorkflowThreadHitl> = {}): WorkflowThreadHi
   };
 }
 
-function pendingApproval(
-  childId: string,
-  toolCallId: string,
-  toolName = "delete_repository",
-): WorkflowPendingApproval {
-  return create(WorkflowPendingApprovalSchema, {
-    childAgentExecutionId: childId,
-    approval: {
-      toolCallId,
-      toolName,
-      message: `Run ${toolName}?`,
-      argsPreview: '{"target": "acme/repo"}',
-      requestedAt: "2026-07-16T00:00:00Z",
-    },
-  });
-}
-
-function pendingFileReview(
-  childId: string,
-  changeSetIds: string[] = ["cs-1"],
-): WorkflowPendingFileReview {
-  return create(WorkflowPendingFileReviewSchema, {
-    childAgentExecutionId: childId,
-    changeSetId: changeSetIds,
-  });
-}
-
 /** A gating AGENT_CALL task bound to its child execution. */
 function gatedAgentCall(taskName: string, childId: string): DerivedTaskState {
   return taskState({
@@ -667,38 +677,55 @@ function gatedHumanInput(
   });
 }
 
-describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
-  it("renders the canonical ApprovalCard on the gating card, visible WITHOUT expanding, and routes the decision through the workflow-level submit", () => {
-    const hitl = makeHitl();
+describe("WorkflowTaskThread — in-thread HITL (S10/T07)", () => {
+  it("hands the hitl bundle to a GATING agent-call card's transcript — the child's gates decide inside it (T07)", () => {
     render(
       <WorkflowTaskThread
         taskStates={statesOf(gatedAgentCall("call-helper", "aex_1"))}
         totalTasks={1}
         isRunning
-        hitl={hitl}
-        pendingApprovals={[pendingApproval("aex_1", "tc-1")]}
+        hitl={makeHitl()}
       />,
     );
 
-    // The decision surface is present with no expand gesture at all —
-    // agent_call is a preview-kind card and carries no chevron (T04).
+    // No separate HITL section, no "waiting for approval" interstitial —
+    // the transcript IS the decision surface, and it became interactive.
+    const probe = screen.getByTestId("agent-call-transcript-probe");
+    expect(probe.getAttribute("data-child-id")).toBe("aex_1");
+    expect(probe.getAttribute("data-interactive")).toBe("true");
+    expect(screen.queryByText(/waiting for an approval/)).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Expand call-helper" }),
     ).toBeNull();
-    const card = screen.getByRole("alert", {
-      name: "Approval required for delete_repository",
-    });
-    expect(card).toBeTruthy();
-
-    fireEvent.click(within(card).getByRole("button", { name: "Approve" }));
-    expect(hitl.submitApproval).toHaveBeenCalledWith(
-      "tc-1",
-      ApprovalAction.APPROVE,
-      undefined,
-    );
   });
 
-  it("scopes each gate to its owning card when parallel children gate at once", () => {
+  it("keeps a NON-gating agent-call transcript read-only (the hitl scoping)", () => {
+    render(
+      <WorkflowTaskThread
+        taskStates={statesOf(
+          taskState({
+            taskName: "call-writer",
+            taskKind: WorkflowTaskKind.agent_call,
+            status: "running",
+            childExecutionId: "aex_2",
+          }),
+        )}
+        totalTasks={1}
+        isRunning
+        hitl={makeHitl()}
+      />,
+    );
+
+    // The thread scopes the bundle to waiting_approval cards only (DD-010),
+    // so a merely-running child's transcript stays read-only.
+    expect(
+      screen
+        .getByTestId("agent-call-transcript-probe")
+        .getAttribute("data-interactive"),
+    ).toBe("false");
+  });
+
+  it("binds each parallel gating child to its own card's transcript", () => {
     const { container } = render(
       <WorkflowTaskThread
         taskStates={statesOf(
@@ -708,52 +735,15 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
         totalTasks={2}
         isRunning
         hitl={makeHitl()}
-        pendingApprovals={[
-          pendingApproval("aex_a", "tc-a", "tool_for_a"),
-          pendingApproval("aex_b", "tc-b", "tool_for_b"),
-        ]}
       />,
     );
 
-    expect(
-      within(cardRootOf(container, "call-a")).getByRole("alert", {
-        name: "Approval required for tool_for_a",
-      }),
-    ).toBeTruthy();
-    expect(
-      within(cardRootOf(container, "call-b")).getByRole("alert", {
-        name: "Approval required for tool_for_b",
-      }),
-    ).toBeTruthy();
-    expect(
-      within(cardRootOf(container, "call-a")).queryByRole("alert", {
-        name: "Approval required for tool_for_b",
-      }),
-    ).toBeNull();
-  });
-
-  it("hands the card's file-review references to WorkflowFileReviewList filtered to its child, decisions on the workflow path", () => {
-    const hitl = makeHitl();
-    render(
-      <WorkflowTaskThread
-        taskStates={statesOf(gatedAgentCall("call-helper", "aex_1"))}
-        totalTasks={1}
-        isRunning
-        hitl={hitl}
-        pendingFileReviews={[
-          pendingFileReview("aex_1", ["cs-1"]),
-          // Another child's reference must NOT reach this card's list.
-          pendingFileReview("aex_other", ["cs-9"]),
-        ]}
-      />,
-    );
-
-    const stub = screen.getByTestId("file-review-list-stub");
-    expect(within(stub).getByText("decide-files-aex_1")).toBeTruthy();
-    expect(within(stub).queryByText("decide-files-aex_other")).toBeNull();
-
-    fireEvent.click(within(stub).getByText("decide-files-aex_1"));
-    expect(hitl.submitFileDecision).toHaveBeenCalledWith("aex_1", "cs-1", 1);
+    const probeIn = (taskName: string) =>
+      within(cardRootOf(container, taskName)).getByTestId(
+        "agent-call-transcript-probe",
+      );
+    expect(probeIn("call-a").getAttribute("data-child-id")).toBe("aex_a");
+    expect(probeIn("call-b").getAttribute("data-child-id")).toBe("aex_b");
   });
 
   it("renders the FULL review gate on a pending human_input card and routes the decision through the workflow-level submit (T06)", () => {
@@ -847,28 +837,7 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
     expect(screen.queryByRole("form")).toBeNull();
   });
 
-  it("offers the child transcript when an agent-call gates with no surfaced snapshot gates (the cloud refetch window / the OSS steady state)", () => {
-    const onOpenAgentExecution = vi.fn();
-    render(
-      <WorkflowTaskThread
-        taskStates={statesOf(gatedAgentCall("call-helper", "aex_1"))}
-        totalTasks={1}
-        isRunning
-        onOpenAgentExecution={onOpenAgentExecution}
-        hitl={makeHitl()}
-        pendingApprovals={[]}
-        pendingFileReviews={[]}
-      />,
-    );
-
-    expect(
-      screen.getByText(/The called agent is waiting for an approval/),
-    ).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Open transcript" }));
-    expect(onOpenAgentExecution).toHaveBeenCalledWith("aex_1", "call-helper");
-  });
-
-  it("stays read-only when hitl is omitted (DD-011), even with gates surfaced", () => {
+  it("stays read-only when hitl is omitted (DD-011), even while gating", () => {
     render(
       <WorkflowTaskThread
         taskStates={statesOf(
@@ -877,31 +846,15 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
         )}
         totalTasks={2}
         isRunning
-        pendingApprovals={[pendingApproval("aex_1", "tc-1")]}
       />,
     );
 
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect(
+      screen
+        .getByTestId("agent-call-transcript-probe")
+        .getAttribute("data-interactive"),
+    ).toBe("false");
     expect(screen.queryByRole("form")).toBeNull();
-    expect(screen.queryByText(/waiting for an approval/)).toBeNull();
-  });
-
-  it("surfaces a gate's failed decision in-card, keyed to its toolCallId", () => {
-    render(
-      <WorkflowTaskThread
-        taskStates={statesOf(gatedAgentCall("call-helper", "aex_1"))}
-        totalTasks={1}
-        isRunning
-        hitl={makeHitl({
-          approvalErrorsByToolCallId: new Map([
-            ["tc-1", new Error("boom-42: gate submit failed")],
-          ]),
-        })}
-        pendingApprovals={[pendingApproval("aex_1", "tc-1")]}
-      />,
-    );
-
-    expect(screen.getByText(/boom-42: gate submit failed/)).toBeTruthy();
   });
 
   it("re-renders only the gating card when gate state churns (sibling memo probe)", () => {
@@ -911,7 +864,6 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
       taskState({ taskName: "settled", durationMs: 7_777 }),
       gatedAgentCall("call-helper", "aex_1"),
     );
-    const approvals = [pendingApproval("aex_1", "tc-1")];
 
     const { rerender } = render(
       <WorkflowTaskThread
@@ -919,7 +871,6 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
         totalTasks={2}
         isRunning
         hitl={makeHitl()}
-        pendingApprovals={approvals}
       />,
     );
 
@@ -934,7 +885,6 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
         totalTasks={2}
         isRunning
         hitl={makeHitl({ approvalSubmittingToolCallIds: new Set(["tc-1"]) })}
-        pendingApprovals={approvals}
       />,
     );
 
@@ -943,5 +893,38 @@ describe("WorkflowTaskThread — in-thread HITL (S10)", () => {
     expect(renderedDurations).toContain(0);
     // …but the settled sibling bailed (DD-009/DD-010).
     expect(renderedDurations).not.toContain(7_777);
+  });
+
+  it("hands the churned hitl bundle through to the gating transcript (T07)", () => {
+    const taskStates = statesOf(gatedAgentCall("call-helper", "aex_1"));
+    const { rerender } = render(
+      <WorkflowTaskThread
+        taskStates={taskStates}
+        totalTasks={1}
+        isRunning
+        hitl={makeHitl()}
+      />,
+    );
+
+    const transcriptProbe = vi.mocked(WorkflowAgentCallTranscript);
+    transcriptProbe.mockClear();
+    const churned = makeHitl({
+      approvalSubmittingToolCallIds: new Set(["tc-1"]),
+    });
+    rerender(
+      <WorkflowTaskThread
+        taskStates={taskStates}
+        totalTasks={1}
+        isRunning
+        hitl={churned}
+      />,
+    );
+
+    // The in-flight Set must reach the transcript so the gate's spinner
+    // shows inside it — the bundle is passed through by reference.
+    const latest = transcriptProbe.mock.calls.at(-1)![0];
+    expect(latest.hitl?.approvalSubmittingToolCallIds).toBe(
+      churned.approvalSubmittingToolCallIds,
+    );
   });
 });
