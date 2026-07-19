@@ -126,6 +126,74 @@ func TestBuildUpdateStateStep_Execute(t *testing.T) {
 	}
 }
 
+// Visibility must survive a full update that omits it (proto zero value),
+// mirroring Java's UpdateOperationPreserveResourceIdentifiersStepV2. Console
+// inline edits and manifests without metadata.visibility send unspecified;
+// without the preserve-on-omit guard they would silently reset the stored
+// visibility. An update that explicitly carries a level must still apply it.
+func TestBuildUpdateStateStep_VisibilityPreservedWhenOmitted(t *testing.T) {
+	tests := []struct {
+		name            string
+		inputVisibility apiresource.ApiResourceVisibility
+		wantVisibility  apiresource.ApiResourceVisibility
+	}{
+		{
+			name:            "omitted visibility preserves existing",
+			inputVisibility: apiresource.ApiResourceVisibility_api_resource_visibility_unspecified,
+			wantVisibility:  apiresource.ApiResourceVisibility_visibility_org,
+		},
+		{
+			name:            "explicit visibility is applied",
+			inputVisibility: apiresource.ApiResourceVisibility_visibility_private,
+			wantVisibility:  apiresource.ApiResourceVisibility_visibility_private,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			existing := &agentv1.Agent{
+				Metadata: &apiresource.ApiResourceMetadata{
+					Id:         "agent-123",
+					Name:       "existing-agent",
+					Visibility: apiresource.ApiResourceVisibility_visibility_org,
+				},
+				Spec: &agentv1.AgentSpec{
+					Description: "Original description",
+				},
+			}
+
+			// An unrelated-field edit: only the description changes.
+			input := &agentv1.Agent{
+				Metadata: &apiresource.ApiResourceMetadata{
+					Id:         "agent-123",
+					Name:       "existing-agent",
+					Visibility: tt.inputVisibility,
+				},
+				Spec: &agentv1.AgentSpec{
+					Description: "Updated description",
+				},
+			}
+
+			ctx := pipeline.NewRequestContext(contextWithKind(apiresourcekind.ApiResourceKind_agent), input)
+			ctx.Set(ExistingResourceKey, existing)
+
+			step := NewBuildUpdateStateStep[*agentv1.Agent]()
+			if err := step.Execute(ctx); err != nil {
+				t.Fatalf("Expected success, got error: %v", err)
+			}
+
+			updated := ctx.NewState()
+			if updated.Metadata.Visibility != tt.wantVisibility {
+				t.Errorf("Expected visibility %v, got %v",
+					tt.wantVisibility, updated.Metadata.Visibility)
+			}
+			if updated.Spec.Description != "Updated description" {
+				t.Errorf("Expected description to be updated, got %q", updated.Spec.Description)
+			}
+		})
+	}
+}
+
 func TestBuildUpdateStateStep_NoExistingInContext(t *testing.T) {
 	// Create input without setting existing in context
 	input := &agentv1.Agent{
