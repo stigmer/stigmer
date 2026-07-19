@@ -317,13 +317,19 @@ function notificationLine(state: DerivedTaskState): string | null {
   return channel;
 }
 
-/** `approve · by suresh` — the settled decision from the task output. */
+/** `approve · by Ada Lovelace` — the settled decision from the task output. */
 function humanInputLine(output: JsonObject | null): string | null {
   // The gating state is covered by the universal "Awaiting approval" line;
   // this renders only the settled decision record.
   const outcome = asString(output?.["outcome"]);
   if (!outcome) return null;
-  const reviewer = asString(output?.["reviewer"]);
+  // Fallback ladder over the reviewer_actor display snapshot: name → email
+  // → raw canonical id (legacy records only) → omit the "by" segment.
+  const actor = asObject(output?.["reviewer_actor"]);
+  const reviewer =
+    asString(actor?.["display_name"]) ??
+    asString(actor?.["email"]) ??
+    asString(output?.["reviewer"]);
   return reviewer ? `${outcome} · by ${reviewer}` : outcome;
 }
 

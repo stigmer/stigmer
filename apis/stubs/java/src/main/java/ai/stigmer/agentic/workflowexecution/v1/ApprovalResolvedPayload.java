@@ -60,6 +60,7 @@ private static final long serialVersionUID = 0L;
             ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload.class, ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload.Builder.class);
   }
 
+  private int bitField0_;
   public static final int ACTION_FIELD_NUMBER = 1;
   private int action_ = 0;
   /**
@@ -91,7 +92,14 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object resolvedBy_ = "";
   /**
    * <pre>
-   * Identity of the user who made the decision.
+   * Canonical identity of the user who made the decision
+   * (identity-account ID). Empty when not attributed (e.g. the OSS
+   * single-user edition, or timeout auto-resolution).
+   *
+   * &#64;internal
+   * This is the stable audit key. Renderers should prefer
+   * resolved_by_actor for display and only fall back to this raw value
+   * for records that predate actor enrichment.
    * </pre>
    *
    * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -112,7 +120,14 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Identity of the user who made the decision.
+   * Canonical identity of the user who made the decision
+   * (identity-account ID). Empty when not attributed (e.g. the OSS
+   * single-user edition, or timeout auto-resolution).
+   *
+   * &#64;internal
+   * This is the stable audit key. Renderers should prefer
+   * resolved_by_actor for display and only fall back to this raw value
+   * for records that predate actor enrichment.
    * </pre>
    *
    * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -196,6 +211,71 @@ private static final long serialVersionUID = 0L;
     return waitDurationMs_;
   }
 
+  public static final int RESOLVED_BY_ACTOR_FIELD_NUMBER = 5;
+  private ai.stigmer.commons.apiresource.ApiResourceAuditActor resolvedByActor_;
+  /**
+   * <pre>
+   * Display identity of the reviewer, snapshotted at decision time.
+   *
+   * &#64;internal
+   * Write-time snapshot, not a live lookup: an approval event is an
+   * immutable audit record, so it captures the reviewer as identified at
+   * the moment of the decision (later profile changes do not rewrite
+   * history). Stamped server-side by the control plane from the
+   * authenticated caller; unset when no attribution exists.
+   *
+   * &#64;since Reviewer Attribution
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
+   * @return Whether the resolvedByActor field is set.
+   */
+  @java.lang.Override
+  public boolean hasResolvedByActor() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <pre>
+   * Display identity of the reviewer, snapshotted at decision time.
+   *
+   * &#64;internal
+   * Write-time snapshot, not a live lookup: an approval event is an
+   * immutable audit record, so it captures the reviewer as identified at
+   * the moment of the decision (later profile changes do not rewrite
+   * history). Stamped server-side by the control plane from the
+   * authenticated caller; unset when no attribution exists.
+   *
+   * &#64;since Reviewer Attribution
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
+   * @return The resolvedByActor.
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceAuditActor getResolvedByActor() {
+    return resolvedByActor_ == null ? ai.stigmer.commons.apiresource.ApiResourceAuditActor.getDefaultInstance() : resolvedByActor_;
+  }
+  /**
+   * <pre>
+   * Display identity of the reviewer, snapshotted at decision time.
+   *
+   * &#64;internal
+   * Write-time snapshot, not a live lookup: an approval event is an
+   * immutable audit record, so it captures the reviewer as identified at
+   * the moment of the decision (later profile changes do not rewrite
+   * history). Stamped server-side by the control plane from the
+   * authenticated caller; unset when no attribution exists.
+   *
+   * &#64;since Reviewer Attribution
+   * </pre>
+   *
+   * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceAuditActorOrBuilder getResolvedByActorOrBuilder() {
+    return resolvedByActor_ == null ? ai.stigmer.commons.apiresource.ApiResourceAuditActor.getDefaultInstance() : resolvedByActor_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -222,6 +302,9 @@ private static final long serialVersionUID = 0L;
     if (waitDurationMs_ != 0L) {
       output.writeInt64(4, waitDurationMs_);
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      output.writeMessage(5, getResolvedByActor());
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -245,6 +328,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(4, waitDurationMs_);
     }
+    if (((bitField0_ & 0x00000001) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(5, getResolvedByActor());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -267,6 +354,11 @@ private static final long serialVersionUID = 0L;
         .equals(other.getComment())) return false;
     if (getWaitDurationMs()
         != other.getWaitDurationMs()) return false;
+    if (hasResolvedByActor() != other.hasResolvedByActor()) return false;
+    if (hasResolvedByActor()) {
+      if (!getResolvedByActor()
+          .equals(other.getResolvedByActor())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -287,6 +379,10 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + WAIT_DURATION_MS_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getWaitDurationMs());
+    if (hasResolvedByActor()) {
+      hash = (37 * hash) + RESOLVED_BY_ACTOR_FIELD_NUMBER;
+      hash = (53 * hash) + getResolvedByActor().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -415,13 +511,19 @@ private static final long serialVersionUID = 0L;
 
     // Construct using ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload.newBuilder()
     private Builder() {
-
+      maybeForceBuilderInitialization();
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-
+      maybeForceBuilderInitialization();
+    }
+    private void maybeForceBuilderInitialization() {
+      if (com.google.protobuf.GeneratedMessage
+              .alwaysUseFieldBuilders) {
+        internalGetResolvedByActorFieldBuilder();
+      }
     }
     @java.lang.Override
     public Builder clear() {
@@ -431,6 +533,11 @@ private static final long serialVersionUID = 0L;
       resolvedBy_ = "";
       comment_ = "";
       waitDurationMs_ = 0L;
+      resolvedByActor_ = null;
+      if (resolvedByActorBuilder_ != null) {
+        resolvedByActorBuilder_.dispose();
+        resolvedByActorBuilder_ = null;
+      }
       return this;
     }
 
@@ -476,6 +583,14 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.waitDurationMs_ = waitDurationMs_;
       }
+      int to_bitField0_ = 0;
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.resolvedByActor_ = resolvedByActorBuilder_ == null
+            ? resolvedByActor_
+            : resolvedByActorBuilder_.build();
+        to_bitField0_ |= 0x00000001;
+      }
+      result.bitField0_ |= to_bitField0_;
     }
 
     @java.lang.Override
@@ -505,6 +620,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getWaitDurationMs() != 0L) {
         setWaitDurationMs(other.getWaitDurationMs());
+      }
+      if (other.hasResolvedByActor()) {
+        mergeResolvedByActor(other.getResolvedByActor());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -552,6 +670,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 32
+            case 42: {
+              input.readMessage(
+                  internalGetResolvedByActorFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -644,7 +769,14 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object resolvedBy_ = "";
     /**
      * <pre>
-     * Identity of the user who made the decision.
+     * Canonical identity of the user who made the decision
+     * (identity-account ID). Empty when not attributed (e.g. the OSS
+     * single-user edition, or timeout auto-resolution).
+     *
+     * &#64;internal
+     * This is the stable audit key. Renderers should prefer
+     * resolved_by_actor for display and only fall back to this raw value
+     * for records that predate actor enrichment.
      * </pre>
      *
      * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -664,7 +796,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Identity of the user who made the decision.
+     * Canonical identity of the user who made the decision
+     * (identity-account ID). Empty when not attributed (e.g. the OSS
+     * single-user edition, or timeout auto-resolution).
+     *
+     * &#64;internal
+     * This is the stable audit key. Renderers should prefer
+     * resolved_by_actor for display and only fall back to this raw value
+     * for records that predate actor enrichment.
      * </pre>
      *
      * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -685,7 +824,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Identity of the user who made the decision.
+     * Canonical identity of the user who made the decision
+     * (identity-account ID). Empty when not attributed (e.g. the OSS
+     * single-user edition, or timeout auto-resolution).
+     *
+     * &#64;internal
+     * This is the stable audit key. Renderers should prefer
+     * resolved_by_actor for display and only fall back to this raw value
+     * for records that predate actor enrichment.
      * </pre>
      *
      * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -702,7 +848,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Identity of the user who made the decision.
+     * Canonical identity of the user who made the decision
+     * (identity-account ID). Empty when not attributed (e.g. the OSS
+     * single-user edition, or timeout auto-resolution).
+     *
+     * &#64;internal
+     * This is the stable audit key. Renderers should prefer
+     * resolved_by_actor for display and only fall back to this raw value
+     * for records that predate actor enrichment.
      * </pre>
      *
      * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -716,7 +869,14 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Identity of the user who made the decision.
+     * Canonical identity of the user who made the decision
+     * (identity-account ID). Empty when not attributed (e.g. the OSS
+     * single-user edition, or timeout auto-resolution).
+     *
+     * &#64;internal
+     * This is the stable audit key. Renderers should prefer
+     * resolved_by_actor for display and only fall back to this raw value
+     * for records that predate actor enrichment.
      * </pre>
      *
      * <code>string resolved_by = 2 [json_name = "resolvedBy"];</code>
@@ -870,6 +1030,244 @@ private static final long serialVersionUID = 0L;
       waitDurationMs_ = 0L;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.commons.apiresource.ApiResourceAuditActor resolvedByActor_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceAuditActor, ai.stigmer.commons.apiresource.ApiResourceAuditActor.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditActorOrBuilder> resolvedByActorBuilder_;
+    /**
+     * <pre>
+     * Display identity of the reviewer, snapshotted at decision time.
+     *
+     * &#64;internal
+     * Write-time snapshot, not a live lookup: an approval event is an
+     * immutable audit record, so it captures the reviewer as identified at
+     * the moment of the decision (later profile changes do not rewrite
+     * history). Stamped server-side by the control plane from the
+     * authenticated caller; unset when no attribution exists.
+     *
+     * &#64;since Reviewer Attribution
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
+     * @return Whether the resolvedByActor field is set.
+     */
+    public boolean hasResolvedByActor() {
+      return ((bitField0_ & 0x00000010) != 0);
+    }
+    /**
+     * <pre>
+     * Display identity of the reviewer, snapshotted at decision time.
+     *
+     * &#64;internal
+     * Write-time snapshot, not a live lookup: an approval event is an
+     * immutable audit record, so it captures the reviewer as identified at
+     * the moment of the decision (later profile changes do not rewrite
+     * history). Stamped server-side by the control plane from the
+     * authenticated caller; unset when no attribution exists.
+     *
+     * &#64;since Reviewer Attribution
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
+     * @return The resolvedByActor.
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceAuditActor getResolvedByActor() {
+      if (resolvedByActorBuilder_ == null) {
+        return resolvedByActor_ == null ? ai.stigmer.commons.apiresource.ApiResourceAuditActor.getDefaultInstance() : resolvedByActor_;
+      } else {
+        return resolvedByActorBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Display identity of the reviewer, snapshotted at decision time.
+     *
+     * &#64;internal
+     * Write-time snapshot, not a live lookup: an approval event is an
+     * immutable audit record, so it captures the reviewer as identified at
+     * the moment of the decision (later profile changes do not rewrite
+     * history). Stamped server-side by the control plane from the
+     * authenticated caller; unset when no attribution exists.
+     *
+     * &#64;since Reviewer Attribution
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
+     */
+    public Builder setResolvedByActor(ai.stigmer.commons.apiresource.ApiResourceAuditActor value) {
+      if (resolvedByActorBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        resolvedByActor_ = value;
+      } else {
+        resolvedByActorBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Display identity of the reviewer, snapshotted at decision time.
+     *
+     * &#64;internal
+     * Write-time snapshot, not a live lookup: an approval event is an
+     * immutable audit record, so it captures the reviewer as identified at
+     * the moment of the decision (later profile changes do not rewrite
+     * history). Stamped server-side by the control plane from the
+     * authenticated caller; unset when no attribution exists.
+     *
+     * &#64;since Reviewer Attribution
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
+     */
+    public Builder setResolvedByActor(
+        ai.stigmer.commons.apiresource.ApiResourceAuditActor.Builder builderForValue) {
+      if (resolvedByActorBuilder_ == null) {
+        resolvedByActor_ = builderForValue.build();
+      } else {
+        resolvedByActorBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Display identity of the reviewer, snapshotted at decision time.
+     *
+     * &#64;internal
+     * Write-time snapshot, not a live lookup: an approval event is an
+     * immutable audit record, so it captures the reviewer as identified at
+     * the moment of the decision (later profile changes do not rewrite
+     * history). Stamped server-side by the control plane from the
+     * authenticated caller; unset when no attribution exists.
+     *
+     * &#64;since Reviewer Attribution
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
+     */
+    public Builder mergeResolvedByActor(ai.stigmer.commons.apiresource.ApiResourceAuditActor value) {
+      if (resolvedByActorBuilder_ == null) {
+        if (((bitField0_ & 0x00000010) != 0) &&
+          resolvedByActor_ != null &&
+          resolvedByActor_ != ai.stigmer.commons.apiresource.ApiResourceAuditActor.getDefaultInstance()) {
+          getResolvedByActorBuilder().mergeFrom(value);
+        } else {
+          resolvedByActor_ = value;
+        }
+      } else {
+        resolvedByActorBuilder_.mergeFrom(value);
+      }
+      if (resolvedByActor_ != null) {
+        bitField0_ |= 0x00000010;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Display identity of the reviewer, snapshotted at decision time.
+     *
+     * &#64;internal
+     * Write-time snapshot, not a live lookup: an approval event is an
+     * immutable audit record, so it captures the reviewer as identified at
+     * the moment of the decision (later profile changes do not rewrite
+     * history). Stamped server-side by the control plane from the
+     * authenticated caller; unset when no attribution exists.
+     *
+     * &#64;since Reviewer Attribution
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
+     */
+    public Builder clearResolvedByActor() {
+      bitField0_ = (bitField0_ & ~0x00000010);
+      resolvedByActor_ = null;
+      if (resolvedByActorBuilder_ != null) {
+        resolvedByActorBuilder_.dispose();
+        resolvedByActorBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Display identity of the reviewer, snapshotted at decision time.
+     *
+     * &#64;internal
+     * Write-time snapshot, not a live lookup: an approval event is an
+     * immutable audit record, so it captures the reviewer as identified at
+     * the moment of the decision (later profile changes do not rewrite
+     * history). Stamped server-side by the control plane from the
+     * authenticated caller; unset when no attribution exists.
+     *
+     * &#64;since Reviewer Attribution
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceAuditActor.Builder getResolvedByActorBuilder() {
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return internalGetResolvedByActorFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Display identity of the reviewer, snapshotted at decision time.
+     *
+     * &#64;internal
+     * Write-time snapshot, not a live lookup: an approval event is an
+     * immutable audit record, so it captures the reviewer as identified at
+     * the moment of the decision (later profile changes do not rewrite
+     * history). Stamped server-side by the control plane from the
+     * authenticated caller; unset when no attribution exists.
+     *
+     * &#64;since Reviewer Attribution
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceAuditActorOrBuilder getResolvedByActorOrBuilder() {
+      if (resolvedByActorBuilder_ != null) {
+        return resolvedByActorBuilder_.getMessageOrBuilder();
+      } else {
+        return resolvedByActor_ == null ?
+            ai.stigmer.commons.apiresource.ApiResourceAuditActor.getDefaultInstance() : resolvedByActor_;
+      }
+    }
+    /**
+     * <pre>
+     * Display identity of the reviewer, snapshotted at decision time.
+     *
+     * &#64;internal
+     * Write-time snapshot, not a live lookup: an approval event is an
+     * immutable audit record, so it captures the reviewer as identified at
+     * the moment of the decision (later profile changes do not rewrite
+     * history). Stamped server-side by the control plane from the
+     * authenticated caller; unset when no attribution exists.
+     *
+     * &#64;since Reviewer Attribution
+     * </pre>
+     *
+     * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditActor resolved_by_actor = 5 [json_name = "resolvedByActor"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceAuditActor, ai.stigmer.commons.apiresource.ApiResourceAuditActor.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditActorOrBuilder> 
+        internalGetResolvedByActorFieldBuilder() {
+      if (resolvedByActorBuilder_ == null) {
+        resolvedByActorBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.commons.apiresource.ApiResourceAuditActor, ai.stigmer.commons.apiresource.ApiResourceAuditActor.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditActorOrBuilder>(
+                getResolvedByActor(),
+                getParentForChildren(),
+                isClean());
+        resolvedByActor_ = null;
+      }
+      return resolvedByActorBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload)

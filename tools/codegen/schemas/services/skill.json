@@ -767,7 +767,7 @@
     },
     {
       "name": "ApiResourceAuditActor",
-      "description": "ApiResourceAuditActor represents the entity that performed an action.",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
       "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
       "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
       "fields": [
@@ -778,7 +778,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Unique identifier of the actor.",
+          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
           "required": false
         },
         {
@@ -789,6 +789,26 @@
             "kind": "string"
           },
           "description": "URL to the actor's avatar image.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable display name (e.g. \"Ada Lovelace\"). Empty when unknown;\n renderers fall back to email, then id.",
+          "required": false
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
           "required": false
         }
       ]

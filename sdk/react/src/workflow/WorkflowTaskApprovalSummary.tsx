@@ -7,7 +7,11 @@ import { cn } from "@stigmer/theme";
 import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components.js";
 import { formatDuration, formatTimestamp } from "./format-utils.js";
 import type { TaskOutcome } from "./WorkflowTaskApprovalCard.js";
-import type { TaskDetailApprovalDecision } from "./task-detail/task-approval.js";
+import {
+  deriveTaskReviewer,
+  type TaskDetailApprovalDecision,
+  type TaskReviewerView,
+} from "./task-detail/task-approval.js";
 
 /** Props for {@link WorkflowTaskApprovalSummary}. */
 export interface WorkflowTaskApprovalSummaryProps {
@@ -82,6 +86,11 @@ export const WorkflowTaskApprovalSummary = memo(function WorkflowTaskApprovalSum
 
   const formEntries = useMemo(() => extractFormEntries(decision?.formData ?? null), [decision]);
 
+  const reviewer = useMemo(
+    () => (decision ? deriveTaskReviewer(decision) : null),
+    [decision],
+  );
+
   return (
     <div
       role="group"
@@ -116,20 +125,16 @@ export const WorkflowTaskApprovalSummary = memo(function WorkflowTaskApprovalSum
       {/* Reviewer + timing */}
       {!isFinalizing && (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted-foreground">
-          {decision!.reviewer && (
-            <span>
-              by <span className="font-medium text-foreground">{decision!.reviewer}</span>
-            </span>
-          )}
+          {reviewer && <ReviewerChip reviewer={reviewer} />}
           {decision!.respondedAt && (
             <>
-              {decision!.reviewer && <Dot />}
+              {reviewer && <Dot />}
               <span className="tabular-nums">{formatTimestamp(decision!.respondedAt)}</span>
             </>
           )}
           {decision!.waitDurationMs > 0 && (
             <>
-              {(decision!.reviewer || decision!.respondedAt) && <Dot />}
+              {(reviewer || decision!.respondedAt) && <Dot />}
               <span className="tabular-nums">waited {formatDuration(decision!.waitDurationMs)}</span>
             </>
           )}
@@ -177,6 +182,38 @@ export const WorkflowTaskApprovalSummary = memo(function WorkflowTaskApprovalSum
     </div>
   );
 });
+
+// ---------------------------------------------------------------------------
+// Reviewer chip
+// ---------------------------------------------------------------------------
+
+/**
+ * `by <avatar> Ada Lovelace` — the reviewer's display identity, following
+ * the platform's actor pattern (see `WorkflowVersionTimeline`). The email
+ * rides as a native tooltip when it is not already the visible label. A
+ * label that fell through to the raw identity (legacy records) renders
+ * de-emphasized — internal IDs are never presented as if they were names.
+ */
+function ReviewerChip({ reviewer }: { readonly reviewer: TaskReviewerView }) {
+  return (
+    <span className="flex items-center gap-1">
+      by{" "}
+      {reviewer.avatar && (
+        <img src={reviewer.avatar} alt="" className="size-3.5 rounded-full" />
+      )}
+      <span
+        className={cn(
+          reviewer.isRawId
+            ? "font-mono text-[10px] text-muted-foreground"
+            : "font-medium text-foreground",
+        )}
+        title={reviewer.email || undefined}
+      >
+        {reviewer.label}
+      </span>
+    </span>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Tone (visual treatment of the chosen outcome)

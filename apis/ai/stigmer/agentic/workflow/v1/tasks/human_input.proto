@@ -97,9 +97,21 @@ message HumanInputOutcome {
 //   {
 //     "outcome": "approve",
 //     "form_data": { <validated form response if form_schema is set> },
-//     "reviewer": "<user who responded>",
+//     "reviewer": "<canonical identity of the user who responded>",
+//     "reviewer_actor": {
+//       "id": "<canonical identity>",
+//       "display_name": "<human-readable name, empty when unknown>",
+//       "email": "<email address, empty when unknown>",
+//       "avatar": "<avatar URL, empty when unknown>"
+//     },
 //     "responded_at": "<ISO 8601 timestamp>"
 //   }
+//
+// "reviewer" is the stable audit key (use it in switch conditions and
+// audit joins); "reviewer_actor" is a display snapshot stamped server-side
+// at decision time (use it in notifications and UIs). Both are absent when
+// the gate resolves without attribution (timeout policies, OSS single-user
+// edition).
 //
 // YAML Example (approval gate with custom outcomes):
 //   - manager_approval:

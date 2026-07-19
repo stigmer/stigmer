@@ -59,11 +59,49 @@ export interface TaskApprovalRequestView {
  * is signalled but before the status snapshot reflects the task output —
  * consumers render a "finalizing" affordance in that state.
  */
+/**
+ * Display identity of the reviewer, snapshotted server-side at decision
+ * time (see `reviewer_actor` in the human_input task-output contract).
+ * Renderers apply the fallback ladder: displayName → email → raw
+ * {@link TaskDetailApprovalDecision.reviewer} id → omit.
+ */
+export interface TaskReviewerActor {
+  /** Canonical identity (matches the decision's `reviewer`). */
+  readonly id: string;
+  /** Human-readable name; `""` when unknown. */
+  readonly displayName: string;
+  /** Email address; `""` when unknown. */
+  readonly email: string;
+  /** Avatar URL; `""` when unknown. */
+  readonly avatar: string;
+}
+
+/**
+ * How a decided gate's reviewer should be presented — the fallback ladder
+ * ({@link TaskReviewerActor} fields first, raw id last) collapsed to a
+ * render-ready shape shared by the summary card and the thread caption.
+ */
+export interface TaskReviewerView {
+  /** Best display label: display name → email → canonical id. Never empty. */
+  readonly label: string;
+  /** Email for secondary display; `""` when unknown or equal to the label. */
+  readonly email: string;
+  /** Avatar URL; `""` when unknown. */
+  readonly avatar: string;
+  /**
+   * `true` when the label fell through to the raw identity (legacy records
+   * that predate actor enrichment) — renderers de-emphasize it.
+   */
+  readonly isRawId: boolean;
+}
+
 export interface TaskDetailApprovalDecision {
   /** Chosen outcome identifier (e.g. "approve", "pause_campaigns"). */
   readonly outcome: string;
-  /** Reviewer who made the decision. */
+  /** Canonical reviewer identity; `""` when the decision is unattributed. */
   readonly reviewer: string;
+  /** Display snapshot of the reviewer, or `null` for unenriched records. */
+  readonly reviewerActor: TaskReviewerActor | null;
   /** ISO-8601 timestamp the decision was recorded, or `null`. */
   readonly respondedAt: string | null;
   /** Free-text comment the reviewer attached, or the empty string. */
@@ -131,6 +169,7 @@ export function deriveTaskApprovalDecision(
     outcome: outputOutcome,
     reviewer:
       readSnapshotString(taskOutput, "reviewer") || (resolution?.resolvedBy ?? ""),
+    reviewerActor: deriveReviewerActor(resolution, taskOutput),
     respondedAt: readSnapshotString(taskOutput, "responded_at") || null,
     comment:
       readSnapshotString(taskOutput, "comment") || (resolution?.comment ?? ""),
@@ -138,6 +177,61 @@ export function deriveTaskApprovalDecision(
     waitDurationMs: resolution ? Number(resolution.waitDurationMs) : 0,
     autoResolved: taskOutput?.["auto_resolved"] === true,
   };
+}
+
+/**
+ * Collapses a decision's attribution into the render-ready reviewer view,
+ * or `null` when the decision carries no attribution at all (timeout
+ * auto-resolution, OSS single-user edition) — consumers omit the "by …"
+ * segment entirely in that case.
+ */
+export function deriveTaskReviewer(
+  decision: TaskDetailApprovalDecision,
+): TaskReviewerView | null {
+  const actor = decision.reviewerActor;
+  const label = actor?.displayName || actor?.email || decision.reviewer;
+  if (!label) return null;
+
+  const email = actor?.email && actor.email !== label ? actor.email : "";
+  return {
+    label,
+    email,
+    avatar: actor?.avatar ?? "",
+    isRawId: !actor?.displayName && !actor?.email,
+  };
+}
+
+/**
+ * Reviewer actor from the task-output snapshot (snake_case JSON stamped by
+ * the control plane), falling back to the `approval_resolved` event's
+ * proto actor for the finalizing window — mirroring the same output-first
+ * precedence as the scalar decision fields.
+ */
+function deriveReviewerActor(
+  resolution: ApprovalResolvedPayload | null,
+  taskOutput: JsonObject | undefined,
+): TaskReviewerActor | null {
+  const snapshot = readSnapshotObject(taskOutput, "reviewer_actor");
+  if (snapshot) {
+    return {
+      id: readSnapshotString(snapshot, "id"),
+      displayName: readSnapshotString(snapshot, "display_name"),
+      email: readSnapshotString(snapshot, "email"),
+      avatar: readSnapshotString(snapshot, "avatar"),
+    };
+  }
+
+  const eventActor = resolution?.resolvedByActor;
+  if (eventActor) {
+    return {
+      id: eventActor.id,
+      displayName: eventActor.displayName,
+      email: eventActor.email,
+      avatar: eventActor.avatar,
+    };
+  }
+
+  return null;
 }
 
 /** Reads a string field from a task-output Struct, or `""` when absent. */

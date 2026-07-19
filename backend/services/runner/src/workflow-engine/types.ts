@@ -563,11 +563,31 @@ export interface HumanInputExecutionConfig {
 
 export interface HumanInputResult {
   readonly outcome: string;
+  /** Canonical reviewer identity (identity-account ID). Empty/absent when unattributed. */
   readonly reviewer?: string;
+  /**
+   * Display snapshot of the reviewer, stamped server-side by the control
+   * plane at decision time. Rides the signal opaquely into the task output
+   * (for downstream tasks, e.g. notifications) and the approval_resolved
+   * event (for UIs). Absent when no attribution exists — never synthesized.
+   */
+  readonly reviewer_actor?: HumanInputReviewerActor;
   readonly responded_at?: string;
   readonly form_data?: Record<string, unknown>;
   readonly auto_resolved?: boolean;
   readonly reason?: string;
+}
+
+/** Write-time snapshot of the reviewer's display identity. */
+export interface HumanInputReviewerActor {
+  /** Canonical identity (matches HumanInputResult.reviewer). */
+  readonly id: string;
+  /** Human-readable name; empty when unknown. */
+  readonly display_name?: string;
+  /** Email address; empty when unknown. */
+  readonly email?: string;
+  /** Avatar URL; empty when unknown. */
+  readonly avatar?: string;
 }
 
 export interface HumanInputConfig {
@@ -843,7 +863,10 @@ export interface ApprovalRequestedEvent extends EventBase {
 export interface ApprovalResolvedEvent extends EventBase {
   readonly type: "approval_resolved";
   readonly outcome: string;
+  /** Canonical reviewer identity. Empty when unattributed. */
   readonly resolvedBy: string;
+  /** Display snapshot of the reviewer from the signal payload, if stamped. */
+  readonly resolvedByActor?: HumanInputReviewerActor;
   readonly comment: string;
   readonly waitDurationMs: number;
   readonly autoResolved: boolean;

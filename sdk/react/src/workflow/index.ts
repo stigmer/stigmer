@@ -609,8 +609,11 @@ export {
   type TaskDetailIO,
   deriveTaskApprovalRequest,
   deriveTaskApprovalDecision,
+  deriveTaskReviewer,
   type TaskApprovalRequestView,
   type TaskDetailApprovalDecision,
+  type TaskReviewerActor,
+  type TaskReviewerView,
   StructuredDataViewer,
   type StructuredDataViewerProps,
 } from "./task-detail/index.js";

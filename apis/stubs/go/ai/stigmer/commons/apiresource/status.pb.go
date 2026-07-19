@@ -206,12 +206,29 @@ func (x *ApiResourceAuditInfo) GetEvent() string {
 }
 
 // ApiResourceAuditActor represents the entity that performed an action.
+//
+// This is the platform's single actor vocabulary: every "who did this"
+// reference (created_by / updated_by, version-history applied_by / pushed_by,
+// approval resolved_by_actor) uses this message, so actor rendering is
+// uniform across all surfaces.
 type ApiResourceAuditActor struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique identifier of the actor.
+	//
+	// @internal
+	// Historically, some writers populate this with the actor's email address
+	// rather than the identity-account ID. New writers should use the
+	// identity-account ID and carry the email in the dedicated field below;
+	// renderers must treat this value as an opaque last-resort label.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// URL to the actor's avatar image.
-	Avatar        string `protobuf:"bytes,2,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	Avatar string `protobuf:"bytes,2,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	// Human-readable display name (e.g. "Ada Lovelace"). Empty when unknown;
+	// renderers fall back to email, then id.
+	DisplayName string `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	// Email address of the actor. Empty when unknown or not applicable
+	// (e.g. machine accounts).
+	Email         string `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -260,6 +277,20 @@ func (x *ApiResourceAuditActor) GetAvatar() string {
 	return ""
 }
 
+func (x *ApiResourceAuditActor) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *ApiResourceAuditActor) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
 var File_ai_stigmer_commons_apiresource_status_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_commons_apiresource_status_proto_rawDesc = "" +
@@ -280,10 +311,12 @@ const file_ai_stigmer_commons_apiresource_status_proto_rawDesc = "" +
 	"updated_by\x18\x03 \x01(\v25.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\tupdatedBy\x129\n" +
 	"\n" +
 	"updated_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x14\n" +
-	"\x05event\x18\x05 \x01(\tR\x05event\"?\n" +
+	"\x05event\x18\x05 \x01(\tR\x05event\"x\n" +
 	"\x15ApiResourceAuditActor\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
-	"\x06avatar\x18\x02 \x01(\tR\x06avatarB\x96\x02\n" +
+	"\x06avatar\x18\x02 \x01(\tR\x06avatar\x12!\n" +
+	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\x12\x14\n" +
+	"\x05email\x18\x04 \x01(\tR\x05emailB\x96\x02\n" +
 	"\"com.ai.stigmer.commons.apiresourceB\vStatusProtoP\x01ZGgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource\xa2\x02\x04ASCA\xaa\x02\x1eAi.Stigmer.Commons.Apiresource\xca\x02\x1eAi\\Stigmer\\Commons\\Apiresource\xe2\x02*Ai\\Stigmer\\Commons\\Apiresource\\GPBMetadata\xea\x02!Ai::Stigmer::Commons::Apiresourceb\x06proto3"
 
 var (

@@ -10,6 +10,7 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v11 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -2073,15 +2074,33 @@ type ApprovalResolvedPayload struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The decision that was made.
 	Action v11.ApprovalAction `protobuf:"varint,1,opt,name=action,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalAction" json:"action,omitempty"`
-	// Identity of the user who made the decision.
+	// Canonical identity of the user who made the decision
+	// (identity-account ID). Empty when not attributed (e.g. the OSS
+	// single-user edition, or timeout auto-resolution).
+	//
+	// @internal
+	// This is the stable audit key. Renderers should prefer
+	// resolved_by_actor for display and only fall back to this raw value
+	// for records that predate actor enrichment.
 	ResolvedBy string `protobuf:"bytes,2,opt,name=resolved_by,json=resolvedBy,proto3" json:"resolved_by,omitempty"`
 	// Optional comment provided with the decision.
 	Comment string `protobuf:"bytes,3,opt,name=comment,proto3" json:"comment,omitempty"`
 	// Duration the approval was pending in milliseconds
 	// (from approval_requested to approval_resolved).
 	WaitDurationMs int64 `protobuf:"varint,4,opt,name=wait_duration_ms,json=waitDurationMs,proto3" json:"wait_duration_ms,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Display identity of the reviewer, snapshotted at decision time.
+	//
+	// @internal
+	// Write-time snapshot, not a live lookup: an approval event is an
+	// immutable audit record, so it captures the reviewer as identified at
+	// the moment of the decision (later profile changes do not rewrite
+	// history). Stamped server-side by the control plane from the
+	// authenticated caller; unset when no attribution exists.
+	//
+	// @since Reviewer Attribution
+	ResolvedByActor *apiresource.ApiResourceAuditActor `protobuf:"bytes,5,opt,name=resolved_by_actor,json=resolvedByActor,proto3" json:"resolved_by_actor,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ApprovalResolvedPayload) Reset() {
@@ -2140,6 +2159,13 @@ func (x *ApprovalResolvedPayload) GetWaitDurationMs() int64 {
 		return x.WaitDurationMs
 	}
 	return 0
+}
+
+func (x *ApprovalResolvedPayload) GetResolvedByActor() *apiresource.ApiResourceAuditActor {
+	if x != nil {
+		return x.ResolvedByActor
+	}
+	return nil
 }
 
 // Payload for budget_checkpoint events.
@@ -2472,7 +2498,7 @@ var File_ai_stigmer_agentic_workflowexecution_v1_event_proto protoreflect.FileDe
 
 const file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/workflowexecution/v1/event.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a)ai/stigmer/agentic/workflow/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa5\x14\n" +
+	"3ai/stigmer/agentic/workflowexecution/v1/event.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a)ai/stigmer/agentic/workflow/v1/enum.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa5\x14\n" +
 	"\x16WorkflowExecutionEvent\x12\"\n" +
 	"\bevent_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aeventId\x12c\n" +
 	"\n" +
@@ -2602,13 +2628,14 @@ const file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDesc = "" +
 	"\apayload\x18\b \x01(\v2\x16.google.protobuf.ValueR\apayload\x12\x17\n" +
 	"\aui_hint\x18\t \x01(\tR\x06uiHint\x12.\n" +
 	"\x13payload_artifact_id\x18\n" +
-	" \x01(\tR\x11payloadArtifactId\"\xcc\x01\n" +
+	" \x01(\tR\x11payloadArtifactId\"\xaf\x02\n" +
 	"\x17ApprovalResolvedPayload\x12L\n" +
 	"\x06action\x18\x01 \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ApprovalActionR\x06action\x12\x1f\n" +
 	"\vresolved_by\x18\x02 \x01(\tR\n" +
 	"resolvedBy\x12\x18\n" +
 	"\acomment\x18\x03 \x01(\tR\acomment\x12(\n" +
-	"\x10wait_duration_ms\x18\x04 \x01(\x03R\x0ewaitDurationMs\"\xe6\x02\n" +
+	"\x10wait_duration_ms\x18\x04 \x01(\x03R\x0ewaitDurationMs\x12a\n" +
+	"\x11resolved_by_actor\x18\x05 \x01(\v25.ai.stigmer.commons.apiresource.ApiResourceAuditActorR\x0fresolvedByActor\"\xe6\x02\n" +
 	"\x17BudgetCheckpointPayload\x120\n" +
 	"\x14cost_consumed_micros\x18\x01 \x01(\x03R\x12costConsumedMicros\x122\n" +
 	"\x15cost_remaining_micros\x18\x02 \x01(\x03R\x13costRemainingMicros\x12'\n" +
@@ -2673,36 +2700,37 @@ func file_ai_stigmer_agentic_workflowexecution_v1_event_proto_rawDescGZIP() []by
 var file_ai_stigmer_agentic_workflowexecution_v1_event_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_ai_stigmer_agentic_workflowexecution_v1_event_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_ai_stigmer_agentic_workflowexecution_v1_event_proto_goTypes = []any{
-	(WorkflowEventType)(0),             // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType
-	(*WorkflowExecutionEvent)(nil),     // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent
-	(*ExecutionStartedPayload)(nil),    // 2: ai.stigmer.agentic.workflowexecution.v1.ExecutionStartedPayload
-	(*ExecutionCompletedPayload)(nil),  // 3: ai.stigmer.agentic.workflowexecution.v1.ExecutionCompletedPayload
-	(*ExecutionFailedPayload)(nil),     // 4: ai.stigmer.agentic.workflowexecution.v1.ExecutionFailedPayload
-	(*ExecutionPausedPayload)(nil),     // 5: ai.stigmer.agentic.workflowexecution.v1.ExecutionPausedPayload
-	(*ExecutionResumedPayload)(nil),    // 6: ai.stigmer.agentic.workflowexecution.v1.ExecutionResumedPayload
-	(*ExecutionCancelledPayload)(nil),  // 7: ai.stigmer.agentic.workflowexecution.v1.ExecutionCancelledPayload
-	(*ExecutionTerminatedPayload)(nil), // 8: ai.stigmer.agentic.workflowexecution.v1.ExecutionTerminatedPayload
-	(*TaskStartedPayload)(nil),         // 9: ai.stigmer.agentic.workflowexecution.v1.TaskStartedPayload
-	(*TaskCompletedPayload)(nil),       // 10: ai.stigmer.agentic.workflowexecution.v1.TaskCompletedPayload
-	(*TaskFailedPayload)(nil),          // 11: ai.stigmer.agentic.workflowexecution.v1.TaskFailedPayload
-	(*TaskSkippedPayload)(nil),         // 12: ai.stigmer.agentic.workflowexecution.v1.TaskSkippedPayload
-	(*TaskRetryingPayload)(nil),        // 13: ai.stigmer.agentic.workflowexecution.v1.TaskRetryingPayload
-	(*AgentCallStartedPayload)(nil),    // 14: ai.stigmer.agentic.workflowexecution.v1.AgentCallStartedPayload
-	(*AgentCallProgressPayload)(nil),   // 15: ai.stigmer.agentic.workflowexecution.v1.AgentCallProgressPayload
-	(*AgentCallCompletedPayload)(nil),  // 16: ai.stigmer.agentic.workflowexecution.v1.AgentCallCompletedPayload
-	(*HumanInputOutcomeInfo)(nil),      // 17: ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo
-	(*ApprovalRequestedPayload)(nil),   // 18: ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload
-	(*ApprovalResolvedPayload)(nil),    // 19: ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload
-	(*BudgetCheckpointPayload)(nil),    // 20: ai.stigmer.agentic.workflowexecution.v1.BudgetCheckpointPayload
-	(*SignalReceivedPayload)(nil),      // 21: ai.stigmer.agentic.workflowexecution.v1.SignalReceivedPayload
-	(*EventEmittedPayload)(nil),        // 22: ai.stigmer.agentic.workflowexecution.v1.EventEmittedPayload
-	(*ArtifactCreatedPayload)(nil),     // 23: ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload
-	(*structpb.Struct)(nil),            // 24: google.protobuf.Struct
-	(v1.WorkflowTaskKind)(0),           // 25: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
-	(v11.ExecutionPhase)(0),            // 26: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	(*structpb.Value)(nil),             // 27: google.protobuf.Value
-	(v11.ApprovalAction)(0),            // 28: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	(v1.BudgetExceededPolicy)(0),       // 29: ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
+	(WorkflowEventType)(0),                    // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType
+	(*WorkflowExecutionEvent)(nil),            // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent
+	(*ExecutionStartedPayload)(nil),           // 2: ai.stigmer.agentic.workflowexecution.v1.ExecutionStartedPayload
+	(*ExecutionCompletedPayload)(nil),         // 3: ai.stigmer.agentic.workflowexecution.v1.ExecutionCompletedPayload
+	(*ExecutionFailedPayload)(nil),            // 4: ai.stigmer.agentic.workflowexecution.v1.ExecutionFailedPayload
+	(*ExecutionPausedPayload)(nil),            // 5: ai.stigmer.agentic.workflowexecution.v1.ExecutionPausedPayload
+	(*ExecutionResumedPayload)(nil),           // 6: ai.stigmer.agentic.workflowexecution.v1.ExecutionResumedPayload
+	(*ExecutionCancelledPayload)(nil),         // 7: ai.stigmer.agentic.workflowexecution.v1.ExecutionCancelledPayload
+	(*ExecutionTerminatedPayload)(nil),        // 8: ai.stigmer.agentic.workflowexecution.v1.ExecutionTerminatedPayload
+	(*TaskStartedPayload)(nil),                // 9: ai.stigmer.agentic.workflowexecution.v1.TaskStartedPayload
+	(*TaskCompletedPayload)(nil),              // 10: ai.stigmer.agentic.workflowexecution.v1.TaskCompletedPayload
+	(*TaskFailedPayload)(nil),                 // 11: ai.stigmer.agentic.workflowexecution.v1.TaskFailedPayload
+	(*TaskSkippedPayload)(nil),                // 12: ai.stigmer.agentic.workflowexecution.v1.TaskSkippedPayload
+	(*TaskRetryingPayload)(nil),               // 13: ai.stigmer.agentic.workflowexecution.v1.TaskRetryingPayload
+	(*AgentCallStartedPayload)(nil),           // 14: ai.stigmer.agentic.workflowexecution.v1.AgentCallStartedPayload
+	(*AgentCallProgressPayload)(nil),          // 15: ai.stigmer.agentic.workflowexecution.v1.AgentCallProgressPayload
+	(*AgentCallCompletedPayload)(nil),         // 16: ai.stigmer.agentic.workflowexecution.v1.AgentCallCompletedPayload
+	(*HumanInputOutcomeInfo)(nil),             // 17: ai.stigmer.agentic.workflowexecution.v1.HumanInputOutcomeInfo
+	(*ApprovalRequestedPayload)(nil),          // 18: ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload
+	(*ApprovalResolvedPayload)(nil),           // 19: ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload
+	(*BudgetCheckpointPayload)(nil),           // 20: ai.stigmer.agentic.workflowexecution.v1.BudgetCheckpointPayload
+	(*SignalReceivedPayload)(nil),             // 21: ai.stigmer.agentic.workflowexecution.v1.SignalReceivedPayload
+	(*EventEmittedPayload)(nil),               // 22: ai.stigmer.agentic.workflowexecution.v1.EventEmittedPayload
+	(*ArtifactCreatedPayload)(nil),            // 23: ai.stigmer.agentic.workflowexecution.v1.ArtifactCreatedPayload
+	(*structpb.Struct)(nil),                   // 24: google.protobuf.Struct
+	(v1.WorkflowTaskKind)(0),                  // 25: ai.stigmer.agentic.workflow.v1.WorkflowTaskKind
+	(v11.ExecutionPhase)(0),                   // 26: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	(*structpb.Value)(nil),                    // 27: google.protobuf.Value
+	(v11.ApprovalAction)(0),                   // 28: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(*apiresource.ApiResourceAuditActor)(nil), // 29: ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	(v1.BudgetExceededPolicy)(0),              // 30: ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
 }
 var file_ai_stigmer_agentic_workflowexecution_v1_event_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionEvent.event_type:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowEventType
@@ -2740,13 +2768,14 @@ var file_ai_stigmer_agentic_workflowexecution_v1_event_proto_depIdxs = []int32{
 	24, // 32: ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload.form_schema:type_name -> google.protobuf.Struct
 	27, // 33: ai.stigmer.agentic.workflowexecution.v1.ApprovalRequestedPayload.payload:type_name -> google.protobuf.Value
 	28, // 34: ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload.action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
-	29, // 35: ai.stigmer.agentic.workflowexecution.v1.BudgetCheckpointPayload.on_exceeded_policy:type_name -> ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
-	24, // 36: ai.stigmer.agentic.workflowexecution.v1.SignalReceivedPayload.payload_summary:type_name -> google.protobuf.Struct
-	37, // [37:37] is the sub-list for method output_type
-	37, // [37:37] is the sub-list for method input_type
-	37, // [37:37] is the sub-list for extension type_name
-	37, // [37:37] is the sub-list for extension extendee
-	0,  // [0:37] is the sub-list for field type_name
+	29, // 35: ai.stigmer.agentic.workflowexecution.v1.ApprovalResolvedPayload.resolved_by_actor:type_name -> ai.stigmer.commons.apiresource.ApiResourceAuditActor
+	30, // 36: ai.stigmer.agentic.workflowexecution.v1.BudgetCheckpointPayload.on_exceeded_policy:type_name -> ai.stigmer.agentic.workflow.v1.BudgetExceededPolicy
+	24, // 37: ai.stigmer.agentic.workflowexecution.v1.SignalReceivedPayload.payload_summary:type_name -> google.protobuf.Struct
+	38, // [38:38] is the sub-list for method output_type
+	38, // [38:38] is the sub-list for method input_type
+	38, // [38:38] is the sub-list for extension type_name
+	38, // [38:38] is the sub-list for extension extendee
+	0,  // [0:38] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflowexecution_v1_event_proto_init() }

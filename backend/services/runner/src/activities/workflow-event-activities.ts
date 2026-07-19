@@ -34,6 +34,7 @@ import {
   ArtifactCreatedPayloadSchema,
   HumanInputOutcomeInfoSchema,
 } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/event_pb";
+import { ApiResourceAuditActorSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 import { WorkflowExecutionStatusSchema, WorkflowTaskSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import {
   WorkflowExecutionUpdateStatusInputSchema,
@@ -309,6 +310,14 @@ export function toProtoEvent(desc: WorkflowEventDescriptor): WorkflowExecutionEv
         case: "approvalResolved",
         value: create(ApprovalResolvedPayloadSchema, {
           resolvedBy: desc.resolvedBy,
+          resolvedByActor: desc.resolvedByActor
+            ? create(ApiResourceAuditActorSchema, {
+                id: desc.resolvedByActor.id,
+                displayName: desc.resolvedByActor.display_name ?? "",
+                email: desc.resolvedByActor.email ?? "",
+                avatar: desc.resolvedByActor.avatar ?? "",
+              })
+            : undefined,
           comment: desc.comment,
           waitDurationMs: BigInt(desc.waitDurationMs),
         }),

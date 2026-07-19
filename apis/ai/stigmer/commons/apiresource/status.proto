@@ -38,10 +38,29 @@ message ApiResourceAuditInfo {
 }
 
 // ApiResourceAuditActor represents the entity that performed an action.
+//
+// This is the platform's single actor vocabulary: every "who did this"
+// reference (created_by / updated_by, version-history applied_by / pushed_by,
+// approval resolved_by_actor) uses this message, so actor rendering is
+// uniform across all surfaces.
 message ApiResourceAuditActor {
   // Unique identifier of the actor.
+  //
+  // @internal
+  // Historically, some writers populate this with the actor's email address
+  // rather than the identity-account ID. New writers should use the
+  // identity-account ID and carry the email in the dedicated field below;
+  // renderers must treat this value as an opaque last-resort label.
   string id = 1;
 
   // URL to the actor's avatar image.
   string avatar = 2;
+
+  // Human-readable display name (e.g. "Ada Lovelace"). Empty when unknown;
+  // renderers fall back to email, then id.
+  string display_name = 3;
+
+  // Email address of the actor. Empty when unknown or not applicable
+  // (e.g. machine accounts).
+  string email = 4;
 }

@@ -8,7 +8,8 @@
  * - "approve": returns auto-approved output
  * - "deny": returns auto-denied output
  *
- * Signal payload shape: { outcome, form_data?, reviewer, responded_at }
+ * Signal payload shape:
+ * { outcome, form_data?, reviewer, reviewer_actor?, responded_at }
  *
  * TEMPORAL SANDBOX: This file runs inside the deterministic workflow isolate.
  */

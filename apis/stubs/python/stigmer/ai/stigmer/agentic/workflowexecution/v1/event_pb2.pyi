@@ -1,5 +1,6 @@
 from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.workflow.v1 import enum_pb2 as _enum_pb2_1
+from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import struct_pb2 as _struct_pb2
 from google.protobuf.internal import containers as _containers
@@ -309,16 +310,18 @@ class ApprovalRequestedPayload(_message.Message):
     def __init__(self, prompt: _Optional[str] = ..., approvers: _Optional[_Iterable[str]] = ..., timeout_seconds: _Optional[int] = ..., tool_call_id: _Optional[str] = ..., child_execution_id: _Optional[str] = ..., outcomes: _Optional[_Iterable[_Union[HumanInputOutcomeInfo, _Mapping]]] = ..., form_schema: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., payload: _Optional[_Union[_struct_pb2.Value, _Mapping]] = ..., ui_hint: _Optional[str] = ..., payload_artifact_id: _Optional[str] = ...) -> None: ...
 
 class ApprovalResolvedPayload(_message.Message):
-    __slots__ = ("action", "resolved_by", "comment", "wait_duration_ms")
+    __slots__ = ("action", "resolved_by", "comment", "wait_duration_ms", "resolved_by_actor")
     ACTION_FIELD_NUMBER: _ClassVar[int]
     RESOLVED_BY_FIELD_NUMBER: _ClassVar[int]
     COMMENT_FIELD_NUMBER: _ClassVar[int]
     WAIT_DURATION_MS_FIELD_NUMBER: _ClassVar[int]
+    RESOLVED_BY_ACTOR_FIELD_NUMBER: _ClassVar[int]
     action: _enum_pb2.ApprovalAction
     resolved_by: str
     comment: str
     wait_duration_ms: int
-    def __init__(self, action: _Optional[_Union[_enum_pb2.ApprovalAction, str]] = ..., resolved_by: _Optional[str] = ..., comment: _Optional[str] = ..., wait_duration_ms: _Optional[int] = ...) -> None: ...
+    resolved_by_actor: _status_pb2.ApiResourceAuditActor
+    def __init__(self, action: _Optional[_Union[_enum_pb2.ApprovalAction, str]] = ..., resolved_by: _Optional[str] = ..., comment: _Optional[str] = ..., wait_duration_ms: _Optional[int] = ..., resolved_by_actor: _Optional[_Union[_status_pb2.ApiResourceAuditActor, _Mapping]] = ...) -> None: ...
 
 class BudgetCheckpointPayload(_message.Message):
     __slots__ = ("cost_consumed_micros", "cost_remaining_micros", "tokens_consumed", "tokens_remaining", "threshold_breached", "on_exceeded_policy")

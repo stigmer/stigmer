@@ -209,10 +209,14 @@ func (s *SendTaskApprovalSignalStep) Execute(ctx *pipeline.RequestContext[*workf
 	execution := ctx.Get(LoadedExecutionKey).(*workflowexecutionv1.WorkflowExecution)
 	executionID := input.GetExecutionId()
 
+	// Reviewer attribution: OSS is single-user with no multi-tenant auth
+	// context, so there is no authenticated principal to attribute the
+	// decision to. An explicit client-supplied reviewer is honored (the CLI
+	// may pass one); otherwise the reviewer stays empty — "Empty when not
+	// attributed", matching the agent-execution ledger's decided_by contract.
+	// The Cloud edition attributes server-side from the authenticated caller
+	// and additionally stamps a reviewer_actor display snapshot.
 	reviewer := input.GetReviewer()
-	if reviewer == "" {
-		reviewer = "unknown"
-	}
 
 	humanInputSignalName := humanInputSignalPrefix + input.GetTaskName()
 

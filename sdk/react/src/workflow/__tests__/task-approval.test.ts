@@ -10,6 +10,7 @@ import {
 import {
   deriveTaskApprovalRequest,
   deriveTaskApprovalDecision,
+  deriveTaskReviewer,
 } from "../task-detail/task-approval";
 
 // ---------------------------------------------------------------------------
@@ -145,5 +146,123 @@ describe("deriveTaskApprovalDecision", () => {
     } as JsonObject);
     expect(decision!.outcome).toBe("approve");
     expect(decision!.autoResolved).toBe(true);
+  });
+
+  it("reads the reviewer_actor display snapshot from the task output", () => {
+    const decision = deriveTaskApprovalDecision(null, {
+      outcome: "approve",
+      reviewer: "ida_01abc",
+      reviewer_actor: {
+        id: "ida_01abc",
+        display_name: "Ada Lovelace",
+        email: "ada@example.com",
+        avatar: "https://example.com/ada.png",
+      },
+    } as JsonObject);
+    expect(decision!.reviewerActor).toEqual({
+      id: "ida_01abc",
+      displayName: "Ada Lovelace",
+      email: "ada@example.com",
+      avatar: "https://example.com/ada.png",
+    });
+  });
+
+  it("falls back to the event's resolvedByActor during the finalizing window", () => {
+    const decision = deriveTaskApprovalDecision(
+      makeResolution({
+        resolvedBy: "ida_01abc",
+        resolvedByActor: {
+          id: "ida_01abc",
+          displayName: "Ada Lovelace",
+          email: "ada@example.com",
+          avatar: "",
+        } as never,
+      }),
+      undefined,
+    );
+    expect(decision!.reviewerActor).toEqual({
+      id: "ida_01abc",
+      displayName: "Ada Lovelace",
+      email: "ada@example.com",
+      avatar: "",
+    });
+  });
+
+  it("leaves reviewerActor null for unenriched records", () => {
+    const decision = deriveTaskApprovalDecision(null, {
+      outcome: "approve",
+      reviewer: "ida_01abc",
+    } as JsonObject);
+    expect(decision!.reviewerActor).toBeNull();
+  });
+});
+
+describe("deriveTaskReviewer", () => {
+  const base = {
+    outcome: "approve",
+    respondedAt: null,
+    comment: "",
+    formData: null,
+    waitDurationMs: 0,
+    autoResolved: false,
+  };
+
+  it("prefers the display name, carrying email and avatar for the chip", () => {
+    const view = deriveTaskReviewer({
+      ...base,
+      reviewer: "ida_01abc",
+      reviewerActor: {
+        id: "ida_01abc",
+        displayName: "Ada Lovelace",
+        email: "ada@example.com",
+        avatar: "https://example.com/ada.png",
+      },
+    });
+    expect(view).toEqual({
+      label: "Ada Lovelace",
+      email: "ada@example.com",
+      avatar: "https://example.com/ada.png",
+      isRawId: false,
+    });
+  });
+
+  it("falls back to email when no display name exists", () => {
+    const view = deriveTaskReviewer({
+      ...base,
+      reviewer: "ida_01abc",
+      reviewerActor: {
+        id: "ida_01abc",
+        displayName: "",
+        email: "ada@example.com",
+        avatar: "",
+      },
+    });
+    expect(view!.label).toBe("ada@example.com");
+    // Email equals the label — no redundant secondary display.
+    expect(view!.email).toBe("");
+    expect(view!.isRawId).toBe(false);
+  });
+
+  it("falls back to the raw id for legacy records, flagged for de-emphasis", () => {
+    const view = deriveTaskReviewer({
+      ...base,
+      reviewer: "ida_01abc",
+      reviewerActor: null,
+    });
+    expect(view).toEqual({
+      label: "ida_01abc",
+      email: "",
+      avatar: "",
+      isRawId: true,
+    });
+  });
+
+  it("returns null for unattributed decisions so the 'by' segment is omitted", () => {
+    const view = deriveTaskReviewer({
+      ...base,
+      reviewer: "",
+      reviewerActor: null,
+    });
+    expect(view).toBeNull();
   });
 });

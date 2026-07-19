@@ -10,6 +10,7 @@ function makeDecision(
   return {
     outcome: "approve",
     reviewer: "alice",
+    reviewerActor: null,
     respondedAt: "2026-06-02T07:40:08Z",
     comment: "",
     formData: null,
@@ -57,11 +58,60 @@ describe("WorkflowTaskApprovalSummary", () => {
   });
 
   describe("decision metadata", () => {
-    it("renders the reviewer", () => {
+    it("renders the reviewer's display name with avatar and email tooltip when enriched", () => {
+      render(
+        <WorkflowTaskApprovalSummary
+          {...baseProps}
+          decision={makeDecision({
+            reviewer: "ida_01abc",
+            reviewerActor: {
+              id: "ida_01abc",
+              displayName: "Ada Lovelace",
+              email: "ada@example.com",
+              avatar: "https://example.com/ada.png",
+            },
+          })}
+        />,
+      );
+      const name = screen.getByText("Ada Lovelace");
+      expect(name.getAttribute("title")).toBe("ada@example.com");
+      expect(document.querySelector('img[src="https://example.com/ada.png"]')).toBeTruthy();
+      // The raw identity is never shown when a display identity exists.
+      expect(screen.queryByText("ida_01abc")).toBeNull();
+    });
+
+    it("falls back to the email when the actor has no display name", () => {
+      render(
+        <WorkflowTaskApprovalSummary
+          {...baseProps}
+          decision={makeDecision({
+            reviewer: "ida_01abc",
+            reviewerActor: {
+              id: "ida_01abc",
+              displayName: "",
+              email: "ada@example.com",
+              avatar: "",
+            },
+          })}
+        />,
+      );
+      expect(screen.getByText("ada@example.com")).toBeTruthy();
+      expect(screen.queryByText("ida_01abc")).toBeNull();
+    });
+
+    it("renders a de-emphasized raw id for legacy unenriched records", () => {
       render(
         <WorkflowTaskApprovalSummary {...baseProps} decision={makeDecision({ reviewer: "bob" })} />,
       );
-      expect(screen.getByText("bob")).toBeTruthy();
+      const raw = screen.getByText("bob");
+      expect(raw.className).toContain("font-mono");
+    });
+
+    it("omits the 'by' segment entirely for unattributed decisions", () => {
+      render(
+        <WorkflowTaskApprovalSummary {...baseProps} decision={makeDecision({ reviewer: "" })} />,
+      );
+      expect(screen.queryByText(/^by/)).toBeNull();
     });
 
     it("renders the wait duration when present", () => {

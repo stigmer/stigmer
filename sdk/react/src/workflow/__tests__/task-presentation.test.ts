@@ -196,10 +196,44 @@ describe("per-kind preview lines", () => {
       expected: "delivery failed",
     },
     {
-      label: "human_input settled decision",
+      label: "human_input settled decision (legacy record, raw reviewer)",
       kind: WorkflowTaskKind.human_input,
       overrides: { outputSummary: { outcome: "approve", reviewer: "suresh" } },
       expected: "approve · by suresh",
+    },
+    {
+      label: "human_input settled decision prefers the reviewer_actor display name",
+      kind: WorkflowTaskKind.human_input,
+      overrides: {
+        outputSummary: {
+          outcome: "approve",
+          reviewer: "ida_01abc",
+          reviewer_actor: {
+            id: "ida_01abc",
+            display_name: "Ada Lovelace",
+            email: "ada@example.com",
+          },
+        },
+      },
+      expected: "approve · by Ada Lovelace",
+    },
+    {
+      label: "human_input settled decision falls back to the actor email",
+      kind: WorkflowTaskKind.human_input,
+      overrides: {
+        outputSummary: {
+          outcome: "approve",
+          reviewer: "ida_01abc",
+          reviewer_actor: { id: "ida_01abc", email: "ada@example.com" },
+        },
+      },
+      expected: "approve · by ada@example.com",
+    },
+    {
+      label: "human_input unattributed decision omits the by segment",
+      kind: WorkflowTaskKind.human_input,
+      overrides: { outputSummary: { outcome: "approve" } },
+      expected: "approve",
     },
     {
       label: "wait completed with structured duration",

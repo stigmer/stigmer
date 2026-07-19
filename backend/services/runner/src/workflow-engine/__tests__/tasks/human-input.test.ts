@@ -317,8 +317,48 @@ describe("executeHumanInputTask", () => {
       expect(resolved.taskName).toBe("gate");
       expect(resolved.outcome).toBe("reject");
       expect(resolved.resolvedBy).toBe("carol");
+      expect(resolved.resolvedByActor).toBeUndefined();
       expect(resolved.autoResolved).toBe(false);
       expect(resolved.waitDurationMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it("carries the reviewer_actor display snapshot into approval_resolved and the task output", async () => {
+      const emitted: WorkflowEventDescriptor[][] = [];
+      const emitFn: EmitEventsFn = async (events) => { emitted.push(events); };
+      const reviewerActor = {
+        id: "ida_01abc",
+        display_name: "Ada Lovelace",
+        email: "ada@example.com",
+        avatar: "https://example.com/ada.png",
+      };
+      const awaitFn: AwaitHumanInputFn = async () => ({
+        outcome: "approve",
+        reviewer: "ida_01abc",
+        reviewer_actor: reviewerActor,
+        responded_at: "2026-05-20T10:00:00Z",
+      });
+
+      const taskDef: HumanInputTaskDef = {
+        kind: "human_input",
+        humanInput: { prompt: "Confirm?" },
+      };
+
+      const state = createState();
+      await executeHumanInputTask(taskDef, "gate", state, makeCtx(awaitFn, emitFn));
+
+      const resolved = emitted[1][0];
+      if (resolved.type !== "approval_resolved") throw new Error("unexpected");
+      expect(resolved.resolvedBy).toBe("ida_01abc");
+      expect(resolved.resolvedByActor).toEqual(reviewerActor);
+
+      // The whole signal payload IS the task output — the actor lands there
+      // for downstream tasks (e.g. notification templates) without copying.
+      expect(state.data.gate).toEqual({
+        outcome: "approve",
+        reviewer: "ida_01abc",
+        reviewer_actor: reviewerActor,
+        responded_at: "2026-05-20T10:00:00Z",
+      });
     });
 
     it("does not error when emitEvents is undefined (backward compat)", async () => {

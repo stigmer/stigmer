@@ -13,6 +13,12 @@ public interface ApiResourceAuditActorOrBuilder extends
   /**
    * <pre>
    * Unique identifier of the actor.
+   *
+   * &#64;internal
+   * Historically, some writers populate this with the actor's email address
+   * rather than the identity-account ID. New writers should use the
+   * identity-account ID and carry the email in the dedicated field below;
+   * renderers must treat this value as an opaque last-resort label.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -22,6 +28,12 @@ public interface ApiResourceAuditActorOrBuilder extends
   /**
    * <pre>
    * Unique identifier of the actor.
+   *
+   * &#64;internal
+   * Historically, some writers populate this with the actor's email address
+   * rather than the identity-account ID. New writers should use the
+   * identity-account ID and carry the email in the dedicated field below;
+   * renderers must treat this value as an opaque last-resort label.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -49,4 +61,48 @@ public interface ApiResourceAuditActorOrBuilder extends
    */
   com.google.protobuf.ByteString
       getAvatarBytes();
+
+  /**
+   * <pre>
+   * Human-readable display name (e.g. "Ada Lovelace"). Empty when unknown;
+   * renderers fall back to email, then id.
+   * </pre>
+   *
+   * <code>string display_name = 3 [json_name = "displayName"];</code>
+   * @return The displayName.
+   */
+  java.lang.String getDisplayName();
+  /**
+   * <pre>
+   * Human-readable display name (e.g. "Ada Lovelace"). Empty when unknown;
+   * renderers fall back to email, then id.
+   * </pre>
+   *
+   * <code>string display_name = 3 [json_name = "displayName"];</code>
+   * @return The bytes for displayName.
+   */
+  com.google.protobuf.ByteString
+      getDisplayNameBytes();
+
+  /**
+   * <pre>
+   * Email address of the actor. Empty when unknown or not applicable
+   * (e.g. machine accounts).
+   * </pre>
+   *
+   * <code>string email = 4 [json_name = "email"];</code>
+   * @return The email.
+   */
+  java.lang.String getEmail();
+  /**
+   * <pre>
+   * Email address of the actor. Empty when unknown or not applicable
+   * (e.g. machine accounts).
+   * </pre>
+   *
+   * <code>string email = 4 [json_name = "email"];</code>
+   * @return The bytes for email.
+   */
+  com.google.protobuf.ByteString
+      getEmailBytes();
 }

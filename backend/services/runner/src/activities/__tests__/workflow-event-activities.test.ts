@@ -559,6 +559,35 @@ describe("toProtoEvent", () => {
       expect(p.resolvedBy).toBe("alice");
       expect(p.comment).toBe("LGTM");
       expect(p.waitDurationMs).toBe(BigInt(45000));
+      // No actor on the descriptor — the proto field stays unset (no synthesis).
+      expect(p.resolvedByActor).toBeUndefined();
+    });
+
+    it("maps resolvedByActor display snapshot when stamped", () => {
+      const evt = toProtoEvent({
+        type: "approval_resolved",
+        taskName: "reviewGate",
+        occurredAt: NOW,
+        outcome: "approve",
+        resolvedBy: "ida_01abc",
+        resolvedByActor: {
+          id: "ida_01abc",
+          display_name: "Ada Lovelace",
+          email: "ada@example.com",
+          avatar: "https://example.com/ada.png",
+        },
+        comment: "",
+        waitDurationMs: 100,
+        autoResolved: false,
+      });
+
+      if (evt.payload.case !== "approvalResolved") throw new Error("unexpected");
+      const actor = evt.payload.value.resolvedByActor;
+      expect(actor).toBeDefined();
+      expect(actor!.id).toBe("ida_01abc");
+      expect(actor!.displayName).toBe("Ada Lovelace");
+      expect(actor!.email).toBe("ada@example.com");
+      expect(actor!.avatar).toBe("https://example.com/ada.png");
     });
 
     it("does not map outcome or autoResolved (proto limitation)", () => {

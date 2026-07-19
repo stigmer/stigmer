@@ -30,9 +30,21 @@ package ai.stigmer.agentic.workflow.v1.tasks;
  * {
  * "outcome": "approve",
  * "form_data": { &lt;validated form response if form_schema is set&gt; },
- * "reviewer": "&lt;user who responded&gt;",
+ * "reviewer": "&lt;canonical identity of the user who responded&gt;",
+ * "reviewer_actor": {
+ * "id": "&lt;canonical identity&gt;",
+ * "display_name": "&lt;human-readable name, empty when unknown&gt;",
+ * "email": "&lt;email address, empty when unknown&gt;",
+ * "avatar": "&lt;avatar URL, empty when unknown&gt;"
+ * },
  * "responded_at": "&lt;ISO 8601 timestamp&gt;"
  * }
+ *
+ * "reviewer" is the stable audit key (use it in switch conditions and
+ * audit joins); "reviewer_actor" is a display snapshot stamped server-side
+ * at decision time (use it in notifications and UIs). Both are absent when
+ * the gate resolves without attribution (timeout policies, OSS single-user
+ * edition).
  *
  * YAML Example (approval gate with custom outcomes):
  * - manager_approval:
@@ -1082,9 +1094,21 @@ private static final long serialVersionUID = 0L;
    * {
    * "outcome": "approve",
    * "form_data": { &lt;validated form response if form_schema is set&gt; },
-   * "reviewer": "&lt;user who responded&gt;",
+   * "reviewer": "&lt;canonical identity of the user who responded&gt;",
+   * "reviewer_actor": {
+   * "id": "&lt;canonical identity&gt;",
+   * "display_name": "&lt;human-readable name, empty when unknown&gt;",
+   * "email": "&lt;email address, empty when unknown&gt;",
+   * "avatar": "&lt;avatar URL, empty when unknown&gt;"
+   * },
    * "responded_at": "&lt;ISO 8601 timestamp&gt;"
    * }
+   *
+   * "reviewer" is the stable audit key (use it in switch conditions and
+   * audit joins); "reviewer_actor" is a display snapshot stamped server-side
+   * at decision time (use it in notifications and UIs). Both are absent when
+   * the gate resolves without attribution (timeout policies, OSS single-user
+   * edition).
    *
    * YAML Example (approval gate with custom outcomes):
    * - manager_approval:

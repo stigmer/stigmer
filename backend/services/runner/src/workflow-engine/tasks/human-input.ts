@@ -109,6 +109,7 @@ export async function executeHumanInputTask(
       occurredAt: new Date().toISOString(),
       outcome: result.outcome,
       resolvedBy: result.reviewer ?? "",
+      resolvedByActor: result.reviewer_actor,
       comment: "",
       waitDurationMs: Date.now() - approvalRequestedAt,
       autoResolved: result.auto_resolved ?? false,

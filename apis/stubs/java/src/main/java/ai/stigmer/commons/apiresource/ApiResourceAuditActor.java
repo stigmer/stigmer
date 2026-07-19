@@ -8,6 +8,11 @@ package ai.stigmer.commons.apiresource;
 /**
  * <pre>
  * ApiResourceAuditActor represents the entity that performed an action.
+ *
+ * This is the platform's single actor vocabulary: every "who did this"
+ * reference (created_by / updated_by, version-history applied_by / pushed_by,
+ * approval resolved_by_actor) uses this message, so actor rendering is
+ * uniform across all surfaces.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.commons.apiresource.ApiResourceAuditActor}
@@ -34,6 +39,8 @@ private static final long serialVersionUID = 0L;
   private ApiResourceAuditActor() {
     id_ = "";
     avatar_ = "";
+    displayName_ = "";
+    email_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -60,6 +67,12 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Unique identifier of the actor.
+   *
+   * &#64;internal
+   * Historically, some writers populate this with the actor's email address
+   * rather than the identity-account ID. New writers should use the
+   * identity-account ID and carry the email in the dedicated field below;
+   * renderers must treat this value as an opaque last-resort label.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -81,6 +94,12 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Unique identifier of the actor.
+   *
+   * &#64;internal
+   * Historically, some writers populate this with the actor's email address
+   * rather than the identity-account ID. New writers should use the
+   * identity-account ID and carry the email in the dedicated field below;
+   * renderers must treat this value as an opaque last-resort label.
    * </pre>
    *
    * <code>string id = 1 [json_name = "id"];</code>
@@ -148,6 +167,104 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int DISPLAY_NAME_FIELD_NUMBER = 3;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object displayName_ = "";
+  /**
+   * <pre>
+   * Human-readable display name (e.g. "Ada Lovelace"). Empty when unknown;
+   * renderers fall back to email, then id.
+   * </pre>
+   *
+   * <code>string display_name = 3 [json_name = "displayName"];</code>
+   * @return The displayName.
+   */
+  @java.lang.Override
+  public java.lang.String getDisplayName() {
+    java.lang.Object ref = displayName_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      displayName_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Human-readable display name (e.g. "Ada Lovelace"). Empty when unknown;
+   * renderers fall back to email, then id.
+   * </pre>
+   *
+   * <code>string display_name = 3 [json_name = "displayName"];</code>
+   * @return The bytes for displayName.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getDisplayNameBytes() {
+    java.lang.Object ref = displayName_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      displayName_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int EMAIL_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object email_ = "";
+  /**
+   * <pre>
+   * Email address of the actor. Empty when unknown or not applicable
+   * (e.g. machine accounts).
+   * </pre>
+   *
+   * <code>string email = 4 [json_name = "email"];</code>
+   * @return The email.
+   */
+  @java.lang.Override
+  public java.lang.String getEmail() {
+    java.lang.Object ref = email_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      email_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Email address of the actor. Empty when unknown or not applicable
+   * (e.g. machine accounts).
+   * </pre>
+   *
+   * <code>string email = 4 [json_name = "email"];</code>
+   * @return The bytes for email.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getEmailBytes() {
+    java.lang.Object ref = email_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      email_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -168,6 +285,12 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(avatar_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, avatar_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(displayName_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, displayName_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(email_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, email_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -182,6 +305,12 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(avatar_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, avatar_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(displayName_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(3, displayName_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(email_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, email_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -202,6 +331,10 @@ private static final long serialVersionUID = 0L;
         .equals(other.getId())) return false;
     if (!getAvatar()
         .equals(other.getAvatar())) return false;
+    if (!getDisplayName()
+        .equals(other.getDisplayName())) return false;
+    if (!getEmail()
+        .equals(other.getEmail())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -217,6 +350,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getId().hashCode();
     hash = (37 * hash) + AVATAR_FIELD_NUMBER;
     hash = (53 * hash) + getAvatar().hashCode();
+    hash = (37 * hash) + DISPLAY_NAME_FIELD_NUMBER;
+    hash = (53 * hash) + getDisplayName().hashCode();
+    hash = (37 * hash) + EMAIL_FIELD_NUMBER;
+    hash = (53 * hash) + getEmail().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -317,6 +454,11 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * ApiResourceAuditActor represents the entity that performed an action.
+   *
+   * This is the platform's single actor vocabulary: every "who did this"
+   * reference (created_by / updated_by, version-history applied_by / pushed_by,
+   * approval resolved_by_actor) uses this message, so actor rendering is
+   * uniform across all surfaces.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.commons.apiresource.ApiResourceAuditActor}
@@ -354,6 +496,8 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       id_ = "";
       avatar_ = "";
+      displayName_ = "";
+      email_ = "";
       return this;
     }
 
@@ -393,6 +537,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.avatar_ = avatar_;
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        result.displayName_ = displayName_;
+      }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.email_ = email_;
+      }
     }
 
     @java.lang.Override
@@ -415,6 +565,16 @@ private static final long serialVersionUID = 0L;
       if (!other.getAvatar().isEmpty()) {
         avatar_ = other.avatar_;
         bitField0_ |= 0x00000002;
+        onChanged();
+      }
+      if (!other.getDisplayName().isEmpty()) {
+        displayName_ = other.displayName_;
+        bitField0_ |= 0x00000004;
+        onChanged();
+      }
+      if (!other.getEmail().isEmpty()) {
+        email_ = other.email_;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -453,6 +613,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 18
+            case 26: {
+              displayName_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000004;
+              break;
+            } // case 26
+            case 34: {
+              email_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -474,6 +644,12 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique identifier of the actor.
+     *
+     * &#64;internal
+     * Historically, some writers populate this with the actor's email address
+     * rather than the identity-account ID. New writers should use the
+     * identity-account ID and carry the email in the dedicated field below;
+     * renderers must treat this value as an opaque last-resort label.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -494,6 +670,12 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique identifier of the actor.
+     *
+     * &#64;internal
+     * Historically, some writers populate this with the actor's email address
+     * rather than the identity-account ID. New writers should use the
+     * identity-account ID and carry the email in the dedicated field below;
+     * renderers must treat this value as an opaque last-resort label.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -515,6 +697,12 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique identifier of the actor.
+     *
+     * &#64;internal
+     * Historically, some writers populate this with the actor's email address
+     * rather than the identity-account ID. New writers should use the
+     * identity-account ID and carry the email in the dedicated field below;
+     * renderers must treat this value as an opaque last-resort label.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -532,6 +720,12 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique identifier of the actor.
+     *
+     * &#64;internal
+     * Historically, some writers populate this with the actor's email address
+     * rather than the identity-account ID. New writers should use the
+     * identity-account ID and carry the email in the dedicated field below;
+     * renderers must treat this value as an opaque last-resort label.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -546,6 +740,12 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Unique identifier of the actor.
+     *
+     * &#64;internal
+     * Historically, some writers populate this with the actor's email address
+     * rather than the identity-account ID. New writers should use the
+     * identity-account ID and carry the email in the dedicated field below;
+     * renderers must treat this value as an opaque last-resort label.
      * </pre>
      *
      * <code>string id = 1 [json_name = "id"];</code>
@@ -650,6 +850,200 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       avatar_ = value;
       bitField0_ |= 0x00000002;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object displayName_ = "";
+    /**
+     * <pre>
+     * Human-readable display name (e.g. "Ada Lovelace"). Empty when unknown;
+     * renderers fall back to email, then id.
+     * </pre>
+     *
+     * <code>string display_name = 3 [json_name = "displayName"];</code>
+     * @return The displayName.
+     */
+    public java.lang.String getDisplayName() {
+      java.lang.Object ref = displayName_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        displayName_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Human-readable display name (e.g. "Ada Lovelace"). Empty when unknown;
+     * renderers fall back to email, then id.
+     * </pre>
+     *
+     * <code>string display_name = 3 [json_name = "displayName"];</code>
+     * @return The bytes for displayName.
+     */
+    public com.google.protobuf.ByteString
+        getDisplayNameBytes() {
+      java.lang.Object ref = displayName_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        displayName_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Human-readable display name (e.g. "Ada Lovelace"). Empty when unknown;
+     * renderers fall back to email, then id.
+     * </pre>
+     *
+     * <code>string display_name = 3 [json_name = "displayName"];</code>
+     * @param value The displayName to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDisplayName(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      displayName_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Human-readable display name (e.g. "Ada Lovelace"). Empty when unknown;
+     * renderers fall back to email, then id.
+     * </pre>
+     *
+     * <code>string display_name = 3 [json_name = "displayName"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDisplayName() {
+      displayName_ = getDefaultInstance().getDisplayName();
+      bitField0_ = (bitField0_ & ~0x00000004);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Human-readable display name (e.g. "Ada Lovelace"). Empty when unknown;
+     * renderers fall back to email, then id.
+     * </pre>
+     *
+     * <code>string display_name = 3 [json_name = "displayName"];</code>
+     * @param value The bytes for displayName to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDisplayNameBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      displayName_ = value;
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object email_ = "";
+    /**
+     * <pre>
+     * Email address of the actor. Empty when unknown or not applicable
+     * (e.g. machine accounts).
+     * </pre>
+     *
+     * <code>string email = 4 [json_name = "email"];</code>
+     * @return The email.
+     */
+    public java.lang.String getEmail() {
+      java.lang.Object ref = email_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        email_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Email address of the actor. Empty when unknown or not applicable
+     * (e.g. machine accounts).
+     * </pre>
+     *
+     * <code>string email = 4 [json_name = "email"];</code>
+     * @return The bytes for email.
+     */
+    public com.google.protobuf.ByteString
+        getEmailBytes() {
+      java.lang.Object ref = email_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        email_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Email address of the actor. Empty when unknown or not applicable
+     * (e.g. machine accounts).
+     * </pre>
+     *
+     * <code>string email = 4 [json_name = "email"];</code>
+     * @param value The email to set.
+     * @return This builder for chaining.
+     */
+    public Builder setEmail(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      email_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Email address of the actor. Empty when unknown or not applicable
+     * (e.g. machine accounts).
+     * </pre>
+     *
+     * <code>string email = 4 [json_name = "email"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearEmail() {
+      email_ = getDefaultInstance().getEmail();
+      bitField0_ = (bitField0_ & ~0x00000008);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Email address of the actor. Empty when unknown or not applicable
+     * (e.g. machine accounts).
+     * </pre>
+     *
+     * <code>string email = 4 [json_name = "email"];</code>
+     * @param value The bytes for email to set.
+     * @return This builder for chaining.
+     */
+    public Builder setEmailBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      email_ = value;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }

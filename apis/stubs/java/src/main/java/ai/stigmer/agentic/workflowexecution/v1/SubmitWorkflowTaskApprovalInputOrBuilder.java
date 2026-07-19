@@ -143,8 +143,16 @@ public interface SubmitWorkflowTaskApprovalInputOrBuilder extends
    * Identity of the reviewer submitting the decision.
    *
    * &#64;internal
-   * Typically the authenticated user's identity. Stored in the task output
-   * for audit trail purposes.
+   * Attribution contract:
+   * - Interactive clients (web console, CLI, SDKs) MUST leave this empty.
+   * The server attributes the decision from the authenticated caller —
+   * a client-supplied identity is spoofable and is overridden for human
+   * callers.
+   * - Machine-account callers MAY set it for delegated attribution, e.g.
+   * a channel broker submitting a decision on behalf of an external
+   * reviewer (Slack user) where the caller identity is the service
+   * account and this field is the only truthful source.
+   * Stored in the task output and the approval_resolved event for audit.
    * </pre>
    *
    * <code>string reviewer = 5 [json_name = "reviewer"];</code>
@@ -156,8 +164,16 @@ public interface SubmitWorkflowTaskApprovalInputOrBuilder extends
    * Identity of the reviewer submitting the decision.
    *
    * &#64;internal
-   * Typically the authenticated user's identity. Stored in the task output
-   * for audit trail purposes.
+   * Attribution contract:
+   * - Interactive clients (web console, CLI, SDKs) MUST leave this empty.
+   * The server attributes the decision from the authenticated caller —
+   * a client-supplied identity is spoofable and is overridden for human
+   * callers.
+   * - Machine-account callers MAY set it for delegated attribution, e.g.
+   * a channel broker submitting a decision on behalf of an external
+   * reviewer (Slack user) where the caller identity is the service
+   * account and this field is the only truthful source.
+   * Stored in the task output and the approval_resolved event for audit.
    * </pre>
    *
    * <code>string reviewer = 5 [json_name = "reviewer"];</code>

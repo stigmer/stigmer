@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/commons/apiresource/status.proto.
  */
 export const file_ai_stigmer_commons_apiresource_status: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2Uvc3RhdHVzLnByb3RvEh5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UiWQoWQXBpUmVzb3VyY2VBdWRpdFN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0IqgBChBBcGlSZXNvdXJjZUF1ZGl0EkgKCnNwZWNfYXVkaXQYASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdEluZm8SSgoMc3RhdHVzX2F1ZGl0GAIgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRJbmZvIpsCChRBcGlSZXNvdXJjZUF1ZGl0SW5mbxJJCgpjcmVhdGVkX2J5GAEgASgLMjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRBY3RvchIuCgpjcmVhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBJJCgp1cGRhdGVkX2J5GAMgASgLMjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRBY3RvchIuCgp1cGRhdGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVldmVudBgFIAEoCSIzChVBcGlSZXNvdXJjZUF1ZGl0QWN0b3ISCgoCaWQYASABKAkSDgoGYXZhdGFyGAIgASgJYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("CithaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2Uvc3RhdHVzLnByb3RvEh5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UiWQoWQXBpUmVzb3VyY2VBdWRpdFN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0IqgBChBBcGlSZXNvdXJjZUF1ZGl0EkgKCnNwZWNfYXVkaXQYASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdEluZm8SSgoMc3RhdHVzX2F1ZGl0GAIgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRJbmZvIpsCChRBcGlSZXNvdXJjZUF1ZGl0SW5mbxJJCgpjcmVhdGVkX2J5GAEgASgLMjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRBY3RvchIuCgpjcmVhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBJJCgp1cGRhdGVkX2J5GAMgASgLMjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRBY3RvchIuCgp1cGRhdGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVldmVudBgFIAEoCSJYChVBcGlSZXNvdXJjZUF1ZGl0QWN0b3ISCgoCaWQYASABKAkSDgoGYXZhdGFyGAIgASgJEhQKDGRpc3BsYXlfbmFtZRgDIAEoCRINCgVlbWFpbBgEIAEoCWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * ApiResourceAuditStatus contains system-managed audit information for a resource.
@@ -115,11 +115,22 @@ export const ApiResourceAuditInfoSchema: GenMessage<ApiResourceAuditInfo> = /*@_
 /**
  * ApiResourceAuditActor represents the entity that performed an action.
  *
+ * This is the platform's single actor vocabulary: every "who did this"
+ * reference (created_by / updated_by, version-history applied_by / pushed_by,
+ * approval resolved_by_actor) uses this message, so actor rendering is
+ * uniform across all surfaces.
+ *
  * @generated from message ai.stigmer.commons.apiresource.ApiResourceAuditActor
  */
 export type ApiResourceAuditActor = Message<"ai.stigmer.commons.apiresource.ApiResourceAuditActor"> & {
   /**
    * Unique identifier of the actor.
+   *
+   * @internal
+   * Historically, some writers populate this with the actor's email address
+   * rather than the identity-account ID. New writers should use the
+   * identity-account ID and carry the email in the dedicated field below;
+   * renderers must treat this value as an opaque last-resort label.
    *
    * @generated from field: string id = 1;
    */
@@ -131,6 +142,22 @@ export type ApiResourceAuditActor = Message<"ai.stigmer.commons.apiresource.ApiR
    * @generated from field: string avatar = 2;
    */
   avatar: string;
+
+  /**
+   * Human-readable display name (e.g. "Ada Lovelace"). Empty when unknown;
+   * renderers fall back to email, then id.
+   *
+   * @generated from field: string display_name = 3;
+   */
+  displayName: string;
+
+  /**
+   * Email address of the actor. Empty when unknown or not applicable
+   * (e.g. machine accounts).
+   *
+   * @generated from field: string email = 4;
+   */
+  email: string;
 };
 
 /**
