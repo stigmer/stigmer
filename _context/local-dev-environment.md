@@ -54,10 +54,10 @@ spring:
 
 | Service | Host | Notes |
 |---------|------|-------|
-| MongoDB | `stigmer-prod-mongo-database.planton.live:27017` | Database: `stigmer` |
-| Redis | `stigmer-prod-redis.planton.live:6379` | Session cache, pub/sub |
-| Temporal | `stigmer-prod-temporal-frontend.planton.live:7233` | Workflow orchestration |
-| OpenFGA | `stigmer-prod-fga.planton.live` | Fine-grained authorization |
+| MongoDB | `mongo.stigmer.ai:27017` | Database: `stigmer` |
+| Redis | `redis.stigmer.ai:6379` | Session cache, pub/sub |
+| Temporal | `temporal-frontend.stigmer.ai:7233` | Workflow orchestration |
+| OpenFGA | `fga.stigmer.ai` | Fine-grained authorization |
 | Auth0 | `stigmer-prod.us.auth0.com` | Authentication |
 | Cloudflare R2 | `074755a78d8e8f77c119a90a125e8a06.r2.cloudflarestorage.com` | Object storage (payloads, artifacts, skills) |
 
@@ -97,7 +97,7 @@ VITE_STIGMER_API_URL=http://localhost:9090
 VITE_STIGMER_SIDECAR_ENDPOINT=localhost:9090
 VITE_STIGMER_FORCE_AUTH=true
 VITE_STIGMER_CONSOLE_URL=https://app.stigmer.ai
-VITE_STIGMER_TEMPORAL_ADDRESS=stigmer-prod-temporal-frontend.planton.live:7233
+VITE_STIGMER_TEMPORAL_ADDRESS=temporal-frontend.stigmer.ai:7233
 ```
 
 Authentication uses Auth0 production (`VITE_STIGMER_FORCE_AUTH=true`).

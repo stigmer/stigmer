@@ -35,7 +35,7 @@ export const SITE_CONFIG = {
 
   contactSalesUrl: "/contact-sales",
 
-  leadsFormUrl: "https://stigmer-prod-leads-form-receiver.planton.live",
+  leadsFormUrl: "https://leads.stigmer.ai",
 } as const;
 
 // ---------------------------------------------------------------------------
