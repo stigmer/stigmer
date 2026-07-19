@@ -157,6 +157,14 @@ export interface ApprovalProvenanceInputs {
   readonly leasedCategories?: ReadonlySet<ToolApprovalCategory>;
   /** Pre-armed spec.auto_approve_all — the one whole-run global bypass. */
   readonly globalBypass: boolean;
+  /**
+   * Unattended approval mode (ExecutionConfig.approval_mode = UNATTENDED):
+   * the gate auto-skips gated calls instead of interrupting, so the builders
+   * must NOT seed WAITING_APPROVAL rows or flip the phase to
+   * WAITING_FOR_APPROVAL — the row streams as RUNNING and the post-stream
+   * `reconcileUnattendedSkips` stamps the terminal SKIPPED + provenance.
+   */
+  readonly unattended?: boolean;
 }
 
 /** Shared empty set so a provider without leases allocates nothing per call. */

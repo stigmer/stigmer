@@ -102,6 +102,22 @@ public enum ApprovalPolicySource
    * <code>APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN = 7;</code>
    */
   APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN(7),
+  /**
+   * <pre>
+   * The unattended approval mode (ExecutionConfig.approval_mode =
+   * APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
+   * the surface that created the execution (a messaging channel, a guest
+   * share) has no approver, so the platform skipped the tool and told the
+   * model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it
+   * records HOW the gate was resolved, overriding the gating-layer source on
+   * the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO
+   * approval_action / approved_by (those record human decisions only), and
+   * no approval-request event is ever authored for it.
+   * </pre>
+   *
+   * <code>APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP = 8;</code>
+   */
+  APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP(8),
   UNRECOGNIZED(-1),
   ;
 
@@ -189,6 +205,22 @@ public enum ApprovalPolicySource
    * <code>APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN = 7;</code>
    */
   public static final int APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN_VALUE = 7;
+  /**
+   * <pre>
+   * The unattended approval mode (ExecutionConfig.approval_mode =
+   * APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
+   * the surface that created the execution (a messaging channel, a guest
+   * share) has no approver, so the platform skipped the tool and told the
+   * model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it
+   * records HOW the gate was resolved, overriding the gating-layer source on
+   * the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO
+   * approval_action / approved_by (those record human decisions only), and
+   * no approval-request event is ever authored for it.
+   * </pre>
+   *
+   * <code>APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP = 8;</code>
+   */
+  public static final int APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP_VALUE = 8;
 
 
   public final int getNumber() {
@@ -223,6 +255,7 @@ public enum ApprovalPolicySource
       case 5: return APPROVAL_POLICY_SOURCE_APPROVAL_LEASE;
       case 6: return APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY;
       case 7: return APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN;
+      case 8: return APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP;
       default: return null;
     }
   }

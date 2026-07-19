@@ -90,6 +90,43 @@ current conversation, and your next message begins a new one with a clean slate
 counts: a message that merely contains it, like "how do I /reset my router?", is
 answered normally.
 
+## Tool approvals never reach your customers
+
+Some tools require human approval before they run — MCP tools your server or
+Agent marks as requiring approval, and built-in mutating operations. A WhatsApp
+user is your customer, not an approver: they never see approval prompts, tool
+names, or platform mechanics. When a gated tool comes up in a channel
+conversation, the platform skips it automatically and the Agent explains in
+plain language what it could not do — the conversation always gets a reply. In
+the console's conversation view, the skipped call shows as "skipped: approval
+not available on this surface".
+
+**Design the Agent so this rarely happens.** For actions the customer's own
+intent authorizes — booking their appointment, creating their ticket — use the
+conversational-confirmation pattern:
+
+1. In the Agent's instructions, tell it to confirm the specifics in conversation
+   before acting ("I'm about to book Monday 10 AM under your name — shall I go
+   ahead?").
+2. Un-gate that specific tool for this Agent so the confirmed action runs
+   without a platform gate:
+
+```yaml
+# In your Agent YAML
+spec:
+  mcp_server_usages:
+    - mcp_server_ref:
+        kind: mcp_server
+        slug: clinic-scheduler
+      tool_approval_overrides:
+        - tool_name: book_appointment
+          requires_approval: false
+```
+
+Keep truly destructive operations gated — on a channel they will be skipped,
+which is exactly right: a stranger on WhatsApp should not be able to trigger
+them at all.
+
 ## Give the Agent its tool credentials
 
 If your Agent uses MCP servers, its tools need credentials — API keys stored in

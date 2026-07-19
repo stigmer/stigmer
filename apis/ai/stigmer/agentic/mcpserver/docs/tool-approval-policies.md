@@ -153,6 +153,10 @@ See [Agent docs: mcp-server-integration.md](../agent/docs/mcp-server-integration
 
 Set on `AgentExecution.spec.auto_approve_all`. When `true`, all tools in that execution run without any approval prompt, regardless of McpServer defaults and Agent overrides. This is set at execution time — not in the McpServer or Agent YAML — and is intended for trusted automation pipelines where human-in-the-loop is unnecessary.
 
+### Orthogonal: Unattended Approval Mode (Resolution, Not Gating)
+
+`ExecutionConfig.approval_mode = APPROVAL_MODE_UNATTENDED` does NOT change which tools the chain gates — it changes what happens when a gate fires. On surfaces with no approver (messaging channels, guest shares), a gated tool is auto-**skipped** (it does not run) and the model adapts, instead of pausing the execution for a decision that can never arrive. Contrast with `auto_approve_all`, which clears gates so tools **run**. The mode is stamped by the platform surface that creates the execution, never by the external user. For channel/guest agents, the operator lever remains this chain: un-gate a specific tool per agent (layer 2, `requires_approval: false`) once the agent's instructions confirm intent conversationally. See [AgentExecution docs: hitl-approvals.md](../../agentexecution/docs/hitl-approvals.md#unattended-surfaces-channels-and-guest-shares).
+
 ## Silent Failure on Typos
 
 If a `tool_name` in `default_tool_approvals` does not match a tool reported by the server's `tools/list`, the policy is **silently ignored** — no error, no warning. The approval is simply not applied.

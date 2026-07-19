@@ -89,6 +89,21 @@
       },
       "description": "Marks this execution as a \"Build from plan\" turn: the user approved a plan\n produced by a prior Plan-mode execution and asked the agent to implement it.\n\n When set, the runner injects the implement-plan directive into the agent's\n prompt (see runner shared/implement-plan-prompt.ts). If the approved plan\n document travels as an attachment (the normal case), the directive points\n the agent at the attached plan file and treats it as authoritative; when no\n plan attachment is present (e.g. the client's upload failed), the directive\n tells the agent to follow the plan from the conversation instead.\n\n Clients set this flag INSTEAD of embedding implement instructions in\n `message`, so `message` stays a short human-readable label (e.g.\n \"Build from plan\") that UIs can render as a compact chip.\n\n Like interaction_mode, this is per-execution and never carries over\n between executions in the same session.",
       "required": false
+    },
+    {
+      "name": "ApprovalMode",
+      "jsonName": "approvalMode",
+      "protoField": "approval_mode",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.agentexecution.v1.ApprovalMode",
+        "enumValues": [
+          "APPROVAL_MODE_INTERACTIVE",
+          "APPROVAL_MODE_UNATTENDED"
+        ]
+      },
+      "description": "How approval gates resolve for this execution. See ApprovalMode.\n\n UNSPECIFIED/INTERACTIVE: a gated tool pauses the execution until a human\n decides (today's behavior). UNATTENDED: gated tools auto-skip and the\n model adapts — set by surfaces with no approver (channel session broker,\n guest execution scope step), never by external callers (the guest scope\n step replaces the whole execution_config, so a guest-supplied mode is\n discarded with the rest of the config).\n\n Orthogonal to auto_approve_all: the bypass clears gates so tools RUN;\n unattended mode resolves gates so tools SKIP. When both are set the\n bypass wins by layer order (the gate never fires).",
+      "required": false
     }
   ]
 }

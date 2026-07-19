@@ -17,9 +17,11 @@ import { Command } from "@langchain/langgraph";
 import type { AgentExecution, AgentExecutionStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   ApprovalAction,
+  ApprovalPolicySource,
   ToolCallStatus,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { POLICY_ENGINE_VERSION, unattendedSkipMessage } from "../../shared/approval-policy.js";
 
 // APPROVE_ALL resumes the interrupted tool exactly like APPROVE. Its
 // "auto-approve the rest of the run" effect is realized in setup.ts (the
@@ -224,6 +226,55 @@ export function reconcileNonExecutingDecisions(status: AgentExecutionStatus): vo
           tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
           if (!tc.error) tc.error = "Rejected by user";
         }
+      }
+    }
+  };
+
+  apply(status.messages);
+  for (const subAgent of status.subAgentExecutions) {
+    apply(subAgent.messages);
+  }
+}
+
+/**
+ * Terminalize every tool call the approval gate auto-skipped under UNATTENDED
+ * approval mode — the sibling of {@link reconcileNonExecutingDecisions} for
+ * skips that have no human decision behind them.
+ *
+ * The gate (the single writer of the registry) records each auto-skipped
+ * tool-call id at the moment it returns the skip ToolMessage; this reconciler
+ * (the single writer of the terminal row) folds each id into:
+ * - `status = TOOL_CALL_SKIPPED` — the tool did not run, whatever transient
+ *   status the stream left behind (COMPLETED from a tool_finished that carried
+ *   the skip message, or RUNNING when no tool events fired);
+ * - `approval_policy_source = UNATTENDED_SKIP` — the resolution layer,
+ *   overriding the gating-layer source stamped at tool-start (the
+ *   AUTO_APPROVE_ALL precedent: layer-4 resolutions own the resolved call);
+ * - a result backfilled from {@link unattendedSkipMessage} when the stream
+ *   delivered none, so the transcript row is never blank.
+ *
+ * `approval_action` / `approved_by` are deliberately NOT touched — those are
+ * server-owned fields recording HUMAN decisions only (DD-014 D-e). No
+ * approval-request event exists for these calls, so the pending-approvals
+ * projection stays empty by construction. Idempotent: re-running re-resolves
+ * identically. Covers sub-agent transcripts because sub-agent gates inherit
+ * the parent's registry instance.
+ */
+export function reconcileUnattendedSkips(
+  status: AgentExecutionStatus,
+  unattendedSkips: ReadonlySet<string> | undefined,
+): void {
+  if (!unattendedSkips || unattendedSkips.size === 0) return;
+
+  const apply = (messages: readonly AgentMessage[]): void => {
+    for (const msg of messages) {
+      for (const tc of msg.toolCalls) {
+        if (!unattendedSkips.has(tc.id)) continue;
+        tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
+        tc.approvalPolicySource = ApprovalPolicySource.UNATTENDED_SKIP;
+        tc.policyEngineVersion = POLICY_ENGINE_VERSION;
+        tc.isStreaming = false;
+        if (!tc.result) tc.result = unattendedSkipMessage(tc.name);
       }
     }
   };

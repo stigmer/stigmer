@@ -6,6 +6,7 @@ import ai.stigmer.agentic.agent.v1.McpServerUsage;
 import ai.stigmer.agentic.agent.v1.ToolApprovalOverride;
 import ai.stigmer.agentic.agentexecution.v1.AgentExecution;
 import ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec;
+import ai.stigmer.agentic.agentexecution.v1.ApprovalMode;
 import ai.stigmer.agentic.agentexecution.v1.Attachment;
 import ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig;
 import ai.stigmer.agentic.agentexecution.v1.ExecutionConfig;
@@ -531,6 +532,7 @@ public final class AgentExecutionInput {
         private final InteractionMode interactionMode;
         private final java.util.Map<String, Object> structuredOutputSchema;
         private final boolean buildFromPlan;
+        private final ApprovalMode approvalMode;
 
         private ExecutionConfigInput(Builder builder) {
             this.modelName = builder.modelName;
@@ -541,6 +543,7 @@ public final class AgentExecutionInput {
             this.interactionMode = builder.interactionMode;
             this.structuredOutputSchema = builder.structuredOutputSchema;
             this.buildFromPlan = builder.buildFromPlan;
+            this.approvalMode = builder.approvalMode;
         }
 
         ExecutionConfig toProto() {
@@ -561,6 +564,9 @@ public final class AgentExecutionInput {
                 builder.setStructuredOutputSchema(ProtoConvert.mapToStruct(this.structuredOutputSchema));
             }
             builder.setBuildFromPlan(this.buildFromPlan);
+            if (this.approvalMode != null) {
+                builder.setApprovalMode(this.approvalMode);
+            }
             return builder.build();
         }
 
@@ -575,6 +581,7 @@ public final class AgentExecutionInput {
             private InteractionMode interactionMode;
             private java.util.Map<String, Object> structuredOutputSchema;
             private boolean buildFromPlan;
+            private ApprovalMode approvalMode;
 
             private Builder() {}
 
@@ -586,6 +593,7 @@ public final class AgentExecutionInput {
             public Builder interactionMode(InteractionMode interactionMode) { this.interactionMode = interactionMode; return this; }
             public Builder structuredOutputSchema(java.util.Map<String, Object> structuredOutputSchema) { this.structuredOutputSchema = structuredOutputSchema; return this; }
             public Builder buildFromPlan(boolean buildFromPlan) { this.buildFromPlan = buildFromPlan; return this; }
+            public Builder approvalMode(ApprovalMode approvalMode) { this.approvalMode = approvalMode; return this; }
 
             public ExecutionConfigInput build() { return new ExecutionConfigInput(this); }
         }

@@ -103,6 +103,60 @@ d("generated approval hook (preToolUse + beforeMCPExecution)", () => {
     expect(ledger[0]).not.toHaveProperty("input");
   });
 
+  // Unattended approval mode (DD-014): same gate, different RESOLUTION — the
+  // approval-deny arms record the non-pausing "unattended" kind with an
+  // adapt-and-explain message. What is gated must be byte-identical to
+  // interactive mode; only the kind and the agent message differ.
+  describe("unattended approval mode (DD-014)", () => {
+    it("denies a gated built-in with kind 'unattended' and the adapt message (no resume promise)", () => {
+      const h = setup({ unattendedSkip: true });
+      const res = h.decide(hookShell("rm -rf build"));
+      expect(res.permission).toBe("deny");
+      expect(res.raw).toContain("skipped automatically");
+      expect(res.raw).not.toContain("resume you");
+      const ledger = h.ledger();
+      expect(ledger).toHaveLength(1);
+      expect(ledger[0].kind).toBe("unattended");
+      // Same identity space as interactive mode — the stamping correlates on it.
+      expect(ledger[0].token).toBe(primaryToken("shell", "rm -rf build", ""));
+      // Non-approval kinds are content-free (no approval card needs a preview).
+      expect(ledger[0]).not.toHaveProperty("input");
+    });
+
+    it("denies a require-approval MCP tool with kind 'unattended'", () => {
+      const h = setup({
+        unattendedSkip: true,
+        mcpPolicies: { drop_table: { requiresApproval: true, message: "Drop table?" } },
+      });
+      const res = h.decide(hookMcp("drop_table", { table: "users" }));
+      expect(res.permission).toBe("deny");
+      expect(res.raw).toContain("skipped automatically");
+      const ledger = h.ledger();
+      expect(ledger).toHaveLength(1);
+      expect(ledger[0].kind).toBe("unattended");
+      expect(ledger[0].token).toBe(grantToken("drop_table", ""));
+    });
+
+    it("still allows auto-approved MCP tools and read-only built-ins (gating is unchanged)", () => {
+      const h = setup({
+        unattendedSkip: true,
+        mcpPolicies: { drop_table: { requiresApproval: true } },
+      });
+      expect(h.decide(hookMcp("list_tables")).permission).toBe("allow");
+      expect(h.decide(hookRead("/x/a.txt")).permission).toBe("allow");
+      expect(h.ledger()).toEqual([]);
+    });
+
+    it("the secret hard-block stays kind 'secret' (mode-independent)", () => {
+      const h = setup({ unattendedSkip: true });
+      const res = h.decide(hookWrite("/x/.env", "API_KEY=abc"));
+      expect(res.permission).toBe("deny");
+      const ledger = h.ledger();
+      expect(ledger).toHaveLength(1);
+      expect(ledger[0].kind).toBe("secret");
+    });
+  });
+
   // MCP gating runs ONLY on the beforeMCPExecution event (preToolUse does not
   // enforce MCP), so a denial is recorded in exactly one place. The identity is
   // name-only (base64("<tool>\n")) because the bare tool name is identical on the

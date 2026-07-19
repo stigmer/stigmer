@@ -42,6 +42,7 @@ import {
   denialKindOf,
   primaryToken,
   readDenialLedger,
+  unattendedDenials,
   type ApprovalGrant,
 } from "./approval-state.js";
 import { deriveTurnCommandProvenance } from "./command-provenance.js";
@@ -50,6 +51,7 @@ import {
   clearProvisionalPostDenialNarration,
   detectUnattributedHookBlocks,
   reconcileDeniedToolCalls,
+  stampUnattendedSkippedToolCalls,
   type UnattributedHookBlock,
 } from "./message-translator.js";
 
@@ -300,6 +302,27 @@ export async function runTurnBoundary(opts: TurnBoundaryOptions): Promise<TurnBo
         `ExecuteCursor redacted ${redactedNarration.length} provisional post-denial narration message(s) before pausing for approval`,
       );
     }
+  }
+
+  // Unattended approval mode (DD-014): denials the hook resolved with the
+  // non-pausing "unattended" kind never became gates above; settle their
+  // streamed rows (FAILED-with-hook-error or interrupted non-terminal) to
+  // honest TOOL_CALL_SKIPPED + UNATTENDED_SKIP provenance — the same shape
+  // the native harness's reconcileUnattendedSkips persists. Runs before the
+  // #205 attribution pass, which then never sees them as hook-block FAILED
+  // rows (they are in the full ledger regardless, so attribution was safe
+  // either way).
+  const stampedUnattended = stampUnattendedSkippedToolCalls(
+    status.messages,
+    status.subAgentExecutions,
+    unattendedDenials(deniedLedger),
+    primaryWorkspaceDir,
+  );
+  if (stampedUnattended > 0) {
+    console.log(
+      `ExecuteCursor turn boundary: ${stampedUnattended} unattended-mode tool call(s) ` +
+      `settled as SKIPPED (no approver on this surface; execution=${executionId})`,
+    );
   }
 
   // Issue #205 invariant: a blocked tool must never silently complete. Match

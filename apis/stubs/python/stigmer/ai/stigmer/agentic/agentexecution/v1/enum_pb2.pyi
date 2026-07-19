@@ -112,6 +112,7 @@ class ApprovalPolicySource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     APPROVAL_POLICY_SOURCE_APPROVAL_LEASE: _ClassVar[ApprovalPolicySource]
     APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY: _ClassVar[ApprovalPolicySource]
     APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN: _ClassVar[ApprovalPolicySource]
+    APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP: _ClassVar[ApprovalPolicySource]
 
 class ApprovalEventType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -133,6 +134,12 @@ class InteractionMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     INTERACTION_MODE_UNSPECIFIED: _ClassVar[InteractionMode]
     INTERACTION_MODE_AGENT: _ClassVar[InteractionMode]
     INTERACTION_MODE_PLAN: _ClassVar[InteractionMode]
+
+class ApprovalMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    APPROVAL_MODE_UNSPECIFIED: _ClassVar[ApprovalMode]
+    APPROVAL_MODE_INTERACTIVE: _ClassVar[ApprovalMode]
+    APPROVAL_MODE_UNATTENDED: _ClassVar[ApprovalMode]
 
 class FileChangeType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -302,6 +309,7 @@ APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL: ApprovalPolicySource
 APPROVAL_POLICY_SOURCE_APPROVAL_LEASE: ApprovalPolicySource
 APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY: ApprovalPolicySource
 APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN: ApprovalPolicySource
+APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP: ApprovalPolicySource
 APPROVAL_EVENT_TYPE_UNSPECIFIED: ApprovalEventType
 APPROVAL_EVENT_TYPE_REQUESTED: ApprovalEventType
 APPROVAL_EVENT_TYPE_APPROVED: ApprovalEventType
@@ -314,6 +322,9 @@ APPROVAL_RETRACTION_REASON_SUPERSEDED: ApprovalRetractionReason
 INTERACTION_MODE_UNSPECIFIED: InteractionMode
 INTERACTION_MODE_AGENT: InteractionMode
 INTERACTION_MODE_PLAN: InteractionMode
+APPROVAL_MODE_UNSPECIFIED: ApprovalMode
+APPROVAL_MODE_INTERACTIVE: ApprovalMode
+APPROVAL_MODE_UNATTENDED: ApprovalMode
 FILE_CHANGE_TYPE_UNSPECIFIED: FileChangeType
 FILE_CHANGE_TYPE_CREATE: FileChangeType
 FILE_CHANGE_TYPE_MODIFY: FileChangeType

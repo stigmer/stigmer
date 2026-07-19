@@ -520,6 +520,19 @@ type ExecutionConfig struct {
 	// Like interaction_mode, this is per-execution and never carries over
 	// between executions in the same session.
 	BuildFromPlan bool `protobuf:"varint,8,opt,name=build_from_plan,json=buildFromPlan,proto3" json:"build_from_plan,omitempty"`
+	// How approval gates resolve for this execution. See ApprovalMode.
+	//
+	// UNSPECIFIED/INTERACTIVE: a gated tool pauses the execution until a human
+	// decides (today's behavior). UNATTENDED: gated tools auto-skip and the
+	// model adapts — set by surfaces with no approver (channel session broker,
+	// guest execution scope step), never by external callers (the guest scope
+	// step replaces the whole execution_config, so a guest-supplied mode is
+	// discarded with the rest of the config).
+	//
+	// Orthogonal to auto_approve_all: the bypass clears gates so tools RUN;
+	// unattended mode resolves gates so tools SKIP. When both are set the
+	// bypass wins by layer order (the gate never fires).
+	ApprovalMode  ApprovalMode `protobuf:"varint,9,opt,name=approval_mode,json=approvalMode,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalMode" json:"approval_mode,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -608,6 +621,13 @@ func (x *ExecutionConfig) GetBuildFromPlan() bool {
 		return x.BuildFromPlan
 	}
 	return false
+}
+
+func (x *ExecutionConfig) GetApprovalMode() ApprovalMode {
+	if x != nil {
+		return x.ApprovalMode
+	}
+	return ApprovalMode_APPROVAL_MODE_UNSPECIFIED
 }
 
 // ContextManagementConfig controls automatic context summarization behavior.
@@ -908,7 +928,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
 	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01:\xb8\x03\xbaH\xb4\x03\x1a\xcb\x01\n" +
 	"!agent_execution.session_exclusive\x12rsession_id and session_spec are mutually exclusive — reference an existing session or define a new one, not both\x1a2!(this.session_id != '' && has(this.session_spec))\x1a\xe3\x01\n" +
-	"*agent_execution.session_spec_harness_state\x12psession_spec.harness_state_id must be empty — harness state is created by the runner after the first execution\x1aC!has(this.session_spec) || this.session_spec.harness_state_id == ''\"\x82\x04\n" +
+	"*agent_execution.session_spec_harness_state\x12psession_spec.harness_state_id must be empty — harness state is created by the runner after the first execution\x1aC!has(this.session_spec) || this.session_spec.harness_state_id == ''\"\xe5\x04\n" +
 	"\x0fExecutionConfig\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x01 \x01(\tR\tmodelName\x12l\n" +
@@ -919,7 +939,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"maxCostUsd\x12j\n" +
 	"\x10interaction_mode\x18\x06 \x01(\x0e25.ai.stigmer.agentic.agentexecution.v1.InteractionModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x0finteractionMode\x12Q\n" +
 	"\x18structured_output_schema\x18\a \x01(\v2\x17.google.protobuf.StructR\x16structuredOutputSchema\x12&\n" +
-	"\x0fbuild_from_plan\x18\b \x01(\bR\rbuildFromPlan\"\xcc\x01\n" +
+	"\x0fbuild_from_plan\x18\b \x01(\bR\rbuildFromPlan\x12a\n" +
+	"\rapproval_mode\x18\t \x01(\x0e22.ai.stigmer.agentic.agentexecution.v1.ApprovalModeB\b\xbaH\x05\x82\x01\x02\x10\x01R\fapprovalMode\"\xcc\x01\n" +
 	"\x17ContextManagementConfig\x123\n" +
 	"\x15disable_summarization\x18\x01 \x01(\bR\x14disableSummarization\x12A\n" +
 	"\x18custom_trigger_threshold\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x16customTriggerThreshold\x129\n" +
@@ -959,7 +980,8 @@ var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_goTypes = []any{
 	(*v1.SessionSpec)(nil),          // 5: ai.stigmer.agentic.session.v1.SessionSpec
 	(InteractionMode)(0),            // 6: ai.stigmer.agentic.agentexecution.v1.InteractionMode
 	(*structpb.Struct)(nil),         // 7: google.protobuf.Struct
-	(*v11.ExecutionValue)(nil),      // 8: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(ApprovalMode)(0),               // 8: ai.stigmer.agentic.agentexecution.v1.ApprovalMode
+	(*v11.ExecutionValue)(nil),      // 9: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_depIdxs = []int32{
 	5, // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
@@ -969,12 +991,13 @@ var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_depIdxs = []int32{
 	2, // 4: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
 	6, // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.interaction_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.InteractionMode
 	7, // 6: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.structured_output_schema:type_name -> google.protobuf.Struct
-	8, // 7: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	8, // 7: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.approval_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalMode
+	9, // 8: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() }

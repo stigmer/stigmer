@@ -51,6 +51,7 @@ import {
   type PolicySource,
   POLICY_ENGINE_VERSION,
   resolveApprovalMessage,
+  unattendedSkipMessage,
 } from "../shared/approval-policy.js";
 import { toolApprovalCategory, type ToolApprovalCategory } from "../shared/tool-kind.js";
 import { extractFilePath } from "../shared/file-tools.js";
@@ -121,6 +122,26 @@ export interface ApprovalGateConfig {
    * secret; the CONTENT never leaves the workspace). Absent ⇒ nothing recorded.
    */
   readonly recordBlockedSecret?: (rawPath: string) => void;
+  /**
+   * Unattended approval mode (ExecutionConfig.approval_mode = UNATTENDED):
+   * the creating surface — a messaging channel, a guest share — has no
+   * approver, so a gated tool is resolved as an automatic SKIP (the model is
+   * told to adapt) instead of `interrupt()`. The execution never enters
+   * WAITING_FOR_APPROVAL. What is gated is unchanged — only the resolution
+   * differs; an operator un-gates a specific tool for the agent via
+   * tool_approval_overrides, not by weakening this mode.
+   */
+  readonly unattended?: boolean;
+  /**
+   * Registry of tool-call ids this gate auto-skipped under {@link unattended}
+   * — the gate is the single WRITER; `reconcileUnattendedSkips` (hitl.ts) is
+   * the reader that folds each id into a terminal TOOL_CALL_SKIPPED row with
+   * UNATTENDED_SKIP provenance after the stream. In-process, per-execution
+   * state keyed by the framework's own tool-call id (direct identity, no
+   * matching); inherited verbatim by sub-agent gates so their skips land in
+   * the same registry.
+   */
+  readonly unattendedSkips?: Set<string>;
 }
 
 interface ApprovalDecision {
@@ -247,6 +268,22 @@ export function createApprovalGateMiddleware(
         // Backing authorization: the classifier/policy auto-approved this tool.
         emitExecutionReceipt(config, toolCall, serverSlug, category, "auto_approve", requirement.source);
         return await handler(request);
+      }
+
+      // Unattended surfaces (channels, guest shares) have no approver, so a
+      // gate that would interrupt() here resolves as an automatic SKIP: the
+      // tool does NOT run (the gateway invariant holds — no side effect
+      // without a backing authorization), the model is told to adapt in plain
+      // language, and the turn continues to normal completion instead of
+      // parking in WAITING_FOR_APPROVAL forever. The registry entry lets the
+      // post-stream reconciler stamp the terminal SKIPPED row + provenance.
+      if (config.unattended) {
+        config.unattendedSkips?.add(toolCall.id);
+        return new ToolMessage({
+          content: unattendedSkipMessage(toolName),
+          tool_call_id: toolCall.id,
+          name: toolName,
+        });
       }
 
       const approvalRequest = {

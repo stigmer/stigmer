@@ -103,6 +103,11 @@ export interface CursorHookHarnessOptions {
    * skips the git-tracked flow arm.
    */
   gitWorkspace?: boolean;
+  /**
+   * Unattended approval mode (DD-014): approval denies are recorded with the
+   * non-pausing "unattended" kind and the adapt-and-explain agent message.
+   */
+  unattendedSkip?: boolean;
 }
 
 /**
@@ -164,6 +169,7 @@ export function setupCursorHookHarness(opts: CursorHookHarnessOptions = {}): Cur
       opts.captureMode ?? false,
       opts.captureIgnored ?? false,
       opts.gitWorkspace ?? true,
+      opts.unattendedSkip ?? false,
     );
     writeFileSync(statePath, JSON.stringify(state), "utf-8");
   }

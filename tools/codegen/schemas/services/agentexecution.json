@@ -46,7 +46,7 @@
           "inputFullType": "ai.stigmer.agentic.agentexecution.v1.SubmitApprovalInput",
           "outputType": "AgentExecution",
           "outputFullType": "ai.stigmer.agentic.agentexecution.v1.AgentExecution",
-          "description": "Submit an approval decision for a pending tool call.\n\n ## Preconditions\n\n - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase\n - tool_call_id must match status.pending_approval.tool_call_id\n - User must have can_edit permission on the execution\n\n ## Behavior by Action\n\n - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS\n - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS\n - REJECT: Execution fails with rejection error, phase becomes FAILED\n\n @internal\n\n ## State Transitions\n\n On success:\n - ToolCall.approval_action = submitted action\n - ToolCall.approval_decided_at = current timestamp\n - ToolCall.approved_by = authenticated user ID\n - AgentExecutionStatus.pending_approval = cleared\n - ExecutionPhase = EXECUTION_IN_PROGRESS (or EXECUTION_FAILED if REJECT)\n\n ## Error Conditions\n\n - NOT_FOUND: Execution doesn't exist\n - FAILED_PRECONDITION: Execution not in WAITING_FOR_APPROVAL phase\n - INVALID_ARGUMENT: tool_call_id doesn't match pending approval, or action is UNSPECIFIED\n - PERMISSION_DENIED: User lacks can_edit permission\n\n ## Idempotency\n\n If the same approval is submitted twice (same execution, tool_call, action),\n the second call is a no-op and returns the current state."
+          "description": "Submit an approval decision for a pending tool call.\n\n ## Preconditions\n\n - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase\n - tool_call_id must match status.pending_approval.tool_call_id\n - User must have can_edit permission on the execution\n\n ## Behavior by Action\n\n - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS\n - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS\n - REJECT: Tool is denied and the user's objection is fed back to the LLM;\n   the execution CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to\n   stop the whole run, use cancel/terminate)\n\n @internal\n\n ## State Transitions\n\n On success:\n - ToolCall.approval_action = submitted action\n - ToolCall.approval_decided_at = current timestamp\n - ToolCall.approved_by = authenticated user ID\n - AgentExecutionStatus.pending_approval = cleared\n - ExecutionPhase = EXECUTION_IN_PROGRESS (for every action, REJECT included)\n\n ## Error Conditions\n\n - NOT_FOUND: Execution doesn't exist\n - FAILED_PRECONDITION: Execution not in WAITING_FOR_APPROVAL phase\n - INVALID_ARGUMENT: tool_call_id doesn't match pending approval, or action is UNSPECIFIED\n - PERMISSION_DENIED: User lacks can_edit permission\n\n ## Idempotency\n\n If the same approval is submitted twice (same execution, tool_call, action),\n the second call is a no-op and returns the current state."
         },
         {
           "name": "SubmitFileDecision",
@@ -1873,6 +1873,11 @@
           "name": "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
           "number": 7,
           "description": "The connect-time MCP destructiveHint tightener forced this tool to require\n approval, overriding a more permissive classifier verdict. First-class\n provenance so a tightened tool is distinguishable from a plain classifier\n default. See applyDestructiveHintTightener."
+        },
+        {
+          "name": "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
+          "number": 8,
+          "description": "The unattended approval mode (ExecutionConfig.approval_mode =\n APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:\n the surface that created the execution (a messaging channel, a guest\n share) has no approver, so the platform skipped the tool and told the\n model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it\n records HOW the gate was resolved, overriding the gating-layer source on\n the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO\n approval_action / approved_by (those record human decisions only), and\n no approval-request event is ever authored for it."
         }
       ]
     },
@@ -2546,6 +2551,23 @@
           "name": "INTERACTION_MODE_PLAN",
           "number": 2,
           "description": "Read-only planning mode — analysis and recommendations only.\n\n The agent can read files, search code, list directories, and reason\n about the codebase, but cannot create, edit, or delete files or run\n mutating shell commands. Designed for exploring approaches, producing\n implementation plans, and answering architectural questions without\n side effects.\n\n Native harness: enforced by removing write tools from the tool set.\n Cursor harness: best-effort via system prompt directive."
+        }
+      ]
+    },
+    {
+      "name": "ApprovalMode",
+      "description": "ApprovalMode controls how an execution resolves HITL approval gates.\n\n The four-level approval policy chain (McpServerStatus.tool_approvals →\n McpServerSpec.pinned_tool_approvals → Agent tool_approval_overrides →\n AgentExecutionSpec.auto_approve_all) decides WHICH tools are gated; this\n mode decides WHAT HAPPENS when a gate fires. It exists for surfaces where\n no approver is present at the conversation — messaging channels\n (Slack/WhatsApp) and guest shares — where an interactive pause would park\n the execution in EXECUTION_WAITING_FOR_APPROVAL forever.\n\n The mode is stamped by the SURFACE that creates the execution (the channel\n session broker, the guest execution scope step), never chosen by the\n external user: it is runtime policy owned by the delivery surface, exactly\n like the bounded channel execution profile. Interactive surfaces (console,\n CLI) leave it unset.\n\n Two different consents, deliberately separated:\n - Operator consent (this gate) protects the org's tools and data and is\n   never delegated to an external user — a channel guest cannot authorize\n   the org's destructive operations.\n - End-user intent confirmation (\"book Monday 10 AM — shall I?\") is\n   conversational, owned by the agent's instructions; the tool itself is\n   then un-gated per agent via tool_approval_overrides.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ApprovalMode",
+      "values": [
+        {
+          "name": "APPROVAL_MODE_INTERACTIVE",
+          "number": 1,
+          "description": "Interactive approval (today's behavior): a gated tool pauses the\n execution (EXECUTION_WAITING_FOR_APPROVAL) until a human submits a\n decision via the submitApproval RPC. No timeout — the execution waits\n indefinitely."
+        },
+        {
+          "name": "APPROVAL_MODE_UNATTENDED",
+          "number": 2,
+          "description": "Unattended: no approver exists on the creating surface. A gated tool is\n resolved as an automatic SKIP — the tool does NOT run, the model is told\n the action requires an approval that is not available in this\n conversation and to adapt and explain in plain language, and the turn\n continues to normal completion. The skipped call is stamped\n TOOL_CALL_SKIPPED with approval_policy_source = UNATTENDED_SKIP; no\n approval-request event is authored (nothing is ever pending).\n\n A future \"park the turn and notify an org approver asynchronously\"\n behavior will be a NEW enum value, not a reinterpretation of this one."
         }
       ]
     }
@@ -3383,7 +3405,8 @@
               "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
               "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
               "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-              "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN"
+              "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
+              "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP"
             ]
           },
           "description": "Policy layer that gated this call. Copied from\n ToolCall.approval_policy_source so the event-stream projection reconstructs\n the same PendingApproval as the message scan. See ApprovalPolicySource.",
@@ -4880,7 +4903,8 @@
               "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
               "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
               "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-              "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN"
+              "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
+              "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP"
             ]
           },
           "description": "Policy layer that gated this tool call, copied from\n ToolCall.approval_policy_source by the server-side projection (exactly as\n tool_kind above is). Lets the approval surface explain WHY the tool requires\n approval (e.g. \"required by agent override\") without a client-side lookup.\n See ApprovalPolicySource.",
@@ -5718,7 +5742,8 @@
               "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
               "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
               "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-              "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN"
+              "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
+              "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP"
             ]
           },
           "description": "Policy layer that decided this tool call's approval requirement, set by the\n runner's approval gate so clients can explain \"why was this gated or\n auto-approved?\".\n\n APPROVAL_POLICY_SOURCE_UNSPECIFIED means unevaluated — a read-only built-in,\n or an execution that predates this field (clients fall back to no provenance,\n exactly as for an unset tool_kind). See ApprovalPolicySource.\n\n Field 23: appended after file_changes (22), the prior maximum.",

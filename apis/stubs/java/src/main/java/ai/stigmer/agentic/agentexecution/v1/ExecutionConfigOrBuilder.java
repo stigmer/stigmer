@@ -260,4 +260,45 @@ public interface ExecutionConfigOrBuilder extends
    * @return The buildFromPlan.
    */
   boolean getBuildFromPlan();
+
+  /**
+   * <pre>
+   * How approval gates resolve for this execution. See ApprovalMode.
+   *
+   * UNSPECIFIED/INTERACTIVE: a gated tool pauses the execution until a human
+   * decides (today's behavior). UNATTENDED: gated tools auto-skip and the
+   * model adapts — set by surfaces with no approver (channel session broker,
+   * guest execution scope step), never by external callers (the guest scope
+   * step replaces the whole execution_config, so a guest-supplied mode is
+   * discarded with the rest of the config).
+   *
+   * Orthogonal to auto_approve_all: the bypass clears gates so tools RUN;
+   * unattended mode resolves gates so tools SKIP. When both are set the
+   * bypass wins by layer order (the gate never fires).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 9 [json_name = "approvalMode", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for approvalMode.
+   */
+  int getApprovalModeValue();
+  /**
+   * <pre>
+   * How approval gates resolve for this execution. See ApprovalMode.
+   *
+   * UNSPECIFIED/INTERACTIVE: a gated tool pauses the execution until a human
+   * decides (today's behavior). UNATTENDED: gated tools auto-skip and the
+   * model adapts — set by surfaces with no approver (channel session broker,
+   * guest execution scope step), never by external callers (the guest scope
+   * step replaces the whole execution_config, so a guest-supplied mode is
+   * discarded with the rest of the config).
+   *
+   * Orthogonal to auto_approve_all: the bypass clears gates so tools RUN;
+   * unattended mode resolves gates so tools SKIP. When both are set the
+   * bypass wins by layer order (the gate never fires).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 9 [json_name = "approvalMode", (.buf.validate.field) = { ... }</code>
+   * @return The approvalMode.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ApprovalMode getApprovalMode();
 }

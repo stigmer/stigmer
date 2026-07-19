@@ -2111,6 +2111,11 @@
           "name": "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
           "number": 7,
           "description": "The connect-time MCP destructiveHint tightener forced this tool to require\n approval, overriding a more permissive classifier verdict. First-class\n provenance so a tightened tool is distinguishable from a plain classifier\n default. See applyDestructiveHintTightener."
+        },
+        {
+          "name": "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
+          "number": 8,
+          "description": "The unattended approval mode (ExecutionConfig.approval_mode =\n APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:\n the surface that created the execution (a messaging channel, a guest\n share) has no approver, so the platform skipped the tool and told the\n model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it\n records HOW the gate was resolved, overriding the gating-layer source on\n the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO\n approval_action / approved_by (those record human decisions only), and\n no approval-request event is ever authored for it."
         }
       ]
     },
@@ -2891,7 +2896,8 @@
               "APPROVAL_POLICY_SOURCE_AUTO_APPROVE_ALL",
               "APPROVAL_POLICY_SOURCE_APPROVAL_LEASE",
               "APPROVAL_POLICY_SOURCE_BUILTIN_CATEGORY",
-              "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN"
+              "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
+              "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP"
             ]
           },
           "description": "Policy layer that gated this tool call, copied from\n ToolCall.approval_policy_source by the server-side projection (exactly as\n tool_kind above is). Lets the approval surface explain WHY the tool requires\n approval (e.g. \"required by agent override\") without a client-side lookup.\n See ApprovalPolicySource.",

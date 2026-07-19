@@ -143,7 +143,9 @@ class AgentExecutionCommandControllerServicer(object):
 
         - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
         - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
-        - REJECT: Execution fails with rejection error, phase becomes FAILED
+        - REJECT: Tool is denied and the user's objection is fed back to the LLM;
+        the execution CONTINUES (see APPROVAL_ACTION_REJECT in enum.proto — to
+        stop the whole run, use cancel/terminate)
 
         @internal
 
@@ -154,7 +156,7 @@ class AgentExecutionCommandControllerServicer(object):
         - ToolCall.approval_decided_at = current timestamp
         - ToolCall.approved_by = authenticated user ID
         - AgentExecutionStatus.pending_approval = cleared
-        - ExecutionPhase = EXECUTION_IN_PROGRESS (or EXECUTION_FAILED if REJECT)
+        - ExecutionPhase = EXECUTION_IN_PROGRESS (for every action, REJECT included)
 
         ## Error Conditions
 

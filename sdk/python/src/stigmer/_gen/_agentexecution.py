@@ -348,6 +348,7 @@ class ExecutionConfigInput:
     interaction_mode: int = 0
     structured_output_schema: dict[str, Any] = field(default_factory=dict)
     build_from_plan: bool = False
+    approval_mode: int = 0
 
     def _to_proto(self) -> spec_pb2.ExecutionConfig:
         msg = spec_pb2.ExecutionConfig(
@@ -357,6 +358,7 @@ class ExecutionConfigInput:
             max_cost_usd=self.max_cost_usd,
             interaction_mode=self.interaction_mode,
             build_from_plan=self.build_from_plan,
+            approval_mode=self.approval_mode,
         )
         if self.context_management is not None:
             msg.context_management.CopyFrom(self.context_management._to_proto())

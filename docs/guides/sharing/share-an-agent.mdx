@@ -141,6 +141,23 @@ private. Your personal Environment and OAuth-connected credentials can't be
 shared — create a dedicated Environment with only the credentials the Agent
 needs.
 
+### Tool approvals never reach visitors
+
+Some tools require human approval before they run. A visitor is not an approver:
+they never see approval prompts, tool names, or platform mechanics. When a gated
+tool comes up in a visitor's chat, the platform skips it automatically and the
+Agent explains in plain language what it could not do — the chat always gets a
+reply.
+
+For actions the visitor's own request authorizes — booking their appointment,
+creating their ticket — design the Agent to confirm the specifics in
+conversation first ("I'm about to book Monday 10 AM — shall I go ahead?"), then
+un-gate that specific tool for this Agent
+(`tool_approval_overrides: requires_approval: false` on the Agent's MCP server
+usage). Keep truly destructive operations gated: for visitors they are skipped,
+which is exactly right — a stranger with your link should not be able to trigger
+them at all.
+
 ## Reset a public link
 
 A public link sometimes travels further than you meant it to — a forwarded

@@ -644,6 +644,17 @@ enum ApprovalPolicySource {
   // provenance so a tightened tool is distinguishable from a plain classifier
   // default. See applyDestructiveHintTightener.
   APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN = 7;
+
+  // The unattended approval mode (ExecutionConfig.approval_mode =
+  // APPROVAL_MODE_UNATTENDED) resolved this gated call as an automatic skip:
+  // the surface that created the execution (a messaging channel, a guest
+  // share) has no approver, so the platform skipped the tool and told the
+  // model to adapt. A layer-4 resolution source like AUTO_APPROVE_ALL — it
+  // records HOW the gate was resolved, overriding the gating-layer source on
+  // the resolved call. The tool call carries TOOL_CALL_SKIPPED with NO
+  // approval_action / approved_by (those record human decisions only), and
+  // no approval-request event is ever authored for it.
+  APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP = 8;
 }
 
 // ApprovalEventType is the kind of event in the append-only approval-event
@@ -751,6 +762,52 @@ enum InteractionMode {
   // Native harness: enforced by removing write tools from the tool set.
   // Cursor harness: best-effort via system prompt directive.
   INTERACTION_MODE_PLAN = 2;
+}
+
+// ApprovalMode controls how an execution resolves HITL approval gates.
+//
+// The four-level approval policy chain (McpServerStatus.tool_approvals →
+// McpServerSpec.pinned_tool_approvals → Agent tool_approval_overrides →
+// AgentExecutionSpec.auto_approve_all) decides WHICH tools are gated; this
+// mode decides WHAT HAPPENS when a gate fires. It exists for surfaces where
+// no approver is present at the conversation — messaging channels
+// (Slack/WhatsApp) and guest shares — where an interactive pause would park
+// the execution in EXECUTION_WAITING_FOR_APPROVAL forever.
+//
+// The mode is stamped by the SURFACE that creates the execution (the channel
+// session broker, the guest execution scope step), never chosen by the
+// external user: it is runtime policy owned by the delivery surface, exactly
+// like the bounded channel execution profile. Interactive surfaces (console,
+// CLI) leave it unset.
+//
+// Two different consents, deliberately separated:
+// - Operator consent (this gate) protects the org's tools and data and is
+//   never delegated to an external user — a channel guest cannot authorize
+//   the org's destructive operations.
+// - End-user intent confirmation ("book Monday 10 AM — shall I?") is
+//   conversational, owned by the agent's instructions; the tool itself is
+//   then un-gated per agent via tool_approval_overrides.
+enum ApprovalMode {
+  // Default — resolves to APPROVAL_MODE_INTERACTIVE.
+  APPROVAL_MODE_UNSPECIFIED = 0;
+
+  // Interactive approval (today's behavior): a gated tool pauses the
+  // execution (EXECUTION_WAITING_FOR_APPROVAL) until a human submits a
+  // decision via the submitApproval RPC. No timeout — the execution waits
+  // indefinitely.
+  APPROVAL_MODE_INTERACTIVE = 1;
+
+  // Unattended: no approver exists on the creating surface. A gated tool is
+  // resolved as an automatic SKIP — the tool does NOT run, the model is told
+  // the action requires an approval that is not available in this
+  // conversation and to adapt and explain in plain language, and the turn
+  // continues to normal completion. The skipped call is stamped
+  // TOOL_CALL_SKIPPED with approval_policy_source = UNATTENDED_SKIP; no
+  // approval-request event is authored (nothing is ever pending).
+  //
+  // A future "park the turn and notify an org approver asynchronously"
+  // behavior will be a NEW enum value, not a reinterpretation of this one.
+  APPROVAL_MODE_UNATTENDED = 2;
 }
 
 // FileChangeType is the per-file outcome of a file mutation in a tool call.

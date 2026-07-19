@@ -57,7 +57,7 @@ import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/stre
 import { createCursorEventRecorder } from "./cursor-event-recorder.js";
 import { resolveMcpServers, validateMcpServerEnv } from "./mcp-resolver.js";
 import { mergeApprovalPolicies } from "./approval-policy.js";
-import { deriveActiveLeases } from "../../shared/approval-policy.js";
+import { deriveActiveLeases, isUnattendedApprovalMode } from "../../shared/approval-policy.js";
 import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
 import { resolveExecutionEnv } from "./env-resolver.js";
 import { resolveBlueprint } from "./blueprint-resolver.js";
@@ -721,6 +721,11 @@ async function executeCursorInner(
     // absent a git tree keeps gating gitignored writes and a non-git workspace
     // falls back to the deny-gate entirely (no regression).
     const captureIgnored = captureMode && !!artifactStorage;
+    // Unattended approval mode (DD-014): approver-less surfaces (channels,
+    // guest shares) stamp APPROVAL_MODE_UNATTENDED; the hook then records
+    // approval denials with the non-pausing "unattended" kind, so the
+    // first-denial stop never fires and the turn boundary settles the denied
+    // calls as SKIPPED instead of pausing a turn nobody can approve.
     const approvalState = buildApprovalState(
       mergedPolicies,
       globalBypass,
@@ -729,6 +734,7 @@ async function executeCursorInner(
       captureMode,
       captureIgnored,
       gitWorkspace,
+      isUnattendedApprovalMode(execution),
     );
     const hitlGate = await installHitlGate({
       workspaceRoot: primaryWorkspaceDir,

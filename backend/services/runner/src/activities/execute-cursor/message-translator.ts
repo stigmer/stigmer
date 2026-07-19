@@ -36,7 +36,7 @@ import { AgentMessageSchema, ToolCallSchema } from "@stigmer/protos/ai/stigmer/a
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { MessageType, ToolCallStatus, SubAgentStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalPolicySource, MessageType, ToolCallStatus, SubAgentStatus, ToolKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { SDKMessage } from "@cursor/sdk";
 import type { MergedToolPolicy } from "./approval-policy.js";
 import { lookupMcpToolPolicy, resolveApprovalMessage, builtInRequiresApproval, getBuiltInApprovalMessage, SALIENT_ARG_FIELDS } from "./approval-policy.js";
@@ -44,6 +44,7 @@ import {
   POLICY_ENGINE_VERSION,
   resolveApprovalProvenance,
   toProtoPolicySource,
+  unattendedSkipMessage,
 } from "../../shared/approval-policy.js";
 import {
   approvalDenials,
@@ -1914,6 +1915,86 @@ export function detectUnattributedHookBlocks(
     }
   }
   return blocks;
+}
+
+/**
+ * Stamp the tool calls the hook denied under UNATTENDED approval mode
+ * (DD-014) as terminal TOOL_CALL_SKIPPED rows with UNATTENDED_SKIP
+ * provenance — the Cursor twin of the native harness's
+ * `reconcileUnattendedSkips`, so both harnesses persist the same honest
+ * shape for a platform-resolved skip.
+ *
+ * An unattended denial never pauses the run (its ledger kind is excluded
+ * from {@link approvalDenials}), so the stream leaves the denied call as a
+ * FAILED row carrying Cursor's generic hook-block error — dishonest ("the
+ * tool broke") and alarming in a transcript an org admin reviews. This pass
+ * correlates the unattended ledger entries to their streamed calls with the
+ * SAME two identities the rest of the file uses — exact token, then
+ * (category, workspace-normalized path) for the abs-vs-rel drift — and
+ * settles each match to SKIPPED with a result explaining the skip.
+ *
+ * Scope: hook-blocked FAILED rows and still-non-terminal (PENDING/RUNNING)
+ * rows only — a COMPLETED row is a real execution and is never rewritten
+ * (an unattended deny cannot produce one). `approval_action`/`approved_by`
+ * stay untouched: server-owned, human-decision-only fields (DD-014 D-e).
+ * Unmatched ledger entries need no synthesis — there is no pause to
+ * surface; the model already saw the deny and adapted in-turn.
+ *
+ * Returns how many tool calls were stamped.
+ */
+export function stampUnattendedSkippedToolCalls(
+  messages: readonly AgentMessage[],
+  subAgentExecutions: readonly SubAgentExecution[],
+  unattendedLedger: readonly DeniedLedgerEntry[],
+  workspaceRoot?: string,
+): number {
+  if (unattendedLedger.length === 0) return 0;
+
+  const ledgerTokens = new Set(unattendedLedger.map((e) => e.token));
+  const ledgerNormalizedSalients = new Set<string>();
+  if (workspaceRoot) {
+    for (const entry of unattendedLedger) {
+      const decoded = decodeIdentityToken(entry.token);
+      if (!decoded) continue;
+      const normalized = normalizedFileSalient(decoded.key, decoded.salient, workspaceRoot);
+      if (normalized) ledgerNormalizedSalients.add(normalized);
+    }
+  }
+
+  const matchesLedger = (tc: ToolCall): boolean => {
+    if (ledgerTokens.has(toolCallIdentityToken(tc))) return true;
+    if (!workspaceRoot) return false;
+    const id = toolIdentity(tc.name, tc.mcpServerSlug, toolCallArgs(tc));
+    const normalized = normalizedFileSalient(id.key, id.salient, workspaceRoot);
+    return !!normalized && ledgerNormalizedSalients.has(normalized);
+  };
+
+  let stamped = 0;
+  const apply = (msgs: readonly AgentMessage[]): void => {
+    for (const msg of msgs) {
+      for (const tc of msg.toolCalls) {
+        const deniedShape =
+          (tc.status === ToolCallStatus.TOOL_CALL_FAILED && isHookBlockError(tc.error)) ||
+          tc.status === ToolCallStatus.TOOL_CALL_PENDING ||
+          tc.status === ToolCallStatus.TOOL_CALL_RUNNING;
+        if (!deniedShape || !matchesLedger(tc)) continue;
+        tc.status = ToolCallStatus.TOOL_CALL_SKIPPED;
+        tc.approvalPolicySource = ApprovalPolicySource.UNATTENDED_SKIP;
+        tc.policyEngineVersion = POLICY_ENGINE_VERSION;
+        tc.error = "";
+        tc.result = unattendedSkipMessage(tc.name);
+        tc.isStreaming = false;
+        if (!tc.completedAt) tc.completedAt = utcTimestamp();
+        stamped++;
+      }
+    }
+  };
+
+  apply(messages);
+  for (const subAgent of subAgentExecutions) {
+    apply(subAgent.messages);
+  }
+  return stamped;
 }
 
 /**

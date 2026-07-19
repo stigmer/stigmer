@@ -47,7 +47,7 @@ import { StatusBuilder } from "./status-builder.js";
 import { InlinePublisher } from "./inline-publisher.js";
 import { WriteBackCoordinator } from "../../shared/workspace/writeback-coordinator.js";
 import { processPostStream } from "./post-stream.js";
-import { resolveResumeInput, reconcileNonExecutingDecisions, type GraphStateSnapshot } from "./hitl.js";
+import { resolveResumeInput, reconcileNonExecutingDecisions, reconcileUnattendedSkips, type GraphStateSnapshot } from "./hitl.js";
 import { captureApprovalArtifacts } from "./approval-file-change.js";
 import {
   applyCaptureDecisions,
@@ -144,6 +144,7 @@ export function createDeepAgentActivities(config: Config) {
           toolServerMap: setup.toolServerMap,
           leasedCategories: setup.leasedCategories,
           globalBypass: setup.globalBypass,
+          unattended: setup.unattended,
         });
 
         const resume = resolveResumeInput(
@@ -408,6 +409,7 @@ export function createDeepAgentActivities(config: Config) {
             toolServerMap: setup.toolServerMap,
             leasedCategories: setup.leasedCategories,
             globalBypass: setup.globalBypass,
+            unattended: setup.unattended,
           },
           streamVersion: setup.streamVersion,
           // Mid-run live capture (DD-32 / DD-33): attach file_change_progress
@@ -464,6 +466,14 @@ export function createDeepAgentActivities(config: Config) {
         // reconcileNonExecutingDecisions. Runs before the WAITING-detection and
         // completion persists below so the terminal status is what is persisted.
         reconcileNonExecutingDecisions(initialStatus);
+
+        // Terminalize every tool call the gate auto-skipped under UNATTENDED
+        // approval mode (DD-014): the skip has no human decision behind it, so
+        // reconcileNonExecutingDecisions cannot see it — this sibling folds the
+        // gate's registry into terminal SKIPPED rows with UNATTENDED_SKIP
+        // provenance, whatever transient status the stream left behind. No-op
+        // for interactive executions (empty registry).
+        reconcileUnattendedSkips(initialStatus, setup.unattendedSkips);
 
         // Turn boundary (capture mode): capture the candidate change set from the
         // git diff and author CANDIDATE_CAPTURED, then stamp the flowed file-edit

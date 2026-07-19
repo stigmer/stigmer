@@ -784,4 +784,99 @@ describe("ApprovalGateMiddleware", () => {
     expect(result).toBeInstanceOf(ToolMessage);
     expect((result as ToolMessage).content).toContain("unknown action");
   });
+
+  describe("unattended approval mode (DD-014)", () => {
+    const gatedMcpPolicies = new Map<string, MergedToolPolicy>([
+      ["srv/gated_tool", {
+        toolName: "gated_tool",
+        mcpServerSlug: "srv",
+        requiresApproval: true,
+        approvalMessage: "Run gated_tool",
+        source: "classifier_default",
+      }],
+    ]);
+
+    it("skips a gated MCP tool without interrupting and records it in the registry", async () => {
+      const unattendedSkips = new Set<string>();
+      const mw = createApprovalGateMiddleware(makeConfig({
+        policies: gatedMcpPolicies,
+        toolServerMap: new Map([["gated_tool", "srv"]]),
+        unattended: true,
+        unattendedSkips,
+      }));
+
+      const handler = vi.fn(passthrough);
+      const result = await mw.wrapToolCall!(
+        makeRequest({ name: "gated_tool", args: { target: "prod" } }),
+        handler,
+      );
+
+      // Gateway invariant: the side effect never ran, and no interrupt was
+      // raised — the turn continues instead of parking WAITING_FOR_APPROVAL.
+      expect(handler).not.toHaveBeenCalled();
+      expect(mockedInterrupt).not.toHaveBeenCalled();
+      expect((result as ToolMessage).content).toContain("skipped automatically");
+      expect(unattendedSkips.has("call_abc123")).toBe(true);
+    });
+
+    it("skips a gated built-in (shell) the same way", async () => {
+      const unattendedSkips = new Set<string>();
+      const mw = createApprovalGateMiddleware(makeConfig({
+        unattended: true,
+        unattendedSkips,
+      }));
+
+      const handler = vi.fn(passthrough);
+      const result = await mw.wrapToolCall!(
+        makeRequest({ name: "shell", args: { command: "rm -rf /" } }),
+        handler,
+      );
+
+      expect(handler).not.toHaveBeenCalled();
+      expect(mockedInterrupt).not.toHaveBeenCalled();
+      expect((result as ToolMessage).content).toContain("skipped automatically");
+      expect(unattendedSkips.has("call_abc123")).toBe(true);
+    });
+
+    it("still runs tools the policy chain auto-approved (un-gating stays the operator lever)", async () => {
+      // The operator's tool_approval_overrides path: an un-gated tool is
+      // absent from the policy map, so unattended mode never touches it.
+      const unattendedSkips = new Set<string>();
+      const mw = createApprovalGateMiddleware(makeConfig({
+        toolServerMap: new Map([["book_appointment", "clinic"]]),
+        unattended: true,
+        unattendedSkips,
+      }));
+
+      const result = await mw.wrapToolCall!(
+        makeRequest({ name: "book_appointment", args: { slot: "mon-10" } }),
+        passthrough,
+      );
+
+      expect((result as ToolMessage).content).toBe("tool result");
+      expect(unattendedSkips.size).toBe(0);
+      expect(mockedInterrupt).not.toHaveBeenCalled();
+    });
+
+    it("never emits an execution receipt for an unattended skip (no side effect)", async () => {
+      const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      try {
+        const mw = createApprovalGateMiddleware(makeConfig({
+          policies: gatedMcpPolicies,
+          toolServerMap: new Map([["gated_tool", "srv"]]),
+          unattended: true,
+          unattendedSkips: new Set<string>(),
+        }));
+
+        await mw.wrapToolCall!(makeRequest({ name: "gated_tool" }), passthrough);
+
+        const receipts = logSpy.mock.calls
+          .map((c) => String(c[0]))
+          .filter((line) => line.includes("[hitl-gateway] receipt"));
+        expect(receipts).toHaveLength(0);
+      } finally {
+        logSpy.mockRestore();
+      }
+    });
+  });
 });

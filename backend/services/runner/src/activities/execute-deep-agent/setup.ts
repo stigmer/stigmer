@@ -59,6 +59,7 @@ import {
 import {
   mergeApprovalPolicies,
   deriveActiveLeases,
+  isUnattendedApprovalMode,
   type MergedToolPolicy,
 } from "../../shared/approval-policy.js";
 import type { ToolApprovalCategory } from "../../shared/tool-kind.js";
@@ -125,6 +126,20 @@ export interface SetupResult {
    * the gate (see ActiveLeases / deriveActiveLeases).
    */
   readonly globalBypass: boolean;
+  /**
+   * Unattended approval mode (ExecutionConfig.approval_mode = UNATTENDED,
+   * stamped by approver-less surfaces — channels, guest shares). The gate
+   * resolves gated tools as automatic skips instead of interrupting; the
+   * builders never seed WAITING_APPROVAL. See isUnattendedApprovalMode.
+   */
+  readonly unattended: boolean;
+  /**
+   * Tool-call ids the gate auto-skipped under {@link unattended} this turn.
+   * Written ONLY by the approval gate (parent + inherited sub-agent gates
+   * share this instance); read by reconcileUnattendedSkips after the stream
+   * to stamp terminal SKIPPED rows. Empty set when not unattended.
+   */
+  readonly unattendedSkips: Set<string>;
   readonly hasStructuredOutput: boolean;
   readonly streamVersion: "v2" | "v3";
   /**
@@ -440,6 +455,14 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       leases,
     );
 
+    // Unattended approval mode (DD-014): approver-less surfaces (channels,
+    // guest shares) stamp APPROVAL_MODE_UNATTENDED, and the gate resolves
+    // gated tools as automatic skips instead of interrupting. The registry is
+    // the gate→reconciler channel for the skipped tool-call ids; one instance
+    // is shared with sub-agent gates via the inherited config.
+    const unattended = isUnattendedApprovalMode(execution);
+    const unattendedSkips = new Set<string>();
+
     // The approval gate config is the single source of truth for HITL gating,
     // built once and inherited verbatim by sub-agents (so a mutating tool inside
     // a sub-agent is gated identically to one in the parent). Null under the
@@ -476,6 +499,8 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
           isCapturablePath,
           captureIgnored: captureMode && !!artifactStorage,
           recordBlockedSecret: (rawPath: string) => casObserver.recordBlockedSecret(rawPath),
+          unattended,
+          unattendedSkips,
         }
       : null;
 
@@ -648,6 +673,8 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       toolServerMap,
       leasedCategories: leases.categories,
       globalBypass,
+      unattended,
+      unattendedSkips,
       hasStructuredOutput: !!outputSchema,
       streamVersion,
       casObserver,

@@ -34,6 +34,7 @@ private static final long serialVersionUID = 0L;
   private ExecutionConfig() {
     modelName_ = "";
     interactionMode_ = 0;
+    approvalMode_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -382,6 +383,54 @@ private static final long serialVersionUID = 0L;
     return buildFromPlan_;
   }
 
+  public static final int APPROVAL_MODE_FIELD_NUMBER = 9;
+  private int approvalMode_ = 0;
+  /**
+   * <pre>
+   * How approval gates resolve for this execution. See ApprovalMode.
+   *
+   * UNSPECIFIED/INTERACTIVE: a gated tool pauses the execution until a human
+   * decides (today's behavior). UNATTENDED: gated tools auto-skip and the
+   * model adapts — set by surfaces with no approver (channel session broker,
+   * guest execution scope step), never by external callers (the guest scope
+   * step replaces the whole execution_config, so a guest-supplied mode is
+   * discarded with the rest of the config).
+   *
+   * Orthogonal to auto_approve_all: the bypass clears gates so tools RUN;
+   * unattended mode resolves gates so tools SKIP. When both are set the
+   * bypass wins by layer order (the gate never fires).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 9 [json_name = "approvalMode", (.buf.validate.field) = { ... }</code>
+   * @return The enum numeric value on the wire for approvalMode.
+   */
+  @java.lang.Override public int getApprovalModeValue() {
+    return approvalMode_;
+  }
+  /**
+   * <pre>
+   * How approval gates resolve for this execution. See ApprovalMode.
+   *
+   * UNSPECIFIED/INTERACTIVE: a gated tool pauses the execution until a human
+   * decides (today's behavior). UNATTENDED: gated tools auto-skip and the
+   * model adapts — set by surfaces with no approver (channel session broker,
+   * guest execution scope step), never by external callers (the guest scope
+   * step replaces the whole execution_config, so a guest-supplied mode is
+   * discarded with the rest of the config).
+   *
+   * Orthogonal to auto_approve_all: the bypass clears gates so tools RUN;
+   * unattended mode resolves gates so tools SKIP. When both are set the
+   * bypass wins by layer order (the gate never fires).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 9 [json_name = "approvalMode", (.buf.validate.field) = { ... }</code>
+   * @return The approvalMode.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ApprovalMode getApprovalMode() {
+    ai.stigmer.agentic.agentexecution.v1.ApprovalMode result = ai.stigmer.agentic.agentexecution.v1.ApprovalMode.forNumber(approvalMode_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalMode.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -419,6 +468,9 @@ private static final long serialVersionUID = 0L;
     }
     if (buildFromPlan_ != false) {
       output.writeBool(8, buildFromPlan_);
+    }
+    if (approvalMode_ != ai.stigmer.agentic.agentexecution.v1.ApprovalMode.APPROVAL_MODE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(9, approvalMode_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -460,6 +512,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(8, buildFromPlan_);
     }
+    if (approvalMode_ != ai.stigmer.agentic.agentexecution.v1.ApprovalMode.APPROVAL_MODE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(9, approvalMode_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -497,6 +553,7 @@ private static final long serialVersionUID = 0L;
     }
     if (getBuildFromPlan()
         != other.getBuildFromPlan()) return false;
+    if (approvalMode_ != other.approvalMode_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -530,6 +587,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + BUILD_FROM_PLAN_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getBuildFromPlan());
+    hash = (37 * hash) + APPROVAL_MODE_FIELD_NUMBER;
+    hash = (53 * hash) + approvalMode_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -688,6 +747,7 @@ private static final long serialVersionUID = 0L;
         structuredOutputSchemaBuilder_ = null;
       }
       buildFromPlan_ = false;
+      approvalMode_ = 0;
       return this;
     }
 
@@ -752,6 +812,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.buildFromPlan_ = buildFromPlan_;
       }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.approvalMode_ = approvalMode_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -792,6 +855,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getBuildFromPlan() != false) {
         setBuildFromPlan(other.getBuildFromPlan());
+      }
+      if (other.approvalMode_ != 0) {
+        setApprovalModeValue(other.getApprovalModeValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -863,6 +929,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000080;
               break;
             } // case 64
+            case 72: {
+              approvalMode_ = input.readEnum();
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 72
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1874,6 +1945,133 @@ private static final long serialVersionUID = 0L;
     public Builder clearBuildFromPlan() {
       bitField0_ = (bitField0_ & ~0x00000080);
       buildFromPlan_ = false;
+      onChanged();
+      return this;
+    }
+
+    private int approvalMode_ = 0;
+    /**
+     * <pre>
+     * How approval gates resolve for this execution. See ApprovalMode.
+     *
+     * UNSPECIFIED/INTERACTIVE: a gated tool pauses the execution until a human
+     * decides (today's behavior). UNATTENDED: gated tools auto-skip and the
+     * model adapts — set by surfaces with no approver (channel session broker,
+     * guest execution scope step), never by external callers (the guest scope
+     * step replaces the whole execution_config, so a guest-supplied mode is
+     * discarded with the rest of the config).
+     *
+     * Orthogonal to auto_approve_all: the bypass clears gates so tools RUN;
+     * unattended mode resolves gates so tools SKIP. When both are set the
+     * bypass wins by layer order (the gate never fires).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 9 [json_name = "approvalMode", (.buf.validate.field) = { ... }</code>
+     * @return The enum numeric value on the wire for approvalMode.
+     */
+    @java.lang.Override public int getApprovalModeValue() {
+      return approvalMode_;
+    }
+    /**
+     * <pre>
+     * How approval gates resolve for this execution. See ApprovalMode.
+     *
+     * UNSPECIFIED/INTERACTIVE: a gated tool pauses the execution until a human
+     * decides (today's behavior). UNATTENDED: gated tools auto-skip and the
+     * model adapts — set by surfaces with no approver (channel session broker,
+     * guest execution scope step), never by external callers (the guest scope
+     * step replaces the whole execution_config, so a guest-supplied mode is
+     * discarded with the rest of the config).
+     *
+     * Orthogonal to auto_approve_all: the bypass clears gates so tools RUN;
+     * unattended mode resolves gates so tools SKIP. When both are set the
+     * bypass wins by layer order (the gate never fires).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 9 [json_name = "approvalMode", (.buf.validate.field) = { ... }</code>
+     * @param value The enum numeric value on the wire for approvalMode to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalModeValue(int value) {
+      approvalMode_ = value;
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How approval gates resolve for this execution. See ApprovalMode.
+     *
+     * UNSPECIFIED/INTERACTIVE: a gated tool pauses the execution until a human
+     * decides (today's behavior). UNATTENDED: gated tools auto-skip and the
+     * model adapts — set by surfaces with no approver (channel session broker,
+     * guest execution scope step), never by external callers (the guest scope
+     * step replaces the whole execution_config, so a guest-supplied mode is
+     * discarded with the rest of the config).
+     *
+     * Orthogonal to auto_approve_all: the bypass clears gates so tools RUN;
+     * unattended mode resolves gates so tools SKIP. When both are set the
+     * bypass wins by layer order (the gate never fires).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 9 [json_name = "approvalMode", (.buf.validate.field) = { ... }</code>
+     * @return The approvalMode.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ApprovalMode getApprovalMode() {
+      ai.stigmer.agentic.agentexecution.v1.ApprovalMode result = ai.stigmer.agentic.agentexecution.v1.ApprovalMode.forNumber(approvalMode_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalMode.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * How approval gates resolve for this execution. See ApprovalMode.
+     *
+     * UNSPECIFIED/INTERACTIVE: a gated tool pauses the execution until a human
+     * decides (today's behavior). UNATTENDED: gated tools auto-skip and the
+     * model adapts — set by surfaces with no approver (channel session broker,
+     * guest execution scope step), never by external callers (the guest scope
+     * step replaces the whole execution_config, so a guest-supplied mode is
+     * discarded with the rest of the config).
+     *
+     * Orthogonal to auto_approve_all: the bypass clears gates so tools RUN;
+     * unattended mode resolves gates so tools SKIP. When both are set the
+     * bypass wins by layer order (the gate never fires).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 9 [json_name = "approvalMode", (.buf.validate.field) = { ... }</code>
+     * @param value The approvalMode to set.
+     * @return This builder for chaining.
+     */
+    public Builder setApprovalMode(ai.stigmer.agentic.agentexecution.v1.ApprovalMode value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000100;
+      approvalMode_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * How approval gates resolve for this execution. See ApprovalMode.
+     *
+     * UNSPECIFIED/INTERACTIVE: a gated tool pauses the execution until a human
+     * decides (today's behavior). UNATTENDED: gated tools auto-skip and the
+     * model adapts — set by surfaces with no approver (channel session broker,
+     * guest execution scope step), never by external callers (the guest scope
+     * step replaces the whole execution_config, so a guest-supplied mode is
+     * discarded with the rest of the config).
+     *
+     * Orthogonal to auto_approve_all: the bypass clears gates so tools RUN;
+     * unattended mode resolves gates so tools SKIP. When both are set the
+     * bypass wins by layer order (the gate never fires).
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalMode approval_mode = 9 [json_name = "approvalMode", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearApprovalMode() {
+      bitField0_ = (bitField0_ & ~0x00000100);
+      approvalMode_ = 0;
       onChanged();
       return this;
     }

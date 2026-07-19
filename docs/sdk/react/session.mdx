@@ -1628,7 +1628,12 @@ presented to.
   behavioral, not just cosmetic — the organisms also skip the
   org-level reads a guest principal cannot make (default-agent
   resolution, session→agent derivation, personal environments) and
-  never fall back to the org's default agent.
+  never fall back to the org's default agent. Approval mechanics are
+  also withheld (DD-014): the HITL gate protects the ORG's tools and
+  an anonymous visitor is not its trustee — guest executions run in
+  unattended approval mode server-side (gated tools auto-skip and the
+  agent explains in plain language), so tool-approval vocabulary never
+  reaches a guest.
 - `"observer"` — a read-only transcript for someone watching a
   conversation they cannot participate in, e.g. a channel connector
   or org admin reviewing a Slack/WhatsApp conversation the channel

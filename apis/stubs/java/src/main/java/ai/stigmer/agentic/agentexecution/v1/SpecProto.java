@@ -100,7 +100,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "harness state is created by the runner a" +
       "fter the first execution\032C!has(this.sess" +
       "ion_spec) || this.session_spec.harness_s" +
-      "tate_id == \'\'\"\202\004\n\017ExecutionConfig\022\035\n\nmod" +
+      "tate_id == \'\'\"\345\004\n\017ExecutionConfig\022\035\n\nmod" +
       "el_name\030\001 \001(\tR\tmodelName\022l\n\022context_mana" +
       "gement\030\002 \001(\0132=.ai.stigmer.agentic.agente" +
       "xecution.v1.ContextManagementConfigR\021con" +
@@ -113,22 +113,25 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ionMode\022Q\n\030structured_output_schema\030\007 \001(" +
       "\0132\027.google.protobuf.StructR\026structuredOu" +
       "tputSchema\022&\n\017build_from_plan\030\010 \001(\010R\rbui" +
-      "ldFromPlan\"\314\001\n\027ContextManagementConfig\0223" +
-      "\n\025disable_summarization\030\001 \001(\010R\024disableSu" +
-      "mmarization\022A\n\030custom_trigger_threshold\030" +
-      "\002 \001(\005B\007\272H\004\032\002(\000R\026customTriggerThreshold\0229" +
-      "\n\024custom_target_tokens\030\003 \001(\005B\007\272H\004\032\002(\000R\022c" +
-      "ustomTargetTokens\"\326\001\n\nAttachment\022#\n\010file" +
-      "name\030\001 \001(\tB\007\272H\004r\002\020\001R\010filename\022(\n\013storage" +
-      "_key\030\002 \001(\tB\007\272H\004r\002\020\001R\nstorageKey\022\035\n\nmount" +
-      "_path\030\003 \001(\tR\tmountPath\022!\n\014content_type\030\004" +
-      " \001(\tR\013contentType\022\030\n\007extract\030\005 \001(\010R\007extr" +
-      "act\022\035\n\nlocal_path\030\006 \001(\tR\tlocalPathB\300\001B\tS" +
-      "pecProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.A" +
-      "gentexecution.V1\312\002$Ai\\Stigmer\\Agentic\\Ag" +
-      "entexecution\\V1\342\0020Ai\\Stigmer\\Agentic\\Age" +
-      "ntexecution\\V1\\GPBMetadata\352\002(Ai::Stigmer" +
-      "::Agentic::Agentexecution::V1b\006proto3"
+      "ldFromPlan\022a\n\rapproval_mode\030\t \001(\01622.ai.s" +
+      "tigmer.agentic.agentexecution.v1.Approva" +
+      "lModeB\010\272H\005\202\001\002\020\001R\014approvalMode\"\314\001\n\027Contex" +
+      "tManagementConfig\0223\n\025disable_summarizati" +
+      "on\030\001 \001(\010R\024disableSummarization\022A\n\030custom" +
+      "_trigger_threshold\030\002 \001(\005B\007\272H\004\032\002(\000R\026custo" +
+      "mTriggerThreshold\0229\n\024custom_target_token" +
+      "s\030\003 \001(\005B\007\272H\004\032\002(\000R\022customTargetTokens\"\326\001\n" +
+      "\nAttachment\022#\n\010filename\030\001 \001(\tB\007\272H\004r\002\020\001R\010" +
+      "filename\022(\n\013storage_key\030\002 \001(\tB\007\272H\004r\002\020\001R\n" +
+      "storageKey\022\035\n\nmount_path\030\003 \001(\tR\tmountPat" +
+      "h\022!\n\014content_type\030\004 \001(\tR\013contentType\022\030\n\007" +
+      "extract\030\005 \001(\010R\007extract\022\035\n\nlocal_path\030\006 \001" +
+      "(\tR\tlocalPathB\300\001B\tSpecProtoP\001\242\002\004ASAA\252\002$A" +
+      "i.Stigmer.Agentic.Agentexecution.V1\312\002$Ai" +
+      "\\Stigmer\\Agentic\\Agentexecution\\V1\342\0020Ai\\" +
+      "Stigmer\\Agentic\\Agentexecution\\V1\\GPBMet" +
+      "adata\352\002(Ai::Stigmer::Agentic::Agentexecu" +
+      "tion::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -156,7 +159,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_ExecutionConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ExecutionConfig_descriptor,
-        new java.lang.String[] { "ModelName", "ContextManagement", "MaxToolRounds", "MaxToolResultChars", "MaxCostUsd", "InteractionMode", "StructuredOutputSchema", "BuildFromPlan", });
+        new java.lang.String[] { "ModelName", "ContextManagement", "MaxToolRounds", "MaxToolResultChars", "MaxCostUsd", "InteractionMode", "StructuredOutputSchema", "BuildFromPlan", "ApprovalMode", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_ContextManagementConfig_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_agentexecution_v1_ContextManagementConfig_fieldAccessorTable = new

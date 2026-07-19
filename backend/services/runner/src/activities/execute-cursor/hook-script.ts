@@ -124,6 +124,24 @@ const APPROVAL_REQUIRED_AGENT_MESSAGE =
   "attempt a workaround for this action. The platform will resume you " +
   "automatically after the user responds — continue with the rest of the task.";
 
+// Shown to the model when the gate denies a tool call under UNATTENDED
+// approval mode (DD-014): the creating surface (a messaging channel, a guest
+// share) has no approver, so — unlike APPROVAL_REQUIRED_AGENT_MESSAGE — this
+// must NOT promise a resume: the deny is final for this turn and the model
+// must adapt. It also enforces the anti-leak posture: the end user hears a
+// plain-language explanation, never tool/approval vocabulary. Same embedding
+// constraint (single-quoted bash echo of a JSON object): no double quotes,
+// apostrophes, or backslashes. Mirrors the native gate skip message
+// (middleware/approval-gate.ts unattendedSkipMessage) in intent.
+const UNATTENDED_SKIP_AGENT_MESSAGE =
+  "This action was skipped automatically because it requires an approval that " +
+  "is not available in this conversation. This is the platform approval gate " +
+  "working as intended — it is not an error and not a Cursor misconfiguration. " +
+  "Do not retry it or attempt a workaround; it will not be resumed. Adapt your " +
+  "plan, and explain to the user in plain language what you could not do and " +
+  "what they can do instead — never mention tools, approvals, or platform " +
+  "mechanics.";
+
 // Shown to the model when a secret-like gitignored write is hard-blocked (DD-E /
 // DD-18). Unlike APPROVAL_REQUIRED_AGENT_MESSAGE, this must NOT promise a resume:
 // the write is discarded and never captured for review, so the model must move on
@@ -522,6 +540,14 @@ GIT_WORKSPACE=true
 if echo "$STATE" | grep -q '"gitWorkspace":false'; then
   GIT_WORKSPACE=false
 fi
+# Unattended approval mode (DD-014): the surface has no approver. Same gate,
+# different RESOLUTION — the approval-deny arms below record kind "unattended"
+# (non-pausing) with an adapt-and-explain message instead of kind "approval"
+# (pausing). Secret/fail-closed/capture-error arms are mode-independent.
+UNATTENDED_SKIP=false
+if echo "$STATE" | grep -q '"unattendedSkip":true'; then
+  UNATTENDED_SKIP=true
+fi
 
 # --- Capture mode: observe CAS-owned writes for review ----------------------
 # Runs BEFORE the auto-approve-all shortcut and the grant/lease checks because
@@ -587,6 +613,13 @@ if [ "$HOOK_EVENT" = "beforeMCPExecution" ]; then
       MSG=$(echo "$TOOL_POLICY" | grep -o '"message":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
       if [ -z "$MSG" ]; then
         MSG="Tool requires approval: $TOOL_NAME"
+      fi
+      if [ "$UNATTENDED_SKIP" = "true" ]; then
+        # Unattended resolution (DD-014): non-pausing kind, final for this
+        # turn — the model adapts and the turn boundary stamps SKIPPED.
+        record_denial "$MCP_TOKEN" "unattended"
+        echo '{"permission":"deny","agent_message":"${UNATTENDED_SKIP_AGENT_MESSAGE}","user_message":"Skipped (approval not available on this surface): '"$TOOL_NAME"'"}'
+        exit 0
       fi
       record_denial "$MCP_TOKEN" "approval"
       echo '{"permission":"deny","agent_message":"${APPROVAL_REQUIRED_AGENT_MESSAGE}","user_message":"'"$MSG"'"}'
@@ -655,6 +688,13 @@ if [ -n "$CATEGORY" ]; then
   fi
   # Record the PRIMARY token (content-exact when available, else coarse) so the
   # runner's denial correlation keys on the SAME identity it grants on approval.
+  if [ "$UNATTENDED_SKIP" = "true" ]; then
+    # Unattended resolution (DD-014): non-pausing kind, final for this turn —
+    # the model adapts and the turn boundary stamps SKIPPED.
+    record_denial "$PRIMARY_TOKEN" "unattended"
+    echo '{"permission":"deny","agent_message":"${UNATTENDED_SKIP_AGENT_MESSAGE}","user_message":"Skipped (approval not available on this surface): '"$TOOL_NAME"'"}'
+    exit 0
+  fi
   record_denial "$PRIMARY_TOKEN" "approval"
   echo '{"permission":"deny","agent_message":"${APPROVAL_REQUIRED_AGENT_MESSAGE}","user_message":"Tool requires approval: '"$TOOL_NAME"'"}'
   exit 0

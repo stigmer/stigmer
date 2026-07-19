@@ -139,7 +139,7 @@ public enum FileDecisionScope
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(22);
+    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(23);
   }
 
   private static final FileDecisionScope[] VALUES = values();

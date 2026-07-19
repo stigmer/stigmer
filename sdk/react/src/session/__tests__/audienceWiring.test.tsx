@@ -35,8 +35,12 @@ vi.mock("../facets/SetupTab", () => ({
   },
 }));
 
+const threadProps: CapturedProps[] = [];
 vi.mock("../../execution/MessageThread", () => ({
-  MessageThread: () => <div data-testid="thread-probe" />,
+  MessageThread: (props: CapturedProps) => {
+    threadProps.push(props);
+    return <div data-testid="thread-probe" />;
+  },
 }));
 
 // ---------------------------------------------------------------------------
@@ -93,6 +97,7 @@ const stubConv = {
   isSending: false,
   sendError: null,
   clearSendError: vi.fn(),
+  retryLastSend: vi.fn(),
   pendingUserMessage: null,
   workspaceEntries: [],
   mcpServerUsages: [],
@@ -159,6 +164,11 @@ function lastComposerProps(): CapturedProps {
   return composerProps.at(-1)!;
 }
 
+function lastThreadProps(): CapturedProps {
+  expect(threadProps.length).toBeGreaterThan(0);
+  return threadProps.at(-1)!;
+}
+
 /**
  * Reach the Config facet through the unified panel: expand it via the
  * top-right chip, pick Config in the rail, and return the props the (mocked)
@@ -174,6 +184,7 @@ function openedConfigFacet(): { mutations?: unknown } {
 beforeEach(() => {
   composerProps.length = 0;
   setupTabProps.length = 0;
+  threadProps.length = 0;
   stubSessionPageFlow.submitError = null;
 });
 
@@ -373,6 +384,25 @@ describe("SessionViewer — audience wiring", () => {
     expect(mockUseSessionPageFlow).toHaveBeenCalledWith(
       expect.objectContaining({ audience: "guest" }),
     );
+  });
+
+  it("guest: approval mechanics are withheld from the thread (DD-014)", () => {
+    // The HITL gate protects the ORG's tools; an anonymous visitor is not
+    // its trustee. Guest executions run unattended server-side, so nothing
+    // is ever pending on a new execution — withholding the callback is the
+    // belt-and-braces for pre-existing sessions and direct SDK embedders.
+    render(<SessionViewer sessionId="ses_1" org="acme" audience="guest" />);
+
+    const props = lastThreadProps();
+    expect(props.onApprovalSubmit).toBeUndefined();
+    // Chat interaction survives — a guest owns their own conversation.
+    expect(props.onRetrySend).toBeDefined();
+  });
+
+  it("integrator: approvals stay wired on the thread", () => {
+    render(<SessionViewer sessionId="ses_1" org="acme" />);
+
+    expect(lastThreadProps().onApprovalSubmit).toBeDefined();
   });
 
   it("forwards getRuntimeEnv to the flow", () => {

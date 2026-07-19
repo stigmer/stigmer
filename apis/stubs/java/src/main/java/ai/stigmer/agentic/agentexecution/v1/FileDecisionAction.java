@@ -136,7 +136,7 @@ public enum FileDecisionAction
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(23);
+    return ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor().getEnumType(24);
   }
 
   private static final FileDecisionAction[] VALUES = values();

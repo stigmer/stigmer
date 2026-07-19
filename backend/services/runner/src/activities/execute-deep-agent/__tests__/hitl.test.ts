@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Command } from "@langchain/langgraph";
-import { resolveResumeInput, reconcileNonExecutingDecisions } from "../hitl.js";
-import { ApprovalAction, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { resolveResumeInput, reconcileNonExecutingDecisions, reconcileUnattendedSkips } from "../hitl.js";
+import { ApprovalAction, ApprovalPolicySource, ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { create } from "@bufbuild/protobuf";
 import {
   AgentMessageSchema,
@@ -236,5 +236,106 @@ describe("reconcileNonExecutingDecisions", () => {
 
     expect(() => reconcileNonExecutingDecisions(status)).not.toThrow();
     expect(status.messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_WAITING_APPROVAL);
+  });
+});
+
+describe("reconcileUnattendedSkips (DD-014)", () => {
+  function statusWithCalls(
+    toolCalls: Array<{ id: string; status: ToolCallStatus; result?: string }>,
+  ) {
+    return create(AgentExecutionStatusSchema, {
+      messages: [
+        create(AgentMessageSchema, {
+          toolCalls: toolCalls.map(tc =>
+            create(ToolCallSchema, {
+              id: tc.id,
+              name: "gated_tool",
+              status: tc.status,
+              result: tc.result ?? "",
+            }),
+          ),
+        }),
+      ],
+    });
+  }
+
+  it("terminalizes a registry-recorded call to SKIPPED with UNATTENDED_SKIP provenance", () => {
+    // The stream saw the gate's skip ToolMessage as a normal tool result and
+    // marked the call COMPLETED — the reconciler owns the honest terminal shape.
+    const status = statusWithCalls([
+      { id: "call-1", status: ToolCallStatus.TOOL_CALL_COMPLETED, result: "was skipped" },
+    ]);
+
+    reconcileUnattendedSkips(status, new Set(["call-1"]));
+
+    const tc = status.messages[0].toolCalls[0];
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.UNATTENDED_SKIP);
+    expect(tc.policyEngineVersion).not.toBe("");
+    // Server-owned human-decision fields stay untouched (DD-014 D-e).
+    expect(tc.approvalAction).toBe(ApprovalAction.UNSPECIFIED);
+    expect(tc.approvedBy).toBe("");
+  });
+
+  it("backfills the skip result on a row whose tool events never fired", () => {
+    const status = statusWithCalls([
+      { id: "call-1", status: ToolCallStatus.TOOL_CALL_RUNNING },
+    ]);
+
+    reconcileUnattendedSkips(status, new Set(["call-1"]));
+
+    const tc = status.messages[0].toolCalls[0];
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(tc.result).toContain("skipped automatically");
+  });
+
+  it("touches only registry entries and no-ops on an empty/absent registry", () => {
+    const status = statusWithCalls([
+      { id: "call-1", status: ToolCallStatus.TOOL_CALL_COMPLETED, result: "real result" },
+    ]);
+
+    reconcileUnattendedSkips(status, new Set(["other-call"]));
+    reconcileUnattendedSkips(status, new Set());
+    reconcileUnattendedSkips(status, undefined);
+
+    const tc = status.messages[0].toolCalls[0];
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(tc.result).toBe("real result");
+    expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.UNSPECIFIED);
+  });
+
+  it("covers sub-agent transcripts (sub-agent gates share the parent registry)", () => {
+    const status = create(AgentExecutionStatusSchema, {
+      messages: [],
+      subAgentExecutions: [{
+        messages: [
+          create(AgentMessageSchema, {
+            toolCalls: [create(ToolCallSchema, {
+              id: "sub-call-1",
+              name: "gated_tool",
+              status: ToolCallStatus.TOOL_CALL_COMPLETED,
+            })],
+          }),
+        ],
+      }],
+    });
+
+    reconcileUnattendedSkips(status, new Set(["sub-call-1"]));
+
+    const tc = status.subAgentExecutions[0].messages[0].toolCalls[0];
+    expect(tc.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(tc.approvalPolicySource).toBe(ApprovalPolicySource.UNATTENDED_SKIP);
+  });
+
+  it("is idempotent", () => {
+    const status = statusWithCalls([
+      { id: "call-1", status: ToolCallStatus.TOOL_CALL_COMPLETED },
+    ]);
+
+    reconcileUnattendedSkips(status, new Set(["call-1"]));
+    const after = JSON.stringify(status.messages[0].toolCalls[0]);
+    reconcileUnattendedSkips(status, new Set(["call-1"]));
+
+    expect(JSON.stringify(status.messages[0].toolCalls[0])).toBe(after);
   });
 });

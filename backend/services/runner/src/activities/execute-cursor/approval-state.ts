@@ -218,6 +218,17 @@ export interface ApprovalStateFile {
    *    deep-agent), and shell/MCP gate as always.
    */
   gitWorkspace: boolean;
+  /**
+   * Unattended approval mode (ExecutionConfig.approval_mode = UNATTENDED,
+   * DD-014): the creating surface — a messaging channel, a guest share — has
+   * no approver. What is gated is UNCHANGED; only the resolution differs: a
+   * deny that would be recorded kind "approval" (pausing) is recorded kind
+   * "unattended" (non-pausing) with an adapt-and-explain agent message, so
+   * the first-denial stop never fires, no WAITING_APPROVAL gate is
+   * reconciled, and the run continues to normal completion. The secret
+   * hard-block and fail-closed arms are mode-independent and unchanged.
+   */
+  unattendedSkip: boolean;
 }
 
 /**
@@ -384,6 +395,7 @@ export function buildApprovalState(
   captureMode = false,
   captureIgnored = false,
   gitWorkspace = true,
+  unattendedSkip = false,
 ): ApprovalStateFile {
   const approvedGrants = grants ?? [];
 
@@ -407,6 +419,7 @@ export function buildApprovalState(
     captureMode,
     captureIgnored,
     gitWorkspace,
+    unattendedSkip,
   };
 }
 
@@ -449,6 +462,11 @@ const DENIAL_LEDGER_FILE = "denials.jsonl";
  *
  * - `approval`      — the normal gate: the runner surfaces it as a
  *                     WAITING_APPROVAL pause. The ONLY kind that pauses.
+ * - `unattended`    — the same gate resolved under UNATTENDED approval mode
+ *                     (DD-014): the surface has no approver, so the deny is
+ *                     final for this turn — non-pausing, the agent was told
+ *                     to adapt, and the turn boundary stamps the call
+ *                     TOOL_CALL_SKIPPED with UNATTENDED_SKIP provenance.
  * - `secret`        — DD-26 secret hard-block: intentional, non-pausing (the
  *                     agent was told to move on), recorded content-free.
  * - `capture-error` — CAS staging failed; the write stayed on the deny-gate.
@@ -461,10 +479,13 @@ const DENIAL_LEDGER_FILE = "denials.jsonl";
  * unknown deny must never manufacture an approval) but still attributes the
  * blocked call to our own hook.
  */
-export type DenialKind = "approval" | "secret" | "capture-error" | "fail-closed";
+export type DenialKind = "approval" | "unattended" | "secret" | "capture-error" | "fail-closed";
 
 /** The one kind that pauses the run for user approval. */
 export const APPROVAL_DENIAL_KIND: DenialKind = "approval";
+
+/** The unattended-mode resolution kind (non-pausing; stamped SKIPPED). */
+export const UNATTENDED_DENIAL_KIND: DenialKind = "unattended";
 
 /**
  * One denial recorded by the preToolUse hook. `token` is the call's identity in
@@ -509,6 +530,16 @@ export function denialKindOf(entry: DeniedLedgerEntry): string {
  */
 export function approvalDenials(entries: readonly DeniedLedgerEntry[]): DeniedLedgerEntry[] {
   return entries.filter((e) => denialKindOf(e) === APPROVAL_DENIAL_KIND);
+}
+
+/**
+ * The entries the UNATTENDED approval mode resolved (DD-014) — never pausing,
+ * consumed by the turn boundary's `stampUnattendedSkippedToolCalls` to
+ * terminalize the corresponding streamed tool calls as TOOL_CALL_SKIPPED with
+ * UNATTENDED_SKIP provenance, so both harnesses persist the same honest shape.
+ */
+export function unattendedDenials(entries: readonly DeniedLedgerEntry[]): DeniedLedgerEntry[] {
+  return entries.filter((e) => denialKindOf(e) === UNATTENDED_DENIAL_KIND);
 }
 
 /**

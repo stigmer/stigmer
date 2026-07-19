@@ -18,7 +18,7 @@
 import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import type { ToolApprovalOverride } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ApprovalMode, ApprovalPolicySource } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { toolApprovalCategory, type ToolApprovalCategory } from "./tool-kind.js";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
 
@@ -148,6 +148,42 @@ export function deriveActiveLeases(execution: AgentExecution): ActiveLeases {
 }
 
 /**
+ * Whether this execution runs in UNATTENDED approval mode
+ * (ExecutionConfig.approval_mode): the creating surface — a messaging
+ * channel, a guest share — has no approver, so a gated tool is resolved as
+ * an automatic skip (the model is told to adapt) instead of pausing the
+ * execution for a decision that can never arrive.
+ *
+ * The mode changes HOW a gate resolves, never WHAT is gated: the four-level
+ * policy merge below is identical in both modes. Both harnesses read the
+ * mode through this one helper (the native gate skips instead of
+ * interrupting; the Cursor hook records a non-pausing "unattended" denial),
+ * so the surfaces can never diverge on what "unattended" means.
+ */
+export function isUnattendedApprovalMode(execution: AgentExecution): boolean {
+  return execution.spec?.executionConfig?.approvalMode === ApprovalMode.UNATTENDED;
+}
+
+/**
+ * The tool-result text for an unattended auto-skip — ONE definition for both
+ * harnesses (the native gate returns it as the skip ToolMessage; the Cursor
+ * turn boundary backfills it onto stamped SKIPPED rows), so the transcript
+ * reads identically wherever the skip happened. Deliberately instructs
+ * plain-language adaptation with NO tool/approval vocabulary reaching the end
+ * user (the channel/guest anti-leak posture).
+ */
+export function unattendedSkipMessage(toolName: string): string {
+  return (
+    `Tool '${toolName}' requires an approval that is not available in ` +
+    `this conversation, so it was skipped automatically. Do not retry ` +
+    `it or attempt a workaround. Adapt your plan, and explain to the ` +
+    `user in plain language what you could not do and what they can ` +
+    `do instead — never mention tools, approvals, or platform ` +
+    `mechanics.`
+  );
+}
+
+/**
  * Provenance of a gate decision: which policy layer (or decision point) is
  * responsible for the final requires-approval verdict.
  *
@@ -170,7 +206,8 @@ export type PolicySource =
   | "approval_lease"                 // Layer 4: a run-lifetime scoped lease cleared this action
   | "builtin_category"               // Non-MCP built-in gated by the shared tool taxonomy
   | "file_capture"                   // Capture mode: a git-tracked built-in file edit flows, reviewed post-hoc via the file_review ledger (not gated; audit-only on the shadow receipt)
-  | "annotation_destructive_tighten"; // Layer 1 sub-case: connect-time destructiveHint tightener force-gated this MCP tool
+  | "annotation_destructive_tighten" // Layer 1 sub-case: connect-time destructiveHint tightener force-gated this MCP tool
+  | "unattended_skip";               // Layer 4 resolution: unattended approval mode auto-skipped this gated call (no approver on the creating surface)
 
 /**
  * Monotonic identifier of the policy-engine logic that produced a decision,
@@ -205,6 +242,8 @@ export function toProtoPolicySource(source: PolicySource | undefined): ApprovalP
       return ApprovalPolicySource.BUILTIN_CATEGORY;
     case "annotation_destructive_tighten":
       return ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN;
+    case "unattended_skip":
+      return ApprovalPolicySource.UNATTENDED_SKIP;
     case "file_capture":
       // Capture-mode flow is never persisted on a gated tool call (the file tool
       // is not gated — it has no WAITING_APPROVAL row); it exists only on the

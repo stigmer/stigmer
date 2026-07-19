@@ -146,6 +146,7 @@ Every tool call the approval gate evaluates carries its **authorization provenan
 | `APPROVAL_LEASE` | A run-lifetime scoped lease (the successor to a global "approve all") cleared the call. |
 | `BUILTIN_CATEGORY` | A non-MCP built-in tool gated by the shared write / delete / shell taxonomy. |
 | `ANNOTATION_DESTRUCTIVE_TIGHTEN` | The connect-time MCP `destructiveHint` tightener forced approval, overriding a more permissive classifier verdict. |
+| `UNATTENDED_SKIP` | The unattended approval mode auto-skipped this gated call — no approver exists on the creating surface (a channel, a guest share). See [Unattended Surfaces](#unattended-surfaces-channels-and-guest-shares). |
 
 The field is purely additive and data-compatible: old executions carry `UNSPECIFIED`, and clients fall back exactly as they do for `tool_kind`.
 
@@ -178,12 +179,12 @@ stigmer agent execution reject aex_abc123 \
 |---|---|---|---|
 | Approve | `APPROVAL_ACTION_APPROVE` | `TOOL_CALL_RUNNING` → `TOOL_CALL_COMPLETED` | Phase returns to `EXECUTION_IN_PROGRESS` |
 | Skip | `APPROVAL_ACTION_SKIP` | `TOOL_CALL_SKIPPED` (terminal) | Phase returns to `EXECUTION_IN_PROGRESS`. LLM receives: "Tool was skipped by user." |
-| Reject | `APPROVAL_ACTION_REJECT` | Stays in `TOOL_CALL_WAITING_APPROVAL` | Phase transitions to `EXECUTION_FAILED` |
+| Reject | `APPROVAL_ACTION_REJECT` | `TOOL_CALL_SKIPPED` (terminal, with the objection recorded) | Phase returns to `EXECUTION_IN_PROGRESS` — the run continues |
 | Approve all | `APPROVAL_ACTION_APPROVE_ALL` | `TOOL_CALL_RUNNING` → `TOOL_CALL_COMPLETED`; every co-pending tool resolves to APPROVE | Phase returns to `EXECUTION_IN_PROGRESS`; the rest of this execution runs un-gated |
 
 **On Skip:** The LLM receives a message: `"Tool '{name}' was skipped by user. Please proceed without this operation."` This allows the agent to adapt its plan and continue execution without the skipped tool's result.
 
-**On Reject:** The entire execution fails immediately. The rejection error message (from the optional `comment`) is stored in `status.error`.
+**On Reject:** The tool is denied and the user's objection (the optional `comment`) is fed back to the model as the tool result, so it adapts rather than retrying. REJECT denies a SINGLE tool call — it does NOT fail the run, mirroring how interactive agent tools treat a denied tool. To stop the entire execution, use `cancel` (graceful) or `terminate` (force) — the dedicated hard-stop verbs. The distinction from SKIP is the strength of the signal, not the outcome.
 
 **On Approve all ("approve and don't ask again"):** The clicked tool is approved, and every other tool call currently in `TOOL_CALL_WAITING_APPROVAL` is resolved to APPROVE so the gate clears in one action. For the remainder of this execution, new tool calls (including sub-agent tool calls) skip the approval gate entirely — the gate-time equivalent of `auto_approve_all`. The scope is the current execution only; it is not persisted to the session or agent. Interactive clients may carry a session-scoped preference forward in-memory (reset on reload), but the server persists no such state.
 
@@ -256,4 +257,23 @@ PendingApproval {
 
 Stigmer does not automatically reject pending approvals after a timeout — executions remain in `EXECUTION_WAITING_FOR_APPROVAL` indefinitely until a decision is submitted. This is intentional: approval requests may legitimately wait for hours while reviewers are offline.
 
-To enforce a timeout in your workflows, implement external monitoring and call `reject` (or `cancel`) if the approval exceeds your acceptable wait window.
+To enforce a timeout in your workflows, implement external monitoring and call `cancel` (or `terminate`) if the approval exceeds your acceptable wait window.
+
+---
+
+## Unattended Surfaces (Channels and Guest Shares)
+
+Some surfaces have **no approver present at the conversation**: a WhatsApp or Slack channel user is a customer, not an org member, and a guest visiting a shared agent link is anonymous. An interactive pause would park the execution in `EXECUTION_WAITING_FOR_APPROVAL` forever — nobody on that surface is authorized to decide.
+
+These surfaces stamp `ExecutionConfig.approval_mode = APPROVAL_MODE_UNATTENDED` when they create the execution (the channel session broker, the guest execution scope step — never the external user). In unattended mode:
+
+- **What is gated is unchanged.** The four-layer policy chain evaluates identically; only the *resolution* differs.
+- A gated tool is resolved as an **automatic SKIP**: the tool does not run, the model is told the action requires an approval that is not available in this conversation, and the turn continues to normal completion. The user gets a plain-language explanation — never tool or approval vocabulary.
+- The skipped call is stamped `TOOL_CALL_SKIPPED` with `approval_policy_source = APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP`. `approval_action` and `approved_by` stay unset — those record **human** decisions only. No approval-request event is authored, so `pending_approvals` stays empty by construction.
+
+The principle behind the design is that there are **two different consents**:
+
+1. **Operator consent** — the HITL gate. It protects the org's tools and data, and is never delegated to an external user: a channel customer cannot authorize the org's destructive operations.
+2. **End-user intent confirmation** — "book Monday 10 AM — shall I?". This is conversational, owned by the agent's instructions. Once the instructions confirm intent in-conversation, un-gate that specific tool for the agent with `tool_approval_overrides: requires_approval: false`.
+
+A future "park the turn and notify an org approver asynchronously" behavior would be a new `ApprovalMode` value, not a reinterpretation of unattended.

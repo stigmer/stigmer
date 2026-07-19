@@ -42,7 +42,9 @@ import {
   MessageType,
   ToolCallStatus,
   ApprovalAction,
+  ApprovalPolicySource,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { SubAgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 
 import {
   resetDenialLedger,
@@ -61,6 +63,7 @@ import {
   collapseRedundantToolCallTwins,
   toolCallIdentityToken,
   detectUnattributedHookBlocks,
+  stampUnattendedSkippedToolCalls,
   HOOK_BLOCK_ERROR_MARKERS,
 } from "../message-translator.js";
 import { mockWorkspaceBackend } from "../../../__test-utils__/mock-workspace.js";
@@ -1843,6 +1846,105 @@ describe("reconcileDeniedToolCalls — non-approval kinds never gate", () => {
   });
 });
 
+describe("stampUnattendedSkippedToolCalls (DD-014)", () => {
+  it("settles a hook-blocked FAILED row to SKIPPED with UNATTENDED_SKIP provenance", () => {
+    const denied = toolCall({
+      id: "u1", name: "shell", status: ToolCallStatus.TOOL_CALL_FAILED,
+      error: "blocked by a hook", args: { command: "rm -rf build" },
+    });
+    const messages = [aiMessageWith([denied])];
+
+    const stamped = stampUnattendedSkippedToolCalls(messages, [], [
+      { toolName: "Shell", token: toolCallIdentityToken(denied), kind: "unattended" },
+    ]);
+
+    expect(stamped).toBe(1);
+    expect(denied.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(denied.approvalPolicySource).toBe(ApprovalPolicySource.UNATTENDED_SKIP);
+    expect(denied.error).toBe("");
+    expect(denied.result).toContain("skipped automatically");
+    // Server-owned human-decision fields stay untouched (DD-014 D-e).
+    expect(denied.approvalAction).toBe(ApprovalAction.UNSPECIFIED);
+  });
+
+  it("settles an interrupted non-terminal row and covers sub-agent transcripts", () => {
+    const parentRow = toolCall({
+      id: "u2", name: "edit", status: ToolCallStatus.TOOL_CALL_RUNNING,
+      args: { path: "notes.md", old_string: "a", new_string: "b" },
+    });
+    const subRow = toolCall({
+      id: "u3", name: "shell", status: ToolCallStatus.TOOL_CALL_PENDING,
+      args: { command: "make" },
+    });
+    const subAgents = [create(SubAgentExecutionSchema, { messages: [aiMessageWith([subRow])] })];
+
+    const stamped = stampUnattendedSkippedToolCalls(
+      [aiMessageWith([parentRow])],
+      subAgents,
+      [
+        { toolName: "Write", token: toolCallIdentityToken(parentRow), kind: "unattended" },
+        { toolName: "Shell", token: toolCallIdentityToken(subRow), kind: "unattended" },
+      ],
+    );
+
+    expect(stamped).toBe(2);
+    expect(parentRow.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+    expect(subAgents[0].messages[0].toolCalls[0].status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+  });
+
+  it("matches a FILE denial across abs-vs-rel path drift via the workspace root", () => {
+    // Hook recorded the ABSOLUTE path; the stream carried the relative one.
+    const denied = toolCall({
+      id: "u4", name: "edit", status: ToolCallStatus.TOOL_CALL_FAILED,
+      error: "blocked by a hook", args: { path: "notes.md" },
+    });
+
+    const stamped = stampUnattendedSkippedToolCalls(
+      [aiMessageWith([denied])],
+      [],
+      [{ toolName: "Write", token: grantToken("write", `${ROOT}/notes.md`), kind: "unattended" }],
+      ROOT,
+    );
+
+    expect(stamped).toBe(1);
+    expect(denied.status).toBe(ToolCallStatus.TOOL_CALL_SKIPPED);
+  });
+
+  it("never rewrites a COMPLETED row or an unrelated failure", () => {
+    const completed = toolCall({
+      id: "u5", name: "shell", status: ToolCallStatus.TOOL_CALL_COMPLETED,
+      result: "ok", args: { command: "ls" },
+    });
+    const ordinaryFailure = toolCall({
+      id: "u6", name: "shell", status: ToolCallStatus.TOOL_CALL_FAILED,
+      error: "command not found", args: { command: "make" },
+    });
+    const messages = [aiMessageWith([completed, ordinaryFailure])];
+
+    const stamped = stampUnattendedSkippedToolCalls(messages, [], [
+      { toolName: "Shell", token: toolCallIdentityToken(completed), kind: "unattended" },
+      { toolName: "Shell", token: toolCallIdentityToken(ordinaryFailure), kind: "unattended" },
+    ]);
+
+    // The completed row is a real execution; the ordinary failure is not a
+    // hook block — only interrupted/hook-blocked shapes are settled. The
+    // interrupted-shape sibling (PENDING/RUNNING) is covered above.
+    expect(stamped).toBe(0);
+    expect(completed.status).toBe(ToolCallStatus.TOOL_CALL_COMPLETED);
+    expect(ordinaryFailure.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+    expect(ordinaryFailure.error).toBe("command not found");
+  });
+
+  it("is a no-op for an empty unattended ledger", () => {
+    const row = toolCall({
+      id: "u7", name: "shell", status: ToolCallStatus.TOOL_CALL_FAILED,
+      error: "blocked by a hook", args: { command: "make" },
+    });
+    expect(stampUnattendedSkippedToolCalls([aiMessageWith([row])], [], [])).toBe(0);
+    expect(row.status).toBe(ToolCallStatus.TOOL_CALL_FAILED);
+  });
+});
+
 describe("generateHookScript ledger wiring", () => {
   it("bakes the active-turn pointer, derives the ledger from it, and records on EVERY deny arm", () => {
     const script = generateHookScript("/gate/active.json");
@@ -1858,6 +1960,9 @@ describe("generateHookScript ledger wiring", () => {
     // CAS staging-error fail-closed deny, and the missing-state-file failsafe.
     expect(script).toContain('record_denial "$PRIMARY_TOKEN" "approval"');
     expect(script).toContain('record_denial "$MCP_TOKEN" "approval"');
+    // DD-014: both approval arms have an unattended-resolution sibling.
+    expect(script).toContain('record_denial "$PRIMARY_TOKEN" "unattended"');
+    expect(script).toContain('record_denial "$MCP_TOKEN" "unattended"');
     expect(script.split('"secret"').length - 1).toBeGreaterThanOrEqual(2);
     expect(script).toContain('record_denial "$PRIMARY_TOKEN" "capture-error"');
     expect(script).toContain('record_denial "$PRIMARY_TOKEN" "fail-closed"');

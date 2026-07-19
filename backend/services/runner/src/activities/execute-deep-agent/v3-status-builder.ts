@@ -419,6 +419,13 @@ export class V3StatusBuilder implements ExecutionStatusWriter {
       return { requiresApproval: false, message: "", serverSlug };
     }
 
+    // Unattended mode: the gate auto-skips instead of interrupting, so no row
+    // is ever WAITING_APPROVAL and the phase never flips — the streamed row
+    // runs to its skip result and reconcileUnattendedSkips terminalizes it.
+    if (this.approvalProvider.unattended) {
+      return { requiresApproval: false, message: "", serverSlug };
+    }
+
     if (serverSlug) {
       const key = `${serverSlug}/${toolName}`;
       const policy = this.approvalProvider.policies.get(key);

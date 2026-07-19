@@ -37,6 +37,8 @@ export function describeApprovalPolicySource(
       return "auto-approved by a run-wide bypass";
     case ApprovalPolicySource.APPROVAL_LEASE:
       return "auto-approved by a run lease";
+    case ApprovalPolicySource.UNATTENDED_SKIP:
+      return "skipped: approval not available on this surface";
     case ApprovalPolicySource.UNSPECIFIED:
     default:
       return null;
@@ -70,6 +72,11 @@ export function isInformativePolicySource(
     case ApprovalPolicySource.ANNOTATION_DESTRUCTIVE_TIGHTEN:
     case ApprovalPolicySource.AUTO_APPROVE_ALL:
     case ApprovalPolicySource.APPROVAL_LEASE:
+    // An unattended skip is a platform RESOLUTION, not an everyday gating
+    // default: an org admin reviewing a channel conversation (DD-012
+    // observer) needs to see why the tool did not run — and that no human
+    // declined it.
+    case ApprovalPolicySource.UNATTENDED_SKIP:
       return true;
     case ApprovalPolicySource.CLASSIFIER_DEFAULT:
     case ApprovalPolicySource.BUILTIN_CATEGORY:

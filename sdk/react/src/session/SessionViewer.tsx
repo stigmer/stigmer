@@ -817,7 +817,13 @@ const ConversationColumn = memo(function ConversationColumn({
         // a plan read-only in the panel remains — reading is the point.
         onRetrySend={isObserver ? undefined : conv.retryLastSend}
         onRetryExecution={isObserver ? undefined : onRetryExecution}
-        onApprovalSubmit={isObserver ? undefined : flow.submitApproval}
+        // Approval mechanics are an OPERATOR surface, never a guest's
+        // (DD-014): the HITL gate protects the org's tools, and an anonymous
+        // visitor is not its trustee. Guest executions run unattended
+        // (gated tools auto-skip server-side), so nothing is ever pending on
+        // a new execution — withholding the callback is the belt-and-braces
+        // for pre-existing sessions and embedders composing the SDK directly.
+        onApprovalSubmit={isObserver || isGuest ? undefined : flow.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
         approvalErrors={conv.approvalErrors}
         showFileReviewRecords

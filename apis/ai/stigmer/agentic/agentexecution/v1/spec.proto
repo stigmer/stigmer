@@ -467,6 +467,26 @@ message ExecutionConfig {
   // Like interaction_mode, this is per-execution and never carries over
   // between executions in the same session.
   bool build_from_plan = 8;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Approval Mode (Unattended Surfaces)
+  //
+  // How this execution resolves HITL approval gates.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // How approval gates resolve for this execution. See ApprovalMode.
+  //
+  // UNSPECIFIED/INTERACTIVE: a gated tool pauses the execution until a human
+  // decides (today's behavior). UNATTENDED: gated tools auto-skip and the
+  // model adapts — set by surfaces with no approver (channel session broker,
+  // guest execution scope step), never by external callers (the guest scope
+  // step replaces the whole execution_config, so a guest-supplied mode is
+  // discarded with the rest of the config).
+  //
+  // Orthogonal to auto_approve_all: the bypass clears gates so tools RUN;
+  // unattended mode resolves gates so tools SKIP. When both are set the
+  // bypass wins by layer order (the gate never fires).
+  ApprovalMode approval_mode = 9 [(buf.validate.field).enum.defined_only = true];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

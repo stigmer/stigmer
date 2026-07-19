@@ -234,6 +234,7 @@ type ExecutionConfigInput struct {
 	InteractionMode        agentexecutionv1.InteractionMode
 	StructuredOutputSchema map[string]any
 	BuildFromPlan          bool
+	ApprovalMode           agentexecutionv1.ApprovalMode
 }
 
 // ContextManagementConfigInput is the SDK input type for ContextManagementConfig.
@@ -361,6 +362,7 @@ func (i *ExecutionConfigInput) toProto() *agentexecutionv1.ExecutionConfig {
 		p.StructuredOutputSchema, _ = structpb.NewStruct(i.StructuredOutputSchema)
 	}
 	p.BuildFromPlan = i.BuildFromPlan
+	p.ApprovalMode = i.ApprovalMode
 	return p
 }
 
@@ -502,6 +504,7 @@ func executionConfigInputFromProto(p *agentexecutionv1.ExecutionConfig) *Executi
 		input.StructuredOutputSchema = sv.AsMap()
 	}
 	input.BuildFromPlan = p.GetBuildFromPlan()
+	input.ApprovalMode = p.GetApprovalMode()
 	return input
 }
 
