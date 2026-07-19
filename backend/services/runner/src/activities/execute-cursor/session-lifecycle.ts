@@ -41,6 +41,7 @@ import { join } from "node:path";
 
 import { Agent } from "@cursor/sdk";
 import type { SDKAgent, CursorAgentPlatformOptions, AgentDefinition } from "@cursor/sdk";
+import { withTimeout, TimeoutError } from "../../shared/with-timeout.js";
 import type { CursorMcpServerConfig } from "./mcp-resolver.js";
 
 // ---------------------------------------------------------------------------
@@ -435,6 +436,81 @@ export async function resolveAgent(
     mode,
     reason: "created_first_execution",
   };
+}
+
+// ---------------------------------------------------------------------------
+// Transport-recovery wrapper
+// ---------------------------------------------------------------------------
+
+export interface ResolveWithTransportRecoveryOptions {
+  harnessStateId: string;
+  createOptions: CreateAgentOptions | CreateCloudAgentOptions;
+  mode: "local" | "cloud";
+  /** Bound applied to each attempt independently. */
+  timeoutMs: number;
+  /**
+   * Builds the timeout rejection message. `finalAttempt` is true when no
+   * further automatic retry will follow, so the message can be honest about
+   * whether "retry" means the system or the user.
+   */
+  buildTimeoutMessage: (finalAttempt: boolean) => string;
+  /**
+   * Closes the transport the hung attempt is riding on so the next attempt
+   * dials fresh. Injected (rather than imported from the http2 interceptor)
+   * to keep this module transport-agnostic and the recovery unit-testable.
+   */
+  resetTransport: () => void;
+}
+
+/**
+ * Resolve a Cursor Agent with one automatic recovery from a transport hang.
+ *
+ * Agent.create/Agent.resume have no timeout of their own — a degraded
+ * transport (dead proxy connection, stale HTTP/2 session) hangs them forever.
+ * Each attempt is bounded by `timeoutMs`; when the first attempt expires,
+ * the transport is reset and the full resolveAgent() is retried once. Only
+ * a TimeoutError triggers recovery: deterministic failures (auth, validation)
+ * propagate immediately — resetting the transport cannot fix them.
+ *
+ * The retry re-invokes resolveAgent(), not createAgent() directly: at
+ * resolve time only the transport is suspect, not the agent handle, so a
+ * timed-out resume is retried resume-first and conversation context is
+ * preserved. (This deliberately diverges from the stream-phase recovery in
+ * index.ts, which jumps to a fresh create because there the handle itself
+ * has already failed a run.)
+ *
+ * Orphan semantics: withTimeout bounds the wait, not the work, so the first
+ * attempt's promise survives its expiry. resetTransport() closes the HTTP/2
+ * session that attempt is riding on, so the orphan rejects promptly and
+ * withTimeout's attached catch absorbs the late rejection (settled promise —
+ * no unhandledRejection). In the residual case where the orphan completes
+ * before the reset, it leaves an agent that never receives a prompt: no LLM
+ * cost, no state impact, cleaned up with the sandbox.
+ */
+export async function resolveAgentWithTransportRecovery(
+  opts: ResolveWithTransportRecoveryOptions,
+): Promise<AgentResolution> {
+  const attempt = (finalAttempt: boolean) =>
+    withTimeout(
+      opts.timeoutMs,
+      () => opts.buildTimeoutMessage(finalAttempt),
+      () => resolveAgent(opts.harnessStateId, opts.createOptions, opts.mode),
+    );
+
+  try {
+    return await attempt(false);
+  } catch (err) {
+    if (!(err instanceof TimeoutError)) throw err;
+
+    console.warn(
+      `resolveAgentWithTransportRecovery: agent resolution timed out after ` +
+      `${opts.timeoutMs}ms (sessionId=${opts.createOptions.sessionId}, mode=${opts.mode}, ` +
+      `resume=${!!opts.harnessStateId}) — resetting transport and retrying once`,
+    );
+    opts.resetTransport();
+
+    return attempt(true);
+  }
 }
 
 /**

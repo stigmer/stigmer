@@ -20,7 +20,13 @@ vi.mock("@cursor/sdk", () => ({
 }));
 
 import { Agent } from "@cursor/sdk";
-import { resolvePlatformOptions, createAgent, resumeAgent } from "../session-lifecycle.js";
+import {
+  resolvePlatformOptions,
+  createAgent,
+  resumeAgent,
+  resolveAgentWithTransportRecovery,
+} from "../session-lifecycle.js";
+import type { CreateAgentOptions } from "../session-lifecycle.js";
 
 const tempRoots: string[] = [];
 
@@ -132,5 +138,120 @@ describe("workspace binding on create/resume", () => {
 
     const callOptions = vi.mocked(Agent.resume).mock.calls.at(-1)![1] as any;
     expect(callOptions.local.cwd).toEqual(["/work/repo-a", "/work/repo-b"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Transport recovery on agent-resolution timeout
+//
+// Regression: a stale HTTP/2 session to the proxy hangs Agent.create/resume
+// forever (prod incident, Jul 2026). The wrapper bounds each attempt, resets
+// the transport on the first expiry, and retries once. Only TimeoutError
+// triggers recovery — deterministic failures must propagate untouched.
+// ---------------------------------------------------------------------------
+
+describe("resolveAgentWithTransportRecovery", () => {
+  const TIMEOUT_MS = 1_000;
+  const hang = () => new Promise<never>(() => {});
+
+  function recoveryOptions(overrides?: {
+    harnessStateId?: string;
+    resetTransport?: () => void;
+  }) {
+    const createOptions: CreateAgentOptions = {
+      apiKey: "key",
+      model: "gpt-test",
+      workspaceDirs: ["/work/repo-a"],
+      sessionId: "ses-recovery-test",
+      workspaceRootDir: freshWorkspaceRoot(),
+    };
+    return {
+      harnessStateId: overrides?.harnessStateId ?? "",
+      createOptions,
+      mode: "local" as const,
+      timeoutMs: TIMEOUT_MS,
+      buildTimeoutMessage: (finalAttempt: boolean) =>
+        finalAttempt ? "final attempt timed out" : "first attempt timed out",
+      resetTransport: overrides?.resetTransport ?? vi.fn(),
+    };
+  }
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("passes the resolution through untouched when the first attempt succeeds", async () => {
+    const resetTransport = vi.fn();
+
+    const resolution = await resolveAgentWithTransportRecovery(
+      recoveryOptions({ resetTransport }),
+    );
+
+    expect(resolution.agentId).toBe("agent-created");
+    expect(resolution.reason).toBe("created_first_execution");
+    expect(resetTransport).not.toHaveBeenCalled();
+  });
+
+  it("resets the transport exactly once and recovers when the first attempt hangs", async () => {
+    vi.useFakeTimers();
+    const resetTransport = vi.fn();
+    vi.mocked(Agent.create).mockImplementationOnce(hang as any);
+
+    const promise = resolveAgentWithTransportRecovery(recoveryOptions({ resetTransport }));
+
+    await vi.advanceTimersByTimeAsync(TIMEOUT_MS + 1);
+    const resolution = await promise;
+
+    expect(resolution.agentId).toBe("agent-created");
+    expect(resetTransport).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries resume-first so a transport hiccup does not discard conversation context", async () => {
+    vi.useFakeTimers();
+    const resetTransport = vi.fn();
+    vi.mocked(Agent.resume).mockImplementationOnce(hang as any);
+
+    const promise = resolveAgentWithTransportRecovery(
+      recoveryOptions({ harnessStateId: "agent-prior-turn", resetTransport }),
+    );
+
+    await vi.advanceTimersByTimeAsync(TIMEOUT_MS + 1);
+    const resolution = await promise;
+
+    // The load-bearing assertion: the retry went through Agent.resume again
+    // (only the transport was suspect, not the agent handle), so the native
+    // conversation context survives the recovery.
+    expect(resolution.reason).toBe("resumed_successfully");
+    expect(resolution.agentId).toBe("agent-resumed");
+    expect(resetTransport).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects with the final-attempt message when both attempts hang; transport reset only once", async () => {
+    vi.useFakeTimers();
+    const resetTransport = vi.fn();
+    vi.mocked(Agent.create)
+      .mockImplementationOnce(hang as any)
+      .mockImplementationOnce(hang as any);
+
+    const promise = resolveAgentWithTransportRecovery(recoveryOptions({ resetTransport }));
+    const rejection = expect(promise).rejects.toThrow("final attempt timed out");
+
+    await vi.advanceTimersByTimeAsync(TIMEOUT_MS + 1); // first attempt expires
+    await vi.advanceTimersByTimeAsync(TIMEOUT_MS + 1); // retry expires
+    await rejection;
+
+    expect(resetTransport).toHaveBeenCalledTimes(1);
+  });
+
+  it("propagates a non-timeout error immediately without touching the transport", async () => {
+    const resetTransport = vi.fn();
+    const authFailure = new Error("401 unauthorized");
+    vi.mocked(Agent.create).mockRejectedValueOnce(authFailure);
+
+    await expect(
+      resolveAgentWithTransportRecovery(recoveryOptions({ resetTransport })),
+    ).rejects.toBe(authFailure);
+
+    expect(resetTransport).not.toHaveBeenCalled();
   });
 });

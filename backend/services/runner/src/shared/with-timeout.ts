@@ -15,6 +15,20 @@
  * `AbortSignal.timeout` and pass the signal to the callee instead.
  */
 
+/**
+ * Thrown when the bound expires before `fn` settles. A distinct class so
+ * callers can react to expiry specifically (`err instanceof TimeoutError`)
+ * instead of sniffing message text — e.g. the agent-resolution transport
+ * recovery retries on expiry but must let deterministic failures (auth,
+ * validation) propagate untouched.
+ */
+export class TimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TimeoutError";
+  }
+}
+
 export async function withTimeout<T>(
   ms: number,
   timeoutMessage: string | (() => string),
@@ -23,7 +37,7 @@ export async function withTimeout<T>(
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
       const message = typeof timeoutMessage === "function" ? timeoutMessage() : timeoutMessage;
-      reject(new Error(message));
+      reject(new TimeoutError(message));
     }, ms);
 
     fn()

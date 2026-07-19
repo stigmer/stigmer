@@ -39,7 +39,7 @@ import type { Run, ConversationTurn } from "@cursor/sdk";
 
 import type { Config } from "../../config.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
-import { resolveAgent } from "./session-lifecycle.js";
+import { resolveAgentWithTransportRecovery } from "./session-lifecycle.js";
 import type { AgentResolution, CreateAgentOptions, CreateCloudAgentOptions } from "./session-lifecycle.js";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
@@ -117,7 +117,6 @@ import type { ClassifiedError } from "./error-classifier.js";
 import { createAgent, createCloudAgent } from "./session-lifecycle.js";
 import { setMaxListeners } from "node:events";
 import { startHeartbeat } from "../../shared/heartbeat.js";
-import { withTimeout } from "../../shared/with-timeout.js";
 import { getShutdownSignalForQueue } from "../../runner-manager.js";
 
 /**
@@ -842,21 +841,29 @@ async function executeCursorInner(
 
     // Agent.create/Agent.resume have no timeout of their own — a degraded
     // transport (dead proxy connection, stale HTTP/2 session) hangs them
-    // forever, which the periodic heartbeat would happily keep alive. The
-    // bound converts that hang into an immediate, named transport failure.
-    // The message carries "timed out" so the error classifier's network
-    // patterns mark it retryable.
+    // forever, which the periodic heartbeat would happily keep alive. Each
+    // attempt is bounded; on expiry the wrapper resets the proxy transport
+    // and retries once, so a stale-session hang recovers without failing the
+    // execution. A second expiry propagates a plain Error to the generic
+    // catch below, which persists EXECUTION_FAILED (no Temporal retry —
+    // the activity returns rather than throws, and maximumAttempts is 1).
     heartbeatPhase = "resolving_agent";
     const resolveTimeoutSeconds = Math.round(config.agentResolveTimeoutMs / 1000);
-    let resolution: AgentResolution = await withTimeout(
-      config.agentResolveTimeoutMs,
-      () =>
+    let resolution: AgentResolution = await resolveAgentWithTransportRecovery({
+      harnessStateId: threadId,
+      createOptions,
+      mode: agentMode,
+      timeoutMs: config.agentResolveTimeoutMs,
+      buildTimeoutMessage: (finalAttempt) =>
         `Cursor agent ${threadId ? "resume" : "create"} timed out after ${resolveTimeoutSeconds}s ` +
         `(${config.proxyEndpoint ? `via proxy ${config.proxyEndpoint}` : "direct Cursor API connection"}). ` +
-        `The transport connection is likely dead. Retry the message; if this persists, ` +
-        `check proxy and network health.`,
-      () => resolveAgent(threadId, createOptions, agentMode),
-    );
+        `The transport connection is likely dead. ` +
+        (finalAttempt
+          ? `An automatic retry on a fresh transport connection also timed out. ` +
+            `Retry the message later; if this persists, check proxy and network health.`
+          : `Resetting the transport and retrying automatically.`),
+      resetTransport: closeProxySessions,
+    });
 
     console.log(
       `ExecuteCursor agent resolved: execution=${executionId}, ` +

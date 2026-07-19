@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { withTimeout } from "../with-timeout.js";
+import { withTimeout, TimeoutError } from "../with-timeout.js";
 
 describe("withTimeout", () => {
   it("resolves with the function's result when it completes in time", async () => {
@@ -12,6 +12,21 @@ describe("withTimeout", () => {
     await expect(
       withTimeout(20, "Cursor agent create timed out after 20ms", hang),
     ).rejects.toThrow("Cursor agent create timed out after 20ms");
+  });
+
+  it("rejects with a TimeoutError so callers can react to expiry by type", async () => {
+    const hang = () => new Promise<never>(() => {});
+    await expect(withTimeout(20, "expired", hang)).rejects.toBeInstanceOf(TimeoutError);
+  });
+
+  it("does not wrap the function's own rejection in a TimeoutError", async () => {
+    const boom = new Error("underlying failure");
+    let caught: unknown;
+    await withTimeout(1_000, "should not fire", () => Promise.reject(boom)).catch((err) => {
+      caught = err;
+    });
+    expect(caught).toBe(boom);
+    expect(caught).not.toBeInstanceOf(TimeoutError);
   });
 
   it("evaluates a lazy message only on expiry", async () => {
