@@ -48,6 +48,12 @@
       "policySource": "annotation_destructive_tighten",
       "name_proto": "APPROVAL_POLICY_SOURCE_ANNOTATION_DESTRUCTIVE_TIGHTEN",
       "number": 7
+    },
+    {
+      "name": "unattended-skip",
+      "policySource": "unattended_skip",
+      "name_proto": "APPROVAL_POLICY_SOURCE_UNATTENDED_SKIP",
+      "number": 8
     }
   ]
 }
