@@ -5,6 +5,7 @@
 # Disable Go workspace to avoid cross-module dependency conflicts (CI has no go.work).
 export GOWORK := off
 
+STIGMER_ROOT       := $(CURDIR)/../..
 STIGMER_CLOUD_ROOT ?= $(CURDIR)/../../../stigmer-cloud
 # Resolved separately so ensure-service-jar can tell whether the caller
 # overrode the path (e.g. a CI prebuilt artifact) or left it at the default.
@@ -87,6 +88,27 @@ ensure-service-jar:
 		echo "  or:     set STIGMER_SERVICE_JAR to an existing JAR path"; \
 		exit 1; \
 	fi
+
+# Guarantees the runner's dist/ reflects current sources before money is spent.
+# The harness prefers dist/main.js over tsx (resolveRunnerCommand), but nothing
+# on these lanes rebuilds it, so a dist built before a `git pull` runs stale
+# code. The runner's own fingerprint guard (checkBuildFreshness, exit 78) fires
+# too late for a paid lane: a runner that dies at startup hits the same
+# silent-timeout mode documented on check-runner-node — after spend has begun.
+#
+# Delegates to the root `build-runner` target — the one canonical build path,
+# which also refreshes the @stigmer/protos dist and node_modules; a bare
+# `npm run build` here could compile against stale proto stubs.
+#
+# Deliberately asymmetric to ensure-service-jar: no warn-and-proceed branch
+# and no override variable. The runner lives in this repo (it cannot be
+# legitimately absent, unlike the stigmer-cloud checkout), and a maybe-stale
+# fallback on a lane whose entire output is trusted cost numbers would
+# reintroduce the exact footgun this target exists to close.
+.PHONY: ensure-runner-dist
+ensure-runner-dist:
+	@echo "Rebuilding unified runner dist (via root build-runner)..."
+	@$(MAKE) -C $(STIGMER_ROOT) build-runner
 
 # ─── Targets ──────────────────────────────────
 
@@ -402,7 +424,7 @@ check-runner-node:
 	}
 
 .PHONY: benchmark-cost
-benchmark-cost: ensure-service-jar check-runner-node ## Run cost benchmarks comparing Native vs Cursor harness (requires both API keys)
+benchmark-cost: check-runner-node ensure-service-jar ensure-runner-dist ## Run cost benchmarks comparing Native vs Cursor harness (requires both API keys)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \
@@ -455,7 +477,7 @@ TRACED_OUTPUT_DIR ?= .test-output-traced
 CURSOR_MODE_OUTPUT_DIR ?= .test-output-cursor-modes
 
 .PHONY: benchmark-cursor-modes
-benchmark-cursor-modes: ensure-service-jar check-runner-node ## Compare Cursor local vs cloud runtime (requires CURSOR_API_KEY only)
+benchmark-cursor-modes: check-runner-node ensure-service-jar ensure-runner-dist ## Compare Cursor local vs cloud runtime (requires CURSOR_API_KEY only)
 	@command -v gotestsum >/dev/null 2>&1 || { \
 		echo "error: gotestsum not found"; \
 		echo "  install: go install gotest.tools/gotestsum@latest"; \
