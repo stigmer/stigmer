@@ -1,0 +1,163 @@
+{
+  "runTimestamp": "2026-07-20T12:17:32Z",
+  "gitSha": "d62ac3945b3c",
+  "repsPerCell": 5,
+  "categories": [
+    {
+      "id": "parity-simple",
+      "label": "Simple reply",
+      "mode": "parity",
+      "native": {
+        "model": "claude-sonnet-4-6",
+        "n": 5,
+        "warmBillableMicros": 3689,
+        "spreadMicros": 0,
+        "coldBillableMicros": 3689,
+        "cacheHitRatio": 0.9997005390297464,
+        "totalTokens": 10022,
+        "latencyMs": 13449
+      },
+      "cursor": {
+        "model": "claude-sonnet-4-6",
+        "n": 5,
+        "warmBillableMicros": 82609,
+        "spreadMicros": 64863,
+        "coldBillableMicros": 82627,
+        "cacheHitRatio": 0,
+        "totalTokens": 18764,
+        "latencyMs": 3427
+      },
+      "warmCostRatio": 0.04465615126681112
+    },
+    {
+      "id": "parity-medium",
+      "label": "Short explanation",
+      "mode": "parity",
+      "native": {
+        "model": "claude-sonnet-4-6",
+        "n": 5,
+        "warmBillableMicros": 4500,
+        "spreadMicros": 0,
+        "coldBillableMicros": 4500,
+        "cacheHitRatio": 0.9997007182761373,
+        "totalTokens": 10073,
+        "latencyMs": 3987
+      },
+      "cursor": {
+        "model": "claude-sonnet-4-6",
+        "n": 5,
+        "warmBillableMicros": 18598,
+        "spreadMicros": 64880,
+        "coldBillableMicros": null,
+        "cacheHitRatio": 0.9099478112685057,
+        "totalTokens": 18827,
+        "latencyMs": 11383
+      },
+      "warmCostRatio": 0.2419615012366921
+    },
+    {
+      "id": "parity-codegen",
+      "label": "Code generation",
+      "mode": "parity",
+      "native": {
+        "model": "claude-sonnet-4-6",
+        "n": 5,
+        "warmBillableMicros": 7715,
+        "spreadMicros": 0,
+        "coldBillableMicros": 7715,
+        "cacheHitRatio": 0.9997015519299642,
+        "totalTokens": 10279,
+        "latencyMs": 5337
+      },
+      "cursor": {
+        "model": "claude-sonnet-4-6",
+        "n": 5,
+        "warmBillableMicros": 19626,
+        "spreadMicros": 123,
+        "coldBillableMicros": 19591,
+        "cacheHitRatio": 0.9087862993298585,
+        "totalTokens": 18906,
+        "latencyMs": 5325
+      },
+      "warmCostRatio": 0.3931009884846632
+    },
+    {
+      "id": "default-simple",
+      "label": "Simple reply",
+      "mode": "default",
+      "native": {
+        "model": "claude-sonnet-4-6",
+        "n": 5,
+        "warmBillableMicros": 3689,
+        "spreadMicros": 0,
+        "coldBillableMicros": 45150,
+        "cacheHitRatio": 0.9997005390297464,
+        "totalTokens": 10022,
+        "latencyMs": 2161
+      },
+      "cursor": {
+        "model": "cursor-grok-4.5-high",
+        "n": 5,
+        "warmBillableMicros": 12731,
+        "spreadMicros": 13517,
+        "coldBillableMicros": 26198,
+        "cacheHitRatio": 0.7015445939212755,
+        "totalTokens": 12069,
+        "latencyMs": 5360
+      },
+      "warmCostRatio": 0.2897651402089388
+    },
+    {
+      "id": "default-medium",
+      "label": "Short explanation",
+      "mode": "default",
+      "native": {
+        "model": "claude-sonnet-4-6",
+        "n": 5,
+        "warmBillableMicros": 4500,
+        "spreadMicros": 0,
+        "coldBillableMicros": 5870,
+        "cacheHitRatio": 0.9997007182761373,
+        "totalTokens": 10073,
+        "latencyMs": 3445
+      },
+      "cursor": {
+        "model": "cursor-grok-4.5-high",
+        "n": 5,
+        "warmBillableMicros": 25859,
+        "spreadMicros": 6600,
+        "coldBillableMicros": 26679,
+        "cacheHitRatio": 0.053147317721308755,
+        "totalTokens": 12106,
+        "latencyMs": 5346
+      },
+      "warmCostRatio": 0.17402065045052012
+    },
+    {
+      "id": "default-codegen",
+      "label": "Code generation",
+      "mode": "default",
+      "native": {
+        "model": "claude-sonnet-4-6",
+        "n": 5,
+        "warmBillableMicros": 7715,
+        "spreadMicros": 0,
+        "coldBillableMicros": 9200,
+        "cacheHitRatio": 0.9997015519299642,
+        "totalTokens": 10279,
+        "latencyMs": 5359
+      },
+      "cursor": {
+        "model": "cursor-grok-4.5-high",
+        "n": 5,
+        "warmBillableMicros": 27150,
+        "spreadMicros": 14181,
+        "coldBillableMicros": 26484,
+        "cacheHitRatio": 0.021202584064932913,
+        "totalTokens": 12227,
+        "latencyMs": 5352
+      },
+      "warmCostRatio": 0.2841620626151013
+    }
+  ]
+}

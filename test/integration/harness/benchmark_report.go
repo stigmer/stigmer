@@ -39,7 +39,10 @@ type BenchmarkTrend struct {
 
 const benchmarkReportDir = "benchmark-results"
 
-// NewBenchmarkReport creates a report from a set of comparisons.
+// NewBenchmarkReport creates a report from a set of comparisons. Summary
+// totals are computed from each cell's Representative (median-billable warm
+// sample), so the overall cost ratio reflects steady state — cold first
+// calls are reported per cell, never folded into the totals.
 func NewBenchmarkReport(comparisons []*BenchmarkComparison, gitSHA string) *BenchmarkReport {
 	report := &BenchmarkReport{
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),
@@ -53,10 +56,10 @@ func NewBenchmarkReport(comparisons []*BenchmarkComparison, gitSHA string) *Benc
 			continue
 		}
 		if c.Native != nil {
-			totalNative += c.Native.BillableCostMicros
+			totalNative += c.Native.Representative.BillableCostMicros
 		}
 		if c.Cursor != nil {
-			totalCursor += c.Cursor.BillableCostMicros
+			totalCursor += c.Cursor.Representative.BillableCostMicros
 		}
 	}
 

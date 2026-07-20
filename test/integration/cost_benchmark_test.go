@@ -5,6 +5,7 @@ package integration
 import (
 	"context"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -130,10 +131,39 @@ func TestCostBenchmark_MultiTurn(t *testing.T) {
 
 // --- Aggregate Report Generation ---
 
+// benchmarkReps returns the number of warm measured repetitions per report
+// cell. Each cell additionally runs one discarded warmup execution (the
+// cold-call figure), so total spend per cell is reps+1 executions. Odd
+// values keep the median a single observed sample (see BenchmarkStat).
+// Override via BENCHMARK_REPS for cheap smoke runs (e.g. BENCHMARK_REPS=1).
+func benchmarkReps(t *testing.T) int {
+	t.Helper()
+	const defaultReps = 5
+	raw := os.Getenv("BENCHMARK_REPS")
+	if raw == "" {
+		return defaultReps
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 1 {
+		t.Logf("WARNING: invalid BENCHMARK_REPS=%q — using default %d", raw, defaultReps)
+		return defaultReps
+	}
+	if n%2 == 0 {
+		t.Logf("WARNING: BENCHMARK_REPS=%d is even — the median falls between two samples and the upper-middle run is taken; prefer odd", n)
+	}
+	return n
+}
+
+// codegenPrompt is the code-generation report category: single-shot,
+// output-heavy (the inverse token shape of the context-heavy categories).
+const codegenPrompt = `Write a Go function that parses a duration string like "1h30m" and returns total minutes as an int, with proper error handling. Reply with only the code, no explanation.`
+
 func TestCostBenchmark_Report(t *testing.T) {
 	require.NotNil(t, grpcConn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+	// Budget generously: each cell is (1 warmup + reps) executions per
+	// harness, and executions can take minutes on a cold local stack.
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Minute)
 	defer cancel()
 
 	clients := harness.NewClients(grpcConn)
@@ -141,6 +171,9 @@ func TestCostBenchmark_Report(t *testing.T) {
 	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
 
 	requireBothHarnesses(t)
+
+	reps := benchmarkReps(t)
+	t.Logf("Report methodology: %d warm repetitions per cell + 1 discarded warmup (cold-call figure)", reps)
 
 	type scenario struct {
 		name        string
@@ -159,6 +192,10 @@ func TestCostBenchmark_Report(t *testing.T) {
 			prompt: "Explain in one sentence what a hash table is.",
 		},
 		{
+			name:   "report-codegen",
+			prompt: codegenPrompt,
+		},
+		{
 			name:        "report-parity-simple",
 			prompt:      "Reply with exactly: hello",
 			nativeModel: parityModelNative,
@@ -170,16 +207,22 @@ func TestCostBenchmark_Report(t *testing.T) {
 			nativeModel: parityModelNative,
 			cursorModel: parityModelCursor,
 		},
+		{
+			name:        "report-parity-codegen",
+			prompt:      codegenPrompt,
+			nativeModel: parityModelNative,
+			cursorModel: parityModelCursor,
+		},
 	}
 
 	var comparisons []*harness.BenchmarkComparison
 	for _, s := range scenarios {
-		native := harness.RunBenchmarkExecution(t, ctx, clients, waiter,
-			sessionv1.Harness_HARNESS_NATIVE, "native", s.prompt, s.name, s.nativeModel)
-		cursor := harness.RunBenchmarkExecution(t, ctx, clients, waiter,
-			sessionv1.Harness_HARNESS_CURSOR, "cursor", s.prompt, s.name, s.cursorModel)
+		native := harness.RunBenchmarkStat(t, ctx, clients, waiter,
+			sessionv1.Harness_HARNESS_NATIVE, "native", s.prompt, s.name, s.nativeModel, reps)
+		cursor := harness.RunBenchmarkStat(t, ctx, clients, waiter,
+			sessionv1.Harness_HARNESS_CURSOR, "cursor", s.prompt, s.name, s.cursorModel, reps)
 
-		comp := harness.CompareBenchmarks(t, s.name, native, cursor)
+		comp := harness.CompareBenchmarkStats(t, s.name, native, cursor)
 		if comp != nil {
 			comparisons = append(comparisons, comp)
 		}

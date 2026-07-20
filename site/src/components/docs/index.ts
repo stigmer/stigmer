@@ -33,6 +33,7 @@ export { ConnectWhatsAppChannel as DemoConnectWhatsAppChannel } from "./demos/sc
 export { ReviewPayloadRenderer as DemoReviewPayloadRenderer } from "./demos/scenarios/review-payload-gate";
 export { ReviewPayloadFallback as DemoReviewPayloadFallback } from "./demos/scenarios/review-payload-gate";
 export { glossary } from "./glossary";
+export { HarnessCostComparison } from "./harness-cost-comparison";
 export { Mermaid } from "./mermaid";
 export { ScenarEmbed } from "./scenar-embed";
 export { PageFeedback } from "./page-feedback";
