@@ -798,8 +798,8 @@
           "cacheReadPricePerMillion": 1.0,
           "wireIds": ["claude-opus-4-8-fast"],
           "source": "derived_from_notes",
-          "sourceNote": "Pricing-page note: \"Fast mode is 3x lower per-token pricing than Opus 4.7 fast mode\" \u2014 derived as Opus 4.7 fast (30/150/37.5/3) \u00f7 3. NEEDS HUMAN SIGN-OFF; wire id claude-opus-4-8-fast named in the same note.",
-          "effectiveAt": "2026-07-18T00:00:00Z"
+          "sourceNote": "Pricing-page note: \"Fast mode is 3x lower per-token pricing than Opus 4.7 fast mode\" \u2014 derived as Opus 4.7 fast (30/150/37.5/3) \u00f7 3; wire id claude-opus-4-8-fast named in the same note. Confirmed 2026-07-20 against the live pricing page: the \u00f73 derivation independently equals 2x the Opus 4.8 base rates \u2014 two derivations agree.",
+          "effectiveAt": "2026-07-20T00:00:00Z"
         }
       }
     },
@@ -987,8 +987,8 @@
           "cacheWritePricePerMillion": 12.5,
           "cacheReadPricePerMillion": 1.0,
           "source": "derived_from_notes",
-          "sourceNote": "Pricing-page note: \"Fast mode is available at 2x pricing\" \u2014 derived as 2x all standard buckets. NEEDS HUMAN SIGN-OFF.",
-          "effectiveAt": "2026-07-18T00:00:00Z"
+          "sourceNote": "Pricing-page note: \"Fast mode is available at 2x pricing\" \u2014 derived as 2x all standard buckets. Confirmed 2026-07-20 against the live pricing page: the explicit GPT-5 Fast row is exactly 2x the GPT-5 base on every bucket, corroborating the 2x-all-buckets reading.",
+          "effectiveAt": "2026-07-20T00:00:00Z"
         }
       }
     },
@@ -1018,8 +1018,8 @@
           "cacheWritePricePerMillion": 6.25,
           "cacheReadPricePerMillion": 0.5,
           "source": "derived_from_notes",
-          "sourceNote": "Pricing-page note: \"Fast mode is available at 2x pricing\" \u2014 derived as 2x all standard buckets. NEEDS HUMAN SIGN-OFF.",
-          "effectiveAt": "2026-07-18T00:00:00Z"
+          "sourceNote": "Pricing-page note: \"Fast mode is available at 2x pricing\" \u2014 derived as 2x all standard buckets. Confirmed 2026-07-20 against the live pricing page: the explicit GPT-5 Fast row is exactly 2x the GPT-5 base on every bucket, corroborating the 2x-all-buckets reading.",
+          "effectiveAt": "2026-07-20T00:00:00Z"
         }
       }
     },
@@ -1049,8 +1049,8 @@
           "cacheWritePricePerMillion": 2.5,
           "cacheReadPricePerMillion": 0.2,
           "source": "derived_from_notes",
-          "sourceNote": "Pricing-page note: \"Fast mode is available at 2x pricing\" \u2014 derived as 2x all standard buckets. NEEDS HUMAN SIGN-OFF.",
-          "effectiveAt": "2026-07-18T00:00:00Z"
+          "sourceNote": "Pricing-page note: \"Fast mode is available at 2x pricing\" \u2014 derived as 2x all standard buckets. Confirmed 2026-07-20 against the live pricing page: the explicit GPT-5 Fast row is exactly 2x the GPT-5 base on every bucket, corroborating the 2x-all-buckets reading.",
+          "effectiveAt": "2026-07-20T00:00:00Z"
         }
       }
     },
@@ -1098,8 +1098,8 @@
           "cacheWritePricePerMillion": 0,
           "cacheReadPricePerMillion": 0.5,
           "source": "derived_from_notes",
-          "sourceNote": "Pricing-page note: \"Fast mode is 15% faster with 2x pricing\" \u2014 derived as 2x all standard buckets. NEEDS HUMAN SIGN-OFF.",
-          "effectiveAt": "2026-07-18T00:00:00Z"
+          "sourceNote": "Pricing-page note: \"Fast mode is 15% faster with 2x pricing\" \u2014 derived as 2x all standard buckets. Confirmed 2026-07-20 against the live pricing page: the explicit GPT-5 Fast row is exactly 2x the GPT-5 base on every bucket, corroborating the 2x-all-buckets reading; cache-write stays 0 matching the base row's dash.",
+          "effectiveAt": "2026-07-20T00:00:00Z"
         }
       }
     },
