@@ -119,12 +119,20 @@ describe("useArtifactInspection — detection + apply", () => {
 
   it("applies a detected Agent and fires onApplied with the result", async () => {
     const getArtifactContent = vi.fn().mockResolvedValue(contentResult(AGENT_YAML));
+    // The apply path routes through the kind-agnostic manifest engine:
+    // the hook parses the YAML into a ManifestDocument and hands it to
+    // stigmer.manifest.apply.
     const apply = vi.fn().mockResolvedValue({
-      metadata: { name: "my-agent", org: "acme", slug: "my-agent" },
+      yamlKind: "Agent",
+      displayName: "Agent",
+      name: "my-agent",
+      org: "acme",
+      slug: "my-agent",
+      id: "agt_01",
     });
     const stigmer = {
       agentExecution: { getArtifactContent },
-      agent: { apply },
+      manifest: { apply },
     } as unknown as Stigmer;
     const onApplied = vi.fn();
 
@@ -144,6 +152,8 @@ describe("useArtifactInspection — detection + apply", () => {
 
     expect(apply).toHaveBeenCalledTimes(1);
     expect(apply.mock.calls[0][0].name).toBe("my-agent");
+    expect(apply.mock.calls[0][0].handler.yamlKind).toBe("Agent");
+    expect(apply.mock.calls[0][0].org).toBe("acme");
     await waitFor(() => expect(result.current.applyResult?.kind).toBe("Agent"));
     expect(onApplied).toHaveBeenCalledTimes(1);
     expect(onApplied.mock.calls[0][0].name).toBe("my-agent");

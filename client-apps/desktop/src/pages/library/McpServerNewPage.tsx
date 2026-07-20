@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   McpServerCreationWizard,
   CreationPicker,
-  ImportResourceDialog,
+  ApplyManifestDialog,
   MCP_SERVER_TEMPLATES,
   useActiveOrgSlug,
   useBreadcrumbOverride,
@@ -82,7 +82,7 @@ export default function McpServerNewPage() {
         />
       )}
 
-      <ImportResourceDialog
+      <ApplyManifestDialog
         open={importOpen}
         onOpenChange={setImportOpen}
         org={org}

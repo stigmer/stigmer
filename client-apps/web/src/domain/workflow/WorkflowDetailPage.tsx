@@ -156,6 +156,16 @@ export function WorkflowDetailPageInner({
         group: "clipboard",
         onAction: () => copyQualifiedSlug(org, slug),
       },
+      // Workflows edit YAML in the dedicated Editor tab (graph preview,
+      // validation, version messages) — one YAML surface per workflow, so
+      // this routes there instead of opening the generic manifest dialog.
+      {
+        id: "edit-yaml",
+        label: "Edit YAML",
+        group: "export",
+        onAction: () => setActiveTab("editor"),
+        disabled: !initialYaml,
+      },
       {
         id: "export-yaml",
         label: "Export YAML",
@@ -186,7 +196,7 @@ export function WorkflowDetailPageInner({
         disabled: isDeleting,
       },
     ],
-    [resourceId, copyId, copyQualifiedSlug, org, slug, copyYaml, copyJson, downloadYaml, workflow, handleDelete, isDeleting],
+    [resourceId, copyId, copyQualifiedSlug, org, slug, copyYaml, copyJson, downloadYaml, workflow, initialYaml, handleDelete, isDeleting],
   );
 
   const additionalTabs: AdditionalTab[] = useMemo(

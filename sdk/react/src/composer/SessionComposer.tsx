@@ -470,7 +470,7 @@ export interface SessionComposerProps {
    *
    * @example
    * ```tsx
-   * const yaml = serializeAgentYaml(agent);
+   * const yaml = serializeManifest(agent);
    * const file = new File([yaml], "my-agent.yaml", { type: "text/yaml" });
    *
    * <SessionComposer

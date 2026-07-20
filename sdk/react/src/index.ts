@@ -1138,15 +1138,8 @@ export {
   findStreamingPlan,
   PLAN_ARTIFACT_NAME,
   PLAN_ARTIFACT_SUFFIX,
-  parseResourceYaml,
-  serializeAgentYaml,
-  serializeMcpServerYaml,
-  serializeAgentInputYaml,
-  serializeMcpServerInputYaml,
   useApplyResource,
   useExportResource,
-  useImportResource,
-  ImportResourceDialog,
   VisibilitySelector,
   VisibilityBadge,
   blueprintVisibilityLevels,
@@ -1163,16 +1156,11 @@ export type {
   SessionPlan,
   StreamingPlan,
   UseDetectSkillPackageReturn,
-  ParsedResource,
   UseApplyResourceReturn,
   ApplyResourceResult,
   PushSkillParams,
   UseExportResourceOptions,
   UseExportResourceReturn,
-  ImportFormat,
-  ImportPreview,
-  UseImportResourceReturn,
-  ImportResourceDialogProps,
   VisibilitySelectorProps,
   VisibilityBadgeProps,
   VisibilityLevelOption,
@@ -1180,6 +1168,29 @@ export type {
   VisibilityResourceKind,
   UseUpdateVisibilityReturn,
 } from "./library/index.js";
+
+// Manifest — kind-agnostic YAML edit/apply (editor, hooks, dialogs)
+export {
+  YamlEditor,
+  useEditResourceYaml,
+  useApplyManifest,
+  EditResourceYamlDialog,
+  ApplyManifestDialog,
+  RedactedSecretsNotice,
+} from "./manifest/index.js";
+export type {
+  YamlEditorProps,
+  EditYamlTarget,
+  EditYamlValidation,
+  UseEditResourceYamlOptions,
+  UseEditResourceYamlReturn,
+  ManifestEntryStatus,
+  ManifestPreviewEntry,
+  UseApplyManifestReturn,
+  EditResourceYamlDialogProps,
+  ApplyManifestDialogProps,
+  RedactedSecretsNoticeProps,
+} from "./manifest/index.js";
 
 // Action menu — compound component for resource item actions
 export { ActionMenu } from "./action-menu/index.js";

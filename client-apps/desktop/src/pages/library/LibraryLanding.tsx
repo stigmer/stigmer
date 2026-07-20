@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, Sparkles, Server, Workflow } from "lucide-react";
+import { Bot, FileCode2, Sparkles, Server, Workflow } from "lucide-react";
+import { cn } from "@stigmer/theme";
 import {
+  ApplyManifestDialog,
   useAgentCount,
   useSkillCount,
   useMcpServerCount,
@@ -16,6 +19,7 @@ export default function LibraryLanding() {
   const workflows = useWorkflowCount(org);
   const skills = useSkillCount(org);
   const mcpServers = useMcpServerCount(org);
+  const [applyYamlOpen, setApplyYamlOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -50,6 +54,28 @@ export default function LibraryLanding() {
           onClick={() => navigate("/library/mcp-servers")}
         />
       </div>
+
+      {/* Declarative entry point — wired identically to the web Library
+          landing (DD-016 parity). */}
+      <button
+        type="button"
+        onClick={() => setApplyYamlOpen(true)}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm",
+          "text-muted-foreground transition-colors",
+          "hover:bg-accent hover:text-accent-foreground",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        )}
+      >
+        <FileCode2 className="size-3.5" aria-hidden="true" />
+        Apply YAML
+      </button>
+
+      <ApplyManifestDialog
+        open={applyYamlOpen}
+        onOpenChange={setApplyYamlOpen}
+        org={org ?? ""}
+      />
     </div>
   );
 }

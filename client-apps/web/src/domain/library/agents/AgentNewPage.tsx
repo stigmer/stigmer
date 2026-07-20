@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   AgentCreationWizard,
   CreationPicker,
-  ImportResourceDialog,
+  ApplyManifestDialog,
   AGENT_TEMPLATES,
   useActiveOrgSlug,
   useBreadcrumbOverride,
@@ -26,7 +26,7 @@ type PageState =
  * Mounted at `/library/agents/new`. Shows a creation picker ("step 0")
  * with three paths — blank, template, or import. Selecting blank or a
  * template transitions to the `AgentCreationWizard` with optional
- * pre-filled data. Import opens the `ImportResourceDialog`.
+ * pre-filled data. Import opens the `ApplyManifestDialog`.
  */
 export function AgentNewPage() {
   const org = useActiveOrgSlug();
@@ -92,7 +92,7 @@ export function AgentNewPage() {
         />
       )}
 
-      <ImportResourceDialog
+      <ApplyManifestDialog
         open={importOpen}
         onOpenChange={setImportOpen}
         org={org}

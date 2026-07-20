@@ -3,12 +3,13 @@
 import { type MouseEvent, useCallback, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bot, Plus, Sparkles, Server, Workflow } from "lucide-react";
+import { Bot, FileCode2, Plus, Sparkles, Server, Workflow } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { getDraftSessionUrl } from "@/domain/session/draft-session";
 import { readPersistedScope } from "@/domain/library/scope-persistence";
 import {
+  ApplyManifestDialog,
   useAgentCount,
   useSkillCount,
   useMcpServerCount,
@@ -95,6 +96,7 @@ export function LibraryLanding() {
   const org = useActiveOrgSlug();
   const router = useRouter();
   const counts = useResourceCounts(org || null);
+  const [applyYamlOpen, setApplyYamlOpen] = useState(false);
 
   const handleCardClick = useCallback(
     (href: string) => (e: MouseEvent) => {
@@ -131,9 +133,28 @@ export function LibraryLanding() {
         })}
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 flex items-center gap-2">
         <AddResourceMenu />
+        <button
+          type="button"
+          onClick={() => setApplyYamlOpen(true)}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm",
+            "text-muted-foreground transition-colors",
+            "hover:bg-accent hover:text-accent-foreground",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+        >
+          <FileCode2 className="size-3.5" aria-hidden="true" />
+          Apply YAML
+        </button>
       </div>
+
+      <ApplyManifestDialog
+        open={applyYamlOpen}
+        onOpenChange={setApplyYamlOpen}
+        org={org ?? ""}
+      />
     </>
   );
 }

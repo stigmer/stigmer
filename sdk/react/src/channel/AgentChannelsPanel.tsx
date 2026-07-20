@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { KeyRound, MessageSquare, MoreHorizontal, Trash2 } from "lucide-react";
+import { FileCode2, KeyRound, MessageSquare, MoreHorizontal, Trash2 } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -17,6 +17,7 @@ import { useChannelAppList } from "../channel-app/useChannelAppList.js";
 import { useCheckPermission } from "../iam-policy/useCheckPermission.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
+import { EditResourceYamlDialog } from "../manifest/EditResourceYamlDialog.js";
 import { useDeploymentMode } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { ChannelConversationsDialog } from "./ChannelConversationsDialog.js";
@@ -146,6 +147,9 @@ export function AgentChannelsPanel({
   // channel-session observability for the channel's viewers).
   const [viewingConversations, setViewingConversations] =
     useState<AgentChannel | null>(null);
+
+  // The channel being edited as YAML (the kind-agnostic manifest flow).
+  const [editingYaml, setEditingYaml] = useState<AgentChannel | null>(null);
 
   const handleConnect = useCallback(
     (channel: AgentChannel | null, provider: ChannelProviderDescriptor) => {
@@ -289,6 +293,7 @@ export function AgentChannelsPanel({
                   onDeleteClick={() => void handleDelete(channel)}
                   onEditCredentials={() => setEditingCredentials(channel)}
                   onViewConversations={() => setViewingConversations(channel)}
+                  onEditYaml={() => setEditingYaml(channel)}
                   refetch={refetch}
                 />
               );
@@ -344,6 +349,17 @@ export function AgentChannelsPanel({
         />
       )}
 
+      {editingYaml && (
+        <EditResourceYamlDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setEditingYaml(null);
+          }}
+          resource={editingYaml}
+          onApplied={refetch}
+        />
+      )}
+
       <ConfirmDialog
         state={confirmState}
         onConfirm={handleConfirm}
@@ -367,6 +383,7 @@ interface ChannelCardProps {
   readonly onDeleteClick: () => void;
   readonly onEditCredentials: () => void;
   readonly onViewConversations: () => void;
+  readonly onEditYaml: () => void;
   readonly refetch: () => void;
 }
 
@@ -379,6 +396,7 @@ function ChannelCard({
   onDeleteClick,
   onEditCredentials,
   onViewConversations,
+  onEditYaml,
   refetch,
 }: ChannelCardProps) {
   const meta = channel.metadata;
@@ -501,6 +519,14 @@ function ChannelCard({
                   onSelect={onEditCredentials}
                 >
                   Tool credentials
+                </ActionMenu.Item>
+              )}
+              {canEdit && (
+                <ActionMenu.Item
+                  icon={<FileCode2 />}
+                  onSelect={onEditYaml}
+                >
+                  Edit YAML
                 </ActionMenu.Item>
               )}
               {canDelete && (

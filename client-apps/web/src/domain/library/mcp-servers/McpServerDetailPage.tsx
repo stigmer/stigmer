@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  EditResourceYamlDialog,
   McpServerDetailView,
   useMcpServer,
   useActiveOrgSlug,
@@ -33,11 +34,12 @@ export function McpServerDetailPageInner({
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
   const { deleteResource, isDeleting } = useDeleteResource("mcpServer", resourceId, resourceName);
-  const { mcpServer } = useMcpServer(org, slug);
+  const { mcpServer, refetch: refetchMcpServer } = useMcpServer(org, slug);
   const { copyYaml, copyJson, downloadYaml } = useExportResource({
     kind: "McpServer",
     resource: mcpServer,
   });
+  const [editYamlOpen, setEditYamlOpen] = useState(false);
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -83,6 +85,13 @@ export function McpServerDetailPageInner({
         onAction: () => copyQualifiedSlug(org, slug),
       },
       {
+        id: "edit-yaml",
+        label: "Edit YAML",
+        group: "export",
+        onAction: () => setEditYamlOpen(true),
+        disabled: !mcpServer,
+      },
+      {
         id: "export-yaml",
         label: "Export YAML",
         group: "export",
@@ -124,6 +133,12 @@ export function McpServerDetailPageInner({
         onResourceLoad={handleResourceLoad}
         editable
         actions={actions}
+      />
+      <EditResourceYamlDialog
+        open={editYamlOpen}
+        onOpenChange={setEditYamlOpen}
+        resource={mcpServer}
+        onApplied={refetchMcpServer}
       />
       <ConfirmDialog
         state={confirmState}

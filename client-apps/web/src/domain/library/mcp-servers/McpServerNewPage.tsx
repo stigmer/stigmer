@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   McpServerCreationWizard,
   CreationPicker,
-  ImportResourceDialog,
+  ApplyManifestDialog,
   MCP_SERVER_TEMPLATES,
   useActiveOrgSlug,
   useBreadcrumbOverride,
@@ -26,7 +26,7 @@ type PageState =
  * Mounted at `/library/mcp-servers/new`. Shows a creation picker
  * ("step 0") with three paths — blank, template, or import. Selecting
  * blank or a template transitions to the `McpServerCreationWizard`
- * with optional pre-filled data. Import opens the `ImportResourceDialog`.
+ * with optional pre-filled data. Import opens the `ApplyManifestDialog`.
  */
 export function McpServerNewPage() {
   const org = useActiveOrgSlug();
@@ -92,7 +92,7 @@ export function McpServerNewPage() {
         />
       )}
 
-      <ImportResourceDialog
+      <ApplyManifestDialog
         open={importOpen}
         onOpenChange={setImportOpen}
         org={org}

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   AgentCreationWizard,
   CreationPicker,
-  ImportResourceDialog,
+  ApplyManifestDialog,
   AGENT_TEMPLATES,
   useActiveOrgSlug,
   useBreadcrumbOverride,
@@ -82,7 +82,7 @@ export default function AgentNewPage() {
         />
       )}
 
-      <ImportResourceDialog
+      <ApplyManifestDialog
         open={importOpen}
         onOpenChange={setImportOpen}
         org={org}

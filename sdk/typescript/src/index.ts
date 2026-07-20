@@ -116,6 +116,23 @@ export {
   type ServerInfo,
 } from "./platform.js";
 
+// Manifest engine (kind-agnostic YAML ⇄ proto ⇄ apply)
+export {
+  ManifestClient,
+  parseManifest,
+  serializeManifest,
+  manifestKinds,
+  manifestHandlerForYamlKind,
+  manifestHandlerForTypeName,
+  metadataOf,
+  REDACTED_SECRET_MARKER,
+  containsRedactedSecrets,
+  type AppliedManifest,
+  type ManifestDocument,
+  type ManifestKindHandler,
+  type ParseManifestOptions,
+} from "./manifest/index.js";
+
 // Shared types (from generated code)
 export {
   type DeleteResourceInput,
@@ -130,6 +147,7 @@ export {
 // Re-export all resource client classes and input types
 export {
   AgentClient,
+  buildAgentProto,
   type AgentInput,
   type McpServerUsageInput,
   type ToolApprovalOverrideInput,
@@ -194,6 +212,7 @@ export {
 } from "./gen/oauthapp.js";
 export {
   McpServerClient,
+  buildMcpServerProto,
   type McpServerInput,
   type StdioServerConfigInput,
   type HttpServerConfigInput,

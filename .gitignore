@@ -47,7 +47,12 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+# The setuptools sdist artifact (a FILE named MANIFEST). With
+# core.ignorecase this pattern also swallows source directories named
+# manifest/ (e.g. sdk/*/src/manifest) — the negation re-includes those
+# while the artifact file stays ignored.
 MANIFEST
+!**/manifest/
 *.pyc
 .pytest_cache/
 .coverage

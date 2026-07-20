@@ -6,6 +6,7 @@ import {
   AgentChannelsPanel,
   AgentDetailView,
   CreateAgentInstanceDialog,
+  EditResourceYamlDialog,
   useAgent,
   useDeleteAgentInstance,
   useCopyResource,
@@ -57,12 +58,13 @@ export default function AgentDetailPage() {
     resourceName,
   );
   const { deleteInstance } = useDeleteAgentInstance();
-  const { agent } = useAgent(org ?? "", slug ?? "");
+  const { agent, refetch: refetchAgent } = useAgent(org ?? "", slug ?? "");
   const { copyYaml, copyJson, downloadYaml } = useExportResource({
     kind: "Agent",
     resource: agent,
   });
 
+  const [editYamlOpen, setEditYamlOpen] = useState(false);
   const [showCreateInstanceDialog, setShowCreateInstanceDialog] = useState(false);
   const [instancesRefreshKey, setInstancesRefreshKey] = useState(0);
 
@@ -199,6 +201,13 @@ export default function AgentDetailPage() {
         onAction: () => copyQualifiedSlug(org ?? "", slug ?? ""),
       },
       {
+        id: "edit-yaml",
+        label: "Edit YAML",
+        group: "export",
+        onAction: () => setEditYamlOpen(true),
+        disabled: !agent,
+      },
+      {
         id: "export-yaml",
         label: "Export YAML",
         group: "export",
@@ -269,6 +278,12 @@ export default function AgentDetailPage() {
         onInstanceStartSessionClick={handleInstanceStartSession}
         onInstanceDeleteClick={handleInstanceDelete}
         instancesRefreshKey={instancesRefreshKey}
+      />
+      <EditResourceYamlDialog
+        open={editYamlOpen}
+        onOpenChange={setEditYamlOpen}
+        resource={agent}
+        onApplied={refetchAgent}
       />
       <ConfirmDialog
         state={confirmState}

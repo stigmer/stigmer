@@ -3,9 +3,9 @@
 import { useCallback, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { PushSkillFromExecutionArtifactRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
+import { parseManifest } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
-import { parseResourceYaml } from "./parse-resource-yaml.js";
 
 /**
  * Result returned after successfully applying a resource to an organization.
@@ -14,8 +14,8 @@ import { parseResourceYaml } from "./parse-resource-yaml.js";
  * link to the resource in the Library (e.g., `/library/agents`).
  */
 export interface ApplyResourceResult {
-  /** The resource kind that was applied. */
-  readonly kind: "Agent" | "McpServer" | "Skill";
+  /** The resource kind that was applied (`"Agent"`, `"McpServer"`, `"Skill"`, …). */
+  readonly kind: string;
   /** The resource name (from response metadata). */
   readonly name: string;
   /** The organization the resource was applied to. */
@@ -44,14 +44,14 @@ export interface PushSkillParams {
 /** Return value of {@link useApplyResource}. */
 export interface UseApplyResourceReturn {
   /**
-   * Apply a Stigmer resource YAML (Agent or McpServer) to an organization.
+   * Apply a Stigmer resource YAML to an organization.
    *
-   * Parses the YAML content, converts it to the appropriate SDK input type,
-   * and calls `stigmer.agent.apply()` or `stigmer.mcpServer.apply()` based
-   * on the detected `kind`.
+   * Parses the YAML against the kind's generated proto schema via the SDK
+   * manifest engine and applies it through `stigmer.manifest.apply()` —
+   * any registry-supported kind, full fidelity.
    *
-   * The `org` parameter overrides `metadata.org` in the YAML — matching
-   * the "Apply to [my-org]" UX intent.
+   * The `org` parameter fills in `metadata.org` when the YAML omits it —
+   * matching the "Apply to [my-org]" UX intent.
    *
    * @throws Re-throws the original error after setting `error` state, so
    *   callers can optionally catch for flow control.
@@ -93,9 +93,9 @@ export interface UseApplyResourceReturn {
  *
  * Handles two parallel apply paths:
  *
- * 1. **YAML resources** (Agent, McpServer): `applyYamlResource(content, org)`
- *    parses the YAML, converts snake_case fields to SDK input types, and
- *    calls the appropriate `apply()` method.
+ * 1. **YAML resources**: `applyYamlResource(content, org)` parses the YAML
+ *    against the generated proto schema (SDK manifest engine) and applies
+ *    it through the kind's `apply` RPC.
  *
  * 2. **Skill packages** (directory artifacts): `pushSkillPackage(params)`
  *    delegates to the server-side `pushFromExecutionArtifact` RPC.
@@ -129,7 +129,7 @@ export interface UseApplyResourceReturn {
  * };
  * ```
  *
- * @see {@link parseResourceYaml} for the pure YAML-to-input conversion
+ * @see {@link parseManifest} for the YAML-to-proto conversion
  * @see {@link detectStigmerResource} for YAML resource detection
  * @see {@link useDetectSkillPackage} for skill package detection
  */
@@ -146,28 +146,21 @@ export function useApplyResource(): UseApplyResourceReturn {
       setError(null);
 
       try {
-        const parsed = parseResourceYaml(content, org);
-
-        switch (parsed.kind) {
-          case "Agent": {
-            const agent = await stigmer.agent.apply(parsed.input);
-            return {
-              kind: "Agent",
-              name: agent.metadata?.name ?? parsed.input.name,
-              org: agent.metadata?.org ?? org,
-              slug: agent.metadata?.slug ?? parsed.input.name,
-            };
-          }
-          case "McpServer": {
-            const mcpServer = await stigmer.mcpServer.apply(parsed.input);
-            return {
-              kind: "McpServer",
-              name: mcpServer.metadata?.name ?? parsed.input.name,
-              org: mcpServer.metadata?.org ?? org,
-              slug: mcpServer.metadata?.slug ?? parsed.input.name,
-            };
-          }
+        const documents = parseManifest(content, { org });
+        if (documents.length > 1) {
+          throw new Error(
+            "This artifact contains multiple resource documents. " +
+              "Use Apply YAML in the Library to apply multi-document manifests.",
+          );
         }
+
+        const applied = await stigmer.manifest.apply(documents[0]);
+        return {
+          kind: applied.yamlKind,
+          name: applied.name,
+          org: applied.org,
+          slug: applied.slug,
+        };
       } catch (err) {
         setError(toError(err));
         throw err;

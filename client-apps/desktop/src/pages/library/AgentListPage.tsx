@@ -16,7 +16,7 @@ import {
 import {
   ResourceWorkbench,
   ActionMenu,
-  ImportResourceDialog,
+  ApplyManifestDialog,
   useStigmer,
   useActiveOrgSlug,
   useConfirmAction,
@@ -133,7 +133,7 @@ export default function AgentListPage() {
             <button
               type="button"
               onClick={() => setImportOpen(true)}
-              aria-label="Import from file"
+              aria-label="Apply YAML"
               className="inline-flex items-center justify-center rounded-md border border-input bg-background p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Upload className="size-3.5" aria-hidden="true" />
@@ -200,7 +200,7 @@ export default function AgentListPage() {
         aria-label="Agent workbench"
       />
 
-      <ImportResourceDialog
+      <ApplyManifestDialog
         open={importOpen}
         onOpenChange={setImportOpen}
         org={org ?? ""}

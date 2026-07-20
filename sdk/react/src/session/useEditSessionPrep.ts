@@ -7,7 +7,7 @@ import { useStigmer } from "../hooks.js";
 import { useAgent } from "../agent/index.js";
 import { useMcpServer } from "../mcp-server/index.js";
 import { useSkill } from "../skill/index.js";
-import { serializeAgentYaml, serializeMcpServerYaml } from "../library/index.js";
+import { serializeManifest } from "@stigmer/sdk";
 import type { DraftResourceType } from "./draft.js";
 
 /** Return value of {@link useEditSessionPrep}. */
@@ -64,7 +64,7 @@ export function useEditSessionPrep(
     if (draftType === "agent" && editAgent) {
       built.current = true;
       try {
-        const yaml = serializeAgentYaml(editAgent);
+        const yaml = serializeManifest(editAgent);
         const slug = editAgent.metadata?.slug ?? "agent";
         setFiles([new File([yaml], `${slug}.yaml`, { type: "text/yaml" })]);
       } catch {
@@ -75,7 +75,7 @@ export function useEditSessionPrep(
     if (draftType === "mcp-server" && editMcpServer) {
       built.current = true;
       try {
-        const yaml = serializeMcpServerYaml(editMcpServer);
+        const yaml = serializeManifest(editMcpServer);
         const slug = editMcpServer.metadata?.slug ?? "mcp-server";
         setFiles([new File([yaml], `${slug}.yaml`, { type: "text/yaml" })]);
       } catch {

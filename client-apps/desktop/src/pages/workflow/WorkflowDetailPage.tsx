@@ -139,6 +139,16 @@ export default function WorkflowDetailPage() {
         group: "clipboard",
         onAction: () => copyQualifiedSlug(org ?? "", slug ?? ""),
       },
+      // Workflows edit YAML in the dedicated Editor tab (graph preview,
+      // validation, version messages) — one YAML surface per workflow,
+      // wired identically to the web app (DD-016 parity).
+      {
+        id: "edit-yaml",
+        label: "Edit YAML",
+        group: "export",
+        onAction: () => setActiveTab("editor"),
+        disabled: !initialYaml,
+      },
       {
         id: "delete",
         label: "Delete",
@@ -148,7 +158,7 @@ export default function WorkflowDetailPage() {
         disabled: isDeleting,
       },
     ],
-    [resourceId, copyId, copyQualifiedSlug, org, slug, handleDelete, isDeleting],
+    [resourceId, copyId, copyQualifiedSlug, org, slug, initialYaml, handleDelete, isDeleting],
   );
 
   const additionalTabs: AdditionalTab[] = useMemo(

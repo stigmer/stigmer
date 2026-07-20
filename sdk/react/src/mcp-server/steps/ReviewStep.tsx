@@ -2,9 +2,8 @@
 
 import { useMemo } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { buildMcpServerProto, getUserMessage, serializeManifest } from "@stigmer/sdk";
 import type { McpServerInput } from "@stigmer/sdk";
-import { serializeMcpServerInputYaml } from "../../library/serialize-resource-yaml.js";
 import type { McpServerWizardData } from "./types.js";
 
 /** Props for {@link ReviewStep}. */
@@ -33,7 +32,7 @@ export function ReviewStep({
     [org, data],
   );
   const yamlPreview = useMemo(
-    () => serializeMcpServerInputYaml(mcpServerInput),
+    () => serializeManifest(buildMcpServerProto(mcpServerInput)),
     [mcpServerInput],
   );
 

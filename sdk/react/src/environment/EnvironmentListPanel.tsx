@@ -6,6 +6,7 @@ import { getUserMessage } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ResourceVisibilityControl } from "../library/ResourceVisibilityControl.js";
+import { EditResourceYamlDialog } from "../manifest/EditResourceYamlDialog.js";
 import { useEnvironmentList } from "./useEnvironmentList.js";
 import { EnvironmentVariableEditor } from "./EnvironmentVariableEditor.js";
 import { isShareRestrictedEnvironment } from "./shareRestriction.js";
@@ -94,6 +95,7 @@ export function EnvironmentListPanel({
     labels,
   );
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [yamlEnvironment, setYamlEnvironment] = useState<Environment | null>(null);
 
   if (onRefetchRef) {
     onRefetchRef(refetch);
@@ -179,9 +181,18 @@ export function EnvironmentListPanel({
             onToggle={() => handleToggle(env)}
             readOnly={readOnly}
             onVisibilityChanged={refetch}
+            onEditYaml={() => setYamlEnvironment(env)}
           />
         );
       })}
+      <EditResourceYamlDialog
+        open={yamlEnvironment !== null}
+        onOpenChange={(open) => {
+          if (!open) setYamlEnvironment(null);
+        }}
+        resource={yamlEnvironment}
+        onApplied={refetch}
+      />
     </div>
   );
 }
@@ -196,12 +207,14 @@ function EnvironmentCard({
   onToggle,
   readOnly,
   onVisibilityChanged,
+  onEditYaml,
 }: {
   environment: Environment;
   isExpanded: boolean;
   onToggle: () => void;
   readOnly: boolean;
   onVisibilityChanged: () => void;
+  onEditYaml: () => void;
 }) {
   const name =
     environment.metadata?.name || environment.metadata?.slug || "Unnamed";
@@ -248,6 +261,17 @@ function EnvironmentCard({
             )}
           </div>
         </button>
+
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={onEditYaml}
+            aria-label={`Edit ${name} as YAML`}
+            className="shrink-0 rounded px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Edit YAML
+          </button>
+        )}
 
         {showVisibilityControl && (
           <ResourceVisibilityControl

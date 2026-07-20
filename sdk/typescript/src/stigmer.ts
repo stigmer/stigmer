@@ -2,6 +2,7 @@ import { ActivityClient } from "./activity.js";
 import { BillingClient } from "./billing.js";
 import { GeneratedClient } from "./gen/client.js";
 import { GitHubClient } from "./github.js";
+import { ManifestClient } from "./manifest/index.js";
 import { PlatformClient } from "./platform.js";
 import { SearchClient } from "./search.js";
 import { createStigmerTransport } from "./transport.js";
@@ -27,6 +28,7 @@ type ExecutionTargetOption = StigmerConfig["executionTarget"];
  * - {@link billing} credit management and Stripe integration client
  * - Cross-resource {@link search} client
  * - {@link github} OAuth integration client
+ * - Kind-agnostic {@link manifest} client for declarative YAML apply
  *
  * @example
  * ```typescript
@@ -76,6 +78,7 @@ export class Stigmer extends GeneratedClient {
   readonly platform: PlatformClient;
   readonly search: SearchClient;
   readonly github: GitHubClient;
+  readonly manifest: ManifestClient;
 
   private readonly _tokenProvider: TokenProvider;
 
@@ -97,6 +100,7 @@ export class Stigmer extends GeneratedClient {
     this.platform = new PlatformClient(transport);
     this.search = new SearchClient(transport);
     this.github = new GitHubClient(transport);
+    this.manifest = new ManifestClient(transport);
 
     if (this.defaultExecutionTarget != null) {
       this._applyExecutionTargetDefaults();

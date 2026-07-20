@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
+  EditResourceYamlDialog,
   McpServerDetailView,
   useMcpServer,
   useActiveOrgSlug,
@@ -28,11 +29,12 @@ export default function McpServerDetailPage() {
     resourceId,
     resourceName,
   );
-  const { mcpServer } = useMcpServer(org ?? "", slug ?? "");
+  const { mcpServer, refetch: refetchMcpServer } = useMcpServer(org ?? "", slug ?? "");
   const { copyYaml, copyJson, downloadYaml } = useExportResource({
     kind: "McpServer",
     resource: mcpServer,
   });
+  const [editYamlOpen, setEditYamlOpen] = useState(false);
 
   useEffect(() => () => setLabel(null), [setLabel]);
 
@@ -79,6 +81,13 @@ export default function McpServerDetailPage() {
         label: "Copy slug",
         group: "clipboard",
         onAction: () => copyQualifiedSlug(org ?? "", slug ?? ""),
+      },
+      {
+        id: "edit-yaml",
+        label: "Edit YAML",
+        group: "export",
+        onAction: () => setEditYamlOpen(true),
+        disabled: !mcpServer,
       },
       {
         id: "export-yaml",
@@ -136,6 +145,12 @@ export default function McpServerDetailPage() {
         activeOrg={activeOrg}
         onResourceLoad={handleResourceLoad}
         actions={actions}
+      />
+      <EditResourceYamlDialog
+        open={editYamlOpen}
+        onOpenChange={setEditYamlOpen}
+        resource={mcpServer}
+        onApplied={refetchMcpServer}
       />
       <ConfirmDialog
         state={confirmState}

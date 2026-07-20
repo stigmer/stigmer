@@ -2,9 +2,8 @@
 
 import { useMemo } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { buildAgentProto, getUserMessage, serializeManifest } from "@stigmer/sdk";
 import type { AgentInput } from "@stigmer/sdk";
-import { serializeAgentInputYaml } from "../../library/serialize-resource-yaml.js";
 import type { AgentWizardData } from "./types.js";
 
 /** Props for {@link ReviewStep}. */
@@ -30,7 +29,7 @@ export function ReviewStep({
 }: ReviewStepProps) {
   const agentInput = useMemo(() => buildAgentInput(org, data), [org, data]);
   const yamlPreview = useMemo(
-    () => serializeAgentInputYaml(agentInput),
+    () => serializeManifest(buildAgentProto(agentInput)),
     [agentInput],
   );
 
