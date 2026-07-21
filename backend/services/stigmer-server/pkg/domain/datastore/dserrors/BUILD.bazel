@@ -1,0 +1,13 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "dserrors",
+    srcs = ["dserrors.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/dserrors",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@org_golang_google_genproto_googleapis_rpc//errdetails",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+    ],
+)

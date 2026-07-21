@@ -1,0 +1,215 @@
+# Cross-edition CEL conformance fixtures for datastore constraints.
+# See README.md for the schema. Both editions must pass every case.
+cases:
+  # --- timeOfDay: canonical HH:MM:SS in the bound zone -----------------
+  - name: time_of_day_ist_morning
+    expression: "timeOfDay(this.slot_start, tz) == '10:00:00'"
+    tz: "Asia/Kolkata"
+    this:
+      slot_start: {type: timestamp, value: "2026-07-21T04:30:00Z"}
+    want: true
+
+  - name: time_of_day_utc_is_zone_sensitive
+    expression: "timeOfDay(this.slot_start, tz) == '04:30:00'"
+    tz: "UTC"
+    this:
+      slot_start: {type: timestamp, value: "2026-07-21T04:30:00Z"}
+    want: true
+
+  - name: time_of_day_compares_against_declared_time_field
+    expression: "timeOfDay(this.slot_start, tz) >= that.session_start && timeOfDay(this.slot_start, tz) < that.session_end"
+    tz: "Asia/Kolkata"
+    this:
+      slot_start: {type: timestamp, value: "2026-07-21T04:30:00Z"}
+    that:
+      session_start: {type: time, value: "10:00:00"}
+      session_end: {type: time, value: "13:00:00"}
+    want: true
+
+  - name: time_of_day_outside_session_window
+    expression: "timeOfDay(this.slot_start, tz) >= that.session_start && timeOfDay(this.slot_start, tz) < that.session_end"
+    tz: "Asia/Kolkata"
+    this:
+      slot_start: {type: timestamp, value: "2026-07-21T09:30:00Z"} # 15:00 IST
+    that:
+      session_start: {type: time, value: "10:00:00"}
+      session_end: {type: time, value: "13:00:00"}
+    want: false
+
+  # --- localDate: canonical YYYY-MM-DD in the bound zone ---------------
+  - name: local_date_crosses_midnight_eastward
+    # 20:00Z on the 21st is 01:30 on the 22nd in Kolkata (UTC+5:30) —
+    # the date must be zone-local, not UTC.
+    expression: "localDate(this.slot_start, tz) == '2026-07-22'"
+    tz: "Asia/Kolkata"
+    this:
+      slot_start: {type: timestamp, value: "2026-07-21T20:00:00Z"}
+    want: true
+
+  - name: local_date_crosses_midnight_westward
+    # 02:00Z on the 21st is still the 20th in Los Angeles (PDT, UTC-7).
+    expression: "localDate(this.slot_start, tz) == '2026-07-20'"
+    tz: "America/Los_Angeles"
+    this:
+      slot_start: {type: timestamp, value: "2026-07-21T02:00:00Z"}
+    want: true
+
+  - name: local_date_compares_against_declared_date_field
+    expression: "that.exception_date == localDate(this.slot_start, tz)"
+    tz: "Asia/Kolkata"
+    this:
+      slot_start: {type: timestamp, value: "2026-07-21T04:30:00Z"}
+    that:
+      exception_date: {type: date, value: "2026-07-21"}
+    want: true
+
+  # --- DST edges: the zone offset must be instant-correct --------------
+  - name: dst_spring_forward_new_york
+    # 2026-03-08 07:30Z is 02:30 EST standard time... but 02:30 does not
+    # exist on spring-forward day; 07:30Z lands at 03:30 EDT.
+    expression: "timeOfDay(this.t, tz) == '03:30:00'"
+    tz: "America/New_York"
+    this:
+      t: {type: timestamp, value: "2026-03-08T07:30:00Z"}
+    want: true
+
+  - name: dst_fall_back_new_york
+    # 2026-11-01 05:30Z is 01:30 EDT (first pass through 01:30).
+    expression: "timeOfDay(this.t, tz) == '01:30:00'"
+    tz: "America/New_York"
+    this:
+      t: {type: timestamp, value: "2026-11-01T05:30:00Z"}
+    want: true
+
+  # --- standard-library timestamp accessors with tz --------------------
+  - name: get_day_of_week_in_zone
+    # 2026-07-21 is a Tuesday; 20:30Z is already Wednesday in Kolkata.
+    expression: "this.slot_start.getDayOfWeek(tz) == 3"
+    tz: "Asia/Kolkata"
+    this:
+      slot_start: {type: timestamp, value: "2026-07-21T20:30:00Z"}
+    want: true
+
+  - name: get_minutes_half_hour_grid
+    expression: "this.slot_start.getMinutes(tz) in [0, 30] && this.slot_start.getSeconds() == 0"
+    tz: "Asia/Kolkata"
+    this:
+      slot_start: {type: timestamp, value: "2026-07-21T04:30:00Z"}
+    want: true
+
+  - name: get_minutes_off_grid
+    expression: "this.slot_start.getMinutes(tz) in [0, 30] && this.slot_start.getSeconds() == 0"
+    tz: "Asia/Kolkata"
+    this:
+      slot_start: {type: timestamp, value: "2026-07-21T04:45:00Z"}
+    want: false
+
+  # --- null semantics: absent and null are the same value --------------
+  - name: null_field_equality
+    expression: "this.closed_start == null"
+    tz: ""
+    this:
+      closed_start: {type: time, value: null}
+    want: true
+
+  - name: null_field_negated
+    expression: "this.closed_start != null"
+    tz: ""
+    this:
+      closed_start: {type: time, value: null}
+    want: false
+
+  - name: null_branch_in_disjunction
+    # The clinic's window_consistent shape: nulls must be testable
+    # without erroring the whole expression.
+    expression: "(this.closed_all_day && this.closed_start == null) || (!this.closed_all_day && this.closed_start != null)"
+    tz: ""
+    this:
+      closed_all_day: {type: bool, value: true}
+      closed_start: {type: time, value: null}
+    want: true
+
+  - name: null_comparison_is_an_evaluation_error
+    # Ordering against null is NOT coerced — it errors, and the engine
+    # surfaces the error (mapped to a constraint failure by the caller).
+    expression: "this.closed_start < '10:00:00'"
+    tz: ""
+    this:
+      closed_start: {type: time, value: null}
+    error: eval
+
+  # --- canonical string encodings order chronologically ----------------
+  - name: time_strings_order_chronologically
+    expression: "this.session_start < this.session_end"
+    tz: ""
+    this:
+      session_start: {type: time, value: "09:00:00"}
+      session_end: {type: time, value: "17:00:00"}
+    want: true
+
+  - name: date_strings_order_chronologically
+    expression: "this.from_date <= this.to_date"
+    tz: ""
+    this:
+      from_date: {type: date, value: "2026-07-21"}
+      to_date: {type: date, value: "2026-08-01"}
+    want: true
+
+  # --- numeric typing ---------------------------------------------------
+  - name: integer_range_check
+    expression: "this.day_of_week >= 0 && this.day_of_week <= 6"
+    tz: ""
+    this:
+      day_of_week: {type: integer, value: 6}
+    want: true
+
+  - name: integer_out_of_range
+    expression: "this.day_of_week >= 0 && this.day_of_week <= 6"
+    tz: ""
+    this:
+      day_of_week: {type: integer, value: 7}
+    want: false
+
+  - name: number_comparison
+    expression: "this.price > 0.0"
+    tz: ""
+    this:
+      price: {type: number, value: 12.5}
+    want: true
+
+  # --- string + enum-shaped values -------------------------------------
+  - name: string_equality
+    expression: "this.status == 'confirmed'"
+    tz: ""
+    this:
+      status: {type: string, value: "confirmed"}
+    want: true
+
+  - name: string_membership
+    expression: "this.status in ['confirmed', 'cancelled']"
+    tz: ""
+    this:
+      status: {type: string, value: "cancelled"}
+    want: true
+
+  # --- scope fence: rejected at compile time ----------------------------
+  - name: that_out_of_scope_in_check_expressions
+    expression: "that.day_of_week == 1"
+    tz: ""
+    this:
+      day_of_week: {type: integer, value: 1}
+    error: compile
+
+  - name: undeclared_identifier_rejected
+    expression: "request.time < now"
+    tz: ""
+    this:
+      day_of_week: {type: integer, value: 1}
+    error: compile
+
+  - name: non_boolean_output_rejected
+    expression: "this.day_of_week + 1"
+    tz: ""
+    this:
+      day_of_week: {type: integer, value: 1}
+    error: compile

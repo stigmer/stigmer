@@ -179,6 +179,7 @@ func TestSearchableResourceRegistry_ValidateExpectedKinds_AllPresent(t *testing.
 		apiresourcekind.ApiResourceKind_environment,
 		apiresourcekind.ApiResourceKind_execution_context,
 		apiresourcekind.ApiResourceKind_project,
+		apiresourcekind.ApiResourceKind_datastore,
 	} {
 		registry.extractors[kind] = &mockExtractor{kind: kind}
 	}

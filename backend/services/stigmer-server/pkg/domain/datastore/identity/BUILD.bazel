@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "identity",
+    srcs = ["identity.go"],
+    importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/identity",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore",
+        "//apis/stubs/go/ai/stigmer/iam/iampolicy/v1:iampolicy",
+    ],
+)

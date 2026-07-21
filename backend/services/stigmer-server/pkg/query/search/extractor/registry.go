@@ -163,6 +163,7 @@ func (r *SearchableResourceRegistry) ValidateExpectedKinds() {
 		apiresourcekind.ApiResourceKind_environment,
 		apiresourcekind.ApiResourceKind_execution_context,
 		apiresourcekind.ApiResourceKind_project,
+		apiresourcekind.ApiResourceKind_datastore,
 	}
 
 	var missing []string
