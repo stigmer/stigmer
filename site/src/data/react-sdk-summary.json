@@ -46,8 +46,8 @@
       "slug": "billing",
       "title": "Billing",
       "description": "Hooks and components for subscription plans, payment methods, and invoices.",
-      "hooks": 12,
-      "components": 9
+      "hooks": 13,
+      "components": 10
     },
     {
       "slug": "button",
@@ -235,7 +235,7 @@
       "slug": "settings",
       "title": "Settings",
       "description": "Pre-composed settings sections for organization console embedding.",
-      "hooks": 0,
+      "hooks": 1,
       "components": 10
     },
     {

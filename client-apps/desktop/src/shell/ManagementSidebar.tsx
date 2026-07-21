@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
-import { OrgSwitcher, SETTINGS_NAV_GROUPS } from "@stigmer/react";
+import { OrgSwitcher, useSettingsNavGroups } from "@stigmer/react";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
 
@@ -14,6 +14,7 @@ export function ManagementSidebar({
   const sidebar = useSidebarOpen();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const navGroups = useSettingsNavGroups();
 
   const handleOrgChanged = useCallback(() => {
     navigate("/");
@@ -56,9 +57,9 @@ export function ManagementSidebar({
         <div className="h-px bg-sidebar-border" />
       </div>
 
-      {/* Management nav links — grouped */}
+      {/* Management nav links — grouped, permission-aware */}
       <div className="flex flex-col gap-4 px-3 py-1">
-        {SETTINGS_NAV_GROUPS.map((group) => (
+        {navGroups.map((group) => (
           <div key={group.label} className="flex flex-col gap-0.5">
             <span className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wider text-sidebar-muted-foreground">
               {group.label}

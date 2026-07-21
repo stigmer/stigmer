@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
-import { SETTINGS_NAV_GROUPS } from "@stigmer/react";
+import { useSettingsNavGroups } from "@stigmer/react";
 
 export default function SettingsLanding() {
+  const navGroups = useSettingsNavGroups();
+
   return (
     <div className="flex flex-col gap-6">
-      {SETTINGS_NAV_GROUPS.map((group) => (
+      {navGroups.map((group) => (
         <section
           key={group.label}
           className="rounded-lg border border-border p-5"

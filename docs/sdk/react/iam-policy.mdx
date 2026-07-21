@@ -14,29 +14,32 @@ on a resource.
 
 Wraps `iamPolicy.checkMyPermission()` — the dedicated self-check RPC
 where the server derives the principal from the authenticated token
-(the client never names a principal) — with caching and graceful
-degradation. When the server does not support authorization checks
-(OSS edition where the IAM service is not registered), the hook
-returns `allowed: true` — ensuring all UI is visible in single-user
-local mode.
+(the client never names a principal) — with caching and configurable
+degradation. By default the hook *fails open*: when the server does
+not support authorization checks (OSS edition where the IAM service
+is not registered), it returns `allowed: true` so all UI remains
+visible in single-user local mode. Pass `{ fail: "closed" }` for
+surfaces that must stay hidden until authorization is confirmed
+(see [`CheckPermissionOptions`](#checkpermissionoptions)).
 
-Pass `null` as `resource` to skip the check (returns `allowed: true`
-immediately — the "no resource yet" case is permissive to avoid
-flashing hidden UI).
+Pass `null` as `resource` to skip the check — the result resolves
+through the fail mode (`allowed: true` under the default fail-open).
 
-Results are cached per (kind, id, relation) triple for the lifetime
-of the component mount. Re-mount or change inputs to re-check.
+Only genuine server verdicts are cached (per (kind, id, relation)
+triple, for the lifetime of the component mount). A failed check is
+never cached, so a transient error does not pin a wrong answer.
 
 **Signature**
 
 ```tsx
-function useCheckPermission(resource: PermissionCheckResource | null, relation: string): UseCheckPermissionReturn
+function useCheckPermission(resource: PermissionCheckResource | null, relation: string, options?: CheckPermissionOptions): UseCheckPermissionReturn
 ```
 
 <TypeTable
   type={{
     resource: { type: "PermissionCheckResource | null", description: "The resource to check, or `null` to skip.", required: true },
     relation: { type: "string", description: "The permission to check (e.g. \"can_edit\", \"can_grant_access\").", required: true },
+    options: { type: "CheckPermissionOptions", description: "Fail-mode configuration; see CheckPermissionOptions." },
   }}
 />
 
@@ -697,6 +700,17 @@ All visual properties flow through `--stgm-*` design tokens.
 
 
 ## Types
+
+### CheckPermissionOptions
+
+Options for [`useCheckPermission`](#usecheckpermission).
+
+<TypeTable
+  type={{
+    fail: { type: "\"open\" | \"closed\"", description: "Behavior when authorization cannot be confirmed — the check is in flight, the RPC failed, the resource is `null`, or the server does not implement authorization checks (OSS edition).  - `\"open\"` (default): `allowed` is `true`. Right for gating   *capabilities* (buttons, actions) — the server re-checks every   request anyway, and all UI stays visible in single-user local   mode. - `\"closed\"`: `allowed` is `false` until the server explicitly   authorizes. Right for *discoverability* surfaces (navigation to   operator-only areas) that must not appear on deployments where   the feature does not exist." },
+  }}
+/>
+
 
 ### PermissionCheckResource
 

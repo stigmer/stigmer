@@ -10,12 +10,13 @@ import { OrgSwitcher } from "@stigmer/react";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
-import { SETTINGS_NAV_GROUPS } from "@stigmer/react";
+import { useSettingsNavGroups } from "@stigmer/react";
 
 export function ManagementSidebar() {
   const sidebar = useSidebarOpen();
   const pathname = usePathname();
   const { lastSessionZonePath } = useSessionNavigation();
+  const navGroups = useSettingsNavGroups();
 
   return (
     <nav
@@ -56,9 +57,9 @@ export function ManagementSidebar() {
         <Separator className="bg-sidebar-border" />
       </div>
 
-      {/* Management nav links — grouped */}
+      {/* Management nav links — grouped, permission-aware */}
       <div className="flex flex-col gap-4 px-3 py-1">
-        {SETTINGS_NAV_GROUPS.map((group) => (
+        {navGroups.map((group) => (
           <div key={group.label} className="flex flex-col gap-0.5">
             <span className="text-sidebar-muted-foreground px-2 pb-1 text-[11px] font-medium uppercase tracking-wider">
               {group.label}

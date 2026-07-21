@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import {
   CheckMyPermissionInputSchema,
@@ -16,6 +16,25 @@ export interface PermissionCheckResource {
   readonly kind: string;
   /** Resource ID. */
   readonly id: string;
+}
+
+/** Options for {@link useCheckPermission}. */
+export interface CheckPermissionOptions {
+  /**
+   * Behavior when authorization cannot be confirmed — the check is in
+   * flight, the RPC failed, the resource is `null`, or the server does
+   * not implement authorization checks (OSS edition).
+   *
+   * - `"open"` (default): `allowed` is `true`. Right for gating
+   *   *capabilities* (buttons, actions) — the server re-checks every
+   *   request anyway, and all UI stays visible in single-user local
+   *   mode.
+   * - `"closed"`: `allowed` is `false` until the server explicitly
+   *   authorizes. Right for *discoverability* surfaces (navigation to
+   *   operator-only areas) that must not appear on deployments where
+   *   the feature does not exist.
+   */
+  readonly fail?: "open" | "closed";
 }
 
 /** Return value of {@link useCheckPermission}. */
@@ -34,21 +53,24 @@ export interface UseCheckPermissionReturn {
  *
  * Wraps `iamPolicy.checkMyPermission()` — the dedicated self-check RPC
  * where the server derives the principal from the authenticated token
- * (the client never names a principal) — with caching and graceful
- * degradation. When the server does not support authorization checks
- * (OSS edition where the IAM service is not registered), the hook
- * returns `allowed: true` — ensuring all UI is visible in single-user
- * local mode.
+ * (the client never names a principal) — with caching and configurable
+ * degradation. By default the hook *fails open*: when the server does
+ * not support authorization checks (OSS edition where the IAM service
+ * is not registered), it returns `allowed: true` so all UI remains
+ * visible in single-user local mode. Pass `{ fail: "closed" }` for
+ * surfaces that must stay hidden until authorization is confirmed
+ * (see {@link CheckPermissionOptions}).
  *
- * Pass `null` as `resource` to skip the check (returns `allowed: true`
- * immediately — the "no resource yet" case is permissive to avoid
- * flashing hidden UI).
+ * Pass `null` as `resource` to skip the check — the result resolves
+ * through the fail mode (`allowed: true` under the default fail-open).
  *
- * Results are cached per (kind, id, relation) triple for the lifetime
- * of the component mount. Re-mount or change inputs to re-check.
+ * Only genuine server verdicts are cached (per (kind, id, relation)
+ * triple, for the lifetime of the component mount). A failed check is
+ * never cached, so a transient error does not pin a wrong answer.
  *
  * @param resource  - The resource to check, or `null` to skip.
  * @param relation  - The permission to check (e.g. "can_edit", "can_grant_access").
+ * @param options   - Fail-mode configuration; see {@link CheckPermissionOptions}.
  *
  * @example
  * ```tsx
@@ -63,9 +85,13 @@ export interface UseCheckPermissionReturn {
 export function useCheckPermission(
   resource: PermissionCheckResource | null,
   relation: string,
+  options?: CheckPermissionOptions,
 ): UseCheckPermissionReturn {
   const stigmer = useStigmer();
-  const [allowed, setAllowed] = useState(true);
+  const failMode = options?.fail ?? "open";
+  const failValue = failMode === "open";
+
+  const [allowed, setAllowed] = useState(failValue);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -74,7 +100,7 @@ export function useCheckPermission(
 
   useEffect(() => {
     if (!resource || !cacheKey) {
-      setAllowed(true);
+      setAllowed(failValue);
       setIsLoading(false);
       return;
     }
@@ -87,6 +113,7 @@ export function useCheckPermission(
     }
 
     let cancelled = false;
+    setAllowed(failValue);
     setIsLoading(true);
 
     const input = create(CheckMyPermissionInputSchema, {
@@ -108,11 +135,10 @@ export function useCheckPermission(
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        // Graceful degradation: if the IAM service is unavailable
-        // (OSS edition), default to permissive. This ensures all
-        // UI remains visible in single-user local mode.
-        cacheRef.current.set(cacheKey, true);
-        setAllowed(true);
+        // Degradation is fail-mode-resolved and deliberately NOT cached:
+        // an error is not an authorization verdict, and caching it would
+        // pin a possibly-wrong answer for the mount's lifetime.
+        setAllowed(failValue);
         setError(err instanceof Error ? err : new Error(String(err)));
       })
       .finally(() => {
@@ -122,7 +148,7 @@ export function useCheckPermission(
     return () => {
       cancelled = true;
     };
-  }, [cacheKey, resource?.kind, resource?.id, relation, stigmer]);
+  }, [cacheKey, resource?.kind, resource?.id, relation, failValue, stigmer]);
 
   return { allowed, isLoading, error };
 }

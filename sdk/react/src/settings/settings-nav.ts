@@ -9,6 +9,7 @@ import {
   Link,
   MessageSquare,
   Plug,
+  Scale,
   ShieldCheck,
   Users,
 } from "lucide-react";
@@ -82,3 +83,25 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
     ],
   },
 ];
+
+/**
+ * Stigmer-internal platform-operator navigation group.
+ *
+ * Deliberately NOT part of {@link SETTINGS_NAV_GROUPS}: that constant
+ * means "groups every signed-in user sees", and its members must never
+ * change based on who is looking. This group is appended for platform
+ * operators only — use {@link useSettingsNavGroups} to get the
+ * permission-aware list instead of composing the two by hand.
+ */
+export const PLATFORM_SETTINGS_NAV_GROUP: SettingsNavGroup = {
+  label: "Platform",
+  description:
+    "Stigmer-internal operations. Visible to platform operators only.",
+  items: [
+    {
+      href: "/settings/pricing-governance",
+      label: "Pricing Governance",
+      icon: Scale,
+    },
+  ],
+};

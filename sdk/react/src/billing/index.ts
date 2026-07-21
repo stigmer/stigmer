@@ -14,6 +14,12 @@ export type {
   UseModelPricingBaselinesOptions,
   UseModelPricingBaselinesReturn,
 } from "./useModelPricingBaselines.js";
+export { useModelGovernanceView } from "./useModelGovernanceView.js";
+export type {
+  GovernanceFlow,
+  ModelGovernanceRow,
+  UseModelGovernanceViewReturn,
+} from "./useModelGovernanceView.js";
 
 // Behavior hooks
 export { useCreateCheckoutSession } from "./useCreateCheckoutSession.js";
@@ -63,6 +69,8 @@ export { PricingGovernancePanel } from "./PricingGovernancePanel.js";
 export type { PricingGovernancePanelProps } from "./PricingGovernancePanel.js";
 export { ModelCatalogPanel } from "./ModelCatalogPanel.js";
 export type { ModelCatalogPanelProps } from "./ModelCatalogPanel.js";
+export { PricingGovernanceConsole } from "./PricingGovernanceConsole.js";
+export type { PricingGovernanceConsoleProps } from "./PricingGovernanceConsole.js";
 
 // Credit pack catalog and formatting utilities
 export { CREDIT_PACKS, formatPackPrice, formatCreditCount } from "./credit-packs.js";

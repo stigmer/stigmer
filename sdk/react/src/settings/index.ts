@@ -1,5 +1,9 @@
-export { SETTINGS_NAV_GROUPS } from "./settings-nav.js";
+export {
+  SETTINGS_NAV_GROUPS,
+  PLATFORM_SETTINGS_NAV_GROUP,
+} from "./settings-nav.js";
 export type { SettingsNavItem, SettingsNavGroup } from "./settings-nav.js";
+export { useSettingsNavGroups } from "./useSettingsNavGroups.js";
 
 export { ApiKeysSection } from "./ApiKeysSection.js";
 export { BillingSection } from "./BillingSection.js";

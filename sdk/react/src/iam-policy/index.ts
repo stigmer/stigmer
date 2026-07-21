@@ -75,6 +75,7 @@ export {
 
 export {
   useCheckPermission,
+  type CheckPermissionOptions,
   type PermissionCheckResource,
   type UseCheckPermissionReturn,
 } from "./useCheckPermission.js";

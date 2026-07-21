@@ -5,12 +5,8 @@ import { getUserMessage, isPermissionDenied } from "@stigmer/sdk";
 import type {
   ModelPricingGovernanceEntry,
 } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
-import {
-  PricingRateField,
-  type ModelPricingOverride,
-} from "@stigmer/protos/ai/stigmer/billing/v1/pricing_override_pb";
-import { Button } from "../button/index.js";
 import { OperatorAccessNotice } from "./OperatorAccessNotice.js";
+import { GovernanceBadge, PendingOverrideCard, RateCell } from "./governance-primitives.js";
 import { usePricingGovernance } from "./usePricingGovernance.js";
 import { useDecidePricingOverride } from "./useDecidePricingOverride.js";
 
@@ -20,29 +16,15 @@ export interface PricingGovernancePanelProps {
   readonly className?: string;
 }
 
-const RATE_FIELD_LABELS: Record<number, string> = {
-  [PricingRateField.input]: "Input",
-  [PricingRateField.output]: "Output",
-  [PricingRateField.cache_write]: "Cache write",
-  [PricingRateField.cache_read]: "Cache read",
-  [PricingRateField.cursor_token_rate]: "Cursor token rate",
-};
-
-/** Micro-USD per million tokens → "$X.XX/M" (raw provider rate). */
-function formatRate(microsPerMillion: bigint): string {
-  const dollars = Number(microsPerMillion) / 1_000_000;
-  return `$${dollars.toFixed(dollars < 1 ? 4 : 2)}/M`;
-}
-
-function formatDeltaBp(deltaBp: bigint): string {
-  const pct = Number(deltaBp) / 100;
-  return `${pct > 0 ? "+" : ""}${pct.toFixed(2)}%`;
-}
-
 /**
  * Platform-operator panel for the pricing feedback loop: pending
  * override sign-offs (approve/reject) and the effective-vs-baseline
  * pricing state of every model.
+ *
+ * Prefer {@link PricingGovernanceConsole} for new surfaces — it
+ * composes this panel's content with the model catalog into one tabbed
+ * console. This standalone panel remains for consumers embedding just
+ * the governance view.
  *
  * Requires `can_manage_model_pricing` on `platform:stigmer` — render it
  * only in operator-scoped surfaces. Rates shown are raw provider prices
@@ -150,65 +132,6 @@ export function PricingGovernancePanel({ className }: PricingGovernancePanelProp
 }
 
 // ---------------------------------------------------------------------------
-// PendingOverrideCard (internal)
-// ---------------------------------------------------------------------------
-
-function PendingOverrideCard({
-  override,
-  isSubmitting,
-  onDecide,
-}: {
-  readonly override: ModelPricingOverride;
-  readonly isSubmitting: boolean;
-  readonly onDecide: (overrideId: string, approve: boolean) => void;
-}) {
-  const provenance = override.provenance;
-  return (
-    <div className="rounded-lg border border-border bg-card px-3 py-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate text-xs font-medium text-foreground">
-            {override.modelId}
-            {override.variant ? ` (${override.variant})` : ""}
-            {" · "}
-            {RATE_FIELD_LABELS[override.rateField] ?? "Rate"}
-          </p>
-          <p className="text-[11px] text-muted-foreground">
-            {provenance ? (
-              <>
-                Ledger observed {formatRate(provenance.observedRateMicrosPerMillion)} vs
-                effective {formatRate(provenance.effectiveRateAtDerivationMicrosPerMillion)}
-                {" "}({formatDeltaBp(provenance.deltaBasisPoints)}) over{" "}
-                {provenance.windowFrom}..{provenance.windowTo}
-              </>
-            ) : (
-              <>Proposed rate {formatRate(override.rateMicrosPerMillion)}</>
-            )}
-          </p>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <Button
-            size="sm"
-            disabled={isSubmitting}
-            onClick={() => onDecide(override.overrideId, true)}
-          >
-            Approve
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={isSubmitting}
-            onClick={() => onDecide(override.overrideId, false)}
-          >
-            Reject
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // GovernanceRow (internal)
 // ---------------------------------------------------------------------------
 
@@ -223,50 +146,21 @@ function GovernanceRow({ entry }: { readonly entry: ModelPricingGovernanceEntry 
       </span>
       <span role="cell" className="text-muted-foreground">{entry.harness}</span>
       <RateCell
+        role="cell"
         baseline={entry.baselineInputMicrosPerMillion}
         effective={entry.effectiveInputMicrosPerMillion}
       />
       <RateCell
+        role="cell"
         baseline={entry.baselineOutputMicrosPerMillion}
         effective={entry.effectiveOutputMicrosPerMillion}
       />
       <span role="cell" className="text-right">
-        {entry.ledgerReconcilable ? (
-          <span className={cn(
-            "rounded px-1.5 py-0.5 text-[10px] font-medium",
-            hasOverrides
-              ? "bg-accent text-primary"
-              : "bg-muted-subtle text-muted-foreground",
-          )}>
-            {hasOverrides ? "Ledger-corrected" : "Ledger-verified"}
-          </span>
-        ) : (
-          <span className="rounded bg-muted-subtle px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-            Manually governed
-          </span>
-        )}
+        <GovernanceBadge
+          ledgerReconcilable={entry.ledgerReconcilable}
+          hasOverrides={hasOverrides}
+        />
       </span>
     </div>
-  );
-}
-
-/** Effective rate; when an override moved it, the baseline shows struck-through. */
-function RateCell({
-  baseline,
-  effective,
-}: {
-  readonly baseline: bigint;
-  readonly effective: bigint;
-}) {
-  const overridden = baseline !== effective;
-  return (
-    <span role="cell" className="text-right text-foreground">
-      {overridden && (
-        <span className="mr-1 text-[10px] text-muted-foreground line-through">
-          {formatRate(baseline)}
-        </span>
-      )}
-      {formatRate(effective)}
-    </span>
   );
 }

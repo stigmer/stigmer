@@ -770,6 +770,7 @@ export type {
   UseShareFlowReturn,
   ShareFlowResource,
   UseCheckPermissionReturn,
+  CheckPermissionOptions,
   PermissionCheckResource,
   RoleSelectorProps,
   PrincipalPickerProps,
@@ -834,6 +835,7 @@ export {
   useCustomerModelPricing,
   usePricingGovernance,
   useModelPricingBaselines,
+  useModelGovernanceView,
   useCreateCheckoutSession,
   useCreateBillingPortalSession,
   useSetAutoRechargeConfig,
@@ -849,6 +851,7 @@ export {
   LowBalanceBanner,
   PricingGovernancePanel,
   ModelCatalogPanel,
+  PricingGovernanceConsole,
   CREDIT_PACKS,
   formatPackPrice,
   formatCreditCount,
@@ -868,6 +871,9 @@ export type {
   UsePricingGovernanceReturn,
   UseModelPricingBaselinesOptions,
   UseModelPricingBaselinesReturn,
+  GovernanceFlow,
+  ModelGovernanceRow,
+  UseModelGovernanceViewReturn,
   CreateCheckoutSessionInput,
   UseCreateCheckoutSessionReturn,
   UseCreateBillingPortalSessionReturn,
@@ -888,11 +894,16 @@ export type {
   LowBalanceBannerProps,
   PricingGovernancePanelProps,
   ModelCatalogPanelProps,
+  PricingGovernanceConsoleProps,
   CreditPackInfo,
 } from "./billing/index.js";
 
 // Settings — navigation structure + section components shared across app shells
-export { SETTINGS_NAV_GROUPS } from "./settings/index.js";
+export {
+  SETTINGS_NAV_GROUPS,
+  PLATFORM_SETTINGS_NAV_GROUP,
+  useSettingsNavGroups,
+} from "./settings/index.js";
 export type { SettingsNavItem, SettingsNavGroup } from "./settings/index.js";
 export { ApiKeysSection } from "./settings/index.js";
 export { MembersSection } from "./settings/index.js";

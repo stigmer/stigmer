@@ -1,20 +1,16 @@
-import { ModelCatalogPanel, PricingGovernancePanel } from "@stigmer/react";
+import { PricingGovernanceConsole } from "@stigmer/react";
 
 /**
- * Platform-operator page for the pricing feedback loop: pending pricing
- * override sign-offs, per-model baseline-vs-effective rates, and the
- * baseline catalog editor (add/edit/retire models — DD-004).
+ * Platform-operator console for model pricing: the unified Models view
+ * (catalog + governance state, with search and per-model detail records)
+ * and the pending sign-off queue, as tabs.
  *
- * Deliberately absent from the shared settings navigation — it is gated by
- * `can_manage_model_pricing` on `platform:stigmer`, which customers never
- * hold; non-operators who navigate here see the authorization error the
- * panels render.
+ * Reached via the operator-gated "Platform" nav group (see
+ * `useSettingsNavGroups` — fail-closed on `can_manage_model_pricing` on
+ * `platform:stigmer`). The nav gate is discoverability only; the server
+ * permission is the real boundary, and non-operators who navigate here
+ * by URL see the authorization notice the console renders.
  */
 export default function PricingGovernancePage() {
-  return (
-    <div className="space-y-8">
-      <PricingGovernancePanel />
-      <ModelCatalogPanel />
-    </div>
-  );
+  return <PricingGovernanceConsole />;
 }

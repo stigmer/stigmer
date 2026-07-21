@@ -1,10 +1,14 @@
+"use client";
+
 import Link from "next/link";
-import { SETTINGS_NAV_GROUPS } from "@stigmer/react";
+import { useSettingsNavGroups } from "@stigmer/react";
 
 export default function SettingsPage() {
+  const navGroups = useSettingsNavGroups();
+
   return (
     <div className="flex flex-col gap-6">
-      {SETTINGS_NAV_GROUPS.map((group) => (
+      {navGroups.map((group) => (
         <section
           key={group.label}
           className="border-border rounded-lg border p-5"
