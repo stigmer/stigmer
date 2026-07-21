@@ -17,9 +17,9 @@ Bridges the detection layer ([`detectStigmerResource`](#detectstigmerresource),
 
 Handles two parallel apply paths:
 
-1. **YAML resources** (Agent, McpServer): `applyYamlResource(content, org)`
-   parses the YAML, converts snake_case fields to SDK input types, and
-   calls the appropriate `apply()` method.
+1. **YAML resources**: `applyYamlResource(content, org)` parses the YAML
+   against the generated proto schema (SDK manifest engine) and applies
+   it through the kind's `apply` RPC.
 
 2. **Skill packages** (directory artifacts): `pushSkillPackage(params)`
    delegates to the server-side `pushFromExecutionArtifact` RPC.
@@ -39,7 +39,7 @@ function useApplyResource(): UseApplyResourceReturn
 
 <TypeTable
   type={{
-    applyYamlResource: { type: "(content: string, org: string) => Promise<ApplyResourceResult>", description: "Apply a Stigmer resource YAML (Agent or McpServer) to an organization.  Parses the YAML content, converts it to the appropriate SDK input type, and calls `stigmer.agent.apply()` or `stigmer.mcpServer.apply()` based on the detected `kind`.  The `org` parameter overrides `metadata.org` in the YAML — matching the \"Apply to [my-org]\" UX intent." },
+    applyYamlResource: { type: "(content: string, org: string) => Promise<ApplyResourceResult>", description: "Apply a Stigmer resource YAML to an organization.  Parses the YAML against the kind's generated proto schema via the SDK manifest engine and applies it through `stigmer.manifest.apply()` — any registry-supported kind, full fidelity.  The `org` parameter fills in `metadata.org` when the YAML omits it — matching the \"Apply to [my-org]\" UX intent." },
     clearError: { type: "() => void", description: "Clear the error state (e.g., when the user dismisses an error message)." },
     error: { type: "Error | null", description: "Error from the last failed operation, or `null` when healthy." },
     isApplying: { type: "boolean", description: "`true` while an apply or push operation is in-flight." },
@@ -191,16 +191,18 @@ if (detection.detected) {
 
 ### useExportResource
 
-Headless export hook for Stigmer resources (Agent, McpServer).
+Headless export hook for Stigmer resources (Agent, McpServer, Workflow).
 
 Serializes the resource into YAML and JSON formats and provides
 stable callbacks for copying to clipboard or triggering a file
 download. All operations are client-side — no additional API calls.
 
-The serialized output uses the canonical Stigmer resource format
-(`apiVersion`, `kind`, `metadata`, `spec`) with snake_case field
-names, identical to what the CLI produces and what `parseResourceYaml`
-accepts — ensuring full round-trip compatibility.
+Agent and McpServer serialize through the SDK manifest engine
+(`serializeManifest`) — the canonical Stigmer resource format
+(`apiVersion`, `kind`, `metadata`, `spec`, snake_case fields) that
+round-trips through `parseManifest` and `stigmer apply -f`. Workflows
+use their own canonical serializer, shared with the workflow Editor
+tab, so one workflow has exactly one YAML shape across the product.
 
 **Signature**
 
@@ -236,62 +238,6 @@ const { copyYaml, downloadYaml } = useExportResource({
 
 <ActionMenu.Item onSelect={copyYaml}>Export YAML</ActionMenu.Item>
 <ActionMenu.Item onSelect={downloadYaml}>Download YAML</ActionMenu.Item>
-```
-
-
-### useImportResource
-
-Headless import hook for Stigmer resources.
-
-Orchestrates the file import workflow:
-1. User selects a `.yaml`, `.yml`, or `.json` file
-2. `readFile` reads the content, detects the format, and validates
-   the structure via `parseResourceYaml`
-3. On success, `preview` is populated with kind, name, slug, format
-4. On validation error, `error` is populated with a user-facing message
-5. User confirms → `apply(org)` calls the appropriate SDK `apply()` method
-
-Follows the established mutation-hook pattern: `isApplying` + `error` +
-`reset`. The `preview` state enables a confirmation step before committing
-(Nielsen heuristic #3: user control, #5: error prevention).
-
-**Signature**
-
-```tsx
-function useImportResource(): UseImportResourceReturn
-```
-
-**Returns** — `UseImportResourceReturn`
-
-<TypeTable
-  type={{
-    apply: { type: "(org: string) => Promise<ApplyResourceResult>", description: "Apply the previewed resource to the given organization. Only callable when `preview` is non-null." },
-    error: { type: "string | null", description: "Validation or apply error message, or `null` when healthy." },
-    isApplying: { type: "boolean", description: "`true` while the apply RPC is in-flight." },
-    preview: { type: "ImportPreview | null", description: "The validation preview, or `null` when no file has been validated." },
-    readFile: { type: "(file: File) => Promise<void>", description: "Read and validate a file selected by the user. On success, populates `preview`. On failure, populates `error`. In both cases, clears the previous state first." },
-    reset: { type: "() => void", description: "Clear all state (preview, error, internal content)." },
-  }}
-/>
-
-```tsx
-const { readFile, preview, error, reset, apply, isApplying } = useImportResource();
-
-const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (file) readFile(file);
-};
-
-if (preview) {
-  return (
-    <div>
-      <p>Import {preview.kind}: {preview.name}</p>
-      <button onClick={() => apply(org)} disabled={isApplying}>
-        Confirm
-      </button>
-    </div>
-  );
-}
 ```
 
 
@@ -350,47 +296,6 @@ const { updateVisibility, isPending } = useUpdateVisibility("workflow", workflow
 
 
 ## Components
-
-### ImportResourceDialog
-
-Modal dialog for importing a Stigmer resource from a YAML or JSON file.
-
-Workflow:
-1. User selects a `.yaml`, `.yml`, or `.json` file via the file picker
-2. The file is validated and a preview card shows the detected resource
-3. User confirms the import, which calls `apply()` on the target org
-4. On success: toast notification and `onSuccess` callback
-5. On error: inline error message with guidance
-
-Uses the native `<dialog>` element for built-in focus trapping, Escape
-key handling, and backdrop — consistent with [`ConfirmDialog`](/docs/sdk/react/resource-detail#confirmdialog).
-
-Zero Console dependencies — safe for platform builder embedding.
-
-**Props** — `ImportResourceDialogProps`
-
-<TypeTable
-  type={{
-    onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should open or close.", required: true },
-    onSuccess: { type: "(result: ApplyResourceResult) => void", description: "Called after a successful import. Use for navigation or list refresh." },
-    open: { type: "boolean", description: "Whether the dialog is open.", required: true },
-    org: { type: "string", description: "Target organization slug to apply the imported resource to.", required: true },
-  }}
-/>
-
-```tsx
-const [open, setOpen] = useState(false);
-
-<ImportResourceDialog
-  open={open}
-  onOpenChange={setOpen}
-  org={activeOrg}
-  onSuccess={(result) => {
-    router.push(`/library/${result.kind === "Agent" ? "agents" : "mcp-servers"}`);
-  }}
-/>
-```
-
 
 ### LibraryBreadcrumbProvider
 
@@ -586,7 +491,7 @@ link to the resource in the Library (e.g., `/library/agents`).
 
 <TypeTable
   type={{
-    kind: { type: "\"Agent\" | \"McpServer\" | \"Skill\"", description: "The resource kind that was applied.", required: true },
+    kind: { type: "string", description: "The resource kind that was applied (`\"Agent\"`, `\"McpServer\"`, `\"Skill\"`, …).", required: true },
     name: { type: "string", description: "The resource name (from response metadata).", required: true },
     org: { type: "string", description: "The organization the resource was applied to.", required: true },
     slug: { type: "string", description: "The URL-friendly slug (from response metadata).", required: true },
@@ -742,27 +647,6 @@ function findStreamingPlan(execution: AgentExecution | null | undefined): Stream
 ```
 
 
-### ImportFormat
-
-Detected format of the imported file content.
-
-
-### ImportPreview
-
-Validated preview of an imported resource, shown to the user before
-they confirm the apply operation.
-
-<TypeTable
-  type={{
-    format: { type: "ImportFormat", description: "The detected file format.", required: true, typeDescriptionLink: "#importformat" },
-    kind: { type: "\"Agent\" | \"McpServer\"", description: "The detected resource kind.", required: true },
-    name: { type: "string", description: "The resource name from `metadata.name`.", required: true },
-    rawContent: { type: "string", description: "The raw file content (for potential display or debugging).", required: true },
-    slug: { type: "string", description: "The resource slug from `metadata.slug`, if present." },
-  }}
-/>
-
-
 ### INSTANCE_VISIBILITY_LEVELS
 
 The levels an instance (agent_instance, workflow_instance) selector
@@ -825,53 +709,6 @@ if (isSkillPackage(artifact)) {
 ```
 
 
-### ParsedResource
-
-Result of parsing a Stigmer resource YAML into an SDK input type.
-
-Discriminated on `kind` so consumers can narrow to the specific input:
-
-```ts
-const parsed = parseResourceYaml(content, "my-org");
-if (parsed.kind === "Agent") {
-  // parsed.input is AgentInput
-}
-```
-
-
-### parseResourceYaml
-
-Parses a Stigmer resource YAML string into the corresponding SDK input
-type for use with `stigmer.agent.apply()` or `stigmer.mcpServer.apply()`.
-
-Handles the conversion from proto-style snake_case YAML field names to
-the camelCase TypeScript SDK input types, including nested structures
-like `mcp_server_usages`, `sub_agents`, and `env`.
-
-The `org` parameter **always overrides** `metadata.org` in the YAML.
-This matches the UX intent of "Apply to [my-org]" — the user explicitly
-chooses the target organization.
-
-**Throws** with descriptive, user-facing error messages when the YAML
-is malformed or missing required fields. These messages are designed
-for display in error UI components.
-
-```tsx
-function parseResourceYaml(content: string, org: string): ParsedResource
-```
-
-```tsx
-import { parseResourceYaml } from "@stigmer/react";
-
-const parsed = parseResourceYaml(yamlContent, "my-org");
-if (parsed.kind === "Agent") {
-  await stigmer.agent.apply(parsed.input);
-} else {
-  await stigmer.mcpServer.apply(parsed.input);
-}
-```
-
-
 ### PLAN_ARTIFACT_NAME
 
 Legacy plan filename. Detection-only: [`isPlanArtifactName`](#isplanartifactname) still
@@ -906,105 +743,6 @@ and pushes it as a skill — no ZIP download reaches the browser.
     tag: { type: "string", description: "Optional version tag (e.g., `\"stable\"`, `\"v1.0\"`)." },
   }}
 />
-
-
-### serializeAgentInputYaml
-
-Serializes an `AgentInput` (SDK input type) into the canonical
-Stigmer YAML format.
-
-Unlike [`serializeAgentYaml`](#serializeagentyaml) which takes a proto `Agent`, this
-function works from the SDK input type — the same shape used by
-`stigmer.agent.apply()`. This is used by the creation wizard to
-preview the YAML before submission.
-
-The output is round-trip compatible with [`parseResourceYaml`](#parseresourceyaml).
-
-```tsx
-function serializeAgentInputYaml(input: AgentInput): string
-```
-
-```tsx
-import { serializeAgentInputYaml } from "@stigmer/react";
-
-const yaml = serializeAgentInputYaml({
-  name: "my-agent",
-  org: "acme",
-  instructions: "You are a helpful assistant.",
-});
-```
-
-
-### serializeAgentYaml
-
-Serializes a proto `Agent` into the canonical Stigmer YAML format.
-
-This is the inverse of [`parseResourceYaml`](#parseresourceyaml) — the serialized YAML
-is round-trip compatible and can be fed back through `parseResourceYaml`
-to produce a valid `AgentInput`.
-
-Only emits `apiVersion`, `kind`, `metadata`, and `spec`. The `status`
-field is system-managed and never included in the YAML output.
-
-Uses snake_case field names in the YAML to match the proto canonical form,
-which is the format expected by both the backend and `parseResourceYaml`.
-
-```tsx
-function serializeAgentYaml(agent: Agent): string
-```
-
-```tsx
-import { serializeAgentYaml } from "@stigmer/react";
-
-const yaml = serializeAgentYaml(agent);
-const file = new File([yaml], "my-agent.yaml", { type: "text/yaml" });
-```
-
-
-### serializeMcpServerInputYaml
-
-Serializes a `McpServerInput` (SDK input type) into the canonical
-Stigmer YAML format.
-
-Unlike [`serializeMcpServerYaml`](#serializemcpserveryaml) which takes a proto `McpServer`,
-this function works from the SDK input type — the same shape used by
-`stigmer.mcpServer.apply()`. This is used by the creation wizard to
-preview the YAML before submission.
-
-The output is round-trip compatible with [`parseResourceYaml`](#parseresourceyaml).
-
-```tsx
-function serializeMcpServerInputYaml(input: McpServerInput): string
-```
-
-```tsx
-import { serializeMcpServerInputYaml } from "@stigmer/react";
-
-const yaml = serializeMcpServerInputYaml({
-  name: "github",
-  org: "acme",
-  http: { url: "https://mcp.github.com/sse" },
-});
-```
-
-
-### serializeMcpServerYaml
-
-Serializes a proto `McpServer` into the canonical Stigmer YAML format.
-
-This is the inverse of [`parseResourceYaml`](#parseresourceyaml) for McpServer resources.
-Same round-trip guarantee and snake_case convention as [`serializeAgentYaml`](#serializeagentyaml).
-
-```tsx
-function serializeMcpServerYaml(mcpServer: McpServer): string
-```
-
-```tsx
-import { serializeMcpServerYaml } from "@stigmer/react";
-
-const yaml = serializeMcpServerYaml(mcpServer);
-const file = new File([yaml], "my-server.yaml", { type: "text/yaml" });
-```
 
 
 ### SessionPlan

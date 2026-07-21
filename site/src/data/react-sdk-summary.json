@@ -46,8 +46,8 @@
       "slug": "billing",
       "title": "Billing",
       "description": "Hooks and components for subscription plans, payment methods, and invoices.",
-      "hooks": 7,
-      "components": 7
+      "hooks": 12,
+      "components": 9
     },
     {
       "slug": "button",
@@ -158,8 +158,15 @@
       "slug": "library",
       "title": "Library",
       "description": "Hooks and components for resource browsing, YAML detection, apply flow, and visibility.",
-      "hooks": 8,
-      "components": 6
+      "hooks": 7,
+      "components": 5
+    },
+    {
+      "slug": "manifest",
+      "title": "manifest",
+      "description": "",
+      "hooks": 2,
+      "components": 3
     },
     {
       "slug": "mcp-server",

@@ -4607,45 +4607,6 @@ One per-task usage row rendered by the Usage facet's breakdown list.
 />
 
 
-### WorkflowYamlEditor
-
-Schema-aware YAML editor built on CodeMirror 6.
-
-Provides syntax highlighting, line numbers, bracket matching,
-code folding, undo/redo, and inline diagnostic markers driven by
-external validation (via the `diagnostics` prop).
-
-Themed via `--stgm-*` CSS custom properties to respect the host
-application's design tokens.
-
-This is an optional SDK component — it requires CodeMirror peer
-dependencies which are tree-shaken when not imported (DD-013).
-
-```tsx
-<WorkflowYamlEditor
-  value={yaml}
-  onChange={setYaml}
-  diagnostics={diagnostics}
-/>
-```
-
-
-### WorkflowYamlEditorProps
-
-Props for [`WorkflowYamlEditor`](#workflowyamleditor).
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names for the root container." },
-    diagnostics: { type: "readonly Diagnostic[]", description: "Validation diagnostics to display as inline markers." },
-    onChange: { type: "(value: string) => void", description: "Called when the editor content changes." },
-    readOnly: { type: "boolean", description: "Whether the editor is read-only." },
-    style: { type: "CSSProperties", description: "Additional inline styles for the root container." },
-    value: { type: "string", description: "Current YAML content.", required: true },
-  }}
-/>
-
-
 ### yamlToGraph
 
 Parses a Stigmer Workflow YAML string into an editable graph model.

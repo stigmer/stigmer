@@ -41,6 +41,7 @@
     "channel",
     "channel-app",
     "file-reference",
+    "manifest",
     "sharing",
     "switch"
   ]
