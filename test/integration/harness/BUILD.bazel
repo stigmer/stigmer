@@ -11,6 +11,7 @@ go_library(
         "auth_helpers.go",
         "benchmark_helpers.go",
         "benchmark_report.go",
+        "benchmark_stats.go",
         "billing_helpers.go",
         "clients.go",
         "context.go",
@@ -127,6 +128,7 @@ go_test(
     name = "harness_test",
     srcs = [
         "benchmark_helpers_test.go",
+        "benchmark_stats_test.go",
         "ipc_fixtures_test.go",
     ],
     embed = [":harness"],
