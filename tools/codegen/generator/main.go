@@ -1532,6 +1532,9 @@ func (c *genContext) genFromProtoField(w *bytes.Buffer, field *FieldSchema) {
 	case "struct":
 		fmt.Fprintf(w, "\t\tc.%s = val.GetStructValue().AsMap()\n", field.Name)
 
+	case "value":
+		fmt.Fprintf(w, "\t\tc.%s = val.AsInterface()\n", field.Name)
+
 	case "message":
 		// Handle well-known proto types specially
 		if c.isWellKnownProtoType(field.Type.MessageType) {
@@ -1789,6 +1792,10 @@ func (c *genContext) goType(typeSpec TypeSpec) string {
 	case "struct":
 		// google.protobuf.Struct → map[string]interface{}
 		return "map[string]interface{}"
+
+	case "value":
+		// google.protobuf.Value → any JSON-representable scalar or composite
+		return "interface{}"
 
 	case "timestamp":
 		c.addImportWithAlias("google.golang.org/protobuf/types/known/timestamppb", "timestamppb")

@@ -233,6 +233,34 @@ public enum IamPermission
    * <code>can_manage_model_pricing = 32;</code>
    */
   can_manage_model_pricing(32),
+  /**
+   * <pre>
+   * Resource-level permission to reach a datastore's record RPCs.
+   *
+   * &#64;internal
+   * Layer 1 of the datastore's two-layer authorization model: gates
+   * "may this principal touch this datastore's records at all" for
+   * direct platform principals (console, CLI, SDK, workflow executions).
+   * Checked in-handler via RequestAuthorizationService — the record RPCs
+   * are slug-addressed and carry is_skip_authorization, so the
+   * declarative interceptor never runs for them. Session-bound runner
+   * credentials do NOT pass through this permission — they take the
+   * usage-edge reach chain (agent's datastore_usages + org match) in
+   * domain logic. Layer 2 (role/verb/scope grants) always runs in
+   * datastore domain logic in both editions.
+   * </pre>
+   *
+   * <code>can_use_records = 33;</code>
+   */
+  can_use_records(33),
+  /**
+   * <pre>
+   * Organization-level permission to create datastores.
+   * </pre>
+   *
+   * <code>can_create_datastore = 34;</code>
+   */
+  can_create_datastore(34),
   UNRECOGNIZED(-1),
   ;
 
@@ -453,6 +481,34 @@ public enum IamPermission
    * <code>can_manage_model_pricing = 32;</code>
    */
   public static final int can_manage_model_pricing_VALUE = 32;
+  /**
+   * <pre>
+   * Resource-level permission to reach a datastore's record RPCs.
+   *
+   * &#64;internal
+   * Layer 1 of the datastore's two-layer authorization model: gates
+   * "may this principal touch this datastore's records at all" for
+   * direct platform principals (console, CLI, SDK, workflow executions).
+   * Checked in-handler via RequestAuthorizationService — the record RPCs
+   * are slug-addressed and carry is_skip_authorization, so the
+   * declarative interceptor never runs for them. Session-bound runner
+   * credentials do NOT pass through this permission — they take the
+   * usage-edge reach chain (agent's datastore_usages + org match) in
+   * domain logic. Layer 2 (role/verb/scope grants) always runs in
+   * datastore domain logic in both editions.
+   * </pre>
+   *
+   * <code>can_use_records = 33;</code>
+   */
+  public static final int can_use_records_VALUE = 33;
+  /**
+   * <pre>
+   * Organization-level permission to create datastores.
+   * </pre>
+   *
+   * <code>can_create_datastore = 34;</code>
+   */
+  public static final int can_create_datastore_VALUE = 34;
 
 
   public final int getNumber() {
@@ -511,6 +567,8 @@ public enum IamPermission
       case 30: return can_create_agent_share;
       case 31: return can_create_channel_app;
       case 32: return can_manage_model_pricing;
+      case 33: return can_use_records;
+      case 34: return can_create_datastore;
       default: return null;
     }
   }

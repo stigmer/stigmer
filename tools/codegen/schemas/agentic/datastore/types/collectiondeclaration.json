@@ -1,0 +1,152 @@
+{
+  "name": "CollectionDeclaration",
+  "description": "CollectionDeclaration is a named collection of records with typed\n fields, constraints, access grants, and optional seed data.",
+  "protoType": "ai.stigmer.agentic.datastore.v1.CollectionDeclaration",
+  "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Collection name, unique within the datastore.\n\n Format: lowercase snake_case (e.g. \"bookings\", \"schedule_exceptions\").",
+      "required": true,
+      "validation": {
+        "required": true,
+        "maxLength": 63,
+        "pattern": "^[a-z][a-z0-9_]*$"
+      }
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description of what records in this collection represent.",
+      "required": false
+    },
+    {
+      "name": "Fields",
+      "jsonName": "fields",
+      "protoField": "fields",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "FieldDeclaration"
+        }
+      },
+      "description": "Typed field declarations for records in this collection.",
+      "required": false,
+      "validation": {
+        "minItems": 1,
+        "maxItems": 100
+      }
+    },
+    {
+      "name": "Uniques",
+      "jsonName": "uniques",
+      "protoField": "uniques",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "UniqueConstraint"
+        }
+      },
+      "description": "Uniqueness constraints, enforced by substrate indexes.",
+      "required": false,
+      "validation": {
+        "maxItems": 20
+      }
+    },
+    {
+      "name": "Checks",
+      "jsonName": "checks",
+      "protoField": "checks",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "CheckConstraint"
+        }
+      },
+      "description": "Single-record check constraints, evaluated on every insert and update.",
+      "required": false,
+      "validation": {
+        "maxItems": 20
+      }
+    },
+    {
+      "name": "Exists",
+      "jsonName": "exists",
+      "protoField": "exists",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ExistsConstraint"
+        }
+      },
+      "description": "Cross-collection constraints requiring a matching record to exist.",
+      "required": false,
+      "validation": {
+        "maxItems": 20
+      }
+    },
+    {
+      "name": "NotExists",
+      "jsonName": "notExists",
+      "protoField": "not_exists",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ExistsConstraint"
+        }
+      },
+      "description": "Cross-collection constraints requiring no matching record to exist.",
+      "required": false,
+      "validation": {
+        "maxItems": 20
+      }
+    },
+    {
+      "name": "Grants",
+      "jsonName": "grants",
+      "protoField": "grants",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "DatastoreGrant"
+        }
+      },
+      "description": "Per-role access grants for records in this collection.\n\n Deny by default: a role with no grant on a collection has no access\n to it.",
+      "required": false,
+      "validation": {
+        "maxItems": 20
+      }
+    },
+    {
+      "name": "SeedRecords",
+      "jsonName": "seedRecords",
+      "protoField": "seed_records",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "struct"
+        }
+      },
+      "description": "Records inserted once when the collection is first materialized.\n\n Seeds pass through the full constraint pipeline. They are ignored\n on every later apply — the manifest never overwrites living data.\n Ignored seeds are noted in the status sync report.",
+      "required": false,
+      "validation": {
+        "maxItems": 1000
+      }
+    }
+  ]
+}

@@ -14,6 +14,7 @@ from ai.stigmer.iam.iampolicy.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 
 from ._errors import wrap_error
+from ._datastore import ApiResourceRefInput
 
 
 class IamPolicyClient:
@@ -139,21 +140,4 @@ class IamPolicyInput:
             metadata=metadata,
             spec=spec,
         )
-
-
-@dataclass
-class ApiResourceRefInput:
-    """SDK input type for ApiResourceRef."""
-
-    kind: str
-    id: str
-    relation: str = ""
-
-    def _to_proto(self) -> spec_pb2.ApiResourceRef:
-        msg = spec_pb2.ApiResourceRef(
-            kind=self.kind,
-            id=self.id,
-            relation=self.relation,
-        )
-        return msg
 

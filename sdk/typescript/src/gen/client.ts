@@ -9,6 +9,7 @@ import { AgentShareClient } from "./agentshare.js";
 import { ApiKeyClient } from "./apikey.js";
 import { ArtifactClient } from "./artifact.js";
 import { ChannelAppClient } from "./channelapp.js";
+import { DatastoreClient } from "./datastore.js";
 import { EnvironmentClient } from "./environment.js";
 import { ExecutionContextClient } from "./executioncontext.js";
 import { IamPolicyClient } from "./iampolicy.js";
@@ -36,6 +37,7 @@ export class GeneratedClient {
   readonly apiKey: ApiKeyClient;
   readonly artifact: ArtifactClient;
   readonly channelapp: ChannelAppClient;
+  readonly datastore: DatastoreClient;
   readonly environment: EnvironmentClient;
   readonly executionContext: ExecutionContextClient;
   readonly iamPolicy: IamPolicyClient;
@@ -62,6 +64,7 @@ export class GeneratedClient {
     this.apiKey = new ApiKeyClient(transport);
     this.artifact = new ArtifactClient(transport);
     this.channelapp = new ChannelAppClient(transport);
+    this.datastore = new DatastoreClient(transport);
     this.environment = new EnvironmentClient(transport);
     this.executionContext = new ExecutionContextClient(transport);
     this.iamPolicy = new IamPolicyClient(transport);
@@ -83,7 +86,7 @@ export class GeneratedClient {
 
 // Re-export all resource client types and input types.
 export { AgentClient } from "./agent.js";
-export { type AgentInput, type McpServerUsageInput, type ToolApprovalOverrideInput, type SubAgentInput, type McpAccessInput, type EnvVarDeclarationInput } from "./agent.js";
+export { type AgentInput, type McpServerUsageInput, type ToolApprovalOverrideInput, type SubAgentInput, type McpAccessInput, type EnvVarDeclarationInput, type DatastoreUsageInput } from "./agent.js";
 export { AgentChannelClient } from "./agentchannel.js";
 export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput } from "./agentchannel.js";
 export { AgentExecutionClient } from "./agentexecution.js";
@@ -98,12 +101,14 @@ export { ArtifactClient } from "./artifact.js";
 export { type ArtifactInput, type ArtifactSourceInput, type RetentionPolicyInput } from "./artifact.js";
 export { ChannelAppClient } from "./channelapp.js";
 export { type ChannelAppInput, type SlackChannelAppConfigInput, type WhatsAppChannelAppConfigInput } from "./channelapp.js";
+export { DatastoreClient } from "./datastore.js";
+export { type DatastoreInput, type DatastoreAuthorizationInput, type DatastoreRoleInput, type DatastoreRoleBindingInput, type DatastoreSubjectInput, type ChannelSenderSubjectInput, type ApiResourceRefInput, type CollectionDeclarationInput, type FieldDeclarationInput, type UniqueConstraintInput, type UniqueWhereInput, type CheckConstraintInput, type ExistsConstraintInput, type DatastoreGrantInput } from "./datastore.js";
 export { EnvironmentClient } from "./environment.js";
 export { type EnvironmentInput } from "./environment.js";
 export { ExecutionContextClient } from "./executioncontext.js";
 export { type ExecutionContextInput } from "./executioncontext.js";
 export { IamPolicyClient } from "./iampolicy.js";
-export { type IamPolicyInput, type ApiResourceRefInput } from "./iampolicy.js";
+export { type IamPolicyInput } from "./iampolicy.js";
 export { IdentityAccountClient } from "./identityaccount.js";
 export { type IdentityAccountInput } from "./identityaccount.js";
 export { IdentityProviderClient } from "./identityprovider.js";

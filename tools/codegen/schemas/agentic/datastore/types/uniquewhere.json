@@ -1,0 +1,34 @@
+{
+  "name": "UniqueWhere",
+  "description": "UniqueWhere is the condition limiting a partial unique constraint.",
+  "protoType": "ai.stigmer.agentic.datastore.v1.UniqueWhere",
+  "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Field",
+      "jsonName": "field",
+      "protoField": "field",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Declared field the condition tests.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Equals",
+      "jsonName": "equals",
+      "protoField": "equals",
+      "type": {
+        "kind": "value"
+      },
+      "description": "Value the field must equal for the constraint to apply.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    }
+  ]
+}

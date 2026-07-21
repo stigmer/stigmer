@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.datastore.v1;
+
+import "ai/stigmer/agentic/datastore/v1/spec.proto";
+import "ai/stigmer/agentic/datastore/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// Datastore declares collections of typed business records that agents
+// read and write through built-in, permission-checked tools.
+//
+// @internal
+// Org-scoped. Deleting a datastore destroys business records, so delete
+// is guarded: non-empty datastores require the force acknowledgment,
+// and datastores referenced by any agent's datastore_usages are
+// blocked. Collection removal on apply/update requires the
+// datastore.stigmer.ai/acknowledge-collection-removal annotation.
+message Datastore {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Datastore'];
+
+  // Resource metadata including name, organization, visibility, and labels.
+  //
+  // @internal
+  // Visibility ceiling is org (kind_meta VisibilityConfig); default is
+  // private. Visibility governs human administrative reach only — no
+  // record-RPC path consults it.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // Declared collections, constraints, authorization, and seed data.
+  DatastoreSpec spec = 4;
+
+  // System-managed status: sync report and audit information.
+  DatastoreStatus status = 5;
+}

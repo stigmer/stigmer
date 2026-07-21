@@ -106,6 +106,7 @@ type AgentInput struct {
 	SkillRefs       []ResourceRef
 	SubAgents       []*SubAgentInput
 	Env             map[string]*EnvVarDeclarationInput
+	DatastoreUsages []*DatastoreUsageInput
 }
 
 // McpServerUsageInput is the SDK input type for McpServerUsage.
@@ -145,6 +146,11 @@ type EnvVarDeclarationInput struct {
 	Optional    bool
 }
 
+// DatastoreUsageInput is the SDK input type for DatastoreUsage.
+type DatastoreUsageInput struct {
+	DatastoreRef ResourceRef
+}
+
 func (i *AgentInput) toProto() *agentv1.Agent {
 	resource := &agentv1.Agent{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -177,6 +183,9 @@ func (i *AgentInput) toProto() *agentv1.Agent {
 		for k, v := range i.Env {
 			resource.Spec.Env[k] = v.toProto()
 		}
+	}
+	for _, item := range i.DatastoreUsages {
+		resource.Spec.DatastoreUsages = append(resource.Spec.DatastoreUsages, item.toProto())
 	}
 	return resource
 }
@@ -235,6 +244,16 @@ func (i *EnvVarDeclarationInput) toProto() *environmentv1.EnvVarDeclaration {
 	}
 }
 
+func (i *DatastoreUsageInput) toProto() *agentv1.DatastoreUsage {
+	p := &agentv1.DatastoreUsage{}
+	if i.DatastoreRef.Org != "" || i.DatastoreRef.Slug != "" {
+		ref := i.DatastoreRef.toProto()
+		ref.Kind = apiresourcekind.ApiResourceKind_datastore
+		p.DatastoreRef = ref
+	}
+	return p
+}
+
 // AgentInputFromProto creates a AgentInput from a proto Agent resource.
 func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 	if p == nil {
@@ -266,6 +285,9 @@ func AgentInputFromProto(p *agentv1.Agent) *AgentInput {
 			for k, v := range s.GetEnv() {
 				input.Env[k] = envVarDeclarationInputFromProto(v)
 			}
+		}
+		for _, item := range s.GetDatastoreUsages() {
+			input.DatastoreUsages = append(input.DatastoreUsages, datastoreUsageInputFromProto(item))
 		}
 	}
 	return input
@@ -331,5 +353,14 @@ func envVarDeclarationInputFromProto(p *environmentv1.EnvVarDeclaration) *EnvVar
 	input.IsSecret = p.GetIsSecret()
 	input.Description = p.GetDescription()
 	input.Optional = p.GetOptional()
+	return input
+}
+
+func datastoreUsageInputFromProto(p *agentv1.DatastoreUsage) *DatastoreUsageInput {
+	if p == nil {
+		return nil
+	}
+	input := &DatastoreUsageInput{}
+	input.DatastoreRef = resourceRefFromProto(p.GetDatastoreRef())
 	return input
 }

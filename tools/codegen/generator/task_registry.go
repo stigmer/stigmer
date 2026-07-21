@@ -401,6 +401,11 @@ func fieldToJsonSchemaProperty(field *FieldSchema) map[string]interface{} {
 		prop["type"] = "boolean"
 	case "struct":
 		prop["type"] = "object"
+	case "value":
+		// google.protobuf.Value — any JSON value (scalar, array, or
+		// object). No "type" constraint: an empty schema accepts any JSON,
+		// which is correct here (the field may be a string, array, or
+		// object), unlike a fixed "object" that would reject valid scalars.
 	case "map":
 		prop["type"] = "object"
 		if field.Type.ValueType != nil && field.Type.ValueType.Kind == "string" {
@@ -446,6 +451,9 @@ func typeSpecToJsonSchema(ts *TypeSpec) map[string]interface{} {
 		return map[string]interface{}{"type": "boolean"}
 	case "struct":
 		return map[string]interface{}{"type": "object"}
+	case "value":
+		// google.protobuf.Value — any JSON value; empty schema accepts all.
+		return map[string]interface{}{}
 	case "message":
 		return map[string]interface{}{"type": "object"}
 	default:
@@ -468,6 +476,8 @@ func mapFieldType(ts TypeSpec) string {
 		return "bool"
 	case "struct":
 		return "struct"
+	case "value":
+		return "value"
 	case "map":
 		return "map"
 	case "array":

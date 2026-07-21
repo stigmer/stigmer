@@ -733,6 +733,8 @@ func extractScalarTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 		switch msgType.GetFullyQualifiedName() {
 		case "google.protobuf.Struct":
 			return TypeSpec{Kind: "struct"}
+		case "google.protobuf.Value":
+			return TypeSpec{Kind: "value"}
 		case "google.protobuf.Timestamp":
 			return TypeSpec{Kind: "timestamp"}
 		}

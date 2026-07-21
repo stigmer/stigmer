@@ -56,6 +56,14 @@ message AgentSpec {
   // manifest can never touch a share again.
   reserved 8;
   reserved "sharing";
+
+  // Datastores this agent can use.
+  // Each entry must reference a Datastore resource by slug.
+  repeated DatastoreUsage datastore_usages = 9 [(buf.validate.field).repeated.items.cel = {
+    id: "datastore_usages.kind"
+    message: "datastore_usages must reference resources with kind=datastore"
+    expression: "this.datastore_ref.kind == 49"
+  }];
 }
 
 // SubAgent defines a specialized agent that the parent can delegate to.
@@ -128,6 +136,31 @@ message McpServerUsage {
   // Takes precedence over McpServerSpec.pinned_tool_approvals and
   // McpServerStatus.tool_approvals.
   repeated ToolApprovalOverride tool_approval_overrides = 3;
+}
+
+// DatastoreUsage declares that this agent uses a Datastore resource.
+//
+// Attaching a datastore gives the agent the built-in record tools
+// (find_records, insert_record, update_record, delete_record,
+// describe_datastore) for it. What each caller may actually do is
+// governed by the datastore's own authorization block, resolved per
+// request from the verified sender or principal behind the session.
+//
+// @internal
+// Usage-wrapper idiom (McpServerUsage precedent) so per-usage fields
+// (approval tightening, verb caps, collection subsets — recorded growth
+// slots) land additively. The usage edge is authorization-bearing for
+// session-bound runner credentials (DD-006 SD-1): the record RPCs
+// resolve reach through it live, per call, fail-closed. The runner
+// synthesizes one bridge MCP attachment with an injected execution
+// credential and empty approval maps — record tools are approval-free
+// by construction.
+message DatastoreUsage {
+  // Reference to the Datastore resource.
+  ai.stigmer.commons.apiresource.ApiResourceReference datastore_ref = 1 [
+    (ai.stigmer.commons.apiresource.reference_kind) = datastore,
+    (buf.validate.field).required = true
+  ];
 }
 
 // McpAccess grants a sub-agent access to one of the parent's MCP servers.

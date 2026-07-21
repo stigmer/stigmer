@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.datastore.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+import "google/protobuf/timestamp.proto";
+
+// DatastoreStatus contains system-managed state for a datastore:
+// the schema sync report and per-collection materialization facts.
+//
+// @internal
+// Written by the gating schema-sync step in the create/update pipelines
+// of both editions. Server-owned: survives every apply/update verbatim.
+// Record contents never appear here — counts only.
+message DatastoreStatus {
+  // Outcome of the most recent schema sync.
+  DatastoreSyncOutcome last_sync_outcome = 1;
+
+  // When the most recent schema sync ran.
+  google.protobuf.Timestamp last_synced_at = 2;
+
+  // Per-collection materialization state and counts.
+  repeated CollectionStatus collections = 3;
+
+  // Standard audit information.
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+}
+
+// CollectionStatus is the sync report for one declared collection.
+message CollectionStatus {
+  // Name of the declared collection.
+  string name = 1;
+
+  // Materialization state of the collection's storage.
+  CollectionMaterializationState state = 2;
+
+  // Number of records currently in the collection.
+  //
+  // @internal
+  // Computed during sync; a health indicator, not a live counter.
+  int64 record_count = 3;
+
+  // Number of declared seed records that were skipped because the
+  // collection was already materialized on a previous apply.
+  //
+  // Non-zero means the manifest's seed_records have drifted from the
+  // collection's living data — expected once operators edit records
+  // through agents or the console.
+  int32 ignored_seed_count = 4;
+
+  // When the collection was first materialized (and seeds ran).
+  google.protobuf.Timestamp materialized_at = 5;
+}
+
+// DatastoreSyncOutcome is the result of a schema sync run.
+enum DatastoreSyncOutcome {
+  datastore_sync_outcome_unspecified = 0;
+
+  // Every declared change applied.
+  synced = 1;
+
+  // The sync was rejected; the datastore retains its prior schema.
+  //
+  // @internal
+  // Rejections are whole-sync (gating step): a rejected transition
+  // (type change, add-required-without-default to a non-empty
+  // collection, constraint violated by existing records,
+  // unacknowledged collection removal) fails the apply/update RPC with
+  // FAILED_PRECONDITION, so a stored `rejected` outcome is only
+  // observable if the sync failed after persist — a fail-loud signal,
+  // never a partial schema.
+  rejected = 2;
+}
+
+// CollectionMaterializationState is the storage state of one collection.
+enum CollectionMaterializationState {
+  collection_materialization_state_unspecified = 0;
+
+  // Declared but storage not yet provisioned.
+  pending = 1;
+
+  // Storage and indexes provisioned; the collection serves records.
+  active = 2;
+
+  // Removed from the spec with acknowledgment; retained data is no
+  // longer reachable through record RPCs.
+  removed = 3;
+}

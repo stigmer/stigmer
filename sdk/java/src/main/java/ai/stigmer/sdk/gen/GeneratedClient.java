@@ -14,6 +14,7 @@ public class GeneratedClient {
     public final ApiKeyClient apiKey;
     public final ArtifactClient artifact;
     public final ChannelAppClient channelapp;
+    public final DatastoreClient datastore;
     public final EnvironmentClient environment;
     public final ExecutionContextClient executionContext;
     public final IamPolicyClient iamPolicy;
@@ -40,6 +41,7 @@ public class GeneratedClient {
         this.apiKey = new ApiKeyClient(channel);
         this.artifact = new ArtifactClient(channel);
         this.channelapp = new ChannelAppClient(channel);
+        this.datastore = new DatastoreClient(channel);
         this.environment = new EnvironmentClient(channel);
         this.executionContext = new ExecutionContextClient(channel);
         this.iamPolicy = new IamPolicyClient(channel);

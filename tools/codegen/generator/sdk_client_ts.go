@@ -873,6 +873,10 @@ func tsTypeForTypeSpec(ts *TypeSpec, imports *tsImportSet, _ string) string {
 	case "struct":
 		imports.addType("@bufbuild/protobuf", "JsonObject")
 		return "JsonObject"
+	case "value":
+		// google.protobuf.Value — protobuf-es represents it natively as JSON.
+		imports.addType("@bufbuild/protobuf", "JsonValue")
+		return "JsonValue"
 	case "array":
 		if ts.ElementType != nil {
 			elemType := tsTypeForTypeSpec(ts.ElementType, imports, "")
@@ -1314,7 +1318,7 @@ func emitTSNestedFieldAssign(buf *bytes.Buffer, f *FieldSchema, typeMap map[stri
 	case f.Type.Kind == "string" || f.Type.Kind == "bool" || f.Type.Kind == "int32" ||
 		f.Type.Kind == "int64" || f.Type.Kind == "uint32" || f.Type.Kind == "float" ||
 		f.Type.Kind == "double" || f.Type.Kind == "bytes" ||
-		f.Type.Kind == "struct":
+		f.Type.Kind == "struct" || f.Type.Kind == "value":
 		fmt.Fprintf(buf, "  if (input.%s !== undefined) msg.%s = input.%s;\n", fieldName, fieldName, fieldName)
 
 	case f.Type.Kind == "array" && (f.Type.ElementType == nil || f.Type.ElementType.Kind != "message"):

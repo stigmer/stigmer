@@ -42,6 +42,7 @@ private static final long serialVersionUID = 0L;
     mcpServerUsages_ = java.util.Collections.emptyList();
     skillRefs_ = java.util.Collections.emptyList();
     subAgents_ = java.util.Collections.emptyList();
+    datastoreUsages_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -509,6 +510,72 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     return map.get(key);
   }
 
+  public static final int DATASTORE_USAGES_FIELD_NUMBER = 9;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.agent.v1.DatastoreUsage> datastoreUsages_;
+  /**
+   * <pre>
+   * Datastores this agent can use.
+   * Each entry must reference a Datastore resource by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.agent.v1.DatastoreUsage> getDatastoreUsagesList() {
+    return datastoreUsages_;
+  }
+  /**
+   * <pre>
+   * Datastores this agent can use.
+   * Each entry must reference a Datastore resource by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.agent.v1.DatastoreUsageOrBuilder> 
+      getDatastoreUsagesOrBuilderList() {
+    return datastoreUsages_;
+  }
+  /**
+   * <pre>
+   * Datastores this agent can use.
+   * Each entry must reference a Datastore resource by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public int getDatastoreUsagesCount() {
+    return datastoreUsages_.size();
+  }
+  /**
+   * <pre>
+   * Datastores this agent can use.
+   * Each entry must reference a Datastore resource by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.DatastoreUsage getDatastoreUsages(int index) {
+    return datastoreUsages_.get(index);
+  }
+  /**
+   * <pre>
+   * Datastores this agent can use.
+   * Each entry must reference a Datastore resource by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.DatastoreUsageOrBuilder getDatastoreUsagesOrBuilder(
+      int index) {
+    return datastoreUsages_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -547,6 +614,9 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         internalGetEnv(),
         EnvDefaultEntryHolder.defaultEntry,
         7);
+    for (int i = 0; i < datastoreUsages_.size(); i++) {
+      output.writeMessage(9, datastoreUsages_.get(i));
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -602,6 +672,15 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(7, env__);
     }
+
+        {
+          final int count = datastoreUsages_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(datastoreUsages_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -631,6 +710,8 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         .equals(other.getSubAgentsList())) return false;
     if (!internalGetEnv().equals(
         other.internalGetEnv())) return false;
+    if (!getDatastoreUsagesList()
+        .equals(other.getDatastoreUsagesList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -663,6 +744,10 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
     if (!internalGetEnv().getMap().isEmpty()) {
       hash = (37 * hash) + ENV_FIELD_NUMBER;
       hash = (53 * hash) + internalGetEnv().hashCode();
+    }
+    if (getDatastoreUsagesCount() > 0) {
+      hash = (37 * hash) + DATASTORE_USAGES_FIELD_NUMBER;
+      hash = (53 * hash) + getDatastoreUsagesList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -850,6 +935,13 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       }
       bitField0_ = (bitField0_ & ~0x00000020);
       internalGetMutableEnv().clear();
+      if (datastoreUsagesBuilder_ == null) {
+        datastoreUsages_ = java.util.Collections.emptyList();
+      } else {
+        datastoreUsages_ = null;
+        datastoreUsagesBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000080);
       return this;
     }
 
@@ -909,6 +1001,15 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         result.subAgents_ = subAgents_;
       } else {
         result.subAgents_ = subAgentsBuilder_.build();
+      }
+      if (datastoreUsagesBuilder_ == null) {
+        if (((bitField0_ & 0x00000080) != 0)) {
+          datastoreUsages_ = java.util.Collections.unmodifiableList(datastoreUsages_);
+          bitField0_ = (bitField0_ & ~0x00000080);
+        }
+        result.datastoreUsages_ = datastoreUsages_;
+      } else {
+        result.datastoreUsages_ = datastoreUsagesBuilder_.build();
       }
     }
 
@@ -1036,6 +1137,32 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
       internalGetMutableEnv().mergeFrom(
           other.internalGetEnv());
       bitField0_ |= 0x00000040;
+      if (datastoreUsagesBuilder_ == null) {
+        if (!other.datastoreUsages_.isEmpty()) {
+          if (datastoreUsages_.isEmpty()) {
+            datastoreUsages_ = other.datastoreUsages_;
+            bitField0_ = (bitField0_ & ~0x00000080);
+          } else {
+            ensureDatastoreUsagesIsMutable();
+            datastoreUsages_.addAll(other.datastoreUsages_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.datastoreUsages_.isEmpty()) {
+          if (datastoreUsagesBuilder_.isEmpty()) {
+            datastoreUsagesBuilder_.dispose();
+            datastoreUsagesBuilder_ = null;
+            datastoreUsages_ = other.datastoreUsages_;
+            bitField0_ = (bitField0_ & ~0x00000080);
+            datastoreUsagesBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetDatastoreUsagesFieldBuilder() : null;
+          } else {
+            datastoreUsagesBuilder_.addAllMessages(other.datastoreUsages_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1125,6 +1252,19 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
               bitField0_ |= 0x00000040;
               break;
             } // case 58
+            case 74: {
+              ai.stigmer.agentic.agent.v1.DatastoreUsage m =
+                  input.readMessage(
+                      ai.stigmer.agentic.agent.v1.DatastoreUsage.parser(),
+                      extensionRegistry);
+              if (datastoreUsagesBuilder_ == null) {
+                ensureDatastoreUsagesIsMutable();
+                datastoreUsages_.add(m);
+              } else {
+                datastoreUsagesBuilder_.addMessage(m);
+              }
+              break;
+            } // case 74
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2588,6 +2728,336 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
         builderMap.put(key, entry);
       }
       return (ai.stigmer.agentic.environment.v1.EnvVarDeclaration.Builder) entry;
+    }
+
+    private java.util.List<ai.stigmer.agentic.agent.v1.DatastoreUsage> datastoreUsages_ =
+      java.util.Collections.emptyList();
+    private void ensureDatastoreUsagesIsMutable() {
+      if (!((bitField0_ & 0x00000080) != 0)) {
+        datastoreUsages_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.DatastoreUsage>(datastoreUsages_);
+        bitField0_ |= 0x00000080;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agent.v1.DatastoreUsage, ai.stigmer.agentic.agent.v1.DatastoreUsage.Builder, ai.stigmer.agentic.agent.v1.DatastoreUsageOrBuilder> datastoreUsagesBuilder_;
+
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agent.v1.DatastoreUsage> getDatastoreUsagesList() {
+      if (datastoreUsagesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(datastoreUsages_);
+      } else {
+        return datastoreUsagesBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public int getDatastoreUsagesCount() {
+      if (datastoreUsagesBuilder_ == null) {
+        return datastoreUsages_.size();
+      } else {
+        return datastoreUsagesBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.agent.v1.DatastoreUsage getDatastoreUsages(int index) {
+      if (datastoreUsagesBuilder_ == null) {
+        return datastoreUsages_.get(index);
+      } else {
+        return datastoreUsagesBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setDatastoreUsages(
+        int index, ai.stigmer.agentic.agent.v1.DatastoreUsage value) {
+      if (datastoreUsagesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureDatastoreUsagesIsMutable();
+        datastoreUsages_.set(index, value);
+        onChanged();
+      } else {
+        datastoreUsagesBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setDatastoreUsages(
+        int index, ai.stigmer.agentic.agent.v1.DatastoreUsage.Builder builderForValue) {
+      if (datastoreUsagesBuilder_ == null) {
+        ensureDatastoreUsagesIsMutable();
+        datastoreUsages_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        datastoreUsagesBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addDatastoreUsages(ai.stigmer.agentic.agent.v1.DatastoreUsage value) {
+      if (datastoreUsagesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureDatastoreUsagesIsMutable();
+        datastoreUsages_.add(value);
+        onChanged();
+      } else {
+        datastoreUsagesBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addDatastoreUsages(
+        int index, ai.stigmer.agentic.agent.v1.DatastoreUsage value) {
+      if (datastoreUsagesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureDatastoreUsagesIsMutable();
+        datastoreUsages_.add(index, value);
+        onChanged();
+      } else {
+        datastoreUsagesBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addDatastoreUsages(
+        ai.stigmer.agentic.agent.v1.DatastoreUsage.Builder builderForValue) {
+      if (datastoreUsagesBuilder_ == null) {
+        ensureDatastoreUsagesIsMutable();
+        datastoreUsages_.add(builderForValue.build());
+        onChanged();
+      } else {
+        datastoreUsagesBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addDatastoreUsages(
+        int index, ai.stigmer.agentic.agent.v1.DatastoreUsage.Builder builderForValue) {
+      if (datastoreUsagesBuilder_ == null) {
+        ensureDatastoreUsagesIsMutable();
+        datastoreUsages_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        datastoreUsagesBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addAllDatastoreUsages(
+        java.lang.Iterable<? extends ai.stigmer.agentic.agent.v1.DatastoreUsage> values) {
+      if (datastoreUsagesBuilder_ == null) {
+        ensureDatastoreUsagesIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, datastoreUsages_);
+        onChanged();
+      } else {
+        datastoreUsagesBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder clearDatastoreUsages() {
+      if (datastoreUsagesBuilder_ == null) {
+        datastoreUsages_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000080);
+        onChanged();
+      } else {
+        datastoreUsagesBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder removeDatastoreUsages(int index) {
+      if (datastoreUsagesBuilder_ == null) {
+        ensureDatastoreUsagesIsMutable();
+        datastoreUsages_.remove(index);
+        onChanged();
+      } else {
+        datastoreUsagesBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.agent.v1.DatastoreUsage.Builder getDatastoreUsagesBuilder(
+        int index) {
+      return internalGetDatastoreUsagesFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.agent.v1.DatastoreUsageOrBuilder getDatastoreUsagesOrBuilder(
+        int index) {
+      if (datastoreUsagesBuilder_ == null) {
+        return datastoreUsages_.get(index);  } else {
+        return datastoreUsagesBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.agent.v1.DatastoreUsageOrBuilder> 
+         getDatastoreUsagesOrBuilderList() {
+      if (datastoreUsagesBuilder_ != null) {
+        return datastoreUsagesBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(datastoreUsages_);
+      }
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.agent.v1.DatastoreUsage.Builder addDatastoreUsagesBuilder() {
+      return internalGetDatastoreUsagesFieldBuilder().addBuilder(
+          ai.stigmer.agentic.agent.v1.DatastoreUsage.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.agent.v1.DatastoreUsage.Builder addDatastoreUsagesBuilder(
+        int index) {
+      return internalGetDatastoreUsagesFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.agent.v1.DatastoreUsage.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Datastores this agent can use.
+     * Each entry must reference a Datastore resource by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agent.v1.DatastoreUsage.Builder> 
+         getDatastoreUsagesBuilderList() {
+      return internalGetDatastoreUsagesFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agent.v1.DatastoreUsage, ai.stigmer.agentic.agent.v1.DatastoreUsage.Builder, ai.stigmer.agentic.agent.v1.DatastoreUsageOrBuilder> 
+        internalGetDatastoreUsagesFieldBuilder() {
+      if (datastoreUsagesBuilder_ == null) {
+        datastoreUsagesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.agent.v1.DatastoreUsage, ai.stigmer.agentic.agent.v1.DatastoreUsage.Builder, ai.stigmer.agentic.agent.v1.DatastoreUsageOrBuilder>(
+                datastoreUsages_,
+                ((bitField0_ & 0x00000080) != 0),
+                getParentForChildren(),
+                isClean());
+        datastoreUsages_ = null;
+      }
+      return datastoreUsagesBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agent.v1.AgentSpec)

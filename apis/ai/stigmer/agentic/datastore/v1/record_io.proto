@@ -1,0 +1,277 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.datastore.v1;
+
+import "ai/stigmer/agentic/datastore/v1/spec.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+// RecordEnvelope is a record as returned by every record RPC:
+// server-managed system fields plus the declared fields.
+//
+// @internal
+// System fields are server-stamped and never caller-writable on any
+// surface. Record ids follow the platform id convention with prefix
+// `dsr` (dsr_<lowercase-ulid>). created_by carries the DD-002
+// attribution subject; own-scoped grants resolve against it, and the
+// grant system is the privacy boundary for exposing it (own-scoped
+// readers only ever see themselves).
+message RecordEnvelope {
+  // Server-issued record identifier, opaque and immutable.
+  string id = 1;
+
+  // When the record was inserted.
+  google.protobuf.Timestamp created_at = 2;
+
+  // When the record was last updated.
+  google.protobuf.Timestamp updated_at = 3;
+
+  // The verified caller identity that inserted the record.
+  DatastoreSubject created_by = 4;
+
+  // Declared field values in their canonical encodings.
+  google.protobuf.Struct fields = 5;
+}
+
+// RecordList is a page of records with pagination totals.
+message RecordList {
+  // Records in the current page.
+  repeated RecordEnvelope records = 1;
+
+  // Total count of records matching the filter.
+  int32 total = 2;
+
+  // Limit applied to this page.
+  int32 limit = 3;
+
+  // Offset applied to this page.
+  int32 offset = 4;
+}
+
+// RecordFilter selects records with typed conditions, all of which must
+// match.
+//
+// @internal
+// AND-only in v1 (`in` covers single-field disjunction; OR groups are a
+// recorded growth path). Every expressible condition compiles to an
+// indexable predicate on both substrates. The server-applied grant
+// scope (own) composes as an inexpressible conjunction — the grammar
+// can neither express, relax, nor observe it.
+message RecordFilter {
+  // Conditions combined with AND semantics.
+  repeated RecordCondition conditions = 1 [(buf.validate.field).repeated.max_items = 20];
+}
+
+// RecordCondition tests one field against an operator and value.
+//
+// @internal
+// The per-type operator matrix is domain validation against the
+// declared schema: eq/neq/in/not_in for string and enum fields; range
+// operators for numeric and temporal types; is_null/not_null for
+// optional fields; id by eq/in; created_at/updated_at by range. json
+// fields and created_by are not filterable.
+message RecordCondition {
+  // Declared field name, or a filterable system field (id, created_at,
+  // updated_at).
+  string field = 1 [(buf.validate.field).required = true];
+
+  // Comparison operator.
+  RecordConditionOp op = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum.defined_only = true
+  ];
+
+  // Comparison value for scalar operators, in the field's canonical
+  // encoding. Unset for is_null / not_null.
+  google.protobuf.Value value = 3;
+
+  // Comparison values for in / not_in.
+  repeated google.protobuf.Value values = 4 [(buf.validate.field).repeated.max_items = 100];
+}
+
+// RecordConditionOp is the comparison operator of a condition.
+//
+// @internal
+// `is_in` rather than `in` because protoc emits enum constants verbatim
+// and `in` is a reserved word in Java and Python.
+enum RecordConditionOp {
+  record_condition_op_unspecified = 0;
+  eq = 1;
+  neq = 2;
+  gt = 3;
+  gte = 4;
+  lt = 5;
+  lte = 6;
+  is_in = 7;
+  not_in = 8;
+  is_null = 9;
+  not_null = 10;
+}
+
+// RecordOrderBy sorts results by a single field.
+message RecordOrderBy {
+  // Declared field name, or a sortable system field (id, created_at,
+  // updated_at).
+  string field = 1 [(buf.validate.field).required = true];
+
+  // Sort direction. Unset defaults to ascending.
+  RecordSortDirection direction = 2 [(buf.validate.field).enum.defined_only = true];
+}
+
+// RecordSortDirection is the direction of a sort.
+enum RecordSortDirection {
+  record_sort_direction_unspecified = 0;
+  asc = 1;
+  desc = 2;
+}
+
+// FindRecordsRequest selects records from one collection.
+message FindRecordsRequest {
+  // Datastore slug. The organization resolves from the caller's
+  // credential — records never cross the org boundary.
+  string datastore = 1 [(buf.validate.field).required = true];
+
+  // Collection to query.
+  string collection = 2 [(buf.validate.field).required = true];
+
+  // Conditions records must match. Empty returns all readable records.
+  RecordFilter filter = 3;
+
+  // Sort order. Unset defaults to created_at descending with id as
+  // tiebreak (deterministic pagination).
+  RecordOrderBy order_by = 4;
+
+  // Page size. Unset defaults to 25; maximum 100.
+  int32 limit = 5 [
+    (buf.validate.field).int32.gte = 0,
+    (buf.validate.field).int32.lte = 100
+  ];
+
+  // Number of records to skip.
+  int32 offset = 6 [(buf.validate.field).int32.gte = 0];
+}
+
+// InsertRecordRequest inserts one record into a collection.
+message InsertRecordRequest {
+  // Datastore slug.
+  string datastore = 1 [(buf.validate.field).required = true];
+
+  // Collection to insert into.
+  string collection = 2 [(buf.validate.field).required = true];
+
+  // Declared field values in their canonical encodings. System field
+  // names are rejected.
+  google.protobuf.Struct record = 3 [(buf.validate.field).required = true];
+}
+
+// UpdateRecordRequest updates one record by id with a partial merge.
+message UpdateRecordRequest {
+  // Datastore slug.
+  string datastore = 1 [(buf.validate.field).required = true];
+
+  // Collection holding the record.
+  string collection = 2 [(buf.validate.field).required = true];
+
+  // Id of the record to update.
+  string id = 3 [(buf.validate.field).required = true];
+
+  // Fields to change. Only supplied fields change; an explicit null
+  // clears a field. Constraints evaluate on the merged result. System
+  // field names are rejected.
+  google.protobuf.Struct fields = 4 [(buf.validate.field).required = true];
+}
+
+// DeleteRecordRequest deletes one record by id.
+message DeleteRecordRequest {
+  // Datastore slug.
+  string datastore = 1 [(buf.validate.field).required = true];
+
+  // Collection holding the record.
+  string collection = 2 [(buf.validate.field).required = true];
+
+  // Id of the record to delete.
+  string id = 3 [(buf.validate.field).required = true];
+}
+
+// DescribeDatastoreRequest asks for a datastore as the caller
+// experiences it.
+message DescribeDatastoreRequest {
+  // Datastore slug.
+  string datastore = 1 [(buf.validate.field).required = true];
+}
+
+// DatastoreDescription is a datastore's schema and the calling
+// subject's effective access, for agent and client discovery.
+//
+// @internal
+// The projection deliberately excludes operator state (bindings, seed
+// records, sync report): a caller learns the shape of the data and what
+// it may do, never who else has access.
+message DatastoreDescription {
+  // Datastore slug.
+  string datastore = 1;
+
+  // Datastore description from the spec.
+  string description = 2;
+
+  // IANA timezone bound as `tz` in constraint evaluation.
+  string timezone = 3;
+
+  // Collections with schema and caller-effective access.
+  repeated CollectionDescription collections = 4;
+}
+
+// CollectionDescription is one collection's schema and the caller's
+// effective access to it.
+message CollectionDescription {
+  // Collection name.
+  string name = 1;
+
+  // Collection description from the spec.
+  string description = 2;
+
+  // Declared fields with types and canonical encodings.
+  repeated FieldDeclaration fields = 3;
+
+  // Declared constraints: names and relayable messages.
+  repeated ConstraintDescription constraints = 4;
+
+  // Verbs the calling subject holds on this collection, with row
+  // scope. Empty means no access (deny by default).
+  repeated VerbGrantDescription access = 5;
+}
+
+// ConstraintDescription names a constraint and its relayable message.
+//
+// @internal
+// Expressions and where-conditions are deliberately excluded — the
+// declared message is the caller-facing contract for violations.
+message ConstraintDescription {
+  // Constraint name, matching the ErrorInfo constraint on violations.
+  string name = 1;
+
+  // Constraint class.
+  ConstraintKind kind = 2;
+
+  // The declared agent-relayable violation message.
+  string message = 3;
+}
+
+// ConstraintKind is the class of a declared constraint.
+enum ConstraintKind {
+  constraint_kind_unspecified = 0;
+  unique = 1;
+  check = 2;
+  exists = 3;
+  not_exists = 4;
+}
+
+// VerbGrantDescription is one verb the caller holds on a collection.
+message VerbGrantDescription {
+  // Granted verb.
+  DatastoreVerb verb = 1;
+
+  // True when the verb applies only to records the caller created.
+  bool own_scope = 2;
+}

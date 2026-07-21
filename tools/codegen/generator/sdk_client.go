@@ -397,6 +397,11 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	needsTimestamppb := false
 	needsStructpb := false
 	needsRefKindOverride := false
+	// Cross-package proto imports (alias → Go import path) for nested spec
+	// types living in another proto package (e.g. a datastore subject
+	// referencing iampolicy's ApiResourceRef). environmentv1 and
+	// executioncontextv1 keep their dedicated flags above.
+	crossPkgImports := make(map[string]string)
 	if specSchema != nil {
 		scanFieldsForImports := func(fields []*FieldSchema) {
 			for _, f := range fields {
@@ -413,10 +418,22 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 						}
 					}
 				}
+				if f.Type.Kind == "message" && f.Type.MessageType != "" && !isSpecialType(f.Type.MessageType) {
+					if ts, ok := typeMap[f.Type.MessageType]; ok && ts.ProtoType != "" {
+						if a := protoTypeToPackageAlias(ts.ProtoType); a != "" && a != alias &&
+							a != "environmentv1" && a != "executioncontextv1" {
+							if idx := strings.LastIndex(ts.ProtoType, "."); idx > 0 {
+								protoPkg := ts.ProtoType[:idx]
+								crossPkgImports[a] = "github.com/stigmer/stigmer/sdk/go/v3/proto/" + strings.ReplaceAll(protoPkg, ".", "/")
+							}
+						}
+					}
+				}
 				if f.Type.Kind == "timestamp" {
 					needsTimestamppb = true
 				}
-				if f.Type.Kind == "struct" {
+				if f.Type.Kind == "struct" || f.Type.Kind == "value" ||
+					(f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "struct") {
 					needsStructpb = true
 				}
 				if f.ReferenceKind != 0 {
@@ -486,6 +503,16 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	}
 	if needsEnvironmentV1 {
 		buf.WriteString("\tenvironmentv1 \"github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1\"\n")
+	}
+	if len(crossPkgImports) > 0 {
+		aliases := make([]string, 0, len(crossPkgImports))
+		for a := range crossPkgImports {
+			aliases = append(aliases, a)
+		}
+		sort.Strings(aliases)
+		for _, a := range aliases {
+			fmt.Fprintf(&buf, "\t%s %q\n", a, crossPkgImports[a])
+		}
 	}
 	if needsEmptypb {
 		buf.WriteString("\t\"google.golang.org/protobuf/types/known/emptypb\"\n")
@@ -830,6 +857,9 @@ func goTypeForTypeSpec(ts *TypeSpec, typeMap map[string]*TypeSchema, alias strin
 		return "string"
 	case "struct":
 		return "map[string]any"
+	case "value":
+		// google.protobuf.Value — any JSON-representable scalar or composite.
+		return "any"
 	case "array":
 		if ts.ElementType != nil {
 			return "[]" + goTypeForTypeSpec(ts.ElementType, typeMap, alias)
@@ -920,6 +950,11 @@ func emitToProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap m
 		fmt.Fprintf(buf, "\t\tresource.Spec.%s, _ = structpb.NewStruct(i.%s)\n", protoField, f.Name)
 		buf.WriteString("\t}\n")
 
+	case f.Type.Kind == "value":
+		fmt.Fprintf(buf, "\tif i.%s != nil {\n", f.Name)
+		fmt.Fprintf(buf, "\t\tresource.Spec.%s, _ = structpb.NewValue(i.%s)\n", protoField, f.Name)
+		buf.WriteString("\t}\n")
+
 	case f.Type.Kind == "string" || f.Type.Kind == "bool" || f.Type.Kind == "int32" || f.Type.Kind == "int64" ||
 		f.Type.Kind == "uint32" || f.Type.Kind == "float" || f.Type.Kind == "double" || f.Type.Kind == "bytes":
 		fmt.Fprintf(buf, "\tresource.Spec.%s = i.%s\n", protoField, f.Name)
@@ -951,6 +986,12 @@ func emitToProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap m
 
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "string":
 		fmt.Fprintf(buf, "\tresource.Spec.%s = i.%s\n", protoField, f.Name)
+
+	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "struct":
+		fmt.Fprintf(buf, "\tfor _, item := range i.%s {\n", f.Name)
+		fmt.Fprintf(buf, "\t\tif s, err := structpb.NewStruct(item); err == nil {\n")
+		fmt.Fprintf(buf, "\t\t\tresource.Spec.%s = append(resource.Spec.%s, s)\n", protoField, protoField)
+		buf.WriteString("\t\t}\n\t}\n")
 
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
 		elemMsg := f.Type.ElementType.MessageType
@@ -1137,7 +1178,7 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 
 	needsImperative := false
 	for _, field := range ts.Fields {
-		if field.Type.Kind == "struct" || field.Type.Kind == "timestamp" {
+		if field.Type.Kind == "struct" || field.Type.Kind == "value" || field.Type.Kind == "timestamp" {
 			needsImperative = true
 			break
 		}
@@ -1145,7 +1186,8 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 			needsImperative = true
 			break
 		}
-		if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message" {
+		if field.Type.Kind == "array" && field.Type.ElementType != nil &&
+			(field.Type.ElementType.Kind == "message" || field.Type.ElementType.Kind == "struct") {
 			needsImperative = true
 			break
 		}
@@ -1159,6 +1201,10 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 			if field.Type.Kind == "struct" {
 				fmt.Fprintf(buf, "\tif i.%s != nil {\n", field.Name)
 				fmt.Fprintf(buf, "\t\tp.%s, _ = structpb.NewStruct(i.%s)\n", pf, field.Name)
+				buf.WriteString("\t}\n")
+			} else if field.Type.Kind == "value" {
+				fmt.Fprintf(buf, "\tif i.%s != nil {\n", field.Name)
+				fmt.Fprintf(buf, "\t\tp.%s, _ = structpb.NewValue(i.%s)\n", pf, field.Name)
 				buf.WriteString("\t}\n")
 			} else if field.Type.Kind == "timestamp" {
 				fmt.Fprintf(buf, "\tif i.%s != \"\" {\n", field.Name)
@@ -1206,6 +1252,11 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 					fmt.Fprintf(buf, "\t\tp.%s = append(p.%s, item.toProto())\n", pf, pf)
 					buf.WriteString("\t}\n")
 				}
+			} else if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "struct" {
+				fmt.Fprintf(buf, "\tfor _, item := range i.%s {\n", field.Name)
+				fmt.Fprintf(buf, "\t\tif s, err := structpb.NewStruct(item); err == nil {\n")
+				fmt.Fprintf(buf, "\t\t\tp.%s = append(p.%s, s)\n", pf, pf)
+				buf.WriteString("\t\t}\n\t}\n")
 			} else {
 				fmt.Fprintf(buf, "\tp.%s = i.%s\n", pf, field.Name)
 			}
@@ -1308,6 +1359,11 @@ func emitFromProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap
 		fmt.Fprintf(buf, "\t\t\tinput.%s = sv.AsMap()\n", f.Name)
 		buf.WriteString("\t\t}\n")
 
+	case f.Type.Kind == "value":
+		fmt.Fprintf(buf, "\t\tif sv := s.%s; sv != nil {\n", getter)
+		fmt.Fprintf(buf, "\t\t\tinput.%s = sv.AsInterface()\n", f.Name)
+		buf.WriteString("\t\t}\n")
+
 	case f.Type.Kind == "string" || f.Type.Kind == "bool" || f.Type.Kind == "int32" ||
 		f.Type.Kind == "int64" || f.Type.Kind == "uint32" || f.Type.Kind == "float" ||
 		f.Type.Kind == "double" || f.Type.Kind == "bytes":
@@ -1325,6 +1381,11 @@ func emitFromProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap
 
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "string":
 		fmt.Fprintf(buf, "\t\tinput.%s = s.%s\n", f.Name, getter)
+
+	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "struct":
+		fmt.Fprintf(buf, "\t\tfor _, item := range s.%s {\n", getter)
+		fmt.Fprintf(buf, "\t\t\tinput.%s = append(input.%s, item.AsMap())\n", f.Name, f.Name)
+		buf.WriteString("\t\t}\n")
 
 	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
 		elemMsg := f.Type.ElementType.MessageType
@@ -1451,6 +1512,11 @@ func emitNestedFromProtoFunc(buf *bytes.Buffer, f *FieldSchema, alias string, ty
 			fmt.Fprintf(buf, "\t\tinput.%s = sv.AsMap()\n", field.Name)
 			buf.WriteString("\t}\n")
 
+		case field.Type.Kind == "value":
+			fmt.Fprintf(buf, "\tif sv := p.%s; sv != nil {\n", getter)
+			fmt.Fprintf(buf, "\t\tinput.%s = sv.AsInterface()\n", field.Name)
+			buf.WriteString("\t}\n")
+
 		case field.Type.Kind == "message" && field.Type.MessageType == "ApiResourceReference":
 			fmt.Fprintf(buf, "\tinput.%s = resourceRefFromProto(p.%s)\n", field.Name, getter)
 
@@ -1470,6 +1536,11 @@ func emitNestedFromProtoFunc(buf *bytes.Buffer, f *FieldSchema, alias string, ty
 				fmt.Fprintf(buf, "\t\tinput.%s = append(input.%s, %s(item))\n", field.Name, field.Name, converter)
 				buf.WriteString("\t}\n")
 			}
+
+		case field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "struct":
+			fmt.Fprintf(buf, "\tfor _, item := range p.%s {\n", getter)
+			fmt.Fprintf(buf, "\t\tinput.%s = append(input.%s, item.AsMap())\n", field.Name, field.Name)
+			buf.WriteString("\t}\n")
 
 		case field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "string":
 			fmt.Fprintf(buf, "\tinput.%s = p.%s\n", field.Name, getter)

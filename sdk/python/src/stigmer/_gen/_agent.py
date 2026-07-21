@@ -121,6 +121,7 @@ class AgentInput:
     skill_refs: list[ResourceRef] = field(default_factory=list)
     sub_agents: list[SubAgentInput] = field(default_factory=list)
     env: dict[str, EnvVarDeclarationInput] = field(default_factory=dict)
+    datastore_usages: list[DatastoreUsageInput] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Agent:
         spec = spec_pb2.AgentSpec(
@@ -138,6 +139,8 @@ class AgentInput:
             spec.sub_agents.append(item._to_proto())
         for k, v in self.env.items():
             spec.env[k].CopyFrom(v._to_proto())
+        for item in self.datastore_usages:
+            spec.datastore_usages.append(item._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -251,5 +254,20 @@ class EnvVarDeclarationInput:
             description=self.description,
             optional=self.optional,
         )
+        return msg
+
+
+@dataclass
+class DatastoreUsageInput:
+    """SDK input type for DatastoreUsage."""
+
+    datastore_ref: ResourceRef | None
+
+    def _to_proto(self) -> spec_pb2.DatastoreUsage:
+        msg = spec_pb2.DatastoreUsage()
+        if self.datastore_ref is not None and (self.datastore_ref.org or self.datastore_ref.slug):
+            _ref = self.datastore_ref._to_proto()
+            _ref.kind = 49
+            msg.datastore_ref.CopyFrom(_ref)
         return msg
 

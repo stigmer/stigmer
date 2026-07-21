@@ -93,6 +93,24 @@ enum IamPermission {
   // operator action, kept distinct from can_execute_billing_ops (the
   // machine account's internal billing pipeline).
   can_manage_model_pricing = 32;
+
+  // Resource-level permission to reach a datastore's record RPCs.
+  //
+  // @internal
+  // Layer 1 of the datastore's two-layer authorization model: gates
+  // "may this principal touch this datastore's records at all" for
+  // direct platform principals (console, CLI, SDK, workflow executions).
+  // Checked in-handler via RequestAuthorizationService — the record RPCs
+  // are slug-addressed and carry is_skip_authorization, so the
+  // declarative interceptor never runs for them. Session-bound runner
+  // credentials do NOT pass through this permission — they take the
+  // usage-edge reach chain (agent's datastore_usages + org match) in
+  // domain logic. Layer 2 (role/verb/scope grants) always runs in
+  // datastore domain logic in both editions.
+  can_use_records = 33;
+
+  // Organization-level permission to create datastores.
+  can_create_datastore = 34;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources

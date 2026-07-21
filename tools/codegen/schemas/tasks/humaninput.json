@@ -106,8 +106,7 @@
       "jsonName": "payload",
       "protoField": "payload",
       "type": {
-        "kind": "message",
-        "messageType": "Value"
+        "kind": "value"
       },
       "description": "Structured material for the reviewer to examine before deciding.\n\n Supports ${ } expression interpolation: the whole value can be a\n single expression string (\"${ $context.draft_revision }\") or an\n inline object/array whose nested strings carry embedded expressions.\n The runtime resolves expressions when the gate activates and attaches\n the resolved payload to the approval_requested event, so the approval\n record is permanently bound to exactly what the reviewer saw.\n\n Distinct from prompt (the instruction to the reviewer) and form_schema\n (the shape of the reviewer's response): payload is the thing under\n review — an article diff, a proposed record set, a generated plan.\n\n @internal\n Resolved payloads at or above the artifact promotion threshold (256KB)\n are stored in the artifact store; the approval_requested event then\n carries payload_artifact_id instead of the inline value. See\n ApprovalRequestedPayload in workflowexecution/v1/event.proto.\n\n Expression support is documented here rather than via the\n is_expression option, which annotates string fields only — matching\n how other Struct/Value-typed expression-bearing configs are handled.\n\n @since Review Payloads (stigmer/stigmer#234)",
       "required": false

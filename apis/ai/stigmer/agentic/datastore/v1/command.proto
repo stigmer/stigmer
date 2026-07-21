@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.datastore.v1;
+
+import "ai/stigmer/agentic/datastore/v1/api.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// DatastoreCommandController handles write operations for datastores.
+service DatastoreCommandController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = datastore;
+
+  // Create or update a datastore.
+  //
+  // @internal
+  // The authorization and state-operation are determined depending on
+  // whether the datastore is going to be created or updated, which is
+  // resolved as part of the request execution. Schema sync runs as a
+  // synchronous, gating step after persist (additive-plus change
+  // matrix); removing a non-empty collection requires the
+  // datastore.stigmer.ai/acknowledge-collection-removal annotation
+  // naming it, otherwise the request fails with FAILED_PRECONDITION.
+  rpc apply(Datastore) returns (Datastore);
+
+  // Create a datastore.
+  //
+  // @internal
+  // Authorization: caller must have can_create_datastore permission in
+  // the organization. Max datastores per org is enforced as a domain
+  // validation constant in this pipeline.
+  rpc create(Datastore) returns (Datastore) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = organization;
+    option (ai.stigmer.commons.rpc.config).permission = can_create_datastore;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.org";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to create datastore in this organization";
+  }
+
+  // Update an existing datastore.
+  //
+  // @internal
+  // Authorization: requires can_edit permission on the datastore
+  // resource. Updates are full spec replaces; the gating schema-sync
+  // step diffs against the loaded existing spec and applies the
+  // additive-plus change matrix (DD-004): no transition silently
+  // destroys or nulls record data.
+  rpc update(Datastore) returns (Datastore) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = datastore;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "metadata.id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update datastore";
+  }
+
+  // Update the visibility of an existing datastore.
+  //
+  // Only modifies metadata.visibility. Datastores support two levels:
+  // private (the default) and org. Setting org shares the datastore
+  // with the owning organization for human administration; it does not
+  // change record-layer access, which is governed solely by the
+  // datastore's authorization block and agent datastore_usages.
+  //
+  // @internal
+  // Authorization: requires can_edit permission on the datastore
+  // resource. public/platform levels are rejected via the kind's
+  // VisibilityConfig (supports_org only) — business records must never
+  // be resolvable across the org boundary.
+  rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (Datastore) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = datastore;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to update datastore visibility";
+  }
+
+  // Delete a datastore and every record it holds.
+  //
+  // Deleting a non-empty datastore requires force: without it the
+  // request fails with FAILED_PRECONDITION reporting how many records
+  // across how many collections would be destroyed. A datastore
+  // referenced by any agent's datastore_usages cannot be deleted until
+  // the references are removed.
+  //
+  // @internal
+  // Authorization: requires can_edit permission on the datastore
+  // resource. The two guards (record-count acknowledgment via force;
+  // agent-reference block, never forceable) run in the delete pipeline
+  // of both editions. Record tools never delete structures — this RPC
+  // is the only path that destroys collections.
+  rpc delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput) returns (Datastore) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = datastore;
+    option (ai.stigmer.commons.rpc.config).permission = can_edit;
+    option (ai.stigmer.commons.rpc.config).field_path = "resource_id";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to delete datastore";
+  }
+}

@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.datastore.v1;
+
+import "ai/stigmer/agentic/datastore/v1/api.proto";
+import "ai/stigmer/agentic/datastore/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// DatastoreQueryController handles read operations for datastores.
+//
+// @internal
+// These RPCs read the datastore resource (spec + status), not its
+// records. Record reads go through DatastoreRecordQueryController.
+service DatastoreQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = datastore;
+
+  // Get a datastore by ID.
+  //
+  // @internal
+  // Authorization: requires can_view permission on the datastore resource.
+  rpc get(ai.stigmer.commons.apiresource.ApiResourceId) returns (Datastore) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = datastore;
+    option (ai.stigmer.commons.rpc.config).permission = can_view;
+    option (ai.stigmer.commons.rpc.config).field_path = "value";
+    option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to get datastore";
+  }
+
+  // Get a datastore by its organization-scoped reference (org/slug).
+  // Resolves a human-readable reference like "acme/clinic-records" to the full Datastore resource.
+  //
+  // @internal
+  // Custom authorization in handler — checks both direct resource access
+  // and organization-level visibility permissions.
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Datastore) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+
+  // List datastores with optional label filtering.
+  //
+  // @internal
+  // Authorization is handled in-handler via FGA-filtered queries (cloud)
+  // or unrestricted store queries (OSS).
+  rpc list(ListDatastoresRequest) returns (DatastoreList) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+}

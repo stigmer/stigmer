@@ -1,0 +1,63 @@
+{
+  "name": "UniqueConstraint",
+  "description": "UniqueConstraint enforces uniqueness over one or more fields,\n optionally limited to records matching a condition.\n\n @internal\n Always substrate-enforced as an index (partial index when `where` is\n set), never read-then-write in domain logic. Violations surface as\n ALREADY_EXISTS carrying the declared message.",
+  "protoType": "ai.stigmer.agentic.datastore.v1.UniqueConstraint",
+  "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Constraint name, unique within the collection.",
+      "required": true,
+      "validation": {
+        "required": true,
+        "maxLength": 63,
+        "pattern": "^[a-z][a-z0-9_]*$"
+      }
+    },
+    {
+      "name": "Fields",
+      "jsonName": "fields",
+      "protoField": "fields",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Declared fields whose combined values must be unique.",
+      "required": false,
+      "validation": {
+        "minItems": 1
+      }
+    },
+    {
+      "name": "Where",
+      "jsonName": "where",
+      "protoField": "where",
+      "type": {
+        "kind": "message",
+        "messageType": "UniqueWhere"
+      },
+      "description": "Limits the constraint to records matching this condition\n (e.g. only `status == \"confirmed\"` bookings must be unique per slot).\n\n @internal\n Structured, never an expression — it must compile to the\n substrate's partial-index dialect in both editions.",
+      "required": false
+    },
+    {
+      "name": "Message",
+      "jsonName": "message",
+      "protoField": "message",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Error message returned on violation, written to be relayed to an\n end user by an agent (e.g. \"that slot is already booked\").",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    }
+  ]
+}

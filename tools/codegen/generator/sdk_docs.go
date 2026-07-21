@@ -1761,6 +1761,8 @@ func docTypeString(ts *TypeSpec) string {
 		return "string"
 	case "struct":
 		return "object"
+	case "value":
+		return "any"
 	case "array":
 		if ts.ElementType != nil {
 			return docTypeString(ts.ElementType) + "[]"

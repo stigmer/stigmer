@@ -100,13 +100,6 @@ type IamPolicyInput struct {
 	Relation   string
 }
 
-// ApiResourceRefInput is the SDK input type for ApiResourceRef.
-type ApiResourceRefInput struct {
-	Kind     string
-	Id       string
-	Relation string
-}
-
 func (i *IamPolicyInput) toProto() *iampolicyv1.IamPolicy {
 	resource := &iampolicyv1.IamPolicy{
 		ApiVersion: "iam.stigmer.ai/v1",
@@ -156,16 +149,5 @@ func IamPolicyInputFromProto(p *iampolicyv1.IamPolicy) *IamPolicyInput {
 		input.Resource = apiResourceRefInputFromProto(s.GetResource())
 		input.Relation = s.GetRelation()
 	}
-	return input
-}
-
-func apiResourceRefInputFromProto(p *iampolicyv1.ApiResourceRef) *ApiResourceRefInput {
-	if p == nil {
-		return nil
-	}
-	input := &ApiResourceRefInput{}
-	input.Kind = p.GetKind()
-	input.Id = p.GetId()
-	input.Relation = p.GetRelation()
 	return input
 }

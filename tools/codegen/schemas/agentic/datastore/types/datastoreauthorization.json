@@ -1,0 +1,52 @@
+{
+  "name": "DatastoreAuthorization",
+  "description": "DatastoreAuthorization declares the record-layer access model: roles,\n subject bindings, and the default role for unbound callers.\n\n @internal\n Evaluated in datastore domain logic in both editions — deliberately\n NOT part of the kind registry's AuthorizationConfig, which governs\n only the resource layer (who may edit the datastore itself). Agents\n are never record-layer subjects; they reach records through their\n datastore_usages, and the caller resolved here is the channel sender\n or platform principal behind the session.",
+  "protoType": "ai.stigmer.agentic.datastore.v1.DatastoreAuthorization",
+  "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Roles",
+      "jsonName": "roles",
+      "protoField": "roles",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "DatastoreRole"
+        }
+      },
+      "description": "Role names referenced by bindings and grants (e.g. \"admin\", \"patient\").",
+      "required": false,
+      "validation": {
+        "maxItems": 20
+      }
+    },
+    {
+      "name": "Bindings",
+      "jsonName": "bindings",
+      "protoField": "bindings",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "DatastoreRoleBinding"
+        }
+      },
+      "description": "Subject-to-role bindings.\n\n @internal\n Role-reference integrity (every binding names a declared role) is\n domain validation.",
+      "required": false,
+      "validation": {
+        "maxItems": 200
+      }
+    },
+    {
+      "name": "DefaultRole",
+      "jsonName": "defaultRole",
+      "protoField": "default_role",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Role an unbound caller resolves to.\n\n Applies to channel senders with no binding and platform principals\n with no binding. When empty, unbound callers are denied every verb.",
+      "required": false
+    }
+  ]
+}

@@ -147,6 +147,9 @@ func javaTypeForTypeSpec(ts *TypeSpec, typeMap map[string]*TypeSchema) string {
 		return "String"
 	case "struct":
 		return "java.util.Map<String, Object>"
+	case "value":
+		// google.protobuf.Value — any JSON-representable scalar or composite.
+		return "Object"
 	case "array":
 		if ts.ElementType != nil {
 			elemType := javaTypeForTypeSpec(ts.ElementType, typeMap)
@@ -1248,7 +1251,7 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 			if f.Type.Kind == "timestamp" {
 				needsTimestamp = true
 			}
-			if f.Type.Kind == "struct" {
+			if f.Type.Kind == "struct" || f.Type.Kind == "value" {
 				needsStruct = true
 			}
 			if f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.MessageType == "ExecutionValue" {
@@ -1527,6 +1530,11 @@ func emitJavaToProtoField(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]
 		fmt.Fprintf(buf, "%s    spec.%s(ProtoConvert.mapToStruct(this.%s));\n", indent, javaSetterName(f.ProtoField), fieldName)
 		fmt.Fprintf(buf, "%s}\n", indent)
 
+	case f.Type.Kind == "value":
+		fmt.Fprintf(buf, "%sif (this.%s != null) {\n", indent, fieldName)
+		fmt.Fprintf(buf, "%s    spec.%s(ProtoConvert.objectToValue(this.%s));\n", indent, javaSetterName(f.ProtoField), fieldName)
+		fmt.Fprintf(buf, "%s}\n", indent)
+
 	case f.Type.Kind == "string" && f.Type.EnumType != "":
 		fmt.Fprintf(buf, "%sif (this.%s != null) {\n", indent, fieldName)
 		fmt.Fprintf(buf, "%s    spec.%s(this.%s);\n", indent, javaSetterName(f.ProtoField), fieldName)
@@ -1674,6 +1682,11 @@ func emitJavaNestedToProtoField(buf *bytes.Buffer, f *FieldSchema, typeMap map[s
 	case f.Type.Kind == "struct":
 		fmt.Fprintf(buf, "%sif (this.%s != null) {\n", indent, fieldName)
 		fmt.Fprintf(buf, "%s    builder.%s(ProtoConvert.mapToStruct(this.%s));\n", indent, javaSetterName(f.ProtoField), fieldName)
+		fmt.Fprintf(buf, "%s}\n", indent)
+
+	case f.Type.Kind == "value":
+		fmt.Fprintf(buf, "%sif (this.%s != null) {\n", indent, fieldName)
+		fmt.Fprintf(buf, "%s    builder.%s(ProtoConvert.objectToValue(this.%s));\n", indent, javaSetterName(f.ProtoField), fieldName)
 		fmt.Fprintf(buf, "%s}\n", indent)
 
 	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference":

@@ -272,4 +272,53 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue);
    */
   ai.stigmer.agentic.environment.v1.EnvVarDeclaration getEnvOrThrow(
       java.lang.String key);
+
+  /**
+   * <pre>
+   * Datastores this agent can use.
+   * Each entry must reference a Datastore resource by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<ai.stigmer.agentic.agent.v1.DatastoreUsage> 
+      getDatastoreUsagesList();
+  /**
+   * <pre>
+   * Datastores this agent can use.
+   * Each entry must reference a Datastore resource by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.agentic.agent.v1.DatastoreUsage getDatastoreUsages(int index);
+  /**
+   * <pre>
+   * Datastores this agent can use.
+   * Each entry must reference a Datastore resource by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+   */
+  int getDatastoreUsagesCount();
+  /**
+   * <pre>
+   * Datastores this agent can use.
+   * Each entry must reference a Datastore resource by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.agent.v1.DatastoreUsageOrBuilder> 
+      getDatastoreUsagesOrBuilderList();
+  /**
+   * <pre>
+   * Datastores this agent can use.
+   * Each entry must reference a Datastore resource by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.DatastoreUsage datastore_usages = 9 [json_name = "datastoreUsages", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.agentic.agent.v1.DatastoreUsageOrBuilder getDatastoreUsagesOrBuilder(
+      int index);
 }
