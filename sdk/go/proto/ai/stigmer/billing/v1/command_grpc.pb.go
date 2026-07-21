@@ -27,6 +27,9 @@ const (
 	BillingCommandController_CreateCreditCheckoutSession_FullMethodName = "/ai.stigmer.billing.v1.BillingCommandController/createCreditCheckoutSession"
 	BillingCommandController_CreateBillingPortalSession_FullMethodName  = "/ai.stigmer.billing.v1.BillingCommandController/createBillingPortalSession"
 	BillingCommandController_SetAutoRechargeConfig_FullMethodName       = "/ai.stigmer.billing.v1.BillingCommandController/setAutoRechargeConfig"
+	BillingCommandController_DecideModelPricingOverride_FullMethodName  = "/ai.stigmer.billing.v1.BillingCommandController/decideModelPricingOverride"
+	BillingCommandController_UpsertModelPricingBaseline_FullMethodName  = "/ai.stigmer.billing.v1.BillingCommandController/upsertModelPricingBaseline"
+	BillingCommandController_RetireModelPricingBaseline_FullMethodName  = "/ai.stigmer.billing.v1.BillingCommandController/retireModelPricingBaseline"
 )
 
 // BillingCommandControllerClient is the client API for BillingCommandController service.
@@ -87,6 +90,22 @@ type BillingCommandControllerClient interface {
 	// Enabling requires an active account with a saved payment method.
 	// Disabling preserves the threshold/amount/cap for easy re-enablement.
 	SetAutoRechargeConfig(ctx context.Context, in *SetAutoRechargeConfigInput, opts ...grpc.CallOption) (*BillingAccount, error)
+	// Record a human decision on a PENDING_SIGNOFF pricing override from the
+	// pricing feedback loop. Approving makes the override ACTIVE (superseding
+	// any current ACTIVE override on the same pricing key) and recomposes the
+	// effective registry; rejecting archives it for audit.
+	DecideModelPricingOverride(ctx context.Context, in *DecideModelPricingOverrideInput, opts ...grpc.CallOption) (*ModelPricingOverride, error)
+	// Create or revise one model registry baseline entry (catalog + list
+	// prices). Append-only: an existing ACTIVE document for the same
+	// (model_id, provider, harness) key is superseded, never mutated. The
+	// effective registry is recomposed immediately, so the revision reaches
+	// billing and every published price surface atomically.
+	UpsertModelPricingBaseline(ctx context.Context, in *UpsertModelPricingBaselineInput, opts ...grpc.CallOption) (*ModelPricingBaseline, error)
+	// Retire one model from the registry catalog. The next composition pass
+	// drops it from the effective registry and archives any ACTIVE pricing
+	// overrides that targeted it. Kept for audit; the key can be revived by
+	// a subsequent upsert.
+	RetireModelPricingBaseline(ctx context.Context, in *RetireModelPricingBaselineInput, opts ...grpc.CallOption) (*ModelPricingBaseline, error)
 }
 
 type billingCommandControllerClient struct {
@@ -177,6 +196,36 @@ func (c *billingCommandControllerClient) SetAutoRechargeConfig(ctx context.Conte
 	return out, nil
 }
 
+func (c *billingCommandControllerClient) DecideModelPricingOverride(ctx context.Context, in *DecideModelPricingOverrideInput, opts ...grpc.CallOption) (*ModelPricingOverride, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ModelPricingOverride)
+	err := c.cc.Invoke(ctx, BillingCommandController_DecideModelPricingOverride_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingCommandControllerClient) UpsertModelPricingBaseline(ctx context.Context, in *UpsertModelPricingBaselineInput, opts ...grpc.CallOption) (*ModelPricingBaseline, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ModelPricingBaseline)
+	err := c.cc.Invoke(ctx, BillingCommandController_UpsertModelPricingBaseline_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingCommandControllerClient) RetireModelPricingBaseline(ctx context.Context, in *RetireModelPricingBaselineInput, opts ...grpc.CallOption) (*ModelPricingBaseline, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ModelPricingBaseline)
+	err := c.cc.Invoke(ctx, BillingCommandController_RetireModelPricingBaseline_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BillingCommandControllerServer is the server API for BillingCommandController service.
 // All implementations should embed UnimplementedBillingCommandControllerServer
 // for forward compatibility.
@@ -235,6 +284,22 @@ type BillingCommandControllerServer interface {
 	// Enabling requires an active account with a saved payment method.
 	// Disabling preserves the threshold/amount/cap for easy re-enablement.
 	SetAutoRechargeConfig(context.Context, *SetAutoRechargeConfigInput) (*BillingAccount, error)
+	// Record a human decision on a PENDING_SIGNOFF pricing override from the
+	// pricing feedback loop. Approving makes the override ACTIVE (superseding
+	// any current ACTIVE override on the same pricing key) and recomposes the
+	// effective registry; rejecting archives it for audit.
+	DecideModelPricingOverride(context.Context, *DecideModelPricingOverrideInput) (*ModelPricingOverride, error)
+	// Create or revise one model registry baseline entry (catalog + list
+	// prices). Append-only: an existing ACTIVE document for the same
+	// (model_id, provider, harness) key is superseded, never mutated. The
+	// effective registry is recomposed immediately, so the revision reaches
+	// billing and every published price surface atomically.
+	UpsertModelPricingBaseline(context.Context, *UpsertModelPricingBaselineInput) (*ModelPricingBaseline, error)
+	// Retire one model from the registry catalog. The next composition pass
+	// drops it from the effective registry and archives any ACTIVE pricing
+	// overrides that targeted it. Kept for audit; the key can be revived by
+	// a subsequent upsert.
+	RetireModelPricingBaseline(context.Context, *RetireModelPricingBaselineInput) (*ModelPricingBaseline, error)
 }
 
 // UnimplementedBillingCommandControllerServer should be embedded to have
@@ -267,6 +332,15 @@ func (UnimplementedBillingCommandControllerServer) CreateBillingPortalSession(co
 }
 func (UnimplementedBillingCommandControllerServer) SetAutoRechargeConfig(context.Context, *SetAutoRechargeConfigInput) (*BillingAccount, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetAutoRechargeConfig not implemented")
+}
+func (UnimplementedBillingCommandControllerServer) DecideModelPricingOverride(context.Context, *DecideModelPricingOverrideInput) (*ModelPricingOverride, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DecideModelPricingOverride not implemented")
+}
+func (UnimplementedBillingCommandControllerServer) UpsertModelPricingBaseline(context.Context, *UpsertModelPricingBaselineInput) (*ModelPricingBaseline, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpsertModelPricingBaseline not implemented")
+}
+func (UnimplementedBillingCommandControllerServer) RetireModelPricingBaseline(context.Context, *RetireModelPricingBaselineInput) (*ModelPricingBaseline, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RetireModelPricingBaseline not implemented")
 }
 func (UnimplementedBillingCommandControllerServer) testEmbeddedByValue() {}
 
@@ -432,6 +506,60 @@ func _BillingCommandController_SetAutoRechargeConfig_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BillingCommandController_DecideModelPricingOverride_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DecideModelPricingOverrideInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingCommandControllerServer).DecideModelPricingOverride(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingCommandController_DecideModelPricingOverride_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingCommandControllerServer).DecideModelPricingOverride(ctx, req.(*DecideModelPricingOverrideInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BillingCommandController_UpsertModelPricingBaseline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertModelPricingBaselineInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingCommandControllerServer).UpsertModelPricingBaseline(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingCommandController_UpsertModelPricingBaseline_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingCommandControllerServer).UpsertModelPricingBaseline(ctx, req.(*UpsertModelPricingBaselineInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BillingCommandController_RetireModelPricingBaseline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RetireModelPricingBaselineInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingCommandControllerServer).RetireModelPricingBaseline(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingCommandController_RetireModelPricingBaseline_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingCommandControllerServer).RetireModelPricingBaseline(ctx, req.(*RetireModelPricingBaselineInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BillingCommandController_ServiceDesc is the grpc.ServiceDesc for BillingCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -470,6 +598,18 @@ var BillingCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "setAutoRechargeConfig",
 			Handler:    _BillingCommandController_SetAutoRechargeConfig_Handler,
+		},
+		{
+			MethodName: "decideModelPricingOverride",
+			Handler:    _BillingCommandController_DecideModelPricingOverride_Handler,
+		},
+		{
+			MethodName: "upsertModelPricingBaseline",
+			Handler:    _BillingCommandController_UpsertModelPricingBaseline_Handler,
+		},
+		{
+			MethodName: "retireModelPricingBaseline",
+			Handler:    _BillingCommandController_RetireModelPricingBaseline_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

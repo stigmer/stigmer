@@ -1,7 +1,6 @@
 package validation
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -13,67 +12,13 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/registry"
 )
 
-// The model registry is the single embedded copy shared with the
-// /v1/proxy/model-registry HTTP endpoint (see registry.ModelRegistryHandler).
-// It is a verbatim copy of stigmer-cloud's model-registry.json; entries that
-// are `$comment` section headers have no id and are skipped during indexing.
-type modelEntry struct {
-	ID         string `json:"id"`
-	ApiModelID string `json:"apiModelId"`
-	Harness    string `json:"harness"`
-}
-
-type modelRegistryData struct {
-	Models []modelEntry `json:"models"`
-}
-
-// modelsByHarness maps harness name ("native", "cursor") to the set of valid
-// model references: canonical ids plus provider api ids (apiModelId). Both are
-// accepted because the runner resolves canonical ids via the registry and
-// passes unknown-but-registered api ids to the provider verbatim — anything in
-// this set is executable (stigmer/stigmer#240).
-var modelsByHarness map[string]map[string]bool
-
-// sortedModelsByHarness maps harness name to a sorted slice of canonical model
-// IDs only (for deterministic suggestions — the canonical id is the documented
-// form, so suggestions never surface provider api ids).
-var sortedModelsByHarness map[string][]string
-
-func init() {
-	modelsByHarness = make(map[string]map[string]bool)
-	sortedModelsByHarness = make(map[string][]string)
-
-	registryJSON, err := registry.ReadEmbeddedModelRegistry()
-	if err != nil {
-		return
-	}
-
-	var data modelRegistryData
-	if err := json.Unmarshal(registryJSON, &data); err != nil {
-		return
-	}
-
-	canonicalByHarness := make(map[string][]string)
-
-	for _, m := range data.Models {
-		if m.ID == "" || m.Harness == "" {
-			continue
-		}
-		if modelsByHarness[m.Harness] == nil {
-			modelsByHarness[m.Harness] = make(map[string]bool)
-		}
-		modelsByHarness[m.Harness][m.ID] = true
-		canonicalByHarness[m.Harness] = append(canonicalByHarness[m.Harness], m.ID)
-		if m.ApiModelID != "" {
-			modelsByHarness[m.Harness][m.ApiModelID] = true
-		}
-	}
-
-	for harness, ids := range canonicalByHarness {
-		sort.Strings(ids)
-		sortedModelsByHarness[harness] = ids
-	}
-}
+// Model validity comes from the shared registry.Store() — the same
+// document the /v1/proxy/model-registry HTTP endpoint serves (the bundled
+// registry, upgraded by the background refresh from the cloud endpoint
+// when reachable). Reading the store per validation call instead of a
+// boot-time snapshot is what keeps validation and the served pickers in
+// lockstep: a model that appears in every picker after a refresh must
+// also validate (DD-004).
 
 const (
 	maxModelSuggestions  = 3
@@ -96,7 +41,8 @@ func ValidateModelReferences(spec *workflowv1.WorkflowSpec) []string {
 		return nil
 	}
 
-	if len(modelsByHarness) == 0 {
+	models := registry.Store()
+	if !models.HasAnyModels() {
 		return nil
 	}
 
@@ -156,16 +102,15 @@ func ValidateModelReferences(spec *workflowv1.WorkflowSpec) []string {
 			continue
 		}
 
-		validSet := modelsByHarness[harness]
-		if validSet == nil {
+		if !models.HasHarness(harness) {
 			continue
 		}
 
-		if validSet[model] {
+		if models.IsValidModel(harness, model) {
 			continue
 		}
 
-		errors = append(errors, buildModelError(task.Name, kindLabel, model, harness))
+		errors = append(errors, buildModelError(models, task.Name, kindLabel, model, harness))
 	}
 
 	return errors
@@ -180,8 +125,9 @@ func resolveHarnessName(h sessionv1.Harness) string {
 	}
 }
 
-func buildModelError(taskName, kindLabel, model, harness string) string {
-	suggestions := suggestSimilarModels(model, sortedModelsByHarness[harness])
+func buildModelError(models *registry.ModelRegistryStore,
+	taskName, kindLabel, model, harness string) string {
+	suggestions := suggestSimilarModels(model, models.CanonicalModels(harness))
 
 	msg := fmt.Sprintf(
 		"task '%s' (%s): model '%s' is not a valid model for harness '%s'",

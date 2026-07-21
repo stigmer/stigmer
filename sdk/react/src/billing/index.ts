@@ -9,6 +9,11 @@ export { useCustomerModelPricing } from "./useCustomerModelPricing.js";
 export type { UseCustomerModelPricingReturn } from "./useCustomerModelPricing.js";
 export { usePricingGovernance } from "./usePricingGovernance.js";
 export type { UsePricingGovernanceReturn } from "./usePricingGovernance.js";
+export { useModelPricingBaselines } from "./useModelPricingBaselines.js";
+export type {
+  UseModelPricingBaselinesOptions,
+  UseModelPricingBaselinesReturn,
+} from "./useModelPricingBaselines.js";
 
 // Behavior hooks
 export { useCreateCheckoutSession } from "./useCreateCheckoutSession.js";
@@ -28,6 +33,16 @@ export type {
   DecidePricingOverrideInput,
   UseDecidePricingOverrideReturn,
 } from "./useDecidePricingOverride.js";
+export { useUpsertModelPricingBaseline } from "./useUpsertModelPricingBaseline.js";
+export type {
+  UpsertModelPricingBaselineInput,
+  UseUpsertModelPricingBaselineReturn,
+} from "./useUpsertModelPricingBaseline.js";
+export { useRetireModelPricingBaseline } from "./useRetireModelPricingBaseline.js";
+export type {
+  RetireModelPricingBaselineInput,
+  UseRetireModelPricingBaselineReturn,
+} from "./useRetireModelPricingBaseline.js";
 
 // Styled components
 export { BillingSection } from "./BillingSection.js";
@@ -46,6 +61,8 @@ export { LowBalanceBanner } from "./LowBalanceBanner.js";
 export type { LowBalanceBannerProps } from "./LowBalanceBanner.js";
 export { PricingGovernancePanel } from "./PricingGovernancePanel.js";
 export type { PricingGovernancePanelProps } from "./PricingGovernancePanel.js";
+export { ModelCatalogPanel } from "./ModelCatalogPanel.js";
+export type { ModelCatalogPanelProps } from "./ModelCatalogPanel.js";
 
 // Credit pack catalog and formatting utilities
 export { CREDIT_PACKS, formatPackPrice, formatCreditCount } from "./credit-packs.js";

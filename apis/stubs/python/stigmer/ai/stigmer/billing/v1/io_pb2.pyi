@@ -3,6 +3,7 @@ import datetime
 from ai.stigmer.agentic.agentexecution.v1 import usage_pb2 as _usage_pb2
 from ai.stigmer.billing.v1 import credit_pb2 as _credit_pb2
 from ai.stigmer.billing.v1 import enum_pb2 as _enum_pb2
+from ai.stigmer.billing.v1 import model_pricing_baseline_pb2 as _model_pricing_baseline_pb2
 from ai.stigmer.billing.v1 import pricing_override_pb2 as _pricing_override_pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from buf.validate import validate_pb2 as _validate_pb2
@@ -322,6 +323,38 @@ class DecideModelPricingOverrideInput(_message.Message):
     approve: bool
     decision_note: str
     def __init__(self, override_id: _Optional[str] = ..., approve: bool = ..., decision_note: _Optional[str] = ...) -> None: ...
+
+class UpsertModelPricingBaselineInput(_message.Message):
+    __slots__ = ("baseline", "revision_note")
+    BASELINE_FIELD_NUMBER: _ClassVar[int]
+    REVISION_NOTE_FIELD_NUMBER: _ClassVar[int]
+    baseline: _model_pricing_baseline_pb2.ModelPricingBaseline
+    revision_note: str
+    def __init__(self, baseline: _Optional[_Union[_model_pricing_baseline_pb2.ModelPricingBaseline, _Mapping]] = ..., revision_note: _Optional[str] = ...) -> None: ...
+
+class RetireModelPricingBaselineInput(_message.Message):
+    __slots__ = ("model_id", "provider", "harness", "revision_note")
+    MODEL_ID_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_FIELD_NUMBER: _ClassVar[int]
+    HARNESS_FIELD_NUMBER: _ClassVar[int]
+    REVISION_NOTE_FIELD_NUMBER: _ClassVar[int]
+    model_id: str
+    provider: str
+    harness: str
+    revision_note: str
+    def __init__(self, model_id: _Optional[str] = ..., provider: _Optional[str] = ..., harness: _Optional[str] = ..., revision_note: _Optional[str] = ...) -> None: ...
+
+class ListModelPricingBaselinesInput(_message.Message):
+    __slots__ = ("include_history",)
+    INCLUDE_HISTORY_FIELD_NUMBER: _ClassVar[int]
+    include_history: bool
+    def __init__(self, include_history: bool = ...) -> None: ...
+
+class ModelPricingBaselinesResponse(_message.Message):
+    __slots__ = ("baselines",)
+    BASELINES_FIELD_NUMBER: _ClassVar[int]
+    baselines: _containers.RepeatedCompositeFieldContainer[_model_pricing_baseline_pb2.ModelPricingBaseline]
+    def __init__(self, baselines: _Optional[_Iterable[_Union[_model_pricing_baseline_pb2.ModelPricingBaseline, _Mapping]]] = ...) -> None: ...
 
 class CustomerModelPricingEntry(_message.Message):
     __slots__ = ("model_id", "display_name", "provider", "harness", "cost_tier", "input_price_micros_per_million", "output_price_micros_per_million", "cache_creation_price_micros_per_million", "cache_read_price_micros_per_million", "pricing_policy_id", "markup_basis_points")

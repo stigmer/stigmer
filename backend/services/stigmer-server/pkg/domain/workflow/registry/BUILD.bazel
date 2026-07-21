@@ -4,6 +4,7 @@ go_library(
     name = "registry",
     srcs = [
         "model_registry.go",
+        "model_registry_store.go",
         "task_kind_registry.go",
     ],
     embedsrcs = [
@@ -17,6 +18,9 @@ go_library(
 
 go_test(
     name = "registry_test",
-    srcs = ["model_registry_test.go"],
+    srcs = [
+        "model_registry_store_test.go",
+        "model_registry_test.go",
+    ],
     embed = [":registry"],
 )

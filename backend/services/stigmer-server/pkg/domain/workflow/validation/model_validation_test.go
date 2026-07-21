@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflow/registry"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -113,23 +114,25 @@ func TestValidateModelReferences_Suggestions_AreCanonicalOnly(t *testing.T) {
 	}
 }
 
-// The embedded registry is a verbatim copy of stigmer-cloud's, whose models
-// array interleaves `$comment` section-header rows (no id). Indexing must
-// skip them and still populate both harnesses.
+// The bundled registry is a snapshot of stigmer-cloud's, whose models
+// array interleaves `$comment` section-header rows (no id). The shared
+// store's indexing must skip them and still populate both harnesses.
 func TestModelRegistryIndex_PopulatedFromVerbatimRegistry(t *testing.T) {
+	models := registry.Store()
 	for _, harness := range []string{harnessNameNative, harnessNameCursor} {
-		if len(modelsByHarness[harness]) == 0 {
-			t.Errorf("Expected models indexed for harness %q — did the embedded registry parse fail?", harness)
+		if !models.HasHarness(harness) {
+			t.Errorf("Expected models indexed for harness %q — did the bundled registry parse fail?", harness)
 		}
-		if len(sortedModelsByHarness[harness]) == 0 {
+		if len(models.CanonicalModels(harness)) == 0 {
 			t.Errorf("Expected canonical suggestion candidates for harness %q", harness)
 		}
 	}
 
-	// Alias sets must be supersets of the canonical lists: every canonical id
-	// is valid, and native gains apiModelId aliases on top.
-	if len(modelsByHarness[harnessNameNative]) <= len(sortedModelsByHarness[harnessNameNative]) {
-		t.Error("Expected native valid set to exceed canonical count (apiModelId aliases added)")
+	// Api-id aliases are valid on top of canonical ids: a canonical id and
+	// its provider api id must both resolve (stigmer/stigmer#240).
+	if !models.IsValidModel(harnessNameNative, "claude-haiku-4.5") ||
+		!models.IsValidModel(harnessNameNative, "claude-haiku-4-5-20251001") {
+		t.Error("Expected both the canonical id and its apiModelId alias to validate")
 	}
 }
 

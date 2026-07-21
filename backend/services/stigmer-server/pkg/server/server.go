@@ -622,6 +622,10 @@ func Run() error {
 	// model ids without an authenticated fetch from the hosted API.
 	registryHandler := workflowregistry.NewHandler()
 	modelRegistryHandler := workflowregistry.NewModelRegistryHandler()
+	// Keep the bundled model registry fresh from the public cloud endpoint
+	// (DD-004). Fully optional: offline installs quietly keep the bundle,
+	// and STIGMER_MODEL_REGISTRY_REFRESH=off disables outbound calls.
+	workflowregistry.StartModelRegistryRefresh(monitorCtx)
 
 	// Unified HTTP handler that routes between REST proxy endpoints,
 	// gRPC-Web, native gRPC, and 404.

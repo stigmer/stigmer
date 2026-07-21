@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { BillingUsageReportResponse, CreditLedgerResponse, CustomerModelPricingResponse, GetBillingAccountInput, GetBillingUsageReportInput, GetCreditBalanceInput, GetCreditLedgerInput, GetCustomerModelPricingInput, GetModelPricingGovernanceInput, ModelPricingGovernanceResponse } from "./io_pbjs";
+import { BillingUsageReportResponse, CreditLedgerResponse, CustomerModelPricingResponse, GetBillingAccountInput, GetBillingUsageReportInput, GetCreditBalanceInput, GetCreditLedgerInput, GetCustomerModelPricingInput, GetModelPricingGovernanceInput, ListModelPricingBaselinesInput, ModelPricingBaselinesResponse, ModelPricingGovernanceResponse } from "./io_pbjs";
 import { BillingAccount, CreditBalance } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -87,6 +87,21 @@ export const BillingQueryController = {
       name: "getModelPricingGovernance",
       I: GetModelPricingGovernanceInput,
       O: ModelPricingGovernanceResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Retrieve the model registry baseline catalog (ACTIVE documents, or the
+     * full append-only revision history when include_history is set).
+     *
+     * Operator surface: exposes raw provider rates (pre-markup) and revision
+     * provenance, so it is platform-gated like the governance view.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.listModelPricingBaselines
+     */
+    listModelPricingBaselines: {
+      name: "listModelPricingBaselines",
+      I: ListModelPricingBaselinesInput,
+      O: ModelPricingBaselinesResponse,
       kind: MethodKind.Unary,
     },
   }

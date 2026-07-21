@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@stigmer/theme";
-import { getUserMessage } from "@stigmer/sdk";
+import { getUserMessage, isPermissionDenied } from "@stigmer/sdk";
 import type {
   ModelPricingGovernanceEntry,
 } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
@@ -10,6 +10,7 @@ import {
   type ModelPricingOverride,
 } from "@stigmer/protos/ai/stigmer/billing/v1/pricing_override_pb";
 import { Button } from "../button/index.js";
+import { OperatorAccessNotice } from "./OperatorAccessNotice.js";
 import { usePricingGovernance } from "./usePricingGovernance.js";
 import { useDecidePricingOverride } from "./useDecidePricingOverride.js";
 
@@ -68,6 +69,11 @@ export function PricingGovernancePanel({ className }: PricingGovernancePanelProp
   }
 
   if (error) {
+    // A non-operator landing here is expected (the route is reachable by
+    // URL) — show the designed access notice, not a raw RPC error.
+    if (isPermissionDenied(error)) {
+      return <OperatorAccessNotice className={className} />;
+    }
     return (
       <p className={cn("text-destructive text-xs", className)} role="alert">
         {getUserMessage(error)}

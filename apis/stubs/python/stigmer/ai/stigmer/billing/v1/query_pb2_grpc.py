@@ -48,6 +48,11 @@ class BillingQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetModelPricingGovernanceInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ModelPricingGovernanceResponse.FromString,
                 _registered_method=True)
+        self.listModelPricingBaselines = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingQueryController/listModelPricingBaselines',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ListModelPricingBaselinesInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ModelPricingBaselinesResponse.FromString,
+                _registered_method=True)
 
 
 class BillingQueryControllerServicer(object):
@@ -104,6 +109,17 @@ class BillingQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def listModelPricingBaselines(self, request, context):
+        """Retrieve the model registry baseline catalog (ACTIVE documents, or the
+        full append-only revision history when include_history is set).
+
+        Operator surface: exposes raw provider rates (pre-markup) and revision
+        provenance, so it is platform-gated like the governance view.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_BillingQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -136,6 +152,11 @@ def add_BillingQueryControllerServicer_to_server(servicer, server):
                     servicer.getModelPricingGovernance,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetModelPricingGovernanceInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ModelPricingGovernanceResponse.SerializeToString,
+            ),
+            'listModelPricingBaselines': grpc.unary_unary_rpc_method_handler(
+                    servicer.listModelPricingBaselines,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ListModelPricingBaselinesInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ModelPricingBaselinesResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -303,6 +324,33 @@ class BillingQueryController(object):
             '/ai.stigmer.billing.v1.BillingQueryController/getModelPricingGovernance',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetModelPricingGovernanceInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ModelPricingGovernanceResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listModelPricingBaselines(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.billing.v1.BillingQueryController/listModelPricingBaselines',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ListModelPricingBaselinesInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ModelPricingBaselinesResponse.FromString,
             options,
             channel_credentials,
             insecure,

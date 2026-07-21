@@ -14,14 +14,19 @@ import {
   GetCustomerModelPricingInputSchema,
   GetModelPricingGovernanceInputSchema,
   DecideModelPricingOverrideInputSchema,
+  UpsertModelPricingBaselineInputSchema,
+  RetireModelPricingBaselineInputSchema,
+  ListModelPricingBaselinesInputSchema,
   type CreateCreditCheckoutSessionResponse,
   type CreateBillingPortalSessionResponse,
   type CreditLedgerResponse,
   type BillingUsageReportResponse,
   type CustomerModelPricingResponse,
   type ModelPricingGovernanceResponse,
+  type ModelPricingBaselinesResponse,
 } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
 import type { ModelPricingOverride } from "@stigmer/protos/ai/stigmer/billing/v1/pricing_override_pb";
+import type { ModelPricingBaseline } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import type { BillingAccount, CreditBalance } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 import type { LedgerEntryType, LedgerView } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
@@ -76,6 +81,36 @@ export interface GetBillingUsageReportParams {
 /** Parameters for querying customer model pricing. */
 export interface GetCustomerModelPricingParams {
   readonly orgId?: string;
+}
+
+/** Parameters for creating or revising a model registry baseline entry. */
+export interface UpsertModelPricingBaselineParams {
+  /**
+   * The baseline entry to create or revise, keyed by
+   * (modelId, provider, harness). Lifecycle fields (baselineId, status,
+   * decision stamps, pricing effectiveAt) are server-owned and ignored.
+   */
+  readonly baseline: ModelPricingBaseline;
+  /** Optional operator note recorded on the revision for the audit trail. */
+  readonly revisionNote?: string;
+}
+
+/** Parameters for retiring a model from the registry catalog. */
+export interface RetireModelPricingBaselineParams {
+  readonly modelId: string;
+  readonly provider: string;
+  readonly harness: string;
+  /** Optional operator note recorded on the retirement. */
+  readonly revisionNote?: string;
+}
+
+/** Parameters for listing the model registry baseline catalog. */
+export interface ListModelPricingBaselinesParams {
+  /**
+   * When `true`, includes SUPERSEDED and RETIRED revisions (the full
+   * audit history). Default: ACTIVE documents only.
+   */
+  readonly includeHistory?: boolean;
 }
 
 /** Parameters for deciding a pending pricing override. */
@@ -323,6 +358,72 @@ export class BillingClient {
           overrideId: params.overrideId,
           approve: params.approve,
           decisionNote: params.decisionNote ?? "",
+        }),
+      );
+    } catch (e) {
+      throw wrapError(e);
+    }
+  }
+
+  /**
+   * Retrieve the model registry baseline catalog: ACTIVE entries by
+   * default, or the full append-only revision history with
+   * `includeHistory`.
+   *
+   * Platform-operator surface (`can_manage_model_pricing` on
+   * `platform:stigmer`): rates are raw provider prices, pre-markup.
+   */
+  async listModelPricingBaselines(
+    params?: ListModelPricingBaselinesParams,
+  ): Promise<ModelPricingBaselinesResponse> {
+    try {
+      return await this.query.listModelPricingBaselines(
+        create(ListModelPricingBaselinesInputSchema, {
+          includeHistory: params?.includeHistory ?? false,
+        }),
+      );
+    } catch (e) {
+      throw wrapError(e);
+    }
+  }
+
+  /**
+   * Create or revise one model registry baseline entry (catalog + list
+   * prices). Append-only: an existing ACTIVE entry for the same
+   * (modelId, provider, harness) key is superseded, never mutated, and
+   * the effective registry recomposes immediately. Returns the new
+   * revision with server-stamped lifecycle fields.
+   */
+  async upsertModelPricingBaseline(
+    params: UpsertModelPricingBaselineParams,
+  ): Promise<ModelPricingBaseline> {
+    try {
+      return await this.command.upsertModelPricingBaseline(
+        create(UpsertModelPricingBaselineInputSchema, {
+          baseline: params.baseline,
+          revisionNote: params.revisionNote ?? "",
+        }),
+      );
+    } catch (e) {
+      throw wrapError(e);
+    }
+  }
+
+  /**
+   * Retire one model from the registry catalog. The model disappears
+   * from every price surface on the next composition pass; the document
+   * is kept for audit and the key can be revived by a subsequent upsert.
+   */
+  async retireModelPricingBaseline(
+    params: RetireModelPricingBaselineParams,
+  ): Promise<ModelPricingBaseline> {
+    try {
+      return await this.command.retireModelPricingBaseline(
+        create(RetireModelPricingBaselineInputSchema, {
+          modelId: params.modelId,
+          provider: params.provider,
+          harness: params.harness,
+          revisionNote: params.revisionNote ?? "",
         }),
       );
     } catch (e) {

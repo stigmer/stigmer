@@ -5,6 +5,7 @@ package ai.stigmer.billing.v1;
 import "ai/stigmer/agentic/agentexecution/v1/usage.proto";
 import "ai/stigmer/billing/v1/credit.proto";
 import "ai/stigmer/billing/v1/enum.proto";
+import "ai/stigmer/billing/v1/model_pricing_baseline.proto";
 import "ai/stigmer/billing/v1/pricing_override.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
@@ -391,6 +392,53 @@ message DecideModelPricingOverrideInput {
 
   // Optional note recorded on the decision for the audit trail.
   string decision_note = 3;
+}
+
+// UpsertModelPricingBaselineInput creates or revises one model registry
+// baseline entry.
+//
+// The (model_id, provider, harness) key identifies the entry: when an
+// ACTIVE document already exists for the key it is superseded by this
+// revision; otherwise a new catalog entry is created (which also revives a
+// RETIRED key). Lifecycle fields on the embedded baseline (baseline_id,
+// status, supersedes_baseline_id, decided_by/at, created_at) are
+// server-owned and ignored; pricing effective_at is stamped server-side so
+// baseline edits always win DD-003 Decision 6 staleness against older
+// ledger-derived overrides.
+message UpsertModelPricingBaselineInput {
+  ModelPricingBaseline baseline = 1 [(buf.validate.field).required = true];
+
+  // Optional operator note explaining the revision, recorded on the new
+  // document for the audit trail.
+  string revision_note = 2 [(buf.validate.field).string.max_len = 1024];
+}
+
+// RetireModelPricingBaselineInput removes one model from the catalog.
+//
+// The ACTIVE document for the key transitions to RETIRED; the next
+// composition pass drops the model from the effective registry and
+// archives any ACTIVE pricing overrides that targeted it.
+message RetireModelPricingBaselineInput {
+  string model_id = 1 [(buf.validate.field).required = true];
+  string provider = 2 [(buf.validate.field).required = true];
+  string harness = 3 [(buf.validate.field).required = true];
+
+  // Optional operator note explaining the retirement.
+  string revision_note = 4 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListModelPricingBaselinesInput requests the baseline catalog.
+message ListModelPricingBaselinesInput {
+  // When true, includes SUPERSEDED and RETIRED revisions (the full audit
+  // history). Default: ACTIVE documents only.
+  bool include_history = 1;
+}
+
+// ModelPricingBaselinesResponse is the baseline catalog, ordered by
+// harness, provider, then model id; historical revisions (when requested)
+// follow their key's ACTIVE document newest-first.
+message ModelPricingBaselinesResponse {
+  repeated ModelPricingBaseline baselines = 1;
 }
 
 // CustomerModelPricingEntry is the customer-facing price for one model.

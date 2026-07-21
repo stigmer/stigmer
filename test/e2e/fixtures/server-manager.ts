@@ -205,6 +205,9 @@ export async function startBackendStack(opts: {
     LOG_LEVEL: "info",
     TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE: "stigmer_runner",
     TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE: "stigmer_runner",
+    // Test hermeticity: never let the server phone the cloud registry
+    // endpoint from CI — the bundled registry is the fixture.
+    STIGMER_MODEL_REGISTRY_REFRESH: "off",
   };
 
   const server = spawn(serverBin, [], { env: serverEnv, stdio: ["ignore", "pipe", "pipe"] });

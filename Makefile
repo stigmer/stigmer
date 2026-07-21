@@ -150,21 +150,23 @@ gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync i
 	cp -R tools/codegen/output/json-schemas \
 		backend/services/stigmer-server/pkg/domain/workflow/registry/data/json-schemas
 
-# Source of truth for the model registry is stigmer-cloud (see the cloud repo's
-# update-model-registry rule, which refreshes it from live pricing sources and
-# ends by running this target). No CI drift check is possible here because the
-# cloud repo is not available in OSS CI — the cloud-side rule is the enforcement
-# point that keeps the two copies in lockstep.
-MODEL_REGISTRY_SOURCE ?= ../stigmer-cloud/backend/services/stigmer-service/src/main/resources/model-registry.json
+# Source of truth for the model registry is the cloud platform's database
+# (DD-004: baseline + ledger-derived overrides, served publicly). The bundled
+# copy here is a build-time snapshot: the server prefers a live refresh from
+# the same endpoint at runtime (see registry.ModelRegistryStore), so this
+# target is a convenience that keeps the offline fallback reasonably fresh —
+# it is no longer correctness-critical.
+MODEL_REGISTRY_UPSTREAM ?= https://api.stigmer.ai
 
-sync-model-registry: ## Sync model-registry.json from the sibling stigmer-cloud checkout into the backend embed
-	@if [ ! -f "$(MODEL_REGISTRY_SOURCE)" ]; then \
-		echo "error: $(MODEL_REGISTRY_SOURCE) not found — checkout stigmer-cloud next to this repo or set MODEL_REGISTRY_SOURCE"; \
-		exit 1; \
-	fi
-	cp "$(MODEL_REGISTRY_SOURCE)" \
+sync-model-registry: ## Refresh the bundled model-registry.json snapshot from the public cloud endpoint
+	@curl -fsSL "$(MODEL_REGISTRY_UPSTREAM)/api/v1/public/model-registry" \
+		-o backend/services/stigmer-server/pkg/domain/workflow/registry/data/model-registry.json.tmp \
+		|| { echo "error: could not fetch $(MODEL_REGISTRY_UPSTREAM)/api/v1/public/model-registry"; \
+		     rm -f backend/services/stigmer-server/pkg/domain/workflow/registry/data/model-registry.json.tmp; \
+		     exit 1; }
+	@mv backend/services/stigmer-server/pkg/domain/workflow/registry/data/model-registry.json.tmp \
 		backend/services/stigmer-server/pkg/domain/workflow/registry/data/model-registry.json
-	@echo "✓ model-registry.json synced from $(MODEL_REGISTRY_SOURCE)"
+	@echo "✓ model-registry.json snapshot refreshed from $(MODEL_REGISTRY_UPSTREAM)"
 
 gen-task-registry-check: ## Verify the task kind registry is up to date and synced (CI)
 	@go run ./tools/codegen/generator --comprehensive --target=task-registry \

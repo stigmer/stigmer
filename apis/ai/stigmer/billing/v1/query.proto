@@ -63,4 +63,16 @@ service BillingQueryController {
     option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
     option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can view pricing governance";
   }
+
+  // Retrieve the model registry baseline catalog (ACTIVE documents, or the
+  // full append-only revision history when include_history is set).
+  //
+  // Operator surface: exposes raw provider rates (pre-markup) and revision
+  // provenance, so it is platform-gated like the governance view.
+  rpc listModelPricingBaselines(ListModelPricingBaselinesInput) returns (ModelPricingBaselinesResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_model_pricing;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can view the model registry baseline";
+  }
 }

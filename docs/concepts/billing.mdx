@@ -98,6 +98,18 @@ larger changes require an explicit operator sign-off. Corrections apply forward
 only: every historical charge keeps the exact rates that were in effect when it
 was billed.
 
+### Where the model catalog and prices live
+
+The model catalog — every supported model with its provider list prices — is
+maintained in Stigmer Cloud's database as an audited revision history, and the
+current version is served publicly at `/api/v1/public/model-registry` (raw
+provider list prices only; the same numbers on the providers' own pricing
+pages). Self-hosted Stigmer servers ship with a bundled copy of this catalog and
+refresh it from that endpoint automatically when they have connectivity, so
+local model pickers and workflow validation stay current without upgrades.
+Air-gapped installs simply keep the bundled copy; set
+`STIGMER_MODEL_REGISTRY_REFRESH=off` to disable the refresh entirely.
+
 <Callout type="info">
   Want to spend less? See [Optimizing your costs](#optimizing-your-costs) below
   — a practical rundown of harness choice, prompt caching, model selection, and

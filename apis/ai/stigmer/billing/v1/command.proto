@@ -5,6 +5,7 @@ package ai.stigmer.billing.v1;
 import "ai/stigmer/billing/v1/billing_account.proto";
 import "ai/stigmer/billing/v1/credit.proto";
 import "ai/stigmer/billing/v1/io.proto";
+import "ai/stigmer/billing/v1/model_pricing_baseline.proto";
 import "ai/stigmer/billing/v1/pricing_override.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 
@@ -120,5 +121,28 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.config).permission = can_manage_model_pricing;
     option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
     option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can decide pricing overrides";
+  }
+
+  // Create or revise one model registry baseline entry (catalog + list
+  // prices). Append-only: an existing ACTIVE document for the same
+  // (model_id, provider, harness) key is superseded, never mutated. The
+  // effective registry is recomposed immediately, so the revision reaches
+  // billing and every published price surface atomically.
+  rpc upsertModelPricingBaseline(UpsertModelPricingBaselineInput) returns (ModelPricingBaseline) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_model_pricing;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can edit the model registry baseline";
+  }
+
+  // Retire one model from the registry catalog. The next composition pass
+  // drops it from the effective registry and archives any ACTIVE pricing
+  // overrides that targeted it. Kept for audit; the key can be revived by
+  // a subsequent upsert.
+  rpc retireModelPricingBaseline(RetireModelPricingBaselineInput) returns (ModelPricingBaseline) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_model_pricing;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can edit the model registry baseline";
   }
 }

@@ -3,11 +3,12 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, DecideModelPricingOverrideInput, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, SetAutoRechargeConfigInput } from "./io_pbjs";
+import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, DecideModelPricingOverrideInput, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, RetireModelPricingBaselineInput, SetAutoRechargeConfigInput, UpsertModelPricingBaselineInput } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { CreditLedgerEntry } from "./credit_pbjs";
 import { ModelPricingOverride } from "./pricing_override_pbjs";
+import { ModelPricingBaseline } from "./model_pricing_baseline_pbjs";
 
 /**
  * BillingCommandController handles write operations for the billing bounded context.
@@ -154,6 +155,35 @@ export const BillingCommandController = {
       name: "decideModelPricingOverride",
       I: DecideModelPricingOverrideInput,
       O: ModelPricingOverride,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Create or revise one model registry baseline entry (catalog + list
+     * prices). Append-only: an existing ACTIVE document for the same
+     * (model_id, provider, harness) key is superseded, never mutated. The
+     * effective registry is recomposed immediately, so the revision reaches
+     * billing and every published price surface atomically.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.upsertModelPricingBaseline
+     */
+    upsertModelPricingBaseline: {
+      name: "upsertModelPricingBaseline",
+      I: UpsertModelPricingBaselineInput,
+      O: ModelPricingBaseline,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Retire one model from the registry catalog. The next composition pass
+     * drops it from the effective registry and archives any ACTIVE pricing
+     * overrides that targeted it. Kept for audit; the key can be revived by
+     * a subsequent upsert.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.retireModelPricingBaseline
+     */
+    retireModelPricingBaseline: {
+      name: "retireModelPricingBaseline",
+      I: RetireModelPricingBaselineInput,
+      O: ModelPricingBaseline,
       kind: MethodKind.Unary,
     },
   }

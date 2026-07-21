@@ -1,0 +1,220 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// ModelPricingBaselineStatus tracks the lifecycle of one baseline document.
+//
+// The state machine is append-only, mirroring ModelPricingOverrideStatus: an
+// edit SUPERSEDES the previous ACTIVE document rather than mutating it, so
+// the collection is a complete audit history of every catalog entry and
+// list price the platform ever published. RETIRED removes the model from
+// the effective registry (and the composition pass archives any overrides
+// that targeted it).
+enum ModelPricingBaselineStatus {
+  model_pricing_baseline_status_unspecified = 0;
+
+  // Composed into the effective registry; at most one ACTIVE document
+  // exists per (model_id, provider, harness) key.
+  pricing_baseline_active = 1;
+
+  // Replaced by a newer revision of the same key.
+  pricing_baseline_superseded = 2;
+
+  // Removed from the catalog by an operator; kept for audit. A retired
+  // key can be revived by upserting a new ACTIVE document.
+  pricing_baseline_retired = 3;
+}
+
+// PricingBlock is one complete set of per-token rates with provenance —
+// the base entry's rates or one speed variant's rates.
+//
+// Rates are integer micro-USD per million tokens (no floating point in
+// billing writes, matching ModelPricingOverride). The served registry JSON
+// renders them back to dollar doubles for consumers.
+message PricingBlock {
+  // Micro-USD per million uncached input tokens.
+  int64 input_price_micros_per_million = 1 [(buf.validate.field).int64.gte = 0];
+
+  // Micro-USD per million output tokens.
+  int64 output_price_micros_per_million = 2 [(buf.validate.field).int64.gte = 0];
+
+  // Micro-USD per million cache-write tokens.
+  int64 cache_write_price_micros_per_million = 3 [(buf.validate.field).int64.gte = 0];
+
+  // Micro-USD per million cache-read tokens.
+  int64 cache_read_price_micros_per_million = 4 [(buf.validate.field).int64.gte = 0];
+
+  // Cursor Token Rate surcharge, micro-USD per million billable tokens.
+  // Zero for native-harness models and fee-exempt cursor models (Auto and
+  // the first-party pool). Variants inherit the base entry's rate and
+  // leave this zero.
+  int64 cursor_token_rate_micros_per_million = 5 [(buf.validate.field).int64.gte = 0];
+
+  // Where these rates came from (e.g. "anthropic_api",
+  // "cursor_pricing_page", "derived_from_notes"). Provenance, not
+  // approval — see the update-model-registry rule for the sign-off
+  // lifecycle.
+  string source = 6 [(buf.validate.field).string.max_len = 128];
+
+  // Free-form provenance detail: the pricing-page note the rates were
+  // read or derived from, confirmation dates, caveats.
+  string source_note = 7 [(buf.validate.field).string.max_len = 2048];
+
+  // When these rates took effect. DD-003 Decision 6 reads this field:
+  // an ACTIVE override whose derivation window ended before this instant
+  // is stale and gets superseded — baseline edits always stamp it fresh.
+  google.protobuf.Timestamp effective_at = 8;
+}
+
+// PricingVariant is a speed/mode variant (e.g. "fast") of a base model.
+//
+// Variants carry a full pricing block of their own; identity, catalog
+// metadata, and the Cursor Token Rate are inherited from the base entry.
+message PricingVariant {
+  PricingBlock pricing = 1 [(buf.validate.field).required = true];
+
+  // Wire model names that resolve directly to this variant — names that
+  // do not normalize to a clean "base + suffix" form (e.g.
+  // "composer-2.5-fast"). Matched case-insensitively.
+  repeated string wire_ids = 2 [(buf.validate.field).repeated.items.string.max_len = 128];
+}
+
+// SummarizationConfig is the context-summarization tuning for a native
+// model. Catalog metadata: carried for documentation and future runtime
+// use; no consumer currently reads it from the registry at runtime.
+message SummarizationConfig {
+  // Context token count that triggers automatic summarization.
+  int32 trigger_threshold = 1 [(buf.validate.field).int32.gte = 0];
+
+  // Target context size after summarization.
+  int32 target_tokens = 2 [(buf.validate.field).int32.gte = 0];
+
+  // Maximum tokens the summary itself may consume.
+  int32 max_summary_tokens = 3 [(buf.validate.field).int32.gte = 0];
+}
+
+// ModelCapabilities flags what a model supports. Catalog metadata.
+message ModelCapabilities {
+  bool tool_use = 1;
+  bool vision = 2;
+  bool streaming = 3;
+  bool thinking = 4;
+  bool adaptive_thinking = 5;
+}
+
+// ModelPricingBaseline is one versioned catalog-and-list-price entry of the
+// model registry — the human-governed half of the effective registry
+// (baseline ⊕ ACTIVE overrides, DD-003/DD-004).
+//
+// Documents are append-only: operator edits supersede the previous ACTIVE
+// document for the same (model_id, provider, harness) key. The composition
+// pass renders all ACTIVE documents into the registry document that every
+// read surface consumes (billing lookups, /v1/proxy/model-registry, the
+// public catalog endpoint).
+message ModelPricingBaseline {
+  // Unique identifier of this revision (UUID). Server-assigned.
+  string baseline_id = 1;
+
+  // ── identity (the pricing key) ──────────────────────────────────────
+
+  // Stigmer canonical model id (e.g. "claude-sonnet-4.6" for native,
+  // "claude-sonnet-4-6" for cursor — id schemes differ per harness).
+  string model_id = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 128
+  ];
+
+  // Provider API identifier the runner resolves to (e.g.
+  // "claude-sonnet-4-6"). Empty when the canonical id is already the
+  // wire name (most cursor entries).
+  string api_model_id = 3 [(buf.validate.field).string.max_len = 128];
+
+  // LLM provider (e.g. "anthropic", "openai", "cursor"). Free-form:
+  // new providers appear without a contract change.
+  string provider = 4 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 64
+  ];
+
+  // Execution harness ("native", "cursor", ...).
+  string harness = 5 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 64
+  ];
+
+  // ── catalog ─────────────────────────────────────────────────────────
+
+  // Human-readable name shown in model pickers.
+  string display_name = 6 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 128
+  ];
+
+  // 3-6 word pitch shown in the curated picker view.
+  string short_description = 7 [(buf.validate.field).string.max_len = 256];
+
+  // Latency badge: "fastest", "fast", "balanced", or "slow".
+  string speed_tier = 8 [(buf.validate.field).string = {
+    in: [
+      "fastest",
+      "fast",
+      "balanced",
+      "slow"
+    ]
+  }];
+
+  // Pricing bracket: "economy", "standard", or "premium". Billing policy
+  // markup resolution keys on (harness, cost_tier).
+  string cost_tier = 9 [(buf.validate.field).string = {
+    in: [
+      "economy",
+      "standard",
+      "premium"
+    ]
+  }];
+
+  // Whether the model appears in the curated default picker list.
+  bool featured = 10;
+
+  // ── pricing ─────────────────────────────────────────────────────────
+
+  // Base per-token rates with provenance.
+  PricingBlock pricing = 11 [(buf.validate.field).required = true];
+
+  // Speed/mode variants keyed by variant name (e.g. "fast"). Overrides
+  // from the pricing feedback loop target variants by the same key.
+  map<string, PricingVariant> pricing_variants = 12;
+
+  // ── runtime metadata (native models; catalog documentation) ─────────
+
+  int32 context_window_tokens = 13 [(buf.validate.field).int32.gte = 0];
+  int32 max_output_tokens = 14 [(buf.validate.field).int32.gte = 0];
+
+  // Token counting strategy (e.g. "anthropic_native", "tiktoken_o200k",
+  // "approximate").
+  string token_counter_method = 15 [(buf.validate.field).string.max_len = 64];
+
+  SummarizationConfig summarization = 16;
+  ModelCapabilities capabilities = 17;
+
+  // ── lifecycle (server-owned; ignored on upsert inputs) ──────────────
+
+  ModelPricingBaselineStatus status = 18;
+
+  // The previously ACTIVE document this revision replaced, for the audit
+  // chain. Empty on the first revision of a key.
+  string supersedes_baseline_id = 19;
+
+  // Operator identity that wrote this revision (or "system:seed" for the
+  // one-time JSON import).
+  string decided_by = 20;
+  google.protobuf.Timestamp decided_at = 21;
+
+  // Optional operator note explaining the revision.
+  string revision_note = 22 [(buf.validate.field).string.max_len = 1024];
+
+  google.protobuf.Timestamp created_at = 23;
+}

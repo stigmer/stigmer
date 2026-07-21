@@ -5,6 +5,7 @@ import grpc
 from ai.stigmer.billing.v1 import billing_account_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2
 from ai.stigmer.billing.v1 import credit_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2
 from ai.stigmer.billing.v1 import io_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2
+from ai.stigmer.billing.v1 import model_pricing_baseline_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_model__pricing__baseline__pb2
 from ai.stigmer.billing.v1 import pricing_override_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_pricing__override__pb2
 
 
@@ -66,6 +67,16 @@ class BillingCommandControllerStub(object):
                 '/ai.stigmer.billing.v1.BillingCommandController/decideModelPricingOverride',
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.DecideModelPricingOverrideInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_pricing__override__pb2.ModelPricingOverride.FromString,
+                _registered_method=True)
+        self.upsertModelPricingBaseline = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingCommandController/upsertModelPricingBaseline',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.UpsertModelPricingBaselineInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_model__pricing__baseline__pb2.ModelPricingBaseline.FromString,
+                _registered_method=True)
+        self.retireModelPricingBaseline = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingCommandController/retireModelPricingBaseline',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RetireModelPricingBaselineInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_model__pricing__baseline__pb2.ModelPricingBaseline.FromString,
                 _registered_method=True)
 
 
@@ -176,6 +187,27 @@ class BillingCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def upsertModelPricingBaseline(self, request, context):
+        """Create or revise one model registry baseline entry (catalog + list
+        prices). Append-only: an existing ACTIVE document for the same
+        (model_id, provider, harness) key is superseded, never mutated. The
+        effective registry is recomposed immediately, so the revision reaches
+        billing and every published price surface atomically.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def retireModelPricingBaseline(self, request, context):
+        """Retire one model from the registry catalog. The next composition pass
+        drops it from the effective registry and archives any ACTIVE pricing
+        overrides that targeted it. Kept for audit; the key can be revived by
+        a subsequent upsert.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_BillingCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -223,6 +255,16 @@ def add_BillingCommandControllerServicer_to_server(servicer, server):
                     servicer.decideModelPricingOverride,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.DecideModelPricingOverrideInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_pricing__override__pb2.ModelPricingOverride.SerializeToString,
+            ),
+            'upsertModelPricingBaseline': grpc.unary_unary_rpc_method_handler(
+                    servicer.upsertModelPricingBaseline,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.UpsertModelPricingBaselineInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_model__pricing__baseline__pb2.ModelPricingBaseline.SerializeToString,
+            ),
+            'retireModelPricingBaseline': grpc.unary_unary_rpc_method_handler(
+                    servicer.retireModelPricingBaseline,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RetireModelPricingBaselineInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_model__pricing__baseline__pb2.ModelPricingBaseline.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -473,6 +515,60 @@ class BillingCommandController(object):
             '/ai.stigmer.billing.v1.BillingCommandController/decideModelPricingOverride',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.DecideModelPricingOverrideInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_v1_dot_pricing__override__pb2.ModelPricingOverride.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def upsertModelPricingBaseline(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.billing.v1.BillingCommandController/upsertModelPricingBaseline',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.UpsertModelPricingBaselineInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_model__pricing__baseline__pb2.ModelPricingBaseline.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def retireModelPricingBaseline(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.billing.v1.BillingCommandController/retireModelPricingBaseline',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.RetireModelPricingBaselineInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_model__pricing__baseline__pb2.ModelPricingBaseline.FromString,
             options,
             channel_credentials,
             insecure,

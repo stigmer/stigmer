@@ -296,6 +296,68 @@ public final class BillingCommandControllerGrpc {
     return getDecideModelPricingOverrideMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.UpsertModelPricingBaselineInput,
+      ai.stigmer.billing.v1.ModelPricingBaseline> getUpsertModelPricingBaselineMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "upsertModelPricingBaseline",
+      requestType = ai.stigmer.billing.v1.UpsertModelPricingBaselineInput.class,
+      responseType = ai.stigmer.billing.v1.ModelPricingBaseline.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.UpsertModelPricingBaselineInput,
+      ai.stigmer.billing.v1.ModelPricingBaseline> getUpsertModelPricingBaselineMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.UpsertModelPricingBaselineInput, ai.stigmer.billing.v1.ModelPricingBaseline> getUpsertModelPricingBaselineMethod;
+    if ((getUpsertModelPricingBaselineMethod = BillingCommandControllerGrpc.getUpsertModelPricingBaselineMethod) == null) {
+      synchronized (BillingCommandControllerGrpc.class) {
+        if ((getUpsertModelPricingBaselineMethod = BillingCommandControllerGrpc.getUpsertModelPricingBaselineMethod) == null) {
+          BillingCommandControllerGrpc.getUpsertModelPricingBaselineMethod = getUpsertModelPricingBaselineMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.UpsertModelPricingBaselineInput, ai.stigmer.billing.v1.ModelPricingBaseline>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "upsertModelPricingBaseline"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.UpsertModelPricingBaselineInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.ModelPricingBaseline.getDefaultInstance()))
+              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("upsertModelPricingBaseline"))
+              .build();
+        }
+      }
+    }
+    return getUpsertModelPricingBaselineMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RetireModelPricingBaselineInput,
+      ai.stigmer.billing.v1.ModelPricingBaseline> getRetireModelPricingBaselineMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "retireModelPricingBaseline",
+      requestType = ai.stigmer.billing.v1.RetireModelPricingBaselineInput.class,
+      responseType = ai.stigmer.billing.v1.ModelPricingBaseline.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RetireModelPricingBaselineInput,
+      ai.stigmer.billing.v1.ModelPricingBaseline> getRetireModelPricingBaselineMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.RetireModelPricingBaselineInput, ai.stigmer.billing.v1.ModelPricingBaseline> getRetireModelPricingBaselineMethod;
+    if ((getRetireModelPricingBaselineMethod = BillingCommandControllerGrpc.getRetireModelPricingBaselineMethod) == null) {
+      synchronized (BillingCommandControllerGrpc.class) {
+        if ((getRetireModelPricingBaselineMethod = BillingCommandControllerGrpc.getRetireModelPricingBaselineMethod) == null) {
+          BillingCommandControllerGrpc.getRetireModelPricingBaselineMethod = getRetireModelPricingBaselineMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.RetireModelPricingBaselineInput, ai.stigmer.billing.v1.ModelPricingBaseline>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "retireModelPricingBaseline"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.RetireModelPricingBaselineInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.ModelPricingBaseline.getDefaultInstance()))
+              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("retireModelPricingBaseline"))
+              .build();
+        }
+      }
+    }
+    return getRetireModelPricingBaselineMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -482,6 +544,33 @@ public final class BillingCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingOverride> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDecideModelPricingOverrideMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Create or revise one model registry baseline entry (catalog + list
+     * prices). Append-only: an existing ACTIVE document for the same
+     * (model_id, provider, harness) key is superseded, never mutated. The
+     * effective registry is recomposed immediately, so the revision reaches
+     * billing and every published price surface atomically.
+     * </pre>
+     */
+    default void upsertModelPricingBaseline(ai.stigmer.billing.v1.UpsertModelPricingBaselineInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingBaseline> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpsertModelPricingBaselineMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Retire one model from the registry catalog. The next composition pass
+     * drops it from the effective registry and archives any ACTIVE pricing
+     * overrides that targeted it. Kept for audit; the key can be revived by
+     * a subsequent upsert.
+     * </pre>
+     */
+    default void retireModelPricingBaseline(ai.stigmer.billing.v1.RetireModelPricingBaselineInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingBaseline> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRetireModelPricingBaselineMethod(), responseObserver);
+    }
   }
 
   /**
@@ -648,6 +737,35 @@ public final class BillingCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getDecideModelPricingOverrideMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Create or revise one model registry baseline entry (catalog + list
+     * prices). Append-only: an existing ACTIVE document for the same
+     * (model_id, provider, harness) key is superseded, never mutated. The
+     * effective registry is recomposed immediately, so the revision reaches
+     * billing and every published price surface atomically.
+     * </pre>
+     */
+    public void upsertModelPricingBaseline(ai.stigmer.billing.v1.UpsertModelPricingBaselineInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingBaseline> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpsertModelPricingBaselineMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Retire one model from the registry catalog. The next composition pass
+     * drops it from the effective registry and archives any ACTIVE pricing
+     * overrides that targeted it. Kept for audit; the key can be revived by
+     * a subsequent upsert.
+     * </pre>
+     */
+    public void retireModelPricingBaseline(ai.stigmer.billing.v1.RetireModelPricingBaselineInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingBaseline> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getRetireModelPricingBaselineMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -789,6 +907,33 @@ public final class BillingCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getDecideModelPricingOverrideMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Create or revise one model registry baseline entry (catalog + list
+     * prices). Append-only: an existing ACTIVE document for the same
+     * (model_id, provider, harness) key is superseded, never mutated. The
+     * effective registry is recomposed immediately, so the revision reaches
+     * billing and every published price surface atomically.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.ModelPricingBaseline upsertModelPricingBaseline(ai.stigmer.billing.v1.UpsertModelPricingBaselineInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpsertModelPricingBaselineMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Retire one model from the registry catalog. The next composition pass
+     * drops it from the effective registry and archives any ACTIVE pricing
+     * overrides that targeted it. Kept for audit; the key can be revived by
+     * a subsequent upsert.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.ModelPricingBaseline retireModelPricingBaseline(ai.stigmer.billing.v1.RetireModelPricingBaselineInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getRetireModelPricingBaselineMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -929,6 +1074,33 @@ public final class BillingCommandControllerGrpc {
     public ai.stigmer.billing.v1.ModelPricingOverride decideModelPricingOverride(ai.stigmer.billing.v1.DecideModelPricingOverrideInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getDecideModelPricingOverrideMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Create or revise one model registry baseline entry (catalog + list
+     * prices). Append-only: an existing ACTIVE document for the same
+     * (model_id, provider, harness) key is superseded, never mutated. The
+     * effective registry is recomposed immediately, so the revision reaches
+     * billing and every published price surface atomically.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.ModelPricingBaseline upsertModelPricingBaseline(ai.stigmer.billing.v1.UpsertModelPricingBaselineInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpsertModelPricingBaselineMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Retire one model from the registry catalog. The next composition pass
+     * drops it from the effective registry and archives any ACTIVE pricing
+     * overrides that targeted it. Kept for audit; the key can be revived by
+     * a subsequent upsert.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.ModelPricingBaseline retireModelPricingBaseline(ai.stigmer.billing.v1.RetireModelPricingBaselineInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getRetireModelPricingBaselineMethod(), getCallOptions(), request);
     }
   }
 
@@ -1080,6 +1252,35 @@ public final class BillingCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getDecideModelPricingOverrideMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Create or revise one model registry baseline entry (catalog + list
+     * prices). Append-only: an existing ACTIVE document for the same
+     * (model_id, provider, harness) key is superseded, never mutated. The
+     * effective registry is recomposed immediately, so the revision reaches
+     * billing and every published price surface atomically.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.ModelPricingBaseline> upsertModelPricingBaseline(
+        ai.stigmer.billing.v1.UpsertModelPricingBaselineInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpsertModelPricingBaselineMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Retire one model from the registry catalog. The next composition pass
+     * drops it from the effective registry and archives any ACTIVE pricing
+     * overrides that targeted it. Kept for audit; the key can be revived by
+     * a subsequent upsert.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.ModelPricingBaseline> retireModelPricingBaseline(
+        ai.stigmer.billing.v1.RetireModelPricingBaselineInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getRetireModelPricingBaselineMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET_OR_CREATE_BILLING_ACCOUNT = 0;
@@ -1091,6 +1292,8 @@ public final class BillingCommandControllerGrpc {
   private static final int METHODID_CREATE_BILLING_PORTAL_SESSION = 6;
   private static final int METHODID_SET_AUTO_RECHARGE_CONFIG = 7;
   private static final int METHODID_DECIDE_MODEL_PRICING_OVERRIDE = 8;
+  private static final int METHODID_UPSERT_MODEL_PRICING_BASELINE = 9;
+  private static final int METHODID_RETIRE_MODEL_PRICING_BASELINE = 10;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1144,6 +1347,14 @@ public final class BillingCommandControllerGrpc {
         case METHODID_DECIDE_MODEL_PRICING_OVERRIDE:
           serviceImpl.decideModelPricingOverride((ai.stigmer.billing.v1.DecideModelPricingOverrideInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingOverride>) responseObserver);
+          break;
+        case METHODID_UPSERT_MODEL_PRICING_BASELINE:
+          serviceImpl.upsertModelPricingBaseline((ai.stigmer.billing.v1.UpsertModelPricingBaselineInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingBaseline>) responseObserver);
+          break;
+        case METHODID_RETIRE_MODEL_PRICING_BASELINE:
+          serviceImpl.retireModelPricingBaseline((ai.stigmer.billing.v1.RetireModelPricingBaselineInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingBaseline>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -1226,6 +1437,20 @@ public final class BillingCommandControllerGrpc {
               ai.stigmer.billing.v1.DecideModelPricingOverrideInput,
               ai.stigmer.billing.v1.ModelPricingOverride>(
                 service, METHODID_DECIDE_MODEL_PRICING_OVERRIDE)))
+        .addMethod(
+          getUpsertModelPricingBaselineMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.billing.v1.UpsertModelPricingBaselineInput,
+              ai.stigmer.billing.v1.ModelPricingBaseline>(
+                service, METHODID_UPSERT_MODEL_PRICING_BASELINE)))
+        .addMethod(
+          getRetireModelPricingBaselineMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.billing.v1.RetireModelPricingBaselineInput,
+              ai.stigmer.billing.v1.ModelPricingBaseline>(
+                service, METHODID_RETIRE_MODEL_PRICING_BASELINE)))
         .build();
   }
 
@@ -1283,6 +1508,8 @@ public final class BillingCommandControllerGrpc {
               .addMethod(getCreateBillingPortalSessionMethod())
               .addMethod(getSetAutoRechargeConfigMethod())
               .addMethod(getDecideModelPricingOverrideMethod())
+              .addMethod(getUpsertModelPricingBaselineMethod())
+              .addMethod(getRetireModelPricingBaselineMethod())
               .build();
         }
       }

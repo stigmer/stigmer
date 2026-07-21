@@ -39,7 +39,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "stigmer.billing.v1\032+ai/stigmer/billing/v" +
       "1/billing_account.proto\032\036ai/stigmer/bill" +
       "ing/v1/io.proto\032+ai/stigmer/commons/rpc/" +
-      "method_options.proto2\223\t\n\026BillingQueryCon" +
+      "method_options.proto2\357\n\n\026BillingQueryCon" +
       "troller\022\257\001\n\021getBillingAccount\022-.ai.stigm" +
       "er.billing.v1.GetBillingAccountInput\032%.a" +
       "i.stigmer.billing.v1.BillingAccount\"D\302\270\030" +
@@ -68,11 +68,16 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ModelPricingGovernanceInput\0325.ai.stigmer" +
       ".billing.v1.ModelPricingGovernanceRespon" +
       "se\"F\302\270\030B\010 \020\037*3only platform operators ca" +
-      "n view pricing governance2\007stigmerB\203\001B\nQ" +
-      "ueryProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.Billing.V" +
-      "1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\Stigmer\\B" +
-      "illing\\V1\\GPBMetadata\352\002\030Ai::Stigmer::Bil" +
-      "ling::V1b\006proto3"
+      "n view pricing governance2\007stigmer\022\331\001\n\031l" +
+      "istModelPricingBaselines\0225.ai.stigmer.bi" +
+      "lling.v1.ListModelPricingBaselinesInput\032" +
+      "4.ai.stigmer.billing.v1.ModelPricingBase" +
+      "linesResponse\"O\302\270\030K\010 \020\037*<only platform o" +
+      "perators can view the model registry bas" +
+      "eline2\007stigmerB\203\001B\nQueryProtoP\001\242\002\003ASB\252\002\025" +
+      "Ai.Stigmer.Billing.V1\312\002\025Ai\\Stigmer\\Billi" +
+      "ng\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GPBMetadat" +
+      "a\352\002\030Ai::Stigmer::Billing::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
