@@ -186,16 +186,17 @@ type AgentExecutionInput struct {
 
 // SessionSpecInput is the SDK input type for SessionSpec.
 type SessionSpecInput struct {
-	AgentInstanceId  string
-	Subject          string
-	HarnessStateId   string
-	Metadata         map[string]string
-	WorkspaceEntries []*WorkspaceEntryInput
-	McpServerUsages  []*McpServerUsageInput
-	SkillRefs        []ResourceRef
-	Harness          sessionv1.Harness
-	CursorMode       sessionv1.CursorMode
-	ExecutionTarget  sessionv1.ExecutionTarget
+	AgentInstanceId       string
+	Subject               string
+	HarnessStateId        string
+	HarnessStateIdHistory []string
+	Metadata              map[string]string
+	WorkspaceEntries      []*WorkspaceEntryInput
+	McpServerUsages       []*McpServerUsageInput
+	SkillRefs             []ResourceRef
+	Harness               sessionv1.Harness
+	CursorMode            sessionv1.CursorMode
+	ExecutionTarget       sessionv1.ExecutionTarget
 }
 
 // WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
@@ -299,6 +300,7 @@ func (i *SessionSpecInput) toProto() *sessionv1.SessionSpec {
 	p.AgentInstanceId = i.AgentInstanceId
 	p.Subject = i.Subject
 	p.HarnessStateId = i.HarnessStateId
+	p.HarnessStateIdHistory = i.HarnessStateIdHistory
 	p.Metadata = i.Metadata
 	for _, item := range i.WorkspaceEntries {
 		p.WorkspaceEntries = append(p.WorkspaceEntries, item.toProto())
@@ -431,6 +433,7 @@ func sessionSpecInputFromProto(p *sessionv1.SessionSpec) *SessionSpecInput {
 	input.AgentInstanceId = p.GetAgentInstanceId()
 	input.Subject = p.GetSubject()
 	input.HarnessStateId = p.GetHarnessStateId()
+	input.HarnessStateIdHistory = p.GetHarnessStateIdHistory()
 	input.Metadata = p.GetMetadata()
 	for _, item := range p.GetWorkspaceEntries() {
 		input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))

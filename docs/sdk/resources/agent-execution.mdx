@@ -1308,6 +1308,7 @@ SessionSpec defines the configurable properties of a session.
     agentInstanceId: { type: "string", description: "Agent instance this session runs against." },
     subject: { type: "string", description: "Conversation title for UI display." },
     harnessStateId: { type: "string", description: "Harness-specific state identifier for conversation continuity." },
+    harnessStateIdHistory: { type: "string[]", description: "Prior harness state identifiers this session has owned, oldest first." },
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs for client-specific information." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries for this session.", typeDescriptionLink: "#workspaceentryinput" },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers to make available in this session.", typeDescriptionLink: "#mcpserverusageinput" },

@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSL0BgoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIYChBoYXJuZXNzX3N0YXRlX2lkGAMgASgJEkoKCG1ldGFkYXRhGAUgAygLMjguYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvblNwZWMuTWV0YWRhdGFFbnRyeRJIChF3b3Jrc3BhY2VfZW50cmllcxgGIAMoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLldvcmtzcGFjZUVudHJ5EtkBChFtY3Bfc2VydmVyX3VzYWdlcxgHIAMoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5NY3BTZXJ2ZXJVc2FnZUKQAbpIjAGSAYgBIoUBugGBAQoec2Vzc2lvbl9tY3Bfc2VydmVyX3VzYWdlcy5raW5kEj9tY3Bfc2VydmVyX3VzYWdlcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPW1jcF9zZXJ2ZXIaHnRoaXMubWNwX3NlcnZlcl9yZWYua2luZCA9PSA0NBK4AQoKc2tpbGxfcmVmcxgIIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJuukhnkgFkImK6AV8KF3Nlc3Npb25fc2tpbGxfcmVmcy5raW5kEjNza2lsbF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9c2tpbGwaD3RoaXMua2luZCA9PSA0M+CFLCsSNwoHaGFybmVzcxgKIAEoDjImLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkhhcm5lc3MSPgoLY3Vyc29yX21vZGUYCyABKA4yKS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5DdXJzb3JNb2RlEkgKEGV4ZWN1dGlvbl90YXJnZXQYDCABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5FeGVjdXRpb25UYXJnZXQaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKWBwoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIYChBoYXJuZXNzX3N0YXRlX2lkGAMgASgJEiAKGGhhcm5lc3Nfc3RhdGVfaWRfaGlzdG9yeRgNIAMoCRJKCghtZXRhZGF0YRgFIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjLk1ldGFkYXRhRW50cnkSSAoRd29ya3NwYWNlX2VudHJpZXMYBiADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRLZAQoRbWNwX3NlcnZlcl91c2FnZXMYByADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuTWNwU2VydmVyVXNhZ2VCkAG6SIwBkgGIASKFAboBgQEKHnNlc3Npb25fbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSuAEKCnNraWxsX3JlZnMYCCADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCbrpIZ5IBZCJiugFfChdzZXNzaW9uX3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrEjcKB2hhcm5lc3MYCiABKA4yJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5IYXJuZXNzEj4KC2N1cnNvcl9tb2RlGAsgASgOMikuYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuQ3Vyc29yTW9kZRJIChBleGVjdXRpb25fdGFyZ2V0GAwgASgOMi4uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuRXhlY3V0aW9uVGFyZ2V0Gi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AWIGcHJvdG8z", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_session_v1_enum, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * SessionSpec defines the configurable properties of a session.
@@ -73,6 +73,25 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * @generated from field: string harness_state_id = 3;
    */
   harnessStateId: string;
+
+  /**
+   * Prior harness state identifiers this session has owned, oldest first.
+   *
+   * A session can span multiple harness-side conversations: when the
+   * cursor-runner's resume fails, it creates a fresh Cursor agent and
+   * replaces harness_state_id, and the replaced id lands here.
+   *
+   * @internal
+   * Server-owned, append-only. The update handler computes the append from
+   * the observed harness_state_id transition — client-supplied values for
+   * this field are discarded, so a stale client resending an old spec can
+   * never clobber the history. Billing reconciliation joins Cursor ledger
+   * events on the union of current + prior ids; dropping a replaced id
+   * would orphan the ledger events of every turn that ran under it.
+   *
+   * @generated from field: repeated string harness_state_id_history = 13;
+   */
+  harnessStateIdHistory: string[];
 
   /**
    * Custom key-value pairs for client-specific information.

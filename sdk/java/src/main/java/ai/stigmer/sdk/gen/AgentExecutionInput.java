@@ -185,6 +185,7 @@ public final class AgentExecutionInput {
         private final String agentInstanceId;
         private final String subject;
         private final String harnessStateId;
+        private final java.util.List<String> harnessStateIdHistory;
         private final java.util.Map<String, String> metadata;
         private final java.util.List<WorkspaceEntryInput> workspaceEntries;
         private final java.util.List<McpServerUsageInput> mcpServerUsages;
@@ -197,6 +198,7 @@ public final class AgentExecutionInput {
             this.agentInstanceId = builder.agentInstanceId;
             this.subject = builder.subject;
             this.harnessStateId = builder.harnessStateId;
+            this.harnessStateIdHistory = builder.harnessStateIdHistory;
             this.metadata = builder.metadata;
             this.workspaceEntries = builder.workspaceEntries;
             this.mcpServerUsages = builder.mcpServerUsages;
@@ -216,6 +218,9 @@ public final class AgentExecutionInput {
             }
             if (this.harnessStateId != null) {
                 builder.setHarnessStateId(this.harnessStateId);
+            }
+            if (this.harnessStateIdHistory != null) {
+                builder.addAllHarnessStateIdHistory(this.harnessStateIdHistory);
             }
             if (this.metadata != null && !this.metadata.isEmpty()) {
                 builder.putAllMetadata(this.metadata);
@@ -254,6 +259,7 @@ public final class AgentExecutionInput {
             private String agentInstanceId;
             private String subject;
             private String harnessStateId;
+            private java.util.List<String> harnessStateIdHistory;
             private java.util.Map<String, String> metadata;
             private java.util.List<WorkspaceEntryInput> workspaceEntries;
             private java.util.List<McpServerUsageInput> mcpServerUsages;
@@ -267,6 +273,7 @@ public final class AgentExecutionInput {
             public Builder agentInstanceId(String agentInstanceId) { this.agentInstanceId = agentInstanceId; return this; }
             public Builder subject(String subject) { this.subject = subject; return this; }
             public Builder harnessStateId(String harnessStateId) { this.harnessStateId = harnessStateId; return this; }
+            public Builder harnessStateIdHistory(java.util.List<String> harnessStateIdHistory) { this.harnessStateIdHistory = harnessStateIdHistory; return this; }
             public Builder metadata(java.util.Map<String, String> metadata) { this.metadata = metadata; return this; }
             public Builder workspaceEntries(java.util.List<WorkspaceEntryInput> workspaceEntries) { this.workspaceEntries = workspaceEntries; return this; }
             public Builder mcpServerUsages(java.util.List<McpServerUsageInput> mcpServerUsages) { this.mcpServerUsages = mcpServerUsages; return this; }

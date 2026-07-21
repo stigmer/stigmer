@@ -114,6 +114,95 @@ public interface SessionSpecOrBuilder extends
 
   /**
    * <pre>
+   * Prior harness state identifiers this session has owned, oldest first.
+   *
+   * A session can span multiple harness-side conversations: when the
+   * cursor-runner's resume fails, it creates a fresh Cursor agent and
+   * replaces harness_state_id, and the replaced id lands here.
+   *
+   * &#64;internal
+   * Server-owned, append-only. The update handler computes the append from
+   * the observed harness_state_id transition — client-supplied values for
+   * this field are discarded, so a stale client resending an old spec can
+   * never clobber the history. Billing reconciliation joins Cursor ledger
+   * events on the union of current + prior ids; dropping a replaced id
+   * would orphan the ledger events of every turn that ran under it.
+   * </pre>
+   *
+   * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+   * @return A list containing the harnessStateIdHistory.
+   */
+  java.util.List<java.lang.String>
+      getHarnessStateIdHistoryList();
+  /**
+   * <pre>
+   * Prior harness state identifiers this session has owned, oldest first.
+   *
+   * A session can span multiple harness-side conversations: when the
+   * cursor-runner's resume fails, it creates a fresh Cursor agent and
+   * replaces harness_state_id, and the replaced id lands here.
+   *
+   * &#64;internal
+   * Server-owned, append-only. The update handler computes the append from
+   * the observed harness_state_id transition — client-supplied values for
+   * this field are discarded, so a stale client resending an old spec can
+   * never clobber the history. Billing reconciliation joins Cursor ledger
+   * events on the union of current + prior ids; dropping a replaced id
+   * would orphan the ledger events of every turn that ran under it.
+   * </pre>
+   *
+   * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+   * @return The count of harnessStateIdHistory.
+   */
+  int getHarnessStateIdHistoryCount();
+  /**
+   * <pre>
+   * Prior harness state identifiers this session has owned, oldest first.
+   *
+   * A session can span multiple harness-side conversations: when the
+   * cursor-runner's resume fails, it creates a fresh Cursor agent and
+   * replaces harness_state_id, and the replaced id lands here.
+   *
+   * &#64;internal
+   * Server-owned, append-only. The update handler computes the append from
+   * the observed harness_state_id transition — client-supplied values for
+   * this field are discarded, so a stale client resending an old spec can
+   * never clobber the history. Billing reconciliation joins Cursor ledger
+   * events on the union of current + prior ids; dropping a replaced id
+   * would orphan the ledger events of every turn that ran under it.
+   * </pre>
+   *
+   * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+   * @param index The index of the element to return.
+   * @return The harnessStateIdHistory at the given index.
+   */
+  java.lang.String getHarnessStateIdHistory(int index);
+  /**
+   * <pre>
+   * Prior harness state identifiers this session has owned, oldest first.
+   *
+   * A session can span multiple harness-side conversations: when the
+   * cursor-runner's resume fails, it creates a fresh Cursor agent and
+   * replaces harness_state_id, and the replaced id lands here.
+   *
+   * &#64;internal
+   * Server-owned, append-only. The update handler computes the append from
+   * the observed harness_state_id transition — client-supplied values for
+   * this field are discarded, so a stale client resending an old spec can
+   * never clobber the history. Billing reconciliation joins Cursor ledger
+   * events on the union of current + prior ids; dropping a replaced id
+   * would orphan the ledger events of every turn that ran under it.
+   * </pre>
+   *
+   * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the harnessStateIdHistory at the given index.
+   */
+  com.google.protobuf.ByteString
+      getHarnessStateIdHistoryBytes(int index);
+
+  /**
+   * <pre>
    * Custom key-value pairs for client-specific information.
    * </pre>
    *
