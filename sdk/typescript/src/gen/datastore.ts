@@ -3,7 +3,7 @@
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
 import { type DeleteResourceInput, type ResourceRef } from "./types.js";
-import { create, type JsonObject, type JsonValue } from "@bufbuild/protobuf";
+import { create, type JsonValue } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { DatastoreSchema, type Datastore } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
 import { DatastoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/command_pb";
@@ -176,7 +176,6 @@ export interface CollectionDeclarationInput {
   exists?: ExistsConstraintInput[];
   notExists?: ExistsConstraintInput[];
   grants?: DatastoreGrantInput[];
-  seedRecords?: JsonObject[];
 }
 
 /** SDK input type for FieldDeclaration. */
@@ -337,7 +336,6 @@ function buildCollectionDeclarationProto(input: CollectionDeclarationInput) {
   if (input.exists) msg.exists = input.exists.map(buildExistsConstraintProto);
   if (input.notExists) msg.notExists = input.notExists.map(buildExistsConstraintProto);
   if (input.grants) msg.grants = input.grants.map(buildDatastoreGrantProto);
-  if (input.seedRecords) msg.seedRecords = input.seedRecords;
   return msg;
 }
 

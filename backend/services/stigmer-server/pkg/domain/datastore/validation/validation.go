@@ -27,13 +27,11 @@ package validation
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/celeval"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/schema"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // MaxDatastoresPerOrg is the per-org datastore quota (T02 Stage-0 ruling
@@ -207,12 +205,6 @@ func validateCollection(spec *datastorev1.DatastoreSpec, coll *datastorev1.Colle
 		}
 	}
 
-	for i, seed := range coll.GetSeedRecords() {
-		if err := validateSeedFieldNames(coll, seed); err != nil {
-			return fmt.Errorf("seed record %d in collection %q: %v", i+1, cname, err)
-		}
-	}
-
 	return nil
 }
 
@@ -291,24 +283,4 @@ func insideStringLiteral(expr string, pos int) bool {
 		}
 	}
 	return quote != 0
-}
-
-// validateSeedFieldNames rejects seed records carrying undeclared or
-// system field names. Value-level validation (types, required fields,
-// constraints) runs when seeds insert through the full write path at
-// materialization time.
-func validateSeedFieldNames(coll *datastorev1.CollectionDeclaration, seed *structpb.Struct) error {
-	var bad []string
-	for name := range seed.GetFields() {
-		if schema.ReservedFieldNames[name] {
-			return fmt.Errorf("system field %q is server-stamped and cannot be seeded", name)
-		}
-		if schema.FieldByName(coll, name) == nil {
-			bad = append(bad, name)
-		}
-	}
-	if len(bad) > 0 {
-		return fmt.Errorf("undeclared field %s", strings.Join(bad, ", "))
-	}
-	return nil
 }

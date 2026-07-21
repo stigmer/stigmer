@@ -14,11 +14,14 @@ import (
 // Requires the read verb. Conditions are validated against the declared
 // schema (per-type operator matrix) and AND-combined; an own-scoped
 // read grant composes into the query as a conjunction the filter
-// grammar can neither express, relax, nor observe. Results paginate
-// (default 25, max 100) with deterministic ordering (created_at desc,
-// id tiebreak unless order_by overrides).
+// grammar can neither express, relax, nor observe, and the partition
+// scopes the query the same way. Reading an unmaterialized partition
+// returns an empty page and creates nothing (only writes materialize
+// partitions). Results paginate (default 25, max 100) with
+// deterministic ordering (created_at desc, id tiebreak unless order_by
+// overrides).
 func (c *DatastoreRecordController) FindRecords(ctx context.Context, req *datastorev1.FindRecordsRequest) (*datastorev1.RecordList, error) {
-	call, err := c.resolveCall(ctx, req.GetDatastore(), req.GetCollection())
+	call, err := c.resolveCall(ctx, req.GetDatastore(), req.GetCollection(), req.GetPartition())
 	if err != nil {
 		return nil, err
 	}
@@ -39,6 +42,7 @@ func (c *DatastoreRecordController) FindRecords(ctx context.Context, req *datast
 	query := recordstore.FindQuery{
 		DatastoreID: call.datastore.GetMetadata().GetId(),
 		Collection:  call.collection.GetName(),
+		Partition:   call.partition,
 		Conditions:  conditions,
 		OrderBy:     orderBy,
 		Limit:       records.NormalizeLimit(req.GetLimit()),

@@ -349,7 +349,6 @@ public final class DatastoreInput {
         private final java.util.List<ExistsConstraintInput> exists;
         private final java.util.List<ExistsConstraintInput> notExists;
         private final java.util.List<DatastoreGrantInput> grants;
-        private final java.util.List<java.util.Map<String, Object>> seedRecords;
 
         private CollectionDeclarationInput(Builder builder) {
             this.name = builder.name;
@@ -360,7 +359,6 @@ public final class DatastoreInput {
             this.exists = builder.exists;
             this.notExists = builder.notExists;
             this.grants = builder.grants;
-            this.seedRecords = builder.seedRecords;
         }
 
         CollectionDeclaration toProto() {
@@ -401,9 +399,6 @@ public final class DatastoreInput {
                     builder.addGrants(item.toProto());
                 }
             }
-            if (this.seedRecords != null) {
-                builder.setSeedRecords(this.seedRecords);
-            }
             return builder.build();
         }
 
@@ -418,7 +413,6 @@ public final class DatastoreInput {
             private java.util.List<ExistsConstraintInput> exists;
             private java.util.List<ExistsConstraintInput> notExists;
             private java.util.List<DatastoreGrantInput> grants;
-            private java.util.List<java.util.Map<String, Object>> seedRecords;
 
             private Builder() {}
 
@@ -430,7 +424,6 @@ public final class DatastoreInput {
             public Builder exists(java.util.List<ExistsConstraintInput> exists) { this.exists = exists; return this; }
             public Builder notExists(java.util.List<ExistsConstraintInput> notExists) { this.notExists = notExists; return this; }
             public Builder grants(java.util.List<DatastoreGrantInput> grants) { this.grants = grants; return this; }
-            public Builder seedRecords(java.util.List<java.util.Map<String, Object>> seedRecords) { this.seedRecords = seedRecords; return this; }
 
             public CollectionDeclarationInput build() { return new CollectionDeclarationInput(this); }
         }

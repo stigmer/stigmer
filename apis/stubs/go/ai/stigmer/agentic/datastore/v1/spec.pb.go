@@ -211,17 +211,18 @@ func (DatastoreGrantScope) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_datastore_v1_spec_proto_rawDescGZIP(), []int{2}
 }
 
-// DatastoreSpec declares typed record collections with constraints,
-// role-aware access grants, and seed data.
+// DatastoreSpec declares typed record collections with constraints and
+// role-aware access grants.
 //
 // @internal
 // The manifest is authoritative for structure, never for living data:
 // schema changes sync on apply (additive-plus change matrix, gating),
-// seed records insert once on first materialization, and re-applies
-// never mutate records. Structural limits here are v1 guardrails —
-// raising a max_items later is a non-breaking change. Max datastores
-// per org (25) cannot be expressed on this message; it is a domain
-// validation constant in the create pipelines.
+// and records enter exclusively through the record RPCs — there is no
+// seed path (DD-010 SD-5 removed seed_records; console, agent tools,
+// and import scripts are the population surfaces). Structural limits
+// here are v1 guardrails — raising a max_items later is a non-breaking
+// change. Max datastores per org (25) cannot be expressed on this
+// message; it is a domain validation constant in the create pipelines.
 type DatastoreSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable description of what this datastore holds.
@@ -309,7 +310,7 @@ func (x *DatastoreSpec) GetCollections() []*CollectionDeclaration {
 }
 
 // CollectionDeclaration is a named collection of records with typed
-// fields, constraints, access grants, and optional seed data.
+// fields, constraints, and access grants.
 type CollectionDeclaration struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Collection name, unique within the datastore.
@@ -332,13 +333,7 @@ type CollectionDeclaration struct {
 	//
 	// Deny by default: a role with no grant on a collection has no access
 	// to it.
-	Grants []*DatastoreGrant `protobuf:"bytes,8,rep,name=grants,proto3" json:"grants,omitempty"`
-	// Records inserted once when the collection is first materialized.
-	//
-	// Seeds pass through the full constraint pipeline. They are ignored
-	// on every later apply — the manifest never overwrites living data.
-	// Ignored seeds are noted in the status sync report.
-	SeedRecords   []*structpb.Struct `protobuf:"bytes,9,rep,name=seed_records,json=seedRecords,proto3" json:"seed_records,omitempty"`
+	Grants        []*DatastoreGrant `protobuf:"bytes,8,rep,name=grants,proto3" json:"grants,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -429,27 +424,22 @@ func (x *CollectionDeclaration) GetGrants() []*DatastoreGrant {
 	return nil
 }
 
-func (x *CollectionDeclaration) GetSeedRecords() []*structpb.Struct {
-	if x != nil {
-		return x.SeedRecords
-	}
-	return nil
-}
-
 // FieldDeclaration is a typed field on a collection's records.
 //
 // @internal
 // System fields (id, created_at, updated_at, created_by) are not
 // declared — they are part of the record envelope, server-stamped, and
 // never caller-writable. Their names are reserved below, plus `org`
-// (the stamped tenancy column in cloud record tables).
+// (the stamped tenancy column in cloud record tables) and `partition`
+// (the DD-010 data-partition label: ambient scope set by the server,
+// never data — not declarable, not in payloads, not filterable).
 type FieldDeclaration struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Field name, unique within the collection.
 	//
 	// Format: lowercase snake_case. The record envelope's system field
-	// names (id, created_at, updated_at, created_by) and `org` are
-	// reserved.
+	// names (id, created_at, updated_at, created_by), `org`, and
+	// `partition` are reserved.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Value type for this field.
 	Type FieldType `protobuf:"varint,2,opt,name=type,proto3,enum=ai.stigmer.agentic.datastore.v1.FieldType" json:"type,omitempty"`
@@ -1269,7 +1259,7 @@ const file_ai_stigmer_agentic_datastore_v1_spec_proto_rawDesc = "" +
 	"\vdescription\x18\x01 \x01(\tR\vdescription\x12#\n" +
 	"\btimezone\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x18@R\btimezone\x12]\n" +
 	"\rauthorization\x18\x03 \x01(\v27.ai.stigmer.agentic.datastore.v1.DatastoreAuthorizationR\rauthorization\x12b\n" +
-	"\vcollections\x18\x04 \x03(\v26.ai.stigmer.agentic.datastore.v1.CollectionDeclarationB\b\xbaH\x05\x92\x01\x02\x102R\vcollections\"\xb9\x05\n" +
+	"\vcollections\x18\x04 \x03(\v26.ai.stigmer.agentic.datastore.v1.CollectionDeclarationB\b\xbaH\x05\x92\x01\x02\x102R\vcollections\"\x86\x05\n" +
 	"\x15CollectionDeclaration\x121\n" +
 	"\x04name\x18\x01 \x01(\tB\x1d\xbaH\x1a\xc8\x01\x01r\x15\x18?2\x11^[a-z][a-z0-9_]*$R\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12U\n" +
@@ -1280,11 +1270,11 @@ const file_ai_stigmer_agentic_datastore_v1_spec_proto_rawDesc = "" +
 	"\x06exists\x18\x06 \x03(\v21.ai.stigmer.agentic.datastore.v1.ExistsConstraintB\b\xbaH\x05\x92\x01\x02\x10\x14R\x06exists\x12Z\n" +
 	"\n" +
 	"not_exists\x18\a \x03(\v21.ai.stigmer.agentic.datastore.v1.ExistsConstraintB\b\xbaH\x05\x92\x01\x02\x10\x14R\tnotExists\x12Q\n" +
-	"\x06grants\x18\b \x03(\v2/.ai.stigmer.agentic.datastore.v1.DatastoreGrantB\b\xbaH\x05\x92\x01\x02\x10\x14R\x06grants\x12E\n" +
-	"\fseed_records\x18\t \x03(\v2\x17.google.protobuf.StructB\t\xbaH\x06\x92\x01\x03\x10\xe8\aR\vseedRecords\"\xf7\x04\n" +
-	"\x10FieldDeclaration\x12\xee\x01\n" +
-	"\x04name\x18\x01 \x01(\tB\xd9\x01\xbaH\xd5\x01\xba\x01\xb7\x01\n" +
-	"\x13field.name.reserved\x12\\field name is reserved for the record envelope (id, created_at, updated_at, created_by, org)\x1aB!(this in ['id', 'created_at', 'updated_at', 'created_by', 'org'])\xc8\x01\x01r\x15\x18?2\x11^[a-z][a-z0-9_]*$R\x04name\x12K\n" +
+	"\x06grants\x18\b \x03(\v2/.ai.stigmer.agentic.datastore.v1.DatastoreGrantB\b\xbaH\x05\x92\x01\x02\x10\x14R\x06grantsJ\x04\b\t\x10\n" +
+	"R\fseed_records\"\x8f\x05\n" +
+	"\x10FieldDeclaration\x12\x86\x02\n" +
+	"\x04name\x18\x01 \x01(\tB\xf1\x01\xbaH\xed\x01\xba\x01\xcf\x01\n" +
+	"\x13field.name.reserved\x12gfield name is reserved for the record envelope (id, created_at, updated_at, created_by, org, partition)\x1aO!(this in ['id', 'created_at', 'updated_at', 'created_by', 'org', 'partition'])\xc8\x01\x01r\x15\x18?2\x11^[a-z][a-z0-9_]*$R\x04name\x12K\n" +
 	"\x04type\x18\x02 \x01(\x0e2*.ai.stigmer.agentic.datastore.v1.FieldTypeB\v\xbaH\b\xc8\x01\x01\x82\x01\x02\x10\x01R\x04type\x12\x1a\n" +
 	"\brequired\x18\x03 \x01(\bR\brequired\x120\n" +
 	"\adefault\x18\x04 \x01(\v2\x16.google.protobuf.ValueR\adefault\x12)\n" +
@@ -1394,9 +1384,8 @@ var file_ai_stigmer_agentic_datastore_v1_spec_proto_goTypes = []any{
 	(*DatastoreSubject)(nil),       // 13: ai.stigmer.agentic.datastore.v1.DatastoreSubject
 	(*ChannelSenderSubject)(nil),   // 14: ai.stigmer.agentic.datastore.v1.ChannelSenderSubject
 	(*DatastoreGrant)(nil),         // 15: ai.stigmer.agentic.datastore.v1.DatastoreGrant
-	(*structpb.Struct)(nil),        // 16: google.protobuf.Struct
-	(*structpb.Value)(nil),         // 17: google.protobuf.Value
-	(*v1.ApiResourceRef)(nil),      // 18: ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	(*structpb.Value)(nil),         // 16: google.protobuf.Value
+	(*v1.ApiResourceRef)(nil),      // 17: ai.stigmer.iam.iampolicy.v1.ApiResourceRef
 }
 var file_ai_stigmer_agentic_datastore_v1_spec_proto_depIdxs = []int32{
 	10, // 0: ai.stigmer.agentic.datastore.v1.DatastoreSpec.authorization:type_name -> ai.stigmer.agentic.datastore.v1.DatastoreAuthorization
@@ -1407,23 +1396,22 @@ var file_ai_stigmer_agentic_datastore_v1_spec_proto_depIdxs = []int32{
 	9,  // 5: ai.stigmer.agentic.datastore.v1.CollectionDeclaration.exists:type_name -> ai.stigmer.agentic.datastore.v1.ExistsConstraint
 	9,  // 6: ai.stigmer.agentic.datastore.v1.CollectionDeclaration.not_exists:type_name -> ai.stigmer.agentic.datastore.v1.ExistsConstraint
 	15, // 7: ai.stigmer.agentic.datastore.v1.CollectionDeclaration.grants:type_name -> ai.stigmer.agentic.datastore.v1.DatastoreGrant
-	16, // 8: ai.stigmer.agentic.datastore.v1.CollectionDeclaration.seed_records:type_name -> google.protobuf.Struct
-	0,  // 9: ai.stigmer.agentic.datastore.v1.FieldDeclaration.type:type_name -> ai.stigmer.agentic.datastore.v1.FieldType
-	17, // 10: ai.stigmer.agentic.datastore.v1.FieldDeclaration.default:type_name -> google.protobuf.Value
-	7,  // 11: ai.stigmer.agentic.datastore.v1.UniqueConstraint.where:type_name -> ai.stigmer.agentic.datastore.v1.UniqueWhere
-	17, // 12: ai.stigmer.agentic.datastore.v1.UniqueWhere.equals:type_name -> google.protobuf.Value
-	11, // 13: ai.stigmer.agentic.datastore.v1.DatastoreAuthorization.roles:type_name -> ai.stigmer.agentic.datastore.v1.DatastoreRole
-	12, // 14: ai.stigmer.agentic.datastore.v1.DatastoreAuthorization.bindings:type_name -> ai.stigmer.agentic.datastore.v1.DatastoreRoleBinding
-	13, // 15: ai.stigmer.agentic.datastore.v1.DatastoreRoleBinding.subject:type_name -> ai.stigmer.agentic.datastore.v1.DatastoreSubject
-	14, // 16: ai.stigmer.agentic.datastore.v1.DatastoreSubject.channel_sender:type_name -> ai.stigmer.agentic.datastore.v1.ChannelSenderSubject
-	18, // 17: ai.stigmer.agentic.datastore.v1.DatastoreSubject.principal:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
-	1,  // 18: ai.stigmer.agentic.datastore.v1.DatastoreGrant.verbs:type_name -> ai.stigmer.agentic.datastore.v1.DatastoreVerb
-	2,  // 19: ai.stigmer.agentic.datastore.v1.DatastoreGrant.scope:type_name -> ai.stigmer.agentic.datastore.v1.DatastoreGrantScope
-	20, // [20:20] is the sub-list for method output_type
-	20, // [20:20] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	0,  // 8: ai.stigmer.agentic.datastore.v1.FieldDeclaration.type:type_name -> ai.stigmer.agentic.datastore.v1.FieldType
+	16, // 9: ai.stigmer.agentic.datastore.v1.FieldDeclaration.default:type_name -> google.protobuf.Value
+	7,  // 10: ai.stigmer.agentic.datastore.v1.UniqueConstraint.where:type_name -> ai.stigmer.agentic.datastore.v1.UniqueWhere
+	16, // 11: ai.stigmer.agentic.datastore.v1.UniqueWhere.equals:type_name -> google.protobuf.Value
+	11, // 12: ai.stigmer.agentic.datastore.v1.DatastoreAuthorization.roles:type_name -> ai.stigmer.agentic.datastore.v1.DatastoreRole
+	12, // 13: ai.stigmer.agentic.datastore.v1.DatastoreAuthorization.bindings:type_name -> ai.stigmer.agentic.datastore.v1.DatastoreRoleBinding
+	13, // 14: ai.stigmer.agentic.datastore.v1.DatastoreRoleBinding.subject:type_name -> ai.stigmer.agentic.datastore.v1.DatastoreSubject
+	14, // 15: ai.stigmer.agentic.datastore.v1.DatastoreSubject.channel_sender:type_name -> ai.stigmer.agentic.datastore.v1.ChannelSenderSubject
+	17, // 16: ai.stigmer.agentic.datastore.v1.DatastoreSubject.principal:type_name -> ai.stigmer.iam.iampolicy.v1.ApiResourceRef
+	1,  // 17: ai.stigmer.agentic.datastore.v1.DatastoreGrant.verbs:type_name -> ai.stigmer.agentic.datastore.v1.DatastoreVerb
+	2,  // 18: ai.stigmer.agentic.datastore.v1.DatastoreGrant.scope:type_name -> ai.stigmer.agentic.datastore.v1.DatastoreGrantScope
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_datastore_v1_spec_proto_init() }

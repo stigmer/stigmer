@@ -8,7 +8,7 @@ package ai.stigmer.agentic.datastore.v1;
 /**
  * <pre>
  * CollectionDeclaration is a named collection of records with typed
- * fields, constraints, access grants, and optional seed data.
+ * fields, constraints, and access grants.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.datastore.v1.CollectionDeclaration}
@@ -41,7 +41,6 @@ private static final long serialVersionUID = 0L;
     exists_ = java.util.Collections.emptyList();
     notExists_ = java.util.Collections.emptyList();
     grants_ = java.util.Collections.emptyList();
-    seedRecords_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -541,87 +540,6 @@ private static final long serialVersionUID = 0L;
     return grants_.get(index);
   }
 
-  public static final int SEED_RECORDS_FIELD_NUMBER = 9;
-  @SuppressWarnings("serial")
-  private java.util.List<com.google.protobuf.Struct> seedRecords_;
-  /**
-   * <pre>
-   * Records inserted once when the collection is first materialized.
-   *
-   * Seeds pass through the full constraint pipeline. They are ignored
-   * on every later apply — the manifest never overwrites living data.
-   * Ignored seeds are noted in the status sync report.
-   * </pre>
-   *
-   * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public java.util.List<com.google.protobuf.Struct> getSeedRecordsList() {
-    return seedRecords_;
-  }
-  /**
-   * <pre>
-   * Records inserted once when the collection is first materialized.
-   *
-   * Seeds pass through the full constraint pipeline. They are ignored
-   * on every later apply — the manifest never overwrites living data.
-   * Ignored seeds are noted in the status sync report.
-   * </pre>
-   *
-   * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends com.google.protobuf.StructOrBuilder> 
-      getSeedRecordsOrBuilderList() {
-    return seedRecords_;
-  }
-  /**
-   * <pre>
-   * Records inserted once when the collection is first materialized.
-   *
-   * Seeds pass through the full constraint pipeline. They are ignored
-   * on every later apply — the manifest never overwrites living data.
-   * Ignored seeds are noted in the status sync report.
-   * </pre>
-   *
-   * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public int getSeedRecordsCount() {
-    return seedRecords_.size();
-  }
-  /**
-   * <pre>
-   * Records inserted once when the collection is first materialized.
-   *
-   * Seeds pass through the full constraint pipeline. They are ignored
-   * on every later apply — the manifest never overwrites living data.
-   * Ignored seeds are noted in the status sync report.
-   * </pre>
-   *
-   * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public com.google.protobuf.Struct getSeedRecords(int index) {
-    return seedRecords_.get(index);
-  }
-  /**
-   * <pre>
-   * Records inserted once when the collection is first materialized.
-   *
-   * Seeds pass through the full constraint pipeline. They are ignored
-   * on every later apply — the manifest never overwrites living data.
-   * Ignored seeds are noted in the status sync report.
-   * </pre>
-   *
-   * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-   */
-  @java.lang.Override
-  public com.google.protobuf.StructOrBuilder getSeedRecordsOrBuilder(
-      int index) {
-    return seedRecords_.get(index);
-  }
-
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -659,9 +577,6 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < grants_.size(); i++) {
       output.writeMessage(8, grants_.get(i));
-    }
-    for (int i = 0; i < seedRecords_.size(); i++) {
-      output.writeMessage(9, seedRecords_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -732,15 +647,6 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
-
-        {
-          final int count = seedRecords_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(seedRecords_.get(i));
-          }
-          size += 1 * count;
-        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -772,8 +678,6 @@ private static final long serialVersionUID = 0L;
         .equals(other.getNotExistsList())) return false;
     if (!getGrantsList()
         .equals(other.getGrantsList())) return false;
-    if (!getSeedRecordsList()
-        .equals(other.getSeedRecordsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -812,10 +716,6 @@ private static final long serialVersionUID = 0L;
     if (getGrantsCount() > 0) {
       hash = (37 * hash) + GRANTS_FIELD_NUMBER;
       hash = (53 * hash) + getGrantsList().hashCode();
-    }
-    if (getSeedRecordsCount() > 0) {
-      hash = (37 * hash) + SEED_RECORDS_FIELD_NUMBER;
-      hash = (53 * hash) + getSeedRecordsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -917,7 +817,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * CollectionDeclaration is a named collection of records with typed
-   * fields, constraints, access grants, and optional seed data.
+   * fields, constraints, and access grants.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.datastore.v1.CollectionDeclaration}
@@ -997,13 +897,6 @@ private static final long serialVersionUID = 0L;
         grantsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000080);
-      if (seedRecordsBuilder_ == null) {
-        seedRecords_ = java.util.Collections.emptyList();
-      } else {
-        seedRecords_ = null;
-        seedRecordsBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000100);
       return this;
     }
 
@@ -1090,15 +983,6 @@ private static final long serialVersionUID = 0L;
         result.grants_ = grants_;
       } else {
         result.grants_ = grantsBuilder_.build();
-      }
-      if (seedRecordsBuilder_ == null) {
-        if (((bitField0_ & 0x00000100) != 0)) {
-          seedRecords_ = java.util.Collections.unmodifiableList(seedRecords_);
-          bitField0_ = (bitField0_ & ~0x00000100);
-        }
-        result.seedRecords_ = seedRecords_;
-      } else {
-        result.seedRecords_ = seedRecordsBuilder_.build();
       }
     }
 
@@ -1290,32 +1174,6 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
-      if (seedRecordsBuilder_ == null) {
-        if (!other.seedRecords_.isEmpty()) {
-          if (seedRecords_.isEmpty()) {
-            seedRecords_ = other.seedRecords_;
-            bitField0_ = (bitField0_ & ~0x00000100);
-          } else {
-            ensureSeedRecordsIsMutable();
-            seedRecords_.addAll(other.seedRecords_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.seedRecords_.isEmpty()) {
-          if (seedRecordsBuilder_.isEmpty()) {
-            seedRecordsBuilder_.dispose();
-            seedRecordsBuilder_ = null;
-            seedRecords_ = other.seedRecords_;
-            bitField0_ = (bitField0_ & ~0x00000100);
-            seedRecordsBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetSeedRecordsFieldBuilder() : null;
-          } else {
-            seedRecordsBuilder_.addAllMessages(other.seedRecords_);
-          }
-        }
-      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1430,19 +1288,6 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 66
-            case 74: {
-              com.google.protobuf.Struct m =
-                  input.readMessage(
-                      com.google.protobuf.Struct.parser(),
-                      extensionRegistry);
-              if (seedRecordsBuilder_ == null) {
-                ensureSeedRecordsIsMutable();
-                seedRecords_.add(m);
-              } else {
-                seedRecordsBuilder_.addMessage(m);
-              }
-              break;
-            } // case 74
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3578,390 +3423,6 @@ private static final long serialVersionUID = 0L;
         grants_ = null;
       }
       return grantsBuilder_;
-    }
-
-    private java.util.List<com.google.protobuf.Struct> seedRecords_ =
-      java.util.Collections.emptyList();
-    private void ensureSeedRecordsIsMutable() {
-      if (!((bitField0_ & 0x00000100) != 0)) {
-        seedRecords_ = new java.util.ArrayList<com.google.protobuf.Struct>(seedRecords_);
-        bitField0_ |= 0x00000100;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> seedRecordsBuilder_;
-
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public java.util.List<com.google.protobuf.Struct> getSeedRecordsList() {
-      if (seedRecordsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(seedRecords_);
-      } else {
-        return seedRecordsBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public int getSeedRecordsCount() {
-      if (seedRecordsBuilder_ == null) {
-        return seedRecords_.size();
-      } else {
-        return seedRecordsBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public com.google.protobuf.Struct getSeedRecords(int index) {
-      if (seedRecordsBuilder_ == null) {
-        return seedRecords_.get(index);
-      } else {
-        return seedRecordsBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder setSeedRecords(
-        int index, com.google.protobuf.Struct value) {
-      if (seedRecordsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureSeedRecordsIsMutable();
-        seedRecords_.set(index, value);
-        onChanged();
-      } else {
-        seedRecordsBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder setSeedRecords(
-        int index, com.google.protobuf.Struct.Builder builderForValue) {
-      if (seedRecordsBuilder_ == null) {
-        ensureSeedRecordsIsMutable();
-        seedRecords_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        seedRecordsBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addSeedRecords(com.google.protobuf.Struct value) {
-      if (seedRecordsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureSeedRecordsIsMutable();
-        seedRecords_.add(value);
-        onChanged();
-      } else {
-        seedRecordsBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addSeedRecords(
-        int index, com.google.protobuf.Struct value) {
-      if (seedRecordsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureSeedRecordsIsMutable();
-        seedRecords_.add(index, value);
-        onChanged();
-      } else {
-        seedRecordsBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addSeedRecords(
-        com.google.protobuf.Struct.Builder builderForValue) {
-      if (seedRecordsBuilder_ == null) {
-        ensureSeedRecordsIsMutable();
-        seedRecords_.add(builderForValue.build());
-        onChanged();
-      } else {
-        seedRecordsBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addSeedRecords(
-        int index, com.google.protobuf.Struct.Builder builderForValue) {
-      if (seedRecordsBuilder_ == null) {
-        ensureSeedRecordsIsMutable();
-        seedRecords_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        seedRecordsBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder addAllSeedRecords(
-        java.lang.Iterable<? extends com.google.protobuf.Struct> values) {
-      if (seedRecordsBuilder_ == null) {
-        ensureSeedRecordsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, seedRecords_);
-        onChanged();
-      } else {
-        seedRecordsBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder clearSeedRecords() {
-      if (seedRecordsBuilder_ == null) {
-        seedRecords_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000100);
-        onChanged();
-      } else {
-        seedRecordsBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public Builder removeSeedRecords(int index) {
-      if (seedRecordsBuilder_ == null) {
-        ensureSeedRecordsIsMutable();
-        seedRecords_.remove(index);
-        onChanged();
-      } else {
-        seedRecordsBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public com.google.protobuf.Struct.Builder getSeedRecordsBuilder(
-        int index) {
-      return internalGetSeedRecordsFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public com.google.protobuf.StructOrBuilder getSeedRecordsOrBuilder(
-        int index) {
-      if (seedRecordsBuilder_ == null) {
-        return seedRecords_.get(index);  } else {
-        return seedRecordsBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public java.util.List<? extends com.google.protobuf.StructOrBuilder> 
-         getSeedRecordsOrBuilderList() {
-      if (seedRecordsBuilder_ != null) {
-        return seedRecordsBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(seedRecords_);
-      }
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public com.google.protobuf.Struct.Builder addSeedRecordsBuilder() {
-      return internalGetSeedRecordsFieldBuilder().addBuilder(
-          com.google.protobuf.Struct.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public com.google.protobuf.Struct.Builder addSeedRecordsBuilder(
-        int index) {
-      return internalGetSeedRecordsFieldBuilder().addBuilder(
-          index, com.google.protobuf.Struct.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Records inserted once when the collection is first materialized.
-     *
-     * Seeds pass through the full constraint pipeline. They are ignored
-     * on every later apply — the manifest never overwrites living data.
-     * Ignored seeds are noted in the status sync report.
-     * </pre>
-     *
-     * <code>repeated .google.protobuf.Struct seed_records = 9 [json_name = "seedRecords", (.buf.validate.field) = { ... }</code>
-     */
-    public java.util.List<com.google.protobuf.Struct.Builder> 
-         getSeedRecordsBuilderList() {
-      return internalGetSeedRecordsFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> 
-        internalGetSeedRecordsFieldBuilder() {
-      if (seedRecordsBuilder_ == null) {
-        seedRecordsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder>(
-                seedRecords_,
-                ((bitField0_ & 0x00000100) != 0),
-                getParentForChildren(),
-                isClean());
-        seedRecords_ = null;
-      }
-      return seedRecordsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.datastore.v1.CollectionDeclaration)

@@ -42,6 +42,8 @@ private static final long serialVersionUID = 0L;
     description_ = "";
     timezone_ = "";
     collections_ = java.util.Collections.emptyList();
+    partitions_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -264,6 +266,91 @@ private static final long serialVersionUID = 0L;
     return collections_.get(index);
   }
 
+  public static final int PARTITIONS_FIELD_NUMBER = 5;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList partitions_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Data partitions that hold records, from the partition catalog.
+   * Always includes "default".
+   *
+   * &#64;internal
+   * Partitions are labels on data, never resources (DD-010 SD-3): a
+   * partition appears here after its first write registers it in the
+   * catalog. The console's partition picker is fed from this list; for
+   * agent callers it is harmless metadata (their partition is
+   * server-derived and not selectable).
+   * </pre>
+   *
+   * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+   * @return A list containing the partitions.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getPartitionsList() {
+    return partitions_;
+  }
+  /**
+   * <pre>
+   * Data partitions that hold records, from the partition catalog.
+   * Always includes "default".
+   *
+   * &#64;internal
+   * Partitions are labels on data, never resources (DD-010 SD-3): a
+   * partition appears here after its first write registers it in the
+   * catalog. The console's partition picker is fed from this list; for
+   * agent callers it is harmless metadata (their partition is
+   * server-derived and not selectable).
+   * </pre>
+   *
+   * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+   * @return The count of partitions.
+   */
+  public int getPartitionsCount() {
+    return partitions_.size();
+  }
+  /**
+   * <pre>
+   * Data partitions that hold records, from the partition catalog.
+   * Always includes "default".
+   *
+   * &#64;internal
+   * Partitions are labels on data, never resources (DD-010 SD-3): a
+   * partition appears here after its first write registers it in the
+   * catalog. The console's partition picker is fed from this list; for
+   * agent callers it is harmless metadata (their partition is
+   * server-derived and not selectable).
+   * </pre>
+   *
+   * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+   * @param index The index of the element to return.
+   * @return The partitions at the given index.
+   */
+  public java.lang.String getPartitions(int index) {
+    return partitions_.get(index);
+  }
+  /**
+   * <pre>
+   * Data partitions that hold records, from the partition catalog.
+   * Always includes "default".
+   *
+   * &#64;internal
+   * Partitions are labels on data, never resources (DD-010 SD-3): a
+   * partition appears here after its first write registers it in the
+   * catalog. The console's partition picker is fed from this list; for
+   * agent callers it is harmless metadata (their partition is
+   * server-derived and not selectable).
+   * </pre>
+   *
+   * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the partitions at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getPartitionsBytes(int index) {
+    return partitions_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -289,6 +376,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < collections_.size(); i++) {
       output.writeMessage(4, collections_.get(i));
+    }
+    for (int i = 0; i < partitions_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 5, partitions_.getRaw(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -317,6 +407,14 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < partitions_.size(); i++) {
+        dataSize += computeStringSizeNoTag(partitions_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getPartitionsList().size();
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -340,6 +438,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getTimezone())) return false;
     if (!getCollectionsList()
         .equals(other.getCollectionsList())) return false;
+    if (!getPartitionsList()
+        .equals(other.getPartitionsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -360,6 +460,10 @@ private static final long serialVersionUID = 0L;
     if (getCollectionsCount() > 0) {
       hash = (37 * hash) + COLLECTIONS_FIELD_NUMBER;
       hash = (53 * hash) + getCollectionsList().hashCode();
+    }
+    if (getPartitionsCount() > 0) {
+      hash = (37 * hash) + PARTITIONS_FIELD_NUMBER;
+      hash = (53 * hash) + getPartitionsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -512,6 +616,8 @@ private static final long serialVersionUID = 0L;
         collectionsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000008);
+      partitions_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       return this;
     }
 
@@ -566,6 +672,10 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.timezone_ = timezone_;
+      }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        partitions_.makeImmutable();
+        result.partitions_ = partitions_;
       }
     }
 
@@ -622,6 +732,16 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
+      if (!other.partitions_.isEmpty()) {
+        if (partitions_.isEmpty()) {
+          partitions_ = other.partitions_;
+          bitField0_ |= 0x00000010;
+        } else {
+          ensurePartitionsIsMutable();
+          partitions_.addAll(other.partitions_);
+        }
+        onChanged();
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -676,6 +796,11 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 34
+            case 42: {
+              ensurePartitionsIsMutable();
+              partitions_.add(input.readStringRequireUtf8());
+              break;
+            } // case 42
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1279,6 +1404,225 @@ private static final long serialVersionUID = 0L;
         collections_ = null;
       }
       return collectionsBuilder_;
+    }
+
+    private com.google.protobuf.LazyStringArrayList partitions_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensurePartitionsIsMutable() {
+      if (!partitions_.isModifiable()) {
+        partitions_ = new com.google.protobuf.LazyStringArrayList(partitions_);
+      }
+      bitField0_ |= 0x00000010;
+    }
+    /**
+     * <pre>
+     * Data partitions that hold records, from the partition catalog.
+     * Always includes "default".
+     *
+     * &#64;internal
+     * Partitions are labels on data, never resources (DD-010 SD-3): a
+     * partition appears here after its first write registers it in the
+     * catalog. The console's partition picker is fed from this list; for
+     * agent callers it is harmless metadata (their partition is
+     * server-derived and not selectable).
+     * </pre>
+     *
+     * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+     * @return A list containing the partitions.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getPartitionsList() {
+      partitions_.makeImmutable();
+      return partitions_;
+    }
+    /**
+     * <pre>
+     * Data partitions that hold records, from the partition catalog.
+     * Always includes "default".
+     *
+     * &#64;internal
+     * Partitions are labels on data, never resources (DD-010 SD-3): a
+     * partition appears here after its first write registers it in the
+     * catalog. The console's partition picker is fed from this list; for
+     * agent callers it is harmless metadata (their partition is
+     * server-derived and not selectable).
+     * </pre>
+     *
+     * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+     * @return The count of partitions.
+     */
+    public int getPartitionsCount() {
+      return partitions_.size();
+    }
+    /**
+     * <pre>
+     * Data partitions that hold records, from the partition catalog.
+     * Always includes "default".
+     *
+     * &#64;internal
+     * Partitions are labels on data, never resources (DD-010 SD-3): a
+     * partition appears here after its first write registers it in the
+     * catalog. The console's partition picker is fed from this list; for
+     * agent callers it is harmless metadata (their partition is
+     * server-derived and not selectable).
+     * </pre>
+     *
+     * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+     * @param index The index of the element to return.
+     * @return The partitions at the given index.
+     */
+    public java.lang.String getPartitions(int index) {
+      return partitions_.get(index);
+    }
+    /**
+     * <pre>
+     * Data partitions that hold records, from the partition catalog.
+     * Always includes "default".
+     *
+     * &#64;internal
+     * Partitions are labels on data, never resources (DD-010 SD-3): a
+     * partition appears here after its first write registers it in the
+     * catalog. The console's partition picker is fed from this list; for
+     * agent callers it is harmless metadata (their partition is
+     * server-derived and not selectable).
+     * </pre>
+     *
+     * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the partitions at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getPartitionsBytes(int index) {
+      return partitions_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Data partitions that hold records, from the partition catalog.
+     * Always includes "default".
+     *
+     * &#64;internal
+     * Partitions are labels on data, never resources (DD-010 SD-3): a
+     * partition appears here after its first write registers it in the
+     * catalog. The console's partition picker is fed from this list; for
+     * agent callers it is harmless metadata (their partition is
+     * server-derived and not selectable).
+     * </pre>
+     *
+     * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+     * @param index The index to set the value at.
+     * @param value The partitions to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPartitions(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensurePartitionsIsMutable();
+      partitions_.set(index, value);
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Data partitions that hold records, from the partition catalog.
+     * Always includes "default".
+     *
+     * &#64;internal
+     * Partitions are labels on data, never resources (DD-010 SD-3): a
+     * partition appears here after its first write registers it in the
+     * catalog. The console's partition picker is fed from this list; for
+     * agent callers it is harmless metadata (their partition is
+     * server-derived and not selectable).
+     * </pre>
+     *
+     * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+     * @param value The partitions to add.
+     * @return This builder for chaining.
+     */
+    public Builder addPartitions(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensurePartitionsIsMutable();
+      partitions_.add(value);
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Data partitions that hold records, from the partition catalog.
+     * Always includes "default".
+     *
+     * &#64;internal
+     * Partitions are labels on data, never resources (DD-010 SD-3): a
+     * partition appears here after its first write registers it in the
+     * catalog. The console's partition picker is fed from this list; for
+     * agent callers it is harmless metadata (their partition is
+     * server-derived and not selectable).
+     * </pre>
+     *
+     * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+     * @param values The partitions to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllPartitions(
+        java.lang.Iterable<java.lang.String> values) {
+      ensurePartitionsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, partitions_);
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Data partitions that hold records, from the partition catalog.
+     * Always includes "default".
+     *
+     * &#64;internal
+     * Partitions are labels on data, never resources (DD-010 SD-3): a
+     * partition appears here after its first write registers it in the
+     * catalog. The console's partition picker is fed from this list; for
+     * agent callers it is harmless metadata (their partition is
+     * server-derived and not selectable).
+     * </pre>
+     *
+     * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPartitions() {
+      partitions_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000010);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Data partitions that hold records, from the partition catalog.
+     * Always includes "default".
+     *
+     * &#64;internal
+     * Partitions are labels on data, never resources (DD-010 SD-3): a
+     * partition appears here after its first write registers it in the
+     * catalog. The console's partition picker is fed from this list; for
+     * agent callers it is harmless metadata (their partition is
+     * server-derived and not selectable).
+     * </pre>
+     *
+     * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+     * @param value The bytes of the partitions to add.
+     * @return This builder for chaining.
+     */
+    public Builder addPartitionsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensurePartitionsIsMutable();
+      partitions_.add(value);
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.datastore.v1.DatastoreDescription)

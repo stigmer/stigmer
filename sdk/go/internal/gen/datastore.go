@@ -160,7 +160,6 @@ type CollectionDeclarationInput struct {
 	Exists      []*ExistsConstraintInput
 	NotExists   []*ExistsConstraintInput
 	Grants      []*DatastoreGrantInput
-	SeedRecords []map[string]any
 }
 
 // FieldDeclarationInput is the SDK input type for FieldDeclaration.
@@ -301,11 +300,6 @@ func (i *CollectionDeclarationInput) toProto() *datastorev1.CollectionDeclaratio
 	}
 	for _, item := range i.Grants {
 		p.Grants = append(p.Grants, item.toProto())
-	}
-	for _, item := range i.SeedRecords {
-		if s, err := structpb.NewStruct(item); err == nil {
-			p.SeedRecords = append(p.SeedRecords, s)
-		}
 	}
 	return p
 }
@@ -483,9 +477,6 @@ func collectionDeclarationInputFromProto(p *datastorev1.CollectionDeclaration) *
 	}
 	for _, item := range p.GetGrants() {
 		input.Grants = append(input.Grants, datastoreGrantInputFromProto(item))
-	}
-	for _, item := range p.GetSeedRecords() {
-		input.SeedRecords = append(input.SeedRecords, item.AsMap())
 	}
 	return input
 }

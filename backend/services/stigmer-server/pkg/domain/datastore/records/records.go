@@ -1,18 +1,19 @@
-// Package records implements the record write/read mechanics shared by
-// the record RPC handlers and seed-record insertion: payload validation
-// against the declared schema, default application, partial merge,
-// constraint evaluation, and envelope projection.
+// Package records implements the record write/read mechanics of the
+// record RPC handlers: payload validation against the declared schema,
+// default application, partial merge, constraint evaluation, and
+// envelope projection.
 //
 // Constraint evaluation runs INSIDE the caller's write transaction
-// (recordstore.WithWriteTx = BEGIN IMMEDIATE), so exists/not_exists
-// verdicts cannot go stale before the write commits. Uniques are never
-// evaluated here — they are substrate indexes; this package only maps
-// their violations to the declared constraint messages.
+// (recordstore.WithWriteTx = BEGIN IMMEDIATE) and within the caller's
+// partition — a partition is a separate world (DD-010), so
+// exists/not_exists verdicts consult only its records and cannot go
+// stale before the write commits. Uniques are never evaluated here —
+// they are substrate indexes; this package only maps their violations
+// to the declared constraint messages.
 //
 // Grant enforcement (verb + own scope) is deliberately NOT here — it is
-// the handlers' responsibility, so the data mechanics stay identical for
-// every writer including seeds (which bypass grants by design: the
-// operator authored them).
+// the handlers' responsibility, so the data mechanics stay identical
+// for every writer.
 package records
 
 import (
@@ -21,12 +22,12 @@ import (
 	"time"
 
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
+	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/celeval"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/dserrors"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/identity"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/recordstore"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/schema"
-	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -146,7 +147,7 @@ func TypedFields(coll *datastorev1.CollectionDeclaration, stored map[string]any)
 }
 
 // NewRecord assembles a store record with server-stamped system fields.
-func NewRecord(subject *datastorev1.DatastoreSubject, org string, fields map[string]any) *recordstore.Record {
+func NewRecord(subject *datastorev1.DatastoreSubject, org, partition string, fields map[string]any) *recordstore.Record {
 	now := time.Now().UTC()
 	return &recordstore.Record{
 		ID:           steps.GenerateID(RecordIDPrefix),
@@ -155,18 +156,29 @@ func NewRecord(subject *datastorev1.DatastoreSubject, org string, fields map[str
 		CreatedBy:    subject,
 		CreatedByKey: identity.SubjectKey(subject),
 		Org:          org,
+		Partition:    partition,
 		Fields:       fields,
 	}
 }
 
+// NormalizePartition canonicalizes a request's partition: unset means
+// the shared default partition.
+func NormalizePartition(partition string) string {
+	if partition == "" {
+		return recordstore.DefaultPartition
+	}
+	return partition
+}
+
 // EvaluateConstraints evaluates the collection's check, exists, and
 // not_exists constraints against the candidate fields, inside the
-// caller's write transaction. The first violation returns the declared
-// message as FAILED_PRECONDITION.
+// caller's write transaction and within the caller's partition. The
+// first violation returns the declared message as FAILED_PRECONDITION.
 func EvaluateConstraints(
 	tx recordstore.Tx,
 	datastore *datastorev1.Datastore,
 	coll *datastorev1.CollectionDeclaration,
+	partition string,
 	candidate map[string]any,
 ) error {
 	tz := datastore.GetSpec().GetTimezone()
@@ -197,7 +209,7 @@ func EvaluateConstraints(
 		if !applies {
 			continue
 		}
-		matched, err := anyTargetMatches(tx, datastore, ex, this, tz)
+		matched, err := anyTargetMatches(tx, datastore, ex, partition, this, tz)
 		if err != nil {
 			return err
 		}
@@ -214,7 +226,7 @@ func EvaluateConstraints(
 		if !applies {
 			continue
 		}
-		matched, err := anyTargetMatches(tx, datastore, ex, this, tz)
+		matched, err := anyTargetMatches(tx, datastore, ex, partition, this, tz)
 		if err != nil {
 			return err
 		}
@@ -227,13 +239,14 @@ func EvaluateConstraints(
 }
 
 // anyTargetMatches reports whether any record of the constraint's target
-// collection satisfies the where expression against the candidate. It
-// runs inside the write transaction, so the verdict cannot go stale
-// before commit.
+// collection — within the caller's partition — satisfies the where
+// expression against the candidate. It runs inside the write
+// transaction, so the verdict cannot go stale before commit.
 func anyTargetMatches(
 	tx recordstore.Tx,
 	datastore *datastorev1.Datastore,
 	ex *datastorev1.ExistsConstraint,
+	partition string,
 	this map[string]any,
 	tz string,
 ) (bool, error) {
@@ -242,7 +255,7 @@ func anyTargetMatches(
 		return false, fmt.Errorf("exists constraint %q references unknown collection %q", ex.GetName(), ex.GetCollection())
 	}
 
-	candidates, err := tx.List(datastore.GetMetadata().GetId(), target.GetName())
+	candidates, err := tx.List(datastore.GetMetadata().GetId(), target.GetName(), partition)
 	if err != nil {
 		return false, fmt.Errorf("failed to load %q for constraint %q: %w", target.GetName(), ex.GetName(), err)
 	}

@@ -102,4 +102,32 @@ public interface UpdateRecordRequestOrBuilder extends
    * <code>.google.protobuf.Struct fields = 4 [json_name = "fields", (.buf.validate.field) = { ... }</code>
    */
   com.google.protobuf.StructOrBuilder getFieldsOrBuilder();
+
+  /**
+   * <pre>
+   * Data partition holding the record. Unset means the "default"
+   * partition. A record in another partition is NOT_FOUND.
+   *
+   * &#64;internal
+   * Same dispatch as FindRecordsRequest.partition.
+   * </pre>
+   *
+   * <code>string partition = 5 [json_name = "partition", (.buf.validate.field) = { ... }</code>
+   * @return The partition.
+   */
+  java.lang.String getPartition();
+  /**
+   * <pre>
+   * Data partition holding the record. Unset means the "default"
+   * partition. A record in another partition is NOT_FOUND.
+   *
+   * &#64;internal
+   * Same dispatch as FindRecordsRequest.partition.
+   * </pre>
+   *
+   * <code>string partition = 5 [json_name = "partition", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for partition.
+   */
+  com.google.protobuf.ByteString
+      getPartitionBytes();
 }

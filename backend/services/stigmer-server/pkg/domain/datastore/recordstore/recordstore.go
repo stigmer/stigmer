@@ -24,6 +24,11 @@ import (
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
 )
 
+// DefaultPartition is the shared data partition: every record operation
+// that does not name a partition lands here, so pre-partition behavior
+// (all agents, all instances share) is the default, not a mode (DD-010).
+const DefaultPartition = "default"
+
 // Record is the stored envelope: server-managed system fields plus the
 // declared fields in their canonical encodings (see the schema package).
 type Record struct {
@@ -38,6 +43,10 @@ type Record struct {
 	// Org is the owning organization, stamped from the datastore.
 	// Records never cross the org boundary (DD-006).
 	Org string
+	// Partition is the DD-010 data-partition label, server-derived per
+	// call (instance-bound for agent sessions, explicit for direct
+	// principals) — ambient scope, never caller data.
+	Partition string
 	// Fields holds declared field values in canonical encodings.
 	// Absent and null are not distinguished in storage.
 	Fields map[string]any
@@ -66,11 +75,15 @@ type OrderBy struct {
 	Descending bool
 }
 
-// FindQuery selects records from one collection.
+// FindQuery selects records from one collection, within one partition.
 type FindQuery struct {
 	DatastoreID string
 	Collection  string
-	Conditions  []Condition
+	// Partition scopes the query; callers always resolve it (empty is a
+	// caller defect, not "all partitions" — cross-partition reads do not
+	// exist on any record surface).
+	Partition  string
+	Conditions []Condition
 	// OwnerKey, when non-empty, composes an own-scope conjunction the
 	// filter grammar cannot express or relax: created_by_key = OwnerKey.
 	OwnerKey string
@@ -97,19 +110,26 @@ func (e *UniqueViolationError) Error() string {
 type Store interface {
 	// WithWriteTx runs fn inside a BEGIN IMMEDIATE transaction,
 	// committing on nil and rolling back on error. Both record writes
-	// and schema-sync DDL run through it, so constraint evaluation,
-	// index provisioning, and seed insertion are atomic with the
-	// changes they guard.
+	// and schema-sync DDL run through it, so constraint evaluation and
+	// index provisioning are atomic with the changes they guard.
 	WithWriteTx(ctx context.Context, fn func(tx Tx) error) error
 
-	// Find returns one page of records plus the total match count.
+	// Find returns one page of records plus the total match count,
+	// scoped to the query's partition.
 	Find(ctx context.Context, q FindQuery) ([]*Record, int64, error)
 
-	// Get returns a record by id, or nil when absent.
-	Get(ctx context.Context, datastoreID, collection, id string) (*Record, error)
+	// Get returns a record by id within a partition, or nil when absent
+	// (a record living in another partition is absent by design).
+	Get(ctx context.Context, datastoreID, collection, partition, id string) (*Record, error)
 
-	// CountRecords returns the number of records in a collection.
+	// CountRecords returns the number of records in a collection across
+	// all partitions (delete guards and removal counts are
+	// whole-collection facts).
 	CountRecords(ctx context.Context, datastoreID, collection string) (int64, error)
+
+	// ListPartitions returns the datastore's cataloged partition labels
+	// (the DescribeDatastore projection; empty until the first sync).
+	ListPartitions(ctx context.Context, datastoreID string) ([]string, error)
 
 	// Close releases the store's database handle.
 	Close() error
@@ -120,10 +140,24 @@ type Tx interface {
 	// EnsureCollectionTable creates the collection's table and its
 	// system indexes (ordering, attribution) if absent. The returned
 	// flag reports whether the table was created by THIS call — the
-	// substrate-derived materialization fact that gates seed-once
-	// insertion (atomic with the DDL, so a crash between sync and
-	// status write can never re-run seeds).
+	// substrate-derived materialization fact the sync report's
+	// materialized_at is stamped from.
 	EnsureCollectionTable(datastoreID, collection string) (created bool, err error)
+
+	// EnsurePartition registers a partition label in the datastore's
+	// catalog (creating the catalog on first use). Partitions are
+	// labels, never objects: no per-partition DDL exists — the catalog
+	// row is the whole materialization (DD-010). Idempotent; returns
+	// whether THIS call registered the label.
+	EnsurePartition(datastoreID, partition string) (created bool, err error)
+
+	// ListPartitions returns the datastore's cataloged partition labels.
+	ListPartitions(datastoreID string) ([]string, error)
+
+	// DropPartitionCatalog removes the datastore's partition catalog.
+	// Only the datastore's guarded delete calls it, alongside
+	// DropCollectionTable.
+	DropPartitionCatalog(datastoreID string) error
 
 	// UniqueIndexConstraints returns the declared-constraint names of
 	// the unique indexes currently provisioned for a collection.
@@ -152,13 +186,16 @@ type Tx interface {
 	// duplicate group).
 	CountUniqueViolations(datastoreID, collection string, u *datastorev1.UniqueConstraint, whereEquals any) (int64, error)
 
-	// List returns all records of a collection, ordered by (created_at,
-	// id). It exists for the bounded exists/not_exists evaluation and
-	// sync-time constraint validation, both inside the write lock.
-	List(datastoreID, collection string) ([]*Record, error)
+	// List returns records of a collection, ordered by (created_at, id),
+	// inside the write lock. A non-empty partition scopes the list (the
+	// bounded exists/not_exists evaluation — constraints see one
+	// partition's world); empty means all partitions (sync-time
+	// constraint validation — a schema change must hold against every
+	// record it will govern, whichever partition holds it).
+	List(datastoreID, collection, partition string) ([]*Record, error)
 
-	// Get returns a record by id, or nil when absent.
-	Get(datastoreID, collection, id string) (*Record, error)
+	// Get returns a record by id within a partition, or nil when absent.
+	Get(datastoreID, collection, partition, id string) (*Record, error)
 
 	// CountRecords returns the number of records in a collection.
 	CountRecords(datastoreID, collection string) (int64, error)

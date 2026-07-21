@@ -150,6 +150,19 @@ message FindRecordsRequest {
 
   // Number of records to skip.
   int32 offset = 6 [(buf.validate.field).int32.gte = 0];
+
+  // Data partition to read from. Unset means the "default" partition.
+  //
+  // @internal
+  // Honored for direct platform principals only (console, CLI, SDK,
+  // import). Session-bound runner credentials get their partition
+  // server-derived from the session's agent instance (DD-010 SD-2) and
+  // are rejected with INVALID_ARGUMENT if they supply one — no second
+  // channel, mirroring the sender-identity posture.
+  string partition = 7 [
+    (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*[a-z0-9]$",
+    (buf.validate.field).string.max_len = 63
+  ];
 }
 
 // InsertRecordRequest inserts one record into a collection.
@@ -163,6 +176,18 @@ message InsertRecordRequest {
   // Declared field values in their canonical encodings. System field
   // names are rejected.
   google.protobuf.Struct record = 3 [(buf.validate.field).required = true];
+
+  // Data partition to insert into. Unset means the "default" partition.
+  //
+  // @internal
+  // Same dispatch as FindRecordsRequest.partition: direct principals
+  // only; server-derived (and rejected if supplied) for session-bound
+  // callers. A partition's first write registers it in the datastore's
+  // partition catalog (DD-010 SD-3).
+  string partition = 4 [
+    (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*[a-z0-9]$",
+    (buf.validate.field).string.max_len = 63
+  ];
 }
 
 // UpdateRecordRequest updates one record by id with a partial merge.
@@ -180,6 +205,16 @@ message UpdateRecordRequest {
   // clears a field. Constraints evaluate on the merged result. System
   // field names are rejected.
   google.protobuf.Struct fields = 4 [(buf.validate.field).required = true];
+
+  // Data partition holding the record. Unset means the "default"
+  // partition. A record in another partition is NOT_FOUND.
+  //
+  // @internal
+  // Same dispatch as FindRecordsRequest.partition.
+  string partition = 5 [
+    (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*[a-z0-9]$",
+    (buf.validate.field).string.max_len = 63
+  ];
 }
 
 // DeleteRecordRequest deletes one record by id.
@@ -192,6 +227,16 @@ message DeleteRecordRequest {
 
   // Id of the record to delete.
   string id = 3 [(buf.validate.field).required = true];
+
+  // Data partition holding the record. Unset means the "default"
+  // partition. A record in another partition is NOT_FOUND.
+  //
+  // @internal
+  // Same dispatch as FindRecordsRequest.partition.
+  string partition = 4 [
+    (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*[a-z0-9]$",
+    (buf.validate.field).string.max_len = 63
+  ];
 }
 
 // DescribeDatastoreRequest asks for a datastore as the caller
@@ -220,6 +265,17 @@ message DatastoreDescription {
 
   // Collections with schema and caller-effective access.
   repeated CollectionDescription collections = 4;
+
+  // Data partitions that hold records, from the partition catalog.
+  // Always includes "default".
+  //
+  // @internal
+  // Partitions are labels on data, never resources (DD-010 SD-3): a
+  // partition appears here after its first write registers it in the
+  // catalog. The console's partition picker is fed from this list; for
+  // agent callers it is harmless metadata (their partition is
+  // server-derived and not selectable).
+  repeated string partitions = 5;
 }
 
 // CollectionDescription is one collection's schema and the caller's

@@ -57,24 +57,23 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       "\003(\01321.ai.stigmer.agentic.datastore.v1.Co" +
       "llectionStatusR\013collections\022F\n\005audit\030c \001" +
       "(\01320.ai.stigmer.commons.apiresource.ApiR" +
-      "esourceAuditR\005audit\"\223\002\n\020CollectionStatus" +
+      "esourceAuditR\005audit\"\377\001\n\020CollectionStatus" +
       "\022\022\n\004name\030\001 \001(\tR\004name\022U\n\005state\030\002 \001(\0162?.ai" +
       ".stigmer.agentic.datastore.v1.Collection" +
       "MaterializationStateR\005state\022!\n\014record_co" +
-      "unt\030\003 \001(\003R\013recordCount\022,\n\022ignored_seed_c" +
-      "ount\030\004 \001(\005R\020ignoredSeedCount\022C\n\017material" +
-      "ized_at\030\005 \001(\0132\032.google.protobuf.Timestam" +
-      "pR\016materializedAt*X\n\024DatastoreSyncOutcom" +
-      "e\022&\n\"datastore_sync_outcome_unspecified\020" +
-      "\000\022\n\n\006synced\020\001\022\014\n\010rejected\020\002*x\n\036Collectio" +
-      "nMaterializationState\0220\n,collection_mate" +
-      "rialization_state_unspecified\020\000\022\013\n\007pendi" +
-      "ng\020\001\022\n\n\006active\020\002\022\013\n\007removed\020\003B\256\001B\013Status" +
-      "ProtoP\001\242\002\004ASAD\252\002\037Ai.Stigmer.Agentic.Data" +
-      "store.V1\312\002\037Ai\\Stigmer\\Agentic\\Datastore\\" +
-      "V1\342\002+Ai\\Stigmer\\Agentic\\Datastore\\V1\\GPB" +
-      "Metadata\352\002#Ai::Stigmer::Agentic::Datasto" +
-      "re::V1b\006proto3"
+      "unt\030\003 \001(\003R\013recordCount\022C\n\017materialized_a" +
+      "t\030\005 \001(\0132\032.google.protobuf.TimestampR\016mat" +
+      "erializedAtJ\004\010\004\020\005R\022ignored_seed_count*X\n" +
+      "\024DatastoreSyncOutcome\022&\n\"datastore_sync_" +
+      "outcome_unspecified\020\000\022\n\n\006synced\020\001\022\014\n\010rej" +
+      "ected\020\002*x\n\036CollectionMaterializationStat" +
+      "e\0220\n,collection_materialization_state_un" +
+      "specified\020\000\022\013\n\007pending\020\001\022\n\n\006active\020\002\022\013\n\007" +
+      "removed\020\003B\256\001B\013StatusProtoP\001\242\002\004ASAD\252\002\037Ai." +
+      "Stigmer.Agentic.Datastore.V1\312\002\037Ai\\Stigme" +
+      "r\\Agentic\\Datastore\\V1\342\002+Ai\\Stigmer\\Agen" +
+      "tic\\Datastore\\V1\\GPBMetadata\352\002#Ai::Stigm" +
+      "er::Agentic::Datastore::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -93,7 +92,7 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_datastore_v1_CollectionStatus_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_datastore_v1_CollectionStatus_descriptor,
-        new java.lang.String[] { "Name", "State", "RecordCount", "IgnoredSeedCount", "MaterializedAt", });
+        new java.lang.String[] { "Name", "State", "RecordCount", "MaterializedAt", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.StatusProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();

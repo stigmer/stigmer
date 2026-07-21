@@ -8,7 +8,6 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore",
         "//backend/services/stigmer-server/pkg/domain/datastore/celeval",
-        "//backend/services/stigmer-server/pkg/domain/datastore/identity",
         "//backend/services/stigmer-server/pkg/domain/datastore/records",
         "//backend/services/stigmer-server/pkg/domain/datastore/recordstore",
         "//backend/services/stigmer-server/pkg/domain/datastore/schema",

@@ -21,9 +21,15 @@ import (
 // Identifier prefixes. Datastore ids (dst_<ulid>), collection names, and
 // constraint names are all validated to [a-z0-9_]+, so composed
 // identifiers are injection-safe by construction.
+//
+// The partition catalog deliberately does NOT share the record-table
+// prefix: a user collection may legally be named "partitions", so
+// "rec_<dsid>_partitions" is a real record table and the catalog must
+// live outside that namespace for ListCollectionTables to stay truthful.
 const (
-	tablePrefix       = "rec_"
-	uniqueIndexPrefix = "uq_"
+	tablePrefix            = "rec_"
+	uniqueIndexPrefix      = "uq_"
+	partitionCatalogPrefix = "dsp_"
 )
 
 // sqliteStore implements Store over its own *sql.DB handle to
@@ -83,7 +89,7 @@ func (s *sqliteStore) WithWriteTx(ctx context.Context, fn func(tx Tx) error) err
 func (s *sqliteStore) Find(ctx context.Context, q FindQuery) ([]*Record, int64, error) {
 	table := tableName(q.DatastoreID, q.Collection)
 
-	where, args := buildWhere(q.Conditions, q.OwnerKey)
+	where, args := buildWhere(q.Partition, q.Conditions, q.OwnerKey)
 
 	var total int64
 	countQuery := fmt.Sprintf(`SELECT COUNT(*) FROM %q %s`, table, where)
@@ -106,7 +112,7 @@ func (s *sqliteStore) Find(ctx context.Context, q FindQuery) ([]*Record, int64, 
 	}
 
 	query := fmt.Sprintf(
-		`SELECT id, created_at, updated_at, created_by, created_by_key, org, fields FROM %q %s %s LIMIT ? OFFSET ?`,
+		`SELECT `+recordColumns+` FROM %q %s %s LIMIT ? OFFSET ?`,
 		table, where, orderBy,
 	)
 	rows, err := s.db.QueryContext(ctx, query, append(args, q.Limit, q.Offset)...)
@@ -126,8 +132,8 @@ func (s *sqliteStore) Find(ctx context.Context, q FindQuery) ([]*Record, int64, 
 	return records, total, rows.Err()
 }
 
-func (s *sqliteStore) Get(ctx context.Context, datastoreID, collection, id string) (*Record, error) {
-	return getRecord(ctx, s.db, datastoreID, collection, id)
+func (s *sqliteStore) Get(ctx context.Context, datastoreID, collection, partition, id string) (*Record, error) {
+	return getRecord(ctx, s.db, datastoreID, collection, partition, id)
 }
 
 func (s *sqliteStore) CountRecords(ctx context.Context, datastoreID, collection string) (int64, error) {
@@ -137,6 +143,38 @@ func (s *sqliteStore) CountRecords(ctx context.Context, datastoreID, collection 
 		return 0, fmt.Errorf("failed to count records: %w", err)
 	}
 	return n, nil
+}
+
+func (s *sqliteStore) ListPartitions(ctx context.Context, datastoreID string) ([]string, error) {
+	catalog := partitionCatalogName(datastoreID)
+
+	// The catalog materializes with the first sync; before that the
+	// datastore has no partitions to report.
+	var exists int
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?`, catalog,
+	).Scan(&exists); err != nil {
+		return nil, fmt.Errorf("failed to check partition catalog %s: %w", catalog, err)
+	}
+	if exists == 0 {
+		return nil, nil
+	}
+
+	rows, err := s.db.QueryContext(ctx, fmt.Sprintf(`SELECT partition FROM %q ORDER BY partition`, catalog))
+	if err != nil {
+		return nil, fmt.Errorf("failed to list partitions: %w", err)
+	}
+	defer rows.Close()
+
+	var partitions []string
+	for rows.Next() {
+		var p string
+		if err := rows.Scan(&p); err != nil {
+			return nil, err
+		}
+		partitions = append(partitions, p)
+	}
+	return partitions, rows.Err()
 }
 
 // ---------------------------------------------------------------------------
@@ -150,10 +188,9 @@ type sqliteTx struct {
 func (t *sqliteTx) EnsureCollectionTable(datastoreID, collection string) (bool, error) {
 	table := tableName(datastoreID, collection)
 
-	// The "did this call materialize the table" fact gates seed-once
-	// insertion; it is derived from the substrate inside the same
-	// transaction (never from status), so seeds and DDL commit or roll
-	// back together.
+	// The "did this call materialize the table" fact is derived from the
+	// substrate inside the same transaction (never from status), so the
+	// materialized_at stamp and the DDL commit or roll back together.
 	var existing int
 	if err := t.tx.QueryRow(
 		`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?`, table,
@@ -168,6 +205,8 @@ func (t *sqliteTx) EnsureCollectionTable(datastoreID, collection string) (bool, 
 	// (schema.TimestampFormat), which sorts lexicographically ==
 	// chronologically. created_by is the proto-marshaled attribution
 	// subject; created_by_key its comparison key for own-scope filters.
+	// partition is the DD-010 label — every index leads with it because
+	// every record operation is partition-scoped.
 	ddl := fmt.Sprintf(`CREATE TABLE %q (
 		id TEXT PRIMARY KEY,
 		created_at TEXT NOT NULL,
@@ -175,24 +214,88 @@ func (t *sqliteTx) EnsureCollectionTable(datastoreID, collection string) (bool, 
 		created_by BLOB NOT NULL,
 		created_by_key TEXT NOT NULL,
 		org TEXT NOT NULL,
+		partition TEXT NOT NULL,
 		fields TEXT NOT NULL CHECK (json_valid(fields))
 	)`, table)
 	if _, err := t.tx.Exec(ddl); err != nil {
 		return false, fmt.Errorf("failed to create collection table %s: %w", table, err)
 	}
 
-	orderIdx := fmt.Sprintf(`CREATE INDEX %q ON %q (created_at DESC, id)`,
+	orderIdx := fmt.Sprintf(`CREATE INDEX %q ON %q (partition, created_at DESC, id)`,
 		"ord_"+table, table)
 	if _, err := t.tx.Exec(orderIdx); err != nil {
 		return false, fmt.Errorf("failed to create ordering index on %s: %w", table, err)
 	}
 
-	ownerIdx := fmt.Sprintf(`CREATE INDEX %q ON %q (created_by_key)`,
+	ownerIdx := fmt.Sprintf(`CREATE INDEX %q ON %q (partition, created_by_key)`,
 		"own_"+table, table)
 	if _, err := t.tx.Exec(ownerIdx); err != nil {
 		return false, fmt.Errorf("failed to create attribution index on %s: %w", table, err)
 	}
 	return true, nil
+}
+
+func (t *sqliteTx) EnsurePartition(datastoreID, partition string) (bool, error) {
+	catalog := partitionCatalogName(datastoreID)
+
+	ddl := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %q (
+		partition TEXT PRIMARY KEY,
+		created_at TEXT NOT NULL
+	)`, catalog)
+	if _, err := t.tx.Exec(ddl); err != nil {
+		return false, fmt.Errorf("failed to create partition catalog %s: %w", catalog, err)
+	}
+
+	res, err := t.tx.Exec(
+		fmt.Sprintf(`INSERT OR IGNORE INTO %q (partition, created_at) VALUES (?, ?)`, catalog),
+		partition, time.Now().UTC().Format(schema.TimestampFormat),
+	)
+	if err != nil {
+		return false, fmt.Errorf("failed to register partition %q: %w", partition, err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to register partition %q: %w", partition, err)
+	}
+	return n > 0, nil
+}
+
+func (t *sqliteTx) ListPartitions(datastoreID string) ([]string, error) {
+	catalog := partitionCatalogName(datastoreID)
+
+	var exists int
+	if err := t.tx.QueryRow(
+		`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?`, catalog,
+	).Scan(&exists); err != nil {
+		return nil, fmt.Errorf("failed to check partition catalog %s: %w", catalog, err)
+	}
+	if exists == 0 {
+		return nil, nil
+	}
+
+	rows, err := t.tx.Query(fmt.Sprintf(`SELECT partition FROM %q ORDER BY partition`, catalog))
+	if err != nil {
+		return nil, fmt.Errorf("failed to list partitions: %w", err)
+	}
+	defer rows.Close()
+
+	var partitions []string
+	for rows.Next() {
+		var p string
+		if err := rows.Scan(&p); err != nil {
+			return nil, err
+		}
+		partitions = append(partitions, p)
+	}
+	return partitions, rows.Err()
+}
+
+func (t *sqliteTx) DropPartitionCatalog(datastoreID string) error {
+	catalog := partitionCatalogName(datastoreID)
+	if _, err := t.tx.Exec(fmt.Sprintf(`DROP TABLE IF EXISTS %q`, catalog)); err != nil {
+		return fmt.Errorf("failed to drop partition catalog %s: %w", catalog, err)
+	}
+	return nil
 }
 
 func (t *sqliteTx) UniqueIndexConstraints(datastoreID, collection string) ([]string, error) {
@@ -222,9 +325,13 @@ func (t *sqliteTx) UniqueIndexConstraints(datastoreID, collection string) ([]str
 func (t *sqliteTx) CreateUniqueIndex(datastoreID, collection string, u *datastorev1.UniqueConstraint, whereEquals any) error {
 	table := tableName(datastoreID, collection)
 
-	exprs := make([]string, len(u.GetFields()))
-	for i, f := range u.GetFields() {
-		exprs[i] = jsonFieldExpr(f)
+	// The partition column leads every unique index: uniqueness is a
+	// per-partition invariant — partitions are separate worlds, so the
+	// same key in two partitions never conflicts (DD-010).
+	exprs := make([]string, 0, len(u.GetFields())+1)
+	exprs = append(exprs, "partition")
+	for _, f := range u.GetFields() {
+		exprs = append(exprs, jsonFieldExpr(f))
 	}
 
 	ddl := fmt.Sprintf(`CREATE UNIQUE INDEX %q ON %q (%s)`,
@@ -300,9 +407,11 @@ func (t *sqliteTx) CountUniqueViolations(datastoreID, collection string, u *data
 
 	// Violating records = every record beyond the first in each
 	// duplicate group (the count the sync rejection message reports).
+	// Groups include the partition to mirror the per-partition index
+	// semantics the constraint will actually enforce.
 	query := fmt.Sprintf(
 		`SELECT COALESCE(SUM(cnt - 1), 0) FROM (
-			SELECT COUNT(*) AS cnt FROM %q WHERE %s GROUP BY %s HAVING COUNT(*) > 1
+			SELECT COUNT(*) AS cnt FROM %q WHERE %s GROUP BY partition, %s HAVING COUNT(*) > 1
 		)`,
 		table, where, strings.Join(exprs, ", "),
 	)
@@ -314,12 +423,18 @@ func (t *sqliteTx) CountUniqueViolations(datastoreID, collection string, u *data
 	return n, nil
 }
 
-func (t *sqliteTx) List(datastoreID, collection string) ([]*Record, error) {
+func (t *sqliteTx) List(datastoreID, collection, partition string) ([]*Record, error) {
+	where := ""
+	var args []any
+	if partition != "" {
+		where = `WHERE partition = ?`
+		args = append(args, partition)
+	}
 	query := fmt.Sprintf(
-		`SELECT id, created_at, updated_at, created_by, created_by_key, org, fields FROM %q ORDER BY created_at, id`,
-		tableName(datastoreID, collection),
+		`SELECT `+recordColumns+` FROM %q %s ORDER BY created_at, id`,
+		tableName(datastoreID, collection), where,
 	)
-	rows, err := t.tx.Query(query)
+	rows, err := t.tx.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list records: %w", err)
 	}
@@ -336,8 +451,8 @@ func (t *sqliteTx) List(datastoreID, collection string) ([]*Record, error) {
 	return records, rows.Err()
 }
 
-func (t *sqliteTx) Get(datastoreID, collection, id string) (*Record, error) {
-	return getRecord(context.Background(), t.tx, datastoreID, collection, id)
+func (t *sqliteTx) Get(datastoreID, collection, partition, id string) (*Record, error) {
+	return getRecord(context.Background(), t.tx, datastoreID, collection, partition, id)
 }
 
 func (t *sqliteTx) CountRecords(datastoreID, collection string) (int64, error) {
@@ -362,7 +477,7 @@ func (t *sqliteTx) Insert(datastoreID, collection string, rec *Record) error {
 	}
 
 	query := fmt.Sprintf(
-		`INSERT INTO %q (id, created_at, updated_at, created_by, created_by_key, org, fields) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO %q (`+recordColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		table,
 	)
 	_, err = t.tx.Exec(query,
@@ -372,6 +487,7 @@ func (t *sqliteTx) Insert(datastoreID, collection string, rec *Record) error {
 		createdBy,
 		rec.CreatedByKey,
 		rec.Org,
+		rec.Partition,
 		fieldsJSON,
 	)
 	if err != nil {
@@ -421,8 +537,15 @@ func (t *sqliteTx) Delete(datastoreID, collection, id string) error {
 // Naming, scanning, and SQL construction
 // ---------------------------------------------------------------------------
 
+// recordColumns is the envelope column list, in scanRecord order.
+const recordColumns = `id, created_at, updated_at, created_by, created_by_key, org, partition, fields`
+
 func tableName(datastoreID, collection string) string {
 	return tablePrefix + datastoreID + "_" + collection
+}
+
+func partitionCatalogName(datastoreID string) string {
+	return partitionCatalogPrefix + datastoreID
 }
 
 // uniqueIndexName is deterministic so a driver violation error resolves
@@ -465,12 +588,13 @@ func jsonFieldExpr(field string) string {
 	return fmt.Sprintf(`json_extract(fields, '$.%s')`, field)
 }
 
-// buildWhere renders the WHERE clause for validated conditions plus the
-// optional own-scope conjunction. Conditions are already type-checked by
-// the domain layer; values are canonical.
-func buildWhere(conditions []Condition, ownerKey string) (string, []any) {
-	var clauses []string
-	var args []any
+// buildWhere renders the WHERE clause: the partition scope first (every
+// record query lives inside exactly one partition), then validated
+// conditions, then the optional own-scope conjunction. Conditions are
+// already type-checked by the domain layer; values are canonical.
+func buildWhere(partition string, conditions []Condition, ownerKey string) (string, []any) {
+	clauses := []string{"partition = ?"}
+	args := []any{partition}
 
 	for _, c := range conditions {
 		col := jsonFieldExpr(c.Field)
@@ -524,9 +648,6 @@ func buildWhere(conditions []Condition, ownerKey string) (string, []any) {
 		args = append(args, ownerKey)
 	}
 
-	if len(clauses) == 0 {
-		return "", nil
-	}
 	return "WHERE " + strings.Join(clauses, " AND "), args
 }
 
@@ -578,7 +699,7 @@ func scanRecord(row rowScanner) (*Record, error) {
 		createdBy    []byte
 		fieldsJSON   string
 	)
-	if err := row.Scan(&rec.ID, &createdAtStr, &updatedAtStr, &createdBy, &rec.CreatedByKey, &rec.Org, &fieldsJSON); err != nil {
+	if err := row.Scan(&rec.ID, &createdAtStr, &updatedAtStr, &createdBy, &rec.CreatedByKey, &rec.Org, &rec.Partition, &fieldsJSON); err != nil {
 		return nil, fmt.Errorf("failed to scan record: %w", err)
 	}
 
@@ -607,14 +728,17 @@ func scanRecord(row rowScanner) (*Record, error) {
 	return &rec, nil
 }
 
+// getRecord loads a record by id within a partition. A record living in
+// another partition is reported absent — id-addressed operations must
+// never see across the partition boundary.
 func getRecord(ctx context.Context, q interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
-}, datastoreID, collection, id string) (*Record, error) {
+}, datastoreID, collection, partition, id string) (*Record, error) {
 	query := fmt.Sprintf(
-		`SELECT id, created_at, updated_at, created_by, created_by_key, org, fields FROM %q WHERE id = ?`,
+		`SELECT `+recordColumns+` FROM %q WHERE id = ? AND partition = ?`,
 		tableName(datastoreID, collection),
 	)
-	rec, err := scanRecord(q.QueryRowContext(ctx, query, id))
+	rec, err := scanRecord(q.QueryRowContext(ctx, query, id, partition))
 	if err != nil {
 		if strings.Contains(err.Error(), sql.ErrNoRows.Error()) {
 			return nil, nil

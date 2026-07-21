@@ -4,21 +4,28 @@ import (
 	"context"
 
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
+	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/authz"
 )
 
 // DescribeDatastore describes a datastore's collections, fields,
-// constraints, and the calling subject's effective verbs per collection.
+// constraints, cataloged partitions, and the calling subject's
+// effective verbs per collection.
 //
 // Requires reach only (no per-collection verb): a caller with no grants
 // sees the schema with empty access lists — deny-by-default renders as
-// an empty verb list, never an error. Operator state (bindings, seed
-// records, sync report) is deliberately excluded: a caller learns the
-// shape of the data and what it may do, never who else has access.
+// an empty verb list, never an error. Operator state (bindings, sync
+// report) is deliberately excluded: a caller learns the shape of the
+// data and what it may do, never who else has access.
 func (c *DatastoreRecordController) DescribeDatastore(ctx context.Context, req *datastorev1.DescribeDatastoreRequest) (*datastorev1.DatastoreDescription, error) {
-	call, err := c.resolveCall(ctx, req.GetDatastore(), "")
+	call, err := c.resolveCall(ctx, req.GetDatastore(), "", "")
 	if err != nil {
 		return nil, err
+	}
+
+	partitions, err := c.recordStore.ListPartitions(ctx, call.datastore.GetMetadata().GetId())
+	if err != nil {
+		return nil, grpclib.InternalError(err, "failed to list datastore partitions")
 	}
 
 	spec := call.datastore.GetSpec()
@@ -26,6 +33,7 @@ func (c *DatastoreRecordController) DescribeDatastore(ctx context.Context, req *
 		Datastore:   call.datastore.GetMetadata().GetSlug(),
 		Description: spec.GetDescription(),
 		Timezone:    spec.GetTimezone(),
+		Partitions:  partitions,
 	}
 
 	for _, coll := range spec.GetCollections() {

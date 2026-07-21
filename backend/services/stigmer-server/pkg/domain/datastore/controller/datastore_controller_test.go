@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
@@ -59,19 +60,12 @@ func setupTest(t *testing.T) *testEnv {
 	}
 }
 
-// clinicDatastore is the acceptance shape (spec §9): schedules with
-// seeds, bookings with a partial unique, a check, an exists, and a
+// clinicDatastore is the acceptance shape (spec §9): schedules,
+// bookings with a partial unique, a check, an exists, and a
 // not_exists, and record-layer authorization granting the local
 // operator (via default_role) full access to bookings but read-only
 // schedules... except "admin" which the tests bind explicitly.
 func clinicDatastore(name string) *datastorev1.Datastore {
-	seed := func(fields map[string]any) *structpb.Struct {
-		s, err := structpb.NewStruct(fields)
-		if err != nil {
-			panic(err)
-		}
-		return s
-	}
 	return &datastorev1.Datastore{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Datastore",
@@ -103,10 +97,6 @@ func clinicDatastore(name string) *datastorev1.Datastore {
 						Role:  "operator",
 						Verbs: []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_read},
 					}},
-					SeedRecords: []*structpb.Struct{
-						// Tuesday morning session, 10:00–13:00 IST.
-						seed(map[string]any{"day_of_week": 2, "session_start": "10:00", "session_end": "13:00"}),
-					},
 				},
 				{
 					Name: "schedule_exceptions",
@@ -167,7 +157,7 @@ func clinicDatastore(name string) *datastorev1.Datastore {
 }
 
 // tuesdaySlot is 10:30 IST (05:00Z) on Tuesday 2026-07-21 — inside the
-// seeded Tuesday session and on the half-hour grid.
+// planted Tuesday session and on the half-hour grid.
 const tuesdaySlot = "2026-07-21T05:00:00Z"
 
 func insertBooking(t *testing.T, env *testEnv, ds, slot, patient string) (*datastorev1.RecordEnvelope, error) {
@@ -179,9 +169,45 @@ func insertBooking(t *testing.T, env *testEnv, ds, slot, patient string) (*datas
 	})
 }
 
+// plantSchedule inserts the Tuesday session (10:00–13:00 IST) directly
+// into the substrate — the operator role is deliberately read-only on
+// schedules, and records enter through the record RPCs in production
+// (there is no seed path), so tests plant reference data the way the
+// cloud edition's writer would.
+func plantSchedule(t *testing.T, env *testEnv, datastoreID string) {
+	t.Helper()
+	plantScheduleIn(t, env, datastoreID, recordstore.DefaultPartition)
+}
+
+func plantScheduleIn(t *testing.T, env *testEnv, datastoreID, partition string) {
+	t.Helper()
+	rec := &recordstore.Record{
+		ID:           "dsr_sched_" + partition,
+		CreatedAt:    testTime(),
+		UpdatedAt:    testTime(),
+		CreatedBy:    identity.LocalSubject(),
+		CreatedByKey: identity.SubjectKey(identity.LocalSubject()),
+		Org:          identity.SystemOrg,
+		Partition:    partition,
+		Fields: map[string]any{
+			"day_of_week": int64(2), "session_start": "10:00", "session_end": "13:00",
+		},
+	}
+	require.NoError(t, env.recordStore.WithWriteTx(testContext(), func(tx recordstore.Tx) error {
+		if _, err := tx.EnsurePartition(datastoreID, partition); err != nil {
+			return err
+		}
+		return tx.Insert(datastoreID, "schedules", rec)
+	}))
+}
+
+func testTime() time.Time {
+	return time.Date(2026, 7, 20, 12, 0, 0, 0, time.UTC)
+}
+
 // --- resource lifecycle ----------------------------------------------------
 
-func TestCreate_MaterializesSchemaAndSeeds(t *testing.T) {
+func TestCreate_MaterializesSchema(t *testing.T) {
 	env := setupTest(t)
 
 	created, err := env.controller.Create(testContext(), clinicDatastore("clinic"))
@@ -200,34 +226,43 @@ func TestCreate_MaterializesSchemaAndSeeds(t *testing.T) {
 	}
 	require.Contains(t, byName, "schedules")
 	assert.Equal(t, datastorev1.CollectionMaterializationState_active, byName["schedules"].GetState())
-	assert.Equal(t, int64(1), byName["schedules"].GetRecordCount(), "seed inserted on first materialization")
+	assert.Equal(t, int64(0), byName["schedules"].GetRecordCount(),
+		"collections materialize empty — records enter through the record RPCs only")
 	assert.NotNil(t, byName["schedules"].GetMaterializedAt())
 	assert.Equal(t, int64(0), byName["bookings"].GetRecordCount())
+
+	// The sync registers the default partition in the catalog.
+	partitions, err := env.recordStore.ListPartitions(testContext(), created.GetMetadata().GetId())
+	require.NoError(t, err)
+	assert.Equal(t, []string{recordstore.DefaultPartition}, partitions)
 }
 
-func TestApply_SecondApplyIgnoresSeeds(t *testing.T) {
+func TestApply_SecondApplyPreservesRecordsAndMaterialization(t *testing.T) {
 	env := setupTest(t)
 
-	_, err := env.controller.Apply(testContext(), clinicDatastore("clinic"))
+	created, err := env.controller.Apply(testContext(), clinicDatastore("clinic"))
 	require.NoError(t, err)
+	plantSchedule(t, env, created.GetMetadata().GetId())
 
-	// Re-apply the identical manifest: seed-once means no new inserts,
-	// and the drift is reported.
+	// Re-apply the identical manifest: living data is untouched and the
+	// materialization stamp survives (the manifest is authoritative for
+	// structure, never for data).
 	updated, err := env.controller.Apply(testContext(), clinicDatastore("clinic"))
 	require.NoError(t, err)
 
 	for _, cs := range updated.GetStatus().GetCollections() {
 		if cs.GetName() == "schedules" {
-			assert.Equal(t, int64(1), cs.GetRecordCount(), "seeds must not re-insert")
-			assert.Equal(t, int32(1), cs.GetIgnoredSeedCount())
+			assert.Equal(t, int64(1), cs.GetRecordCount(), "re-apply must not touch records")
+			assert.NotNil(t, cs.GetMaterializedAt())
 		}
 	}
 }
 
 func TestUpdate_ChangeMatrixRejections(t *testing.T) {
 	env := setupTest(t)
-	_, err := env.controller.Create(testContext(), clinicDatastore("clinic"))
+	created, err := env.controller.Create(testContext(), clinicDatastore("clinic"))
 	require.NoError(t, err)
+	plantSchedule(t, env, created.GetMetadata().GetId())
 
 	t.Run("type change rejected, prior schema retained", func(t *testing.T) {
 		mutated := clinicDatastore("clinic")
@@ -261,7 +296,7 @@ func TestUpdate_ChangeMatrixRejections(t *testing.T) {
 
 	t.Run("removing a non-empty collection requires the acknowledgment annotation", func(t *testing.T) {
 		mutated := clinicDatastore("clinic")
-		mutated.Spec.Collections = mutated.Spec.Collections[1:] // drop seeded schedules
+		mutated.Spec.Collections = mutated.Spec.Collections[1:] // drop non-empty schedules
 		// The bookings exists constraint targets schedules; removing the
 		// collection forces removing the constraint too (validation
 		// rejects a dangling reference before the sync ever runs).
@@ -292,10 +327,11 @@ func TestUpdate_ChangeMatrixRejections(t *testing.T) {
 
 func TestUpdate_NewConstraintValidatedAgainstExistingRecords(t *testing.T) {
 	env := setupTest(t)
-	_, err := env.controller.Create(testContext(), clinicDatastore("clinic"))
+	created, err := env.controller.Create(testContext(), clinicDatastore("clinic"))
 	require.NoError(t, err)
+	plantSchedule(t, env, created.GetMetadata().GetId())
 
-	// The seeded schedule has day_of_week = 2; a new check requiring
+	// The planted schedule has day_of_week = 2; a new check requiring
 	// weekends only is violated by it.
 	mutated := clinicDatastore("clinic")
 	mutated.Spec.Collections[0].Checks = append(mutated.Spec.Collections[0].Checks,
@@ -317,6 +353,7 @@ func TestDelete_Guards(t *testing.T) {
 	env := setupTest(t)
 	created, err := env.controller.Create(testContext(), clinicDatastore("clinic"))
 	require.NoError(t, err)
+	plantSchedule(t, env, created.GetMetadata().GetId())
 
 	t.Run("non-empty datastore requires force", func(t *testing.T) {
 		_, err := env.controller.Delete(testContext(), &apiresource.ApiResourceDeleteInput{
@@ -361,11 +398,16 @@ func TestDelete_Guards(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "clinic", deleted.GetMetadata().GetSlug())
 
-		// Every collection table is gone, including the seeded one.
+		// Every collection table is gone, and the partition catalog with
+		// them.
 		require.NoError(t, env.recordStore.WithWriteTx(testContext(), func(tx recordstore.Tx) error {
 			tables, err := tx.ListCollectionTables(created.GetMetadata().GetId())
 			require.NoError(t, err)
 			assert.Empty(t, tables)
+
+			partitions, err := tx.ListPartitions(created.GetMetadata().GetId())
+			require.NoError(t, err)
+			assert.Empty(t, partitions, "the dsp_ catalog dies with the collection tables")
 			return nil
 		}))
 	})
@@ -375,8 +417,9 @@ func TestDelete_Guards(t *testing.T) {
 
 func TestRecordRPCs_EndToEnd(t *testing.T) {
 	env := setupTest(t)
-	_, err := env.controller.Create(testContext(), clinicDatastore("clinic"))
+	created, err := env.controller.Create(testContext(), clinicDatastore("clinic"))
 	require.NoError(t, err)
+	plantSchedule(t, env, created.GetMetadata().GetId())
 
 	t.Run("insert stamps the envelope and passes constraints", func(t *testing.T) {
 		envelope, err := insertBooking(t, env, "clinic", tuesdaySlot, "Asha")
@@ -613,6 +656,7 @@ func TestOwnScope_DeniesForeignRecords(t *testing.T) {
 		},
 		CreatedByKey: "channel/whatsapp_phone/9198",
 		Org:          identity.SystemOrg,
+		Partition:    recordstore.DefaultPartition,
 		Fields: map[string]any{
 			"slot_start": "2026-07-21T05:00:00.000000000Z", "patient_name": "Asha", "status": "confirmed",
 		},
@@ -632,6 +676,108 @@ func TestOwnScope_DeniesForeignRecords(t *testing.T) {
 	assert.Equal(t, "you may only update records you created in bookings", st.Message())
 }
 
+// TestRecordRPCs_PartitionScoping pins the DD-010 record-RPC contract:
+// every operation lives inside exactly one partition — writes
+// materialize partitions, reads of unknown partitions return empty and
+// create nothing, id-addressed operations never see across the
+// boundary, constraints hold per partition, and describe lists the
+// catalog.
+func TestRecordRPCs_PartitionScoping(t *testing.T) {
+	env := setupTest(t)
+	created, err := env.controller.Create(testContext(), clinicDatastore("clinic"))
+	require.NoError(t, err)
+	// Both worlds need the Tuesday session for the exists constraint.
+	plantSchedule(t, env, created.GetMetadata().GetId())
+	plantScheduleIn(t, env, created.GetMetadata().GetId(), "dev")
+
+	insertIn := func(partition, slot, patient string) (*datastorev1.RecordEnvelope, error) {
+		record, err := structpb.NewStruct(map[string]any{"slot_start": slot, "patient_name": patient})
+		require.NoError(t, err)
+		return env.recordController.InsertRecord(testContext(), &datastorev1.InsertRecordRequest{
+			Datastore: "clinic", Collection: "bookings", Record: record, Partition: partition,
+		})
+	}
+
+	var devBookingID string
+	t.Run("the same slot books once per partition", func(t *testing.T) {
+		_, err := insertIn("", tuesdaySlot, "Asha") // empty = default
+		require.NoError(t, err)
+
+		envelope, err := insertIn("dev", tuesdaySlot, "Test Patient")
+		require.NoError(t, err, "dev bookings never conflict with prod")
+		devBookingID = envelope.GetId()
+
+		_, err = insertIn("dev", tuesdaySlot, "Second Test Patient")
+		require.Error(t, err, "within one partition the unique still bites")
+		assert.Equal(t, "that slot is already booked", status.Convert(err).Message())
+	})
+
+	t.Run("find is partition-scoped", func(t *testing.T) {
+		list, err := env.recordController.FindRecords(testContext(), &datastorev1.FindRecordsRequest{
+			Datastore: "clinic", Collection: "bookings", Partition: "dev",
+		})
+		require.NoError(t, err)
+		assert.Equal(t, int32(1), list.GetTotal())
+		assert.Equal(t, devBookingID, list.GetRecords()[0].GetId())
+	})
+
+	t.Run("id-addressed writes never cross the boundary", func(t *testing.T) {
+		fields, err := structpb.NewStruct(map[string]any{"status": "cancelled"})
+		require.NoError(t, err)
+		_, err = env.recordController.UpdateRecord(testContext(), &datastorev1.UpdateRecordRequest{
+			Datastore: "clinic", Collection: "bookings", Id: devBookingID, Fields: fields,
+			// default partition — the dev record must be invisible
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Convert(err).Code())
+	})
+
+	t.Run("reading an unknown partition returns empty and creates nothing", func(t *testing.T) {
+		list, err := env.recordController.FindRecords(testContext(), &datastorev1.FindRecordsRequest{
+			Datastore: "clinic", Collection: "bookings", Partition: "pord", // typo'd on purpose
+		})
+		require.NoError(t, err)
+		assert.Zero(t, list.GetTotal())
+
+		partitions, err := env.recordStore.ListPartitions(testContext(), created.GetMetadata().GetId())
+		require.NoError(t, err)
+		assert.NotContains(t, partitions, "pord", "reads must never mint partitions")
+	})
+
+	t.Run("partition in a record payload is rejected as a system field", func(t *testing.T) {
+		record, err := structpb.NewStruct(map[string]any{
+			"slot_start": "2026-07-21T05:30:00Z", "patient_name": "Asha", "partition": "prod",
+		})
+		require.NoError(t, err)
+		_, err = env.recordController.InsertRecord(testContext(), &datastorev1.InsertRecordRequest{
+			Datastore: "clinic", Collection: "bookings", Record: record,
+		})
+		require.Error(t, err)
+		assert.Equal(t, codes.InvalidArgument, status.Convert(err).Code())
+	})
+
+	t.Run("partition is not filterable", func(t *testing.T) {
+		_, err := env.recordController.FindRecords(testContext(), &datastorev1.FindRecordsRequest{
+			Datastore: "clinic", Collection: "bookings",
+			Filter: &datastorev1.RecordFilter{Conditions: []*datastorev1.RecordCondition{{
+				Field: "partition", Op: datastorev1.RecordConditionOp_eq, Value: structpb.NewStringValue("dev"),
+			}}},
+		})
+		require.Error(t, err)
+		st := status.Convert(err)
+		assert.Equal(t, codes.InvalidArgument, st.Code())
+		assert.Contains(t, st.Message(), `field "partition" is not filterable`)
+	})
+
+	t.Run("describe lists cataloged partitions", func(t *testing.T) {
+		desc, err := env.recordController.DescribeDatastore(testContext(), &datastorev1.DescribeDatastoreRequest{
+			Datastore: "clinic",
+		})
+		require.NoError(t, err)
+		assert.Equal(t, []string{"default", "dev"}, desc.GetPartitions())
+	})
+}
+
 // TestConcurrency_ScheduleCloseVsBookingInsert is the DD-007 required
 // concurrency test, domain half: a booking insert whose not_exists
 // verdict was formed before a schedule-close commits must NOT commit —
@@ -641,6 +787,7 @@ func TestConcurrency_ScheduleCloseVsBookingInsert(t *testing.T) {
 	env := setupTest(t)
 	created, err := env.controller.Create(testContext(), clinicDatastore("clinic"))
 	require.NoError(t, err)
+	plantSchedule(t, env, created.GetMetadata().GetId())
 
 	closeInTx := make(chan struct{})
 	closeDone := make(chan error, 1)
@@ -655,6 +802,7 @@ func TestConcurrency_ScheduleCloseVsBookingInsert(t *testing.T) {
 				CreatedBy:    identity.LocalSubject(),
 				CreatedByKey: identity.SubjectKey(identity.LocalSubject()),
 				Org:          identity.SystemOrg,
+				Partition:    recordstore.DefaultPartition,
 				Fields:       map[string]any{"exception_date": "2026-07-21"},
 			}
 			if err := tx.Insert(created.GetMetadata().GetId(), "schedule_exceptions", exception); err != nil {
@@ -680,6 +828,27 @@ func TestConcurrency_ScheduleCloseVsBookingInsert(t *testing.T) {
 	n, err := env.recordStore.CountRecords(testContext(), created.GetMetadata().GetId(), "bookings")
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), n)
+}
+
+// TestCreate_ReservedFieldNamesRejected pins the proto-level reserved
+// set: the record envelope's system names (including the DD-010
+// partition label) can never be declared.
+func TestCreate_ReservedFieldNamesRejected(t *testing.T) {
+	env := setupTest(t)
+
+	for _, reserved := range []string{"id", "created_at", "updated_at", "created_by", "org", "partition"} {
+		t.Run(reserved, func(t *testing.T) {
+			ds := clinicDatastore("clinic-" + reserved)
+			ds.Spec.Collections[0].Fields = append(ds.Spec.Collections[0].Fields,
+				&datastorev1.FieldDeclaration{Name: reserved, Type: datastorev1.FieldType_string})
+
+			_, err := env.controller.Create(testContext(), ds)
+			require.Error(t, err)
+			st := status.Convert(err)
+			assert.Equal(t, codes.InvalidArgument, st.Code())
+			assert.Contains(t, st.Message(), "field name is reserved for the record envelope")
+		})
+	}
 }
 
 func TestEnforceOrgQuota(t *testing.T) {

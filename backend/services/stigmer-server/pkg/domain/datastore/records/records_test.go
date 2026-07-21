@@ -127,17 +127,23 @@ func TestTypedFields_ProjectsRemovedFieldsOut(t *testing.T) {
 }
 
 func TestNewRecord_StampsSystemFields(t *testing.T) {
-	rec := NewRecord(identity.LocalSubject(), "stigmer", map[string]any{"k": "v"})
+	rec := NewRecord(identity.LocalSubject(), "stigmer", "prod", map[string]any{"k": "v"})
 	assert.True(t, strings.HasPrefix(rec.ID, "dsr_"), "record ids carry the dsr prefix, got %s", rec.ID)
 	assert.Equal(t, "principal/identity_account/system", rec.CreatedByKey)
 	assert.Equal(t, "stigmer", rec.Org)
+	assert.Equal(t, "prod", rec.Partition)
 	assert.False(t, rec.CreatedAt.IsZero())
 	assert.Equal(t, rec.CreatedAt, rec.UpdatedAt)
 }
 
+func TestNormalizePartition_EmptyMeansDefault(t *testing.T) {
+	assert.Equal(t, "default", NormalizePartition(""))
+	assert.Equal(t, "prod", NormalizePartition("prod"))
+}
+
 func TestEnvelope_ProjectsCanonicalStruct(t *testing.T) {
 	coll := bookingsCollection()
-	rec := NewRecord(identity.LocalSubject(), "stigmer", map[string]any{
+	rec := NewRecord(identity.LocalSubject(), "stigmer", "default", map[string]any{
 		"slot_start":   "2026-07-21T04:30:00.000000000Z",
 		"patient_name": "Asha",
 		"status":       "confirmed",

@@ -30,6 +30,8 @@ const (
 //	system created_at/updated_at: gt, gte, lt, lte (range only)
 //	created_by:                   not filterable (attribution is the
 //	                              grant system's privacy boundary)
+//	partition:                    not filterable (ambient scope set by
+//	                              the server, never addressable data)
 var (
 	equalityOps = map[datastorev1.RecordConditionOp]bool{
 		datastorev1.RecordConditionOp_eq:     true,
@@ -183,7 +185,7 @@ func buildSystemCondition(coll *datastorev1.CollectionDeclaration, c *datastorev
 		}
 		return &cond, nil
 
-	case "created_by", "org":
+	case "created_by", "org", "partition":
 		return nil, dserrors.InvalidFilter("field %q is not filterable", name)
 
 	default:
@@ -236,7 +238,7 @@ func BuildOrderBy(coll *datastorev1.CollectionDeclaration, orderBy *datastorev1.
 	switch name {
 	case "id", "created_at", "updated_at":
 		return &recordstore.OrderBy{Field: name, System: true, Descending: desc}, nil
-	case "created_by", "org":
+	case "created_by", "org", "partition":
 		return nil, dserrors.InvalidFilter("field %q is not sortable", name)
 	}
 

@@ -64,22 +64,7 @@ public interface CollectionStatusOrBuilder extends
 
   /**
    * <pre>
-   * Number of declared seed records that were skipped because the
-   * collection was already materialized on a previous apply.
-   *
-   * Non-zero means the manifest's seed_records have drifted from the
-   * collection's living data — expected once operators edit records
-   * through agents or the console.
-   * </pre>
-   *
-   * <code>int32 ignored_seed_count = 4 [json_name = "ignoredSeedCount"];</code>
-   * @return The ignoredSeedCount.
-   */
-  int getIgnoredSeedCount();
-
-  /**
-   * <pre>
-   * When the collection was first materialized (and seeds ran).
+   * When the collection was first materialized.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp materialized_at = 5 [json_name = "materializedAt"];</code>
@@ -88,7 +73,7 @@ public interface CollectionStatusOrBuilder extends
   boolean hasMaterializedAt();
   /**
    * <pre>
-   * When the collection was first materialized (and seeds ran).
+   * When the collection was first materialized.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp materialized_at = 5 [json_name = "materializedAt"];</code>
@@ -97,7 +82,7 @@ public interface CollectionStatusOrBuilder extends
   com.google.protobuf.Timestamp getMaterializedAt();
   /**
    * <pre>
-   * When the collection was first materialized (and seeds ran).
+   * When the collection was first materialized.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp materialized_at = 5 [json_name = "materializedAt"];</code>

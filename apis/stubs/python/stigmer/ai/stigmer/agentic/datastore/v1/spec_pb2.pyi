@@ -66,7 +66,7 @@ class DatastoreSpec(_message.Message):
     def __init__(self, description: _Optional[str] = ..., timezone: _Optional[str] = ..., authorization: _Optional[_Union[DatastoreAuthorization, _Mapping]] = ..., collections: _Optional[_Iterable[_Union[CollectionDeclaration, _Mapping]]] = ...) -> None: ...
 
 class CollectionDeclaration(_message.Message):
-    __slots__ = ("name", "description", "fields", "uniques", "checks", "exists", "not_exists", "grants", "seed_records")
+    __slots__ = ("name", "description", "fields", "uniques", "checks", "exists", "not_exists", "grants")
     NAME_FIELD_NUMBER: _ClassVar[int]
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     FIELDS_FIELD_NUMBER: _ClassVar[int]
@@ -75,7 +75,6 @@ class CollectionDeclaration(_message.Message):
     EXISTS_FIELD_NUMBER: _ClassVar[int]
     NOT_EXISTS_FIELD_NUMBER: _ClassVar[int]
     GRANTS_FIELD_NUMBER: _ClassVar[int]
-    SEED_RECORDS_FIELD_NUMBER: _ClassVar[int]
     name: str
     description: str
     fields: _containers.RepeatedCompositeFieldContainer[FieldDeclaration]
@@ -84,8 +83,7 @@ class CollectionDeclaration(_message.Message):
     exists: _containers.RepeatedCompositeFieldContainer[ExistsConstraint]
     not_exists: _containers.RepeatedCompositeFieldContainer[ExistsConstraint]
     grants: _containers.RepeatedCompositeFieldContainer[DatastoreGrant]
-    seed_records: _containers.RepeatedCompositeFieldContainer[_struct_pb2.Struct]
-    def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., fields: _Optional[_Iterable[_Union[FieldDeclaration, _Mapping]]] = ..., uniques: _Optional[_Iterable[_Union[UniqueConstraint, _Mapping]]] = ..., checks: _Optional[_Iterable[_Union[CheckConstraint, _Mapping]]] = ..., exists: _Optional[_Iterable[_Union[ExistsConstraint, _Mapping]]] = ..., not_exists: _Optional[_Iterable[_Union[ExistsConstraint, _Mapping]]] = ..., grants: _Optional[_Iterable[_Union[DatastoreGrant, _Mapping]]] = ..., seed_records: _Optional[_Iterable[_Union[_struct_pb2.Struct, _Mapping]]] = ...) -> None: ...
+    def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., fields: _Optional[_Iterable[_Union[FieldDeclaration, _Mapping]]] = ..., uniques: _Optional[_Iterable[_Union[UniqueConstraint, _Mapping]]] = ..., checks: _Optional[_Iterable[_Union[CheckConstraint, _Mapping]]] = ..., exists: _Optional[_Iterable[_Union[ExistsConstraint, _Mapping]]] = ..., not_exists: _Optional[_Iterable[_Union[ExistsConstraint, _Mapping]]] = ..., grants: _Optional[_Iterable[_Union[DatastoreGrant, _Mapping]]] = ...) -> None: ...
 
 class FieldDeclaration(_message.Message):
     __slots__ = ("name", "type", "required", "default", "enum_values", "description")

@@ -1,6 +1,6 @@
 {
   "name": "FieldDeclaration",
-  "description": "FieldDeclaration is a typed field on a collection's records.\n\n @internal\n System fields (id, created_at, updated_at, created_by) are not\n declared — they are part of the record envelope, server-stamped, and\n never caller-writable. Their names are reserved below, plus `org`\n (the stamped tenancy column in cloud record tables).",
+  "description": "FieldDeclaration is a typed field on a collection's records.\n\n @internal\n System fields (id, created_at, updated_at, created_by) are not\n declared — they are part of the record envelope, server-stamped, and\n never caller-writable. Their names are reserved below, plus `org`\n (the stamped tenancy column in cloud record tables) and `partition`\n (the DD-010 data-partition label: ambient scope set by the server,\n never data — not declarable, not in payloads, not filterable).",
   "protoType": "ai.stigmer.agentic.datastore.v1.FieldDeclaration",
   "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
   "fields": [
@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Field name, unique within the collection.\n\n Format: lowercase snake_case. The record envelope's system field\n names (id, created_at, updated_at, created_by) and `org` are\n reserved.",
+      "description": "Field name, unique within the collection.\n\n Format: lowercase snake_case. The record envelope's system field\n names (id, created_at, updated_at, created_by), `org`, and\n `partition` are reserved.",
       "required": true,
       "validation": {
         "required": true,

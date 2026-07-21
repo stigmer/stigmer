@@ -29,16 +29,18 @@ import (
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
 )
 
-// ReservedFieldNames are the record-envelope system field names (plus the
-// cloud tenancy column) that can never be declared. The proto enforces the
-// same set via CEL; this constant exists for domain code that validates
-// write payloads and filters.
+// ReservedFieldNames are the record-envelope system field names (plus
+// the cloud tenancy column and the DD-010 partition label) that can
+// never be declared. The proto enforces the same set via CEL; this
+// constant exists for domain code that validates write payloads and
+// filters.
 var ReservedFieldNames = map[string]bool{
 	"id":         true,
 	"created_at": true,
 	"updated_at": true,
 	"created_by": true,
 	"org":        true,
+	"partition":  true,
 }
 
 // TimestampFormat is the canonical wire encoding of timestamp fields and

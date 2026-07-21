@@ -113,52 +113,60 @@ class RecordOrderBy(_message.Message):
     def __init__(self, field: _Optional[str] = ..., direction: _Optional[_Union[RecordSortDirection, str]] = ...) -> None: ...
 
 class FindRecordsRequest(_message.Message):
-    __slots__ = ("datastore", "collection", "filter", "order_by", "limit", "offset")
+    __slots__ = ("datastore", "collection", "filter", "order_by", "limit", "offset", "partition")
     DATASTORE_FIELD_NUMBER: _ClassVar[int]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     FILTER_FIELD_NUMBER: _ClassVar[int]
     ORDER_BY_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     OFFSET_FIELD_NUMBER: _ClassVar[int]
+    PARTITION_FIELD_NUMBER: _ClassVar[int]
     datastore: str
     collection: str
     filter: RecordFilter
     order_by: RecordOrderBy
     limit: int
     offset: int
-    def __init__(self, datastore: _Optional[str] = ..., collection: _Optional[str] = ..., filter: _Optional[_Union[RecordFilter, _Mapping]] = ..., order_by: _Optional[_Union[RecordOrderBy, _Mapping]] = ..., limit: _Optional[int] = ..., offset: _Optional[int] = ...) -> None: ...
+    partition: str
+    def __init__(self, datastore: _Optional[str] = ..., collection: _Optional[str] = ..., filter: _Optional[_Union[RecordFilter, _Mapping]] = ..., order_by: _Optional[_Union[RecordOrderBy, _Mapping]] = ..., limit: _Optional[int] = ..., offset: _Optional[int] = ..., partition: _Optional[str] = ...) -> None: ...
 
 class InsertRecordRequest(_message.Message):
-    __slots__ = ("datastore", "collection", "record")
+    __slots__ = ("datastore", "collection", "record", "partition")
     DATASTORE_FIELD_NUMBER: _ClassVar[int]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     RECORD_FIELD_NUMBER: _ClassVar[int]
+    PARTITION_FIELD_NUMBER: _ClassVar[int]
     datastore: str
     collection: str
     record: _struct_pb2.Struct
-    def __init__(self, datastore: _Optional[str] = ..., collection: _Optional[str] = ..., record: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
+    partition: str
+    def __init__(self, datastore: _Optional[str] = ..., collection: _Optional[str] = ..., record: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., partition: _Optional[str] = ...) -> None: ...
 
 class UpdateRecordRequest(_message.Message):
-    __slots__ = ("datastore", "collection", "id", "fields")
+    __slots__ = ("datastore", "collection", "id", "fields", "partition")
     DATASTORE_FIELD_NUMBER: _ClassVar[int]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
     FIELDS_FIELD_NUMBER: _ClassVar[int]
+    PARTITION_FIELD_NUMBER: _ClassVar[int]
     datastore: str
     collection: str
     id: str
     fields: _struct_pb2.Struct
-    def __init__(self, datastore: _Optional[str] = ..., collection: _Optional[str] = ..., id: _Optional[str] = ..., fields: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ...) -> None: ...
+    partition: str
+    def __init__(self, datastore: _Optional[str] = ..., collection: _Optional[str] = ..., id: _Optional[str] = ..., fields: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., partition: _Optional[str] = ...) -> None: ...
 
 class DeleteRecordRequest(_message.Message):
-    __slots__ = ("datastore", "collection", "id")
+    __slots__ = ("datastore", "collection", "id", "partition")
     DATASTORE_FIELD_NUMBER: _ClassVar[int]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
+    PARTITION_FIELD_NUMBER: _ClassVar[int]
     datastore: str
     collection: str
     id: str
-    def __init__(self, datastore: _Optional[str] = ..., collection: _Optional[str] = ..., id: _Optional[str] = ...) -> None: ...
+    partition: str
+    def __init__(self, datastore: _Optional[str] = ..., collection: _Optional[str] = ..., id: _Optional[str] = ..., partition: _Optional[str] = ...) -> None: ...
 
 class DescribeDatastoreRequest(_message.Message):
     __slots__ = ("datastore",)
@@ -167,16 +175,18 @@ class DescribeDatastoreRequest(_message.Message):
     def __init__(self, datastore: _Optional[str] = ...) -> None: ...
 
 class DatastoreDescription(_message.Message):
-    __slots__ = ("datastore", "description", "timezone", "collections")
+    __slots__ = ("datastore", "description", "timezone", "collections", "partitions")
     DATASTORE_FIELD_NUMBER: _ClassVar[int]
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     TIMEZONE_FIELD_NUMBER: _ClassVar[int]
     COLLECTIONS_FIELD_NUMBER: _ClassVar[int]
+    PARTITIONS_FIELD_NUMBER: _ClassVar[int]
     datastore: str
     description: str
     timezone: str
     collections: _containers.RepeatedCompositeFieldContainer[CollectionDescription]
-    def __init__(self, datastore: _Optional[str] = ..., description: _Optional[str] = ..., timezone: _Optional[str] = ..., collections: _Optional[_Iterable[_Union[CollectionDescription, _Mapping]]] = ...) -> None: ...
+    partitions: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, datastore: _Optional[str] = ..., description: _Optional[str] = ..., timezone: _Optional[str] = ..., collections: _Optional[_Iterable[_Union[CollectionDescription, _Mapping]]] = ..., partitions: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class CollectionDescription(_message.Message):
     __slots__ = ("name", "description", "fields", "constraints", "access")

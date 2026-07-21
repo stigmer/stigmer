@@ -28,6 +28,11 @@ message DatastoreStatus {
 
 // CollectionStatus is the sync report for one declared collection.
 message CollectionStatus {
+  // Field 4 held ignored_seed_count until DD-010 removed declarative
+  // seeding along with spec.seed_records.
+  reserved 4;
+  reserved "ignored_seed_count";
+
   // Name of the declared collection.
   string name = 1;
 
@@ -40,15 +45,7 @@ message CollectionStatus {
   // Computed during sync; a health indicator, not a live counter.
   int64 record_count = 3;
 
-  // Number of declared seed records that were skipped because the
-  // collection was already materialized on a previous apply.
-  //
-  // Non-zero means the manifest's seed_records have drifted from the
-  // collection's living data — expected once operators edit records
-  // through agents or the console.
-  int32 ignored_seed_count = 4;
-
-  // When the collection was first materialized (and seeds ran).
+  // When the collection was first materialized.
   google.protobuf.Timestamp materialized_at = 5;
 }
 

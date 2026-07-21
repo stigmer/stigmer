@@ -2,18 +2,20 @@
 // synchronous, gating reconciliation of a datastore's declared schema
 // with its record substrate.
 //
-// The entire sync — change-matrix validation, DDL, index provisioning,
-// and seed insertion — runs inside ONE immediate write transaction, so
-// a rejected sync leaves the substrate untouched (SQLite DDL is
+// The entire sync — change-matrix validation, DDL, and index
+// provisioning — runs inside ONE immediate write transaction, so a
+// rejected sync leaves the substrate untouched (SQLite DDL is
 // transactional) and a crash can never half-apply a schema. Provisioning
 // is fail-loud: any substrate error fails the RPC (a deliberate
 // inversion of the platform's catch-log-continue convention — a
 // datastore whose declared uniques are not enforced must not exist).
+// The sync never inserts records: records enter exclusively through the
+// record RPCs (DD-010 removed declarative seeding).
 //
 // The additive-plus change matrix (no transition silently destroys or
 // nulls data):
 //
-//   - collection added                      → materialize + seed-once
+//   - collection added                      → materialize (empty)
 //   - collection removed (empty)            → allowed; data-free
 //   - collection removed (non-empty)        → requires the
 //     datastore.stigmer.ai/acknowledge-collection-removal annotation
@@ -30,6 +32,10 @@
 //     records first; rejected with the violating count
 //   - constraint removed                    → allowed (index dropped)
 //
+// Change-matrix validation is deliberately cross-partition: a schema
+// change must hold against every record it will govern, whichever
+// partition holds it (partitions separate data, never schema).
+//
 // Every rejection message here is cross-edition contract text (T04
 // mirrors byte-for-byte).
 package schemasync
@@ -42,7 +48,6 @@ import (
 
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/celeval"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/identity"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/records"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/recordstore"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/schema"
@@ -80,14 +85,20 @@ func Sync(ctx context.Context, rs recordstore.Store, existing, updated *datastor
 	acked := ackedRemovals(updated)
 
 	type collectionOutcome struct {
-		created      bool
-		recordCount  int64
-		ignoredSeeds int32
+		created     bool
+		recordCount int64
 	}
 	outcomes := map[string]*collectionOutcome{}
 	var removedNonEmpty []string
 
 	err := rs.WithWriteTx(ctx, func(tx recordstore.Tx) error {
+		// 0. Register the default partition in the catalog. Non-default
+		// partitions materialize on their first write (DD-010 SD-3);
+		// the default exists from day one so describe always lists it.
+		if _, err := tx.EnsurePartition(datastoreID, recordstore.DefaultPartition); err != nil {
+			return err
+		}
+
 		// 1. Collection removals (declared before, absent now).
 		for _, prior := range existing.GetSpec().GetCollections() {
 			if schema.CollectionByName(spec, prior.GetName()) != nil {
@@ -130,15 +141,6 @@ func Sync(ctx context.Context, rs recordstore.Store, existing, updated *datastor
 				return err
 			}
 
-			if created && len(coll.GetSeedRecords()) > 0 {
-				if err := insertSeeds(tx, updated, coll); err != nil {
-					return err
-				}
-			}
-			if !created {
-				outcome.ignoredSeeds = int32(len(coll.GetSeedRecords()))
-			}
-
 			count, err := tx.CountRecords(datastoreID, coll.GetName())
 			if err != nil {
 				return err
@@ -152,9 +154,9 @@ func Sync(ctx context.Context, rs recordstore.Store, existing, updated *datastor
 		return nil, err
 	}
 
-	return buildStatus(existing, spec, removedNonEmpty, func(name string) (bool, int64, int32) {
+	return buildStatus(existing, spec, removedNonEmpty, func(name string) (bool, int64) {
 		o := outcomes[name]
-		return o.created, o.recordCount, o.ignoredSeeds
+		return o.created, o.recordCount
 	}), nil
 }
 
@@ -185,7 +187,9 @@ func validateFieldTransitions(tx recordstore.Tx, datastoreID string, prior, coll
 		if existingRecords != nil || count == 0 {
 			return existingRecords, nil
 		}
-		existingRecords, err = tx.List(datastoreID, coll.GetName())
+		// Empty partition = all partitions: a tightened field must hold
+		// for every record it will govern.
+		existingRecords, err = tx.List(datastoreID, coll.GetName(), "")
 		return existingRecords, err
 	}
 
@@ -294,7 +298,9 @@ func validateNewCheckConstraints(tx recordstore.Tx, updated *datastorev1.Datasto
 	}
 
 	datastoreID := updated.GetMetadata().GetId()
-	recs, err := tx.List(datastoreID, coll.GetName())
+	// All partitions: a new constraint must hold against every record it
+	// will govern, whichever partition holds it.
+	recs, err := tx.List(datastoreID, coll.GetName(), "")
 	if err != nil {
 		return err
 	}
@@ -304,7 +310,7 @@ func validateNewCheckConstraints(tx recordstore.Tx, updated *datastorev1.Datasto
 
 	tz := updated.GetSpec().GetTimezone()
 
-	countViolations := func(name string, violates func(this map[string]any) (bool, error)) error {
+	countViolations := func(name string, violates func(rec *recordstore.Record, this map[string]any) (bool, error)) error {
 		violations := 0
 		for _, rec := range recs {
 			typed, err := records.TypedFields(coll, rec.Fields)
@@ -312,7 +318,7 @@ func validateNewCheckConstraints(tx recordstore.Tx, updated *datastorev1.Datasto
 				return err
 			}
 			this := celeval.ActivationFromRecord(coll, typed)
-			bad, err := violates(this)
+			bad, err := violates(rec, this)
 			if err != nil {
 				return rejectf("constraint %q cannot be evaluated against existing records in %q: %v",
 					name, coll.GetName(), err)
@@ -329,7 +335,7 @@ func validateNewCheckConstraints(tx recordstore.Tx, updated *datastorev1.Datasto
 	}
 
 	for _, chk := range newOrChangedChecks {
-		err := countViolations(chk.GetName(), func(this map[string]any) (bool, error) {
+		err := countViolations(chk.GetName(), func(_ *recordstore.Record, this map[string]any) (bool, error) {
 			applies, err := evaluateWhen(chk.GetWhen(), this, tz)
 			if err != nil || !applies {
 				return false, err
@@ -344,12 +350,15 @@ func validateNewCheckConstraints(tx recordstore.Tx, updated *datastorev1.Datasto
 
 	validateExistsClass := func(constraints []*datastorev1.ExistsConstraint, wantMatch bool) error {
 		for _, ex := range constraints {
-			err := countViolations(ex.GetName(), func(this map[string]any) (bool, error) {
+			err := countViolations(ex.GetName(), func(rec *recordstore.Record, this map[string]any) (bool, error) {
 				applies, err := evaluateWhen(ex.GetWhen(), this, tz)
 				if err != nil || !applies {
 					return false, err
 				}
-				matched, err := existsMatch(tx, updated, ex, this, tz)
+				// The target lookup is scoped to the record's own
+				// partition — exists semantics see one partition's
+				// world at runtime, so validation mirrors that.
+				matched, err := existsMatch(tx, updated, ex, rec.Partition, this, tz)
 				return err == nil && matched != wantMatch, err
 			})
 			if err != nil {
@@ -402,13 +411,14 @@ func evaluateWhen(when string, this map[string]any, tz string) (bool, error) {
 }
 
 // existsMatch reports whether any record of the constraint's target
-// collection satisfies the where expression against the candidate.
-func existsMatch(tx recordstore.Tx, updated *datastorev1.Datastore, ex *datastorev1.ExistsConstraint, this map[string]any, tz string) (bool, error) {
+// collection, within the given partition, satisfies the where
+// expression against the candidate.
+func existsMatch(tx recordstore.Tx, updated *datastorev1.Datastore, ex *datastorev1.ExistsConstraint, partition string, this map[string]any, tz string) (bool, error) {
 	target := schema.CollectionByName(updated.GetSpec(), ex.GetCollection())
 	if target == nil {
 		return false, fmt.Errorf("constraint %q references unknown collection %q", ex.GetName(), ex.GetCollection())
 	}
-	candidates, err := tx.List(updated.GetMetadata().GetId(), target.GetName())
+	candidates, err := tx.List(updated.GetMetadata().GetId(), target.GetName(), partition)
 	if err != nil {
 		return false, err
 	}
@@ -505,31 +515,6 @@ func uniqueWhereValue(coll *datastorev1.CollectionDeclaration, u *datastorev1.Un
 	return schema.CanonicalizeValue(field, where.GetEquals().AsInterface())
 }
 
-// insertSeeds runs the declared seed records through the full write
-// path (defaults, checks, exists, uniques) inside the materializing
-// transaction. Attribution is the local operator — honest: the operator
-// authored the manifest (seeds bypass grants for the same reason).
-func insertSeeds(tx recordstore.Tx, updated *datastorev1.Datastore, coll *datastorev1.CollectionDeclaration) error {
-	subject := identity.LocalSubject()
-	org := updated.GetMetadata().GetOrg()
-
-	for i, seed := range coll.GetSeedRecords() {
-		fields, err := records.BuildInsertFields(coll, seed.AsMap())
-		if err != nil {
-			return rejectf("seed record %d in collection %q is invalid: %v", i+1, coll.GetName(), err)
-		}
-		if err := records.EvaluateConstraints(tx, updated, coll, fields); err != nil {
-			return rejectf("seed record %d in collection %q violates a constraint: %v", i+1, coll.GetName(), err)
-		}
-		rec := records.NewRecord(subject, org, fields)
-		if err := tx.Insert(updated.GetMetadata().GetId(), coll.GetName(), rec); err != nil {
-			mapped := records.MapUniqueViolation(err, coll)
-			return rejectf("seed record %d in collection %q could not be inserted: %v", i+1, coll.GetName(), mapped)
-		}
-	}
-	return nil
-}
-
 // buildStatus assembles the sync report: declared collections with their
 // materialization facts, prior removed entries carried forward, and
 // newly removed collections marked.
@@ -537,7 +522,7 @@ func buildStatus(
 	existing *datastorev1.Datastore,
 	spec *datastorev1.DatastoreSpec,
 	removed []string,
-	outcome func(name string) (created bool, recordCount int64, ignoredSeeds int32),
+	outcome func(name string) (created bool, recordCount int64),
 ) *datastorev1.DatastoreStatus {
 	now := timestamppb.New(time.Now().UTC())
 	priorStatus := map[string]*datastorev1.CollectionStatus{}
@@ -551,12 +536,11 @@ func buildStatus(
 	}
 
 	for _, coll := range spec.GetCollections() {
-		created, count, ignored := outcome(coll.GetName())
+		created, count := outcome(coll.GetName())
 		cs := &datastorev1.CollectionStatus{
-			Name:             coll.GetName(),
-			State:            datastorev1.CollectionMaterializationState_active,
-			RecordCount:      count,
-			IgnoredSeedCount: ignored,
+			Name:        coll.GetName(),
+			State:       datastorev1.CollectionMaterializationState_active,
+			RecordCount: count,
 		}
 		if created {
 			cs.MaterializedAt = now

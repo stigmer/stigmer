@@ -146,31 +146,11 @@ private static final long serialVersionUID = 0L;
     return recordCount_;
   }
 
-  public static final int IGNORED_SEED_COUNT_FIELD_NUMBER = 4;
-  private int ignoredSeedCount_ = 0;
-  /**
-   * <pre>
-   * Number of declared seed records that were skipped because the
-   * collection was already materialized on a previous apply.
-   *
-   * Non-zero means the manifest's seed_records have drifted from the
-   * collection's living data — expected once operators edit records
-   * through agents or the console.
-   * </pre>
-   *
-   * <code>int32 ignored_seed_count = 4 [json_name = "ignoredSeedCount"];</code>
-   * @return The ignoredSeedCount.
-   */
-  @java.lang.Override
-  public int getIgnoredSeedCount() {
-    return ignoredSeedCount_;
-  }
-
   public static final int MATERIALIZED_AT_FIELD_NUMBER = 5;
   private com.google.protobuf.Timestamp materializedAt_;
   /**
    * <pre>
-   * When the collection was first materialized (and seeds ran).
+   * When the collection was first materialized.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp materialized_at = 5 [json_name = "materializedAt"];</code>
@@ -182,7 +162,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * When the collection was first materialized (and seeds ran).
+   * When the collection was first materialized.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp materialized_at = 5 [json_name = "materializedAt"];</code>
@@ -194,7 +174,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * When the collection was first materialized (and seeds ran).
+   * When the collection was first materialized.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp materialized_at = 5 [json_name = "materializedAt"];</code>
@@ -227,9 +207,6 @@ private static final long serialVersionUID = 0L;
     if (recordCount_ != 0L) {
       output.writeInt64(3, recordCount_);
     }
-    if (ignoredSeedCount_ != 0) {
-      output.writeInt32(4, ignoredSeedCount_);
-    }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(5, getMaterializedAt());
     }
@@ -252,10 +229,6 @@ private static final long serialVersionUID = 0L;
     if (recordCount_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(3, recordCount_);
-    }
-    if (ignoredSeedCount_ != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(4, ignoredSeedCount_);
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
@@ -281,8 +254,6 @@ private static final long serialVersionUID = 0L;
     if (state_ != other.state_) return false;
     if (getRecordCount()
         != other.getRecordCount()) return false;
-    if (getIgnoredSeedCount()
-        != other.getIgnoredSeedCount()) return false;
     if (hasMaterializedAt() != other.hasMaterializedAt()) return false;
     if (hasMaterializedAt()) {
       if (!getMaterializedAt()
@@ -306,8 +277,6 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + RECORD_COUNT_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getRecordCount());
-    hash = (37 * hash) + IGNORED_SEED_COUNT_FIELD_NUMBER;
-    hash = (53 * hash) + getIgnoredSeedCount();
     if (hasMaterializedAt()) {
       hash = (37 * hash) + MATERIALIZED_AT_FIELD_NUMBER;
       hash = (53 * hash) + getMaterializedAt().hashCode();
@@ -456,7 +425,6 @@ private static final long serialVersionUID = 0L;
       name_ = "";
       state_ = 0;
       recordCount_ = 0L;
-      ignoredSeedCount_ = 0;
       materializedAt_ = null;
       if (materializedAtBuilder_ != null) {
         materializedAtBuilder_.dispose();
@@ -504,11 +472,8 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.recordCount_ = recordCount_;
       }
-      if (((from_bitField0_ & 0x00000008) != 0)) {
-        result.ignoredSeedCount_ = ignoredSeedCount_;
-      }
       int to_bitField0_ = 0;
-      if (((from_bitField0_ & 0x00000010) != 0)) {
+      if (((from_bitField0_ & 0x00000008) != 0)) {
         result.materializedAt_ = materializedAtBuilder_ == null
             ? materializedAt_
             : materializedAtBuilder_.build();
@@ -539,9 +504,6 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getRecordCount() != 0L) {
         setRecordCount(other.getRecordCount());
-      }
-      if (other.getIgnoredSeedCount() != 0) {
-        setIgnoredSeedCount(other.getIgnoredSeedCount());
       }
       if (other.hasMaterializedAt()) {
         mergeMaterializedAt(other.getMaterializedAt());
@@ -587,16 +549,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 24
-            case 32: {
-              ignoredSeedCount_ = input.readInt32();
-              bitField0_ |= 0x00000008;
-              break;
-            } // case 32
             case 42: {
               input.readMessage(
                   internalGetMaterializedAtFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000010;
+              bitField0_ |= 0x00000008;
               break;
             } // case 42
             default: {
@@ -833,82 +790,23 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int ignoredSeedCount_ ;
-    /**
-     * <pre>
-     * Number of declared seed records that were skipped because the
-     * collection was already materialized on a previous apply.
-     *
-     * Non-zero means the manifest's seed_records have drifted from the
-     * collection's living data — expected once operators edit records
-     * through agents or the console.
-     * </pre>
-     *
-     * <code>int32 ignored_seed_count = 4 [json_name = "ignoredSeedCount"];</code>
-     * @return The ignoredSeedCount.
-     */
-    @java.lang.Override
-    public int getIgnoredSeedCount() {
-      return ignoredSeedCount_;
-    }
-    /**
-     * <pre>
-     * Number of declared seed records that were skipped because the
-     * collection was already materialized on a previous apply.
-     *
-     * Non-zero means the manifest's seed_records have drifted from the
-     * collection's living data — expected once operators edit records
-     * through agents or the console.
-     * </pre>
-     *
-     * <code>int32 ignored_seed_count = 4 [json_name = "ignoredSeedCount"];</code>
-     * @param value The ignoredSeedCount to set.
-     * @return This builder for chaining.
-     */
-    public Builder setIgnoredSeedCount(int value) {
-
-      ignoredSeedCount_ = value;
-      bitField0_ |= 0x00000008;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Number of declared seed records that were skipped because the
-     * collection was already materialized on a previous apply.
-     *
-     * Non-zero means the manifest's seed_records have drifted from the
-     * collection's living data — expected once operators edit records
-     * through agents or the console.
-     * </pre>
-     *
-     * <code>int32 ignored_seed_count = 4 [json_name = "ignoredSeedCount"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearIgnoredSeedCount() {
-      bitField0_ = (bitField0_ & ~0x00000008);
-      ignoredSeedCount_ = 0;
-      onChanged();
-      return this;
-    }
-
     private com.google.protobuf.Timestamp materializedAt_;
     private com.google.protobuf.SingleFieldBuilder<
         com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> materializedAtBuilder_;
     /**
      * <pre>
-     * When the collection was first materialized (and seeds ran).
+     * When the collection was first materialized.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp materialized_at = 5 [json_name = "materializedAt"];</code>
      * @return Whether the materializedAt field is set.
      */
     public boolean hasMaterializedAt() {
-      return ((bitField0_ & 0x00000010) != 0);
+      return ((bitField0_ & 0x00000008) != 0);
     }
     /**
      * <pre>
-     * When the collection was first materialized (and seeds ran).
+     * When the collection was first materialized.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp materialized_at = 5 [json_name = "materializedAt"];</code>
@@ -923,7 +821,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When the collection was first materialized (and seeds ran).
+     * When the collection was first materialized.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp materialized_at = 5 [json_name = "materializedAt"];</code>
@@ -937,13 +835,13 @@ private static final long serialVersionUID = 0L;
       } else {
         materializedAtBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * When the collection was first materialized (and seeds ran).
+     * When the collection was first materialized.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp materialized_at = 5 [json_name = "materializedAt"];</code>
@@ -955,20 +853,20 @@ private static final long serialVersionUID = 0L;
       } else {
         materializedAtBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * When the collection was first materialized (and seeds ran).
+     * When the collection was first materialized.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp materialized_at = 5 [json_name = "materializedAt"];</code>
      */
     public Builder mergeMaterializedAt(com.google.protobuf.Timestamp value) {
       if (materializedAtBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0) &&
+        if (((bitField0_ & 0x00000008) != 0) &&
           materializedAt_ != null &&
           materializedAt_ != com.google.protobuf.Timestamp.getDefaultInstance()) {
           getMaterializedAtBuilder().mergeFrom(value);
@@ -979,20 +877,20 @@ private static final long serialVersionUID = 0L;
         materializedAtBuilder_.mergeFrom(value);
       }
       if (materializedAt_ != null) {
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000008;
         onChanged();
       }
       return this;
     }
     /**
      * <pre>
-     * When the collection was first materialized (and seeds ran).
+     * When the collection was first materialized.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp materialized_at = 5 [json_name = "materializedAt"];</code>
      */
     public Builder clearMaterializedAt() {
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       materializedAt_ = null;
       if (materializedAtBuilder_ != null) {
         materializedAtBuilder_.dispose();
@@ -1003,19 +901,19 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When the collection was first materialized (and seeds ran).
+     * When the collection was first materialized.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp materialized_at = 5 [json_name = "materializedAt"];</code>
      */
     public com.google.protobuf.Timestamp.Builder getMaterializedAtBuilder() {
-      bitField0_ |= 0x00000010;
+      bitField0_ |= 0x00000008;
       onChanged();
       return internalGetMaterializedAtFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * When the collection was first materialized (and seeds ran).
+     * When the collection was first materialized.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp materialized_at = 5 [json_name = "materializedAt"];</code>
@@ -1030,7 +928,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * When the collection was first materialized (and seeds ran).
+     * When the collection was first materialized.
      * </pre>
      *
      * <code>.google.protobuf.Timestamp materialized_at = 5 [json_name = "materializedAt"];</code>

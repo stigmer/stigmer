@@ -28,6 +28,11 @@ func newTestStore(t *testing.T) Store {
 }
 
 func testRecord(id, ownerKey string, fields map[string]any) *Record {
+	rec := testRecordIn(DefaultPartition, id, ownerKey, fields)
+	return rec
+}
+
+func testRecordIn(partition, id, ownerKey string, fields map[string]any) *Record {
 	now := time.Now().UTC()
 	return &Record{
 		ID:        id,
@@ -40,6 +45,7 @@ func testRecord(id, ownerKey string, fields map[string]any) *Record {
 		},
 		CreatedByKey: ownerKey,
 		Org:          "stigmer",
+		Partition:    partition,
 		Fields:       fields,
 	}
 }
@@ -70,7 +76,7 @@ func TestEnsureCollectionTable_IdempotentCreatedFlag(t *testing.T) {
 	require.NoError(t, s.WithWriteTx(context.Background(), func(tx Tx) error {
 		created, err := tx.EnsureCollectionTable(testDatastoreID, testCollection)
 		require.NoError(t, err)
-		assert.False(t, created, "second EnsureCollectionTable must not report created (seed-once gate)")
+		assert.False(t, created, "second EnsureCollectionTable must not report created (materialization fact)")
 		return nil
 	}))
 }
@@ -181,7 +187,7 @@ func TestFind_FilterOrderingPaginationAndOwnScope(t *testing.T) {
 
 	t.Run("default ordering is created_at desc with id tiebreak", func(t *testing.T) {
 		recs, total, err := s.Find(ctx, FindQuery{
-			DatastoreID: testDatastoreID, Collection: testCollection, Limit: 10,
+			DatastoreID: testDatastoreID, Collection: testCollection, Partition: DefaultPartition, Limit: 10,
 		})
 		require.NoError(t, err)
 		assert.Equal(t, int64(5), total)
@@ -191,7 +197,7 @@ func TestFind_FilterOrderingPaginationAndOwnScope(t *testing.T) {
 
 	t.Run("pagination window with total", func(t *testing.T) {
 		recs, total, err := s.Find(ctx, FindQuery{
-			DatastoreID: testDatastoreID, Collection: testCollection, Limit: 2, Offset: 2,
+			DatastoreID: testDatastoreID, Collection: testCollection, Partition: DefaultPartition, Limit: 2, Offset: 2,
 		})
 		require.NoError(t, err)
 		assert.Equal(t, int64(5), total)
@@ -201,7 +207,7 @@ func TestFind_FilterOrderingPaginationAndOwnScope(t *testing.T) {
 
 	t.Run("json field condition with integer comparison", func(t *testing.T) {
 		recs, total, err := s.Find(ctx, FindQuery{
-			DatastoreID: testDatastoreID, Collection: testCollection, Limit: 10,
+			DatastoreID: testDatastoreID, Collection: testCollection, Partition: DefaultPartition, Limit: 10,
 			Conditions: []Condition{{Field: "seq", Op: datastorev1.RecordConditionOp_gte, Value: int64(3)}},
 		})
 		require.NoError(t, err)
@@ -211,7 +217,7 @@ func TestFind_FilterOrderingPaginationAndOwnScope(t *testing.T) {
 
 	t.Run("own scope composes as an unremovable conjunction", func(t *testing.T) {
 		recs, total, err := s.Find(ctx, FindQuery{
-			DatastoreID: testDatastoreID, Collection: testCollection, Limit: 10,
+			DatastoreID: testDatastoreID, Collection: testCollection, Partition: DefaultPartition, Limit: 10,
 			OwnerKey: "owner-b",
 		})
 		require.NoError(t, err)
@@ -228,7 +234,7 @@ func TestFind_FilterOrderingPaginationAndOwnScope(t *testing.T) {
 			}))
 		}))
 		_, total, err := s.Find(ctx, FindQuery{
-			DatastoreID: testDatastoreID, Collection: testCollection, Limit: 10,
+			DatastoreID: testDatastoreID, Collection: testCollection, Partition: DefaultPartition, Limit: 10,
 			Conditions: []Condition{{Field: "status", Op: datastorev1.RecordConditionOp_neq, Value: "cancelled"}},
 		})
 		require.NoError(t, err)
@@ -237,7 +243,7 @@ func TestFind_FilterOrderingPaginationAndOwnScope(t *testing.T) {
 
 	t.Run("order by declared field ascending", func(t *testing.T) {
 		recs, _, err := s.Find(ctx, FindQuery{
-			DatastoreID: testDatastoreID, Collection: testCollection, Limit: 10,
+			DatastoreID: testDatastoreID, Collection: testCollection, Partition: DefaultPartition, Limit: 10,
 			Conditions: []Condition{{Field: "seq", Op: datastorev1.RecordConditionOp_not_null}},
 			OrderBy:    &OrderBy{Field: "seq"},
 		})
@@ -259,7 +265,7 @@ func TestRecordRoundTrip_AttributionAndIntegerFidelity(t *testing.T) {
 		return tx.Insert(testDatastoreID, testCollection, rec)
 	}))
 
-	got, err := s.Get(ctx, testDatastoreID, testCollection, "dsr_round")
+	got, err := s.Get(ctx, testDatastoreID, testCollection, DefaultPartition, "dsr_round")
 	require.NoError(t, err)
 	require.NotNil(t, got)
 
@@ -278,7 +284,7 @@ func TestGet_AbsentRecordReturnsNil(t *testing.T) {
 	s := newTestStore(t)
 	mustEnsureTable(t, s)
 
-	got, err := s.Get(context.Background(), testDatastoreID, testCollection, "dsr_missing")
+	got, err := s.Get(context.Background(), testDatastoreID, testCollection, DefaultPartition, "dsr_missing")
 	require.NoError(t, err)
 	assert.Nil(t, got)
 }
@@ -320,6 +326,140 @@ func TestListCollectionTables_AndDrop(t *testing.T) {
 		assert.Equal(t, []string{"bookings"}, names)
 		return nil
 	}))
+}
+
+// TestPartitionScoping_IsolationAndPerPartitionUniques pins the DD-010
+// substrate contract: partitions are separate worlds — reads, gets, and
+// unique enforcement never cross the partition boundary.
+func TestPartitionScoping_IsolationAndPerPartitionUniques(t *testing.T) {
+	s := newTestStore(t)
+	mustEnsureTable(t, s)
+	ctx := context.Background()
+
+	require.NoError(t, s.WithWriteTx(ctx, func(tx Tx) error {
+		return tx.CreateUniqueIndex(testDatastoreID, testCollection, uniqueSlotConstraint(), "confirmed")
+	}))
+
+	slot := map[string]any{"slot_start": "2026-07-21T04:30:00.000000000Z", "status": "confirmed"}
+	require.NoError(t, s.WithWriteTx(ctx, func(tx Tx) error {
+		if err := tx.Insert(testDatastoreID, testCollection, testRecordIn("prod", "dsr_p1", "owner-a", slot)); err != nil {
+			return err
+		}
+		// The same unique key in another partition must not conflict —
+		// dev test bookings never block prod patients.
+		return tx.Insert(testDatastoreID, testCollection, testRecordIn("dev", "dsr_d1", "owner-a", slot))
+	}))
+
+	// Within one partition the unique still bites.
+	err := s.WithWriteTx(ctx, func(tx Tx) error {
+		return tx.Insert(testDatastoreID, testCollection, testRecordIn("prod", "dsr_p2", "owner-a", slot))
+	})
+	var violation *UniqueViolationError
+	require.ErrorAs(t, err, &violation)
+	assert.Equal(t, "one_confirmed_per_slot", violation.Constraint)
+
+	t.Run("find sees only its partition", func(t *testing.T) {
+		recs, total, err := s.Find(ctx, FindQuery{
+			DatastoreID: testDatastoreID, Collection: testCollection, Partition: "prod", Limit: 10,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), total)
+		require.Len(t, recs, 1)
+		assert.Equal(t, "dsr_p1", recs[0].ID)
+		assert.Equal(t, "prod", recs[0].Partition)
+	})
+
+	t.Run("get in the wrong partition is absent", func(t *testing.T) {
+		got, err := s.Get(ctx, testDatastoreID, testCollection, "dev", "dsr_p1")
+		require.NoError(t, err)
+		assert.Nil(t, got, "a record must be invisible from another partition")
+	})
+
+	t.Run("tx list scopes by partition and empty means all", func(t *testing.T) {
+		require.NoError(t, s.WithWriteTx(ctx, func(tx Tx) error {
+			scoped, err := tx.List(testDatastoreID, testCollection, "dev")
+			require.NoError(t, err)
+			require.Len(t, scoped, 1)
+			assert.Equal(t, "dsr_d1", scoped[0].ID)
+
+			all, err := tx.List(testDatastoreID, testCollection, "")
+			require.NoError(t, err)
+			assert.Len(t, all, 2, "empty partition lists across partitions (sync validation)")
+			return nil
+		}))
+	})
+
+	t.Run("count records is cross-partition", func(t *testing.T) {
+		n, err := s.CountRecords(ctx, testDatastoreID, testCollection)
+		require.NoError(t, err)
+		assert.Equal(t, int64(2), n, "delete-guard counts span all partitions")
+	})
+
+	t.Run("count unique violations groups per partition", func(t *testing.T) {
+		require.NoError(t, s.WithWriteTx(ctx, func(tx Tx) error {
+			// One record per partition on the same key: no violation.
+			n, err := tx.CountUniqueViolations(testDatastoreID, testCollection, uniqueSlotConstraint(), "confirmed")
+			require.NoError(t, err)
+			assert.Zero(t, n, "identical keys in different partitions are not duplicates")
+			return nil
+		}))
+	})
+}
+
+// TestPartitionCatalog_EnsureListAndDrop pins the dsp_ catalog contract:
+// registration is idempotent with a created flag, the catalog lists
+// deterministically, lives outside the rec_ namespace (a user collection
+// named "partitions" coexists), and dies with the guarded delete.
+func TestPartitionCatalog_EnsureListAndDrop(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	require.NoError(t, s.WithWriteTx(ctx, func(tx Tx) error {
+		created, err := tx.EnsurePartition(testDatastoreID, DefaultPartition)
+		require.NoError(t, err)
+		assert.True(t, created, "first registration must report created")
+
+		created, err = tx.EnsurePartition(testDatastoreID, DefaultPartition)
+		require.NoError(t, err)
+		assert.False(t, created, "re-registration must be a no-op")
+
+		_, err = tx.EnsurePartition(testDatastoreID, "prod")
+		return err
+	}))
+
+	partitions, err := s.ListPartitions(ctx, testDatastoreID)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"default", "prod"}, partitions)
+
+	t.Run("catalog never masquerades as a collection", func(t *testing.T) {
+		require.NoError(t, s.WithWriteTx(ctx, func(tx Tx) error {
+			// A user collection legally named "partitions" must coexist
+			// with the catalog (distinct dsp_ prefix).
+			if _, err := tx.EnsureCollectionTable(testDatastoreID, "partitions"); err != nil {
+				return err
+			}
+			names, err := tx.ListCollectionTables(testDatastoreID)
+			require.NoError(t, err)
+			assert.Equal(t, []string{"partitions"}, names,
+				"the dsp_ catalog must not appear among collection tables")
+			return nil
+		}))
+	})
+
+	t.Run("drop removes the catalog", func(t *testing.T) {
+		require.NoError(t, s.WithWriteTx(ctx, func(tx Tx) error {
+			return tx.DropPartitionCatalog(testDatastoreID)
+		}))
+		partitions, err := s.ListPartitions(ctx, testDatastoreID)
+		require.NoError(t, err)
+		assert.Empty(t, partitions)
+	})
+
+	t.Run("unknown datastore has no partitions", func(t *testing.T) {
+		partitions, err := s.ListPartitions(ctx, "dst_01hqunknown00000000000000")
+		require.NoError(t, err)
+		assert.Empty(t, partitions)
+	})
 }
 
 // TestWithWriteTx_SerializesConcurrentWriters is the substrate half of

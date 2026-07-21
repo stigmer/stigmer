@@ -20,8 +20,9 @@ import (
 // SD-5), placed after Persist in the create and update pipelines.
 //
 // It reconciles the record substrate with the declared schema in one
-// immediate transaction (change matrix, DDL, unique indexes, seed-once)
-// and writes the sync report to status, re-persisting the resource.
+// immediate transaction (change matrix, DDL, unique indexes, partition
+// catalog) and writes the sync report to status, re-persisting the
+// resource.
 //
 // Gating semantics on rejection — "the datastore retains its prior
 // schema":

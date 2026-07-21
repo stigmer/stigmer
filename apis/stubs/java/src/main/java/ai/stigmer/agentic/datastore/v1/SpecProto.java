@@ -111,7 +111,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "v1.DatastoreAuthorizationR\rauthorization" +
       "\022b\n\013collections\030\004 \003(\01326.ai.stigmer.agent" +
       "ic.datastore.v1.CollectionDeclarationB\010\272" +
-      "H\005\222\001\002\0202R\013collections\"\271\005\n\025CollectionDecla" +
+      "H\005\222\001\002\0202R\013collections\"\206\005\n\025CollectionDecla" +
       "ration\0221\n\004name\030\001 \001(\tB\035\272H\032r\025\030?2\021^[a-z][a-" +
       "z0-9_]*$\310\001\001R\004name\022 \n\013description\030\002 \001(\tR\013" +
       "description\022U\n\006fields\030\003 \003(\01321.ai.stigmer" +
@@ -127,78 +127,77 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "store.v1.ExistsConstraintB\010\272H\005\222\001\002\020\024R\tnot" +
       "Exists\022Q\n\006grants\030\010 \003(\0132/.ai.stigmer.agen" +
       "tic.datastore.v1.DatastoreGrantB\010\272H\005\222\001\002\020" +
-      "\024R\006grants\022E\n\014seed_records\030\t \003(\0132\027.google" +
-      ".protobuf.StructB\t\272H\006\222\001\003\020\350\007R\013seedRecords" +
-      "\"\367\004\n\020FieldDeclaration\022\356\001\n\004name\030\001 \001(\tB\331\001\272" +
-      "H\325\001r\025\030?2\021^[a-z][a-z0-9_]*$\272\001\267\001\n\023field.na" +
-      "me.reserved\022\\field name is reserved for " +
-      "the record envelope (id, created_at, upd" +
-      "ated_at, created_by, org)\032B!(this in [\'i" +
+      "\024R\006grantsJ\004\010\t\020\nR\014seed_records\"\217\005\n\020FieldD" +
+      "eclaration\022\206\002\n\004name\030\001 \001(\tB\361\001\272H\355\001r\025\030?2\021^[" +
+      "a-z][a-z0-9_]*$\272\001\317\001\n\023field.name.reserved" +
+      "\022gfield name is reserved for the record " +
+      "envelope (id, created_at, updated_at, cr" +
+      "eated_by, org, partition)\032O!(this in [\'i" +
       "d\', \'created_at\', \'updated_at\', \'created" +
-      "_by\', \'org\'])\310\001\001R\004name\022K\n\004type\030\002 \001(\0162*.a" +
-      "i.stigmer.agentic.datastore.v1.FieldType" +
-      "B\013\272H\010\202\001\002\020\001\310\001\001R\004type\022\032\n\010required\030\003 \001(\010R\010r" +
-      "equired\0220\n\007default\030\004 \001(\0132\026.google.protob" +
-      "uf.ValueR\007default\022)\n\013enum_values\030\005 \003(\tB\010" +
-      "\272H\005\222\001\002\020dR\nenumValues\022 \n\013description\030\006 \001(" +
-      "\tR\013description:\211\001\272H\205\001\032\202\001\n\035field.enum_val" +
-      "ues.string_only\0221enum_values may only be" +
-      " declared on string fields\032.this.enum_va" +
-      "lues.size() == 0 || this.type == 1\"\315\001\n\020U" +
-      "niqueConstraint\0221\n\004name\030\001 \001(\tB\035\272H\032r\025\030?2\021" +
-      "^[a-z][a-z0-9_]*$\310\001\001R\004name\022 \n\006fields\030\002 \003" +
-      "(\tB\010\272H\005\222\001\002\010\001R\006fields\022B\n\005where\030\003 \001(\0132,.ai" +
-      ".stigmer.agentic.datastore.v1.UniqueWher" +
-      "eR\005where\022 \n\007message\030\004 \001(\tB\006\272H\003\310\001\001R\007messa" +
-      "ge\"c\n\013UniqueWhere\022\034\n\005field\030\001 \001(\tB\006\272H\003\310\001\001" +
-      "R\005field\0226\n\006equals\030\002 \001(\0132\026.google.protobu" +
-      "f.ValueB\006\272H\003\310\001\001R\006equals\"\242\001\n\017CheckConstra" +
-      "int\0221\n\004name\030\001 \001(\tB\035\272H\032r\025\030?2\021^[a-z][a-z0-" +
-      "9_]*$\310\001\001R\004name\022&\n\nexpression\030\002 \001(\tB\006\272H\003\310" +
-      "\001\001R\nexpression\022\022\n\004when\030\003 \001(\tR\004when\022 \n\007me" +
-      "ssage\030\004 \001(\tB\006\272H\003\310\001\001R\007message\"\301\001\n\020ExistsC" +
-      "onstraint\0221\n\004name\030\001 \001(\tB\035\272H\032r\025\030?2\021^[a-z]" +
-      "[a-z0-9_]*$\310\001\001R\004name\022&\n\ncollection\030\002 \001(\t" +
-      "B\006\272H\003\310\001\001R\ncollection\022\034\n\005where\030\003 \001(\tB\006\272H\003" +
-      "\310\001\001R\005where\022\022\n\004when\030\004 \001(\tR\004when\022 \n\007messag" +
-      "e\030\005 \001(\tB\006\272H\003\310\001\001R\007message\"\351\001\n\026DatastoreAu" +
-      "thorization\022N\n\005roles\030\001 \003(\0132..ai.stigmer." +
-      "agentic.datastore.v1.DatastoreRoleB\010\272H\005\222" +
-      "\001\002\020\024R\005roles\022\\\n\010bindings\030\002 \003(\01325.ai.stigm" +
-      "er.agentic.datastore.v1.DatastoreRoleBin" +
-      "dingB\t\272H\006\222\001\003\020\310\001R\010bindings\022!\n\014default_rol" +
-      "e\030\003 \001(\tR\013defaultRole\"B\n\rDatastoreRole\0221\n" +
-      "\004name\030\001 \001(\tB\035\272H\032r\025\030?2\021^[a-z][a-z0-9_]*$\310" +
-      "\001\001R\004name\"\207\001\n\024DatastoreRoleBinding\022S\n\007sub" +
-      "ject\030\001 \001(\01321.ai.stigmer.agentic.datastor" +
-      "e.v1.DatastoreSubjectB\006\272H\003\310\001\001R\007subject\022\032" +
-      "\n\004role\030\002 \001(\tB\006\272H\003\310\001\001R\004role\"\316\001\n\020Datastore" +
-      "Subject\022^\n\016channel_sender\030\001 \001(\01325.ai.sti" +
-      "gmer.agentic.datastore.v1.ChannelSenderS" +
-      "ubjectH\000R\rchannelSender\022K\n\tprincipal\030\002 \001" +
-      "(\0132+.ai.stigmer.iam.iampolicy.v1.ApiReso" +
-      "urceRefH\000R\tprincipalB\r\n\004kind\022\005\272H\002\010\001\"]\n\024C" +
-      "hannelSenderSubject\022\'\n\013sender_kind\030\001 \001(\t" +
-      "B\006\272H\003\310\001\001R\nsenderKind\022\034\n\005value\030\002 \001(\tB\006\272H\003" +
-      "\310\001\001R\005value\"\333\001\n\016DatastoreGrant\022\032\n\004role\030\001 " +
-      "\001(\tB\006\272H\003\310\001\001R\004role\022W\n\005verbs\030\002 \003(\0162..ai.st" +
-      "igmer.agentic.datastore.v1.DatastoreVerb" +
-      "B\021\272H\016\222\001\013\010\001\"\007\202\001\004\020\001 \000R\005verbs\022T\n\005scope\030\003 \001(" +
-      "\01624.ai.stigmer.agentic.datastore.v1.Data" +
-      "storeGrantScopeB\010\272H\005\202\001\002\020\001R\005scope*\203\001\n\tFie" +
-      "ldType\022\032\n\026field_type_unspecified\020\000\022\n\n\006st" +
-      "ring\020\001\022\013\n\007integer\020\002\022\n\n\006number\020\003\022\010\n\004bool\020" +
-      "\004\022\r\n\ttimestamp\020\005\022\010\n\004date\020\006\022\010\n\004time\020\007\022\010\n\004" +
-      "json\020\010*]\n\rDatastoreVerb\022\036\n\032datastore_ver" +
-      "b_unspecified\020\000\022\010\n\004read\020\001\022\n\n\006insert\020\002\022\n\n" +
-      "\006update\020\003\022\n\n\006delete\020\004*N\n\023DatastoreGrantS" +
-      "cope\022%\n!datastore_grant_scope_unspecifie" +
-      "d\020\000\022\007\n\003all\020\001\022\007\n\003own\020\002B\254\001B\tSpecProtoP\001\242\002\004" +
-      "ASAD\252\002\037Ai.Stigmer.Agentic.Datastore.V1\312\002" +
-      "\037Ai\\Stigmer\\Agentic\\Datastore\\V1\342\002+Ai\\St" +
-      "igmer\\Agentic\\Datastore\\V1\\GPBMetadata\352\002" +
-      "#Ai::Stigmer::Agentic::Datastore::V1b\006pr" +
-      "oto3"
+      "_by\', \'org\', \'partition\'])\310\001\001R\004name\022K\n\004t" +
+      "ype\030\002 \001(\0162*.ai.stigmer.agentic.datastore" +
+      ".v1.FieldTypeB\013\272H\010\202\001\002\020\001\310\001\001R\004type\022\032\n\010requ" +
+      "ired\030\003 \001(\010R\010required\0220\n\007default\030\004 \001(\0132\026." +
+      "google.protobuf.ValueR\007default\022)\n\013enum_v" +
+      "alues\030\005 \003(\tB\010\272H\005\222\001\002\020dR\nenumValues\022 \n\013des" +
+      "cription\030\006 \001(\tR\013description:\211\001\272H\205\001\032\202\001\n\035f" +
+      "ield.enum_values.string_only\0221enum_value" +
+      "s may only be declared on string fields\032" +
+      ".this.enum_values.size() == 0 || this.ty" +
+      "pe == 1\"\315\001\n\020UniqueConstraint\0221\n\004name\030\001 \001" +
+      "(\tB\035\272H\032r\025\030?2\021^[a-z][a-z0-9_]*$\310\001\001R\004name\022" +
+      " \n\006fields\030\002 \003(\tB\010\272H\005\222\001\002\010\001R\006fields\022B\n\005whe" +
+      "re\030\003 \001(\0132,.ai.stigmer.agentic.datastore." +
+      "v1.UniqueWhereR\005where\022 \n\007message\030\004 \001(\tB\006" +
+      "\272H\003\310\001\001R\007message\"c\n\013UniqueWhere\022\034\n\005field\030" +
+      "\001 \001(\tB\006\272H\003\310\001\001R\005field\0226\n\006equals\030\002 \001(\0132\026.g" +
+      "oogle.protobuf.ValueB\006\272H\003\310\001\001R\006equals\"\242\001\n" +
+      "\017CheckConstraint\0221\n\004name\030\001 \001(\tB\035\272H\032r\025\030?2" +
+      "\021^[a-z][a-z0-9_]*$\310\001\001R\004name\022&\n\nexpressio" +
+      "n\030\002 \001(\tB\006\272H\003\310\001\001R\nexpression\022\022\n\004when\030\003 \001(" +
+      "\tR\004when\022 \n\007message\030\004 \001(\tB\006\272H\003\310\001\001R\007messag" +
+      "e\"\301\001\n\020ExistsConstraint\0221\n\004name\030\001 \001(\tB\035\272H" +
+      "\032r\025\030?2\021^[a-z][a-z0-9_]*$\310\001\001R\004name\022&\n\ncol" +
+      "lection\030\002 \001(\tB\006\272H\003\310\001\001R\ncollection\022\034\n\005whe" +
+      "re\030\003 \001(\tB\006\272H\003\310\001\001R\005where\022\022\n\004when\030\004 \001(\tR\004w" +
+      "hen\022 \n\007message\030\005 \001(\tB\006\272H\003\310\001\001R\007message\"\351\001" +
+      "\n\026DatastoreAuthorization\022N\n\005roles\030\001 \003(\0132" +
+      "..ai.stigmer.agentic.datastore.v1.Datast" +
+      "oreRoleB\010\272H\005\222\001\002\020\024R\005roles\022\\\n\010bindings\030\002 \003" +
+      "(\01325.ai.stigmer.agentic.datastore.v1.Dat" +
+      "astoreRoleBindingB\t\272H\006\222\001\003\020\310\001R\010bindings\022!" +
+      "\n\014default_role\030\003 \001(\tR\013defaultRole\"B\n\rDat" +
+      "astoreRole\0221\n\004name\030\001 \001(\tB\035\272H\032r\025\030?2\021^[a-z" +
+      "][a-z0-9_]*$\310\001\001R\004name\"\207\001\n\024DatastoreRoleB" +
+      "inding\022S\n\007subject\030\001 \001(\01321.ai.stigmer.age" +
+      "ntic.datastore.v1.DatastoreSubjectB\006\272H\003\310" +
+      "\001\001R\007subject\022\032\n\004role\030\002 \001(\tB\006\272H\003\310\001\001R\004role\"" +
+      "\316\001\n\020DatastoreSubject\022^\n\016channel_sender\030\001" +
+      " \001(\01325.ai.stigmer.agentic.datastore.v1.C" +
+      "hannelSenderSubjectH\000R\rchannelSender\022K\n\t" +
+      "principal\030\002 \001(\0132+.ai.stigmer.iam.iampoli" +
+      "cy.v1.ApiResourceRefH\000R\tprincipalB\r\n\004kin" +
+      "d\022\005\272H\002\010\001\"]\n\024ChannelSenderSubject\022\'\n\013send" +
+      "er_kind\030\001 \001(\tB\006\272H\003\310\001\001R\nsenderKind\022\034\n\005val" +
+      "ue\030\002 \001(\tB\006\272H\003\310\001\001R\005value\"\333\001\n\016DatastoreGra" +
+      "nt\022\032\n\004role\030\001 \001(\tB\006\272H\003\310\001\001R\004role\022W\n\005verbs\030" +
+      "\002 \003(\0162..ai.stigmer.agentic.datastore.v1." +
+      "DatastoreVerbB\021\272H\016\222\001\013\010\001\"\007\202\001\004\020\001 \000R\005verbs\022" +
+      "T\n\005scope\030\003 \001(\01624.ai.stigmer.agentic.data" +
+      "store.v1.DatastoreGrantScopeB\010\272H\005\202\001\002\020\001R\005" +
+      "scope*\203\001\n\tFieldType\022\032\n\026field_type_unspec" +
+      "ified\020\000\022\n\n\006string\020\001\022\013\n\007integer\020\002\022\n\n\006numb" +
+      "er\020\003\022\010\n\004bool\020\004\022\r\n\ttimestamp\020\005\022\010\n\004date\020\006\022" +
+      "\010\n\004time\020\007\022\010\n\004json\020\010*]\n\rDatastoreVerb\022\036\n\032" +
+      "datastore_verb_unspecified\020\000\022\010\n\004read\020\001\022\n" +
+      "\n\006insert\020\002\022\n\n\006update\020\003\022\n\n\006delete\020\004*N\n\023Da" +
+      "tastoreGrantScope\022%\n!datastore_grant_sco" +
+      "pe_unspecified\020\000\022\007\n\003all\020\001\022\007\n\003own\020\002B\254\001B\tS" +
+      "pecProtoP\001\242\002\004ASAD\252\002\037Ai.Stigmer.Agentic.D" +
+      "atastore.V1\312\002\037Ai\\Stigmer\\Agentic\\Datasto" +
+      "re\\V1\342\002+Ai\\Stigmer\\Agentic\\Datastore\\V1\\" +
+      "GPBMetadata\352\002#Ai::Stigmer::Agentic::Data" +
+      "store::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -218,7 +217,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_datastore_v1_CollectionDeclaration_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_datastore_v1_CollectionDeclaration_descriptor,
-        new java.lang.String[] { "Name", "Description", "Fields", "Uniques", "Checks", "Exists", "NotExists", "Grants", "SeedRecords", });
+        new java.lang.String[] { "Name", "Description", "Fields", "Uniques", "Checks", "Exists", "NotExists", "Grants", });
     internal_static_ai_stigmer_agentic_datastore_v1_FieldDeclaration_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_datastore_v1_FieldDeclaration_fieldAccessorTable = new

@@ -34,6 +34,7 @@ private static final long serialVersionUID = 0L;
   private InsertRecordRequest() {
     datastore_ = "";
     collection_ = "";
+    partition_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -190,6 +191,65 @@ private static final long serialVersionUID = 0L;
     return record_ == null ? com.google.protobuf.Struct.getDefaultInstance() : record_;
   }
 
+  public static final int PARTITION_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object partition_ = "";
+  /**
+   * <pre>
+   * Data partition to insert into. Unset means the "default" partition.
+   *
+   * &#64;internal
+   * Same dispatch as FindRecordsRequest.partition: direct principals
+   * only; server-derived (and rejected if supplied) for session-bound
+   * callers. A partition's first write registers it in the datastore's
+   * partition catalog (DD-010 SD-3).
+   * </pre>
+   *
+   * <code>string partition = 4 [json_name = "partition", (.buf.validate.field) = { ... }</code>
+   * @return The partition.
+   */
+  @java.lang.Override
+  public java.lang.String getPartition() {
+    java.lang.Object ref = partition_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      partition_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Data partition to insert into. Unset means the "default" partition.
+   *
+   * &#64;internal
+   * Same dispatch as FindRecordsRequest.partition: direct principals
+   * only; server-derived (and rejected if supplied) for session-bound
+   * callers. A partition's first write registers it in the datastore's
+   * partition catalog (DD-010 SD-3).
+   * </pre>
+   *
+   * <code>string partition = 4 [json_name = "partition", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for partition.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getPartitionBytes() {
+    java.lang.Object ref = partition_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      partition_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -213,6 +273,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(3, getRecord());
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(partition_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, partition_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -231,6 +294,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(3, getRecord());
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(partition_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, partition_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -256,6 +322,8 @@ private static final long serialVersionUID = 0L;
       if (!getRecord()
           .equals(other.getRecord())) return false;
     }
+    if (!getPartition()
+        .equals(other.getPartition())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -275,6 +343,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + RECORD_FIELD_NUMBER;
       hash = (53 * hash) + getRecord().hashCode();
     }
+    hash = (37 * hash) + PARTITION_FIELD_NUMBER;
+    hash = (53 * hash) + getPartition().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -423,6 +493,7 @@ private static final long serialVersionUID = 0L;
         recordBuilder_.dispose();
         recordBuilder_ = null;
       }
+      partition_ = "";
       return this;
     }
 
@@ -469,6 +540,9 @@ private static final long serialVersionUID = 0L;
             : recordBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.partition_ = partition_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -496,6 +570,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasRecord()) {
         mergeRecord(other.getRecord());
+      }
+      if (!other.getPartition().isEmpty()) {
+        partition_ = other.partition_;
+        bitField0_ |= 0x00000008;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -540,6 +619,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
+            case 34: {
+              partition_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -905,6 +989,128 @@ private static final long serialVersionUID = 0L;
         record_ = null;
       }
       return recordBuilder_;
+    }
+
+    private java.lang.Object partition_ = "";
+    /**
+     * <pre>
+     * Data partition to insert into. Unset means the "default" partition.
+     *
+     * &#64;internal
+     * Same dispatch as FindRecordsRequest.partition: direct principals
+     * only; server-derived (and rejected if supplied) for session-bound
+     * callers. A partition's first write registers it in the datastore's
+     * partition catalog (DD-010 SD-3).
+     * </pre>
+     *
+     * <code>string partition = 4 [json_name = "partition", (.buf.validate.field) = { ... }</code>
+     * @return The partition.
+     */
+    public java.lang.String getPartition() {
+      java.lang.Object ref = partition_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        partition_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Data partition to insert into. Unset means the "default" partition.
+     *
+     * &#64;internal
+     * Same dispatch as FindRecordsRequest.partition: direct principals
+     * only; server-derived (and rejected if supplied) for session-bound
+     * callers. A partition's first write registers it in the datastore's
+     * partition catalog (DD-010 SD-3).
+     * </pre>
+     *
+     * <code>string partition = 4 [json_name = "partition", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for partition.
+     */
+    public com.google.protobuf.ByteString
+        getPartitionBytes() {
+      java.lang.Object ref = partition_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        partition_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Data partition to insert into. Unset means the "default" partition.
+     *
+     * &#64;internal
+     * Same dispatch as FindRecordsRequest.partition: direct principals
+     * only; server-derived (and rejected if supplied) for session-bound
+     * callers. A partition's first write registers it in the datastore's
+     * partition catalog (DD-010 SD-3).
+     * </pre>
+     *
+     * <code>string partition = 4 [json_name = "partition", (.buf.validate.field) = { ... }</code>
+     * @param value The partition to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPartition(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      partition_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Data partition to insert into. Unset means the "default" partition.
+     *
+     * &#64;internal
+     * Same dispatch as FindRecordsRequest.partition: direct principals
+     * only; server-derived (and rejected if supplied) for session-bound
+     * callers. A partition's first write registers it in the datastore's
+     * partition catalog (DD-010 SD-3).
+     * </pre>
+     *
+     * <code>string partition = 4 [json_name = "partition", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearPartition() {
+      partition_ = getDefaultInstance().getPartition();
+      bitField0_ = (bitField0_ & ~0x00000008);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Data partition to insert into. Unset means the "default" partition.
+     *
+     * &#64;internal
+     * Same dispatch as FindRecordsRequest.partition: direct principals
+     * only; server-derived (and rejected if supplied) for session-bound
+     * callers. A partition's first write registers it in the datastore's
+     * partition catalog (DD-010 SD-3).
+     * </pre>
+     *
+     * <code>string partition = 4 [json_name = "partition", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for partition to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPartitionBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      partition_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.datastore.v1.InsertRecordRequest)

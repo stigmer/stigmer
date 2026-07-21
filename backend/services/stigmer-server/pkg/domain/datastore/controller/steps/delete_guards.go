@@ -190,7 +190,9 @@ func (s *DropCollectionTablesStep) Execute(ctx *pipeline.RequestContext[*apireso
 				return err
 			}
 		}
-		return nil
+		// The partition catalog lives beside the collection tables
+		// (its own dsp_ namespace) and dies with them.
+		return tx.DropPartitionCatalog(ds.GetMetadata().GetId())
 	})
 	if err != nil {
 		return grpclib.InternalError(err, "failed to drop datastore record tables")

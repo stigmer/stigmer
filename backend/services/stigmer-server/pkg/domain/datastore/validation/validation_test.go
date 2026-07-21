@@ -201,22 +201,6 @@ func TestValidateSpec_Violations(t *testing.T) {
 			},
 			wantErr: `has an invalid expression`,
 		},
-		{
-			name: "seed record with system field",
-			mutate: func(s *datastorev1.DatastoreSpec) {
-				seed, _ := structpb.NewStruct(map[string]any{"created_by": "me"})
-				s.Collections[0].SeedRecords = []*structpb.Struct{seed}
-			},
-			wantErr: `system field "created_by" is server-stamped and cannot be seeded`,
-		},
-		{
-			name: "seed record with undeclared field",
-			mutate: func(s *datastorev1.DatastoreSpec) {
-				seed, _ := structpb.NewStruct(map[string]any{"nonsense": 1})
-				s.Collections[0].SeedRecords = []*structpb.Struct{seed}
-			},
-			wantErr: `undeclared field nonsense`,
-		},
 	}
 
 	for _, tt := range tests {
@@ -239,13 +223,13 @@ func TestReferencesTz(t *testing.T) {
 	}{
 		{"timeOfDay(this.t, tz) == '10:00:00'", true},
 		{"tz == 'UTC'", true},
-		{"this.tz_offset > 0", false},              // part of a longer identifier
-		{"this.quartz == 'mineral'", false},        // suffix of an identifier
-		{"this.status == 'tz'", false},             // inside a string literal
-		{"this.note == \"about tz\"", false},       // inside a double-quoted literal
-		{"this.a == 'x' && tz == 'UTC'", true},     // after a closed literal
-		{"localDate(this.t, tz) == this.d", true},  // argument position
-		{"this.day_of_week >= 0", false},           // no tz at all
+		{"this.tz_offset > 0", false},             // part of a longer identifier
+		{"this.quartz == 'mineral'", false},       // suffix of an identifier
+		{"this.status == 'tz'", false},            // inside a string literal
+		{"this.note == \"about tz\"", false},      // inside a double-quoted literal
+		{"this.a == 'x' && tz == 'UTC'", true},    // after a closed literal
+		{"localDate(this.t, tz) == this.d", true}, // argument position
+		{"this.day_of_week >= 0", false},          // no tz at all
 	}
 	for _, tt := range tests {
 		t.Run(tt.expr, func(t *testing.T) {

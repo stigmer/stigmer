@@ -113,4 +113,77 @@ public interface DatastoreDescriptionOrBuilder extends
    */
   ai.stigmer.agentic.datastore.v1.CollectionDescriptionOrBuilder getCollectionsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Data partitions that hold records, from the partition catalog.
+   * Always includes "default".
+   *
+   * &#64;internal
+   * Partitions are labels on data, never resources (DD-010 SD-3): a
+   * partition appears here after its first write registers it in the
+   * catalog. The console's partition picker is fed from this list; for
+   * agent callers it is harmless metadata (their partition is
+   * server-derived and not selectable).
+   * </pre>
+   *
+   * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+   * @return A list containing the partitions.
+   */
+  java.util.List<java.lang.String>
+      getPartitionsList();
+  /**
+   * <pre>
+   * Data partitions that hold records, from the partition catalog.
+   * Always includes "default".
+   *
+   * &#64;internal
+   * Partitions are labels on data, never resources (DD-010 SD-3): a
+   * partition appears here after its first write registers it in the
+   * catalog. The console's partition picker is fed from this list; for
+   * agent callers it is harmless metadata (their partition is
+   * server-derived and not selectable).
+   * </pre>
+   *
+   * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+   * @return The count of partitions.
+   */
+  int getPartitionsCount();
+  /**
+   * <pre>
+   * Data partitions that hold records, from the partition catalog.
+   * Always includes "default".
+   *
+   * &#64;internal
+   * Partitions are labels on data, never resources (DD-010 SD-3): a
+   * partition appears here after its first write registers it in the
+   * catalog. The console's partition picker is fed from this list; for
+   * agent callers it is harmless metadata (their partition is
+   * server-derived and not selectable).
+   * </pre>
+   *
+   * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+   * @param index The index of the element to return.
+   * @return The partitions at the given index.
+   */
+  java.lang.String getPartitions(int index);
+  /**
+   * <pre>
+   * Data partitions that hold records, from the partition catalog.
+   * Always includes "default".
+   *
+   * &#64;internal
+   * Partitions are labels on data, never resources (DD-010 SD-3): a
+   * partition appears here after its first write registers it in the
+   * catalog. The console's partition picker is fed from this list; for
+   * agent callers it is harmless metadata (their partition is
+   * server-derived and not selectable).
+   * </pre>
+   *
+   * <code>repeated string partitions = 5 [json_name = "partitions"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the partitions at the given index.
+   */
+  com.google.protobuf.ByteString
+      getPartitionsBytes(int index);
 }

@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/datastore/v1/status.proto.
  */
 export const file_ai_stigmer_agentic_datastore_v1_status: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvZGF0YXN0b3JlL3YxL3N0YXR1cy5wcm90bxIfYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MSKgAgoPRGF0YXN0b3JlU3RhdHVzElAKEWxhc3Rfc3luY19vdXRjb21lGAEgASgOMjUuYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5EYXRhc3RvcmVTeW5jT3V0Y29tZRIyCg5sYXN0X3N5bmNlZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASRgoLY29sbGVjdGlvbnMYAyADKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuZGF0YXN0b3JlLnYxLkNvbGxlY3Rpb25TdGF0dXMSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdCLXAQoQQ29sbGVjdGlvblN0YXR1cxIMCgRuYW1lGAEgASgJEk4KBXN0YXRlGAIgASgOMj8uYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5Db2xsZWN0aW9uTWF0ZXJpYWxpemF0aW9uU3RhdGUSFAoMcmVjb3JkX2NvdW50GAMgASgDEhoKEmlnbm9yZWRfc2VlZF9jb3VudBgEIAEoBRIzCg9tYXRlcmlhbGl6ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wKlgKFERhdGFzdG9yZVN5bmNPdXRjb21lEiYKImRhdGFzdG9yZV9zeW5jX291dGNvbWVfdW5zcGVjaWZpZWQQABIKCgZzeW5jZWQQARIMCghyZWplY3RlZBACKngKHkNvbGxlY3Rpb25NYXRlcmlhbGl6YXRpb25TdGF0ZRIwCixjb2xsZWN0aW9uX21hdGVyaWFsaXphdGlvbl9zdGF0ZV91bnNwZWNpZmllZBAAEgsKB3BlbmRpbmcQARIKCgZhY3RpdmUQAhILCgdyZW1vdmVkEANiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_status, file_google_protobuf_timestamp]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvZGF0YXN0b3JlL3YxL3N0YXR1cy5wcm90bxIfYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MSKgAgoPRGF0YXN0b3JlU3RhdHVzElAKEWxhc3Rfc3luY19vdXRjb21lGAEgASgOMjUuYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5EYXRhc3RvcmVTeW5jT3V0Y29tZRIyCg5sYXN0X3N5bmNlZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASRgoLY29sbGVjdGlvbnMYAyADKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuZGF0YXN0b3JlLnYxLkNvbGxlY3Rpb25TdGF0dXMSPwoFYXVkaXQYYyABKAsyMC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VBdWRpdCLVAQoQQ29sbGVjdGlvblN0YXR1cxIMCgRuYW1lGAEgASgJEk4KBXN0YXRlGAIgASgOMj8uYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5Db2xsZWN0aW9uTWF0ZXJpYWxpemF0aW9uU3RhdGUSFAoMcmVjb3JkX2NvdW50GAMgASgDEjMKD21hdGVyaWFsaXplZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBKBAgEEAVSEmlnbm9yZWRfc2VlZF9jb3VudCpYChREYXRhc3RvcmVTeW5jT3V0Y29tZRImCiJkYXRhc3RvcmVfc3luY19vdXRjb21lX3Vuc3BlY2lmaWVkEAASCgoGc3luY2VkEAESDAoIcmVqZWN0ZWQQAip4Ch5Db2xsZWN0aW9uTWF0ZXJpYWxpemF0aW9uU3RhdGUSMAosY29sbGVjdGlvbl9tYXRlcmlhbGl6YXRpb25fc3RhdGVfdW5zcGVjaWZpZWQQABILCgdwZW5kaW5nEAESCgoGYWN0aXZlEAISCwoHcmVtb3ZlZBADYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_status, file_google_protobuf_timestamp]);
 
 /**
  * DatastoreStatus contains system-managed state for a datastore:
@@ -95,19 +95,7 @@ export type CollectionStatus = Message<"ai.stigmer.agentic.datastore.v1.Collecti
   recordCount: bigint;
 
   /**
-   * Number of declared seed records that were skipped because the
-   * collection was already materialized on a previous apply.
-   *
-   * Non-zero means the manifest's seed_records have drifted from the
-   * collection's living data — expected once operators edit records
-   * through agents or the console.
-   *
-   * @generated from field: int32 ignored_seed_count = 4;
-   */
-  ignoredSeedCount: number;
-
-  /**
-   * When the collection was first materialized (and seeds ran).
+   * When the collection was first materialized.
    *
    * @generated from field: google.protobuf.Timestamp materialized_at = 5;
    */

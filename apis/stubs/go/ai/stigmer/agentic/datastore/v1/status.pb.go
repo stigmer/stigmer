@@ -232,14 +232,7 @@ type CollectionStatus struct {
 	// @internal
 	// Computed during sync; a health indicator, not a live counter.
 	RecordCount int64 `protobuf:"varint,3,opt,name=record_count,json=recordCount,proto3" json:"record_count,omitempty"`
-	// Number of declared seed records that were skipped because the
-	// collection was already materialized on a previous apply.
-	//
-	// Non-zero means the manifest's seed_records have drifted from the
-	// collection's living data — expected once operators edit records
-	// through agents or the console.
-	IgnoredSeedCount int32 `protobuf:"varint,4,opt,name=ignored_seed_count,json=ignoredSeedCount,proto3" json:"ignored_seed_count,omitempty"`
-	// When the collection was first materialized (and seeds ran).
+	// When the collection was first materialized.
 	MaterializedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=materialized_at,json=materializedAt,proto3" json:"materialized_at,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -296,13 +289,6 @@ func (x *CollectionStatus) GetRecordCount() int64 {
 	return 0
 }
 
-func (x *CollectionStatus) GetIgnoredSeedCount() int32 {
-	if x != nil {
-		return x.IgnoredSeedCount
-	}
-	return 0
-}
-
 func (x *CollectionStatus) GetMaterializedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.MaterializedAt
@@ -319,13 +305,12 @@ const file_ai_stigmer_agentic_datastore_v1_status_proto_rawDesc = "" +
 	"\x11last_sync_outcome\x18\x01 \x01(\x0e25.ai.stigmer.agentic.datastore.v1.DatastoreSyncOutcomeR\x0flastSyncOutcome\x12@\n" +
 	"\x0elast_synced_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\flastSyncedAt\x12S\n" +
 	"\vcollections\x18\x03 \x03(\v21.ai.stigmer.agentic.datastore.v1.CollectionStatusR\vcollections\x12F\n" +
-	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\"\x93\x02\n" +
+	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\"\xff\x01\n" +
 	"\x10CollectionStatus\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12U\n" +
 	"\x05state\x18\x02 \x01(\x0e2?.ai.stigmer.agentic.datastore.v1.CollectionMaterializationStateR\x05state\x12!\n" +
-	"\frecord_count\x18\x03 \x01(\x03R\vrecordCount\x12,\n" +
-	"\x12ignored_seed_count\x18\x04 \x01(\x05R\x10ignoredSeedCount\x12C\n" +
-	"\x0fmaterialized_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x0ematerializedAt*X\n" +
+	"\frecord_count\x18\x03 \x01(\x03R\vrecordCount\x12C\n" +
+	"\x0fmaterialized_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x0ematerializedAtJ\x04\b\x04\x10\x05R\x12ignored_seed_count*X\n" +
 	"\x14DatastoreSyncOutcome\x12&\n" +
 	"\"datastore_sync_outcome_unspecified\x10\x00\x12\n" +
 	"\n" +

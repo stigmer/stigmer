@@ -1,7 +1,7 @@
 {
   "name": "DatastoreSpec",
   "kind": "DATASTORE_SPEC",
-  "description": "DatastoreSpec declares typed record collections with constraints,\n role-aware access grants, and seed data.\n\n @internal\n The manifest is authoritative for structure, never for living data:\n schema changes sync on apply (additive-plus change matrix, gating),\n seed records insert once on first materialization, and re-applies\n never mutate records. Structural limits here are v1 guardrails —\n raising a max_items later is a non-breaking change. Max datastores\n per org (25) cannot be expressed on this message; it is a domain\n validation constant in the create pipelines.",
+  "description": "DatastoreSpec declares typed record collections with constraints and\n role-aware access grants.\n\n @internal\n The manifest is authoritative for structure, never for living data:\n schema changes sync on apply (additive-plus change matrix, gating),\n and records enter exclusively through the record RPCs — there is no\n seed path (DD-010 SD-5 removed seed_records; console, agent tools,\n and import scripts are the population surfaces). Structural limits\n here are v1 guardrails — raising a max_items later is a non-breaking\n change. Max datastores per org (25) cannot be expressed on this\n message; it is a domain validation constant in the create pipelines.",
   "protoType": "ai.stigmer.agentic.datastore.v1.DatastoreSpec",
   "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
   "fields": [

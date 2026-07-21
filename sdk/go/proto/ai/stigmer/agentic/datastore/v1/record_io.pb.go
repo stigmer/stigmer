@@ -580,7 +580,16 @@ type FindRecordsRequest struct {
 	// Page size. Unset defaults to 25; maximum 100.
 	Limit int32 `protobuf:"varint,5,opt,name=limit,proto3" json:"limit,omitempty"`
 	// Number of records to skip.
-	Offset        int32 `protobuf:"varint,6,opt,name=offset,proto3" json:"offset,omitempty"`
+	Offset int32 `protobuf:"varint,6,opt,name=offset,proto3" json:"offset,omitempty"`
+	// Data partition to read from. Unset means the "default" partition.
+	//
+	// @internal
+	// Honored for direct platform principals only (console, CLI, SDK,
+	// import). Session-bound runner credentials get their partition
+	// server-derived from the session's agent instance (DD-010 SD-2) and
+	// are rejected with INVALID_ARGUMENT if they supply one — no second
+	// channel, mirroring the sender-identity posture.
+	Partition     string `protobuf:"bytes,7,opt,name=partition,proto3" json:"partition,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -657,6 +666,13 @@ func (x *FindRecordsRequest) GetOffset() int32 {
 	return 0
 }
 
+func (x *FindRecordsRequest) GetPartition() string {
+	if x != nil {
+		return x.Partition
+	}
+	return ""
+}
+
 // InsertRecordRequest inserts one record into a collection.
 type InsertRecordRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -666,7 +682,15 @@ type InsertRecordRequest struct {
 	Collection string `protobuf:"bytes,2,opt,name=collection,proto3" json:"collection,omitempty"`
 	// Declared field values in their canonical encodings. System field
 	// names are rejected.
-	Record        *structpb.Struct `protobuf:"bytes,3,opt,name=record,proto3" json:"record,omitempty"`
+	Record *structpb.Struct `protobuf:"bytes,3,opt,name=record,proto3" json:"record,omitempty"`
+	// Data partition to insert into. Unset means the "default" partition.
+	//
+	// @internal
+	// Same dispatch as FindRecordsRequest.partition: direct principals
+	// only; server-derived (and rejected if supplied) for session-bound
+	// callers. A partition's first write registers it in the datastore's
+	// partition catalog (DD-010 SD-3).
+	Partition     string `protobuf:"bytes,4,opt,name=partition,proto3" json:"partition,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -722,6 +746,13 @@ func (x *InsertRecordRequest) GetRecord() *structpb.Struct {
 	return nil
 }
 
+func (x *InsertRecordRequest) GetPartition() string {
+	if x != nil {
+		return x.Partition
+	}
+	return ""
+}
+
 // UpdateRecordRequest updates one record by id with a partial merge.
 type UpdateRecordRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -734,7 +765,13 @@ type UpdateRecordRequest struct {
 	// Fields to change. Only supplied fields change; an explicit null
 	// clears a field. Constraints evaluate on the merged result. System
 	// field names are rejected.
-	Fields        *structpb.Struct `protobuf:"bytes,4,opt,name=fields,proto3" json:"fields,omitempty"`
+	Fields *structpb.Struct `protobuf:"bytes,4,opt,name=fields,proto3" json:"fields,omitempty"`
+	// Data partition holding the record. Unset means the "default"
+	// partition. A record in another partition is NOT_FOUND.
+	//
+	// @internal
+	// Same dispatch as FindRecordsRequest.partition.
+	Partition     string `protobuf:"bytes,5,opt,name=partition,proto3" json:"partition,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -797,6 +834,13 @@ func (x *UpdateRecordRequest) GetFields() *structpb.Struct {
 	return nil
 }
 
+func (x *UpdateRecordRequest) GetPartition() string {
+	if x != nil {
+		return x.Partition
+	}
+	return ""
+}
+
 // DeleteRecordRequest deletes one record by id.
 type DeleteRecordRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -805,7 +849,13 @@ type DeleteRecordRequest struct {
 	// Collection holding the record.
 	Collection string `protobuf:"bytes,2,opt,name=collection,proto3" json:"collection,omitempty"`
 	// Id of the record to delete.
-	Id            string `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
+	Id string `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
+	// Data partition holding the record. Unset means the "default"
+	// partition. A record in another partition is NOT_FOUND.
+	//
+	// @internal
+	// Same dispatch as FindRecordsRequest.partition.
+	Partition     string `protobuf:"bytes,4,opt,name=partition,proto3" json:"partition,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -857,6 +907,13 @@ func (x *DeleteRecordRequest) GetCollection() string {
 func (x *DeleteRecordRequest) GetId() string {
 	if x != nil {
 		return x.Id
+	}
+	return ""
+}
+
+func (x *DeleteRecordRequest) GetPartition() string {
+	if x != nil {
+		return x.Partition
 	}
 	return ""
 }
@@ -924,7 +981,17 @@ type DatastoreDescription struct {
 	// IANA timezone bound as `tz` in constraint evaluation.
 	Timezone string `protobuf:"bytes,3,opt,name=timezone,proto3" json:"timezone,omitempty"`
 	// Collections with schema and caller-effective access.
-	Collections   []*CollectionDescription `protobuf:"bytes,4,rep,name=collections,proto3" json:"collections,omitempty"`
+	Collections []*CollectionDescription `protobuf:"bytes,4,rep,name=collections,proto3" json:"collections,omitempty"`
+	// Data partitions that hold records, from the partition catalog.
+	// Always includes "default".
+	//
+	// @internal
+	// Partitions are labels on data, never resources (DD-010 SD-3): a
+	// partition appears here after its first write registers it in the
+	// catalog. The console's partition picker is fed from this list; for
+	// agent callers it is harmless metadata (their partition is
+	// server-derived and not selectable).
+	Partitions    []string `protobuf:"bytes,5,rep,name=partitions,proto3" json:"partitions,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -983,6 +1050,13 @@ func (x *DatastoreDescription) GetTimezone() string {
 func (x *DatastoreDescription) GetCollections() []*CollectionDescription {
 	if x != nil {
 		return x.Collections
+	}
+	return nil
+}
+
+func (x *DatastoreDescription) GetPartitions() []string {
+	if x != nil {
+		return x.Partitions
 	}
 	return nil
 }
@@ -1225,7 +1299,7 @@ const file_ai_stigmer_agentic_datastore_v1_record_io_proto_rawDesc = "" +
 	"\x06values\x18\x04 \x03(\v2\x16.google.protobuf.ValueB\b\xbaH\x05\x92\x01\x02\x10dR\x06values\"\x8b\x01\n" +
 	"\rRecordOrderBy\x12\x1c\n" +
 	"\x05field\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05field\x12\\\n" +
-	"\tdirection\x18\x02 \x01(\x0e24.ai.stigmer.agentic.datastore.v1.RecordSortDirectionB\b\xbaH\x05\x82\x01\x02\x10\x01R\tdirection\"\xb6\x02\n" +
+	"\tdirection\x18\x02 \x01(\x0e24.ai.stigmer.agentic.datastore.v1.RecordSortDirectionB\b\xbaH\x05\x82\x01\x02\x10\x01R\tdirection\"\xfb\x02\n" +
 	"\x12FindRecordsRequest\x12$\n" +
 	"\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n" +
 	"\n" +
@@ -1234,33 +1308,40 @@ const file_ai_stigmer_agentic_datastore_v1_record_io_proto_rawDesc = "" +
 	"\x06filter\x18\x03 \x01(\v2-.ai.stigmer.agentic.datastore.v1.RecordFilterR\x06filter\x12I\n" +
 	"\border_by\x18\x04 \x01(\v2..ai.stigmer.agentic.datastore.v1.RecordOrderByR\aorderBy\x12\x1f\n" +
 	"\x05limit\x18\x05 \x01(\x05B\t\xbaH\x06\x1a\x04\x18d(\x00R\x05limit\x12\x1f\n" +
-	"\x06offset\x18\x06 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x06offset\"\x9c\x01\n" +
+	"\x06offset\x18\x06 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x06offset\x12C\n" +
+	"\tpartition\x18\a \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\"\xe1\x01\n" +
 	"\x13InsertRecordRequest\x12$\n" +
 	"\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n" +
 	"\n" +
 	"collection\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"collection\x127\n" +
-	"\x06record\x18\x03 \x01(\v2\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x06record\"\xb4\x01\n" +
+	"\x06record\x18\x03 \x01(\v2\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x06record\x12C\n" +
+	"\tpartition\x18\x04 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\"\xf9\x01\n" +
 	"\x13UpdateRecordRequest\x12$\n" +
 	"\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n" +
 	"\n" +
 	"collection\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"collection\x12\x16\n" +
 	"\x02id\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x127\n" +
-	"\x06fields\x18\x04 \x01(\v2\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x06fields\"{\n" +
+	"\x06fields\x18\x04 \x01(\v2\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x06fields\x12C\n" +
+	"\tpartition\x18\x05 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\"\xc0\x01\n" +
 	"\x13DeleteRecordRequest\x12$\n" +
 	"\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n" +
 	"\n" +
 	"collection\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"collection\x12\x16\n" +
-	"\x02id\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\"@\n" +
+	"\x02id\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12C\n" +
+	"\tpartition\x18\x04 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\"@\n" +
 	"\x18DescribeDatastoreRequest\x12$\n" +
-	"\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\"\xcc\x01\n" +
+	"\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\"\xec\x01\n" +
 	"\x14DatastoreDescription\x12\x1c\n" +
 	"\tdatastore\x18\x01 \x01(\tR\tdatastore\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1a\n" +
 	"\btimezone\x18\x03 \x01(\tR\btimezone\x12X\n" +
-	"\vcollections\x18\x04 \x03(\v26.ai.stigmer.agentic.datastore.v1.CollectionDescriptionR\vcollections\"\xc1\x02\n" +
+	"\vcollections\x18\x04 \x03(\v26.ai.stigmer.agentic.datastore.v1.CollectionDescriptionR\vcollections\x12\x1e\n" +
+	"\n" +
+	"partitions\x18\x05 \x03(\tR\n" +
+	"partitions\"\xc1\x02\n" +
 	"\x15CollectionDescription\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12I\n" +

@@ -15,8 +15,8 @@ public interface FieldDeclarationOrBuilder extends
    * Field name, unique within the collection.
    *
    * Format: lowercase snake_case. The record envelope's system field
-   * names (id, created_at, updated_at, created_by) and `org` are
-   * reserved.
+   * names (id, created_at, updated_at, created_by), `org`, and
+   * `partition` are reserved.
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -28,8 +28,8 @@ public interface FieldDeclarationOrBuilder extends
    * Field name, unique within the collection.
    *
    * Format: lowercase snake_case. The record envelope's system field
-   * names (id, created_at, updated_at, created_by) and `org` are
-   * reserved.
+   * names (id, created_at, updated_at, created_by), `org`, and
+   * `partition` are reserved.
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>

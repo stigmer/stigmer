@@ -79,4 +79,36 @@ public interface InsertRecordRequestOrBuilder extends
    * <code>.google.protobuf.Struct record = 3 [json_name = "record", (.buf.validate.field) = { ... }</code>
    */
   com.google.protobuf.StructOrBuilder getRecordOrBuilder();
+
+  /**
+   * <pre>
+   * Data partition to insert into. Unset means the "default" partition.
+   *
+   * &#64;internal
+   * Same dispatch as FindRecordsRequest.partition: direct principals
+   * only; server-derived (and rejected if supplied) for session-bound
+   * callers. A partition's first write registers it in the datastore's
+   * partition catalog (DD-010 SD-3).
+   * </pre>
+   *
+   * <code>string partition = 4 [json_name = "partition", (.buf.validate.field) = { ... }</code>
+   * @return The partition.
+   */
+  java.lang.String getPartition();
+  /**
+   * <pre>
+   * Data partition to insert into. Unset means the "default" partition.
+   *
+   * &#64;internal
+   * Same dispatch as FindRecordsRequest.partition: direct principals
+   * only; server-derived (and rejected if supplied) for session-bound
+   * callers. A partition's first write registers it in the datastore's
+   * partition catalog (DD-010 SD-3).
+   * </pre>
+   *
+   * <code>string partition = 4 [json_name = "partition", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for partition.
+   */
+  com.google.protobuf.ByteString
+      getPartitionBytes();
 }

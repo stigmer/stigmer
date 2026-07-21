@@ -390,6 +390,20 @@
           "validation": {
             "required": true
           }
+        },
+        {
+          "name": "Partition",
+          "jsonName": "partition",
+          "protoField": "partition",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Data partition to insert into. Unset means the \"default\" partition.\n\n @internal\n Same dispatch as FindRecordsRequest.partition: direct principals\n only; server-derived (and rejected if supplied) for session-bound\n callers. A partition's first write registers it in the datastore's\n partition catalog (DD-010 SD-3).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
         }
       ]
     },
@@ -509,6 +523,20 @@
           "validation": {
             "required": true
           }
+        },
+        {
+          "name": "Partition",
+          "jsonName": "partition",
+          "protoField": "partition",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Data partition holding the record. Unset means the \"default\"\n partition. A record in another partition is NOT_FOUND.\n\n @internal\n Same dispatch as FindRecordsRequest.partition.",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
         }
       ]
     },
@@ -555,6 +583,20 @@
           "required": true,
           "validation": {
             "required": true
+          }
+        },
+        {
+          "name": "Partition",
+          "jsonName": "partition",
+          "protoField": "partition",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Data partition holding the record. Unset means the \"default\"\n partition. A record in another partition is NOT_FOUND.\n\n @internal\n Same dispatch as FindRecordsRequest.partition.",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
           }
         }
       ]
@@ -635,6 +677,20 @@
           },
           "description": "Number of records to skip.",
           "required": false
+        },
+        {
+          "name": "Partition",
+          "jsonName": "partition",
+          "protoField": "partition",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Data partition to read from. Unset means the \"default\" partition.\n\n @internal\n Honored for direct platform principals only (console, CLI, SDK,\n import). Session-bound runner credentials get their partition\n server-derived from the session's agent instance (DD-010 SD-2) and\n are rejected with INVALID_ARGUMENT if they supply one — no second\n channel, mirroring the sender-identity posture.",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
         }
       ]
     },
@@ -759,6 +815,19 @@
             }
           },
           "description": "Collections with schema and caller-effective access.",
+          "required": false
+        },
+        {
+          "name": "Partitions",
+          "jsonName": "partitions",
+          "protoField": "partitions",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Data partitions that hold records, from the partition catalog.\n Always includes \"default\".\n\n @internal\n Partitions are labels on data, never resources (DD-010 SD-3): a\n partition appears here after its first write registers it in the\n catalog. The console's partition picker is fed from this list; for\n agent callers it is harmless metadata (their partition is\n server-derived and not selectable).",
           "required": false
         }
       ]
@@ -1407,23 +1476,13 @@
           "required": false
         },
         {
-          "name": "IgnoredSeedCount",
-          "jsonName": "ignoredSeedCount",
-          "protoField": "ignored_seed_count",
-          "type": {
-            "kind": "int32"
-          },
-          "description": "Number of declared seed records that were skipped because the\n collection was already materialized on a previous apply.\n\n Non-zero means the manifest's seed_records have drifted from the\n collection's living data — expected once operators edit records\n through agents or the console.",
-          "required": false
-        },
-        {
           "name": "MaterializedAt",
           "jsonName": "materializedAt",
           "protoField": "materialized_at",
           "type": {
             "kind": "timestamp"
           },
-          "description": "When the collection was first materialized (and seeds ran).",
+          "description": "When the collection was first materialized.",
           "required": false
         }
       ]

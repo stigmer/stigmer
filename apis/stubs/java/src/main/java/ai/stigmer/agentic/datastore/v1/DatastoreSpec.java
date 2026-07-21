@@ -7,17 +7,18 @@ package ai.stigmer.agentic.datastore.v1;
 
 /**
  * <pre>
- * DatastoreSpec declares typed record collections with constraints,
- * role-aware access grants, and seed data.
+ * DatastoreSpec declares typed record collections with constraints and
+ * role-aware access grants.
  *
  * &#64;internal
  * The manifest is authoritative for structure, never for living data:
  * schema changes sync on apply (additive-plus change matrix, gating),
- * seed records insert once on first materialization, and re-applies
- * never mutate records. Structural limits here are v1 guardrails —
- * raising a max_items later is a non-breaking change. Max datastores
- * per org (25) cannot be expressed on this message; it is a domain
- * validation constant in the create pipelines.
+ * and records enter exclusively through the record RPCs — there is no
+ * seed path (DD-010 SD-5 removed seed_records; console, agent tools,
+ * and import scripts are the population surfaces). Structural limits
+ * here are v1 guardrails — raising a max_items later is a non-breaking
+ * change. Max datastores per org (25) cannot be expressed on this
+ * message; it is a domain validation constant in the create pipelines.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.datastore.v1.DatastoreSpec}
@@ -505,17 +506,18 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * DatastoreSpec declares typed record collections with constraints,
-   * role-aware access grants, and seed data.
+   * DatastoreSpec declares typed record collections with constraints and
+   * role-aware access grants.
    *
    * &#64;internal
    * The manifest is authoritative for structure, never for living data:
    * schema changes sync on apply (additive-plus change matrix, gating),
-   * seed records insert once on first materialization, and re-applies
-   * never mutate records. Structural limits here are v1 guardrails —
-   * raising a max_items later is a non-breaking change. Max datastores
-   * per org (25) cannot be expressed on this message; it is a domain
-   * validation constant in the create pipelines.
+   * and records enter exclusively through the record RPCs — there is no
+   * seed path (DD-010 SD-5 removed seed_records; console, agent tools,
+   * and import scripts are the population surfaces). Structural limits
+   * here are v1 guardrails — raising a max_items later is a non-breaking
+   * change. Max datastores per org (25) cannot be expressed on this
+   * message; it is a domain validation constant in the create pipelines.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.datastore.v1.DatastoreSpec}

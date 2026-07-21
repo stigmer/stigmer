@@ -10,6 +10,7 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/authz"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/dserrors"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/identity"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/records"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/recordstore"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/schema"
 	"google.golang.org/protobuf/proto"
@@ -56,8 +57,8 @@ func NewDatastoreRecordController(store store.Store, recordStore recordstore.Sto
 }
 
 // recordCall is a resolved record-RPC invocation: the datastore, the
-// addressed collection, and the caller subject — everything the
-// verb-specific handlers need after the spine has run.
+// addressed collection, the caller subject, and the data partition —
+// everything the verb-specific handlers need after the spine has run.
 type recordCall struct {
 	datastore  *datastorev1.Datastore
 	collection *datastorev1.CollectionDeclaration
@@ -65,13 +66,17 @@ type recordCall struct {
 	subjectKey string
 	role       string
 	hasRole    bool
+	// partition is the resolved data partition every operation of this
+	// call is scoped to (DD-010) — never taken from record payloads or
+	// filters.
+	partition string
 }
 
 // resolveCall runs the spine up to (but not including) the verb check:
-// datastore resolution, reach, and subject/role resolution. Handlers
-// that need a verb call requireVerb next; describeDatastore stops here
-// (reach only).
-func (c *DatastoreRecordController) resolveCall(ctx context.Context, datastoreSlug, collection string) (*recordCall, error) {
+// datastore resolution, reach, subject/role resolution, and partition
+// resolution. Handlers that need a verb call requireVerb next;
+// describeDatastore stops here (reach only).
+func (c *DatastoreRecordController) resolveCall(ctx context.Context, datastoreSlug, collection, partition string) (*recordCall, error) {
 	ds, err := c.resolveDatastore(ctx, datastoreSlug)
 	if err != nil {
 		return nil, err
@@ -84,12 +89,19 @@ func (c *DatastoreRecordController) resolveCall(ctx context.Context, datastoreSl
 	subject := identity.LocalSubject()
 	role, hasRole := authz.ResolveRole(ds.GetSpec().GetAuthorization(), subject)
 
+	// Partition dispatch (DD-010 SD-2): OSS callers are all direct
+	// principals (no channel broker, no sandbox tokens), so the request
+	// field is honored, empty meaning the shared default. When T05
+	// lands the reach chain, session-bound callers get their partition
+	// derived from the session's agent instance and a non-empty request
+	// partition is rejected — never silently overridden.
 	call := &recordCall{
 		datastore:  ds,
 		subject:    subject,
 		subjectKey: identity.SubjectKey(subject),
 		role:       role,
 		hasRole:    hasRole,
+		partition:  records.NormalizePartition(partition),
 	}
 
 	if collection != "" {
@@ -136,13 +148,15 @@ func (c *DatastoreRecordController) resolveDatastore(ctx context.Context, slug s
 	return nil, dserrors.DatastoreNotFound(slug)
 }
 
-// loadOwnGuarded loads a record by id inside the write transaction and
-// enforces the own scope for id-addressed writes. A record that exists
-// but belongs to another caller is denied (OwnScopeDenied) rather than
-// hidden — the caller proved knowledge of the id, and the actionable
-// error is the contract for update/delete (DD-002 SD-4).
+// loadOwnGuarded loads a record by id inside the write transaction —
+// scoped to the call's partition, so a record living in another
+// partition is NOT_FOUND by construction — and enforces the own scope
+// for id-addressed writes. A record that exists but belongs to another
+// caller is denied (OwnScopeDenied) rather than hidden — the caller
+// proved knowledge of the id, and the actionable error is the contract
+// for update/delete (DD-002 SD-4).
 func loadOwnGuarded(tx recordstore.Tx, call *recordCall, id string, grant authz.Grant, verb datastorev1.DatastoreVerb) (*recordstore.Record, error) {
-	rec, err := tx.Get(call.datastore.GetMetadata().GetId(), call.collection.GetName(), id)
+	rec, err := tx.Get(call.datastore.GetMetadata().GetId(), call.collection.GetName(), call.partition, id)
 	if err != nil {
 		return nil, grpclib.InternalError(err, "failed to load record")
 	}

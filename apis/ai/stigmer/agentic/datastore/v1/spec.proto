@@ -6,17 +6,18 @@ import "ai/stigmer/iam/iampolicy/v1/spec.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
-// DatastoreSpec declares typed record collections with constraints,
-// role-aware access grants, and seed data.
+// DatastoreSpec declares typed record collections with constraints and
+// role-aware access grants.
 //
 // @internal
 // The manifest is authoritative for structure, never for living data:
 // schema changes sync on apply (additive-plus change matrix, gating),
-// seed records insert once on first materialization, and re-applies
-// never mutate records. Structural limits here are v1 guardrails —
-// raising a max_items later is a non-breaking change. Max datastores
-// per org (25) cannot be expressed on this message; it is a domain
-// validation constant in the create pipelines.
+// and records enter exclusively through the record RPCs — there is no
+// seed path (DD-010 SD-5 removed seed_records; console, agent tools,
+// and import scripts are the population surfaces). Structural limits
+// here are v1 guardrails — raising a max_items later is a non-breaking
+// change. Max datastores per org (25) cannot be expressed on this
+// message; it is a domain validation constant in the create pipelines.
 message DatastoreSpec {
   // Human-readable description of what this datastore holds.
   string description = 1;
@@ -46,8 +47,14 @@ message DatastoreSpec {
 }
 
 // CollectionDeclaration is a named collection of records with typed
-// fields, constraints, access grants, and optional seed data.
+// fields, constraints, and access grants.
 message CollectionDeclaration {
+  // Field 9 held seed_records until DD-010 removed declarative seeding:
+  // records enter through the record RPCs only (one write path), so the
+  // manifest carries structure and never data.
+  reserved 9;
+  reserved "seed_records";
+
   // Collection name, unique within the datastore.
   //
   // Format: lowercase snake_case (e.g. "bookings", "schedule_exceptions").
@@ -83,13 +90,6 @@ message CollectionDeclaration {
   // Deny by default: a role with no grant on a collection has no access
   // to it.
   repeated DatastoreGrant grants = 8 [(buf.validate.field).repeated.max_items = 20];
-
-  // Records inserted once when the collection is first materialized.
-  //
-  // Seeds pass through the full constraint pipeline. They are ignored
-  // on every later apply — the manifest never overwrites living data.
-  // Ignored seeds are noted in the status sync report.
-  repeated google.protobuf.Struct seed_records = 9 [(buf.validate.field).repeated.max_items = 1000];
 }
 
 // FieldDeclaration is a typed field on a collection's records.
@@ -98,21 +98,23 @@ message CollectionDeclaration {
 // System fields (id, created_at, updated_at, created_by) are not
 // declared — they are part of the record envelope, server-stamped, and
 // never caller-writable. Their names are reserved below, plus `org`
-// (the stamped tenancy column in cloud record tables).
+// (the stamped tenancy column in cloud record tables) and `partition`
+// (the DD-010 data-partition label: ambient scope set by the server,
+// never data — not declarable, not in payloads, not filterable).
 message FieldDeclaration {
   // Field name, unique within the collection.
   //
   // Format: lowercase snake_case. The record envelope's system field
-  // names (id, created_at, updated_at, created_by) and `org` are
-  // reserved.
+  // names (id, created_at, updated_at, created_by), `org`, and
+  // `partition` are reserved.
   string name = 1 [
     (buf.validate.field).required = true,
     (buf.validate.field).string.pattern = "^[a-z][a-z0-9_]*$",
     (buf.validate.field).string.max_len = 63,
     (buf.validate.field).cel = {
       id: "field.name.reserved"
-      message: "field name is reserved for the record envelope (id, created_at, updated_at, created_by, org)"
-      expression: "!(this in ['id', 'created_at', 'updated_at', 'created_by', 'org'])"
+      message: "field name is reserved for the record envelope (id, created_at, updated_at, created_by, org, partition)"
+      expression: "!(this in ['id', 'created_at', 'updated_at', 'created_by', 'org', 'partition'])"
     }
   ];
 

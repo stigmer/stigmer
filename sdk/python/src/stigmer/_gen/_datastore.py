@@ -265,7 +265,6 @@ class CollectionDeclarationInput:
     exists: list[ExistsConstraintInput] = field(default_factory=list)
     not_exists: list[ExistsConstraintInput] = field(default_factory=list)
     grants: list[DatastoreGrantInput] = field(default_factory=list)
-    seed_records: list[dict[str, Any]] = field(default_factory=list)
 
     def _to_proto(self) -> spec_pb2.CollectionDeclaration:
         msg = spec_pb2.CollectionDeclaration(
@@ -284,8 +283,6 @@ class CollectionDeclarationInput:
             msg.not_exists.append(item._to_proto())
         for item in self.grants:
             msg.grants.append(item._to_proto())
-        if self.seed_records:
-            msg.seed_records.extend(self.seed_records)
         return msg
 
 

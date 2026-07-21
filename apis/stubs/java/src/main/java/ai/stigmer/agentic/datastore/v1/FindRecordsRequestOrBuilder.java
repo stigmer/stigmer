@@ -128,4 +128,38 @@ public interface FindRecordsRequestOrBuilder extends
    * @return The offset.
    */
   int getOffset();
+
+  /**
+   * <pre>
+   * Data partition to read from. Unset means the "default" partition.
+   *
+   * &#64;internal
+   * Honored for direct platform principals only (console, CLI, SDK,
+   * import). Session-bound runner credentials get their partition
+   * server-derived from the session's agent instance (DD-010 SD-2) and
+   * are rejected with INVALID_ARGUMENT if they supply one — no second
+   * channel, mirroring the sender-identity posture.
+   * </pre>
+   *
+   * <code>string partition = 7 [json_name = "partition", (.buf.validate.field) = { ... }</code>
+   * @return The partition.
+   */
+  java.lang.String getPartition();
+  /**
+   * <pre>
+   * Data partition to read from. Unset means the "default" partition.
+   *
+   * &#64;internal
+   * Honored for direct platform principals only (console, CLI, SDK,
+   * import). Session-bound runner credentials get their partition
+   * server-derived from the session's agent instance (DD-010 SD-2) and
+   * are rejected with INVALID_ARGUMENT if they supply one — no second
+   * channel, mirroring the sender-identity posture.
+   * </pre>
+   *
+   * <code>string partition = 7 [json_name = "partition", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for partition.
+   */
+  com.google.protobuf.ByteString
+      getPartitionBytes();
 }

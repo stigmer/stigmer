@@ -107,6 +107,10 @@ func (s *resolveShareDefaultsStep) Execute(ctx *pipeline.RequestContext[*agentsh
 		}
 	}
 
+	if err := validateDatastoreAudience(share.GetSpec().GetAudience(), agent); err != nil {
+		return err
+	}
+
 	ctx.Set(referencedAgentKey, agent)
 
 	// Canonical-share default: no slug and no name means "share this agent
@@ -257,6 +261,40 @@ func findNonPublicDependencies(
 	return blockers, nil
 }
 
+// validateDatastoreAudience is the share-side half of the DD-010 SD-6
+// no-public-exposure guard: an agent with datastore_usages cannot be
+// served over a public-audience share, because guest sessions run in
+// the sharing org and anonymous visitors would reach the datastore
+// under its default_role. Unspecified audience means public (the
+// contract's anyone-with-link default), so only an explicit org
+// audience passes. The agent controller carries the mirror half
+// (visibility elevation + the reverse guard on attaching datastores).
+// The message is cross-edition contract text (T04 mirrors
+// byte-for-byte).
+func validateDatastoreAudience(audience agentsharev1.AgentShareAudience, agent *agentv1.Agent) error {
+	if audience == agentsharev1.AgentShareAudience_agent_share_audience_org {
+		return nil
+	}
+
+	seen := map[string]bool{}
+	var datastores []string
+	for _, usage := range agent.GetSpec().GetDatastoreUsages() {
+		slug := usage.GetDatastoreRef().GetSlug()
+		if slug != "" && !seen[slug] {
+			seen[slug] = true
+			datastores = append(datastores, slug)
+		}
+	}
+	if len(datastores) == 0 {
+		return nil
+	}
+	sort.Strings(datastores)
+
+	return grpclib.FailedPreconditionError(
+		"agent %s/%s uses datastores (%s): a public-audience share would expose them to anonymous guests — set spec.audience to agent_share_audience_org",
+		agent.GetMetadata().GetOrg(), agent.GetMetadata().GetSlug(), strings.Join(datastores, ", "))
+}
+
 // stampAgentPinStep writes status.agent_id — the server-owned rebind pin
 // (decision 013): the immutable ID of the agent that spec.agent_ref
 // resolved to at creation. agent_ref is org+slug and slugs are reusable
@@ -294,11 +332,16 @@ func (s *stampAgentPinStep) Execute(ctx *pipeline.RequestContext[*agentsharev1.A
 // a channel FOR one agent — re-pointing it would silently move guest
 // traffic (and its billing) to a different blueprint; create a new share
 // instead. Runs after LoadExisting so the existing state is available.
+// It also re-runs the DD-010 datastore audience guard: update replaces
+// the spec wholesale, so an org-audience share of a datastore-attached
+// agent must not silently flip public.
 //
 // metadata.slug/org immutability needs no step here: the generic
 // BuildUpdateState preserves both from the existing resource. Status
 // (including the agent-id pin) is likewise preserved wholesale.
-type validateShareUpdateStep struct{}
+type validateShareUpdateStep struct {
+	store store.Store
+}
 
 func (s *validateShareUpdateStep) Name() string {
 	return "ValidateShareUpdate"
@@ -339,6 +382,19 @@ func (s *validateShareUpdateStep) Execute(ctx *pipeline.RequestContext[*agentsha
 			"a cross-org share must have a public audience — org-audience shares are limited to the agent's own organization (%s)",
 			existingRef.GetOrg(),
 		)
+	}
+
+	// The DD-010 datastore audience guard must hold on update too; the
+	// referenced agent is immutable (validated above), so the existing
+	// ref locates it.
+	agent, found, err := findAgentByOrgAndSlug(ctx.Context(), s.store, existingRef.GetOrg(), existingRef.GetSlug())
+	if err != nil {
+		return err
+	}
+	if found {
+		if err := validateDatastoreAudience(ctx.Input().GetSpec().GetAudience(), agent); err != nil {
+			return err
+		}
 	}
 
 	return nil

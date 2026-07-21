@@ -133,7 +133,7 @@ public final class RecordIoProto extends com.google.protobuf.GeneratedFile {
       "ues\"\213\001\n\rRecordOrderBy\022\034\n\005field\030\001 \001(\tB\006\272H" +
       "\003\310\001\001R\005field\022\\\n\tdirection\030\002 \001(\01624.ai.stig" +
       "mer.agentic.datastore.v1.RecordSortDirec" +
-      "tionB\010\272H\005\202\001\002\020\001R\tdirection\"\266\002\n\022FindRecord" +
+      "tionB\010\272H\005\202\001\002\020\001R\tdirection\"\373\002\n\022FindRecord" +
       "sRequest\022$\n\tdatastore\030\001 \001(\tB\006\272H\003\310\001\001R\tdat" +
       "astore\022&\n\ncollection\030\002 \001(\tB\006\272H\003\310\001\001R\ncoll" +
       "ection\022E\n\006filter\030\003 \001(\0132-.ai.stigmer.agen" +
@@ -141,53 +141,61 @@ public final class RecordIoProto extends com.google.protobuf.GeneratedFile {
       "\010order_by\030\004 \001(\0132..ai.stigmer.agentic.dat" +
       "astore.v1.RecordOrderByR\007orderBy\022\037\n\005limi" +
       "t\030\005 \001(\005B\t\272H\006\032\004\030d(\000R\005limit\022\037\n\006offset\030\006 \001(" +
-      "\005B\007\272H\004\032\002(\000R\006offset\"\234\001\n\023InsertRecordReque" +
-      "st\022$\n\tdatastore\030\001 \001(\tB\006\272H\003\310\001\001R\tdatastore" +
-      "\022&\n\ncollection\030\002 \001(\tB\006\272H\003\310\001\001R\ncollection" +
-      "\0227\n\006record\030\003 \001(\0132\027.google.protobuf.Struc" +
-      "tB\006\272H\003\310\001\001R\006record\"\264\001\n\023UpdateRecordReques" +
-      "t\022$\n\tdatastore\030\001 \001(\tB\006\272H\003\310\001\001R\tdatastore\022" +
-      "&\n\ncollection\030\002 \001(\tB\006\272H\003\310\001\001R\ncollection\022" +
-      "\026\n\002id\030\003 \001(\tB\006\272H\003\310\001\001R\002id\0227\n\006fields\030\004 \001(\0132" +
-      "\027.google.protobuf.StructB\006\272H\003\310\001\001R\006fields" +
-      "\"{\n\023DeleteRecordRequest\022$\n\tdatastore\030\001 \001" +
-      "(\tB\006\272H\003\310\001\001R\tdatastore\022&\n\ncollection\030\002 \001(" +
-      "\tB\006\272H\003\310\001\001R\ncollection\022\026\n\002id\030\003 \001(\tB\006\272H\003\310\001" +
-      "\001R\002id\"@\n\030DescribeDatastoreRequest\022$\n\tdat" +
-      "astore\030\001 \001(\tB\006\272H\003\310\001\001R\tdatastore\"\314\001\n\024Data" +
-      "storeDescription\022\034\n\tdatastore\030\001 \001(\tR\tdat" +
-      "astore\022 \n\013description\030\002 \001(\tR\013description" +
-      "\022\032\n\010timezone\030\003 \001(\tR\010timezone\022X\n\013collecti" +
-      "ons\030\004 \003(\01326.ai.stigmer.agentic.datastore" +
-      ".v1.CollectionDescriptionR\013collections\"\301" +
-      "\002\n\025CollectionDescription\022\022\n\004name\030\001 \001(\tR\004" +
-      "name\022 \n\013description\030\002 \001(\tR\013description\022I" +
-      "\n\006fields\030\003 \003(\01321.ai.stigmer.agentic.data" +
-      "store.v1.FieldDeclarationR\006fields\022X\n\013con" +
-      "straints\030\004 \003(\01326.ai.stigmer.agentic.data" +
-      "store.v1.ConstraintDescriptionR\013constrai" +
-      "nts\022M\n\006access\030\005 \003(\01325.ai.stigmer.agentic" +
-      ".datastore.v1.VerbGrantDescriptionR\006acce" +
-      "ss\"\212\001\n\025ConstraintDescription\022\022\n\004name\030\001 \001" +
-      "(\tR\004name\022C\n\004kind\030\002 \001(\0162/.ai.stigmer.agen" +
-      "tic.datastore.v1.ConstraintKindR\004kind\022\030\n" +
-      "\007message\030\003 \001(\tR\007message\"w\n\024VerbGrantDesc" +
-      "ription\022B\n\004verb\030\001 \001(\0162..ai.stigmer.agent" +
-      "ic.datastore.v1.DatastoreVerbR\004verb\022\033\n\to" +
-      "wn_scope\030\002 \001(\010R\010ownScope*\235\001\n\021RecordCondi" +
-      "tionOp\022#\n\037record_condition_op_unspecifie" +
-      "d\020\000\022\006\n\002eq\020\001\022\007\n\003neq\020\002\022\006\n\002gt\020\003\022\007\n\003gte\020\004\022\006\n" +
-      "\002lt\020\005\022\007\n\003lte\020\006\022\t\n\005is_in\020\007\022\n\n\006not_in\020\010\022\013\n" +
-      "\007is_null\020\t\022\014\n\010not_null\020\n*O\n\023RecordSortDi" +
-      "rection\022%\n!record_sort_direction_unspeci" +
-      "fied\020\000\022\007\n\003asc\020\001\022\010\n\004desc\020\002*d\n\016ConstraintK" +
-      "ind\022\037\n\033constraint_kind_unspecified\020\000\022\n\n\006" +
-      "unique\020\001\022\t\n\005check\020\002\022\n\n\006exists\020\003\022\016\n\nnot_e" +
-      "xists\020\004B\260\001B\rRecordIoProtoP\001\242\002\004ASAD\252\002\037Ai." +
-      "Stigmer.Agentic.Datastore.V1\312\002\037Ai\\Stigme" +
-      "r\\Agentic\\Datastore\\V1\342\002+Ai\\Stigmer\\Agen" +
-      "tic\\Datastore\\V1\\GPBMetadata\352\002#Ai::Stigm" +
-      "er::Agentic::Datastore::V1b\006proto3"
+      "\005B\007\272H\004\032\002(\000R\006offset\022C\n\tpartition\030\007 \001(\tB%\272" +
+      "H\"r \030?2\034^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpa" +
+      "rtition\"\341\001\n\023InsertRecordRequest\022$\n\tdatas" +
+      "tore\030\001 \001(\tB\006\272H\003\310\001\001R\tdatastore\022&\n\ncollect" +
+      "ion\030\002 \001(\tB\006\272H\003\310\001\001R\ncollection\0227\n\006record\030" +
+      "\003 \001(\0132\027.google.protobuf.StructB\006\272H\003\310\001\001R\006" +
+      "record\022C\n\tpartition\030\004 \001(\tB%\272H\"r \030?2\034^$|^" +
+      "[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\"\371\001\n\023" +
+      "UpdateRecordRequest\022$\n\tdatastore\030\001 \001(\tB\006" +
+      "\272H\003\310\001\001R\tdatastore\022&\n\ncollection\030\002 \001(\tB\006\272" +
+      "H\003\310\001\001R\ncollection\022\026\n\002id\030\003 \001(\tB\006\272H\003\310\001\001R\002i" +
+      "d\0227\n\006fields\030\004 \001(\0132\027.google.protobuf.Stru" +
+      "ctB\006\272H\003\310\001\001R\006fields\022C\n\tpartition\030\005 \001(\tB%\272" +
+      "H\"r \030?2\034^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpa" +
+      "rtition\"\300\001\n\023DeleteRecordRequest\022$\n\tdatas" +
+      "tore\030\001 \001(\tB\006\272H\003\310\001\001R\tdatastore\022&\n\ncollect" +
+      "ion\030\002 \001(\tB\006\272H\003\310\001\001R\ncollection\022\026\n\002id\030\003 \001(" +
+      "\tB\006\272H\003\310\001\001R\002id\022C\n\tpartition\030\004 \001(\tB%\272H\"r \030" +
+      "?2\034^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartiti" +
+      "on\"@\n\030DescribeDatastoreRequest\022$\n\tdatast" +
+      "ore\030\001 \001(\tB\006\272H\003\310\001\001R\tdatastore\"\354\001\n\024Datasto" +
+      "reDescription\022\034\n\tdatastore\030\001 \001(\tR\tdatast" +
+      "ore\022 \n\013description\030\002 \001(\tR\013description\022\032\n" +
+      "\010timezone\030\003 \001(\tR\010timezone\022X\n\013collections" +
+      "\030\004 \003(\01326.ai.stigmer.agentic.datastore.v1" +
+      ".CollectionDescriptionR\013collections\022\036\n\np" +
+      "artitions\030\005 \003(\tR\npartitions\"\301\002\n\025Collecti" +
+      "onDescription\022\022\n\004name\030\001 \001(\tR\004name\022 \n\013des" +
+      "cription\030\002 \001(\tR\013description\022I\n\006fields\030\003 " +
+      "\003(\01321.ai.stigmer.agentic.datastore.v1.Fi" +
+      "eldDeclarationR\006fields\022X\n\013constraints\030\004 " +
+      "\003(\01326.ai.stigmer.agentic.datastore.v1.Co" +
+      "nstraintDescriptionR\013constraints\022M\n\006acce" +
+      "ss\030\005 \003(\01325.ai.stigmer.agentic.datastore." +
+      "v1.VerbGrantDescriptionR\006access\"\212\001\n\025Cons" +
+      "traintDescription\022\022\n\004name\030\001 \001(\tR\004name\022C\n" +
+      "\004kind\030\002 \001(\0162/.ai.stigmer.agentic.datasto" +
+      "re.v1.ConstraintKindR\004kind\022\030\n\007message\030\003 " +
+      "\001(\tR\007message\"w\n\024VerbGrantDescription\022B\n\004" +
+      "verb\030\001 \001(\0162..ai.stigmer.agentic.datastor" +
+      "e.v1.DatastoreVerbR\004verb\022\033\n\town_scope\030\002 " +
+      "\001(\010R\010ownScope*\235\001\n\021RecordConditionOp\022#\n\037r" +
+      "ecord_condition_op_unspecified\020\000\022\006\n\002eq\020\001" +
+      "\022\007\n\003neq\020\002\022\006\n\002gt\020\003\022\007\n\003gte\020\004\022\006\n\002lt\020\005\022\007\n\003lt" +
+      "e\020\006\022\t\n\005is_in\020\007\022\n\n\006not_in\020\010\022\013\n\007is_null\020\t\022" +
+      "\014\n\010not_null\020\n*O\n\023RecordSortDirection\022%\n!" +
+      "record_sort_direction_unspecified\020\000\022\007\n\003a" +
+      "sc\020\001\022\010\n\004desc\020\002*d\n\016ConstraintKind\022\037\n\033cons" +
+      "traint_kind_unspecified\020\000\022\n\n\006unique\020\001\022\t\n" +
+      "\005check\020\002\022\n\n\006exists\020\003\022\016\n\nnot_exists\020\004B\260\001B" +
+      "\rRecordIoProtoP\001\242\002\004ASAD\252\002\037Ai.Stigmer.Age" +
+      "ntic.Datastore.V1\312\002\037Ai\\Stigmer\\Agentic\\D" +
+      "atastore\\V1\342\002+Ai\\Stigmer\\Agentic\\Datasto" +
+      "re\\V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic" +
+      "::Datastore::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -232,25 +240,25 @@ public final class RecordIoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_datastore_v1_FindRecordsRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_datastore_v1_FindRecordsRequest_descriptor,
-        new java.lang.String[] { "Datastore", "Collection", "Filter", "OrderBy", "Limit", "Offset", });
+        new java.lang.String[] { "Datastore", "Collection", "Filter", "OrderBy", "Limit", "Offset", "Partition", });
     internal_static_ai_stigmer_agentic_datastore_v1_InsertRecordRequest_descriptor =
       getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_agentic_datastore_v1_InsertRecordRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_datastore_v1_InsertRecordRequest_descriptor,
-        new java.lang.String[] { "Datastore", "Collection", "Record", });
+        new java.lang.String[] { "Datastore", "Collection", "Record", "Partition", });
     internal_static_ai_stigmer_agentic_datastore_v1_UpdateRecordRequest_descriptor =
       getDescriptor().getMessageType(7);
     internal_static_ai_stigmer_agentic_datastore_v1_UpdateRecordRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_datastore_v1_UpdateRecordRequest_descriptor,
-        new java.lang.String[] { "Datastore", "Collection", "Id", "Fields", });
+        new java.lang.String[] { "Datastore", "Collection", "Id", "Fields", "Partition", });
     internal_static_ai_stigmer_agentic_datastore_v1_DeleteRecordRequest_descriptor =
       getDescriptor().getMessageType(8);
     internal_static_ai_stigmer_agentic_datastore_v1_DeleteRecordRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_datastore_v1_DeleteRecordRequest_descriptor,
-        new java.lang.String[] { "Datastore", "Collection", "Id", });
+        new java.lang.String[] { "Datastore", "Collection", "Id", "Partition", });
     internal_static_ai_stigmer_agentic_datastore_v1_DescribeDatastoreRequest_descriptor =
       getDescriptor().getMessageType(9);
     internal_static_ai_stigmer_agentic_datastore_v1_DescribeDatastoreRequest_fieldAccessorTable = new
@@ -262,7 +270,7 @@ public final class RecordIoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_datastore_v1_DatastoreDescription_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_datastore_v1_DatastoreDescription_descriptor,
-        new java.lang.String[] { "Datastore", "Description", "Timezone", "Collections", });
+        new java.lang.String[] { "Datastore", "Description", "Timezone", "Collections", "Partitions", });
     internal_static_ai_stigmer_agentic_datastore_v1_CollectionDescription_descriptor =
       getDescriptor().getMessageType(11);
     internal_static_ai_stigmer_agentic_datastore_v1_CollectionDescription_fieldAccessorTable = new

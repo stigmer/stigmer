@@ -15,7 +15,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/datastore/v1/record_io.proto.
  */
 export const file_ai_stigmer_agentic_datastore_v1_record_io: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvZGF0YXN0b3JlL3YxL3JlY29yZF9pby5wcm90bxIfYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MSLsAQoOUmVjb3JkRW52ZWxvcGUSCgoCaWQYASABKAkSLgoKY3JlYXRlZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASRQoKY3JlYXRlZF9ieRgEIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuRGF0YXN0b3JlU3ViamVjdBInCgZmaWVsZHMYBSABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0InwKClJlY29yZExpc3QSQAoHcmVjb3JkcxgBIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuUmVjb3JkRW52ZWxvcGUSDQoFdG90YWwYAiABKAUSDQoFbGltaXQYAyABKAUSDgoGb2Zmc2V0GAQgASgFIl4KDFJlY29yZEZpbHRlchJOCgpjb25kaXRpb25zGAEgAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5SZWNvcmRDb25kaXRpb25CCLpIBZIBAhAUIs4BCg9SZWNvcmRDb25kaXRpb24SFQoFZmllbGQYASABKAlCBrpIA8gBARJLCgJvcBgCIAEoDjIyLmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuUmVjb3JkQ29uZGl0aW9uT3BCC7pICMgBAYIBAhABEiUKBXZhbHVlGAMgASgLMhYuZ29vZ2xlLnByb3RvYnVmLlZhbHVlEjAKBnZhbHVlcxgEIAMoCzIWLmdvb2dsZS5wcm90b2J1Zi5WYWx1ZUIIukgFkgECEGQieQoNUmVjb3JkT3JkZXJCeRIVCgVmaWVsZBgBIAEoCUIGukgDyAEBElEKCWRpcmVjdGlvbhgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuUmVjb3JkU29ydERpcmVjdGlvbkIIukgFggECEAEi/wEKEkZpbmRSZWNvcmRzUmVxdWVzdBIZCglkYXRhc3RvcmUYASABKAlCBrpIA8gBARIaCgpjb2xsZWN0aW9uGAIgASgJQga6SAPIAQESPQoGZmlsdGVyGAMgASgLMi0uYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5SZWNvcmRGaWx0ZXISQAoIb3JkZXJfYnkYBCABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuZGF0YXN0b3JlLnYxLlJlY29yZE9yZGVyQnkSGAoFbGltaXQYBSABKAVCCbpIBhoEGGQoABIXCgZvZmZzZXQYBiABKAVCB7pIBBoCKAAifQoTSW5zZXJ0UmVjb3JkUmVxdWVzdBIZCglkYXRhc3RvcmUYASABKAlCBrpIA8gBARIaCgpjb2xsZWN0aW9uGAIgASgJQga6SAPIAQESLwoGcmVjb3JkGAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdEIGukgDyAEBIpEBChNVcGRhdGVSZWNvcmRSZXF1ZXN0EhkKCWRhdGFzdG9yZRgBIAEoCUIGukgDyAEBEhoKCmNvbGxlY3Rpb24YAiABKAlCBrpIA8gBARISCgJpZBgDIAEoCUIGukgDyAEBEi8KBmZpZWxkcxgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RCBrpIA8gBASJgChNEZWxldGVSZWNvcmRSZXF1ZXN0EhkKCWRhdGFzdG9yZRgBIAEoCUIGukgDyAEBEhoKCmNvbGxlY3Rpb24YAiABKAlCBrpIA8gBARISCgJpZBgDIAEoCUIGukgDyAEBIjUKGERlc2NyaWJlRGF0YXN0b3JlUmVxdWVzdBIZCglkYXRhc3RvcmUYASABKAlCBrpIA8gBASKdAQoURGF0YXN0b3JlRGVzY3JpcHRpb24SEQoJZGF0YXN0b3JlGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEhAKCHRpbWV6b25lGAMgASgJEksKC2NvbGxlY3Rpb25zGAQgAygLMjYuYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5Db2xsZWN0aW9uRGVzY3JpcHRpb24ikQIKFUNvbGxlY3Rpb25EZXNjcmlwdGlvbhIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEkEKBmZpZWxkcxgDIAMoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuRmllbGREZWNsYXJhdGlvbhJLCgtjb25zdHJhaW50cxgEIAMoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuQ29uc3RyYWludERlc2NyaXB0aW9uEkUKBmFjY2VzcxgFIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuVmVyYkdyYW50RGVzY3JpcHRpb24idQoVQ29uc3RyYWludERlc2NyaXB0aW9uEgwKBG5hbWUYASABKAkSPQoEa2luZBgCIAEoDjIvLmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuQ29uc3RyYWludEtpbmQSDwoHbWVzc2FnZRgDIAEoCSJnChRWZXJiR3JhbnREZXNjcmlwdGlvbhI8CgR2ZXJiGAEgASgOMi4uYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5EYXRhc3RvcmVWZXJiEhEKCW93bl9zY29wZRgCIAEoCCqdAQoRUmVjb3JkQ29uZGl0aW9uT3ASIwofcmVjb3JkX2NvbmRpdGlvbl9vcF91bnNwZWNpZmllZBAAEgYKAmVxEAESBwoDbmVxEAISBgoCZ3QQAxIHCgNndGUQBBIGCgJsdBAFEgcKA2x0ZRAGEgkKBWlzX2luEAcSCgoGbm90X2luEAgSCwoHaXNfbnVsbBAJEgwKCG5vdF9udWxsEAoqTwoTUmVjb3JkU29ydERpcmVjdGlvbhIlCiFyZWNvcmRfc29ydF9kaXJlY3Rpb25fdW5zcGVjaWZpZWQQABIHCgNhc2MQARIICgRkZXNjEAIqZAoOQ29uc3RyYWludEtpbmQSHwobY29uc3RyYWludF9raW5kX3Vuc3BlY2lmaWVkEAASCgoGdW5pcXVlEAESCQoFY2hlY2sQAhIKCgZleGlzdHMQAxIOCgpub3RfZXhpc3RzEARiBnByb3RvMw", [file_ai_stigmer_agentic_datastore_v1_spec, file_buf_validate_validate, file_google_protobuf_struct, file_google_protobuf_timestamp]);
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvZGF0YXN0b3JlL3YxL3JlY29yZF9pby5wcm90bxIfYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MSLsAQoOUmVjb3JkRW52ZWxvcGUSCgoCaWQYASABKAkSLgoKY3JlYXRlZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASRQoKY3JlYXRlZF9ieRgEIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuRGF0YXN0b3JlU3ViamVjdBInCgZmaWVsZHMYBSABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0InwKClJlY29yZExpc3QSQAoHcmVjb3JkcxgBIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuUmVjb3JkRW52ZWxvcGUSDQoFdG90YWwYAiABKAUSDQoFbGltaXQYAyABKAUSDgoGb2Zmc2V0GAQgASgFIl4KDFJlY29yZEZpbHRlchJOCgpjb25kaXRpb25zGAEgAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5SZWNvcmRDb25kaXRpb25CCLpIBZIBAhAUIs4BCg9SZWNvcmRDb25kaXRpb24SFQoFZmllbGQYASABKAlCBrpIA8gBARJLCgJvcBgCIAEoDjIyLmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuUmVjb3JkQ29uZGl0aW9uT3BCC7pICMgBAYIBAhABEiUKBXZhbHVlGAMgASgLMhYuZ29vZ2xlLnByb3RvYnVmLlZhbHVlEjAKBnZhbHVlcxgEIAMoCzIWLmdvb2dsZS5wcm90b2J1Zi5WYWx1ZUIIukgFkgECEGQieQoNUmVjb3JkT3JkZXJCeRIVCgVmaWVsZBgBIAEoCUIGukgDyAEBElEKCWRpcmVjdGlvbhgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuUmVjb3JkU29ydERpcmVjdGlvbkIIukgFggECEAEiuQIKEkZpbmRSZWNvcmRzUmVxdWVzdBIZCglkYXRhc3RvcmUYASABKAlCBrpIA8gBARIaCgpjb2xsZWN0aW9uGAIgASgJQga6SAPIAQESPQoGZmlsdGVyGAMgASgLMi0uYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5SZWNvcmRGaWx0ZXISQAoIb3JkZXJfYnkYBCABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuZGF0YXN0b3JlLnYxLlJlY29yZE9yZGVyQnkSGAoFbGltaXQYBSABKAVCCbpIBhoEGGQoABIXCgZvZmZzZXQYBiABKAVCB7pIBBoCKAASOAoJcGFydGl0aW9uGAcgASgJQiW6SCJyIBg/MhxeJHxeW2Etel1bYS16MC05LV0qW2EtejAtOV0kIrcBChNJbnNlcnRSZWNvcmRSZXF1ZXN0EhkKCWRhdGFzdG9yZRgBIAEoCUIGukgDyAEBEhoKCmNvbGxlY3Rpb24YAiABKAlCBrpIA8gBARIvCgZyZWNvcmQYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Qga6SAPIAQESOAoJcGFydGl0aW9uGAQgASgJQiW6SCJyIBg/MhxeJHxeW2Etel1bYS16MC05LV0qW2EtejAtOV0kIssBChNVcGRhdGVSZWNvcmRSZXF1ZXN0EhkKCWRhdGFzdG9yZRgBIAEoCUIGukgDyAEBEhoKCmNvbGxlY3Rpb24YAiABKAlCBrpIA8gBARISCgJpZBgDIAEoCUIGukgDyAEBEi8KBmZpZWxkcxgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RCBrpIA8gBARI4CglwYXJ0aXRpb24YBSABKAlCJbpIInIgGD8yHF4kfF5bYS16XVthLXowLTktXSpbYS16MC05XSQimgEKE0RlbGV0ZVJlY29yZFJlcXVlc3QSGQoJZGF0YXN0b3JlGAEgASgJQga6SAPIAQESGgoKY29sbGVjdGlvbhgCIAEoCUIGukgDyAEBEhIKAmlkGAMgASgJQga6SAPIAQESOAoJcGFydGl0aW9uGAQgASgJQiW6SCJyIBg/MhxeJHxeW2Etel1bYS16MC05LV0qW2EtejAtOV0kIjUKGERlc2NyaWJlRGF0YXN0b3JlUmVxdWVzdBIZCglkYXRhc3RvcmUYASABKAlCBrpIA8gBASKxAQoURGF0YXN0b3JlRGVzY3JpcHRpb24SEQoJZGF0YXN0b3JlGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEhAKCHRpbWV6b25lGAMgASgJEksKC2NvbGxlY3Rpb25zGAQgAygLMjYuYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5Db2xsZWN0aW9uRGVzY3JpcHRpb24SEgoKcGFydGl0aW9ucxgFIAMoCSKRAgoVQ29sbGVjdGlvbkRlc2NyaXB0aW9uEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSQQoGZmllbGRzGAMgAygLMjEuYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5GaWVsZERlY2xhcmF0aW9uEksKC2NvbnN0cmFpbnRzGAQgAygLMjYuYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5Db25zdHJhaW50RGVzY3JpcHRpb24SRQoGYWNjZXNzGAUgAygLMjUuYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5WZXJiR3JhbnREZXNjcmlwdGlvbiJ1ChVDb25zdHJhaW50RGVzY3JpcHRpb24SDAoEbmFtZRgBIAEoCRI9CgRraW5kGAIgASgOMi8uYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5Db25zdHJhaW50S2luZBIPCgdtZXNzYWdlGAMgASgJImcKFFZlcmJHcmFudERlc2NyaXB0aW9uEjwKBHZlcmIYASABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuZGF0YXN0b3JlLnYxLkRhdGFzdG9yZVZlcmISEQoJb3duX3Njb3BlGAIgASgIKp0BChFSZWNvcmRDb25kaXRpb25PcBIjCh9yZWNvcmRfY29uZGl0aW9uX29wX3Vuc3BlY2lmaWVkEAASBgoCZXEQARIHCgNuZXEQAhIGCgJndBADEgcKA2d0ZRAEEgYKAmx0EAUSBwoDbHRlEAYSCQoFaXNfaW4QBxIKCgZub3RfaW4QCBILCgdpc19udWxsEAkSDAoIbm90X251bGwQCipPChNSZWNvcmRTb3J0RGlyZWN0aW9uEiUKIXJlY29yZF9zb3J0X2RpcmVjdGlvbl91bnNwZWNpZmllZBAAEgcKA2FzYxABEggKBGRlc2MQAipkCg5Db25zdHJhaW50S2luZBIfChtjb25zdHJhaW50X2tpbmRfdW5zcGVjaWZpZWQQABIKCgZ1bmlxdWUQARIJCgVjaGVjaxACEgoKBmV4aXN0cxADEg4KCm5vdF9leGlzdHMQBGIGcHJvdG8z", [file_ai_stigmer_agentic_datastore_v1_spec, file_buf_validate_validate, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * RecordEnvelope is a record as returned by every record RPC:
@@ -275,6 +275,20 @@ export type FindRecordsRequest = Message<"ai.stigmer.agentic.datastore.v1.FindRe
    * @generated from field: int32 offset = 6;
    */
   offset: number;
+
+  /**
+   * Data partition to read from. Unset means the "default" partition.
+   *
+   * @internal
+   * Honored for direct platform principals only (console, CLI, SDK,
+   * import). Session-bound runner credentials get their partition
+   * server-derived from the session's agent instance (DD-010 SD-2) and
+   * are rejected with INVALID_ARGUMENT if they supply one — no second
+   * channel, mirroring the sender-identity posture.
+   *
+   * @generated from field: string partition = 7;
+   */
+  partition: string;
 };
 
 /**
@@ -311,6 +325,19 @@ export type InsertRecordRequest = Message<"ai.stigmer.agentic.datastore.v1.Inser
    * @generated from field: google.protobuf.Struct record = 3;
    */
   record?: JsonObject;
+
+  /**
+   * Data partition to insert into. Unset means the "default" partition.
+   *
+   * @internal
+   * Same dispatch as FindRecordsRequest.partition: direct principals
+   * only; server-derived (and rejected if supplied) for session-bound
+   * callers. A partition's first write registers it in the datastore's
+   * partition catalog (DD-010 SD-3).
+   *
+   * @generated from field: string partition = 4;
+   */
+  partition: string;
 };
 
 /**
@@ -355,6 +382,17 @@ export type UpdateRecordRequest = Message<"ai.stigmer.agentic.datastore.v1.Updat
    * @generated from field: google.protobuf.Struct fields = 4;
    */
   fields?: JsonObject;
+
+  /**
+   * Data partition holding the record. Unset means the "default"
+   * partition. A record in another partition is NOT_FOUND.
+   *
+   * @internal
+   * Same dispatch as FindRecordsRequest.partition.
+   *
+   * @generated from field: string partition = 5;
+   */
+  partition: string;
 };
 
 /**
@@ -390,6 +428,17 @@ export type DeleteRecordRequest = Message<"ai.stigmer.agentic.datastore.v1.Delet
    * @generated from field: string id = 3;
    */
   id: string;
+
+  /**
+   * Data partition holding the record. Unset means the "default"
+   * partition. A record in another partition is NOT_FOUND.
+   *
+   * @internal
+   * Same dispatch as FindRecordsRequest.partition.
+   *
+   * @generated from field: string partition = 4;
+   */
+  partition: string;
 };
 
 /**
@@ -460,6 +509,21 @@ export type DatastoreDescription = Message<"ai.stigmer.agentic.datastore.v1.Data
    * @generated from field: repeated ai.stigmer.agentic.datastore.v1.CollectionDescription collections = 4;
    */
   collections: CollectionDescription[];
+
+  /**
+   * Data partitions that hold records, from the partition catalog.
+   * Always includes "default".
+   *
+   * @internal
+   * Partitions are labels on data, never resources (DD-010 SD-3): a
+   * partition appears here after its first write registers it in the
+   * catalog. The console's partition picker is fed from this list; for
+   * agent callers it is harmless metadata (their partition is
+   * server-derived and not selectable).
+   *
+   * @generated from field: repeated string partitions = 5;
+   */
+  partitions: string[];
 };
 
 /**

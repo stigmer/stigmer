@@ -1,6 +1,6 @@
 {
   "name": "CollectionDeclaration",
-  "description": "CollectionDeclaration is a named collection of records with typed\n fields, constraints, access grants, and optional seed data.",
+  "description": "CollectionDeclaration is a named collection of records with typed\n fields, constraints, and access grants.",
   "protoType": "ai.stigmer.agentic.datastore.v1.CollectionDeclaration",
   "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
   "fields": [
@@ -130,22 +130,6 @@
       "required": false,
       "validation": {
         "maxItems": 20
-      }
-    },
-    {
-      "name": "SeedRecords",
-      "jsonName": "seedRecords",
-      "protoField": "seed_records",
-      "type": {
-        "kind": "array",
-        "elementType": {
-          "kind": "struct"
-        }
-      },
-      "description": "Records inserted once when the collection is first materialized.\n\n Seeds pass through the full constraint pipeline. They are ignored\n on every later apply — the manifest never overwrites living data.\n Ignored seeds are noted in the status sync report.",
-      "required": false,
-      "validation": {
-        "maxItems": 1000
       }
     }
   ]

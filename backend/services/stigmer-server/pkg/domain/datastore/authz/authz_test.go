@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
-	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/identity"
 	iampolicyv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/identity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

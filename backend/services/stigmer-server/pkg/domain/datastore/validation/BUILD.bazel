@@ -9,7 +9,6 @@ go_library(
         "//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore",
         "//backend/services/stigmer-server/pkg/domain/datastore/celeval",
         "//backend/services/stigmer-server/pkg/domain/datastore/schema",
-        "@org_golang_google_protobuf//types/known/structpb",
     ],
 )
 

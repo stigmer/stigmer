@@ -44,15 +44,13 @@ class DatastoreStatus(_message.Message):
     def __init__(self, last_sync_outcome: _Optional[_Union[DatastoreSyncOutcome, str]] = ..., last_synced_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., collections: _Optional[_Iterable[_Union[CollectionStatus, _Mapping]]] = ..., audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ...) -> None: ...
 
 class CollectionStatus(_message.Message):
-    __slots__ = ("name", "state", "record_count", "ignored_seed_count", "materialized_at")
+    __slots__ = ("name", "state", "record_count", "materialized_at")
     NAME_FIELD_NUMBER: _ClassVar[int]
     STATE_FIELD_NUMBER: _ClassVar[int]
     RECORD_COUNT_FIELD_NUMBER: _ClassVar[int]
-    IGNORED_SEED_COUNT_FIELD_NUMBER: _ClassVar[int]
     MATERIALIZED_AT_FIELD_NUMBER: _ClassVar[int]
     name: str
     state: CollectionMaterializationState
     record_count: int
-    ignored_seed_count: int
     materialized_at: _timestamp_pb2.Timestamp
-    def __init__(self, name: _Optional[str] = ..., state: _Optional[_Union[CollectionMaterializationState, str]] = ..., record_count: _Optional[int] = ..., ignored_seed_count: _Optional[int] = ..., materialized_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(self, name: _Optional[str] = ..., state: _Optional[_Union[CollectionMaterializationState, str]] = ..., record_count: _Optional[int] = ..., materialized_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...

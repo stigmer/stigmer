@@ -13,7 +13,9 @@ package ai.stigmer.agentic.datastore.v1;
  * System fields (id, created_at, updated_at, created_by) are not
  * declared — they are part of the record envelope, server-stamped, and
  * never caller-writable. Their names are reserved below, plus `org`
- * (the stamped tenancy column in cloud record tables).
+ * (the stamped tenancy column in cloud record tables) and `partition`
+ * (the DD-010 data-partition label: ambient scope set by the server,
+ * never data — not declarable, not in payloads, not filterable).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.datastore.v1.FieldDeclaration}
@@ -72,8 +74,8 @@ private static final long serialVersionUID = 0L;
    * Field name, unique within the collection.
    *
    * Format: lowercase snake_case. The record envelope's system field
-   * names (id, created_at, updated_at, created_by) and `org` are
-   * reserved.
+   * names (id, created_at, updated_at, created_by), `org`, and
+   * `partition` are reserved.
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -97,8 +99,8 @@ private static final long serialVersionUID = 0L;
    * Field name, unique within the collection.
    *
    * Format: lowercase snake_case. The record envelope's system field
-   * names (id, created_at, updated_at, created_by) and `org` are
-   * reserved.
+   * names (id, created_at, updated_at, created_by), `org`, and
+   * `partition` are reserved.
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -549,7 +551,9 @@ private static final long serialVersionUID = 0L;
    * System fields (id, created_at, updated_at, created_by) are not
    * declared — they are part of the record envelope, server-stamped, and
    * never caller-writable. Their names are reserved below, plus `org`
-   * (the stamped tenancy column in cloud record tables).
+   * (the stamped tenancy column in cloud record tables) and `partition`
+   * (the DD-010 data-partition label: ambient scope set by the server,
+   * never data — not declarable, not in payloads, not filterable).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.datastore.v1.FieldDeclaration}
@@ -783,8 +787,8 @@ private static final long serialVersionUID = 0L;
      * Field name, unique within the collection.
      *
      * Format: lowercase snake_case. The record envelope's system field
-     * names (id, created_at, updated_at, created_by) and `org` are
-     * reserved.
+     * names (id, created_at, updated_at, created_by), `org`, and
+     * `partition` are reserved.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -807,8 +811,8 @@ private static final long serialVersionUID = 0L;
      * Field name, unique within the collection.
      *
      * Format: lowercase snake_case. The record envelope's system field
-     * names (id, created_at, updated_at, created_by) and `org` are
-     * reserved.
+     * names (id, created_at, updated_at, created_by), `org`, and
+     * `partition` are reserved.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -832,8 +836,8 @@ private static final long serialVersionUID = 0L;
      * Field name, unique within the collection.
      *
      * Format: lowercase snake_case. The record envelope's system field
-     * names (id, created_at, updated_at, created_by) and `org` are
-     * reserved.
+     * names (id, created_at, updated_at, created_by), `org`, and
+     * `partition` are reserved.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -853,8 +857,8 @@ private static final long serialVersionUID = 0L;
      * Field name, unique within the collection.
      *
      * Format: lowercase snake_case. The record envelope's system field
-     * names (id, created_at, updated_at, created_by) and `org` are
-     * reserved.
+     * names (id, created_at, updated_at, created_by), `org`, and
+     * `partition` are reserved.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -871,8 +875,8 @@ private static final long serialVersionUID = 0L;
      * Field name, unique within the collection.
      *
      * Format: lowercase snake_case. The record envelope's system field
-     * names (id, created_at, updated_at, created_by) and `org` are
-     * reserved.
+     * names (id, created_at, updated_at, created_by), `org`, and
+     * `partition` are reserved.
      * </pre>
      *
      * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
