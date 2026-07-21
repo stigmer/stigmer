@@ -3,6 +3,7 @@ import datetime
 from ai.stigmer.agentic.agentexecution.v1 import usage_pb2 as _usage_pb2
 from ai.stigmer.billing.v1 import credit_pb2 as _credit_pb2
 from ai.stigmer.billing.v1 import enum_pb2 as _enum_pb2
+from ai.stigmer.billing.v1 import pricing_override_pb2 as _pricing_override_pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as _pagination_pb2
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
@@ -259,6 +260,68 @@ class CustomerModelPricingResponse(_message.Message):
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
     entries: _containers.RepeatedCompositeFieldContainer[CustomerModelPricingEntry]
     def __init__(self, entries: _Optional[_Iterable[_Union[CustomerModelPricingEntry, _Mapping]]] = ...) -> None: ...
+
+class GetModelPricingGovernanceInput(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class ModelPricingGovernanceResponse(_message.Message):
+    __slots__ = ("entries", "pending_overrides")
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    PENDING_OVERRIDES_FIELD_NUMBER: _ClassVar[int]
+    entries: _containers.RepeatedCompositeFieldContainer[ModelPricingGovernanceEntry]
+    pending_overrides: _containers.RepeatedCompositeFieldContainer[_pricing_override_pb2.ModelPricingOverride]
+    def __init__(self, entries: _Optional[_Iterable[_Union[ModelPricingGovernanceEntry, _Mapping]]] = ..., pending_overrides: _Optional[_Iterable[_Union[_pricing_override_pb2.ModelPricingOverride, _Mapping]]] = ...) -> None: ...
+
+class ModelPricingGovernanceEntry(_message.Message):
+    __slots__ = ("model_id", "display_name", "provider", "harness", "cost_tier", "variant", "baseline_input_micros_per_million", "baseline_output_micros_per_million", "baseline_cache_write_micros_per_million", "baseline_cache_read_micros_per_million", "baseline_cursor_token_rate_micros_per_million", "effective_input_micros_per_million", "effective_output_micros_per_million", "effective_cache_write_micros_per_million", "effective_cache_read_micros_per_million", "effective_cursor_token_rate_micros_per_million", "active_overrides", "ledger_reconcilable")
+    MODEL_ID_FIELD_NUMBER: _ClassVar[int]
+    DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_FIELD_NUMBER: _ClassVar[int]
+    HARNESS_FIELD_NUMBER: _ClassVar[int]
+    COST_TIER_FIELD_NUMBER: _ClassVar[int]
+    VARIANT_FIELD_NUMBER: _ClassVar[int]
+    BASELINE_INPUT_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
+    BASELINE_OUTPUT_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
+    BASELINE_CACHE_WRITE_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
+    BASELINE_CACHE_READ_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
+    BASELINE_CURSOR_TOKEN_RATE_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
+    EFFECTIVE_INPUT_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
+    EFFECTIVE_OUTPUT_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
+    EFFECTIVE_CACHE_WRITE_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
+    EFFECTIVE_CACHE_READ_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
+    EFFECTIVE_CURSOR_TOKEN_RATE_MICROS_PER_MILLION_FIELD_NUMBER: _ClassVar[int]
+    ACTIVE_OVERRIDES_FIELD_NUMBER: _ClassVar[int]
+    LEDGER_RECONCILABLE_FIELD_NUMBER: _ClassVar[int]
+    model_id: str
+    display_name: str
+    provider: str
+    harness: str
+    cost_tier: str
+    variant: str
+    baseline_input_micros_per_million: int
+    baseline_output_micros_per_million: int
+    baseline_cache_write_micros_per_million: int
+    baseline_cache_read_micros_per_million: int
+    baseline_cursor_token_rate_micros_per_million: int
+    effective_input_micros_per_million: int
+    effective_output_micros_per_million: int
+    effective_cache_write_micros_per_million: int
+    effective_cache_read_micros_per_million: int
+    effective_cursor_token_rate_micros_per_million: int
+    active_overrides: _containers.RepeatedCompositeFieldContainer[_pricing_override_pb2.ModelPricingOverride]
+    ledger_reconcilable: bool
+    def __init__(self, model_id: _Optional[str] = ..., display_name: _Optional[str] = ..., provider: _Optional[str] = ..., harness: _Optional[str] = ..., cost_tier: _Optional[str] = ..., variant: _Optional[str] = ..., baseline_input_micros_per_million: _Optional[int] = ..., baseline_output_micros_per_million: _Optional[int] = ..., baseline_cache_write_micros_per_million: _Optional[int] = ..., baseline_cache_read_micros_per_million: _Optional[int] = ..., baseline_cursor_token_rate_micros_per_million: _Optional[int] = ..., effective_input_micros_per_million: _Optional[int] = ..., effective_output_micros_per_million: _Optional[int] = ..., effective_cache_write_micros_per_million: _Optional[int] = ..., effective_cache_read_micros_per_million: _Optional[int] = ..., effective_cursor_token_rate_micros_per_million: _Optional[int] = ..., active_overrides: _Optional[_Iterable[_Union[_pricing_override_pb2.ModelPricingOverride, _Mapping]]] = ..., ledger_reconcilable: bool = ...) -> None: ...
+
+class DecideModelPricingOverrideInput(_message.Message):
+    __slots__ = ("override_id", "approve", "decision_note")
+    OVERRIDE_ID_FIELD_NUMBER: _ClassVar[int]
+    APPROVE_FIELD_NUMBER: _ClassVar[int]
+    DECISION_NOTE_FIELD_NUMBER: _ClassVar[int]
+    override_id: str
+    approve: bool
+    decision_note: str
+    def __init__(self, override_id: _Optional[str] = ..., approve: bool = ..., decision_note: _Optional[str] = ...) -> None: ...
 
 class CustomerModelPricingEntry(_message.Message):
     __slots__ = ("model_id", "display_name", "provider", "harness", "cost_tier", "input_price_micros_per_million", "output_price_micros_per_million", "cache_creation_price_micros_per_million", "cache_read_price_micros_per_million", "pricing_policy_id", "markup_basis_points")

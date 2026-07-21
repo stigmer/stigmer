@@ -5,6 +5,7 @@ import grpc
 from ai.stigmer.billing.v1 import billing_account_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2
 from ai.stigmer.billing.v1 import credit_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_credit__pb2
 from ai.stigmer.billing.v1 import io_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2
+from ai.stigmer.billing.v1 import pricing_override_pb2 as ai_dot_stigmer_dot_billing_dot_v1_dot_pricing__override__pb2
 
 
 class BillingCommandControllerStub(object):
@@ -60,6 +61,11 @@ class BillingCommandControllerStub(object):
                 '/ai.stigmer.billing.v1.BillingCommandController/setAutoRechargeConfig',
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.SetAutoRechargeConfigInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.BillingAccount.FromString,
+                _registered_method=True)
+        self.decideModelPricingOverride = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingCommandController/decideModelPricingOverride',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.DecideModelPricingOverrideInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_pricing__override__pb2.ModelPricingOverride.FromString,
                 _registered_method=True)
 
 
@@ -160,6 +166,16 @@ class BillingCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def decideModelPricingOverride(self, request, context):
+        """Record a human decision on a PENDING_SIGNOFF pricing override from the
+        pricing feedback loop. Approving makes the override ACTIVE (superseding
+        any current ACTIVE override on the same pricing key) and recomposes the
+        effective registry; rejecting archives it for audit.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_BillingCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -202,6 +218,11 @@ def add_BillingCommandControllerServicer_to_server(servicer, server):
                     servicer.setAutoRechargeConfig,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.SetAutoRechargeConfigInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.BillingAccount.SerializeToString,
+            ),
+            'decideModelPricingOverride': grpc.unary_unary_rpc_method_handler(
+                    servicer.decideModelPricingOverride,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.DecideModelPricingOverrideInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_pricing__override__pb2.ModelPricingOverride.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -425,6 +446,33 @@ class BillingCommandController(object):
             '/ai.stigmer.billing.v1.BillingCommandController/setAutoRechargeConfig',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.SetAutoRechargeConfigInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_v1_dot_billing__account__pb2.BillingAccount.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def decideModelPricingOverride(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.billing.v1.BillingCommandController/decideModelPricingOverride',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.DecideModelPricingOverrideInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_pricing__override__pb2.ModelPricingOverride.FromString,
             options,
             channel_credentials,
             insecure,

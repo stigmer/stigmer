@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package ai.stigmer.billing.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// ModelPricingOverrideStatus tracks the lifecycle of one pricing override.
+//
+// The state machine is append-only: a new derivation SUPERSEDES the previous
+// ACTIVE override rather than mutating it, so the collection is a complete
+// audit history of every rate the platform ever charged with.
+enum ModelPricingOverrideStatus {
+  model_pricing_override_status_unspecified = 0;
+
+  // Material delta awaiting a human decision. Not composed into the
+  // effective registry.
+  pricing_override_pending_signoff = 1;
+
+  // Composed into the effective registry; at most one ACTIVE override
+  // exists per (model, provider, harness, variant, rate_field) key.
+  pricing_override_active = 2;
+
+  // Replaced by a newer override or invalidated by a baseline refresh.
+  pricing_override_superseded = 3;
+
+  // Rejected by a human; kept for audit.
+  pricing_override_rejected = 4;
+}
+
+// PricingRateField names the single registry rate an override replaces.
+//
+// One override targets exactly one rate field — the same grain as the
+// reconciliation loop's derived rates — so provenance is precise and
+// supersede semantics stay trivial.
+enum PricingRateField {
+  pricing_rate_field_unspecified = 0;
+
+  // inputPricePerMillion on the registry entry.
+  pricing_rate_field_input = 1;
+
+  // outputPricePerMillion on the registry entry.
+  pricing_rate_field_output = 2;
+
+  // cacheWritePricePerMillion on the registry entry.
+  pricing_rate_field_cache_write = 3;
+
+  // cacheReadPricePerMillion on the registry entry.
+  pricing_rate_field_cache_read = 4;
+
+  // cursorTokenRatePerMillion on the registry entry (cursor harness only).
+  pricing_rate_field_cursor_token_rate = 5;
+}
+
+// PricingOverrideProvenance records exactly where an override's rate came
+// from — the reconciliation run, the ledger observation, and the sample
+// volume behind it. Every override is explainable without leaving the
+// document.
+message PricingOverrideProvenance {
+  // Ledger the rate was derived from ("anthropic" or "cursor").
+  string source_provider = 1;
+
+  // Reconciliation window, inclusive, yyyy-MM-dd.
+  string window_from = 2;
+  string window_to = 3;
+
+  // The provider-ledger-observed rate, micro-USD per million tokens.
+  int64 observed_rate_micros_per_million = 4;
+
+  // The effective registry rate (baseline plus any active override) at
+  // derivation time — the value the delta was measured against.
+  int64 effective_rate_at_derivation_micros_per_million = 5;
+
+  // Signed (observed - effective) / effective, in basis points.
+  int64 delta_basis_points = 6;
+
+  // Provider-side sample volume behind the observation.
+  int64 sample_tokens = 7;
+  int64 sample_cost_micros = 8;
+
+  // Temporal workflow id of the reconciliation run that derived this rate.
+  string workflow_id = 9;
+
+  // When the derivation ran.
+  google.protobuf.Timestamp derived_at = 10;
+}
+
+// ModelPricingOverride is one ledger-derived correction to a single
+// model-registry rate (DD-003, harness-cost-parity project).
+//
+// Overrides are the mutable half of the effective registry:
+// model-registry.json stays the human-owned baseline; ACTIVE overrides are
+// composed over it at runtime. Corrections are forward-only — records
+// stamped before effective_at keep their historical PricingSnapshot.
+message ModelPricingOverride {
+  // Unique identifier (UUID).
+  string override_id = 1;
+
+  // Registry entry key this override targets: the canonical registry id
+  // (e.g. "claude-opus-4-8"), its provider, and its harness.
+  string model_id = 2;
+  string provider = 3;
+  string harness = 4;
+
+  // Pricing variant the override targets ("" for base pricing, "fast" for
+  // the speed variant).
+  string variant = 5;
+
+  // Which rate field is overridden, and the new rate in micro-USD per
+  // million tokens (integer micros — no floating point in billing writes).
+  PricingRateField rate_field = 6;
+  int64 rate_micros_per_million = 7;
+
+  ModelPricingOverrideStatus status = 8;
+
+  PricingOverrideProvenance provenance = 9;
+
+  // When this override starts governing new charges. Forward-only: never
+  // before the moment it was written.
+  google.protobuf.Timestamp effective_at = 10;
+
+  // Who decided: "auto" for band auto-applies, the operator's identity for
+  // sign-off decisions. Empty while PENDING_SIGNOFF.
+  string decided_by = 11;
+  google.protobuf.Timestamp decided_at = 12;
+
+  // Optional human note recorded with an approve/reject decision.
+  string decision_note = 13;
+
+  // The previously ACTIVE override this one replaced, for the audit chain.
+  string supersedes_override_id = 14;
+
+  google.protobuf.Timestamp created_at = 15;
+}

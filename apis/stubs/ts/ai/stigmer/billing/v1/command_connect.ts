@@ -3,10 +3,11 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, SetAutoRechargeConfigInput } from "./io_pbjs";
+import { AdjustCreditsInput, AuthorizeExecutionInput, AuthorizeExecutionResponse, CreateBillingPortalSessionInput, CreateBillingPortalSessionResponse, CreateCreditCheckoutSessionInput, CreateCreditCheckoutSessionResponse, DecideModelPricingOverrideInput, FinalizeExecutionInput, FinalizeExecutionResponse, GetOrCreateBillingAccountInput, RecordLlmCallUsageInput, RecordLlmCallUsageResponse, SetAutoRechargeConfigInput } from "./io_pbjs";
 import { BillingAccount } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { CreditLedgerEntry } from "./credit_pbjs";
+import { ModelPricingOverride } from "./pricing_override_pbjs";
 
 /**
  * BillingCommandController handles write operations for the billing bounded context.
@@ -139,6 +140,20 @@ export const BillingCommandController = {
       name: "setAutoRechargeConfig",
       I: SetAutoRechargeConfigInput,
       O: BillingAccount,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Record a human decision on a PENDING_SIGNOFF pricing override from the
+     * pricing feedback loop. Approving makes the override ACTIVE (superseding
+     * any current ACTIVE override on the same pricing key) and recomposes the
+     * effective registry; rejecting archives it for audit.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingCommandController.decideModelPricingOverride
+     */
+    decideModelPricingOverride: {
+      name: "decideModelPricingOverride",
+      I: DecideModelPricingOverrideInput,
+      O: ModelPricingOverride,
       kind: MethodKind.Unary,
     },
   }

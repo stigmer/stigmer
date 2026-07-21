@@ -87,6 +87,12 @@ enum IamPermission {
   // messaging-platform apps holding webhook and OAuth credentials).
   // Admin-gated like can_create_oauth_app.
   can_create_channel_app = 31;
+
+  // Platform-level permission to view pricing governance and decide
+  // pricing-override sign-offs from the pricing feedback loop. A human
+  // operator action, kept distinct from can_execute_billing_ops (the
+  // machine account's internal billing pipeline).
+  can_manage_model_pricing = 32;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources

@@ -5,6 +5,7 @@ package ai.stigmer.billing.v1;
 import "ai/stigmer/billing/v1/billing_account.proto";
 import "ai/stigmer/billing/v1/credit.proto";
 import "ai/stigmer/billing/v1/io.proto";
+import "ai/stigmer/billing/v1/pricing_override.proto";
 import "ai/stigmer/commons/rpc/method_options.proto";
 
 // BillingCommandController handles write operations for the billing bounded context.
@@ -108,5 +109,16 @@ service BillingCommandController {
     option (ai.stigmer.commons.rpc.config).permission = can_manage_billing;
     option (ai.stigmer.commons.rpc.config).field_path = "org_id";
     option (ai.stigmer.commons.rpc.config).error_msg = "unauthorized to manage auto-recharge for this organization";
+  }
+
+  // Record a human decision on a PENDING_SIGNOFF pricing override from the
+  // pricing feedback loop. Approving makes the override ACTIVE (superseding
+  // any current ACTIVE override on the same pricing key) and recomposes the
+  // effective registry; rejecting archives it for audit.
+  rpc decideModelPricingOverride(DecideModelPricingOverrideInput) returns (ModelPricingOverride) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_model_pricing;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can decide pricing overrides";
   }
 }

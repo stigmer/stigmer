@@ -39,7 +39,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "stigmer.billing.v1\032+ai/stigmer/billing/v" +
       "1/billing_account.proto\032\036ai/stigmer/bill" +
       "ing/v1/io.proto\032+ai/stigmer/commons/rpc/" +
-      "method_options.proto2\277\007\n\026BillingQueryCon" +
+      "method_options.proto2\223\t\n\026BillingQueryCon" +
       "troller\022\257\001\n\021getBillingAccount\022-.ai.stigm" +
       "er.billing.v1.GetBillingAccountInput\032%.a" +
       "i.stigmer.billing.v1.BillingAccount\"D\302\270\030" +
@@ -63,11 +63,16 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "erModelPricingInput\0323.ai.stigmer.billing" +
       ".v1.CustomerModelPricingResponse\"D\302\270\030@\010\033" +
       "\020\036\"\006org_id*2unauthorized to view billing" +
-      " for this organizationB\203\001B\nQueryProtoP\001\242" +
-      "\002\003ASB\252\002\025Ai.Stigmer.Billing.V1\312\002\025Ai\\Stigm" +
-      "er\\Billing\\V1\342\002!Ai\\Stigmer\\Billing\\V1\\GP" +
-      "BMetadata\352\002\030Ai::Stigmer::Billing::V1b\006pr" +
-      "oto3"
+      " for this organization\022\321\001\n\031getModelPrici" +
+      "ngGovernance\0225.ai.stigmer.billing.v1.Get" +
+      "ModelPricingGovernanceInput\0325.ai.stigmer" +
+      ".billing.v1.ModelPricingGovernanceRespon" +
+      "se\"F\302\270\030B\010 \020\037*3only platform operators ca" +
+      "n view pricing governance2\007stigmerB\203\001B\nQ" +
+      "ueryProtoP\001\242\002\003ASB\252\002\025Ai.Stigmer.Billing.V" +
+      "1\312\002\025Ai\\Stigmer\\Billing\\V1\342\002!Ai\\Stigmer\\B" +
+      "illing\\V1\\GPBMetadata\352\002\030Ai::Stigmer::Bil" +
+      "ling::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

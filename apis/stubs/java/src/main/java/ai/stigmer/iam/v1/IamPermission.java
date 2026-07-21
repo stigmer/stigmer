@@ -222,6 +222,17 @@ public enum IamPermission
    * <code>can_create_channel_app = 31;</code>
    */
   can_create_channel_app(31),
+  /**
+   * <pre>
+   * Platform-level permission to view pricing governance and decide
+   * pricing-override sign-offs from the pricing feedback loop. A human
+   * operator action, kept distinct from can_execute_billing_ops (the
+   * machine account's internal billing pipeline).
+   * </pre>
+   *
+   * <code>can_manage_model_pricing = 32;</code>
+   */
+  can_manage_model_pricing(32),
   UNRECOGNIZED(-1),
   ;
 
@@ -431,6 +442,17 @@ public enum IamPermission
    * <code>can_create_channel_app = 31;</code>
    */
   public static final int can_create_channel_app_VALUE = 31;
+  /**
+   * <pre>
+   * Platform-level permission to view pricing governance and decide
+   * pricing-override sign-offs from the pricing feedback loop. A human
+   * operator action, kept distinct from can_execute_billing_ops (the
+   * machine account's internal billing pipeline).
+   * </pre>
+   *
+   * <code>can_manage_model_pricing = 32;</code>
+   */
+  public static final int can_manage_model_pricing_VALUE = 32;
 
 
   public final int getNumber() {
@@ -488,6 +510,7 @@ public enum IamPermission
       case 29: return can_execute_billing_ops;
       case 30: return can_create_agent_share;
       case 31: return can_create_channel_app;
+      case 32: return can_manage_model_pricing;
       default: return null;
     }
   }

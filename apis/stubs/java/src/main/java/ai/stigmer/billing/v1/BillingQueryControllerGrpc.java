@@ -171,6 +171,37 @@ public final class BillingQueryControllerGrpc {
     return getGetCustomerModelPricingMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetModelPricingGovernanceInput,
+      ai.stigmer.billing.v1.ModelPricingGovernanceResponse> getGetModelPricingGovernanceMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getModelPricingGovernance",
+      requestType = ai.stigmer.billing.v1.GetModelPricingGovernanceInput.class,
+      responseType = ai.stigmer.billing.v1.ModelPricingGovernanceResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetModelPricingGovernanceInput,
+      ai.stigmer.billing.v1.ModelPricingGovernanceResponse> getGetModelPricingGovernanceMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.GetModelPricingGovernanceInput, ai.stigmer.billing.v1.ModelPricingGovernanceResponse> getGetModelPricingGovernanceMethod;
+    if ((getGetModelPricingGovernanceMethod = BillingQueryControllerGrpc.getGetModelPricingGovernanceMethod) == null) {
+      synchronized (BillingQueryControllerGrpc.class) {
+        if ((getGetModelPricingGovernanceMethod = BillingQueryControllerGrpc.getGetModelPricingGovernanceMethod) == null) {
+          BillingQueryControllerGrpc.getGetModelPricingGovernanceMethod = getGetModelPricingGovernanceMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.GetModelPricingGovernanceInput, ai.stigmer.billing.v1.ModelPricingGovernanceResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getModelPricingGovernance"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.GetModelPricingGovernanceInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.ModelPricingGovernanceResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new BillingQueryControllerMethodDescriptorSupplier("getModelPricingGovernance"))
+              .build();
+        }
+      }
+    }
+    return getGetModelPricingGovernanceMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -288,6 +319,20 @@ public final class BillingQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CustomerModelPricingResponse> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetCustomerModelPricingMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Retrieve the platform pricing governance view: baseline vs effective
+     * rates per model, active override provenance, and pending sign-off
+     * proposals from the pricing feedback loop.
+     * Operator surface: exposes raw provider rates (pre-markup), so it is
+     * platform-gated, not org-gated.
+     * </pre>
+     */
+    default void getModelPricingGovernance(ai.stigmer.billing.v1.GetModelPricingGovernanceInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingGovernanceResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetModelPricingGovernanceMethod(), responseObserver);
+    }
   }
 
   /**
@@ -380,6 +425,21 @@ public final class BillingQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetCustomerModelPricingMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Retrieve the platform pricing governance view: baseline vs effective
+     * rates per model, active override provenance, and pending sign-off
+     * proposals from the pricing feedback loop.
+     * Operator surface: exposes raw provider rates (pre-markup), so it is
+     * platform-gated, not org-gated.
+     * </pre>
+     */
+    public void getModelPricingGovernance(ai.stigmer.billing.v1.GetModelPricingGovernanceInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingGovernanceResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetModelPricingGovernanceMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -452,6 +512,20 @@ public final class BillingQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetCustomerModelPricingMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Retrieve the platform pricing governance view: baseline vs effective
+     * rates per model, active override provenance, and pending sign-off
+     * proposals from the pricing feedback loop.
+     * Operator surface: exposes raw provider rates (pre-markup), so it is
+     * platform-gated, not org-gated.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.ModelPricingGovernanceResponse getModelPricingGovernance(ai.stigmer.billing.v1.GetModelPricingGovernanceInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetModelPricingGovernanceMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -523,6 +597,20 @@ public final class BillingQueryControllerGrpc {
     public ai.stigmer.billing.v1.CustomerModelPricingResponse getCustomerModelPricing(ai.stigmer.billing.v1.GetCustomerModelPricingInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetCustomerModelPricingMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Retrieve the platform pricing governance view: baseline vs effective
+     * rates per model, active override provenance, and pending sign-off
+     * proposals from the pricing feedback loop.
+     * Operator surface: exposes raw provider rates (pre-markup), so it is
+     * platform-gated, not org-gated.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.ModelPricingGovernanceResponse getModelPricingGovernance(ai.stigmer.billing.v1.GetModelPricingGovernanceInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetModelPricingGovernanceMethod(), getCallOptions(), request);
     }
   }
 
@@ -601,6 +689,21 @@ public final class BillingQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetCustomerModelPricingMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Retrieve the platform pricing governance view: baseline vs effective
+     * rates per model, active override provenance, and pending sign-off
+     * proposals from the pricing feedback loop.
+     * Operator surface: exposes raw provider rates (pre-markup), so it is
+     * platform-gated, not org-gated.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.ModelPricingGovernanceResponse> getModelPricingGovernance(
+        ai.stigmer.billing.v1.GetModelPricingGovernanceInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetModelPricingGovernanceMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET_BILLING_ACCOUNT = 0;
@@ -608,6 +711,7 @@ public final class BillingQueryControllerGrpc {
   private static final int METHODID_GET_CREDIT_LEDGER = 2;
   private static final int METHODID_GET_BILLING_USAGE_REPORT = 3;
   private static final int METHODID_GET_CUSTOMER_MODEL_PRICING = 4;
+  private static final int METHODID_GET_MODEL_PRICING_GOVERNANCE = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -645,6 +749,10 @@ public final class BillingQueryControllerGrpc {
         case METHODID_GET_CUSTOMER_MODEL_PRICING:
           serviceImpl.getCustomerModelPricing((ai.stigmer.billing.v1.GetCustomerModelPricingInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.CustomerModelPricingResponse>) responseObserver);
+          break;
+        case METHODID_GET_MODEL_PRICING_GOVERNANCE:
+          serviceImpl.getModelPricingGovernance((ai.stigmer.billing.v1.GetModelPricingGovernanceInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingGovernanceResponse>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -699,6 +807,13 @@ public final class BillingQueryControllerGrpc {
               ai.stigmer.billing.v1.GetCustomerModelPricingInput,
               ai.stigmer.billing.v1.CustomerModelPricingResponse>(
                 service, METHODID_GET_CUSTOMER_MODEL_PRICING)))
+        .addMethod(
+          getGetModelPricingGovernanceMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.billing.v1.GetModelPricingGovernanceInput,
+              ai.stigmer.billing.v1.ModelPricingGovernanceResponse>(
+                service, METHODID_GET_MODEL_PRICING_GOVERNANCE)))
         .build();
   }
 
@@ -752,6 +867,7 @@ public final class BillingQueryControllerGrpc {
               .addMethod(getGetCreditLedgerMethod())
               .addMethod(getGetBillingUsageReportMethod())
               .addMethod(getGetCustomerModelPricingMethod())
+              .addMethod(getGetModelPricingGovernanceMethod())
               .build();
         }
       }

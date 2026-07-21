@@ -95,6 +95,11 @@ const (
 	// messaging-platform apps holding webhook and OAuth credentials).
 	// Admin-gated like can_create_oauth_app.
 	IamPermission_can_create_channel_app IamPermission = 31
+	// Platform-level permission to view pricing governance and decide
+	// pricing-override sign-offs from the pricing feedback loop. A human
+	// operator action, kept distinct from can_execute_billing_ops (the
+	// machine account's internal billing pipeline).
+	IamPermission_can_manage_model_pricing IamPermission = 32
 )
 
 // Enum value maps for IamPermission.
@@ -131,6 +136,7 @@ var (
 		29: "can_execute_billing_ops",
 		30: "can_create_agent_share",
 		31: "can_create_channel_app",
+		32: "can_manage_model_pricing",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -164,6 +170,7 @@ var (
 		"can_execute_billing_ops":      29,
 		"can_create_agent_share":       30,
 		"can_create_channel_app":       31,
+		"can_manage_model_pricing":     32,
 	}
 )
 
@@ -267,7 +274,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xee\x05\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\x8c\x06\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -301,7 +308,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x12can_manage_billing\x10\x1c\x12\x1b\n" +
 	"\x17can_execute_billing_ops\x10\x1d\x12\x1a\n" +
 	"\x16can_create_agent_share\x10\x1e\x12\x1a\n" +
-	"\x16can_create_channel_app\x10\x1f*Q\n" +
+	"\x16can_create_channel_app\x10\x1f\x12\x1c\n" +
+	"\x18can_manage_model_pricing\x10 *Q\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

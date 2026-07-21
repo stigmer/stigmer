@@ -88,6 +88,16 @@ Rates on the [pricing page](https://stigmer.ai/pricing) and the
 Token Rate — you always see the final price you pay. Pricing is versioned and
 only affects future usage; historical charges are immutable.
 
+### Ledger-verified rates
+
+Stigmer Cloud continuously reconciles its rates against the providers' own
+billing ledgers (the Anthropic admin usage/cost reports and Cursor's team
+usage-event ledger). When a provider's observed rate drifts from the published
+rate, the platform corrects the rate automatically within a small tolerance —
+larger changes require an explicit operator sign-off. Corrections apply forward
+only: every historical charge keeps the exact rates that were in effect when it
+was billed.
+
 <Callout type="info">
   Want to spend less? See [Optimizing your costs](#optimizing-your-costs) below
   — a practical rundown of harness choice, prompt caching, model selection, and

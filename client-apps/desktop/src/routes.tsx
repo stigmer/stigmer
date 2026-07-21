@@ -40,6 +40,7 @@ const WorkflowExecutionDetailPage = lazy(() => import("./pages/workflow/Workflow
 const SettingsLayout = lazy(() => import("./pages/settings/SettingsLayout"));
 const SettingsLanding = lazy(() => import("./pages/settings/SettingsLanding"));
 const BillingPage = lazy(() => import("./pages/settings/BillingPage"));
+const PricingGovernancePage = lazy(() => import("./pages/settings/PricingGovernancePage"));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -246,6 +247,14 @@ const routes: RouteObject[] = [
                 element: (
                   <LazyPage>
                     <BillingPage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: "pricing-governance",
+                element: (
+                  <LazyPage>
+                    <PricingGovernancePage />
                   </LazyPage>
                 ),
               },

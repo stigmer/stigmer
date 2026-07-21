@@ -12,12 +12,16 @@ import {
   SetAutoRechargeConfigInputSchema,
   GetBillingUsageReportInputSchema,
   GetCustomerModelPricingInputSchema,
+  GetModelPricingGovernanceInputSchema,
+  DecideModelPricingOverrideInputSchema,
   type CreateCreditCheckoutSessionResponse,
   type CreateBillingPortalSessionResponse,
   type CreditLedgerResponse,
   type BillingUsageReportResponse,
   type CustomerModelPricingResponse,
+  type ModelPricingGovernanceResponse,
 } from "@stigmer/protos/ai/stigmer/billing/v1/io_pb";
+import type { ModelPricingOverride } from "@stigmer/protos/ai/stigmer/billing/v1/pricing_override_pb";
 import type { BillingAccount, CreditBalance } from "@stigmer/protos/ai/stigmer/billing/v1/billing_account_pb";
 import type { LedgerEntryType, LedgerView } from "@stigmer/protos/ai/stigmer/billing/v1/enum_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
@@ -72,6 +76,19 @@ export interface GetBillingUsageReportParams {
 /** Parameters for querying customer model pricing. */
 export interface GetCustomerModelPricingParams {
   readonly orgId?: string;
+}
+
+/** Parameters for deciding a pending pricing override. */
+export interface DecideModelPricingOverrideParams {
+  /** The PENDING_SIGNOFF override to decide. */
+  readonly overrideId: string;
+  /**
+   * `true` approves (the override becomes ACTIVE and supersedes any
+   * current ACTIVE override on the same pricing key); `false` rejects.
+   */
+  readonly approve: boolean;
+  /** Optional note recorded on the decision for the audit trail. */
+  readonly decisionNote?: string;
 }
 
 /**
@@ -264,6 +281,48 @@ export class BillingClient {
       return await this.query.getCustomerModelPricing(
         create(GetCustomerModelPricingInputSchema, {
           orgId: params?.orgId ?? "",
+        }),
+      );
+    } catch (e) {
+      throw wrapError(e);
+    }
+  }
+
+  /**
+   * Retrieve the platform pricing governance view: baseline vs effective
+   * rates per model, ACTIVE override provenance, and pending sign-off
+   * proposals from the pricing feedback loop.
+   *
+   * Platform-operator surface (`can_manage_model_pricing` on
+   * `platform:stigmer`): rates are raw provider prices, pre-markup.
+   */
+  async getModelPricingGovernance(): Promise<ModelPricingGovernanceResponse> {
+    try {
+      return await this.query.getModelPricingGovernance(
+        create(GetModelPricingGovernanceInputSchema, {}),
+      );
+    } catch (e) {
+      throw wrapError(e);
+    }
+  }
+
+  /**
+   * Record a human decision on a PENDING_SIGNOFF pricing override.
+   *
+   * Approving makes the override ACTIVE (superseding any current ACTIVE
+   * override on the same pricing key) and recomposes the effective
+   * registry; rejecting archives it for audit. Returns the decided
+   * override with the decision stamped.
+   */
+  async decideModelPricingOverride(
+    params: DecideModelPricingOverrideParams,
+  ): Promise<ModelPricingOverride> {
+    try {
+      return await this.command.decideModelPricingOverride(
+        create(DecideModelPricingOverrideInputSchema, {
+          overrideId: params.overrideId,
+          approve: params.approve,
+          decisionNote: params.decisionNote ?? "",
         }),
       );
     } catch (e) {

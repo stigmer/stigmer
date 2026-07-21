@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { BillingUsageReportResponse, CreditLedgerResponse, CustomerModelPricingResponse, GetBillingAccountInput, GetBillingUsageReportInput, GetCreditBalanceInput, GetCreditLedgerInput, GetCustomerModelPricingInput } from "./io_pbjs";
+import { BillingUsageReportResponse, CreditLedgerResponse, CustomerModelPricingResponse, GetBillingAccountInput, GetBillingUsageReportInput, GetCreditBalanceInput, GetCreditLedgerInput, GetCustomerModelPricingInput, GetModelPricingGovernanceInput, ModelPricingGovernanceResponse } from "./io_pbjs";
 import { BillingAccount, CreditBalance } from "./billing_account_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -71,6 +71,22 @@ export const BillingQueryController = {
       name: "getCustomerModelPricing",
       I: GetCustomerModelPricingInput,
       O: CustomerModelPricingResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Retrieve the platform pricing governance view: baseline vs effective
+     * rates per model, active override provenance, and pending sign-off
+     * proposals from the pricing feedback loop.
+     *
+     * Operator surface: exposes raw provider rates (pre-markup), so it is
+     * platform-gated, not org-gated.
+     *
+     * @generated from rpc ai.stigmer.billing.v1.BillingQueryController.getModelPricingGovernance
+     */
+    getModelPricingGovernance: {
+      name: "getModelPricingGovernance",
+      I: GetModelPricingGovernanceInput,
+      O: ModelPricingGovernanceResponse,
       kind: MethodKind.Unary,
     },
   }

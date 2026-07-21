@@ -10,6 +10,7 @@ go_library(
         "enum.pb.go",
         "io.pb.go",
         "policy.pb.go",
+        "pricing_override.pb.go",
         "query.pb.go",
         "query_grpc.pb.go",
     ],

@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	BillingQueryController_GetBillingAccount_FullMethodName       = "/ai.stigmer.billing.v1.BillingQueryController/getBillingAccount"
-	BillingQueryController_GetCreditBalance_FullMethodName        = "/ai.stigmer.billing.v1.BillingQueryController/getCreditBalance"
-	BillingQueryController_GetCreditLedger_FullMethodName         = "/ai.stigmer.billing.v1.BillingQueryController/getCreditLedger"
-	BillingQueryController_GetBillingUsageReport_FullMethodName   = "/ai.stigmer.billing.v1.BillingQueryController/getBillingUsageReport"
-	BillingQueryController_GetCustomerModelPricing_FullMethodName = "/ai.stigmer.billing.v1.BillingQueryController/getCustomerModelPricing"
+	BillingQueryController_GetBillingAccount_FullMethodName         = "/ai.stigmer.billing.v1.BillingQueryController/getBillingAccount"
+	BillingQueryController_GetCreditBalance_FullMethodName          = "/ai.stigmer.billing.v1.BillingQueryController/getCreditBalance"
+	BillingQueryController_GetCreditLedger_FullMethodName           = "/ai.stigmer.billing.v1.BillingQueryController/getCreditLedger"
+	BillingQueryController_GetBillingUsageReport_FullMethodName     = "/ai.stigmer.billing.v1.BillingQueryController/getBillingUsageReport"
+	BillingQueryController_GetCustomerModelPricing_FullMethodName   = "/ai.stigmer.billing.v1.BillingQueryController/getCustomerModelPricing"
+	BillingQueryController_GetModelPricingGovernance_FullMethodName = "/ai.stigmer.billing.v1.BillingQueryController/getModelPricingGovernance"
 )
 
 // BillingQueryControllerClient is the client API for BillingQueryController service.
@@ -45,6 +46,13 @@ type BillingQueryControllerClient interface {
 	// Retrieve the customer-facing model price list with markup applied.
 	// Returns prices for all models, organized by harness and cost tier.
 	GetCustomerModelPricing(ctx context.Context, in *GetCustomerModelPricingInput, opts ...grpc.CallOption) (*CustomerModelPricingResponse, error)
+	// Retrieve the platform pricing governance view: baseline vs effective
+	// rates per model, active override provenance, and pending sign-off
+	// proposals from the pricing feedback loop.
+	//
+	// Operator surface: exposes raw provider rates (pre-markup), so it is
+	// platform-gated, not org-gated.
+	GetModelPricingGovernance(ctx context.Context, in *GetModelPricingGovernanceInput, opts ...grpc.CallOption) (*ModelPricingGovernanceResponse, error)
 }
 
 type billingQueryControllerClient struct {
@@ -105,6 +113,16 @@ func (c *billingQueryControllerClient) GetCustomerModelPricing(ctx context.Conte
 	return out, nil
 }
 
+func (c *billingQueryControllerClient) GetModelPricingGovernance(ctx context.Context, in *GetModelPricingGovernanceInput, opts ...grpc.CallOption) (*ModelPricingGovernanceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ModelPricingGovernanceResponse)
+	err := c.cc.Invoke(ctx, BillingQueryController_GetModelPricingGovernance_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BillingQueryControllerServer is the server API for BillingQueryController service.
 // All implementations should embed UnimplementedBillingQueryControllerServer
 // for forward compatibility.
@@ -124,6 +142,13 @@ type BillingQueryControllerServer interface {
 	// Retrieve the customer-facing model price list with markup applied.
 	// Returns prices for all models, organized by harness and cost tier.
 	GetCustomerModelPricing(context.Context, *GetCustomerModelPricingInput) (*CustomerModelPricingResponse, error)
+	// Retrieve the platform pricing governance view: baseline vs effective
+	// rates per model, active override provenance, and pending sign-off
+	// proposals from the pricing feedback loop.
+	//
+	// Operator surface: exposes raw provider rates (pre-markup), so it is
+	// platform-gated, not org-gated.
+	GetModelPricingGovernance(context.Context, *GetModelPricingGovernanceInput) (*ModelPricingGovernanceResponse, error)
 }
 
 // UnimplementedBillingQueryControllerServer should be embedded to have
@@ -147,6 +172,9 @@ func (UnimplementedBillingQueryControllerServer) GetBillingUsageReport(context.C
 }
 func (UnimplementedBillingQueryControllerServer) GetCustomerModelPricing(context.Context, *GetCustomerModelPricingInput) (*CustomerModelPricingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCustomerModelPricing not implemented")
+}
+func (UnimplementedBillingQueryControllerServer) GetModelPricingGovernance(context.Context, *GetModelPricingGovernanceInput) (*ModelPricingGovernanceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetModelPricingGovernance not implemented")
 }
 func (UnimplementedBillingQueryControllerServer) testEmbeddedByValue() {}
 
@@ -258,6 +286,24 @@ func _BillingQueryController_GetCustomerModelPricing_Handler(srv interface{}, ct
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BillingQueryController_GetModelPricingGovernance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetModelPricingGovernanceInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingQueryControllerServer).GetModelPricingGovernance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingQueryController_GetModelPricingGovernance_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingQueryControllerServer).GetModelPricingGovernance(ctx, req.(*GetModelPricingGovernanceInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BillingQueryController_ServiceDesc is the grpc.ServiceDesc for BillingQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -284,6 +330,10 @@ var BillingQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getCustomerModelPricing",
 			Handler:    _BillingQueryController_GetCustomerModelPricing_Handler,
+		},
+		{
+			MethodName: "getModelPricingGovernance",
+			Handler:    _BillingQueryController_GetModelPricingGovernance_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

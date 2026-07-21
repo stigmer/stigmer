@@ -25,44 +25,49 @@ var File_ai_stigmer_billing_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"!ai/stigmer/billing/v1/query.proto\x12\x15ai.stigmer.billing.v1\x1a+ai/stigmer/billing/v1/billing_account.proto\x1a\x1eai/stigmer/billing/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xbf\a\n" +
+	"!ai/stigmer/billing/v1/query.proto\x12\x15ai.stigmer.billing.v1\x1a+ai/stigmer/billing/v1/billing_account.proto\x1a\x1eai/stigmer/billing/v1/io.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\x93\t\n" +
 	"\x16BillingQueryController\x12\xaf\x01\n" +
 	"\x11getBillingAccount\x12-.ai.stigmer.billing.v1.GetBillingAccountInput\x1a%.ai.stigmer.billing.v1.BillingAccount\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xac\x01\n" +
 	"\x10getCreditBalance\x12,.ai.stigmer.billing.v1.GetCreditBalanceInput\x1a$.ai.stigmer.billing.v1.CreditBalance\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xb1\x01\n" +
 	"\x0fgetCreditLedger\x12+.ai.stigmer.billing.v1.GetCreditLedgerInput\x1a+.ai.stigmer.billing.v1.CreditLedgerResponse\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xc3\x01\n" +
 	"\x15getBillingUsageReport\x121.ai.stigmer.billing.v1.GetBillingUsageReportInput\x1a1.ai.stigmer.billing.v1.BillingUsageReportResponse\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xc9\x01\n" +
-	"\x17getCustomerModelPricing\x123.ai.stigmer.billing.v1.GetCustomerModelPricingInput\x1a3.ai.stigmer.billing.v1.CustomerModelPricingResponse\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organizationB\xe8\x01\n" +
+	"\x17getCustomerModelPricing\x123.ai.stigmer.billing.v1.GetCustomerModelPricingInput\x1a3.ai.stigmer.billing.v1.CustomerModelPricingResponse\"D¸\x18@\b\x1b\x10\x1e\"\x06org_id*2unauthorized to view billing for this organization\x12\xd1\x01\n" +
+	"\x19getModelPricingGovernance\x125.ai.stigmer.billing.v1.GetModelPricingGovernanceInput\x1a5.ai.stigmer.billing.v1.ModelPricingGovernanceResponse\"F¸\x18B\b \x10\x1f*3only platform operators can view pricing governance2\astigmerB\xe8\x01\n" +
 	"\x19com.ai.stigmer.billing.v1B\n" +
 	"QueryProtoP\x01ZHgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/billing/v1;billingv1\xa2\x02\x03ASB\xaa\x02\x15Ai.Stigmer.Billing.V1\xca\x02\x15Ai\\Stigmer\\Billing\\V1\xe2\x02!Ai\\Stigmer\\Billing\\V1\\GPBMetadata\xea\x02\x18Ai::Stigmer::Billing::V1b\x06proto3"
 
 var file_ai_stigmer_billing_v1_query_proto_goTypes = []any{
-	(*GetBillingAccountInput)(nil),       // 0: ai.stigmer.billing.v1.GetBillingAccountInput
-	(*GetCreditBalanceInput)(nil),        // 1: ai.stigmer.billing.v1.GetCreditBalanceInput
-	(*GetCreditLedgerInput)(nil),         // 2: ai.stigmer.billing.v1.GetCreditLedgerInput
-	(*GetBillingUsageReportInput)(nil),   // 3: ai.stigmer.billing.v1.GetBillingUsageReportInput
-	(*GetCustomerModelPricingInput)(nil), // 4: ai.stigmer.billing.v1.GetCustomerModelPricingInput
-	(*BillingAccount)(nil),               // 5: ai.stigmer.billing.v1.BillingAccount
-	(*CreditBalance)(nil),                // 6: ai.stigmer.billing.v1.CreditBalance
-	(*CreditLedgerResponse)(nil),         // 7: ai.stigmer.billing.v1.CreditLedgerResponse
-	(*BillingUsageReportResponse)(nil),   // 8: ai.stigmer.billing.v1.BillingUsageReportResponse
-	(*CustomerModelPricingResponse)(nil), // 9: ai.stigmer.billing.v1.CustomerModelPricingResponse
+	(*GetBillingAccountInput)(nil),         // 0: ai.stigmer.billing.v1.GetBillingAccountInput
+	(*GetCreditBalanceInput)(nil),          // 1: ai.stigmer.billing.v1.GetCreditBalanceInput
+	(*GetCreditLedgerInput)(nil),           // 2: ai.stigmer.billing.v1.GetCreditLedgerInput
+	(*GetBillingUsageReportInput)(nil),     // 3: ai.stigmer.billing.v1.GetBillingUsageReportInput
+	(*GetCustomerModelPricingInput)(nil),   // 4: ai.stigmer.billing.v1.GetCustomerModelPricingInput
+	(*GetModelPricingGovernanceInput)(nil), // 5: ai.stigmer.billing.v1.GetModelPricingGovernanceInput
+	(*BillingAccount)(nil),                 // 6: ai.stigmer.billing.v1.BillingAccount
+	(*CreditBalance)(nil),                  // 7: ai.stigmer.billing.v1.CreditBalance
+	(*CreditLedgerResponse)(nil),           // 8: ai.stigmer.billing.v1.CreditLedgerResponse
+	(*BillingUsageReportResponse)(nil),     // 9: ai.stigmer.billing.v1.BillingUsageReportResponse
+	(*CustomerModelPricingResponse)(nil),   // 10: ai.stigmer.billing.v1.CustomerModelPricingResponse
+	(*ModelPricingGovernanceResponse)(nil), // 11: ai.stigmer.billing.v1.ModelPricingGovernanceResponse
 }
 var file_ai_stigmer_billing_v1_query_proto_depIdxs = []int32{
-	0, // 0: ai.stigmer.billing.v1.BillingQueryController.getBillingAccount:input_type -> ai.stigmer.billing.v1.GetBillingAccountInput
-	1, // 1: ai.stigmer.billing.v1.BillingQueryController.getCreditBalance:input_type -> ai.stigmer.billing.v1.GetCreditBalanceInput
-	2, // 2: ai.stigmer.billing.v1.BillingQueryController.getCreditLedger:input_type -> ai.stigmer.billing.v1.GetCreditLedgerInput
-	3, // 3: ai.stigmer.billing.v1.BillingQueryController.getBillingUsageReport:input_type -> ai.stigmer.billing.v1.GetBillingUsageReportInput
-	4, // 4: ai.stigmer.billing.v1.BillingQueryController.getCustomerModelPricing:input_type -> ai.stigmer.billing.v1.GetCustomerModelPricingInput
-	5, // 5: ai.stigmer.billing.v1.BillingQueryController.getBillingAccount:output_type -> ai.stigmer.billing.v1.BillingAccount
-	6, // 6: ai.stigmer.billing.v1.BillingQueryController.getCreditBalance:output_type -> ai.stigmer.billing.v1.CreditBalance
-	7, // 7: ai.stigmer.billing.v1.BillingQueryController.getCreditLedger:output_type -> ai.stigmer.billing.v1.CreditLedgerResponse
-	8, // 8: ai.stigmer.billing.v1.BillingQueryController.getBillingUsageReport:output_type -> ai.stigmer.billing.v1.BillingUsageReportResponse
-	9, // 9: ai.stigmer.billing.v1.BillingQueryController.getCustomerModelPricing:output_type -> ai.stigmer.billing.v1.CustomerModelPricingResponse
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: ai.stigmer.billing.v1.BillingQueryController.getBillingAccount:input_type -> ai.stigmer.billing.v1.GetBillingAccountInput
+	1,  // 1: ai.stigmer.billing.v1.BillingQueryController.getCreditBalance:input_type -> ai.stigmer.billing.v1.GetCreditBalanceInput
+	2,  // 2: ai.stigmer.billing.v1.BillingQueryController.getCreditLedger:input_type -> ai.stigmer.billing.v1.GetCreditLedgerInput
+	3,  // 3: ai.stigmer.billing.v1.BillingQueryController.getBillingUsageReport:input_type -> ai.stigmer.billing.v1.GetBillingUsageReportInput
+	4,  // 4: ai.stigmer.billing.v1.BillingQueryController.getCustomerModelPricing:input_type -> ai.stigmer.billing.v1.GetCustomerModelPricingInput
+	5,  // 5: ai.stigmer.billing.v1.BillingQueryController.getModelPricingGovernance:input_type -> ai.stigmer.billing.v1.GetModelPricingGovernanceInput
+	6,  // 6: ai.stigmer.billing.v1.BillingQueryController.getBillingAccount:output_type -> ai.stigmer.billing.v1.BillingAccount
+	7,  // 7: ai.stigmer.billing.v1.BillingQueryController.getCreditBalance:output_type -> ai.stigmer.billing.v1.CreditBalance
+	8,  // 8: ai.stigmer.billing.v1.BillingQueryController.getCreditLedger:output_type -> ai.stigmer.billing.v1.CreditLedgerResponse
+	9,  // 9: ai.stigmer.billing.v1.BillingQueryController.getBillingUsageReport:output_type -> ai.stigmer.billing.v1.BillingUsageReportResponse
+	10, // 10: ai.stigmer.billing.v1.BillingQueryController.getCustomerModelPricing:output_type -> ai.stigmer.billing.v1.CustomerModelPricingResponse
+	11, // 11: ai.stigmer.billing.v1.BillingQueryController.getModelPricingGovernance:output_type -> ai.stigmer.billing.v1.ModelPricingGovernanceResponse
+	6,  // [6:12] is the sub-list for method output_type
+	0,  // [0:6] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_billing_v1_query_proto_init() }

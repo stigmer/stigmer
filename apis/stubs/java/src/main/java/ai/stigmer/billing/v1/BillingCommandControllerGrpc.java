@@ -265,6 +265,37 @@ public final class BillingCommandControllerGrpc {
     return getSetAutoRechargeConfigMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.billing.v1.DecideModelPricingOverrideInput,
+      ai.stigmer.billing.v1.ModelPricingOverride> getDecideModelPricingOverrideMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "decideModelPricingOverride",
+      requestType = ai.stigmer.billing.v1.DecideModelPricingOverrideInput.class,
+      responseType = ai.stigmer.billing.v1.ModelPricingOverride.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.billing.v1.DecideModelPricingOverrideInput,
+      ai.stigmer.billing.v1.ModelPricingOverride> getDecideModelPricingOverrideMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.billing.v1.DecideModelPricingOverrideInput, ai.stigmer.billing.v1.ModelPricingOverride> getDecideModelPricingOverrideMethod;
+    if ((getDecideModelPricingOverrideMethod = BillingCommandControllerGrpc.getDecideModelPricingOverrideMethod) == null) {
+      synchronized (BillingCommandControllerGrpc.class) {
+        if ((getDecideModelPricingOverrideMethod = BillingCommandControllerGrpc.getDecideModelPricingOverrideMethod) == null) {
+          BillingCommandControllerGrpc.getDecideModelPricingOverrideMethod = getDecideModelPricingOverrideMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.billing.v1.DecideModelPricingOverrideInput, ai.stigmer.billing.v1.ModelPricingOverride>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "decideModelPricingOverride"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.DecideModelPricingOverrideInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.billing.v1.ModelPricingOverride.getDefaultInstance()))
+              .setSchemaDescriptor(new BillingCommandControllerMethodDescriptorSupplier("decideModelPricingOverride"))
+              .build();
+        }
+      }
+    }
+    return getDecideModelPricingOverrideMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -438,6 +469,19 @@ public final class BillingCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.BillingAccount> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSetAutoRechargeConfigMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Record a human decision on a PENDING_SIGNOFF pricing override from the
+     * pricing feedback loop. Approving makes the override ACTIVE (superseding
+     * any current ACTIVE override on the same pricing key) and recomposes the
+     * effective registry; rejecting archives it for audit.
+     * </pre>
+     */
+    default void decideModelPricingOverride(ai.stigmer.billing.v1.DecideModelPricingOverrideInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingOverride> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDecideModelPricingOverrideMethod(), responseObserver);
+    }
   }
 
   /**
@@ -590,6 +634,20 @@ public final class BillingCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getSetAutoRechargeConfigMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Record a human decision on a PENDING_SIGNOFF pricing override from the
+     * pricing feedback loop. Approving makes the override ACTIVE (superseding
+     * any current ACTIVE override on the same pricing key) and recomposes the
+     * effective registry; rejecting archives it for audit.
+     * </pre>
+     */
+    public void decideModelPricingOverride(ai.stigmer.billing.v1.DecideModelPricingOverrideInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingOverride> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getDecideModelPricingOverrideMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -718,6 +776,19 @@ public final class BillingCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getSetAutoRechargeConfigMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Record a human decision on a PENDING_SIGNOFF pricing override from the
+     * pricing feedback loop. Approving makes the override ACTIVE (superseding
+     * any current ACTIVE override on the same pricing key) and recomposes the
+     * effective registry; rejecting archives it for audit.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.ModelPricingOverride decideModelPricingOverride(ai.stigmer.billing.v1.DecideModelPricingOverrideInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getDecideModelPricingOverrideMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -845,6 +916,19 @@ public final class BillingCommandControllerGrpc {
     public ai.stigmer.billing.v1.BillingAccount setAutoRechargeConfig(ai.stigmer.billing.v1.SetAutoRechargeConfigInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getSetAutoRechargeConfigMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Record a human decision on a PENDING_SIGNOFF pricing override from the
+     * pricing feedback loop. Approving makes the override ACTIVE (superseding
+     * any current ACTIVE override on the same pricing key) and recomposes the
+     * effective registry; rejecting archives it for audit.
+     * </pre>
+     */
+    public ai.stigmer.billing.v1.ModelPricingOverride decideModelPricingOverride(ai.stigmer.billing.v1.DecideModelPricingOverrideInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getDecideModelPricingOverrideMethod(), getCallOptions(), request);
     }
   }
 
@@ -982,6 +1066,20 @@ public final class BillingCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getSetAutoRechargeConfigMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Record a human decision on a PENDING_SIGNOFF pricing override from the
+     * pricing feedback loop. Approving makes the override ACTIVE (superseding
+     * any current ACTIVE override on the same pricing key) and recomposes the
+     * effective registry; rejecting archives it for audit.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.billing.v1.ModelPricingOverride> decideModelPricingOverride(
+        ai.stigmer.billing.v1.DecideModelPricingOverrideInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getDecideModelPricingOverrideMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET_OR_CREATE_BILLING_ACCOUNT = 0;
@@ -992,6 +1090,7 @@ public final class BillingCommandControllerGrpc {
   private static final int METHODID_CREATE_CREDIT_CHECKOUT_SESSION = 5;
   private static final int METHODID_CREATE_BILLING_PORTAL_SESSION = 6;
   private static final int METHODID_SET_AUTO_RECHARGE_CONFIG = 7;
+  private static final int METHODID_DECIDE_MODEL_PRICING_OVERRIDE = 8;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1041,6 +1140,10 @@ public final class BillingCommandControllerGrpc {
         case METHODID_SET_AUTO_RECHARGE_CONFIG:
           serviceImpl.setAutoRechargeConfig((ai.stigmer.billing.v1.SetAutoRechargeConfigInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.BillingAccount>) responseObserver);
+          break;
+        case METHODID_DECIDE_MODEL_PRICING_OVERRIDE:
+          serviceImpl.decideModelPricingOverride((ai.stigmer.billing.v1.DecideModelPricingOverrideInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.billing.v1.ModelPricingOverride>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -1116,6 +1219,13 @@ public final class BillingCommandControllerGrpc {
               ai.stigmer.billing.v1.SetAutoRechargeConfigInput,
               ai.stigmer.billing.v1.BillingAccount>(
                 service, METHODID_SET_AUTO_RECHARGE_CONFIG)))
+        .addMethod(
+          getDecideModelPricingOverrideMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.billing.v1.DecideModelPricingOverrideInput,
+              ai.stigmer.billing.v1.ModelPricingOverride>(
+                service, METHODID_DECIDE_MODEL_PRICING_OVERRIDE)))
         .build();
   }
 
@@ -1172,6 +1282,7 @@ public final class BillingCommandControllerGrpc {
               .addMethod(getCreateCreditCheckoutSessionMethod())
               .addMethod(getCreateBillingPortalSessionMethod())
               .addMethod(getSetAutoRechargeConfigMethod())
+              .addMethod(getDecideModelPricingOverrideMethod())
               .build();
         }
       }

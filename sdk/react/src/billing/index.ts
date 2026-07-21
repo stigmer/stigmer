@@ -7,6 +7,8 @@ export { useBillingUsageReport } from "./useBillingUsageReport.js";
 export type { UseBillingUsageReportReturn } from "./useBillingUsageReport.js";
 export { useCustomerModelPricing } from "./useCustomerModelPricing.js";
 export type { UseCustomerModelPricingReturn } from "./useCustomerModelPricing.js";
+export { usePricingGovernance } from "./usePricingGovernance.js";
+export type { UsePricingGovernanceReturn } from "./usePricingGovernance.js";
 
 // Behavior hooks
 export { useCreateCheckoutSession } from "./useCreateCheckoutSession.js";
@@ -21,6 +23,11 @@ export type {
   SetAutoRechargeConfigInput,
   UseSetAutoRechargeConfigReturn,
 } from "./useSetAutoRechargeConfig.js";
+export { useDecidePricingOverride } from "./useDecidePricingOverride.js";
+export type {
+  DecidePricingOverrideInput,
+  UseDecidePricingOverrideReturn,
+} from "./useDecidePricingOverride.js";
 
 // Styled components
 export { BillingSection } from "./BillingSection.js";
@@ -37,6 +44,8 @@ export { CreditLedgerTable } from "./CreditLedgerTable.js";
 export type { CreditLedgerTableProps } from "./CreditLedgerTable.js";
 export { LowBalanceBanner } from "./LowBalanceBanner.js";
 export type { LowBalanceBannerProps } from "./LowBalanceBanner.js";
+export { PricingGovernancePanel } from "./PricingGovernancePanel.js";
+export type { PricingGovernancePanelProps } from "./PricingGovernancePanel.js";
 
 // Credit pack catalog and formatting utilities
 export { CREDIT_PACKS, formatPackPrice, formatCreditCount } from "./credit-packs.js";

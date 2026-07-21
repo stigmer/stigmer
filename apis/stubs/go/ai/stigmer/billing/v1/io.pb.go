@@ -1563,6 +1563,358 @@ func (x *CustomerModelPricingResponse) GetEntries() []*CustomerModelPricingEntry
 	return nil
 }
 
+// GetModelPricingGovernanceInput requests the platform pricing governance
+// view: every model's baseline vs effective rates, active overrides with
+// provenance, and pending sign-off proposals.
+type GetModelPricingGovernanceInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetModelPricingGovernanceInput) Reset() {
+	*x = GetModelPricingGovernanceInput{}
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetModelPricingGovernanceInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetModelPricingGovernanceInput) ProtoMessage() {}
+
+func (x *GetModelPricingGovernanceInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetModelPricingGovernanceInput.ProtoReflect.Descriptor instead.
+func (*GetModelPricingGovernanceInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{22}
+}
+
+// ModelPricingGovernanceResponse is the operator's view of the pricing
+// feedback loop (DD-003): what the platform charges with today, where each
+// rate came from, and what awaits a decision.
+type ModelPricingGovernanceResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// One entry per (model, variant) pricing key in the effective registry.
+	Entries []*ModelPricingGovernanceEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Overrides awaiting a human decision, oldest first.
+	PendingOverrides []*ModelPricingOverride `protobuf:"bytes,2,rep,name=pending_overrides,json=pendingOverrides,proto3" json:"pending_overrides,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ModelPricingGovernanceResponse) Reset() {
+	*x = ModelPricingGovernanceResponse{}
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ModelPricingGovernanceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModelPricingGovernanceResponse) ProtoMessage() {}
+
+func (x *ModelPricingGovernanceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModelPricingGovernanceResponse.ProtoReflect.Descriptor instead.
+func (*ModelPricingGovernanceResponse) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *ModelPricingGovernanceResponse) GetEntries() []*ModelPricingGovernanceEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *ModelPricingGovernanceResponse) GetPendingOverrides() []*ModelPricingOverride {
+	if x != nil {
+		return x.PendingOverrides
+	}
+	return nil
+}
+
+// ModelPricingGovernanceEntry shows one pricing key's baseline vs effective
+// rates. Raw provider rates (pre-markup) — this is an operator surface, not
+// a customer price list.
+type ModelPricingGovernanceEntry struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	ModelId     string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	DisplayName string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Provider    string                 `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`
+	Harness     string                 `protobuf:"bytes,4,opt,name=harness,proto3" json:"harness,omitempty"`
+	CostTier    string                 `protobuf:"bytes,5,opt,name=cost_tier,json=costTier,proto3" json:"cost_tier,omitempty"`
+	// Pricing variant ("" for base, "fast" for the speed variant).
+	Variant string `protobuf:"bytes,6,opt,name=variant,proto3" json:"variant,omitempty"`
+	// Baseline rates from model-registry.json, micro-USD per million tokens.
+	BaselineInputMicrosPerMillion           int64 `protobuf:"varint,7,opt,name=baseline_input_micros_per_million,json=baselineInputMicrosPerMillion,proto3" json:"baseline_input_micros_per_million,omitempty"`
+	BaselineOutputMicrosPerMillion          int64 `protobuf:"varint,8,opt,name=baseline_output_micros_per_million,json=baselineOutputMicrosPerMillion,proto3" json:"baseline_output_micros_per_million,omitempty"`
+	BaselineCacheWriteMicrosPerMillion      int64 `protobuf:"varint,9,opt,name=baseline_cache_write_micros_per_million,json=baselineCacheWriteMicrosPerMillion,proto3" json:"baseline_cache_write_micros_per_million,omitempty"`
+	BaselineCacheReadMicrosPerMillion       int64 `protobuf:"varint,10,opt,name=baseline_cache_read_micros_per_million,json=baselineCacheReadMicrosPerMillion,proto3" json:"baseline_cache_read_micros_per_million,omitempty"`
+	BaselineCursorTokenRateMicrosPerMillion int64 `protobuf:"varint,11,opt,name=baseline_cursor_token_rate_micros_per_million,json=baselineCursorTokenRateMicrosPerMillion,proto3" json:"baseline_cursor_token_rate_micros_per_million,omitempty"`
+	// Effective rates (baseline with ACTIVE overrides composed), micro-USD
+	// per million tokens. Equal to the baseline when no override is active.
+	EffectiveInputMicrosPerMillion           int64 `protobuf:"varint,12,opt,name=effective_input_micros_per_million,json=effectiveInputMicrosPerMillion,proto3" json:"effective_input_micros_per_million,omitempty"`
+	EffectiveOutputMicrosPerMillion          int64 `protobuf:"varint,13,opt,name=effective_output_micros_per_million,json=effectiveOutputMicrosPerMillion,proto3" json:"effective_output_micros_per_million,omitempty"`
+	EffectiveCacheWriteMicrosPerMillion      int64 `protobuf:"varint,14,opt,name=effective_cache_write_micros_per_million,json=effectiveCacheWriteMicrosPerMillion,proto3" json:"effective_cache_write_micros_per_million,omitempty"`
+	EffectiveCacheReadMicrosPerMillion       int64 `protobuf:"varint,15,opt,name=effective_cache_read_micros_per_million,json=effectiveCacheReadMicrosPerMillion,proto3" json:"effective_cache_read_micros_per_million,omitempty"`
+	EffectiveCursorTokenRateMicrosPerMillion int64 `protobuf:"varint,16,opt,name=effective_cursor_token_rate_micros_per_million,json=effectiveCursorTokenRateMicrosPerMillion,proto3" json:"effective_cursor_token_rate_micros_per_million,omitempty"`
+	// ACTIVE overrides composed into this entry, with full provenance.
+	ActiveOverrides []*ModelPricingOverride `protobuf:"bytes,17,rep,name=active_overrides,json=activeOverrides,proto3" json:"active_overrides,omitempty"`
+	// Whether an external provider ledger can verify this entry's rates.
+	// False for OSS/self-hosted models and Cursor first-party models — those
+	// are manually governed by the registry baseline (DD-003 Decision 7).
+	LedgerReconcilable bool `protobuf:"varint,18,opt,name=ledger_reconcilable,json=ledgerReconcilable,proto3" json:"ledger_reconcilable,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *ModelPricingGovernanceEntry) Reset() {
+	*x = ModelPricingGovernanceEntry{}
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ModelPricingGovernanceEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModelPricingGovernanceEntry) ProtoMessage() {}
+
+func (x *ModelPricingGovernanceEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModelPricingGovernanceEntry.ProtoReflect.Descriptor instead.
+func (*ModelPricingGovernanceEntry) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *ModelPricingGovernanceEntry) GetModelId() string {
+	if x != nil {
+		return x.ModelId
+	}
+	return ""
+}
+
+func (x *ModelPricingGovernanceEntry) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *ModelPricingGovernanceEntry) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *ModelPricingGovernanceEntry) GetHarness() string {
+	if x != nil {
+		return x.Harness
+	}
+	return ""
+}
+
+func (x *ModelPricingGovernanceEntry) GetCostTier() string {
+	if x != nil {
+		return x.CostTier
+	}
+	return ""
+}
+
+func (x *ModelPricingGovernanceEntry) GetVariant() string {
+	if x != nil {
+		return x.Variant
+	}
+	return ""
+}
+
+func (x *ModelPricingGovernanceEntry) GetBaselineInputMicrosPerMillion() int64 {
+	if x != nil {
+		return x.BaselineInputMicrosPerMillion
+	}
+	return 0
+}
+
+func (x *ModelPricingGovernanceEntry) GetBaselineOutputMicrosPerMillion() int64 {
+	if x != nil {
+		return x.BaselineOutputMicrosPerMillion
+	}
+	return 0
+}
+
+func (x *ModelPricingGovernanceEntry) GetBaselineCacheWriteMicrosPerMillion() int64 {
+	if x != nil {
+		return x.BaselineCacheWriteMicrosPerMillion
+	}
+	return 0
+}
+
+func (x *ModelPricingGovernanceEntry) GetBaselineCacheReadMicrosPerMillion() int64 {
+	if x != nil {
+		return x.BaselineCacheReadMicrosPerMillion
+	}
+	return 0
+}
+
+func (x *ModelPricingGovernanceEntry) GetBaselineCursorTokenRateMicrosPerMillion() int64 {
+	if x != nil {
+		return x.BaselineCursorTokenRateMicrosPerMillion
+	}
+	return 0
+}
+
+func (x *ModelPricingGovernanceEntry) GetEffectiveInputMicrosPerMillion() int64 {
+	if x != nil {
+		return x.EffectiveInputMicrosPerMillion
+	}
+	return 0
+}
+
+func (x *ModelPricingGovernanceEntry) GetEffectiveOutputMicrosPerMillion() int64 {
+	if x != nil {
+		return x.EffectiveOutputMicrosPerMillion
+	}
+	return 0
+}
+
+func (x *ModelPricingGovernanceEntry) GetEffectiveCacheWriteMicrosPerMillion() int64 {
+	if x != nil {
+		return x.EffectiveCacheWriteMicrosPerMillion
+	}
+	return 0
+}
+
+func (x *ModelPricingGovernanceEntry) GetEffectiveCacheReadMicrosPerMillion() int64 {
+	if x != nil {
+		return x.EffectiveCacheReadMicrosPerMillion
+	}
+	return 0
+}
+
+func (x *ModelPricingGovernanceEntry) GetEffectiveCursorTokenRateMicrosPerMillion() int64 {
+	if x != nil {
+		return x.EffectiveCursorTokenRateMicrosPerMillion
+	}
+	return 0
+}
+
+func (x *ModelPricingGovernanceEntry) GetActiveOverrides() []*ModelPricingOverride {
+	if x != nil {
+		return x.ActiveOverrides
+	}
+	return nil
+}
+
+func (x *ModelPricingGovernanceEntry) GetLedgerReconcilable() bool {
+	if x != nil {
+		return x.LedgerReconcilable
+	}
+	return false
+}
+
+// DecideModelPricingOverrideInput records a human decision on a
+// PENDING_SIGNOFF pricing override.
+type DecideModelPricingOverrideInput struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	OverrideId string                 `protobuf:"bytes,1,opt,name=override_id,json=overrideId,proto3" json:"override_id,omitempty"`
+	// true approves (the override becomes ACTIVE and supersedes any current
+	// ACTIVE override on the same key); false rejects.
+	Approve bool `protobuf:"varint,2,opt,name=approve,proto3" json:"approve,omitempty"`
+	// Optional note recorded on the decision for the audit trail.
+	DecisionNote  string `protobuf:"bytes,3,opt,name=decision_note,json=decisionNote,proto3" json:"decision_note,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DecideModelPricingOverrideInput) Reset() {
+	*x = DecideModelPricingOverrideInput{}
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DecideModelPricingOverrideInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DecideModelPricingOverrideInput) ProtoMessage() {}
+
+func (x *DecideModelPricingOverrideInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DecideModelPricingOverrideInput.ProtoReflect.Descriptor instead.
+func (*DecideModelPricingOverrideInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *DecideModelPricingOverrideInput) GetOverrideId() string {
+	if x != nil {
+		return x.OverrideId
+	}
+	return ""
+}
+
+func (x *DecideModelPricingOverrideInput) GetApprove() bool {
+	if x != nil {
+		return x.Approve
+	}
+	return false
+}
+
+func (x *DecideModelPricingOverrideInput) GetDecisionNote() string {
+	if x != nil {
+		return x.DecisionNote
+	}
+	return ""
+}
+
 // CustomerModelPricingEntry is the customer-facing price for one model.
 //
 // Prices are in micro-USD per million tokens, with markup already applied.
@@ -1597,7 +1949,7 @@ type CustomerModelPricingEntry struct {
 
 func (x *CustomerModelPricingEntry) Reset() {
 	*x = CustomerModelPricingEntry{}
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[22]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1609,7 +1961,7 @@ func (x *CustomerModelPricingEntry) String() string {
 func (*CustomerModelPricingEntry) ProtoMessage() {}
 
 func (x *CustomerModelPricingEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[22]
+	mi := &file_ai_stigmer_billing_v1_io_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1622,7 +1974,7 @@ func (x *CustomerModelPricingEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CustomerModelPricingEntry.ProtoReflect.Descriptor instead.
 func (*CustomerModelPricingEntry) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{22}
+	return file_ai_stigmer_billing_v1_io_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *CustomerModelPricingEntry) GetModelId() string {
@@ -1706,7 +2058,7 @@ var File_ai_stigmer_billing_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"\x1eai/stigmer/billing/v1/io.proto\x12\x15ai.stigmer.billing.v1\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a\"ai/stigmer/billing/v1/credit.proto\x1a ai/stigmer/billing/v1/enum.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"?\n" +
+	"\x1eai/stigmer/billing/v1/io.proto\x12\x15ai.stigmer.billing.v1\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a\"ai/stigmer/billing/v1/credit.proto\x1a ai/stigmer/billing/v1/enum.proto\x1a,ai/stigmer/billing/v1/pricing_override.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"?\n" +
 	"\x1eGetOrCreateBillingAccountInput\x12\x1d\n" +
 	"\x06org_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05orgId\"\xa9\x01\n" +
 	"\x12AdjustCreditsInput\x12\x1d\n" +
@@ -1821,7 +2173,36 @@ const file_ai_stigmer_billing_v1_io_proto_rawDesc = "" +
 	"\x1cGetCustomerModelPricingInput\x12\x15\n" +
 	"\x06org_id\x18\x01 \x01(\tR\x05orgId\"j\n" +
 	"\x1cCustomerModelPricingResponse\x12J\n" +
-	"\aentries\x18\x01 \x03(\v20.ai.stigmer.billing.v1.CustomerModelPricingEntryR\aentries\"\xb4\x04\n" +
+	"\aentries\x18\x01 \x03(\v20.ai.stigmer.billing.v1.CustomerModelPricingEntryR\aentries\" \n" +
+	"\x1eGetModelPricingGovernanceInput\"\xc8\x01\n" +
+	"\x1eModelPricingGovernanceResponse\x12L\n" +
+	"\aentries\x18\x01 \x03(\v22.ai.stigmer.billing.v1.ModelPricingGovernanceEntryR\aentries\x12X\n" +
+	"\x11pending_overrides\x18\x02 \x03(\v2+.ai.stigmer.billing.v1.ModelPricingOverrideR\x10pendingOverrides\"\x97\t\n" +
+	"\x1bModelPricingGovernanceEntry\x12\x19\n" +
+	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12!\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x1a\n" +
+	"\bprovider\x18\x03 \x01(\tR\bprovider\x12\x18\n" +
+	"\aharness\x18\x04 \x01(\tR\aharness\x12\x1b\n" +
+	"\tcost_tier\x18\x05 \x01(\tR\bcostTier\x12\x18\n" +
+	"\avariant\x18\x06 \x01(\tR\avariant\x12H\n" +
+	"!baseline_input_micros_per_million\x18\a \x01(\x03R\x1dbaselineInputMicrosPerMillion\x12J\n" +
+	"\"baseline_output_micros_per_million\x18\b \x01(\x03R\x1ebaselineOutputMicrosPerMillion\x12S\n" +
+	"'baseline_cache_write_micros_per_million\x18\t \x01(\x03R\"baselineCacheWriteMicrosPerMillion\x12Q\n" +
+	"&baseline_cache_read_micros_per_million\x18\n" +
+	" \x01(\x03R!baselineCacheReadMicrosPerMillion\x12^\n" +
+	"-baseline_cursor_token_rate_micros_per_million\x18\v \x01(\x03R'baselineCursorTokenRateMicrosPerMillion\x12J\n" +
+	"\"effective_input_micros_per_million\x18\f \x01(\x03R\x1eeffectiveInputMicrosPerMillion\x12L\n" +
+	"#effective_output_micros_per_million\x18\r \x01(\x03R\x1feffectiveOutputMicrosPerMillion\x12U\n" +
+	"(effective_cache_write_micros_per_million\x18\x0e \x01(\x03R#effectiveCacheWriteMicrosPerMillion\x12S\n" +
+	"'effective_cache_read_micros_per_million\x18\x0f \x01(\x03R\"effectiveCacheReadMicrosPerMillion\x12`\n" +
+	".effective_cursor_token_rate_micros_per_million\x18\x10 \x01(\x03R(effectiveCursorTokenRateMicrosPerMillion\x12V\n" +
+	"\x10active_overrides\x18\x11 \x03(\v2+.ai.stigmer.billing.v1.ModelPricingOverrideR\x0factiveOverrides\x12/\n" +
+	"\x13ledger_reconcilable\x18\x12 \x01(\bR\x12ledgerReconcilable\"\x89\x01\n" +
+	"\x1fDecideModelPricingOverrideInput\x12'\n" +
+	"\voverride_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"overrideId\x12\x18\n" +
+	"\aapprove\x18\x02 \x01(\bR\aapprove\x12#\n" +
+	"\rdecision_note\x18\x03 \x01(\tR\fdecisionNote\"\xb4\x04\n" +
 	"\x19CustomerModelPricingEntry\x12\x19\n" +
 	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x1a\n" +
@@ -1849,7 +2230,7 @@ func file_ai_stigmer_billing_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_billing_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_billing_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_ai_stigmer_billing_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_ai_stigmer_billing_v1_io_proto_goTypes = []any{
 	(*GetOrCreateBillingAccountInput)(nil),      // 0: ai.stigmer.billing.v1.GetOrCreateBillingAccountInput
 	(*AdjustCreditsInput)(nil),                  // 1: ai.stigmer.billing.v1.AdjustCreditsInput
@@ -1873,35 +2254,43 @@ var file_ai_stigmer_billing_v1_io_proto_goTypes = []any{
 	(*ModelBillingBreakdown)(nil),               // 19: ai.stigmer.billing.v1.ModelBillingBreakdown
 	(*GetCustomerModelPricingInput)(nil),        // 20: ai.stigmer.billing.v1.GetCustomerModelPricingInput
 	(*CustomerModelPricingResponse)(nil),        // 21: ai.stigmer.billing.v1.CustomerModelPricingResponse
-	(*CustomerModelPricingEntry)(nil),           // 22: ai.stigmer.billing.v1.CustomerModelPricingEntry
-	(*v1.TokenUsage)(nil),                       // 23: ai.stigmer.agentic.agentexecution.v1.TokenUsage
-	(v1.UsageCompletionStatus)(0),               // 24: ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus
-	(*v1.ProxyTiming)(nil),                      // 25: ai.stigmer.agentic.agentexecution.v1.ProxyTiming
-	(*rpc.PageInfo)(nil),                        // 26: ai.stigmer.commons.rpc.PageInfo
-	(LedgerEntryType)(0),                        // 27: ai.stigmer.billing.v1.LedgerEntryType
-	(*timestamppb.Timestamp)(nil),               // 28: google.protobuf.Timestamp
-	(LedgerView)(0),                             // 29: ai.stigmer.billing.v1.LedgerView
-	(*CreditLedgerEntry)(nil),                   // 30: ai.stigmer.billing.v1.CreditLedgerEntry
+	(*GetModelPricingGovernanceInput)(nil),      // 22: ai.stigmer.billing.v1.GetModelPricingGovernanceInput
+	(*ModelPricingGovernanceResponse)(nil),      // 23: ai.stigmer.billing.v1.ModelPricingGovernanceResponse
+	(*ModelPricingGovernanceEntry)(nil),         // 24: ai.stigmer.billing.v1.ModelPricingGovernanceEntry
+	(*DecideModelPricingOverrideInput)(nil),     // 25: ai.stigmer.billing.v1.DecideModelPricingOverrideInput
+	(*CustomerModelPricingEntry)(nil),           // 26: ai.stigmer.billing.v1.CustomerModelPricingEntry
+	(*v1.TokenUsage)(nil),                       // 27: ai.stigmer.agentic.agentexecution.v1.TokenUsage
+	(v1.UsageCompletionStatus)(0),               // 28: ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus
+	(*v1.ProxyTiming)(nil),                      // 29: ai.stigmer.agentic.agentexecution.v1.ProxyTiming
+	(*rpc.PageInfo)(nil),                        // 30: ai.stigmer.commons.rpc.PageInfo
+	(LedgerEntryType)(0),                        // 31: ai.stigmer.billing.v1.LedgerEntryType
+	(*timestamppb.Timestamp)(nil),               // 32: google.protobuf.Timestamp
+	(LedgerView)(0),                             // 33: ai.stigmer.billing.v1.LedgerView
+	(*CreditLedgerEntry)(nil),                   // 34: ai.stigmer.billing.v1.CreditLedgerEntry
+	(*ModelPricingOverride)(nil),                // 35: ai.stigmer.billing.v1.ModelPricingOverride
 }
 var file_ai_stigmer_billing_v1_io_proto_depIdxs = []int32{
-	23, // 0: ai.stigmer.billing.v1.RecordLlmCallUsageInput.tokens:type_name -> ai.stigmer.agentic.agentexecution.v1.TokenUsage
-	24, // 1: ai.stigmer.billing.v1.RecordLlmCallUsageInput.usage_status:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus
-	25, // 2: ai.stigmer.billing.v1.RecordLlmCallUsageInput.proxy_timing:type_name -> ai.stigmer.agentic.agentexecution.v1.ProxyTiming
-	26, // 3: ai.stigmer.billing.v1.GetCreditLedgerInput.page:type_name -> ai.stigmer.commons.rpc.PageInfo
-	27, // 4: ai.stigmer.billing.v1.GetCreditLedgerInput.type_filter:type_name -> ai.stigmer.billing.v1.LedgerEntryType
-	28, // 5: ai.stigmer.billing.v1.GetCreditLedgerInput.start_time:type_name -> google.protobuf.Timestamp
-	28, // 6: ai.stigmer.billing.v1.GetCreditLedgerInput.end_time:type_name -> google.protobuf.Timestamp
-	29, // 7: ai.stigmer.billing.v1.GetCreditLedgerInput.view:type_name -> ai.stigmer.billing.v1.LedgerView
-	30, // 8: ai.stigmer.billing.v1.CreditLedgerResponse.entries:type_name -> ai.stigmer.billing.v1.CreditLedgerEntry
-	28, // 9: ai.stigmer.billing.v1.GetBillingUsageReportInput.start_time:type_name -> google.protobuf.Timestamp
-	28, // 10: ai.stigmer.billing.v1.GetBillingUsageReportInput.end_time:type_name -> google.protobuf.Timestamp
+	27, // 0: ai.stigmer.billing.v1.RecordLlmCallUsageInput.tokens:type_name -> ai.stigmer.agentic.agentexecution.v1.TokenUsage
+	28, // 1: ai.stigmer.billing.v1.RecordLlmCallUsageInput.usage_status:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus
+	29, // 2: ai.stigmer.billing.v1.RecordLlmCallUsageInput.proxy_timing:type_name -> ai.stigmer.agentic.agentexecution.v1.ProxyTiming
+	30, // 3: ai.stigmer.billing.v1.GetCreditLedgerInput.page:type_name -> ai.stigmer.commons.rpc.PageInfo
+	31, // 4: ai.stigmer.billing.v1.GetCreditLedgerInput.type_filter:type_name -> ai.stigmer.billing.v1.LedgerEntryType
+	32, // 5: ai.stigmer.billing.v1.GetCreditLedgerInput.start_time:type_name -> google.protobuf.Timestamp
+	32, // 6: ai.stigmer.billing.v1.GetCreditLedgerInput.end_time:type_name -> google.protobuf.Timestamp
+	33, // 7: ai.stigmer.billing.v1.GetCreditLedgerInput.view:type_name -> ai.stigmer.billing.v1.LedgerView
+	34, // 8: ai.stigmer.billing.v1.CreditLedgerResponse.entries:type_name -> ai.stigmer.billing.v1.CreditLedgerEntry
+	32, // 9: ai.stigmer.billing.v1.GetBillingUsageReportInput.start_time:type_name -> google.protobuf.Timestamp
+	32, // 10: ai.stigmer.billing.v1.GetBillingUsageReportInput.end_time:type_name -> google.protobuf.Timestamp
 	19, // 11: ai.stigmer.billing.v1.BillingUsageReportResponse.model_breakdown:type_name -> ai.stigmer.billing.v1.ModelBillingBreakdown
-	22, // 12: ai.stigmer.billing.v1.CustomerModelPricingResponse.entries:type_name -> ai.stigmer.billing.v1.CustomerModelPricingEntry
-	13, // [13:13] is the sub-list for method output_type
-	13, // [13:13] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	26, // 12: ai.stigmer.billing.v1.CustomerModelPricingResponse.entries:type_name -> ai.stigmer.billing.v1.CustomerModelPricingEntry
+	24, // 13: ai.stigmer.billing.v1.ModelPricingGovernanceResponse.entries:type_name -> ai.stigmer.billing.v1.ModelPricingGovernanceEntry
+	35, // 14: ai.stigmer.billing.v1.ModelPricingGovernanceResponse.pending_overrides:type_name -> ai.stigmer.billing.v1.ModelPricingOverride
+	35, // 15: ai.stigmer.billing.v1.ModelPricingGovernanceEntry.active_overrides:type_name -> ai.stigmer.billing.v1.ModelPricingOverride
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_billing_v1_io_proto_init() }
@@ -1911,13 +2300,14 @@ func file_ai_stigmer_billing_v1_io_proto_init() {
 	}
 	file_ai_stigmer_billing_v1_credit_proto_init()
 	file_ai_stigmer_billing_v1_enum_proto_init()
+	file_ai_stigmer_billing_v1_pricing_override_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_billing_v1_io_proto_rawDesc), len(file_ai_stigmer_billing_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   23,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

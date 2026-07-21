@@ -43,6 +43,11 @@ class BillingQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetCustomerModelPricingInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CustomerModelPricingResponse.FromString,
                 _registered_method=True)
+        self.getModelPricingGovernance = channel.unary_unary(
+                '/ai.stigmer.billing.v1.BillingQueryController/getModelPricingGovernance',
+                request_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetModelPricingGovernanceInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ModelPricingGovernanceResponse.FromString,
+                _registered_method=True)
 
 
 class BillingQueryControllerServicer(object):
@@ -87,6 +92,18 @@ class BillingQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getModelPricingGovernance(self, request, context):
+        """Retrieve the platform pricing governance view: baseline vs effective
+        rates per model, active override provenance, and pending sign-off
+        proposals from the pricing feedback loop.
+
+        Operator surface: exposes raw provider rates (pre-markup), so it is
+        platform-gated, not org-gated.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_BillingQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -114,6 +131,11 @@ def add_BillingQueryControllerServicer_to_server(servicer, server):
                     servicer.getCustomerModelPricing,
                     request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetCustomerModelPricingInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CustomerModelPricingResponse.SerializeToString,
+            ),
+            'getModelPricingGovernance': grpc.unary_unary_rpc_method_handler(
+                    servicer.getModelPricingGovernance,
+                    request_deserializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetModelPricingGovernanceInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ModelPricingGovernanceResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -254,6 +276,33 @@ class BillingQueryController(object):
             '/ai.stigmer.billing.v1.BillingQueryController/getCustomerModelPricing',
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetCustomerModelPricingInput.SerializeToString,
             ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.CustomerModelPricingResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getModelPricingGovernance(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.billing.v1.BillingQueryController/getModelPricingGovernance',
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.GetModelPricingGovernanceInput.SerializeToString,
+            ai_dot_stigmer_dot_billing_dot_v1_dot_io__pb2.ModelPricingGovernanceResponse.FromString,
             options,
             channel_credentials,
             insecure,
