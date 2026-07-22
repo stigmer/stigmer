@@ -127,25 +127,39 @@ export function CursorAccountEditor({
         />
       </Field>
 
-      <div className="flex items-center gap-4">
-        <label className="flex items-center gap-1.5 text-xs text-foreground">
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={(e) => setEnabled(e.target.checked)}
-            disabled={isSubmitting}
-          />
-          Enabled for key selection
-        </label>
-        <label className="flex items-center gap-1.5 text-xs text-foreground">
-          <input
-            type="checkbox"
-            checked={isPlatformDefault}
-            onChange={(e) => setIsPlatformDefault(e.target.checked)}
-            disabled={isSubmitting}
-          />
-          Platform default (serves unassigned orgs)
-        </label>
+      <div className="space-y-2">
+        <div>
+          <label className="flex items-center gap-1.5 text-xs text-foreground">
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(e) => setEnabled(e.target.checked)}
+              disabled={isSubmitting}
+            />
+            Enabled for key selection
+          </label>
+          <p className="mt-0.5 pl-[1.375rem] text-[11px] text-muted-foreground">
+            Leave checked for accounts that should serve traffic. Unchecking
+            drains the account: new sessions stop routing here immediately,
+            but sessions already pinned to one of its keys keep working.
+          </p>
+        </div>
+        <div>
+          <label className="flex items-center gap-1.5 text-xs text-foreground">
+            <input
+              type="checkbox"
+              checked={isPlatformDefault}
+              onChange={(e) => setIsPlatformDefault(e.target.checked)}
+              disabled={isSubmitting}
+            />
+            Platform default (serves unassigned orgs)
+          </label>
+          <p className="mt-0.5 pl-[1.375rem] text-[11px] text-muted-foreground">
+            Check on exactly one account. Orgs not listed in any account&apos;s
+            assigned ids resolve to the platform default; at most one account
+            may hold this flag.
+          </p>
+        </div>
       </div>
 
       {submitError && (
