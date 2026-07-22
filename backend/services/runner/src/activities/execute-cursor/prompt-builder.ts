@@ -17,10 +17,11 @@
  */
 
 import { resolve } from "node:path";
-import type { SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { DatastoreUsage, SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { formatContextBridgeText } from "../../shared/context-bridge.js";
+import { formatDatastoresSection } from "../../shared/datastore-attachment.js";
 import {
   formatSenderIdentityText,
   type SenderIdentity,
@@ -53,6 +54,12 @@ export interface EnhancedPromptOptions {
   instructions: string;
   userMessage: string;
   skills: SkillMetadata[];
+  /**
+   * Datastores attached via `datastore_usages` — rendered as the
+   * `<available_datastores>` section (DD-005 SD-5, skills precedent)
+   * pointing the model at the synthesized record tools.
+   */
+  datastoreUsages?: DatastoreUsage[];
   subAgents: SubAgent[];
   workspaceDirs: string[];
   workspaceFileRefs: string[];
@@ -111,6 +118,10 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
 
   if (options.skills.length > 0) {
     sections.push(formatSkillsSection(options.skills));
+  }
+
+  if (options.datastoreUsages !== undefined && options.datastoreUsages.length > 0) {
+    sections.push(formatDatastoresSection(options.datastoreUsages));
   }
 
   if (options.subAgents.length > 0) {

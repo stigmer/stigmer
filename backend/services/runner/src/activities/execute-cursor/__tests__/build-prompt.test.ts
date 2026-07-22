@@ -9,8 +9,10 @@
 
 import { describe, it, expect } from "vitest";
 import { create } from "@bufbuild/protobuf";
+import { DatastoreUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 
 import { buildPrompt } from "../index.js";
 import type { BuildPromptInput } from "../index.js";
@@ -85,6 +87,29 @@ describe("buildPrompt", () => {
     expect(prompt).not.toBe(USER_MESSAGE);
     expect(prompt).toContain("<agent_instructions>");
     expect(prompt).toContain(USER_MESSAGE);
+  });
+
+  it("renders the <available_datastores> section on the first execution (T05)", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "created_first_execution"),
+        datastoreUsages: [
+          create(DatastoreUsageSchema, {
+            datastoreRef: create(ApiResourceReferenceSchema, { slug: "clinic" }),
+          }),
+        ],
+      }),
+    );
+    expect(prompt).toContain("<available_datastores>");
+    expect(prompt).toContain("- clinic");
+    expect(prompt).toContain("describe_datastore");
+  });
+
+  it("omits the datastores section when the agent uses no datastores", () => {
+    const prompt = buildPrompt(
+      input({ resolution: resolution("local", "created_first_execution") }),
+    );
+    expect(prompt).not.toContain("<available_datastores>");
   });
 
   it("carries the rollover context bridge on the first execution (DD-013)", () => {

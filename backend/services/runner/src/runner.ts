@@ -268,6 +268,9 @@ export function mapOptionsToConfig(options: StigmerRunnerOptions): Config {
     temporalNamespace: options.temporalNamespace ?? "default",
     stigmerBackendEndpoint: normalizeEndpoint(options.stigmerEndpoint),
     stigmerToken: options.stigmerToken ?? null,
+    // Env-only like the env-loaded path (loadConfig): the bridge endpoint
+    // is deployment topology, not per-session state.
+    mcpBridgeEndpoint: process.env.STIGMER_MCP_BRIDGE_ENDPOINT ?? null,
     cursorApiKey: proxyActive
       ? (options.cursorApiKey ?? "proxy-managed")
       : (options.cursorApiKey ?? ""),

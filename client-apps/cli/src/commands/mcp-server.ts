@@ -35,6 +35,7 @@ Environment variables:
   STIGMER_SERVER_ADDRESS         gRPC address (default: CLI config, else localhost:7234)
   STIGMER_API_KEY                API key (auto-resolved from CLI config for cloud)
   STIGMER_MCP_TRANSPORT          stdio | http | both (default: stdio)
+  STIGMER_MCP_ROSTER             full | records (default: full; records = the five record tools only)
   STIGMER_MCP_HTTP_PORT          HTTP listen port (default: 8080)
   STIGMER_MCP_LOG_FORMAT         text | json (default: text)
   STIGMER_MCP_LOG_LEVEL          debug | info | warn | error (default: info)

@@ -14,7 +14,7 @@
 import { resolve } from "node:path";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import type { AgentSpec, McpServerUsage, SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import type { AgentSpec, DatastoreUsage, McpServerUsage, SubAgent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { SessionSpec } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -39,6 +39,14 @@ export interface ResolvedBlueprint {
   subAgents: SubAgent[];
   mergedMcpServerUsages: McpServerUsage[];
   mergedSkillRefs: ApiResourceReference[];
+  /**
+   * The agent's datastore usages (AgentSpec only — sessions carry no
+   * datastore overlay by design: the usage edge is authorization-bearing
+   * for the server's reach chain, DD-006, so it binds per-blueprint).
+   * Non-empty triggers the synthesized records attachment
+   * (shared/datastore-attachment.ts).
+   */
+  datastoreUsages: DatastoreUsage[];
   workspaceDirs: string[];
   cloudRepos: CloudRepo[];
 }
@@ -83,6 +91,7 @@ export async function resolveBlueprint(
     subAgents: agentSpec.subAgents,
     mergedMcpServerUsages,
     mergedSkillRefs,
+    datastoreUsages: agentSpec.datastoreUsages,
     workspaceDirs,
     cloudRepos,
   };

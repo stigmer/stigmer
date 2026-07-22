@@ -28,12 +28,24 @@ import (
 //	→  operate (writes evaluate constraints inside the write transaction)
 //
 // In OSS, Layer 1 reach is the local-trust pass (no credential classes
-// exist — no channel broker, no runner sandbox tokens) and the subject
-// is the fixed local principal (identity.LocalSubject). The org a slug
-// resolves against is the seedpack system org (identity.SystemOrg):
-// an empty request org means "the caller's context", which in OSS is
-// the local operator of that org, and an explicit request org must
-// match it — anything else is NOT_FOUND (records stay home).
+// exist — no channel broker, no runner sandbox tokens; GetRunnerScopedToken
+// returns empty by design) and the subject is the fixed local principal
+// (identity.LocalSubject). The org a slug resolves against is the
+// seedpack system org (identity.SystemOrg): an empty request org means
+// "the caller's context", which in OSS is the local operator of that
+// org, and an explicit request org must match it — anything else is
+// NOT_FOUND (records stay home).
+//
+// The cloud edition's RecordReach dispatches the same five handlers by
+// credential class (T05): session-bound sandbox tokens take the DD-006
+// Path-1 chain (session → agent → usage edge → org match) with the
+// sender-identity subject and the instance-derived partition. That
+// chain is deliberately NOT mirrored here — it is unimplementable
+// without session-scoped tokens, and dead structure would misdocument
+// what OSS enforces (T05 R2: a recorded limitation, the DD-002 SD-6
+// honest-layering posture). When OSS grows session-scoped tokens, this
+// spine is the swap point and the cloud RecordReach is the reference,
+// including its relayable denial texts (cross-edition contract bytes).
 //
 // These handlers are deliberately NOT pipelines: the pipeline framework
 // models resource lifecycle (slug resolution, duplicate checks,
@@ -91,10 +103,12 @@ func (c *DatastoreRecordController) resolveCall(ctx context.Context, org, datast
 
 	// Partition dispatch (DD-010 SD-2): OSS callers are all direct
 	// principals (no channel broker, no sandbox tokens), so the request
-	// field is honored, empty meaning the shared default. When T05
-	// lands the reach chain, session-bound callers get their partition
-	// derived from the session's agent instance and a non-empty request
-	// partition is rejected — never silently overridden.
+	// field is honored, empty meaning the shared default. OSS agent
+	// sessions therefore land in the default partition — the recorded
+	// limitation of T05 R2 (DD-010 amendment). In cloud, session-bound
+	// callers get their partition derived from the session's agent
+	// instance and a non-empty request partition is rejected
+	// (INVALID_ARGUMENT) — never silently overridden.
 	call := &recordCall{
 		datastore:  ds,
 		subject:    subject,

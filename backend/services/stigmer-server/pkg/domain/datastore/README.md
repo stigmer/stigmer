@@ -31,7 +31,13 @@ Design decisions of record: DD-001–DD-009 in
 
 - **Two-layer authorization, deny by default** (DD-002): Layer 1 reach
   is OSS local-trust; Layer 2 (bindings/`default_role`/verbs/`own`)
-  runs identically to cloud against the fixed local principal.
+  runs identically to cloud against the fixed local principal. The
+  cloud edition additionally dispatches by credential class (T05):
+  sandbox-token callers take the DD-006 reach chain with the
+  sender-identity subject and the instance-derived partition. OSS has
+  no session-scoped tokens, so its agent sessions resolve as the local
+  principal in the `default` partition — a recorded limitation
+  (T05 R2, DD-010 amendment), not an accident.
 - **Constraints inside the write transaction** (DD-004/DD-007): checks
   and exists/not_exists evaluate under `BEGIN IMMEDIATE`, so no write
   commits against a stale verdict — see the schedule-close vs

@@ -24,6 +24,7 @@ import { registerAgentTools } from "./domains/agents/tools.js";
 import type { BackendTarget } from "./domains/client.js";
 import { registerMcpServerResources } from "./domains/mcpservers/resources.js";
 import { registerMcpServerTools } from "./domains/mcpservers/tools.js";
+import { registerRecordTools } from "./domains/records/tools.js";
 import { registerSearchTools } from "./domains/search/tools.js";
 import { registerSkillResources } from "./domains/skills/resources.js";
 import { registerSkillTools } from "./domains/skills/tools.js";
@@ -61,6 +62,22 @@ export function createServer(target: BackendTarget): McpServer {
 }
 
 /**
+ * Build a records-only MCP server: the five record tools with the
+ * agent-facing argument surface, and nothing else (T05 R1). This is
+ * the roster the runner-synthesized datastore attachment connects to —
+ * a structural guarantee that an agent session never sees the
+ * management tools (apply/delete/…) its empty approval maps would make
+ * approval-free. Served on the /records HTTP route and as the stdio
+ * roster when STIGMER_MCP_ROSTER=records.
+ */
+export function createRecordsServer(target: BackendTarget): McpServer {
+  const server = new McpServer({ name: "mcp-server-stigmer-records", version: SERVER_VERSION });
+  const tools = registerRecordTools(server, target, "agent");
+  log.info("tools registered (records roster)", { count: tools.length, tools });
+  return server;
+}
+
+/**
  * Wire up every domain's tools. Each domain returns the names it registered so
  * the startup log's count and roster cannot drift from what is actually wired,
  * matching the Go server's startup log shape.
@@ -75,6 +92,10 @@ function registerTools(server: McpServer, target: BackendTarget): void {
     ...registerValidateWorkflowYamlTool(server, target),
     ...registerTaskKindTools(server, target),
     ...registerWorkflowExecutionTools(server, target),
+    // The record tools also serve external MCP clients — as direct
+    // principals with the org argument and honest annotations (the
+    // agent-facing variant lives on the records-only roster).
+    ...registerRecordTools(server, target, "direct"),
   ];
   log.info("tools registered", { count: tools.length, tools });
 }
@@ -124,6 +145,25 @@ export async function serveStdio(server: McpServer, signal: AbortSignal): Promis
 export type ServerFactory = () => McpServer;
 
 /**
+ * Builds the server for an inbound HTTP `initialize` request, selected
+ * by request path. Only the initialize request consults the path — an
+ * established session's transport already carries the server it was
+ * built with, so follow-up requests dispatch by Mcp-Session-Id alone.
+ */
+export type RouteServerFactory = (path: string) => McpServer;
+
+/** HTTP route serving the records-only roster (T05 R1). */
+export const RECORDS_ROUTE = "/records";
+
+/**
+ * The standard HTTP route dispatch: the records-only roster on
+ * {@link RECORDS_ROUTE}, the full roster everywhere else.
+ */
+export function routedServerFactory(target: BackendTarget): RouteServerFactory {
+  return (path) => (path === RECORDS_ROUTE ? createRecordsServer(target) : createServer(target));
+}
+
+/**
  * Serve over Streamable HTTP until `signal` aborts.
  *
  * Each request carries its own credential via the Authorization header; the
@@ -144,7 +184,11 @@ export type ServerFactory = () => McpServer;
  * DNS-rebinding allow-lists are intentionally out of parity scope (the Go server
  * has none).
  */
-export async function serveHttp(makeServer: ServerFactory, cfg: Config, signal: AbortSignal): Promise<void> {
+export async function serveHttp(
+  makeServer: RouteServerFactory,
+  cfg: Config,
+  signal: AbortSignal,
+): Promise<void> {
   const sessions = new Map<string, StreamableHTTPServerTransport>();
 
   const httpServer = createHttpServer((req, res) => {
@@ -189,8 +233,8 @@ export async function serveBoth(target: BackendTarget, cfg: Config, signal: Abor
   signal.addEventListener("abort", onParentAbort, { once: true });
 
   const tasks = [
-    serveStdio(createServer(target), linked.signal),
-    serveHttp(() => createServer(target), cfg, linked.signal),
+    serveStdio(stdioServer(target, cfg), linked.signal),
+    serveHttp(routedServerFactory(target), cfg, linked.signal),
   ];
 
   try {
@@ -215,7 +259,7 @@ async function routeRequest(
   req: IncomingMessage & { auth?: AuthInfo },
   res: ServerResponse,
   sessions: Map<string, StreamableHTTPServerTransport>,
-  makeServer: ServerFactory,
+  makeServer: RouteServerFactory,
   cfg: Config,
 ): Promise<void> {
   if (req.method === "GET" && req.url === "/health") {
@@ -247,6 +291,7 @@ async function routeRequest(
     req.auth = { token, clientId: "stigmer-mcp-passthrough", scopes: [] };
   }
 
+  const path = requestPath(req);
   const sessionId = headerValue(req, "mcp-session-id");
 
   // Established session → dispatch to its transport.
@@ -288,8 +333,17 @@ async function routeRequest(
     if (transport.sessionId !== undefined) sessions.delete(transport.sessionId);
   };
 
-  await makeServer().connect(transport);
+  await makeServer(path).connect(transport);
   await transport.handleRequest(req, res, body);
+}
+
+/**
+ * The stdio server for the configured roster: the records-only roster
+ * when STIGMER_MCP_ROSTER=records (what the OSS runner-synthesized
+ * datastore attachment spawns), the full roster otherwise.
+ */
+export function stdioServer(target: BackendTarget, cfg: Config): McpServer {
+  return cfg.roster === "records" ? createRecordsServer(target) : createServer(target);
 }
 
 /** Return a single header value, collapsing the array form Node may produce. */

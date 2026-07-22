@@ -35,6 +35,7 @@ describe("ExecuteDeepAgent activity", () => {
     temporalAddress: "localhost:7233",
     temporalNamespace: "default",
     stigmerBackendEndpoint: "http://localhost:7234",
+  mcpBridgeEndpoint: null,
     stigmerToken: null,
     cursorApiKey: "",
     workspaceRootDir: "/tmp/test",

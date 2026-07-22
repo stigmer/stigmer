@@ -12,6 +12,17 @@ import { log, type LogFormat, type LogLevel } from "./logger.js";
 export type Transport = "stdio" | "http" | "both";
 
 /**
+ * Which tool roster the server exposes.
+ *
+ * - "full": every domain (the default — external MCP clients).
+ * - "records": only the five record tools (DD-005) with the agent-facing
+ *   argument surface. This is what the runner-synthesized datastore
+ *   attachment spawns over stdio (T05 R1); over HTTP the same roster is
+ *   served on the /records route regardless of this setting.
+ */
+export type Roster = "full" | "records";
+
+/**
  * OAuth 2.0 Protected Resource Metadata (RFC 9728) discovery settings.
  *
  * Purely additive: the server stays a stateless Bearer passthrough that never
@@ -36,6 +47,8 @@ export interface Config {
    */
   readonly apiKey: string;
   readonly transport: Transport;
+  /** Tool roster for stdio/both stdio-side; HTTP routes by path. */
+  readonly roster: Roster;
   readonly httpPort: string;
   /** Whether HTTP requests require an Authorization: Bearer header. */
   readonly httpAuthEnabled: boolean;
@@ -45,6 +58,7 @@ export interface Config {
 }
 
 const VALID_TRANSPORTS: readonly string[] = ["stdio", "http", "both"];
+const VALID_ROSTERS: readonly string[] = ["full", "records"];
 const VALID_LOG_FORMATS: readonly string[] = ["text", "json"];
 const VALID_LOG_LEVELS: readonly string[] = ["debug", "info", "warn", "error"];
 
@@ -54,6 +68,7 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv = process.env): Config 
     stigmerServerAddress: envOr(env, "STIGMER_SERVER_ADDRESS", "localhost:7234"),
     apiKey: env.STIGMER_API_KEY ?? "",
     transport: envOr(env, "STIGMER_MCP_TRANSPORT", "stdio").toLowerCase() as Transport,
+    roster: envOr(env, "STIGMER_MCP_ROSTER", "full").toLowerCase() as Roster,
     httpPort: envOr(env, "STIGMER_MCP_HTTP_PORT", "8080"),
     // Go semantics: only the exact string "true" enables auth.
     httpAuthEnabled: envOr(env, "STIGMER_MCP_HTTP_AUTH_ENABLED", "true") === "true",
@@ -79,6 +94,10 @@ export function validateConfig(cfg: Config): void {
     throw new Error(
       `invalid STIGMER_MCP_TRANSPORT "${cfg.transport}": must be stdio, http, or both`,
     );
+  }
+
+  if (!VALID_ROSTERS.includes(cfg.roster)) {
+    throw new Error(`invalid STIGMER_MCP_ROSTER "${cfg.roster}": must be full or records`);
   }
 
   if (cfg.stigmerServerAddress === "") {

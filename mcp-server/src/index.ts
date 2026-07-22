@@ -6,12 +6,19 @@
 
 import { loadConfigFromEnv, validateConfig, type Config } from "./config.js";
 import { configureLogger, log } from "./logger.js";
-import { createServer, serveBoth, serveHttp, serveStdio, isNormalShutdown } from "./server.js";
+import {
+  isNormalShutdown,
+  routedServerFactory,
+  serveBoth,
+  serveHttp,
+  serveStdio,
+  stdioServer,
+} from "./server.js";
 import type { BackendTarget } from "./domains/client.js";
 
-export type { Config, OAuthConfig, Transport } from "./config.js";
+export type { Config, OAuthConfig, Roster, Transport } from "./config.js";
 export { loadConfigFromEnv, validateConfig } from "./config.js";
-export { createServer, SERVER_VERSION } from "./server.js";
+export { createServer, createRecordsServer, RECORDS_ROUTE, SERVER_VERSION } from "./server.js";
 
 /** Returns a Config populated from environment variables (no validation). */
 export function defaultConfig(): Config {
@@ -44,10 +51,10 @@ export async function run(cfg: Config, signal: AbortSignal): Promise<void> {
   try {
     switch (cfg.transport) {
       case "stdio":
-        await serveStdio(createServer(target), signal);
+        await serveStdio(stdioServer(target, cfg), signal);
         break;
       case "http":
-        await serveHttp(() => createServer(target), cfg, signal);
+        await serveHttp(routedServerFactory(target), cfg, signal);
         break;
       case "both":
         await serveBoth(target, cfg, signal);
