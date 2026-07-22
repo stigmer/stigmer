@@ -28,6 +28,11 @@ import { readSenderIdentity } from "../../shared/sender-identity.js";
 import { connectMcpServers, type McpConnectionResult } from "../../shared/mcp-manager.js";
 import { resolveMcpServers } from "../../shared/mcp-resolver.js";
 import { backfillMcpServersIfNeeded } from "../../shared/connect-backfill.js";
+import {
+  formatDatastoresSection,
+  injectDatastoreAttachment,
+  synthesizeDatastoreAttachment,
+} from "../../shared/datastore-attachment.js";
 import { WorkspaceProvisioner } from "../../shared/workspace/provisioner.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
@@ -314,16 +319,17 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       ...(agent.spec!.mcpServerUsages || []),
       ...(session.spec!.mcpServerUsages || []),
     ];
+    const datastoreUsages = agent.spec!.datastoreUsages || [];
 
     let resolvedMcpServers: Awaited<ReturnType<typeof resolveMcpServers>> | null = null;
-    if (mcpServerUsages.length > 0) {
+    if (mcpServerUsages.length > 0 || datastoreUsages.length > 0) {
       await reportSetupProgress(client, executionId, "Connecting tools…");
       resolvedMcpServers = await resolveMcpServers(
         client, mcpServerUsages, envResult.mergedEnvVars,
       );
 
       const sessionOrg = session.metadata?.org ?? "";
-      const backfilledServers = await backfillMcpServersIfNeeded(
+      let backfilledServers = await backfillMcpServersIfNeeded(
         client,
         resolvedMcpServers.resolvedServers,
         mcpServerUsages,
@@ -332,6 +338,25 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         undefined,
         envResult.secretKeys,
       );
+
+      // The datastore records attachment (T05) — injected AFTER resolve +
+      // backfill so the destructiveHint tightener can never gate it; empty
+      // approval maps keep it approval-free by construction (see
+      // shared/datastore-attachment.ts).
+      if (datastoreUsages.length > 0) {
+        const scopedCredential =
+          (await client.acquireScopedRunnerToken({ agentExecutionId: executionId }))
+          ?? config.stigmerTokenRef?.current
+          ?? config.stigmerToken;
+        const attachment = synthesizeDatastoreAttachment(datastoreUsages, {
+          bridgeEndpoint: config.mcpBridgeEndpoint,
+          credential: scopedCredential,
+          backendEndpoint: config.stigmerBackendEndpoint,
+        });
+        if (attachment) {
+          backfilledServers = injectDatastoreAttachment(backfilledServers, attachment);
+        }
+      }
       resolvedMcpServers = { resolvedServers: backfilledServers };
 
       mcpConnection = await connectMcpServers(
@@ -398,6 +423,9 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       provisionResults,
       containerRoot: workspaceBackend.rootDir,
       skillsPromptSection,
+      datastoresPromptSection: datastoreUsages.length > 0
+        ? formatDatastoresSection(datastoreUsages)
+        : undefined,
       workspaceFileRefs: execution.spec!.workspaceFileRefs || [],
       workspaceRoot: workspaceBackend.rootDir,
       injectedFiles,

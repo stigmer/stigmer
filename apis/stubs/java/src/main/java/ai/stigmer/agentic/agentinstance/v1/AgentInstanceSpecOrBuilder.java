@@ -118,4 +118,54 @@ public interface AgentInstanceSpecOrBuilder extends
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Data partition this instance's record operations are scoped to, for
+   * every datastore the agent uses. Unset means the shared "default"
+   * partition.
+   *
+   * Instances declaring the same label share records (e.g. the prod
+   * instances of two agents on one datastore); a different label is a
+   * fully isolated dataset (e.g. a dev instance whose test records
+   * never touch prod).
+   *
+   * &#64;internal
+   * DD-010: the record RPCs derive the partition from the session's
+   * resolved instance — server-side, per call, never from tool
+   * arguments — so the label (not the instance id, which changes when
+   * default instances are recreated) is the durable partition key.
+   * One label per instance in v1; a per-datastore map is a recorded
+   * additive growth slot.
+   * </pre>
+   *
+   * <code>string datastore_partition = 4 [json_name = "datastorePartition", (.buf.validate.field) = { ... }</code>
+   * @return The datastorePartition.
+   */
+  java.lang.String getDatastorePartition();
+  /**
+   * <pre>
+   * Data partition this instance's record operations are scoped to, for
+   * every datastore the agent uses. Unset means the shared "default"
+   * partition.
+   *
+   * Instances declaring the same label share records (e.g. the prod
+   * instances of two agents on one datastore); a different label is a
+   * fully isolated dataset (e.g. a dev instance whose test records
+   * never touch prod).
+   *
+   * &#64;internal
+   * DD-010: the record RPCs derive the partition from the session's
+   * resolved instance — server-side, per call, never from tool
+   * arguments — so the label (not the instance id, which changes when
+   * default instances are recreated) is the durable partition key.
+   * One label per instance in v1; a per-datastore map is a recorded
+   * additive growth slot.
+   * </pre>
+   *
+   * <code>string datastore_partition = 4 [json_name = "datastorePartition", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for datastorePartition.
+   */
+  com.google.protobuf.ByteString
+      getDatastorePartitionBytes();
 }

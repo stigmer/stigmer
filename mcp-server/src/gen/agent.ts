@@ -6,7 +6,7 @@
 import { generateSlug, visibilityFromString } from "./apply-runtime.js";
 import { create } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
+import { AgentSpecSchema, ToolApprovalOverrideSchema, McpServerUsageSchema, McpAccessSchema, SubAgentSchema, DatastoreUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -28,6 +28,7 @@ export const AgentInputShape = {
   skill_refs: z.array(z.lazy(() => SkillRefInputSchema)).optional().describe("Skill resources providing additional knowledge to the agent."),
   sub_agents: z.array(z.lazy(() => SubAgentInputSchema)).optional().describe("Sub-agents that can be delegated to. Sub-agents can access a subset of the parent's MCP servers and tools."),
   env: z.record(z.lazy(() => EnvVarDeclarationInputSchema)).optional().describe("Environment variable declarations for this agent. Keys are variable names; values describe their metadata and optionality."),
+  datastore_usages: z.array(z.lazy(() => DatastoreUsageInputSchema)).optional().describe("Datastores this agent can use. Each entry must reference a Datastore resource by slug."),
 } as const;
 
 export const AgentInputSchema = z.object(AgentInputShape);
@@ -83,6 +84,17 @@ const EnvVarDeclarationInputSchema = z.object({
 });
 type EnvVarDeclarationInput = z.infer<typeof EnvVarDeclarationInputSchema>;
 
+const DatastoreRefInputSchema = z.object({
+  org: z.string().optional().describe("Organization that owns the referenced resource. When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens, starts with a letter, 1-63 characters). Example: 'stigmer', 'acme-corp'. When empty: the reference is relative — the server resolves it to the parent resource's organization at write time. All stored and returned references always have org populated (absolute form). Use empty org for same-org references (the common case). Use explicit org for cross-org references (e.g., marketplace resources)."),
+  slug: z.string().describe("Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter and end with a letter or digit (e.g., 'web-search', 'code-reviewer'). Length: 2-63 characters."),
+});
+type DatastoreRefInput = z.infer<typeof DatastoreRefInputSchema>;
+
+const DatastoreUsageInputSchema = z.object({
+  datastore_ref: z.lazy(() => DatastoreRefInputSchema).describe("Reference to the Datastore resource."),
+});
+type DatastoreUsageInput = z.infer<typeof DatastoreUsageInputSchema>;
+
 
 /** Build the fully-formed Agent proto from the flat MCP apply input. */
 export function agentInputToProto(input: AgentInput): Agent {
@@ -97,6 +109,7 @@ export function agentInputToProto(input: AgentInput): Agent {
   if (input.env !== undefined) {
     for (const [k, v] of Object.entries(input.env)) spec.env[k] = envVarDeclarationInputToProto(v);
   }
+  if (input.datastore_usages !== undefined) spec.datastoreUsages = input.datastore_usages.map(datastoreUsageInputToProto);
   return Object.assign(create(AgentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Agent",
@@ -168,6 +181,20 @@ function envVarDeclarationInputToProto(input: EnvVarDeclarationInput) {
   if (input.is_secret !== undefined) result.isSecret = input.is_secret;
   if (input.description !== undefined) result.description = input.description;
   if (input.optional !== undefined) result.optional = input.optional;
+  return result;
+}
+
+function datastoreRefInputToProto(input: DatastoreRefInput) {
+  return create(ApiResourceReferenceSchema, {
+    org: input.org,
+    slug: input.slug,
+    kind: ApiResourceKind.datastore,
+  });
+}
+
+function datastoreUsageInputToProto(input: DatastoreUsageInput) {
+  const result = create(DatastoreUsageSchema);
+  if (input.datastore_ref !== undefined) result.datastoreRef = datastoreRefInputToProto(input.datastore_ref);
   return result;
 }
 

@@ -39,6 +39,8 @@ private static final long serialVersionUID = 0L;
     agentInstanceId_ = "";
     subject_ = "";
     harnessStateId_ = "";
+    harnessStateIdHistory_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
     workspaceEntries_ = java.util.Collections.emptyList();
     mcpServerUsages_ = java.util.Collections.emptyList();
     skillRefs_ = java.util.Collections.emptyList();
@@ -258,6 +260,107 @@ private static final long serialVersionUID = 0L;
     } else {
       return (com.google.protobuf.ByteString) ref;
     }
+  }
+
+  public static final int HARNESS_STATE_ID_HISTORY_FIELD_NUMBER = 13;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList harnessStateIdHistory_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Prior harness state identifiers this session has owned, oldest first.
+   *
+   * A session can span multiple harness-side conversations: when the
+   * cursor-runner's resume fails, it creates a fresh Cursor agent and
+   * replaces harness_state_id, and the replaced id lands here.
+   *
+   * &#64;internal
+   * Server-owned, append-only. The update handler computes the append from
+   * the observed harness_state_id transition — client-supplied values for
+   * this field are discarded, so a stale client resending an old spec can
+   * never clobber the history. Billing reconciliation joins Cursor ledger
+   * events on the union of current + prior ids; dropping a replaced id
+   * would orphan the ledger events of every turn that ran under it.
+   * </pre>
+   *
+   * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+   * @return A list containing the harnessStateIdHistory.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getHarnessStateIdHistoryList() {
+    return harnessStateIdHistory_;
+  }
+  /**
+   * <pre>
+   * Prior harness state identifiers this session has owned, oldest first.
+   *
+   * A session can span multiple harness-side conversations: when the
+   * cursor-runner's resume fails, it creates a fresh Cursor agent and
+   * replaces harness_state_id, and the replaced id lands here.
+   *
+   * &#64;internal
+   * Server-owned, append-only. The update handler computes the append from
+   * the observed harness_state_id transition — client-supplied values for
+   * this field are discarded, so a stale client resending an old spec can
+   * never clobber the history. Billing reconciliation joins Cursor ledger
+   * events on the union of current + prior ids; dropping a replaced id
+   * would orphan the ledger events of every turn that ran under it.
+   * </pre>
+   *
+   * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+   * @return The count of harnessStateIdHistory.
+   */
+  public int getHarnessStateIdHistoryCount() {
+    return harnessStateIdHistory_.size();
+  }
+  /**
+   * <pre>
+   * Prior harness state identifiers this session has owned, oldest first.
+   *
+   * A session can span multiple harness-side conversations: when the
+   * cursor-runner's resume fails, it creates a fresh Cursor agent and
+   * replaces harness_state_id, and the replaced id lands here.
+   *
+   * &#64;internal
+   * Server-owned, append-only. The update handler computes the append from
+   * the observed harness_state_id transition — client-supplied values for
+   * this field are discarded, so a stale client resending an old spec can
+   * never clobber the history. Billing reconciliation joins Cursor ledger
+   * events on the union of current + prior ids; dropping a replaced id
+   * would orphan the ledger events of every turn that ran under it.
+   * </pre>
+   *
+   * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+   * @param index The index of the element to return.
+   * @return The harnessStateIdHistory at the given index.
+   */
+  public java.lang.String getHarnessStateIdHistory(int index) {
+    return harnessStateIdHistory_.get(index);
+  }
+  /**
+   * <pre>
+   * Prior harness state identifiers this session has owned, oldest first.
+   *
+   * A session can span multiple harness-side conversations: when the
+   * cursor-runner's resume fails, it creates a fresh Cursor agent and
+   * replaces harness_state_id, and the replaced id lands here.
+   *
+   * &#64;internal
+   * Server-owned, append-only. The update handler computes the append from
+   * the observed harness_state_id transition — client-supplied values for
+   * this field are discarded, so a stale client resending an old spec can
+   * never clobber the history. Billing reconciliation joins Cursor ledger
+   * events on the union of current + prior ids; dropping a replaced id
+   * would orphan the ledger events of every turn that ran under it.
+   * </pre>
+   *
+   * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the harnessStateIdHistory at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getHarnessStateIdHistoryBytes(int index) {
+    return harnessStateIdHistory_.getByteString(index);
   }
 
   public static final int METADATA_FIELD_NUMBER = 5;
@@ -863,6 +966,9 @@ java.lang.String defaultValue) {
     if (executionTarget_ != ai.stigmer.agentic.session.v1.ExecutionTarget.EXECUTION_TARGET_UNSPECIFIED.getNumber()) {
       output.writeEnum(12, executionTarget_);
     }
+    for (int i = 0; i < harnessStateIdHistory_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 13, harnessStateIdHistory_.getRaw(i));
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -930,6 +1036,14 @@ java.lang.String defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(12, executionTarget_);
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < harnessStateIdHistory_.size(); i++) {
+        dataSize += computeStringSizeNoTag(harnessStateIdHistory_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getHarnessStateIdHistoryList().size();
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -951,6 +1065,8 @@ java.lang.String defaultValue) {
         .equals(other.getSubject())) return false;
     if (!getHarnessStateId()
         .equals(other.getHarnessStateId())) return false;
+    if (!getHarnessStateIdHistoryList()
+        .equals(other.getHarnessStateIdHistoryList())) return false;
     if (!internalGetMetadata().equals(
         other.internalGetMetadata())) return false;
     if (!getWorkspaceEntriesList()
@@ -979,6 +1095,10 @@ java.lang.String defaultValue) {
     hash = (53 * hash) + getSubject().hashCode();
     hash = (37 * hash) + HARNESS_STATE_ID_FIELD_NUMBER;
     hash = (53 * hash) + getHarnessStateId().hashCode();
+    if (getHarnessStateIdHistoryCount() > 0) {
+      hash = (37 * hash) + HARNESS_STATE_ID_HISTORY_FIELD_NUMBER;
+      hash = (53 * hash) + getHarnessStateIdHistoryList().hashCode();
+    }
     if (!internalGetMetadata().getMap().isEmpty()) {
       hash = (37 * hash) + METADATA_FIELD_NUMBER;
       hash = (53 * hash) + internalGetMetadata().hashCode();
@@ -1165,6 +1285,8 @@ java.lang.String defaultValue) {
       agentInstanceId_ = "";
       subject_ = "";
       harnessStateId_ = "";
+      harnessStateIdHistory_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       internalGetMutableMetadata().clear();
       if (workspaceEntriesBuilder_ == null) {
         workspaceEntries_ = java.util.Collections.emptyList();
@@ -1172,21 +1294,21 @@ java.lang.String defaultValue) {
         workspaceEntries_ = null;
         workspaceEntriesBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000020);
       if (mcpServerUsagesBuilder_ == null) {
         mcpServerUsages_ = java.util.Collections.emptyList();
       } else {
         mcpServerUsages_ = null;
         mcpServerUsagesBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000040);
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
       } else {
         skillRefs_ = null;
         skillRefsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000080);
       harness_ = 0;
       cursorMode_ = 0;
       executionTarget_ = 0;
@@ -1224,27 +1346,27 @@ java.lang.String defaultValue) {
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.session.v1.SessionSpec result) {
       if (workspaceEntriesBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0)) {
+        if (((bitField0_ & 0x00000020) != 0)) {
           workspaceEntries_ = java.util.Collections.unmodifiableList(workspaceEntries_);
-          bitField0_ = (bitField0_ & ~0x00000010);
+          bitField0_ = (bitField0_ & ~0x00000020);
         }
         result.workspaceEntries_ = workspaceEntries_;
       } else {
         result.workspaceEntries_ = workspaceEntriesBuilder_.build();
       }
       if (mcpServerUsagesBuilder_ == null) {
-        if (((bitField0_ & 0x00000020) != 0)) {
+        if (((bitField0_ & 0x00000040) != 0)) {
           mcpServerUsages_ = java.util.Collections.unmodifiableList(mcpServerUsages_);
-          bitField0_ = (bitField0_ & ~0x00000020);
+          bitField0_ = (bitField0_ & ~0x00000040);
         }
         result.mcpServerUsages_ = mcpServerUsages_;
       } else {
         result.mcpServerUsages_ = mcpServerUsagesBuilder_.build();
       }
       if (skillRefsBuilder_ == null) {
-        if (((bitField0_ & 0x00000040) != 0)) {
+        if (((bitField0_ & 0x00000080) != 0)) {
           skillRefs_ = java.util.Collections.unmodifiableList(skillRefs_);
-          bitField0_ = (bitField0_ & ~0x00000040);
+          bitField0_ = (bitField0_ & ~0x00000080);
         }
         result.skillRefs_ = skillRefs_;
       } else {
@@ -1264,16 +1386,20 @@ java.lang.String defaultValue) {
         result.harnessStateId_ = harnessStateId_;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
+        harnessStateIdHistory_.makeImmutable();
+        result.harnessStateIdHistory_ = harnessStateIdHistory_;
+      }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.metadata_ = internalGetMetadata();
         result.metadata_.makeImmutable();
       }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.harness_ = harness_;
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.cursorMode_ = cursorMode_;
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.executionTarget_ = executionTarget_;
       }
     }
@@ -1305,14 +1431,24 @@ java.lang.String defaultValue) {
         bitField0_ |= 0x00000004;
         onChanged();
       }
+      if (!other.harnessStateIdHistory_.isEmpty()) {
+        if (harnessStateIdHistory_.isEmpty()) {
+          harnessStateIdHistory_ = other.harnessStateIdHistory_;
+          bitField0_ |= 0x00000008;
+        } else {
+          ensureHarnessStateIdHistoryIsMutable();
+          harnessStateIdHistory_.addAll(other.harnessStateIdHistory_);
+        }
+        onChanged();
+      }
       internalGetMutableMetadata().mergeFrom(
           other.internalGetMetadata());
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       if (workspaceEntriesBuilder_ == null) {
         if (!other.workspaceEntries_.isEmpty()) {
           if (workspaceEntries_.isEmpty()) {
             workspaceEntries_ = other.workspaceEntries_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000020);
           } else {
             ensureWorkspaceEntriesIsMutable();
             workspaceEntries_.addAll(other.workspaceEntries_);
@@ -1325,7 +1461,7 @@ java.lang.String defaultValue) {
             workspaceEntriesBuilder_.dispose();
             workspaceEntriesBuilder_ = null;
             workspaceEntries_ = other.workspaceEntries_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000020);
             workspaceEntriesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetWorkspaceEntriesFieldBuilder() : null;
@@ -1338,7 +1474,7 @@ java.lang.String defaultValue) {
         if (!other.mcpServerUsages_.isEmpty()) {
           if (mcpServerUsages_.isEmpty()) {
             mcpServerUsages_ = other.mcpServerUsages_;
-            bitField0_ = (bitField0_ & ~0x00000020);
+            bitField0_ = (bitField0_ & ~0x00000040);
           } else {
             ensureMcpServerUsagesIsMutable();
             mcpServerUsages_.addAll(other.mcpServerUsages_);
@@ -1351,7 +1487,7 @@ java.lang.String defaultValue) {
             mcpServerUsagesBuilder_.dispose();
             mcpServerUsagesBuilder_ = null;
             mcpServerUsages_ = other.mcpServerUsages_;
-            bitField0_ = (bitField0_ & ~0x00000020);
+            bitField0_ = (bitField0_ & ~0x00000040);
             mcpServerUsagesBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetMcpServerUsagesFieldBuilder() : null;
@@ -1364,7 +1500,7 @@ java.lang.String defaultValue) {
         if (!other.skillRefs_.isEmpty()) {
           if (skillRefs_.isEmpty()) {
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000080);
           } else {
             ensureSkillRefsIsMutable();
             skillRefs_.addAll(other.skillRefs_);
@@ -1377,7 +1513,7 @@ java.lang.String defaultValue) {
             skillRefsBuilder_.dispose();
             skillRefsBuilder_ = null;
             skillRefs_ = other.skillRefs_;
-            bitField0_ = (bitField0_ & ~0x00000040);
+            bitField0_ = (bitField0_ & ~0x00000080);
             skillRefsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetSkillRefsFieldBuilder() : null;
@@ -1442,7 +1578,7 @@ java.lang.String defaultValue) {
                   MetadataDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableMetadata().getMutableMap().put(
                   metadata__.getKey(), metadata__.getValue());
-              bitField0_ |= 0x00000008;
+              bitField0_ |= 0x00000010;
               break;
             } // case 42
             case 50: {
@@ -1486,19 +1622,24 @@ java.lang.String defaultValue) {
             } // case 66
             case 80: {
               harness_ = input.readEnum();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000100;
               break;
             } // case 80
             case 88: {
               cursorMode_ = input.readEnum();
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000200;
               break;
             } // case 88
             case 96: {
               executionTarget_ = input.readEnum();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000400;
               break;
             } // case 96
+            case 106: {
+              ensureHarnessStateIdHistoryIsMutable();
+              harnessStateIdHistory_.add(input.readStringRequireUtf8());
+              break;
+            } // case 106
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1897,6 +2038,261 @@ java.lang.String defaultValue) {
       return this;
     }
 
+    private com.google.protobuf.LazyStringArrayList harnessStateIdHistory_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureHarnessStateIdHistoryIsMutable() {
+      if (!harnessStateIdHistory_.isModifiable()) {
+        harnessStateIdHistory_ = new com.google.protobuf.LazyStringArrayList(harnessStateIdHistory_);
+      }
+      bitField0_ |= 0x00000008;
+    }
+    /**
+     * <pre>
+     * Prior harness state identifiers this session has owned, oldest first.
+     *
+     * A session can span multiple harness-side conversations: when the
+     * cursor-runner's resume fails, it creates a fresh Cursor agent and
+     * replaces harness_state_id, and the replaced id lands here.
+     *
+     * &#64;internal
+     * Server-owned, append-only. The update handler computes the append from
+     * the observed harness_state_id transition — client-supplied values for
+     * this field are discarded, so a stale client resending an old spec can
+     * never clobber the history. Billing reconciliation joins Cursor ledger
+     * events on the union of current + prior ids; dropping a replaced id
+     * would orphan the ledger events of every turn that ran under it.
+     * </pre>
+     *
+     * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+     * @return A list containing the harnessStateIdHistory.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getHarnessStateIdHistoryList() {
+      harnessStateIdHistory_.makeImmutable();
+      return harnessStateIdHistory_;
+    }
+    /**
+     * <pre>
+     * Prior harness state identifiers this session has owned, oldest first.
+     *
+     * A session can span multiple harness-side conversations: when the
+     * cursor-runner's resume fails, it creates a fresh Cursor agent and
+     * replaces harness_state_id, and the replaced id lands here.
+     *
+     * &#64;internal
+     * Server-owned, append-only. The update handler computes the append from
+     * the observed harness_state_id transition — client-supplied values for
+     * this field are discarded, so a stale client resending an old spec can
+     * never clobber the history. Billing reconciliation joins Cursor ledger
+     * events on the union of current + prior ids; dropping a replaced id
+     * would orphan the ledger events of every turn that ran under it.
+     * </pre>
+     *
+     * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+     * @return The count of harnessStateIdHistory.
+     */
+    public int getHarnessStateIdHistoryCount() {
+      return harnessStateIdHistory_.size();
+    }
+    /**
+     * <pre>
+     * Prior harness state identifiers this session has owned, oldest first.
+     *
+     * A session can span multiple harness-side conversations: when the
+     * cursor-runner's resume fails, it creates a fresh Cursor agent and
+     * replaces harness_state_id, and the replaced id lands here.
+     *
+     * &#64;internal
+     * Server-owned, append-only. The update handler computes the append from
+     * the observed harness_state_id transition — client-supplied values for
+     * this field are discarded, so a stale client resending an old spec can
+     * never clobber the history. Billing reconciliation joins Cursor ledger
+     * events on the union of current + prior ids; dropping a replaced id
+     * would orphan the ledger events of every turn that ran under it.
+     * </pre>
+     *
+     * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+     * @param index The index of the element to return.
+     * @return The harnessStateIdHistory at the given index.
+     */
+    public java.lang.String getHarnessStateIdHistory(int index) {
+      return harnessStateIdHistory_.get(index);
+    }
+    /**
+     * <pre>
+     * Prior harness state identifiers this session has owned, oldest first.
+     *
+     * A session can span multiple harness-side conversations: when the
+     * cursor-runner's resume fails, it creates a fresh Cursor agent and
+     * replaces harness_state_id, and the replaced id lands here.
+     *
+     * &#64;internal
+     * Server-owned, append-only. The update handler computes the append from
+     * the observed harness_state_id transition — client-supplied values for
+     * this field are discarded, so a stale client resending an old spec can
+     * never clobber the history. Billing reconciliation joins Cursor ledger
+     * events on the union of current + prior ids; dropping a replaced id
+     * would orphan the ledger events of every turn that ran under it.
+     * </pre>
+     *
+     * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the harnessStateIdHistory at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getHarnessStateIdHistoryBytes(int index) {
+      return harnessStateIdHistory_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Prior harness state identifiers this session has owned, oldest first.
+     *
+     * A session can span multiple harness-side conversations: when the
+     * cursor-runner's resume fails, it creates a fresh Cursor agent and
+     * replaces harness_state_id, and the replaced id lands here.
+     *
+     * &#64;internal
+     * Server-owned, append-only. The update handler computes the append from
+     * the observed harness_state_id transition — client-supplied values for
+     * this field are discarded, so a stale client resending an old spec can
+     * never clobber the history. Billing reconciliation joins Cursor ledger
+     * events on the union of current + prior ids; dropping a replaced id
+     * would orphan the ledger events of every turn that ran under it.
+     * </pre>
+     *
+     * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+     * @param index The index to set the value at.
+     * @param value The harnessStateIdHistory to set.
+     * @return This builder for chaining.
+     */
+    public Builder setHarnessStateIdHistory(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureHarnessStateIdHistoryIsMutable();
+      harnessStateIdHistory_.set(index, value);
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Prior harness state identifiers this session has owned, oldest first.
+     *
+     * A session can span multiple harness-side conversations: when the
+     * cursor-runner's resume fails, it creates a fresh Cursor agent and
+     * replaces harness_state_id, and the replaced id lands here.
+     *
+     * &#64;internal
+     * Server-owned, append-only. The update handler computes the append from
+     * the observed harness_state_id transition — client-supplied values for
+     * this field are discarded, so a stale client resending an old spec can
+     * never clobber the history. Billing reconciliation joins Cursor ledger
+     * events on the union of current + prior ids; dropping a replaced id
+     * would orphan the ledger events of every turn that ran under it.
+     * </pre>
+     *
+     * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+     * @param value The harnessStateIdHistory to add.
+     * @return This builder for chaining.
+     */
+    public Builder addHarnessStateIdHistory(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureHarnessStateIdHistoryIsMutable();
+      harnessStateIdHistory_.add(value);
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Prior harness state identifiers this session has owned, oldest first.
+     *
+     * A session can span multiple harness-side conversations: when the
+     * cursor-runner's resume fails, it creates a fresh Cursor agent and
+     * replaces harness_state_id, and the replaced id lands here.
+     *
+     * &#64;internal
+     * Server-owned, append-only. The update handler computes the append from
+     * the observed harness_state_id transition — client-supplied values for
+     * this field are discarded, so a stale client resending an old spec can
+     * never clobber the history. Billing reconciliation joins Cursor ledger
+     * events on the union of current + prior ids; dropping a replaced id
+     * would orphan the ledger events of every turn that ran under it.
+     * </pre>
+     *
+     * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+     * @param values The harnessStateIdHistory to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllHarnessStateIdHistory(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureHarnessStateIdHistoryIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, harnessStateIdHistory_);
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Prior harness state identifiers this session has owned, oldest first.
+     *
+     * A session can span multiple harness-side conversations: when the
+     * cursor-runner's resume fails, it creates a fresh Cursor agent and
+     * replaces harness_state_id, and the replaced id lands here.
+     *
+     * &#64;internal
+     * Server-owned, append-only. The update handler computes the append from
+     * the observed harness_state_id transition — client-supplied values for
+     * this field are discarded, so a stale client resending an old spec can
+     * never clobber the history. Billing reconciliation joins Cursor ledger
+     * events on the union of current + prior ids; dropping a replaced id
+     * would orphan the ledger events of every turn that ran under it.
+     * </pre>
+     *
+     * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearHarnessStateIdHistory() {
+      harnessStateIdHistory_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000008);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Prior harness state identifiers this session has owned, oldest first.
+     *
+     * A session can span multiple harness-side conversations: when the
+     * cursor-runner's resume fails, it creates a fresh Cursor agent and
+     * replaces harness_state_id, and the replaced id lands here.
+     *
+     * &#64;internal
+     * Server-owned, append-only. The update handler computes the append from
+     * the observed harness_state_id transition — client-supplied values for
+     * this field are discarded, so a stale client resending an old spec can
+     * never clobber the history. Billing reconciliation joins Cursor ledger
+     * events on the union of current + prior ids; dropping a replaced id
+     * would orphan the ledger events of every turn that ran under it.
+     * </pre>
+     *
+     * <code>repeated string harness_state_id_history = 13 [json_name = "harnessStateIdHistory"];</code>
+     * @param value The bytes of the harnessStateIdHistory to add.
+     * @return This builder for chaining.
+     */
+    public Builder addHarnessStateIdHistoryBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureHarnessStateIdHistoryIsMutable();
+      harnessStateIdHistory_.add(value);
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+
     private com.google.protobuf.MapField<
         java.lang.String, java.lang.String> metadata_;
     private com.google.protobuf.MapField<java.lang.String, java.lang.String>
@@ -1916,7 +2312,7 @@ java.lang.String defaultValue) {
       if (!metadata_.isMutable()) {
         metadata_ = metadata_.copy();
       }
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       onChanged();
       return metadata_;
     }
@@ -1992,7 +2388,7 @@ java.lang.String defaultValue) {
       return map.get(key);
     }
     public Builder clearMetadata() {
-      bitField0_ = (bitField0_ & ~0x00000008);
+      bitField0_ = (bitField0_ & ~0x00000010);
       internalGetMutableMetadata().getMutableMap()
           .clear();
       return this;
@@ -2017,7 +2413,7 @@ java.lang.String defaultValue) {
     @java.lang.Deprecated
     public java.util.Map<java.lang.String, java.lang.String>
         getMutableMetadata() {
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       return internalGetMutableMetadata().getMutableMap();
     }
     /**
@@ -2034,7 +2430,7 @@ java.lang.String defaultValue) {
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableMetadata().getMutableMap()
           .put(key, value);
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       return this;
     }
     /**
@@ -2048,16 +2444,16 @@ java.lang.String defaultValue) {
         java.util.Map<java.lang.String, java.lang.String> values) {
       internalGetMutableMetadata().getMutableMap()
           .putAll(values);
-      bitField0_ |= 0x00000008;
+      bitField0_ |= 0x00000010;
       return this;
     }
 
     private java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry> workspaceEntries_ =
       java.util.Collections.emptyList();
     private void ensureWorkspaceEntriesIsMutable() {
-      if (!((bitField0_ & 0x00000010) != 0)) {
+      if (!((bitField0_ & 0x00000020) != 0)) {
         workspaceEntries_ = new java.util.ArrayList<ai.stigmer.agentic.session.v1.WorkspaceEntry>(workspaceEntries_);
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000020;
        }
     }
 
@@ -2317,7 +2713,7 @@ java.lang.String defaultValue) {
     public Builder clearWorkspaceEntries() {
       if (workspaceEntriesBuilder_ == null) {
         workspaceEntries_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000010);
+        bitField0_ = (bitField0_ & ~0x00000020);
         onChanged();
       } else {
         workspaceEntriesBuilder_.clear();
@@ -2464,7 +2860,7 @@ java.lang.String defaultValue) {
         workspaceEntriesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.session.v1.WorkspaceEntry, ai.stigmer.agentic.session.v1.WorkspaceEntry.Builder, ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder>(
                 workspaceEntries_,
-                ((bitField0_ & 0x00000010) != 0),
+                ((bitField0_ & 0x00000020) != 0),
                 getParentForChildren(),
                 isClean());
         workspaceEntries_ = null;
@@ -2475,9 +2871,9 @@ java.lang.String defaultValue) {
     private java.util.List<ai.stigmer.agentic.agent.v1.McpServerUsage> mcpServerUsages_ =
       java.util.Collections.emptyList();
     private void ensureMcpServerUsagesIsMutable() {
-      if (!((bitField0_ & 0x00000020) != 0)) {
+      if (!((bitField0_ & 0x00000040) != 0)) {
         mcpServerUsages_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.McpServerUsage>(mcpServerUsages_);
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000040;
        }
     }
 
@@ -2792,7 +3188,7 @@ java.lang.String defaultValue) {
     public Builder clearMcpServerUsages() {
       if (mcpServerUsagesBuilder_ == null) {
         mcpServerUsages_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000020);
+        bitField0_ = (bitField0_ & ~0x00000040);
         onChanged();
       } else {
         mcpServerUsagesBuilder_.clear();
@@ -2974,7 +3370,7 @@ java.lang.String defaultValue) {
         mcpServerUsagesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agent.v1.McpServerUsage, ai.stigmer.agentic.agent.v1.McpServerUsage.Builder, ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder>(
                 mcpServerUsages_,
-                ((bitField0_ & 0x00000020) != 0),
+                ((bitField0_ & 0x00000040) != 0),
                 getParentForChildren(),
                 isClean());
         mcpServerUsages_ = null;
@@ -2985,9 +3381,9 @@ java.lang.String defaultValue) {
     private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> skillRefs_ =
       java.util.Collections.emptyList();
     private void ensureSkillRefsIsMutable() {
-      if (!((bitField0_ & 0x00000040) != 0)) {
+      if (!((bitField0_ & 0x00000080) != 0)) {
         skillRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(skillRefs_);
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000080;
        }
     }
 
@@ -3258,7 +3654,7 @@ java.lang.String defaultValue) {
     public Builder clearSkillRefs() {
       if (skillRefsBuilder_ == null) {
         skillRefs_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000040);
+        bitField0_ = (bitField0_ & ~0x00000080);
         onChanged();
       } else {
         skillRefsBuilder_.clear();
@@ -3412,7 +3808,7 @@ java.lang.String defaultValue) {
         skillRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
                 skillRefs_,
-                ((bitField0_ & 0x00000040) != 0),
+                ((bitField0_ & 0x00000080) != 0),
                 getParentForChildren(),
                 isClean());
         skillRefs_ = null;
@@ -3468,7 +3864,7 @@ java.lang.String defaultValue) {
      */
     public Builder setHarnessValue(int value) {
       harness_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -3520,7 +3916,7 @@ java.lang.String defaultValue) {
      */
     public Builder setHarness(ai.stigmer.agentic.session.v1.Harness value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000100;
       harness_ = value.getNumber();
       onChanged();
       return this;
@@ -3546,7 +3942,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearHarness() {
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000100);
       harness_ = 0;
       onChanged();
       return this;
@@ -3608,7 +4004,7 @@ java.lang.String defaultValue) {
      */
     public Builder setCursorModeValue(int value) {
       cursorMode_ = value;
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -3668,7 +4064,7 @@ java.lang.String defaultValue) {
      */
     public Builder setCursorMode(ai.stigmer.agentic.session.v1.CursorMode value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000200;
       cursorMode_ = value.getNumber();
       onChanged();
       return this;
@@ -3698,7 +4094,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearCursorMode() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000200);
       cursorMode_ = 0;
       onChanged();
       return this;
@@ -3752,7 +4148,7 @@ java.lang.String defaultValue) {
      */
     public Builder setExecutionTargetValue(int value) {
       executionTarget_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -3804,7 +4200,7 @@ java.lang.String defaultValue) {
      */
     public Builder setExecutionTarget(ai.stigmer.agentic.session.v1.ExecutionTarget value) {
       if (value == null) { throw new NullPointerException(); }
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000400;
       executionTarget_ = value.getNumber();
       onChanged();
       return this;
@@ -3830,7 +4226,7 @@ java.lang.String defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearExecutionTarget() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000400);
       executionTarget_ = 0;
       onChanged();
       return this;

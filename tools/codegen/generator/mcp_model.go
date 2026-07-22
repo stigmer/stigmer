@@ -217,7 +217,7 @@ func (m *mcpGen) resolveField(f *FieldSchema) *mcpInputField {
 		field.inputTypeName = inputName
 
 	// google.protobuf.Value → arbitrary JSON (string, number, object, array, ...)
-	case f.Type.Kind == "message" && f.Type.MessageType == "Value":
+	case f.Type.Kind == "value":
 		field.goType = "any"
 		field.isValue = true
 

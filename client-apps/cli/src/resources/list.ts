@@ -25,6 +25,7 @@ const SEARCH_KINDS = new Set<ApiResourceKind>([
   ApiResourceKind.mcp_server,
   ApiResourceKind.project,
   ApiResourceKind.skill,
+  ApiResourceKind.datastore,
 ]);
 
 export async function listResources(

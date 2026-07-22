@@ -31,7 +31,7 @@ spec:
     - name: classify_ticket
       kind: llm_call
       task_config:
-        model: "gpt-4o-mini"
+        model: "claude-haiku-4.5"
         system_prompt: >
           You are a support ticket classifier. Analyze the ticket and classify
           it by severity and category. Be conservative with critical/high

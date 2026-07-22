@@ -21,18 +21,44 @@ import {
   type ModelGovernanceRow,
 } from "./useModelGovernanceView.js";
 
+/**
+ * Tab ids of {@link PricingGovernanceConsole}, accepted by
+ * {@link PricingGovernanceConsoleProps.defaultTab}.
+ *
+ * These ids are deep-link targets: consumers wire them from their own
+ * routing (e.g. a `?tab=sign-offs` query param), and external surfaces
+ * compose URLs against them. Renaming a member is a breaking change to
+ * every link in the wild, not just to this component's props.
+ */
+export type PricingGovernanceTab = "models" | "sign-offs";
+
 /** Props for {@link PricingGovernanceConsole}. */
 export interface PricingGovernanceConsoleProps {
   /** Additional CSS class names. */
   readonly className?: string;
+  /**
+   * The tab shown on first render. Defaults to `"models"`.
+   *
+   * Read once at mount, like a form field's `defaultValue` — changing
+   * it afterwards has no effect, and the user's tab choice stays local
+   * (the console never writes it back anywhere). Wire it from routing
+   * to make the tab URL-addressable:
+   *
+   * ```tsx
+   * // e.g. honoring a ?tab=sign-offs deep link
+   * const tab = new URLSearchParams(window.location.search).get("tab");
+   * <PricingGovernanceConsole
+   *   defaultTab={tab === "sign-offs" ? "sign-offs" : undefined}
+   * />
+   * ```
+   */
+  readonly defaultTab?: PricingGovernanceTab;
 }
 
-const TABS = [
+const TABS: readonly { readonly id: PricingGovernanceTab; readonly label: string }[] = [
   { id: "models", label: "Models" },
   { id: "sign-offs", label: "Sign-Offs" },
-] as const;
-
-type TabId = (typeof TABS)[number]["id"];
+];
 
 /**
  * The platform-operator pricing console: a tabbed surface over the
@@ -57,9 +83,20 @@ type TabId = (typeof TABS)[number]["id"];
  * <PricingGovernanceConsole />
  * ```
  */
-export function PricingGovernanceConsole({ className }: PricingGovernanceConsoleProps) {
+export function PricingGovernanceConsole({
+  className,
+  defaultTab,
+}: PricingGovernanceConsoleProps) {
   const view = useModelGovernanceView();
-  const [activeTab, setActiveTab] = useState<TabId>("models");
+  // Seeded once from `defaultTab`, then owned locally (see the prop's
+  // JSDoc). The membership check is a public-API boundary guard: a JS
+  // consumer passing an out-of-union string must land on Models, not on
+  // a tabless surface.
+  const [activeTab, setActiveTab] = useState<PricingGovernanceTab>(() =>
+    defaultTab !== undefined && TABS.some((t) => t.id === defaultTab)
+      ? defaultTab
+      : "models",
+  );
 
   const { decide, isSubmitting: isDeciding, error: decisionError } = useDecidePricingOverride();
   const { upsert, isSubmitting: isUpserting, error: upsertError, clearError: clearUpsertError } =
@@ -151,7 +188,7 @@ export function PricingGovernanceConsole({ className }: PricingGovernanceConsole
         { ...TABS[1], badge: view.pendingCount },
       ]}
       activeTab={activeTab}
-      onTabChange={(id) => setActiveTab(id as TabId)}
+      onTabChange={(id) => setActiveTab(id as PricingGovernanceTab)}
       aria-label="Pricing governance sections"
     >
       {activeTab === "models" ? (

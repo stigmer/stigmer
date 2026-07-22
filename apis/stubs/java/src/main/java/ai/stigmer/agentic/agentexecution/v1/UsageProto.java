@@ -162,7 +162,7 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
       "ted_at\030\004 \001(\0132\032.google.protobuf.Timestamp" +
       "R\tdebitedAt\0222\n\025billing_attempt_count\030\005 \001" +
       "(\005R\023billingAttemptCount\022,\n\022last_billing_" +
-      "error\030\006 \001(\tR\020lastBillingError\"\355\014\n\022LlmCal" +
+      "error\030\006 \001(\tR\020lastBillingError\"\275\r\n\022LlmCal" +
       "lUsageRecord\022&\n\017usage_record_id\030\001 \001(\tR\ru" +
       "sageRecordId\022!\n\014execution_id\030\002 \001(\tR\013exec" +
       "utionId\022*\n\021root_execution_id\030\003 \001(\tR\017root" +
@@ -187,7 +187,9 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
       "\030\" \001(\010R\tstreaming\022!\n\014service_tier\030# \001(\tR" +
       "\013serviceTier\022.\n\023provider_request_id\030$ \001(" +
       "\tR\021providerRequestId\022\030\n\007harness\030% \001(\tR\007h" +
-      "arness\022(\n\020http_status_code\030( \001(\005R\016httpSt" +
+      "arness\022*\n\021cursor_account_id\030& \001(\tR\017curso" +
+      "rAccountId\022\"\n\rcursor_key_id\030\' \001(\tR\013curso" +
+      "rKeyId\022(\n\020http_status_code\030( \001(\005R\016httpSt" +
       "atusCode\022#\n\rfinish_reason\030) \001(\tR\014finishR" +
       "eason\022\035\n\nerror_code\030* \001(\tR\terrorCode\022H\n\006" +
       "tokens\0302 \001(\01320.ai.stigmer.agentic.agente" +
@@ -323,7 +325,7 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_LlmCallUsageRecord_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_LlmCallUsageRecord_descriptor,
-        new java.lang.String[] { "UsageRecordId", "ExecutionId", "RootExecutionId", "Sequence", "IdempotencyKey", "CanonicalPayloadHash", "ObservedAt", "CreatedAt", "MeteringSource", "TrustLevel", "UsageStatus", "IsBillable", "Provider", "RequestedModel", "ResolvedModel", "Endpoint", "Streaming", "ServiceTier", "ProviderRequestId", "Harness", "HttpStatusCode", "FinishReason", "ErrorCode", "Tokens", "Cost", "ProxyTiming", "ProviderUsageJson", "Billing", "OrgId", "SessionId", "Labels", });
+        new java.lang.String[] { "UsageRecordId", "ExecutionId", "RootExecutionId", "Sequence", "IdempotencyKey", "CanonicalPayloadHash", "ObservedAt", "CreatedAt", "MeteringSource", "TrustLevel", "UsageStatus", "IsBillable", "Provider", "RequestedModel", "ResolvedModel", "Endpoint", "Streaming", "ServiceTier", "ProviderRequestId", "Harness", "CursorAccountId", "CursorKeyId", "HttpStatusCode", "FinishReason", "ErrorCode", "Tokens", "Cost", "ProxyTiming", "ProviderUsageJson", "Billing", "OrgId", "SessionId", "Labels", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_LlmCallUsageRecord_LabelsEntry_descriptor =
       internal_static_ai_stigmer_agentic_agentexecution_v1_LlmCallUsageRecord_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_agentexecution_v1_LlmCallUsageRecord_LabelsEntry_fieldAccessorTable = new

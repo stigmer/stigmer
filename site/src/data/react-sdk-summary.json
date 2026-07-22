@@ -78,11 +78,25 @@
       "components": 1
     },
     {
+      "slug": "cursor-accounts",
+      "title": "cursor-accounts",
+      "description": "",
+      "hooks": 6,
+      "components": 3
+    },
+    {
       "slug": "dashboard",
       "title": "Dashboard",
       "description": "Hooks for dashboard metrics, activity feeds, and analytics data.",
       "hooks": 3,
       "components": 0
+    },
+    {
+      "slug": "datastore",
+      "title": "datastore",
+      "description": "",
+      "hooks": 11,
+      "components": 9
     },
     {
       "slug": "dependency-graph",

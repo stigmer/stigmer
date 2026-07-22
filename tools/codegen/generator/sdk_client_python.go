@@ -147,6 +147,9 @@ func pyTypeForTypeSpec(ts *TypeSpec) string {
 		return "str"
 	case "struct":
 		return "dict[str, Any]"
+	case "value":
+		// google.protobuf.Value — any JSON-representable scalar or composite.
+		return "Any"
 	case "array":
 		if ts.ElementType != nil {
 			return "list[" + pyTypeForTypeSpec(ts.ElementType) + "]"
@@ -206,6 +209,8 @@ func pyDefaultForTypeSpec(ts *TypeSpec) string {
 		return `b""`
 	case "struct":
 		return "field(default_factory=dict)"
+	case "value":
+		return "None"
 	case "array":
 		return "field(default_factory=list)"
 	case "map":
@@ -289,6 +294,7 @@ type pyImports struct {
 	needsIterator   bool
 	needsBidiStream bool
 	needsAny        bool
+	needsJsonFormat bool
 
 	services   map[string]string // role → pb2_grpc module name (e.g., "query" → "query")
 	needsIoPb2 bool
@@ -366,6 +372,10 @@ func (p *pyImports) emit(buf *bytes.Buffer) {
 	}
 
 	buf.WriteString("import grpc\n\n")
+
+	if p.needsJsonFormat {
+		buf.WriteString("from google.protobuf import json_format\n\n")
+	}
 
 	fmt.Fprintf(buf, "from %s import api_pb2\n", p.resourcePkg)
 	emittedModules := make(map[string]bool)
@@ -591,6 +601,9 @@ func generatePythonResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConf
 	for _, svc := range schema.Services {
 		imports.addService(svc.Role, pyServiceModule(&svc))
 		for _, m := range svc.Methods {
+			if searchListSupersedesMethod(schema, &m) {
+				continue
+			}
 			if isIDType(m.InputType) {
 				imports.needsIoPb2 = true
 			}
@@ -660,6 +673,9 @@ func generatePythonResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConf
 
 	for _, svc := range schema.Services {
 		for _, m := range svc.Methods {
+			if searchListSupersedesMethod(schema, &m) {
+				continue
+			}
 			generatePythonMethod(&body, &m, &svc, schema, cfg, hasInputType, imports, methodTypePb2Map)
 		}
 	}
@@ -707,6 +723,9 @@ func scanPyFieldImports(f *FieldSchema, typeMap map[string]*TypeSchema, imports 
 		imports.needsExecCtxV1 = true
 	case f.Type.Kind == "struct":
 		imports.needsAny = true
+	case f.Type.Kind == "value":
+		imports.needsAny = true
+		imports.needsJsonFormat = true
 	case f.Type.Kind == "message":
 		if !visited[f.Type.MessageType] {
 			visited[f.Type.MessageType] = true
@@ -1161,6 +1180,10 @@ func emitPyToProtoFieldAssign(buf *bytes.Buffer, f *FieldSchema, msgVar, selfVar
 	case f.Type.Kind == "struct":
 		fmt.Fprintf(buf, "%sif %s.%s:\n", indent, selfVar, selfField)
 		fmt.Fprintf(buf, "%s    %s.update(%s.%s)\n", indent, protoAccess(msgVar, protoField), selfVar, selfField)
+
+	case f.Type.Kind == "value":
+		fmt.Fprintf(buf, "%sif %s.%s is not None:\n", indent, selfVar, selfField)
+		fmt.Fprintf(buf, "%s    json_format.ParseDict(%s.%s, %s)\n", indent, selfVar, selfField, protoAccess(msgVar, protoField))
 
 	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference" && f.ReferenceKind != 0:
 		fmt.Fprintf(buf, "%sif %s.%s is not None and (%s.%s.org or %s.%s.slug):\n", indent, selfVar, selfField, selfVar, selfField, selfVar, selfField)

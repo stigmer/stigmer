@@ -3,7 +3,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef } from "react";
 import type { Message } from "@bufbuild/protobuf";
 import { cn } from "@stigmer/theme";
-import type { AppliedManifest } from "@stigmer/sdk";
+import { getUserMessage, type AppliedManifest } from "@stigmer/sdk";
 import { toast } from "../feedback/toast.js";
 import { RedactedSecretsNotice } from "./RedactedSecretsNotice.js";
 import { useEditResourceYaml } from "./useEditResourceYaml.js";
@@ -155,13 +155,46 @@ export function EditResourceYamlDialog({
           </div>
         )}
 
-        {/* Apply error */}
+        {/* Apply error — the server's refusal (e.g. a datastore
+            collection-removal rejection) rendered verbatim, with an
+            acknowledge-and-retry affordance: the operator reads the
+            guard, edits or decides, and re-applies without reopening
+            the dialog. */}
         {edit.error && (
           <div
             role="alert"
-            className="rounded-md border border-destructive bg-card px-3 py-2.5 text-sm text-destructive"
+            className="flex items-start gap-3 rounded-md border border-destructive bg-card px-3 py-2.5"
           >
-            {edit.error.message}
+            <p className="flex-1 text-sm text-destructive">
+              {getUserMessage(edit.error)}
+            </p>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={handleApply}
+                disabled={edit.validation.status !== "valid" || edit.isApplying}
+                className={cn(
+                  "rounded-md border border-input bg-background px-2 py-1 text-xs font-medium text-foreground",
+                  "hover:bg-accent hover:text-accent-foreground",
+                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                  "disabled:pointer-events-none disabled:opacity-50",
+                )}
+              >
+                Try again
+              </button>
+              <button
+                type="button"
+                onClick={edit.clearError}
+                aria-label="Dismiss error"
+                className={cn(
+                  "rounded-md px-2 py-1 text-xs font-medium text-muted-foreground",
+                  "hover:bg-accent hover:text-foreground",
+                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+                )}
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
         )}
 

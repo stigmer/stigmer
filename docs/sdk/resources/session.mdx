@@ -265,6 +265,7 @@ const session = await stigmer.session.apply({
   agentInstanceId: "...",
   subject: "...",
   harnessStateId: "...",
+  harnessStateIdHistory: [],
   metadata: {},
   workspaceEntries: [],
   mcpServerUsages: [],
@@ -278,20 +279,21 @@ const session = await stigmer.session.apply({
 <Tab value="Go">
 ```go
 session, err := client.Session.Apply(ctx, &stigmer.SessionInput{
-  Name:             "my-session",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  AgentInstanceId:  "...",
-  Subject:          "...",
-  HarnessStateId:   "...",
-  Metadata:         map[string]string{},
-  WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
-  McpServerUsages:  []stigmer.McpServerUsageInput{},
-  SkillRefs:        []stigmer.ResourceRef{},
-  Harness:          "...",
-  CursorMode:       "...",
-  ExecutionTarget:  "...",
+  Name:                  "my-session",
+  Org:                   "acme",
+  Slug:                  "...",
+  Labels:                map[string]string{},
+  AgentInstanceId:       "...",
+  Subject:               "...",
+  HarnessStateId:        "...",
+  HarnessStateIdHistory: []string{},
+  Metadata:              map[string]string{},
+  WorkspaceEntries:      []stigmer.WorkspaceEntryInput{},
+  McpServerUsages:       []stigmer.McpServerUsageInput{},
+  SkillRefs:             []stigmer.ResourceRef{},
+  Harness:               "...",
+  CursorMode:            "...",
+  ExecutionTarget:       "...",
 })
 ```
 </Tab>
@@ -305,6 +307,7 @@ session = client.sessions.apply(SessionInput(
     agent_instance_id="...",
     subject="...",
     harness_state_id="...",
+    harness_state_id_history=[],
     metadata={},
     workspace_entries=[],
     mcp_server_usages=[],
@@ -325,6 +328,7 @@ Session session = client.sessions().apply(SessionInput.builder()
     .agentInstanceId("...")
     .subject("...")
     .harnessStateId("...")
+    .harnessStateIdHistory(List.of())
     .metadata(Map.of())
     .workspaceEntries(List.of())
     .mcpServerUsages(List.of())
@@ -356,6 +360,7 @@ const session = await stigmer.session.create({
   agentInstanceId: "...",
   subject: "...",
   harnessStateId: "...",
+  harnessStateIdHistory: [],
   metadata: {},
   workspaceEntries: [],
   mcpServerUsages: [],
@@ -369,20 +374,21 @@ const session = await stigmer.session.create({
 <Tab value="Go">
 ```go
 session, err := client.Session.Create(ctx, &stigmer.SessionInput{
-  Name:             "my-session",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  AgentInstanceId:  "...",
-  Subject:          "...",
-  HarnessStateId:   "...",
-  Metadata:         map[string]string{},
-  WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
-  McpServerUsages:  []stigmer.McpServerUsageInput{},
-  SkillRefs:        []stigmer.ResourceRef{},
-  Harness:          "...",
-  CursorMode:       "...",
-  ExecutionTarget:  "...",
+  Name:                  "my-session",
+  Org:                   "acme",
+  Slug:                  "...",
+  Labels:                map[string]string{},
+  AgentInstanceId:       "...",
+  Subject:               "...",
+  HarnessStateId:        "...",
+  HarnessStateIdHistory: []string{},
+  Metadata:              map[string]string{},
+  WorkspaceEntries:      []stigmer.WorkspaceEntryInput{},
+  McpServerUsages:       []stigmer.McpServerUsageInput{},
+  SkillRefs:             []stigmer.ResourceRef{},
+  Harness:               "...",
+  CursorMode:            "...",
+  ExecutionTarget:       "...",
 })
 ```
 </Tab>
@@ -396,6 +402,7 @@ session = client.sessions.create(SessionInput(
     agent_instance_id="...",
     subject="...",
     harness_state_id="...",
+    harness_state_id_history=[],
     metadata={},
     workspace_entries=[],
     mcp_server_usages=[],
@@ -416,6 +423,7 @@ Session session = client.sessions().create(SessionInput.builder()
     .agentInstanceId("...")
     .subject("...")
     .harnessStateId("...")
+    .harnessStateIdHistory(List.of())
     .metadata(Map.of())
     .workspaceEntries(List.of())
     .mcpServerUsages(List.of())
@@ -447,6 +455,7 @@ const session = await stigmer.session.update({
   agentInstanceId: "...",
   subject: "...",
   harnessStateId: "...",
+  harnessStateIdHistory: [],
   metadata: {},
   workspaceEntries: [],
   mcpServerUsages: [],
@@ -460,20 +469,21 @@ const session = await stigmer.session.update({
 <Tab value="Go">
 ```go
 session, err := client.Session.Update(ctx, &stigmer.SessionInput{
-  Name:             "my-session",
-  Org:              "acme",
-  Slug:             "...",
-  Labels:           map[string]string{},
-  AgentInstanceId:  "...",
-  Subject:          "...",
-  HarnessStateId:   "...",
-  Metadata:         map[string]string{},
-  WorkspaceEntries: []stigmer.WorkspaceEntryInput{},
-  McpServerUsages:  []stigmer.McpServerUsageInput{},
-  SkillRefs:        []stigmer.ResourceRef{},
-  Harness:          "...",
-  CursorMode:       "...",
-  ExecutionTarget:  "...",
+  Name:                  "my-session",
+  Org:                   "acme",
+  Slug:                  "...",
+  Labels:                map[string]string{},
+  AgentInstanceId:       "...",
+  Subject:               "...",
+  HarnessStateId:        "...",
+  HarnessStateIdHistory: []string{},
+  Metadata:              map[string]string{},
+  WorkspaceEntries:      []stigmer.WorkspaceEntryInput{},
+  McpServerUsages:       []stigmer.McpServerUsageInput{},
+  SkillRefs:             []stigmer.ResourceRef{},
+  Harness:               "...",
+  CursorMode:            "...",
+  ExecutionTarget:       "...",
 })
 ```
 </Tab>
@@ -487,6 +497,7 @@ session = client.sessions.update(SessionInput(
     agent_instance_id="...",
     subject="...",
     harness_state_id="...",
+    harness_state_id_history=[],
     metadata={},
     workspace_entries=[],
     mcp_server_usages=[],
@@ -507,6 +518,7 @@ Session session = client.sessions().update(SessionInput.builder()
     .agentInstanceId("...")
     .subject("...")
     .harnessStateId("...")
+    .harnessStateIdHistory(List.of())
     .metadata(Map.of())
     .workspaceEntries(List.of())
     .mcpServerUsages(List.of())
@@ -622,6 +634,7 @@ Input for creating or updating a Session.
     agentInstanceId: { type: "string", description: "Agent instance this session runs against." },
     subject: { type: "string", description: "Conversation title for UI display." },
     harnessStateId: { type: "string", description: "Harness-specific state identifier for conversation continuity." },
+    harnessStateIdHistory: { type: "string[]", description: "Prior harness state identifiers this session has owned, oldest first." },
     metadata: { type: "Record<string, string>", description: "Custom key-value pairs for client-specific information." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries for this session.", typeDescriptionLink: "#workspaceentryinput" },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers to make available in this session.", typeDescriptionLink: "#mcpserverusageinput" },

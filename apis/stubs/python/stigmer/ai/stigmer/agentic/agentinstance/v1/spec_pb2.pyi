@@ -10,11 +10,13 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentInstanceSpec(_message.Message):
-    __slots__ = ("agent_id", "description", "environment_refs")
+    __slots__ = ("agent_id", "description", "environment_refs", "datastore_partition")
     AGENT_ID_FIELD_NUMBER: _ClassVar[int]
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
     ENVIRONMENT_REFS_FIELD_NUMBER: _ClassVar[int]
+    DATASTORE_PARTITION_FIELD_NUMBER: _ClassVar[int]
     agent_id: str
     description: str
     environment_refs: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
-    def __init__(self, agent_id: _Optional[str] = ..., description: _Optional[str] = ..., environment_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ...) -> None: ...
+    datastore_partition: str
+    def __init__(self, agent_id: _Optional[str] = ..., description: _Optional[str] = ..., environment_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., datastore_partition: _Optional[str] = ...) -> None: ...

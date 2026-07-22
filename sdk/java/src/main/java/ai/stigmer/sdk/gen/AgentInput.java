@@ -4,6 +4,7 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.agent.v1.Agent;
 import ai.stigmer.agentic.agent.v1.AgentSpec;
+import ai.stigmer.agentic.agent.v1.DatastoreUsage;
 import ai.stigmer.agentic.agent.v1.McpAccess;
 import ai.stigmer.agentic.agent.v1.McpServerUsage;
 import ai.stigmer.agentic.agent.v1.SubAgent;
@@ -27,6 +28,7 @@ public final class AgentInput {
     private final java.util.List<ResourceRef> skillRefs;
     private final java.util.List<SubAgentInput> subAgents;
     private final java.util.Map<String, EnvVarDeclarationInput> env;
+    private final java.util.List<DatastoreUsageInput> datastoreUsages;
 
     private AgentInput(Builder builder) {
         this.name = builder.name;
@@ -41,6 +43,7 @@ public final class AgentInput {
         this.skillRefs = builder.skillRefs;
         this.subAgents = builder.subAgents;
         this.env = builder.env;
+        this.datastoreUsages = builder.datastoreUsages;
     }
 
     Agent toProto() {
@@ -73,6 +76,11 @@ public final class AgentInput {
         if (this.env != null && !this.env.isEmpty()) {
             for (java.util.Map.Entry<String, EnvVarDeclarationInput> entry : this.env.entrySet()) {
                 spec.putEnv(entry.getKey(), entry.getValue().toProto());
+            }
+        }
+        if (this.datastoreUsages != null) {
+            for (DatastoreUsageInput item : this.datastoreUsages) {
+                spec.addDatastoreUsages(item.toProto());
             }
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
@@ -110,6 +118,7 @@ public final class AgentInput {
         private java.util.List<ResourceRef> skillRefs;
         private java.util.List<SubAgentInput> subAgents;
         private java.util.Map<String, EnvVarDeclarationInput> env;
+        private java.util.List<DatastoreUsageInput> datastoreUsages;
 
         private Builder() {}
 
@@ -125,6 +134,7 @@ public final class AgentInput {
         public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
         public Builder subAgents(java.util.List<SubAgentInput> subAgents) { this.subAgents = subAgents; return this; }
         public Builder env(java.util.Map<String, EnvVarDeclarationInput> env) { this.env = env; return this; }
+        public Builder datastoreUsages(java.util.List<DatastoreUsageInput> datastoreUsages) { this.datastoreUsages = datastoreUsages; return this; }
 
         public AgentInput build() { return new AgentInput(this); }
     }
@@ -357,6 +367,36 @@ public final class AgentInput {
             public Builder optional(boolean optional) { this.optional = optional; return this; }
 
             public EnvVarDeclarationInput build() { return new EnvVarDeclarationInput(this); }
+        }
+    }
+
+    /** SDK input type for DatastoreUsage. */
+    public static final class DatastoreUsageInput {
+        private final ResourceRef datastoreRef;
+
+        private DatastoreUsageInput(Builder builder) {
+            this.datastoreRef = builder.datastoreRef;
+        }
+
+        DatastoreUsage toProto() {
+            DatastoreUsage.Builder builder = DatastoreUsage.newBuilder();
+            if (this.datastoreRef != null && this.datastoreRef.hasIdentifier()) {
+                builder.setDatastoreRef(this.datastoreRef.toProto().toBuilder()
+                    .setKind(ApiResourceKind.datastore).build());
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private ResourceRef datastoreRef;
+
+            private Builder() {}
+
+            public Builder datastoreRef(ResourceRef datastoreRef) { this.datastoreRef = datastoreRef; return this; }
+
+            public DatastoreUsageInput build() { return new DatastoreUsageInput(this); }
         }
     }
 }

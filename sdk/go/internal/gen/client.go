@@ -14,6 +14,7 @@ type Client struct {
 	ApiKey            *ApiKeyClient
 	Artifact          *ArtifactClient
 	ChannelApp        *ChannelAppClient
+	Datastore         *DatastoreClient
 	Environment       *EnvironmentClient
 	ExecutionContext  *ExecutionContextClient
 	IamPolicy         *IamPolicyClient
@@ -43,6 +44,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		ApiKey:            NewApiKeyClient(conn),
 		Artifact:          NewArtifactClient(conn),
 		ChannelApp:        NewChannelAppClient(conn),
+		Datastore:         NewDatastoreClient(conn),
 		Environment:       NewEnvironmentClient(conn),
 		ExecutionContext:  NewExecutionContextClient(conn),
 		IamPolicy:         NewIamPolicyClient(conn),

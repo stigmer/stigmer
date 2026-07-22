@@ -100,6 +100,28 @@ const (
 	// operator action, kept distinct from can_execute_billing_ops (the
 	// machine account's internal billing pipeline).
 	IamPermission_can_manage_model_pricing IamPermission = 32
+	// Resource-level permission to reach a datastore's record RPCs.
+	//
+	// @internal
+	// Layer 1 of the datastore's two-layer authorization model: gates
+	// "may this principal touch this datastore's records at all" for
+	// direct platform principals (console, CLI, SDK, workflow executions).
+	// Checked in-handler via RequestAuthorizationService — the record RPCs
+	// are slug-addressed and carry is_skip_authorization, so the
+	// declarative interceptor never runs for them. Session-bound runner
+	// credentials do NOT pass through this permission — they take the
+	// usage-edge reach chain (agent's datastore_usages + org match) in
+	// domain logic. Layer 2 (role/verb/scope grants) always runs in
+	// datastore domain logic in both editions.
+	IamPermission_can_use_records IamPermission = 33
+	// Organization-level permission to create datastores.
+	IamPermission_can_create_datastore IamPermission = 34
+	// Platform-level permission to manage Cursor accounts: the managed
+	// Cursor teams (admin keys, member execution keys, org assignments)
+	// that back the cursor harness. A human operator action, gated to
+	// platform operators like can_manage_model_pricing — key material and
+	// per-member spend are platform-internal, never org-visible.
+	IamPermission_can_manage_cursor_accounts IamPermission = 35
 )
 
 // Enum value maps for IamPermission.
@@ -137,6 +159,9 @@ var (
 		30: "can_create_agent_share",
 		31: "can_create_channel_app",
 		32: "can_manage_model_pricing",
+		33: "can_use_records",
+		34: "can_create_datastore",
+		35: "can_manage_cursor_accounts",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -171,6 +196,9 @@ var (
 		"can_create_agent_share":       30,
 		"can_create_channel_app":       31,
 		"can_manage_model_pricing":     32,
+		"can_use_records":              33,
+		"can_create_datastore":         34,
+		"can_manage_cursor_accounts":   35,
 	}
 )
 
@@ -274,7 +302,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\x8c\x06\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xdb\x06\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -309,7 +337,10 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x17can_execute_billing_ops\x10\x1d\x12\x1a\n" +
 	"\x16can_create_agent_share\x10\x1e\x12\x1a\n" +
 	"\x16can_create_channel_app\x10\x1f\x12\x1c\n" +
-	"\x18can_manage_model_pricing\x10 *Q\n" +
+	"\x18can_manage_model_pricing\x10 \x12\x13\n" +
+	"\x0fcan_use_records\x10!\x12\x18\n" +
+	"\x14can_create_datastore\x10\"\x12\x1e\n" +
+	"\x1acan_manage_cursor_accounts\x10#*Q\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

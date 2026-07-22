@@ -789,6 +789,7 @@ not customer prices.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names." },
+    defaultTab: { type: "PricingGovernanceTab", description: "The tab shown on first render. Defaults to `\"models\"`.  Read once at mount, like a form field's `defaultValue` — changing it afterwards has no effect, and the user's tab choice stays local (the console never writes it back anywhere). Wire it from routing to make the tab URL-addressable:  ```tsx // e.g. honoring a ?tab=sign-offs deep link const tab = new URLSearchParams(window.location.search).get(\"tab\"); <PricingGovernanceConsole   defaultTab={tab === \"sign-offs\" ? \"sign-offs\" : undefined} /> ```", typeDescriptionLink: "#pricinggovernancetab" },
   }}
 />
 
@@ -986,6 +987,17 @@ append-only revision history.
     variantGovernance: { type: "readonly ModelPricingGovernanceEntry[]", description: "Governance entries for this model's named pricing variants.", required: true },
   }}
 />
+
+
+### PricingGovernanceTab
+
+Tab ids of [`PricingGovernanceConsole`](#pricinggovernanceconsole), accepted by
+`PricingGovernanceConsoleProps.defaultTab`.
+
+These ids are deep-link targets: consumers wire them from their own
+routing (e.g. a `?tab=sign-offs` query param), and external surfaces
+compose URLs against them. Renaming a member is a breaking change to
+every link in the wild, not just to this component's props.
 
 
 ### RetireModelPricingBaselineInput

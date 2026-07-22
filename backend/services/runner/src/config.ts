@@ -61,6 +61,14 @@ export interface Config {
   readonly stigmerBackendEndpoint: string;
   readonly stigmerToken: string | null;
   /**
+   * The MCP bridge endpoint for the runner-synthesized datastore
+   * records attachment (STIGMER_MCP_BRIDGE_ENDPOINT, e.g.
+   * https://mcp.stigmer.ai). Null selects the OSS/local shape: a
+   * spawned `stigmer mcp-server` stdio child against the local backend.
+   * See shared/datastore-attachment.ts.
+   */
+  readonly mcpBridgeEndpoint: string | null;
+  /**
    * Bearer credential for the Cursor SDK's Connect RPC transport.
    *
    * - Direct mode: the real Cursor API key (authenticates with Cursor directly).
@@ -153,6 +161,8 @@ export function loadConfig(): Config {
     ? requireEnv("STIGMER_TOKEN")
     : (process.env.STIGMER_TOKEN ?? null);
 
+  const mcpBridgeEndpoint = process.env.STIGMER_MCP_BRIDGE_ENDPOINT ?? null;
+
   // In proxy mode, pass STIGMER_TOKEN as the SDK's API key. The SDK exchanges
   // it (via REST proxy → Tomcat → Cursor) for an access token. The HTTP/2
   // interceptor injects x-stigmer-auth for BiDi proxy authentication while
@@ -202,6 +212,7 @@ export function loadConfig(): Config {
     temporalNamespace,
     stigmerBackendEndpoint,
     stigmerToken,
+    mcpBridgeEndpoint,
     cursorApiKey,
     workspaceRootDir,
     mode,

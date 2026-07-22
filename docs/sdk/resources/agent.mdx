@@ -213,6 +213,7 @@ const agent = await stigmer.agent.apply({
   skillRefs: [],
   subAgents: [],
   env: {},
+  datastoreUsages: [],
 });
 ```
 </Tab>
@@ -230,6 +231,7 @@ agent, err := client.Agent.Apply(ctx, &stigmer.AgentInput{
   SkillRefs:       []stigmer.ResourceRef{},
   SubAgents:       []stigmer.SubAgentInput{},
   Env:             map[string]string{},
+  DatastoreUsages: []stigmer.DatastoreUsageInput{},
 })
 ```
 </Tab>
@@ -247,6 +249,7 @@ agent = client.agents.apply(AgentInput(
     skill_refs=[],
     sub_agents=[],
     env={},
+    datastore_usages=[],
 ))
 ```
 </Tab>
@@ -264,6 +267,7 @@ Agent agent = client.agents().apply(AgentInput.builder()
     .skillRefs(List.of())
     .subAgents(List.of())
     .env(Map.of())
+    .datastoreUsages(List.of())
     .build());
 ```
 </Tab>
@@ -292,6 +296,7 @@ const agent = await stigmer.agent.create({
   skillRefs: [],
   subAgents: [],
   env: {},
+  datastoreUsages: [],
 });
 ```
 </Tab>
@@ -309,6 +314,7 @@ agent, err := client.Agent.Create(ctx, &stigmer.AgentInput{
   SkillRefs:       []stigmer.ResourceRef{},
   SubAgents:       []stigmer.SubAgentInput{},
   Env:             map[string]string{},
+  DatastoreUsages: []stigmer.DatastoreUsageInput{},
 })
 ```
 </Tab>
@@ -326,6 +332,7 @@ agent = client.agents.create(AgentInput(
     skill_refs=[],
     sub_agents=[],
     env={},
+    datastore_usages=[],
 ))
 ```
 </Tab>
@@ -343,6 +350,7 @@ Agent agent = client.agents().create(AgentInput.builder()
     .skillRefs(List.of())
     .subAgents(List.of())
     .env(Map.of())
+    .datastoreUsages(List.of())
     .build());
 ```
 </Tab>
@@ -371,6 +379,7 @@ const agent = await stigmer.agent.update({
   skillRefs: [],
   subAgents: [],
   env: {},
+  datastoreUsages: [],
 });
 ```
 </Tab>
@@ -388,6 +397,7 @@ agent, err := client.Agent.Update(ctx, &stigmer.AgentInput{
   SkillRefs:       []stigmer.ResourceRef{},
   SubAgents:       []stigmer.SubAgentInput{},
   Env:             map[string]string{},
+  DatastoreUsages: []stigmer.DatastoreUsageInput{},
 })
 ```
 </Tab>
@@ -405,6 +415,7 @@ agent = client.agents.update(AgentInput(
     skill_refs=[],
     sub_agents=[],
     env={},
+    datastore_usages=[],
 ))
 ```
 </Tab>
@@ -422,6 +433,7 @@ Agent agent = client.agents().update(AgentInput.builder()
     .skillRefs(List.of())
     .subAgents(List.of())
     .env(Map.of())
+    .datastoreUsages(List.of())
     .build());
 ```
 </Tab>
@@ -532,6 +544,7 @@ Input for creating or updating an Agent.
     skillRefs: { type: "ResourceRef[]", description: "Skill resources providing additional knowledge to the agent.", typeDescriptionLink: "#resourceref" },
     subAgents: { type: "SubAgentInput[]", description: "Sub-agents that can be delegated to.", typeDescriptionLink: "#subagentinput" },
     env: { type: "Record<string, EnvVarDeclarationInput>", description: "Environment variable declarations for this agent.", typeDescriptionLink: "#envvardeclarationinput" },
+    datastoreUsages: { type: "DatastoreUsageInput[]", description: "Datastores this agent can use.", typeDescriptionLink: "#datastoreusageinput" },
   }}
 />
 
@@ -607,6 +620,16 @@ EnvVarDeclaration declares an environment variable required (or optionally accep
     isSecret: { type: "boolean", description: "Whether the resolved value should be treated as a secret." },
     description: { type: "string", description: "Human-readable description shown in the UI credential form." },
     optional: { type: "boolean", description: "Whether this variable is optional." },
+  }}
+/>
+
+### DatastoreUsageInput
+
+DatastoreUsage declares that this agent uses a Datastore resource.
+
+<TypeTable
+  type={{
+    datastoreRef: { type: "ResourceRef", description: "Reference to the Datastore resource.", typeDescriptionLink: "#resourceref", required: true },
   }}
 />
 

@@ -55,7 +55,11 @@ import { DeltaEnricher } from "./delta-enricher.js";
 import { TodoTracker } from "./todo-tracker.js";
 import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { createCursorEventRecorder } from "./cursor-event-recorder.js";
-import { resolveMcpServers, validateMcpServerEnv } from "./mcp-resolver.js";
+import { resolveMcpServers, toCursorMcpConfig, validateMcpServerEnv } from "./mcp-resolver.js";
+import {
+  injectDatastoreAttachment,
+  synthesizeDatastoreAttachment,
+} from "../../shared/datastore-attachment.js";
 import { mergeApprovalPolicies } from "./approval-policy.js";
 import { deriveActiveLeases, isUnattendedApprovalMode } from "../../shared/approval-policy.js";
 import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
@@ -583,6 +587,33 @@ async function executeCursorInner(
       client, mcpResolution, blueprint.mergedMcpServerUsages, envVars, sessionOrg,
       heartbeat, secretKeys,
     );
+
+    // Phase 4a2: Synthesize the datastore records attachment (T05).
+    // Deliberately AFTER resolve + backfill: the attachment has no
+    // McpServerUsage and reports discovered capabilities, so the
+    // backfill's destructiveHint tightener can never force-gate
+    // delete_record (which on channels would be silently skipped).
+    // Empty approval maps keep it approval-free by construction.
+    if (blueprint.datastoreUsages.length > 0) {
+      const scopedCredential =
+        (await client.acquireScopedRunnerToken({ agentExecutionId: executionId }))
+        ?? config.stigmerTokenRef?.current
+        ?? config.stigmerToken;
+      const attachment = synthesizeDatastoreAttachment(blueprint.datastoreUsages, {
+        bridgeEndpoint: config.mcpBridgeEndpoint,
+        credential: scopedCredential,
+        backendEndpoint: config.stigmerBackendEndpoint,
+      });
+      if (attachment) {
+        const resolvedServers = injectDatastoreAttachment(
+          mcpResolution.resolvedServers, attachment,
+        );
+        mcpResolution = {
+          resolvedServers,
+          cursorConfig: toCursorMcpConfig(resolvedServers),
+        };
+      }
+    }
     const mcpConfig = mcpResolution.cursorConfig;
 
     // Phase 4b: Merge approval policies from all layers.
@@ -920,6 +951,7 @@ async function executeCursorInner(
       instructions: blueprint.instructions,
       userMessage: spec.message,
       skills: skillMetadata,
+      datastoreUsages: blueprint.datastoreUsages,
       subAgents: blueprint.subAgents,
       workspaceDirs: blueprint.workspaceDirs,
       workspaceFileRefs: spec.workspaceFileRefs ?? [],
@@ -1500,6 +1532,7 @@ async function executeCursorInner(
             instructions: blueprint.instructions,
             userMessage: spec.message,
             skills: skillMetadata,
+            datastoreUsages: blueprint.datastoreUsages,
             subAgents: blueprint.subAgents,
             workspaceDirs: blueprint.workspaceDirs,
             workspaceFileRefs: spec.workspaceFileRefs ?? [],
@@ -2056,6 +2089,8 @@ export interface BuildPromptInput {
   instructions: string;
   userMessage: string;
   skills: import("./prompt-builder.js").SkillMetadata[];
+  /** Datastores attached via `datastore_usages` — the `<available_datastores>` section. */
+  datastoreUsages?: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").DatastoreUsage[];
   subAgents: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent[];
   workspaceDirs: string[];
   workspaceFileRefs: string[];
@@ -2155,6 +2190,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     instructions,
     userMessage,
     skills,
+    datastoreUsages: input.datastoreUsages ?? [],
     subAgents,
     workspaceDirs,
     workspaceFileRefs,

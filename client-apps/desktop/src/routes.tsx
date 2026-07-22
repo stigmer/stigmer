@@ -28,6 +28,8 @@ const SkillListPage = lazy(() => import("./pages/library/SkillListPage"));
 const SkillDetailPage = lazy(() => import("./pages/library/SkillDetailPage"));
 const McpServerListPage = lazy(() => import("./pages/library/McpServerListPage"));
 const McpServerDetailPage = lazy(() => import("./pages/library/McpServerDetailPage"));
+const DatastoreListPage = lazy(() => import("./pages/library/DatastoreListPage"));
+const DatastoreDetailPage = lazy(() => import("./pages/library/DatastoreDetailPage"));
 const AgentNewPage = lazy(() => import("./pages/library/AgentNewPage"));
 const SkillNewPage = lazy(() => import("./pages/library/SkillNewPage"));
 const McpServerNewPage = lazy(() => import("./pages/library/McpServerNewPage"));
@@ -41,6 +43,7 @@ const SettingsLayout = lazy(() => import("./pages/settings/SettingsLayout"));
 const SettingsLanding = lazy(() => import("./pages/settings/SettingsLanding"));
 const BillingPage = lazy(() => import("./pages/settings/BillingPage"));
 const PricingGovernancePage = lazy(() => import("./pages/settings/PricingGovernancePage"));
+const CursorAccountsPage = lazy(() => import("./pages/settings/CursorAccountsPage"));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -169,6 +172,22 @@ const routes: RouteObject[] = [
             ),
           },
           {
+            path: "datastores",
+            element: (
+              <LazyPage>
+                <DatastoreListPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "datastores/:org/:slug",
+            element: (
+              <LazyPage>
+                <DatastoreDetailPage />
+              </LazyPage>
+            ),
+          },
+          {
             path: "workflows",
             element: (
               <LazyPage>
@@ -255,6 +274,14 @@ const routes: RouteObject[] = [
                 element: (
                   <LazyPage>
                     <PricingGovernancePage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: "cursor-accounts",
+                element: (
+                  <LazyPage>
+                    <CursorAccountsPage />
                   </LazyPage>
                 ),
               },

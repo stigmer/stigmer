@@ -361,6 +361,9 @@ func generateTSResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, 
 
 	for _, svc := range schema.Services {
 		for _, m := range svc.Methods {
+			if searchListSupersedesMethod(schema, &m) {
+				continue
+			}
 			if m.InputType == "ApiResourceId" {
 				needsApiResourceId = true
 			}
@@ -477,6 +480,9 @@ func generateTSResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, 
 
 	for _, svc := range schema.Services {
 		for _, m := range svc.Methods {
+			if searchListSupersedesMethod(schema, &m) {
+				continue
+			}
 			body.WriteString("\n")
 			generateTSMethod(&body, &m, &svc, schema, cfg, hasInputType, imports)
 		}
@@ -873,6 +879,10 @@ func tsTypeForTypeSpec(ts *TypeSpec, imports *tsImportSet, _ string) string {
 	case "struct":
 		imports.addType("@bufbuild/protobuf", "JsonObject")
 		return "JsonObject"
+	case "value":
+		// google.protobuf.Value — protobuf-es represents it natively as JSON.
+		imports.addType("@bufbuild/protobuf", "JsonValue")
+		return "JsonValue"
 	case "array":
 		if ts.ElementType != nil {
 			elemType := tsTypeForTypeSpec(ts.ElementType, imports, "")
@@ -923,6 +933,11 @@ func tsTypeForTypeSpec(ts *TypeSpec, imports *tsImportSet, _ string) string {
 func tsFieldNeedsConversion(f *FieldSchema) bool {
 	switch {
 	case f.Type.Kind == "timestamp":
+		return true
+	case f.Type.Kind == "value":
+		// google.protobuf.Value FIELDS are Value messages in protobuf-es
+		// (unlike Struct fields, which are plain JsonObject) — the input's
+		// JsonValue must be converted via fromJson(ValueSchema, …).
 		return true
 	case f.Type.Kind == "message":
 		return true
@@ -1136,6 +1151,11 @@ func emitTSPreComputeField(buf *bytes.Buffer, f *FieldSchema, typeMap map[string
 		imports.addValue("./proto-utils", "toTimestamp")
 		fmt.Fprintf(buf, "  const %s = input.%s !== undefined ? toTimestamp(input.%s) : undefined;\n", fieldName, fieldName, fieldName)
 
+	case f.Type.Kind == "value":
+		imports.addValue("@bufbuild/protobuf", "fromJson")
+		imports.addValue("@bufbuild/protobuf/wkt", "ValueSchema")
+		fmt.Fprintf(buf, "  const %s = input.%s !== undefined ? fromJson(ValueSchema, input.%s) : undefined;\n", fieldName, fieldName, fieldName)
+
 	case f.Type.Kind == "message" && f.Type.MessageType == "EnvironmentSpec":
 		imports.addValue("@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb", "EnvironmentSpecSchema")
 		imports.addValue("@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb", "EnvironmentValueSchema")
@@ -1240,7 +1260,15 @@ func emitTSNestedBuilders(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]
 		fmt.Fprintf(buf, "  return Object.assign(create(%sSchema), stripUndefined({\n", msgName)
 		for _, field := range ts.Fields {
 			fn := tsProtoFieldName(field.ProtoField)
-			fmt.Fprintf(buf, "    %s: input.%s,\n", fn, fn)
+			if field.Type.Kind == "value" {
+				// Value fields need JsonValue → Value message conversion
+				// (see tsFieldNeedsConversion).
+				imports.addValue("@bufbuild/protobuf", "fromJson")
+				imports.addValue("@bufbuild/protobuf/wkt", "ValueSchema")
+				fmt.Fprintf(buf, "    %s: input.%s !== undefined ? fromJson(ValueSchema, input.%s) : undefined,\n", fn, fn, fn)
+			} else {
+				fmt.Fprintf(buf, "    %s: input.%s,\n", fn, fn)
+			}
 		}
 		fmt.Fprintf(buf, "  }));\n")
 		fmt.Fprintf(buf, "}\n\n")
@@ -1310,6 +1338,13 @@ func emitTSNestedFieldAssign(buf *bytes.Buffer, f *FieldSchema, typeMap map[stri
 	case f.Type.Kind == "timestamp":
 		imports.addValue("./proto-utils", "toTimestamp")
 		fmt.Fprintf(buf, "  if (input.%s !== undefined) msg.%s = toTimestamp(input.%s);\n", fieldName, fieldName, fieldName)
+
+	case f.Type.Kind == "value":
+		// Value fields need JsonValue → Value message conversion
+		// (see tsFieldNeedsConversion).
+		imports.addValue("@bufbuild/protobuf", "fromJson")
+		imports.addValue("@bufbuild/protobuf/wkt", "ValueSchema")
+		fmt.Fprintf(buf, "  if (input.%s !== undefined) msg.%s = fromJson(ValueSchema, input.%s);\n", fieldName, fieldName, fieldName)
 
 	case f.Type.Kind == "string" || f.Type.Kind == "bool" || f.Type.Kind == "int32" ||
 		f.Type.Kind == "int64" || f.Type.Kind == "uint32" || f.Type.Kind == "float" ||

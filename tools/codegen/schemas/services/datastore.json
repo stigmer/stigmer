@@ -1,0 +1,1557 @@
+{
+  "resource": "datastore",
+  "package": "ai.stigmer.agentic.datastore.v1",
+  "goImportPath": "datastorev1",
+  "services": [
+    {
+      "name": "DatastoreCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/datastore/v1/command.proto",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "Datastore",
+          "inputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
+          "outputType": "Datastore",
+          "outputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
+          "description": "Create or update a datastore.\n\n @internal\n The authorization and state-operation are determined depending on\n whether the datastore is going to be created or updated, which is\n resolved as part of the request execution. Schema sync runs as a\n synchronous, gating step after persist (additive-plus change\n matrix); removing a non-empty collection requires the\n datastore.stigmer.ai/acknowledge-collection-removal annotation\n naming it, otherwise the request fails with FAILED_PRECONDITION."
+        },
+        {
+          "name": "Create",
+          "inputType": "Datastore",
+          "inputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
+          "outputType": "Datastore",
+          "outputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
+          "description": "Create a datastore.\n\n @internal\n Authorization: caller must have can_create_datastore permission in\n the organization. Max datastores per org is enforced as a domain\n validation constant in this pipeline."
+        },
+        {
+          "name": "Update",
+          "inputType": "Datastore",
+          "inputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
+          "outputType": "Datastore",
+          "outputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
+          "description": "Update an existing datastore.\n\n @internal\n Authorization: requires can_edit permission on the datastore\n resource. Updates are full spec replaces; the gating schema-sync\n step diffs against the loaded existing spec and applies the\n additive-plus change matrix (DD-004): no transition silently\n destroys or nulls record data."
+        },
+        {
+          "name": "UpdateVisibility",
+          "inputType": "UpdateVisibilityInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+          "outputType": "Datastore",
+          "outputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
+          "description": "Update the visibility of an existing datastore.\n\n Only modifies metadata.visibility. Datastores support two levels:\n private (the default) and org. Setting org shares the datastore\n with the owning organization for human administration; it does not\n change record-layer access, which is governed solely by the\n datastore's authorization block and agent datastore_usages.\n\n @internal\n Authorization: requires can_edit permission on the datastore\n resource. public/platform levels are rejected via the kind's\n VisibilityConfig (supports_org only) — business records must never\n be resolvable across the org boundary."
+        },
+        {
+          "name": "Delete",
+          "inputType": "ApiResourceDeleteInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
+          "outputType": "Datastore",
+          "outputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
+          "description": "Delete a datastore and every record it holds.\n\n Deleting a non-empty datastore requires force: without it the\n request fails with FAILED_PRECONDITION reporting how many records\n across how many collections would be destroyed. A datastore\n referenced by any agent's datastore_usages cannot be deleted until\n the references are removed.\n\n @internal\n Authorization: requires can_edit permission on the datastore\n resource. The two guards (record-count acknowledgment via force;\n agent-reference block, never forceable) run in the delete pipeline\n of both editions. Record tools never delete structures — this RPC\n is the only path that destroys collections."
+        }
+      ]
+    },
+    {
+      "name": "DatastoreQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/datastore/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "ApiResourceId",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
+          "outputType": "Datastore",
+          "outputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
+          "description": "Get a datastore by ID.\n\n @internal\n Authorization: requires can_view permission on the datastore resource."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "Datastore",
+          "outputFullType": "ai.stigmer.agentic.datastore.v1.Datastore",
+          "description": "Get a datastore by its organization-scoped reference (org/slug).\n Resolves a human-readable reference like \"acme/clinic-records\" to the full Datastore resource.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
+        },
+        {
+          "name": "List",
+          "inputType": "ListDatastoresRequest",
+          "inputFullType": "ai.stigmer.agentic.datastore.v1.ListDatastoresRequest",
+          "outputType": "DatastoreList",
+          "outputFullType": "ai.stigmer.agentic.datastore.v1.DatastoreList",
+          "description": "List datastores with optional label filtering.\n\n @internal\n Authorization is handled in-handler via FGA-filtered queries (cloud)\n or unrestricted store queries (OSS)."
+        }
+      ]
+    },
+    {
+      "name": "DatastoreRecordCommandController",
+      "role": "datastoreRecordCommand",
+      "protoFile": "ai/stigmer/agentic/datastore/v1/record_command.proto",
+      "methods": [
+        {
+          "name": "InsertRecord",
+          "inputType": "InsertRecordRequest",
+          "inputFullType": "ai.stigmer.agentic.datastore.v1.InsertRecordRequest",
+          "outputType": "RecordEnvelope",
+          "outputFullType": "ai.stigmer.agentic.datastore.v1.RecordEnvelope",
+          "description": "Insert a record into a collection.\n\n Requires the insert verb on the collection. System fields are\n server-stamped; supplying them is rejected. Returns the full record\n envelope.\n\n @internal\n The only non-idempotent record operation; declared uniques are the\n duplicate guard (a retried insert violating a unique returns\n ALREADY_EXISTS, never a duplicate). Insert idempotency keys are a\n recorded growth path."
+        },
+        {
+          "name": "UpdateRecord",
+          "inputType": "UpdateRecordRequest",
+          "inputFullType": "ai.stigmer.agentic.datastore.v1.UpdateRecordRequest",
+          "outputType": "RecordEnvelope",
+          "outputFullType": "ai.stigmer.agentic.datastore.v1.RecordEnvelope",
+          "description": "Update a record by id with a partial merge.\n\n Requires the update verb on the collection (own scope limits it to\n records the caller created). Only supplied fields change; an\n explicit null clears a field; constraints evaluate on the merged\n result. Returns the full record envelope."
+        },
+        {
+          "name": "DeleteRecord",
+          "inputType": "DeleteRecordRequest",
+          "inputFullType": "ai.stigmer.agentic.datastore.v1.DeleteRecordRequest",
+          "outputType": "RecordEnvelope",
+          "outputFullType": "ai.stigmer.agentic.datastore.v1.RecordEnvelope",
+          "description": "Delete a record by id.\n\n Requires the delete verb on the collection (own scope limits it to\n records the caller created). Returns the deleted record's envelope."
+        }
+      ]
+    },
+    {
+      "name": "DatastoreRecordQueryController",
+      "role": "datastoreRecordQuery",
+      "protoFile": "ai/stigmer/agentic/datastore/v1/record_query.proto",
+      "methods": [
+        {
+          "name": "FindRecords",
+          "inputType": "FindRecordsRequest",
+          "inputFullType": "ai.stigmer.agentic.datastore.v1.FindRecordsRequest",
+          "outputType": "RecordList",
+          "outputFullType": "ai.stigmer.agentic.datastore.v1.RecordList",
+          "description": "Find records in a collection with a typed filter.\n\n Requires the read verb on the collection. Results are paginated\n (default 25, max 100) and deterministically ordered.\n\n @internal\n An own-scoped read grant composes the scope into the query as an\n inexpressible conjunction — callers can neither relax nor observe\n it."
+        },
+        {
+          "name": "DescribeDatastore",
+          "inputType": "DescribeDatastoreRequest",
+          "inputFullType": "ai.stigmer.agentic.datastore.v1.DescribeDatastoreRequest",
+          "outputType": "DatastoreDescription",
+          "outputFullType": "ai.stigmer.agentic.datastore.v1.DatastoreDescription",
+          "description": "Describe a datastore's collections, fields, constraints, and the\n caller's effective verbs per collection.\n\n Requires reach only (no per-collection verb): a caller with no\n grants sees the schema with empty access lists.\n\n @internal\n The effective-verb resolution runs the same Layer 2 chain as record\n operations, at describe time. Operator state (bindings, seeds, sync\n report) is deliberately excluded from the projection."
+        }
+      ]
+    }
+  ],
+  "listVia": "SearchService",
+  "methodTypes": [
+    {
+      "name": "UpdateVisibilityInput",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to change visibility.\n Each controller's updateVisibility RPC accepts this shared input\n and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode. Each\n level maps to exactly one tuple shape; on a transition the tuple for the\n old level is removed and the tuple for the new level is created:\n - PRIVATE:  no visibility tuple (owner + explicit grants only)\n - ORG:      resource#viewer@organization:\u003corg\u003e#member\n - PUBLIC:   resource#viewer@identity_account:* (gated by allow_public)\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n\n Not all resources support all visibility levels — the supported set is\n declared per kind via VisibilityConfig in kind_meta:\n - Blueprints (agent, workflow, skill, mcp_server):\n     PRIVATE, ORG, PUBLIC, or PLATFORM\n - Instances (agent_instance, workflow_instance):\n     PRIVATE, ORG, or PUBLIC (never PLATFORM — tenant isolation)\n\n System-managed DEFAULT instances reject visibility updates entirely:\n their access structurally tracks the parent blueprint via the\n default_of FGA relation.",
+      "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource whose visibility is being updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Visibility",
+          "jsonName": "visibility",
+          "protoField": "visibility",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+            "enumValues": [
+              "visibility_private",
+              "visibility_public",
+              "visibility_org",
+              "visibility_platform"
+            ]
+          },
+          "description": "The new visibility setting for the resource.\n Must not be unspecified (0). Valid values depend on resource kind —\n see the VisibilityConfig in the kind's kind_meta.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource.\n\n When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens,\n starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\".\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form).\n\n Use empty org for same-org references (the common case).\n Use explicit org for cross-org references (e.g., marketplace resources).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "iam_policy",
+              "identity_account",
+              "api_key",
+              "invitation",
+              "identity_provider",
+              "oauth_app",
+              "platform_client",
+              "organization",
+              "platform",
+              "agent",
+              "agent_execution",
+              "session",
+              "skill",
+              "mcp_server",
+              "agent_instance",
+              "agent_share",
+              "agent_channel",
+              "channel_app",
+              "datastore",
+              "workflow",
+              "workflow_instance",
+              "workflow_execution",
+              "environment",
+              "artifact",
+              "execution_context",
+              "project"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter\n and end with a letter or digit (e.g., \"web-search\", \"code-reviewer\").\n Length: 2-63 characters.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListDatastoresRequest",
+      "description": "ListDatastoresRequest specifies parameters for listing datastores.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.ListDatastoresRequest",
+      "protoFile": "apis/ai/stigmer/agentic/datastore/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization to list datastores for.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Filter by metadata labels. AND semantics: the resource must match all provided labels.",
+          "required": false
+        },
+        {
+          "name": "PageInfo",
+          "jsonName": "pageInfo",
+          "protoField": "page_info",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination options.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DatastoreList",
+      "description": "DatastoreList contains a paginated list of datastores.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.DatastoreList",
+      "protoFile": "apis/ai/stigmer/agentic/datastore/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total count of matching datastores.",
+          "required": false
+        },
+        {
+          "name": "Items",
+          "jsonName": "items",
+          "protoField": "items",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "Datastore"
+            }
+          },
+          "description": "Datastores in the current page.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "InsertRecordRequest",
+      "description": "InsertRecordRequest inserts one record into a collection.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.InsertRecordRequest",
+      "protoFile": "apis/ai/stigmer/agentic/datastore/v1/record_io.proto",
+      "fields": [
+        {
+          "name": "Datastore",
+          "jsonName": "datastore",
+          "protoField": "datastore",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Datastore slug.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Collection",
+          "jsonName": "collection",
+          "protoField": "collection",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Collection to insert into.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Record",
+          "jsonName": "record",
+          "protoField": "record",
+          "type": {
+            "kind": "struct"
+          },
+          "description": "Declared field values in their canonical encodings. System field\n names are rejected.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Partition",
+          "jsonName": "partition",
+          "protoField": "partition",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Data partition to insert into. Unset means the \"default\" partition.\n\n @internal\n Same dispatch as FindRecordsRequest.partition: direct principals\n only; server-derived (and rejected if supplied) for session-bound\n callers. A partition's first write registers it in the datastore's\n partition catalog (DD-010 SD-3).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.\n\n @internal\n Same dispatch as FindRecordsRequest.org.",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
+        }
+      ]
+    },
+    {
+      "name": "RecordEnvelope",
+      "description": "RecordEnvelope is a record as returned by every record RPC:\n server-managed system fields plus the declared fields.\n\n @internal\n System fields are server-stamped and never caller-writable on any\n surface. Record ids follow the platform id convention with prefix\n `dsr` (dsr_\u003clowercase-ulid\u003e). created_by carries the DD-002\n attribution subject; own-scoped grants resolve against it, and the\n grant system is the privacy boundary for exposing it (own-scoped\n readers only ever see themselves).",
+      "protoType": "ai.stigmer.agentic.datastore.v1.RecordEnvelope",
+      "protoFile": "apis/ai/stigmer/agentic/datastore/v1/record_io.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Server-issued record identifier, opaque and immutable.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the record was inserted.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the record was last updated.",
+          "required": false
+        },
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "DatastoreSubject"
+          },
+          "description": "The verified caller identity that inserted the record.",
+          "required": false
+        },
+        {
+          "name": "Fields",
+          "jsonName": "fields",
+          "protoField": "fields",
+          "type": {
+            "kind": "struct"
+          },
+          "description": "Declared field values in their canonical encodings.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateRecordRequest",
+      "description": "UpdateRecordRequest updates one record by id with a partial merge.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.UpdateRecordRequest",
+      "protoFile": "apis/ai/stigmer/agentic/datastore/v1/record_io.proto",
+      "fields": [
+        {
+          "name": "Datastore",
+          "jsonName": "datastore",
+          "protoField": "datastore",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Datastore slug.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Collection",
+          "jsonName": "collection",
+          "protoField": "collection",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Collection holding the record.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Id of the record to update.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Fields",
+          "jsonName": "fields",
+          "protoField": "fields",
+          "type": {
+            "kind": "struct"
+          },
+          "description": "Fields to change. Only supplied fields change; an explicit null\n clears a field. Constraints evaluate on the merged result. System\n field names are rejected.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Partition",
+          "jsonName": "partition",
+          "protoField": "partition",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Data partition holding the record. Unset means the \"default\"\n partition. A record in another partition is NOT_FOUND.\n\n @internal\n Same dispatch as FindRecordsRequest.partition.",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.\n\n @internal\n Same dispatch as FindRecordsRequest.org.",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
+        }
+      ]
+    },
+    {
+      "name": "DeleteRecordRequest",
+      "description": "DeleteRecordRequest deletes one record by id.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.DeleteRecordRequest",
+      "protoFile": "apis/ai/stigmer/agentic/datastore/v1/record_io.proto",
+      "fields": [
+        {
+          "name": "Datastore",
+          "jsonName": "datastore",
+          "protoField": "datastore",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Datastore slug.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Collection",
+          "jsonName": "collection",
+          "protoField": "collection",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Collection holding the record.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Id of the record to delete.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Partition",
+          "jsonName": "partition",
+          "protoField": "partition",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Data partition holding the record. Unset means the \"default\"\n partition. A record in another partition is NOT_FOUND.\n\n @internal\n Same dispatch as FindRecordsRequest.partition.",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.\n\n @internal\n Same dispatch as FindRecordsRequest.org.",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
+        }
+      ]
+    },
+    {
+      "name": "FindRecordsRequest",
+      "description": "FindRecordsRequest selects records from one collection.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.FindRecordsRequest",
+      "protoFile": "apis/ai/stigmer/agentic/datastore/v1/record_io.proto",
+      "fields": [
+        {
+          "name": "Datastore",
+          "jsonName": "datastore",
+          "protoField": "datastore",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Datastore slug, resolved within the organization named by `org` —\n records never cross the org boundary.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Collection",
+          "jsonName": "collection",
+          "protoField": "collection",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Collection to query.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Filter",
+          "jsonName": "filter",
+          "protoField": "filter",
+          "type": {
+            "kind": "message",
+            "messageType": "RecordFilter"
+          },
+          "description": "Conditions records must match. Empty returns all readable records.",
+          "required": false
+        },
+        {
+          "name": "OrderBy",
+          "jsonName": "orderBy",
+          "protoField": "order_by",
+          "type": {
+            "kind": "message",
+            "messageType": "RecordOrderBy"
+          },
+          "description": "Sort order. Unset defaults to created_at descending with id as\n tiebreak (deterministic pagination).",
+          "required": false
+        },
+        {
+          "name": "Limit",
+          "jsonName": "limit",
+          "protoField": "limit",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Page size. Unset defaults to 25; maximum 100.",
+          "required": false,
+          "validation": {
+            "max": 100
+          }
+        },
+        {
+          "name": "Offset",
+          "jsonName": "offset",
+          "protoField": "offset",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Number of records to skip.",
+          "required": false
+        },
+        {
+          "name": "Partition",
+          "jsonName": "partition",
+          "protoField": "partition",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Data partition to read from. Unset means the \"default\" partition.\n\n @internal\n Honored for direct platform principals only (console, CLI, SDK,\n import). Session-bound runner credentials get their partition\n server-derived from the session's agent instance (DD-010 SD-2) and\n are rejected with INVALID_ARGUMENT if they supply one — no second\n channel, mirroring the sender-identity posture.",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the datastore belongs to. Direct callers (console,\n CLI, SDK, import) set it; unset resolves from the caller's context.\n\n @internal\n Session-bound runner credentials leave it empty — their org is\n server-derived from the session (DD-006 reach chain, lands with\n T05). In the OSS edition every slug resolves against the local\n system org, and a non-matching explicit org is NOT_FOUND (records\n stay home).",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
+        }
+      ]
+    },
+    {
+      "name": "RecordList",
+      "description": "RecordList is a page of records with pagination totals.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.RecordList",
+      "protoFile": "apis/ai/stigmer/agentic/datastore/v1/record_io.proto",
+      "fields": [
+        {
+          "name": "Records",
+          "jsonName": "records",
+          "protoField": "records",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "RecordEnvelope"
+            }
+          },
+          "description": "Records in the current page.",
+          "required": false
+        },
+        {
+          "name": "Total",
+          "jsonName": "total",
+          "protoField": "total",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total count of records matching the filter.",
+          "required": false
+        },
+        {
+          "name": "Limit",
+          "jsonName": "limit",
+          "protoField": "limit",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Limit applied to this page.",
+          "required": false
+        },
+        {
+          "name": "Offset",
+          "jsonName": "offset",
+          "protoField": "offset",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Offset applied to this page.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DescribeDatastoreRequest",
+      "description": "DescribeDatastoreRequest asks for a datastore as the caller\n experiences it.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.DescribeDatastoreRequest",
+      "protoFile": "apis/ai/stigmer/agentic/datastore/v1/record_io.proto",
+      "fields": [
+        {
+          "name": "Datastore",
+          "jsonName": "datastore",
+          "protoField": "datastore",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Datastore slug.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.\n\n @internal\n Same dispatch as FindRecordsRequest.org.",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
+        }
+      ]
+    },
+    {
+      "name": "DatastoreDescription",
+      "description": "DatastoreDescription is a datastore's schema and the calling\n subject's effective access, for agent and client discovery.\n\n @internal\n The projection deliberately excludes operator state (bindings, seed\n records, sync report): a caller learns the shape of the data and what\n it may do, never who else has access.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.DatastoreDescription",
+      "protoFile": "apis/ai/stigmer/agentic/datastore/v1/record_io.proto",
+      "fields": [
+        {
+          "name": "Datastore",
+          "jsonName": "datastore",
+          "protoField": "datastore",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Datastore slug.",
+          "required": false
+        },
+        {
+          "name": "Description",
+          "jsonName": "description",
+          "protoField": "description",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Datastore description from the spec.",
+          "required": false
+        },
+        {
+          "name": "Timezone",
+          "jsonName": "timezone",
+          "protoField": "timezone",
+          "type": {
+            "kind": "string"
+          },
+          "description": "IANA timezone bound as `tz` in constraint evaluation.",
+          "required": false
+        },
+        {
+          "name": "Collections",
+          "jsonName": "collections",
+          "protoField": "collections",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "CollectionDescription"
+            }
+          },
+          "description": "Collections with schema and caller-effective access.",
+          "required": false
+        },
+        {
+          "name": "Partitions",
+          "jsonName": "partitions",
+          "protoField": "partitions",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string"
+            }
+          },
+          "description": "Data partitions that hold records, from the partition catalog.\n Always includes \"default\".\n\n @internal\n Partitions are labels on data, never resources (DD-010 SD-3): a\n partition appears here after its first write registers it in the\n catalog. The console's partition picker is fed from this list; for\n agent callers it is harmless metadata (their partition is\n server-derived and not selectable).",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#member tuple (all org members)\n - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n   (all members of all organizations managed by the owning org's\n   IdentityProvider)",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "All members of the owning organization can access (read) this resource.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#member\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: all org members see all executions via inheritance."
+        },
+        {
+          "name": "visibility_platform",
+          "number": 4,
+          "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": "External tool server connected via the Model Context Protocol."
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": "Configured deployment of an agent with environment-specific overrides."
+        },
+        {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
+        },
+        {
+          "name": "agent_channel",
+          "number": 47,
+          "description": "Connection binding an agent to an external messaging platform workspace."
+        },
+        {
+          "name": "channel_app",
+          "number": 48,
+          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
+        },
+        {
+          "name": "datastore",
+          "number": 49,
+          "description": "Declared collections of typed business records with role-aware access\n grants; agents read and write records through grant-checked tools."
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": "Configured deployment of a workflow with environment-specific bindings."
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": "User-owned runtime context for managing execution state."
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Aggregate root grouping related resources for lifecycle management."
+        }
+      ]
+    },
+    {
+      "name": "DatastoreSyncOutcome",
+      "description": "DatastoreSyncOutcome is the result of a schema sync run.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.DatastoreSyncOutcome",
+      "values": [
+        {
+          "name": "synced",
+          "number": 1,
+          "description": "Every declared change applied."
+        },
+        {
+          "name": "rejected",
+          "number": 2,
+          "description": "The sync was rejected; the datastore retains its prior schema.\n\n @internal\n Rejections are whole-sync (gating step): a rejected transition\n (type change, add-required-without-default to a non-empty\n collection, constraint violated by existing records,\n unacknowledged collection removal) fails the apply/update RPC with\n FAILED_PRECONDITION, so a stored `rejected` outcome is only\n observable if the sync failed after persist — a fail-loud signal,\n never a partial schema."
+        }
+      ]
+    },
+    {
+      "name": "CollectionMaterializationState",
+      "description": "CollectionMaterializationState is the storage state of one collection.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.CollectionMaterializationState",
+      "values": [
+        {
+          "name": "pending",
+          "number": 1,
+          "description": "Declared but storage not yet provisioned."
+        },
+        {
+          "name": "active",
+          "number": 2,
+          "description": "Storage and indexes provisioned; the collection serves records."
+        },
+        {
+          "name": "removed",
+          "number": 3,
+          "description": "Removed from the spec with acknowledgment; retained data is no\n longer reachable through record RPCs."
+        }
+      ]
+    },
+    {
+      "name": "FieldType",
+      "description": "FieldType is the value type of a declared field.\n\n @internal\n Canonical encodings (DD-004): date is `YYYY-MM-DD`, time is\n zero-padded `HH:MM[:SS]` (both lexicographically chronological),\n timestamp is RFC 3339 UTC. json is an escape hatch — not\n constrainable or filterable in v1. The value is `bool`, not\n `boolean`, because protoc-java emits enum constants verbatim and\n `boolean` is a Java reserved word.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.FieldType",
+      "values": [
+        {
+          "name": "string",
+          "number": 1,
+          "description": ""
+        },
+        {
+          "name": "integer",
+          "number": 2,
+          "description": ""
+        },
+        {
+          "name": "number",
+          "number": 3,
+          "description": ""
+        },
+        {
+          "name": "bool",
+          "number": 4,
+          "description": ""
+        },
+        {
+          "name": "timestamp",
+          "number": 5,
+          "description": ""
+        },
+        {
+          "name": "date",
+          "number": 6,
+          "description": ""
+        },
+        {
+          "name": "time",
+          "number": 7,
+          "description": ""
+        },
+        {
+          "name": "json",
+          "number": 8,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "DatastoreVerb",
+      "description": "DatastoreVerb is an operation a grant can allow on records.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.DatastoreVerb",
+      "values": [
+        {
+          "name": "read",
+          "number": 1,
+          "description": ""
+        },
+        {
+          "name": "insert",
+          "number": 2,
+          "description": ""
+        },
+        {
+          "name": "update",
+          "number": 3,
+          "description": ""
+        },
+        {
+          "name": "delete",
+          "number": 4,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "DatastoreGrantScope",
+      "description": "DatastoreGrantScope is the row scope of a grant.\n\n @internal\n `own` resolves against the server-stamped created_by attribution\n only — callers can neither set nor observe it.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.DatastoreGrantScope",
+      "values": [
+        {
+          "name": "all",
+          "number": 1,
+          "description": ""
+        },
+        {
+          "name": "own",
+          "number": 2,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "RecordConditionOp",
+      "description": "RecordConditionOp is the comparison operator of a condition.\n\n @internal\n `is_in` rather than `in` because protoc emits enum constants verbatim\n and `in` is a reserved word in Java and Python.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.RecordConditionOp",
+      "values": [
+        {
+          "name": "eq",
+          "number": 1,
+          "description": ""
+        },
+        {
+          "name": "neq",
+          "number": 2,
+          "description": ""
+        },
+        {
+          "name": "gt",
+          "number": 3,
+          "description": ""
+        },
+        {
+          "name": "gte",
+          "number": 4,
+          "description": ""
+        },
+        {
+          "name": "lt",
+          "number": 5,
+          "description": ""
+        },
+        {
+          "name": "lte",
+          "number": 6,
+          "description": ""
+        },
+        {
+          "name": "is_in",
+          "number": 7,
+          "description": ""
+        },
+        {
+          "name": "not_in",
+          "number": 8,
+          "description": ""
+        },
+        {
+          "name": "is_null",
+          "number": 9,
+          "description": ""
+        },
+        {
+          "name": "not_null",
+          "number": 10,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "RecordSortDirection",
+      "description": "RecordSortDirection is the direction of a sort.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.RecordSortDirection",
+      "values": [
+        {
+          "name": "asc",
+          "number": 1,
+          "description": ""
+        },
+        {
+          "name": "desc",
+          "number": 2,
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "ConstraintKind",
+      "description": "ConstraintKind is the class of a declared constraint.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.ConstraintKind",
+      "values": [
+        {
+          "name": "unique",
+          "number": 1,
+          "description": ""
+        },
+        {
+          "name": "check",
+          "number": 2,
+          "description": ""
+        },
+        {
+          "name": "exists",
+          "number": 3,
+          "description": ""
+        },
+        {
+          "name": "not_exists",
+          "number": 4,
+          "description": ""
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "Datastore declares collections of typed business records that agents\n read and write through built-in, permission-checked tools.\n\n @internal\n Org-scoped. Deleting a datastore destroys business records, so delete\n is guarded: non-empty datastores require the force acknowledgment,\n and datastores referenced by any agent's datastore_usages are\n blocked. Collection removal on apply/update requires the\n datastore.stigmer.ai/acknowledge-collection-removal annotation.",
+  "statusType": {
+    "name": "DatastoreStatus",
+    "description": "DatastoreStatus contains system-managed state for a datastore:\n the schema sync report and per-collection materialization facts.\n\n @internal\n Written by the gating schema-sync step in the create/update pipelines\n of both editions. Server-owned: survives every apply/update verbatim.\n Record contents never appear here — counts only.",
+    "protoType": "ai.stigmer.agentic.datastore.v1.DatastoreStatus",
+    "protoFile": "apis/ai/stigmer/agentic/datastore/v1/status.proto",
+    "fields": [
+      {
+        "name": "LastSyncOutcome",
+        "jsonName": "lastSyncOutcome",
+        "protoField": "last_sync_outcome",
+        "type": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.datastore.v1.DatastoreSyncOutcome",
+          "enumValues": [
+            "synced",
+            "rejected"
+          ]
+        },
+        "description": "Outcome of the most recent schema sync.",
+        "required": false
+      },
+      {
+        "name": "LastSyncedAt",
+        "jsonName": "lastSyncedAt",
+        "protoField": "last_synced_at",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "When the most recent schema sync ran.",
+        "required": false
+      },
+      {
+        "name": "Collections",
+        "jsonName": "collections",
+        "protoField": "collections",
+        "type": {
+          "kind": "array",
+          "elementType": {
+            "kind": "message",
+            "messageType": "CollectionStatus"
+          }
+        },
+        "description": "Per-collection materialization state and counts.",
+        "required": false
+      },
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information.",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable display name (e.g. \"Ada Lovelace\"). Empty when unknown;\n renderers fall back to email, then id.",
+          "required": false
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "CollectionStatus",
+      "description": "CollectionStatus is the sync report for one declared collection.",
+      "protoType": "ai.stigmer.agentic.datastore.v1.CollectionStatus",
+      "protoFile": "apis/ai/stigmer/agentic/datastore/v1/status.proto",
+      "fields": [
+        {
+          "name": "Name",
+          "jsonName": "name",
+          "protoField": "name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Name of the declared collection.",
+          "required": false
+        },
+        {
+          "name": "State",
+          "jsonName": "state",
+          "protoField": "state",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.datastore.v1.CollectionMaterializationState",
+            "enumValues": [
+              "pending",
+              "active",
+              "removed"
+            ]
+          },
+          "description": "Materialization state of the collection's storage.",
+          "required": false
+        },
+        {
+          "name": "RecordCount",
+          "jsonName": "recordCount",
+          "protoField": "record_count",
+          "type": {
+            "kind": "int64"
+          },
+          "description": "Number of records currently in the collection.\n\n @internal\n Computed during sync; a health indicator, not a live counter.",
+          "required": false
+        },
+        {
+          "name": "MaterializedAt",
+          "jsonName": "materializedAt",
+          "protoField": "materialized_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the collection was first materialized.",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

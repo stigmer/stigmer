@@ -36,6 +36,7 @@ beforeAll(async () => {
     stigmerServerAddress: "localhost:7234",
     apiKey: "",
     transport: "http",
+    roster: "full",
     httpPort: String(port),
     httpAuthEnabled: true,
     oauth: {

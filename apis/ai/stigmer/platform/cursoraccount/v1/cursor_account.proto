@@ -1,0 +1,193 @@
+syntax = "proto3";
+
+package ai.stigmer.platform.cursoraccount.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// CursorAccount is one managed Cursor team: the platform-operator resource
+// that replaces the single STIGMER_PROXY_CURSOR_API_KEY env var as the
+// source of Cursor credentials for the cursor harness.
+//
+// One document = one Cursor team. It carries two credential classes with
+// strictly different capabilities (verified empirically 2026-07-22, see the
+// harness-cost-parity T04 probe note):
+//
+//   - the team ADMIN key ("Team API Keys" dashboard tab) — works ONLY
+//     against the Cursor Admin API (roster, spend, usage events). It can
+//     NEVER run executions; Cursor rejects it on execution surfaces.
+//   - MEMBER keys (user-scoped API keys, one per team member) — the keys
+//     the proxy injects into execution traffic. Each is validated and
+//     bound to its owning team member via Cursor's /v1/me at save time.
+//
+// Consequently an account with no enabled member keys is visible but NOT
+// routable — no execution traffic can be sent under it.
+//
+// Org assignment: each Stigmer organization resolves to exactly ONE
+// account (an explicit entry in org_ids, else the single account marked
+// is_platform_default). Load spreading happens WITHIN an account across
+// its member keys, never across accounts — this keeps billing attribution
+// and provider reconciliation per-team.
+//
+// Secrets at rest: admin_api_key and CursorMemberKey.api_key are encrypted
+// (AES-256-GCM, "enc:v1:" prefix) before persistence and replaced with
+// "***REDACTED***" on every read surface. Sending the redaction marker
+// back on update means "keep the stored value" (the ChannelApp secret
+// round-trip convention).
+message CursorAccount {
+  // Unique identifier (UUID). Server-assigned on create; required on
+  // update.
+  string account_id = 1;
+
+  // Human-readable name shown in the operator console (e.g. the Cursor
+  // team name, "scenar.ai team").
+  string display_name = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 128
+  ];
+
+  // Team Admin API key. Used exclusively for Admin API calls (roster,
+  // spend); never injected into execution traffic. Validated at save time
+  // by a live GET /teams/members call.
+  //
+  // Write: plaintext on create/rotate, or "***REDACTED***" to keep the
+  // stored value. Read: always "***REDACTED***".
+  string admin_api_key = 3 [(buf.validate.field).string.max_len = 256];
+
+  // Whether this account participates in key selection. Disabled accounts
+  // stop receiving NEW sessions immediately; sessions already pinned to
+  // one of its keys keep working (the hard kill switch is revoking the
+  // key in the Cursor dashboard).
+  bool enabled = 4;
+
+  // Marks the account that serves orgs with no explicit assignment.
+  // At most one account may be the platform default (index-enforced).
+  bool is_platform_default = 5;
+
+  // Stigmer organization ids explicitly served by this account. An org
+  // may appear in at most one account across the collection
+  // (unique-multikey-index-enforced).
+  repeated string org_ids = 6 [(buf.validate.field).repeated.items.string.max_len = 128];
+
+  // Execution-capable member keys. Selection picks among enabled entries
+  // (least-recently-used for new sessions, then sticky per session).
+  repeated CursorMemberKey member_keys = 7;
+
+  // ── audit (server-owned; ignored on inputs) ─────────────────────────
+
+  // Operator identity that created the account.
+  string created_by = 8;
+  google.protobuf.Timestamp created_at = 9;
+
+  // Operator identity of the latest mutation (account fields or keys).
+  string updated_by = 10;
+  google.protobuf.Timestamp updated_at = 11;
+}
+
+// CursorMemberKey is one execution-capable, user-scoped Cursor API key
+// held by a CursorAccount.
+//
+// Identity binding is server-owned: at save time the key is presented to
+// Cursor's GET /v1/me, which returns the owning member's email and user
+// id — a team admin key pasted here fails that call with Cursor's own
+// explanatory 401. There is no manual "which member is this" mapping to
+// drift.
+message CursorMemberKey {
+  // Unique identifier (UUID) of this key entry. Server-assigned. Stable
+  // across enable/disable; referenced by session pins and usage
+  // attribution (the key material itself never leaves the proxy).
+  string key_id = 1;
+
+  // The user-scoped API key. Write: plaintext on add, "***REDACTED***"
+  // never accepted here (rotation = remove + add, so the /v1/me binding
+  // can never go stale). Read: always "***REDACTED***".
+  string api_key = 2 [(buf.validate.field).string.max_len = 256];
+
+  // Optional operator label (e.g. "zane — stigmer-prod").
+  string label = 3 [(buf.validate.field).string.max_len = 128];
+
+  // ── identity binding (server-owned, from /v1/me; ignored on inputs) ──
+
+  // Email of the Cursor team member that owns this key.
+  string bound_email = 4;
+
+  // Cursor numeric user id of the owning member, as a string.
+  string bound_user_id = 5;
+
+  // Cursor-side name of the key (apiKeyName from /v1/me), for
+  // cross-referencing in the Cursor dashboard.
+  string cursor_key_name = 6;
+
+  // ── lifecycle ────────────────────────────────────────────────────────
+
+  // Whether this key participates in selection for NEW sessions.
+  // Sessions already pinned to it keep using it (conversation continuity
+  // and end-of-session agent disposal both require the original key).
+  bool enabled = 7;
+
+  // Operator identity that added the key.
+  string added_by = 8;
+  google.protobuf.Timestamp added_at = 9;
+}
+
+// CursorTeamMember is one roster entry from the Admin API
+// (GET /teams/members), captured by the periodic sync.
+message CursorTeamMember {
+  // Cursor user id (e.g. "user_..." or numeric, as returned).
+  string user_id = 1;
+  string email = 2;
+  string name = 3;
+
+  // Cursor-reported role: "owner", "member", or "removed". Removed
+  // members remain in the roster response; a stored member key whose
+  // owner shows as removed is flagged for the operator and excluded
+  // from selection.
+  string role = 4;
+}
+
+// CursorMemberSpend is one member's spend for the current billing cycle
+// from the Admin API (POST /teams/spend).
+//
+// Money follows the platform integer-micro convention: Cursor reports
+// (possibly fractional) cents; the sync converts cents x 10,000 to
+// micro-USD. Cursor's response schema has drifted from its docs
+// (overallSpendCents absent, includedSpendCents undocumented) — the sync
+// parses defensively and omits fields Cursor omits.
+message CursorMemberSpend {
+  string user_id = 1;
+  string email = 2;
+
+  // Spend covered by the plan's included quota this cycle, micro-USD.
+  int64 included_spend_usd_micros = 3 [(buf.validate.field).int64.gte = 0];
+
+  // On-demand overage spend this cycle, micro-USD (Cursor "spendCents").
+  int64 overage_spend_usd_micros = 4 [(buf.validate.field).int64.gte = 0];
+
+  // Fraction of the member's usage allowance consumed (0..1 as reported
+  // by Cursor's totalPercentUsed; 0 when Cursor omits it — tiered teams
+  // only).
+  double total_percent_used = 5;
+}
+
+// CursorAccountSyncSnapshot is the roster + spend state of one account as
+// of one sync run. Append-only: each sync inserts a new snapshot, so the
+// collection is a spend-over-time history; read surfaces use the latest.
+message CursorAccountSyncSnapshot {
+  // Account this snapshot belongs to.
+  string account_id = 1;
+
+  google.protobuf.Timestamp synced_at = 2;
+
+  repeated CursorTeamMember members = 3;
+
+  repeated CursorMemberSpend spend = 4;
+
+  // Start of the Cursor billing cycle the spend figures cover
+  // (subscriptionCycleStart).
+  google.protobuf.Timestamp cycle_start = 5;
+
+  // Non-empty when the sync partially failed (e.g. spend endpoint
+  // errored while roster succeeded). The snapshot still records what was
+  // fetched; the console surfaces the message.
+  string sync_error = 6;
+}

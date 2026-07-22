@@ -240,6 +240,7 @@ class SessionSpecInput:
     agent_instance_id: str = ""
     subject: str = ""
     harness_state_id: str = ""
+    harness_state_id_history: list[str] = field(default_factory=list)
     metadata: dict[str, str] = field(default_factory=dict)
     workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
     mcp_server_usages: list[McpServerUsageInput] = field(default_factory=list)
@@ -257,6 +258,8 @@ class SessionSpecInput:
             cursor_mode=self.cursor_mode,
             execution_target=self.execution_target,
         )
+        if self.harness_state_id_history:
+            msg.harness_state_id_history.extend(self.harness_state_id_history)
         if self.metadata:
             msg.metadata.update(self.metadata)
         for item in self.workspace_entries:

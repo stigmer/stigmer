@@ -35,6 +35,19 @@
       "required": false
     },
     {
+      "name": "HarnessStateIdHistory",
+      "jsonName": "harnessStateIdHistory",
+      "protoField": "harness_state_id_history",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Prior harness state identifiers this session has owned, oldest first.\n\n A session can span multiple harness-side conversations: when the\n cursor-runner's resume fails, it creates a fresh Cursor agent and\n replaces harness_state_id, and the replaced id lands here.\n\n @internal\n Server-owned, append-only. The update handler computes the append from\n the observed harness_state_id transition — client-supplied values for\n this field are discarded, so a stale client resending an old spec can\n never clobber the history. Billing reconciliation joins Cursor ledger\n events on the union of current + prior ids; dropping a replaced id\n would orphan the ledger events of every turn that ran under it.",
+      "required": false
+    },
+    {
       "name": "Metadata",
       "jsonName": "metadata",
       "protoField": "metadata",

@@ -304,6 +304,33 @@ export function getErrorReason(error: unknown): ErrorReason | null {
 }
 
 /**
+ * The `google.rpc.ErrorInfo` domain attached by datastore record-RPC
+ * errors in both editions (a cross-edition contract; see the OSS
+ * `dserrors` package and its Java mirror).
+ */
+const RECORDS_ERROR_DOMAIN = "datastore.stigmer.ai";
+
+/**
+ * Extract the violated constraint's declared name from a datastore
+ * record-RPC error, or `null` when the error carries none.
+ *
+ * Record writes rejected by a declared constraint (`ALREADY_EXISTS` for
+ * uniques, `FAILED_PRECONDITION` for check/exists/not_exists) attach a
+ * `google.rpc.ErrorInfo` with reason `CONSTRAINT_VIOLATION` and the
+ * constraint's name in `metadata["constraint"]` — the same companion
+ * the MCP bridge's record tools surface to agents. Consumers map the
+ * name through the datastore spec to place the (verbatim) message next
+ * to the fields the constraint covers; `null` falls back to a
+ * form-level rendering of {@link getUserMessage}.
+ */
+export function getRecordConstraint(error: unknown): string | null {
+  const reason = getErrorReason(error);
+  if (!reason || reason.domain !== RECORDS_ERROR_DOMAIN) return null;
+  const constraint = reason.metadata["constraint"];
+  return constraint !== undefined && constraint !== "" ? constraint : null;
+}
+
+/**
  * Metadata about the RPC call that produced an error. Attached by the
  * SDK's metadata interceptor and readable via {@link getRpcMetadata}.
  */

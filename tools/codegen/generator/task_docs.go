@@ -381,6 +381,8 @@ func taskDocsTypeString(ts *TypeSpec) string {
 		return "boolean"
 	case "struct":
 		return "object"
+	case "value":
+		return "any"
 	case "map":
 		key := "string"
 		val := "string"

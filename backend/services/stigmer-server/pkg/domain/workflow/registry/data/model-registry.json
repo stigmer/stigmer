@@ -804,6 +804,40 @@
       "effectiveAt" : "2026-07-18T00:00:00Z"
     }
   }, {
+    "id" : "claude-fable-5",
+    "apiModelId" : "claude-fable-5",
+    "displayName" : "Claude Fable 5",
+    "shortDescription" : "Frontier long-running agent model",
+    "speedTier" : "slow",
+    "provider" : "anthropic",
+    "harness" : "native",
+    "costTier" : "premium",
+    "featured" : false,
+    "pricing" : {
+      "inputPricePerMillion" : 10.0,
+      "outputPricePerMillion" : 50.0,
+      "cacheWritePricePerMillion" : 12.5,
+      "cacheReadPricePerMillion" : 1.0,
+      "source" : "anthropic_pricing_page",
+      "sourceNote" : "anthropic.com/pricing 2026-07-22: Fable 5 $10/$50, cache write $12.50, read $1. Availability verified via live API call; context window probed at 1,000,000 tokens, max output 128,000; adaptive thinking only.",
+      "effectiveAt" : "2026-07-22T14:05:25.960449352Z"
+    },
+    "contextWindowTokens" : 1000000,
+    "maxOutputTokens" : 128000,
+    "tokenCounterMethod" : "anthropic_native",
+    "summarization" : {
+      "triggerThreshold" : 900000,
+      "targetTokens" : 800000,
+      "maxSummaryTokens" : 2000
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : true
+    }
+  }, {
     "id" : "claude-haiku-4.5",
     "apiModelId" : "claude-haiku-4-5-20251001",
     "displayName" : "Claude Haiku 4.5",
@@ -903,6 +937,74 @@
       "adaptiveThinking" : true
     }
   }, {
+    "id" : "claude-opus-4.7",
+    "apiModelId" : "claude-opus-4-7",
+    "displayName" : "Claude Opus 4.7",
+    "shortDescription" : "Complex agentic work, prior gen",
+    "speedTier" : "slow",
+    "provider" : "anthropic",
+    "harness" : "native",
+    "costTier" : "premium",
+    "featured" : false,
+    "pricing" : {
+      "inputPricePerMillion" : 5.0,
+      "outputPricePerMillion" : 25.0,
+      "cacheWritePricePerMillion" : 6.25,
+      "cacheReadPricePerMillion" : 0.5,
+      "source" : "anthropic_pricing_page",
+      "sourceNote" : "anthropic.com/pricing 2026-07-22: Opus 4.7 $5/$25, cache write $6.25, read $0.50. Availability verified via live API call; context window probed at 1,000,000 tokens, max output 128,000; thinking.type.enabled rejected, thinking.type.adaptive accepted.",
+      "effectiveAt" : "2026-07-22T14:05:25.040914622Z"
+    },
+    "contextWindowTokens" : 1000000,
+    "maxOutputTokens" : 128000,
+    "tokenCounterMethod" : "anthropic_native",
+    "summarization" : {
+      "triggerThreshold" : 900000,
+      "targetTokens" : 800000,
+      "maxSummaryTokens" : 2000
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : true
+    }
+  }, {
+    "id" : "claude-opus-4.8",
+    "apiModelId" : "claude-opus-4-8",
+    "displayName" : "Claude Opus 4.8",
+    "shortDescription" : "Frontier agentic coding",
+    "speedTier" : "slow",
+    "provider" : "anthropic",
+    "harness" : "native",
+    "costTier" : "premium",
+    "featured" : true,
+    "pricing" : {
+      "inputPricePerMillion" : 5.0,
+      "outputPricePerMillion" : 25.0,
+      "cacheWritePricePerMillion" : 6.25,
+      "cacheReadPricePerMillion" : 0.5,
+      "source" : "anthropic_pricing_page",
+      "sourceNote" : "anthropic.com/pricing 2026-07-22: Opus 4.8 $5/$25, cache write $6.25, read $0.50. Availability verified via live API call; context window probed at 1,000,000 tokens, max output 128,000; adaptive thinking only. Anthropic offers a native fast mode at 2x standard pricing — NOT dispatched by the native runner today, so no pricingVariants.fast recorded; add one before ever requesting fast mode.",
+      "effectiveAt" : "2026-07-22T14:05:25.379184893Z"
+    },
+    "contextWindowTokens" : 1000000,
+    "maxOutputTokens" : 128000,
+    "tokenCounterMethod" : "anthropic_native",
+    "summarization" : {
+      "triggerThreshold" : 900000,
+      "targetTokens" : 800000,
+      "maxSummaryTokens" : 2000
+    },
+    "capabilities" : {
+      "toolUse" : true,
+      "vision" : true,
+      "streaming" : true,
+      "thinking" : false,
+      "adaptiveThinking" : true
+    }
+  }, {
     "id" : "claude-sonnet-4.5",
     "apiModelId" : "claude-sonnet-4-5-20250929",
     "displayName" : "Claude Sonnet 4.5",
@@ -969,348 +1071,30 @@
       "adaptiveThinking" : false
     }
   }, {
-    "id" : "codellama:13b",
-    "displayName" : "Code Llama 13B",
-    "shortDescription" : "Local code, larger model",
-    "speedTier" : "balanced",
-    "provider" : "ollama",
-    "harness" : "native",
-    "costTier" : "economy",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 0.0,
-      "outputPricePerMillion" : 0.0,
-      "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.0,
-      "source" : "local",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    },
-    "contextWindowTokens" : 16384,
-    "maxOutputTokens" : 4096,
-    "tokenCounterMethod" : "approximate",
-    "summarization" : {
-      "triggerThreshold" : 14000,
-      "targetTokens" : 12000,
-      "maxSummaryTokens" : 1000
-    },
-    "capabilities" : {
-      "toolUse" : true,
-      "vision" : false,
-      "streaming" : true,
-      "thinking" : false,
-      "adaptiveThinking" : false
-    }
-  }, {
-    "id" : "codellama:7b",
-    "displayName" : "Code Llama 7B",
-    "shortDescription" : "Local code generation",
+    "id" : "claude-sonnet-5",
+    "apiModelId" : "claude-sonnet-5",
+    "displayName" : "Claude Sonnet 5",
+    "shortDescription" : "High-performance coding and agents",
     "speedTier" : "fast",
-    "provider" : "ollama",
-    "harness" : "native",
-    "costTier" : "economy",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 0.0,
-      "outputPricePerMillion" : 0.0,
-      "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.0,
-      "source" : "local",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    },
-    "contextWindowTokens" : 16384,
-    "maxOutputTokens" : 4096,
-    "tokenCounterMethod" : "approximate",
-    "summarization" : {
-      "triggerThreshold" : 14000,
-      "targetTokens" : 12000,
-      "maxSummaryTokens" : 1000
-    },
-    "capabilities" : {
-      "toolUse" : true,
-      "vision" : false,
-      "streaming" : true,
-      "thinking" : false,
-      "adaptiveThinking" : false
-    }
-  }, {
-    "id" : "deepseek-coder-v2:16b",
-    "displayName" : "DeepSeek Coder V2 16B",
-    "shortDescription" : "Local, large context",
-    "speedTier" : "balanced",
-    "provider" : "ollama",
-    "harness" : "native",
-    "costTier" : "economy",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 0.0,
-      "outputPricePerMillion" : 0.0,
-      "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.0,
-      "source" : "local",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    },
-    "contextWindowTokens" : 128000,
-    "maxOutputTokens" : 8192,
-    "tokenCounterMethod" : "approximate",
-    "summarization" : {
-      "triggerThreshold" : 115000,
-      "targetTokens" : 100000,
-      "maxSummaryTokens" : 2000
-    },
-    "capabilities" : {
-      "toolUse" : true,
-      "vision" : false,
-      "streaming" : true,
-      "thinking" : false,
-      "adaptiveThinking" : false
-    }
-  }, {
-    "id" : "llama3.2:3b",
-    "displayName" : "Llama 3.2 3B",
-    "shortDescription" : "Ultra-light local model",
-    "speedTier" : "fastest",
-    "provider" : "ollama",
-    "harness" : "native",
-    "costTier" : "economy",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 0.0,
-      "outputPricePerMillion" : 0.0,
-      "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.0,
-      "source" : "local",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    },
-    "contextWindowTokens" : 128000,
-    "maxOutputTokens" : 8192,
-    "tokenCounterMethod" : "approximate",
-    "summarization" : {
-      "triggerThreshold" : 115000,
-      "targetTokens" : 100000,
-      "maxSummaryTokens" : 2000
-    },
-    "capabilities" : {
-      "toolUse" : true,
-      "vision" : false,
-      "streaming" : true,
-      "thinking" : false,
-      "adaptiveThinking" : false
-    }
-  }, {
-    "id" : "mistral:7b",
-    "displayName" : "Mistral 7B",
-    "shortDescription" : "Local general-purpose",
-    "speedTier" : "fast",
-    "provider" : "ollama",
-    "harness" : "native",
-    "costTier" : "economy",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 0.0,
-      "outputPricePerMillion" : 0.0,
-      "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.0,
-      "source" : "local",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    },
-    "contextWindowTokens" : 32768,
-    "maxOutputTokens" : 8192,
-    "tokenCounterMethod" : "approximate",
-    "summarization" : {
-      "triggerThreshold" : 28000,
-      "targetTokens" : 24000,
-      "maxSummaryTokens" : 1000
-    },
-    "capabilities" : {
-      "toolUse" : true,
-      "vision" : false,
-      "streaming" : true,
-      "thinking" : false,
-      "adaptiveThinking" : false
-    }
-  }, {
-    "id" : "qwen2.5-coder:14b",
-    "displayName" : "Qwen 2.5 Coder 14B",
-    "shortDescription" : "Local coding, capable",
-    "speedTier" : "balanced",
-    "provider" : "ollama",
-    "harness" : "native",
-    "costTier" : "economy",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 0.0,
-      "outputPricePerMillion" : 0.0,
-      "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.0,
-      "source" : "local",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    },
-    "contextWindowTokens" : 32768,
-    "maxOutputTokens" : 8192,
-    "tokenCounterMethod" : "approximate",
-    "summarization" : {
-      "triggerThreshold" : 28000,
-      "targetTokens" : 24000,
-      "maxSummaryTokens" : 1000
-    },
-    "capabilities" : {
-      "toolUse" : true,
-      "vision" : false,
-      "streaming" : true,
-      "thinking" : false,
-      "adaptiveThinking" : false
-    }
-  }, {
-    "id" : "qwen2.5-coder:7b",
-    "displayName" : "Qwen 2.5 Coder 7B",
-    "shortDescription" : "Local coding, lightweight",
-    "speedTier" : "fast",
-    "provider" : "ollama",
-    "harness" : "native",
-    "costTier" : "economy",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 0.0,
-      "outputPricePerMillion" : 0.0,
-      "cacheWritePricePerMillion" : 0.0,
-      "cacheReadPricePerMillion" : 0.0,
-      "source" : "local",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    },
-    "contextWindowTokens" : 32768,
-    "maxOutputTokens" : 8192,
-    "tokenCounterMethod" : "approximate",
-    "summarization" : {
-      "triggerThreshold" : 28000,
-      "targetTokens" : 24000,
-      "maxSummaryTokens" : 1000
-    },
-    "capabilities" : {
-      "toolUse" : true,
-      "vision" : false,
-      "streaming" : true,
-      "thinking" : false,
-      "adaptiveThinking" : false
-    }
-  }, {
-    "id" : "gpt-3.5-turbo",
-    "displayName" : "GPT-3.5 Turbo",
-    "shortDescription" : "Budget-friendly, basic tasks",
-    "speedTier" : "fastest",
-    "provider" : "openai",
-    "harness" : "native",
-    "costTier" : "economy",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 0.5,
-      "outputPricePerMillion" : 1.5,
-      "cacheWritePricePerMillion" : 0.5,
-      "cacheReadPricePerMillion" : 0.25,
-      "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    },
-    "contextWindowTokens" : 16385,
-    "maxOutputTokens" : 4096,
-    "tokenCounterMethod" : "tiktoken_cl100k",
-    "summarization" : {
-      "triggerThreshold" : 14000,
-      "targetTokens" : 12000,
-      "maxSummaryTokens" : 1000
-    },
-    "capabilities" : {
-      "toolUse" : true,
-      "vision" : false,
-      "streaming" : true,
-      "thinking" : false,
-      "adaptiveThinking" : false
-    }
-  }, {
-    "id" : "gpt-4",
-    "displayName" : "GPT-4",
-    "shortDescription" : "Original GPT-4, legacy",
-    "speedTier" : "balanced",
-    "provider" : "openai",
-    "harness" : "native",
-    "costTier" : "premium",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 30.0,
-      "outputPricePerMillion" : 60.0,
-      "cacheWritePricePerMillion" : 30.0,
-      "cacheReadPricePerMillion" : 15.0,
-      "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    },
-    "contextWindowTokens" : 8192,
-    "maxOutputTokens" : 4096,
-    "tokenCounterMethod" : "tiktoken_cl100k",
-    "summarization" : {
-      "triggerThreshold" : 7000,
-      "targetTokens" : 6000,
-      "maxSummaryTokens" : 500
-    },
-    "capabilities" : {
-      "toolUse" : true,
-      "vision" : false,
-      "streaming" : true,
-      "thinking" : false,
-      "adaptiveThinking" : false
-    }
-  }, {
-    "id" : "gpt-4-turbo",
-    "displayName" : "GPT-4 Turbo",
-    "shortDescription" : "Faster GPT-4 variant",
-    "speedTier" : "fast",
-    "provider" : "openai",
-    "harness" : "native",
-    "costTier" : "standard",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 10.0,
-      "outputPricePerMillion" : 30.0,
-      "cacheWritePricePerMillion" : 10.0,
-      "cacheReadPricePerMillion" : 5.0,
-      "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    },
-    "contextWindowTokens" : 128000,
-    "maxOutputTokens" : 4096,
-    "tokenCounterMethod" : "tiktoken_cl100k",
-    "summarization" : {
-      "triggerThreshold" : 115000,
-      "targetTokens" : 100000,
-      "maxSummaryTokens" : 2000
-    },
-    "capabilities" : {
-      "toolUse" : true,
-      "vision" : true,
-      "streaming" : true,
-      "thinking" : false,
-      "adaptiveThinking" : false
-    }
-  }, {
-    "id" : "gpt-4o",
-    "displayName" : "GPT-4o",
-    "shortDescription" : "Multimodal, well-rounded",
-    "speedTier" : "fast",
-    "provider" : "openai",
+    "provider" : "anthropic",
     "harness" : "native",
     "costTier" : "standard",
     "featured" : true,
     "pricing" : {
-      "inputPricePerMillion" : 5.0,
-      "outputPricePerMillion" : 15.0,
-      "cacheWritePricePerMillion" : 5.0,
-      "cacheReadPricePerMillion" : 2.5,
-      "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
+      "inputPricePerMillion" : 2.0,
+      "outputPricePerMillion" : 10.0,
+      "cacheWritePricePerMillion" : 2.5,
+      "cacheReadPricePerMillion" : 0.2,
+      "source" : "anthropic_pricing_page",
+      "sourceNote" : "anthropic.com/pricing 2026-07-22: Sonnet 5 INTRODUCTORY pricing $2/$10 (cache write $2.50, read $0.20) through 2026-08-31; standard $3/$15 thereafter — RE-BASELINE ON 2026-09-01. Availability verified via live API call; context window probed at 1,000,000 tokens, max output 128,000; adaptive thinking only.",
+      "effectiveAt" : "2026-07-22T14:05:25.664875544Z"
     },
-    "contextWindowTokens" : 128000,
-    "maxOutputTokens" : 16384,
-    "tokenCounterMethod" : "tiktoken_o200k",
+    "contextWindowTokens" : 1000000,
+    "maxOutputTokens" : 128000,
+    "tokenCounterMethod" : "anthropic_native",
     "summarization" : {
-      "triggerThreshold" : 115000,
-      "targetTokens" : 100000,
+      "triggerThreshold" : 900000,
+      "targetTokens" : 800000,
       "maxSummaryTokens" : 2000
     },
     "capabilities" : {
@@ -1318,71 +1102,7 @@
       "vision" : true,
       "streaming" : true,
       "thinking" : false,
-      "adaptiveThinking" : false
-    }
-  }, {
-    "id" : "gpt-4o-mini",
-    "displayName" : "GPT-4o Mini",
-    "shortDescription" : "Lightweight, cost-effective",
-    "speedTier" : "fastest",
-    "provider" : "openai",
-    "harness" : "native",
-    "costTier" : "economy",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 0.15,
-      "outputPricePerMillion" : 0.6,
-      "cacheWritePricePerMillion" : 0.15,
-      "cacheReadPricePerMillion" : 0.075,
-      "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    },
-    "contextWindowTokens" : 128000,
-    "maxOutputTokens" : 16384,
-    "tokenCounterMethod" : "tiktoken_o200k",
-    "summarization" : {
-      "triggerThreshold" : 115000,
-      "targetTokens" : 100000,
-      "maxSummaryTokens" : 2000
-    },
-    "capabilities" : {
-      "toolUse" : true,
-      "vision" : true,
-      "streaming" : true,
-      "thinking" : false,
-      "adaptiveThinking" : false
-    }
-  }, {
-    "id" : "o1",
-    "displayName" : "o1",
-    "shortDescription" : "Deep reasoning specialist",
-    "speedTier" : "slow",
-    "provider" : "openai",
-    "harness" : "native",
-    "costTier" : "premium",
-    "featured" : false,
-    "pricing" : {
-      "inputPricePerMillion" : 15.0,
-      "outputPricePerMillion" : 60.0,
-      "cacheWritePricePerMillion" : 15.0,
-      "cacheReadPricePerMillion" : 7.5,
-      "source" : "openai_api",
-      "effectiveAt" : "2026-05-03T00:00:00Z"
-    },
-    "contextWindowTokens" : 200000,
-    "maxOutputTokens" : 100000,
-    "tokenCounterMethod" : "tiktoken_o200k",
-    "summarization" : {
-      "triggerThreshold" : 180000,
-      "targetTokens" : 160000,
-      "maxSummaryTokens" : 2000
-    },
-    "capabilities" : {
-      "toolUse" : false,
-      "vision" : false,
-      "streaming" : true,
-      "thinking" : false,
-      "adaptiveThinking" : false
+      "adaptiveThinking" : true
     }
   } ]
 }

@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.datastore.v1;
+
+import "ai/stigmer/agentic/datastore/v1/api.proto";
+import "ai/stigmer/commons/rpc/pagination.proto";
+import "buf/validate/validate.proto";
+
+// ListDatastoresRequest specifies parameters for listing datastores.
+message ListDatastoresRequest {
+  // Organization to list datastores for.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Filter by metadata labels. AND semantics: the resource must match all provided labels.
+  map<string, string> labels = 2;
+
+  // Pagination options.
+  ai.stigmer.commons.rpc.PageInfo page_info = 3;
+}
+
+// DatastoreList contains a paginated list of datastores.
+message DatastoreList {
+  // Total count of matching datastores.
+  int32 total_count = 1;
+
+  // Datastores in the current page.
+  repeated Datastore items = 2;
+}

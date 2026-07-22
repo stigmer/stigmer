@@ -19,9 +19,9 @@ import (
 // In OSS (local usage), all instances are returned without authorization filtering.
 //
 // Pipeline Steps:
-// 1. ValidateProto - Validate proto field constraints
-// 2. LoadByAgent - Load all instances for the specified agent
-//    (filtered by metadata.org when the request carries an org)
+//  1. ValidateProto - Validate proto field constraints
+//  2. LoadByAgent - Load all instances for the specified agent
+//     (filtered by metadata.org when the request carries an org)
 //
 // Note: Unlike Stigmer Cloud, OSS excludes:
 // - Authorization filtering (no multi-user auth - returns all instances)

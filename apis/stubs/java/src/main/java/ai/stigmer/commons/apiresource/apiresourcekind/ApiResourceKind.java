@@ -185,6 +185,15 @@ public enum ApiResourceKind
   channel_app(48),
   /**
    * <pre>
+   * Declared collections of typed business records with role-aware access
+   * grants; agents read and write records through grant-checked tools.
+   * </pre>
+   *
+   * <code>datastore = 49 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  datastore(49),
+  /**
+   * <pre>
    * Multi-step orchestration defining how agents collaborate on a task.
    * </pre>
    *
@@ -421,6 +430,15 @@ public enum ApiResourceKind
   public static final int channel_app_VALUE = 48;
   /**
    * <pre>
+   * Declared collections of typed business records with role-aware access
+   * grants; agents read and write records through grant-checked tools.
+   * </pre>
+   *
+   * <code>datastore = 49 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int datastore_VALUE = 49;
+  /**
+   * <pre>
    * Multi-step orchestration defining how agents collaborate on a task.
    * </pre>
    *
@@ -521,6 +539,7 @@ public enum ApiResourceKind
       case 46: return agent_share;
       case 47: return agent_channel;
       case 48: return channel_app;
+      case 49: return datastore;
       case 50: return workflow;
       case 51: return workflow_instance;
       case 52: return workflow_execution;

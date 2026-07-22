@@ -92,6 +92,7 @@ export interface SessionInput {
   agentInstanceId?: string;
   subject?: string;
   harnessStateId?: string;
+  harnessStateIdHistory?: string[];
   metadata?: Record<string, string>;
   workspaceEntries?: WorkspaceEntryInput[];
   mcpServerUsages?: McpServerUsageInput[];
@@ -208,6 +209,7 @@ export function buildSessionProto(input: SessionInput): Session {
       agentInstanceId: input.agentInstanceId,
       subject: input.subject,
       harnessStateId: input.harnessStateId,
+      harnessStateIdHistory: input.harnessStateIdHistory,
       metadata: input.metadata,
       workspaceEntries,
       mcpServerUsages,

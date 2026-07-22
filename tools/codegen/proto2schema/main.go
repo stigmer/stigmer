@@ -733,6 +733,8 @@ func extractScalarTypeSpec(field *desc.FieldDescriptor) TypeSpec {
 		switch msgType.GetFullyQualifiedName() {
 		case "google.protobuf.Struct":
 			return TypeSpec{Kind: "struct"}
+		case "google.protobuf.Value":
+			return TypeSpec{Kind: "value"}
 		case "google.protobuf.Timestamp":
 			return TypeSpec{Kind: "timestamp"}
 		}
@@ -1254,6 +1256,7 @@ var searchListResources = map[string]bool{
 	"skill":     true,
 	"mcpserver": true,
 	"workflow":  true,
+	"datastore": true,
 }
 
 // extractServiceSchemas parses proto files for a resource and extracts service definitions.

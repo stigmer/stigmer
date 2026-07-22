@@ -92,6 +92,11 @@ export interface PromptBuilderInput {
   provisionResults: ProvisionResult[];
   containerRoot: string;
   skillsPromptSection: string;
+  /**
+   * The `<available_datastores>` section (shared/datastore-attachment.ts
+   * formatDatastoresSection); empty when the agent uses no datastores.
+   */
+  datastoresPromptSection?: string;
   workspaceFileRefs: string[];
   workspaceRoot: string;
   injectedFiles: InjectedFile[];
@@ -154,6 +159,10 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
 
   if (input.skillsPromptSection) {
     prompt += input.skillsPromptSection;
+  }
+
+  if (input.datastoresPromptSection) {
+    prompt += "\n\n" + input.datastoresPromptSection;
   }
 
   if (input.workspaceFileRefs.length > 0) {

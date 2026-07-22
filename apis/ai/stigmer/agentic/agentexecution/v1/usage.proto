@@ -342,6 +342,17 @@ message LlmCallUsageRecord {
   string provider_request_id = 36;
   string harness = 37;
 
+  // ─── Cursor Account Attribution (cursor harness only) ─────────────────────
+  // Which managed CursorAccount / member key served this call, stamped by
+  // the billing handler from the session's key pin at write time (never
+  // threaded through the proxy payload — the pin is the single source of
+  // truth). Identifiers only, never key material. Empty for the native
+  // harness, for env-key fallback traffic, and for records written before
+  // managed key selection was enabled. Lets provider reconciliation
+  // iterate per-account Cursor ledgers.
+  string cursor_account_id = 38;
+  string cursor_key_id = 39;
+
   int32 http_status_code = 40;
   string finish_reason = 41;
   string error_code = 42;

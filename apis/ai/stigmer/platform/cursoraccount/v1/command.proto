@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package ai.stigmer.platform.cursoraccount.v1;
+
+import "ai/stigmer/commons/rpc/method_options.proto";
+import "ai/stigmer/platform/cursoraccount/v1/cursor_account.proto";
+import "ai/stigmer/platform/cursoraccount/v1/io.proto";
+
+// CursorAccountCommandController handles write operations for managed
+// Cursor accounts.
+//
+// Cursor accounts are not a standard API Resource — like billing, there
+// is no api_resource_kind annotation. Every RPC is platform-gated to
+// can_manage_cursor_accounts on platform:stigmer (human operators only):
+// the resource holds provider key material and per-member spend, which
+// are platform-internal and never org-visible.
+//
+// @internal
+// Cloud-only. The OSS Go server does not implement this service — in the
+// OSS edition Cursor credentials are the user's own (BYOK env var), so
+// there is nothing to manage. Handlers refuse writes when secret
+// encryption is not enabled on the deployment (FAILED_PRECONDITION):
+// silently persisting plaintext keys is never acceptable for this store.
+service CursorAccountCommandController {
+  // Create or update a Cursor account (identity, admin key, org
+  // assignments, enablement, platform-default flag).
+  //
+  // The admin key is validated live against GET /teams/members before
+  // persistence; org assignments are unique across accounts and at most
+  // one account may be the platform default. Member keys are NOT written
+  // through this RPC — see addCursorMemberKey / removeCursorMemberKey.
+  rpc upsertCursorAccount(UpsertCursorAccountInput) returns (CursorAccount) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_cursor_accounts;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can manage cursor accounts";
+  }
+
+  // Delete a Cursor account. Refused while live sessions are pinned to
+  // its keys unless force is set (see DeleteCursorAccountInput).
+  rpc deleteCursorAccount(DeleteCursorAccountInput) returns (CursorAccount) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_cursor_accounts;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can manage cursor accounts";
+  }
+
+  // Add one execution-capable member key. The key is identified via
+  // Cursor's GET /v1/me and bound to its owning team member server-side;
+  // non-user-scoped keys are rejected with Cursor's own explanation.
+  rpc addCursorMemberKey(AddCursorMemberKeyInput) returns (CursorAccount) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_cursor_accounts;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can manage cursor accounts";
+  }
+
+  // Remove one member key. Refused while live sessions are pinned to it
+  // unless force is set (see RemoveCursorMemberKeyInput).
+  rpc removeCursorMemberKey(RemoveCursorMemberKeyInput) returns (CursorAccount) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_cursor_accounts;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can manage cursor accounts";
+  }
+
+  // Enable or disable one member key for new-session selection.
+  rpc setCursorMemberKeyEnabled(SetCursorMemberKeyEnabledInput) returns (CursorAccount) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_cursor_accounts;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can manage cursor accounts";
+  }
+
+  // Run an on-demand roster + spend sync (the console "Sync now") and
+  // return the refreshed detail view. Same activity the hourly schedule
+  // runs; Admin API rate limits apply, so the console debounces.
+  rpc syncCursorAccount(SyncCursorAccountInput) returns (CursorAccountView) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_cursor_accounts;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can manage cursor accounts";
+  }
+}

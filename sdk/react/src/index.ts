@@ -677,6 +677,88 @@ export type {
   AgentWizardData,
 } from "./agent/index.js";
 
+// Datastore — data hooks (kind family + describe projection), record
+// hooks (find/insert/update/delete + grid collection), guarded delete,
+// the canonical value semantics of declared fields, the typed filter
+// model, and the six styled components (detail view, records browser,
+// filter builder, record form, schema view, sync report, delete dialog)
+export {
+  useDatastore,
+  useDatastoreList,
+  useDatastoreCount,
+  useDatastoreSearch,
+  useDatastoreDescription,
+  DEFAULT_PARTITION,
+  useRecordList,
+  useInsertRecord,
+  useUpdateRecord,
+  useDeleteRecord,
+  useRecordCollection,
+  useDeleteDatastore,
+  buildUpdateFields,
+  coerceFieldValue,
+  formatFieldValue,
+  formatSystemTimestamp,
+  isListOperator,
+  isSortableField,
+  isValuelessOperator,
+  operatorsForField,
+  OPERATOR_LABELS,
+  RESERVED_FIELD_NAMES,
+  SYSTEM_FIELD_OPERATORS,
+  buildRecordFilter,
+  filterableFields,
+  formatConditionChip,
+  isConditionComplete,
+  FieldValueControl,
+  FIELD_INPUT_CLASSES,
+  CollectionSchemaView,
+  formatSubject,
+  DatastoreSyncReport,
+  RecordFilterBuilder,
+  RecordFormPanel,
+  CollectionRecordsBrowser,
+  DeleteDatastoreDialog,
+  DatastoreDetailView,
+  DatastoreIcon,
+} from "./datastore/index.js";
+export type {
+  UseDatastoreReturn,
+  UseDatastoreListOptions,
+  UseDatastoreListReturn,
+  UseDatastoreCountOptions,
+  UseDatastoreCountReturn,
+  UseDatastoreSearchOptions,
+  UseDatastoreSearchReturn,
+  UseDatastoreDescriptionReturn,
+  RecordScope,
+  UseRecordListParams,
+  UseRecordListReturn,
+  InsertRecordArgs,
+  UseInsertRecordReturn,
+  UpdateRecordArgs,
+  UseUpdateRecordReturn,
+  DeleteRecordArgs,
+  UseDeleteRecordReturn,
+  RecordColumnDef,
+  UseRecordCollectionOptions,
+  UseRecordCollectionReturn,
+  DeleteDatastoreArgs,
+  UseDeleteDatastoreReturn,
+  CoerceResult,
+  FilterableField,
+  RecordConditionDraft,
+  FieldValueControlProps,
+  CollectionSchemaViewProps,
+  DatastoreSyncReportProps,
+  RecordFilterBuilderProps,
+  RecordFormPanelProps,
+  CollectionRecordsBrowserProps,
+  DeleteDatastoreDialogProps,
+  DatastoreDetailTab,
+  DatastoreDetailViewProps,
+} from "./datastore/index.js";
+
 // Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, env var form, system env vars, and styled components
 export {
   useEnvironment,
@@ -895,8 +977,36 @@ export type {
   PricingGovernancePanelProps,
   ModelCatalogPanelProps,
   PricingGovernanceConsoleProps,
+  PricingGovernanceTab,
   CreditPackInfo,
 } from "./billing/index.js";
+
+// Cursor accounts — platform-operator management of managed Cursor teams
+// (admin keys, member execution keys, org assignments, roster/spend)
+export {
+  useCursorAccounts,
+  useCursorAccountView,
+  useUpsertCursorAccount,
+  useDeleteCursorAccount,
+  useCursorMemberKeyActions,
+  useSyncCursorAccount,
+  CursorAccountsConsole,
+  CursorAccountEditor,
+  CursorAccountsAccessNotice,
+} from "./cursor-accounts/index.js";
+export type {
+  UseCursorAccountsReturn,
+  UseCursorAccountViewReturn,
+  UseUpsertCursorAccountReturn,
+  DeleteCursorAccountInput,
+  UseDeleteCursorAccountReturn,
+  AddCursorMemberKeyInput,
+  RemoveCursorMemberKeyInput,
+  UseCursorMemberKeyActionsReturn,
+  UseSyncCursorAccountReturn,
+  CursorAccountsConsoleProps,
+  CursorAccountEditorProps,
+} from "./cursor-accounts/index.js";
 
 // Settings — navigation structure + section components shared across app shells
 export {

@@ -259,19 +259,21 @@ const agentInstance = await stigmer.agentInstance.apply({
   agentId: "...",
   description: "...",
   environmentRefs: [],
+  datastorePartition: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 agentInstance, err := client.AgentInstance.Apply(ctx, &stigmer.AgentInstanceInput{
-  Name:            "my-agent-instance",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  AgentId:         "...",
-  Description:     "...",
-  EnvironmentRefs: []stigmer.ResourceRef{},
+  Name:               "my-agent-instance",
+  Org:                "acme",
+  Slug:               "...",
+  Labels:             map[string]string{},
+  AgentId:            "...",
+  Description:        "...",
+  EnvironmentRefs:    []stigmer.ResourceRef{},
+  DatastorePartition: "...",
 })
 ```
 </Tab>
@@ -285,6 +287,7 @@ agent_instance = client.agent_instances.apply(AgentInstanceInput(
     agent_id="...",
     description="...",
     environment_refs=[],
+    datastore_partition="...",
 ))
 ```
 </Tab>
@@ -298,6 +301,7 @@ AgentInstance agentInstance = client.agentInstances().apply(AgentInstanceInput.b
     .agentId("...")
     .description("...")
     .environmentRefs(List.of())
+    .datastorePartition("...")
     .build());
 ```
 </Tab>
@@ -324,19 +328,21 @@ const agentInstance = await stigmer.agentInstance.create({
   agentId: "...",
   description: "...",
   environmentRefs: [],
+  datastorePartition: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 agentInstance, err := client.AgentInstance.Create(ctx, &stigmer.AgentInstanceInput{
-  Name:            "my-agent-instance",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  AgentId:         "...",
-  Description:     "...",
-  EnvironmentRefs: []stigmer.ResourceRef{},
+  Name:               "my-agent-instance",
+  Org:                "acme",
+  Slug:               "...",
+  Labels:             map[string]string{},
+  AgentId:            "...",
+  Description:        "...",
+  EnvironmentRefs:    []stigmer.ResourceRef{},
+  DatastorePartition: "...",
 })
 ```
 </Tab>
@@ -350,6 +356,7 @@ agent_instance = client.agent_instances.create(AgentInstanceInput(
     agent_id="...",
     description="...",
     environment_refs=[],
+    datastore_partition="...",
 ))
 ```
 </Tab>
@@ -363,6 +370,7 @@ AgentInstance agentInstance = client.agentInstances().create(AgentInstanceInput.
     .agentId("...")
     .description("...")
     .environmentRefs(List.of())
+    .datastorePartition("...")
     .build());
 ```
 </Tab>
@@ -387,19 +395,21 @@ const agentInstance = await stigmer.agentInstance.update({
   agentId: "...",
   description: "...",
   environmentRefs: [],
+  datastorePartition: "...",
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 agentInstance, err := client.AgentInstance.Update(ctx, &stigmer.AgentInstanceInput{
-  Name:            "my-agent-instance",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  AgentId:         "...",
-  Description:     "...",
-  EnvironmentRefs: []stigmer.ResourceRef{},
+  Name:               "my-agent-instance",
+  Org:                "acme",
+  Slug:               "...",
+  Labels:             map[string]string{},
+  AgentId:            "...",
+  Description:        "...",
+  EnvironmentRefs:    []stigmer.ResourceRef{},
+  DatastorePartition: "...",
 })
 ```
 </Tab>
@@ -413,6 +423,7 @@ agent_instance = client.agent_instances.update(AgentInstanceInput(
     agent_id="...",
     description="...",
     environment_refs=[],
+    datastore_partition="...",
 ))
 ```
 </Tab>
@@ -426,6 +437,7 @@ AgentInstance agentInstance = client.agentInstances().update(AgentInstanceInput.
     .agentId("...")
     .description("...")
     .environmentRefs(List.of())
+    .datastorePartition("...")
     .build());
 ```
 </Tab>
@@ -532,6 +544,7 @@ Input for creating or updating an Agent Instance.
     agentId: { type: "string", description: "Identifier of the Agent template this instance deploys." },
     description: { type: "string", description: "Human-readable description for UI and API display." },
     environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources providing secrets and configuration at runtime.", typeDescriptionLink: "#resourceref" },
+    datastorePartition: { type: "string", description: "Data partition this instance's record operations are scoped to, for every datastore the agent uses." },
   }}
 />
 

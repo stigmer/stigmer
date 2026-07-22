@@ -198,6 +198,7 @@ export interface SessionSpecInput {
   agentInstanceId?: string;
   subject?: string;
   harnessStateId?: string;
+  harnessStateIdHistory?: string[];
   metadata?: Record<string, string>;
   workspaceEntries?: WorkspaceEntryInput[];
   mcpServerUsages?: McpServerUsageInput[];
@@ -331,6 +332,7 @@ function buildSessionSpecProto(input: SessionSpecInput) {
   if (input.agentInstanceId !== undefined) msg.agentInstanceId = input.agentInstanceId;
   if (input.subject !== undefined) msg.subject = input.subject;
   if (input.harnessStateId !== undefined) msg.harnessStateId = input.harnessStateId;
+  if (input.harnessStateIdHistory) msg.harnessStateIdHistory = input.harnessStateIdHistory;
   if (input.metadata) Object.assign(msg.metadata, input.metadata);
   if (input.workspaceEntries) msg.workspaceEntries = input.workspaceEntries.map(buildWorkspaceEntryProto);
   if (input.mcpServerUsages) msg.mcpServerUsages = input.mcpServerUsages.map(buildMcpServerUsageProto);

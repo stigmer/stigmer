@@ -17,6 +17,8 @@ import { type ConnectRouter, createClient } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
+import type { Datastore } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
+import { DatastoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/command_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { createNodeTransport, normalizeEndpoint } from "@stigmer/sdk/node";
@@ -30,10 +32,12 @@ const openSessions = new Set<ServerHttp2Session>();
 
 let appliedAgents: Agent[] = [];
 let appliedMcps: McpServer[] = [];
+let appliedDatastores: Datastore[] = [];
 
 beforeEach(() => {
   appliedAgents = [];
   appliedMcps = [];
+  appliedDatastores = [];
 });
 
 function writeYaml(dir: string, name: string, body: string): string {
@@ -53,6 +57,12 @@ beforeAll(async () => {
     router.service(McpServerCommandController, {
       apply: (req) => {
         appliedMcps.push(req);
+        return req;
+      },
+    });
+    router.service(DatastoreCommandController, {
+      apply: (req) => {
+        appliedDatastores.push(req);
         return req;
       },
     });
@@ -140,6 +150,65 @@ describe("file-mode apply — fidelity (raw controller preserves full proto)", (
       const items = resolveApplyItems(dir);
       await applyItem(controllerFn, items[0], "acme", false);
       expect(appliedAgents[0].metadata?.org).toBe("acme");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+const DATASTORE_YAML = [
+  "apiVersion: agentic.stigmer.ai/v1",
+  "kind: Datastore",
+  "metadata:",
+  "  name: clinic-records",
+  "  slug: clinic-records",
+  "spec:",
+  "  timezone: Asia/Kolkata",
+  "  authorization:",
+  "    roles:",
+  "      - name: patient",
+  "    default_role: patient",
+  "  collections:",
+  "    - name: bookings",
+  "      fields:",
+  "        - name: slot_start",
+  "          type: timestamp",
+  "          required: true",
+  "      uniques:",
+  "        - name: one_per_slot",
+  "          fields: [slot_start]",
+  '          message: "that slot is already booked"',
+  "",
+].join("\n");
+
+describe("file-mode apply — datastore", () => {
+  it("applies a Datastore through the raw controller with the spec intact", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(dir, "datastore.yaml", DATASTORE_YAML);
+      const items = resolveApplyItems(dir);
+      expect(items).toHaveLength(1);
+
+      const outcome = await applyItem(controllerFn, items[0], "acme", false);
+      expect(outcome.result.message).toBe("Datastore created successfully");
+
+      expect(appliedDatastores).toHaveLength(1);
+      const spec = appliedDatastores[0].spec;
+      expect(spec?.timezone).toBe("Asia/Kolkata");
+      expect(spec?.authorization?.defaultRole).toBe("patient");
+      expect(spec?.collections[0]?.uniques[0]?.message).toBe("that slot is already booked");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("sorts a Datastore before the Agent that references it", () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(dir, "agent.yaml", AGENT_WITH_ID);
+      writeYaml(dir, "datastore.yaml", DATASTORE_YAML);
+      const items = resolveApplyItems(dir);
+      expect(items.map((i) => i.handler.displayName)).toEqual(["Datastore", "Agent"]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

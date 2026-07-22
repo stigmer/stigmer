@@ -17,9 +17,9 @@ import (
 // 2. FilterByChannel - Load sessions filtered by the stigmer.ai/channel-id label
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
-// - The can_view gate on the agent_channel and the FGA authorized-IDs
-//   session filter (no IAM system)
-// - Pagination support (simple list all)
+//   - The can_view gate on the agent_channel and the FGA authorized-IDs
+//     session filter (no IAM system)
+//   - Pagination support (simple list all)
 //
 // This handler exists for contract parity: channel sessions are created by
 // the cloud channel runtime (Slack/WhatsApp inbound turns), which stamps the

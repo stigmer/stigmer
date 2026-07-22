@@ -40,6 +40,7 @@ func (c *AgentController) buildUpdateVisibilityPipeline() *pipeline.Pipeline[*ap
 	return pipeline.NewPipeline[*apiresourcepb.UpdateVisibilityInput]("agent-update-visibility").
 		AddStep(steps.NewValidateProtoStep[*apiresourcepb.UpdateVisibilityInput]()).
 		AddStep(c.newLoadAgentForVisibilityUpdateStep()).
+		AddStep(c.newGuardDatastoreExposureOnVisibilityStep()). // DD-010: datastore-attached agents stay org-internal
 		AddStep(c.newSetAgentVisibilityStep()).
 		AddStep(c.newPersistAgentForVisibilityUpdateStep()).
 		AddStep(c.newIndexAgentAfterVisibilityUpdateStep()).

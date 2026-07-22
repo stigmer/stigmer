@@ -331,6 +331,52 @@ public interface LlmCallUsageRecordOrBuilder extends
       getHarnessBytes();
 
   /**
+   * <pre>
+   * ─── Cursor Account Attribution (cursor harness only) ─────────────────────
+   * Which managed CursorAccount / member key served this call, stamped by
+   * the billing handler from the session's key pin at write time (never
+   * threaded through the proxy payload — the pin is the single source of
+   * truth). Identifiers only, never key material. Empty for the native
+   * harness, for env-key fallback traffic, and for records written before
+   * managed key selection was enabled. Lets provider reconciliation
+   * iterate per-account Cursor ledgers.
+   * </pre>
+   *
+   * <code>string cursor_account_id = 38 [json_name = "cursorAccountId"];</code>
+   * @return The cursorAccountId.
+   */
+  java.lang.String getCursorAccountId();
+  /**
+   * <pre>
+   * ─── Cursor Account Attribution (cursor harness only) ─────────────────────
+   * Which managed CursorAccount / member key served this call, stamped by
+   * the billing handler from the session's key pin at write time (never
+   * threaded through the proxy payload — the pin is the single source of
+   * truth). Identifiers only, never key material. Empty for the native
+   * harness, for env-key fallback traffic, and for records written before
+   * managed key selection was enabled. Lets provider reconciliation
+   * iterate per-account Cursor ledgers.
+   * </pre>
+   *
+   * <code>string cursor_account_id = 38 [json_name = "cursorAccountId"];</code>
+   * @return The bytes for cursorAccountId.
+   */
+  com.google.protobuf.ByteString
+      getCursorAccountIdBytes();
+
+  /**
+   * <code>string cursor_key_id = 39 [json_name = "cursorKeyId"];</code>
+   * @return The cursorKeyId.
+   */
+  java.lang.String getCursorKeyId();
+  /**
+   * <code>string cursor_key_id = 39 [json_name = "cursorKeyId"];</code>
+   * @return The bytes for cursorKeyId.
+   */
+  com.google.protobuf.ByteString
+      getCursorKeyIdBytes();
+
+  /**
    * <code>int32 http_status_code = 40 [json_name = "httpStatusCode"];</code>
    * @return The httpStatusCode.
    */

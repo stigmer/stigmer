@@ -1,0 +1,34 @@
+{
+  "name": "ChannelSenderSubject",
+  "description": "ChannelSenderSubject identifies a sender on a messaging channel.",
+  "protoType": "ai.stigmer.agentic.datastore.v1.ChannelSenderSubject",
+  "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
+  "fields": [
+    {
+      "name": "SenderKind",
+      "jsonName": "senderKind",
+      "protoField": "sender_kind",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Sender identity namespace (e.g. \"whatsapp_phone\", \"slack_user_id\").",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Value",
+      "jsonName": "value",
+      "protoField": "value",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Sender identity value within the namespace (e.g. the E.164 number).\n\n @internal\n Bearer-adjacent: never logged raw, never filterable, and only ever\n compared against broker-stamped session metadata.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    }
+  ]
+}

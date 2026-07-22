@@ -19,6 +19,7 @@ import (
 	agentsharev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1"
 	artifactv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/artifact/v1"
 	channelappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/channelapp/v1"
+	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
@@ -45,6 +46,8 @@ import (
 	artifactcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/controller"
 	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 	channelappcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/channelapp/controller"
+	datastorecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/controller"
+	datastorerecordstore "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/recordstore"
 	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
 	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
 	mcpservercontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/controller"
@@ -245,6 +248,26 @@ func Run() error {
 	environmentv1.RegisterEnvironmentQueryControllerServer(grpcServer, environmentController)
 
 	log.Info().Msg("Registered Environment controllers")
+
+	// Create and register Datastore controllers. The record substrate is
+	// a dedicated handle to the same stigmer.db (its writes run under
+	// BEGIN IMMEDIATE; the core store's write mutex does not cover
+	// record tables).
+	recordStore, err := datastorerecordstore.NewSQLiteStore(cfg.DBPath)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize datastore record store")
+	}
+	defer recordStore.Close()
+
+	datastoreController := datastorecontroller.NewDatastoreController(store, recordStore)
+	datastorev1.RegisterDatastoreCommandControllerServer(grpcServer, datastoreController)
+	datastorev1.RegisterDatastoreQueryControllerServer(grpcServer, datastoreController)
+
+	datastoreRecordController := datastorecontroller.NewDatastoreRecordController(store, recordStore)
+	datastorev1.RegisterDatastoreRecordCommandControllerServer(grpcServer, datastoreRecordController)
+	datastorev1.RegisterDatastoreRecordQueryControllerServer(grpcServer, datastoreRecordController)
+
+	log.Info().Msg("Registered Datastore controllers")
 
 	// Create and register OAuthApp controller (reuses encryption service from Environment)
 	oauthAppController := oauthappcontroller.NewOAuthAppController(store, secretService)

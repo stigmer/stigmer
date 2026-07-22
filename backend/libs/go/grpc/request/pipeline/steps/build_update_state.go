@@ -102,12 +102,12 @@ func (s *BuildUpdateStateStep[T]) Execute(ctx *pipeline.RequestContext[T]) error
 // - metadata.org (organization - cannot be changed once set)
 //
 // Preserve-on-omit fields (also matching the Java step):
-// - metadata.visibility - kept from existing when the request carries the
-//   proto zero value (unspecified). Clients that don't manage visibility
-//   (e.g. console inline edits, manifests without metadata.visibility) omit
-//   it; without this guard a full update would silently reset the stored
-//   visibility. Explicit visibility changes go through the dedicated
-//   updateVisibility RPC, but an update that DOES carry a level keeps it.
+//   - metadata.visibility - kept from existing when the request carries the
+//     proto zero value (unspecified). Clients that don't manage visibility
+//     (e.g. console inline edits, manifests without metadata.visibility) omit
+//     it; without this guard a full update would silently reset the stored
+//     visibility. Explicit visibility changes go through the dedicated
+//     updateVisibility RPC, but an update that DOES carry a level keeps it.
 //
 // Mutable fields (NOT preserved, can be updated):
 // - metadata.name (display name - CAN be changed)

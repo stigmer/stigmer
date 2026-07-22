@@ -6,8 +6,10 @@
 // reads these variables and generates /config.json at startup. The web app
 // fetches this file on initialization to obtain deployment-specific settings.
 //
-// During local development (`next dev`), /config.json does not exist. The
-// loader falls back to the same NEXT_PUBLIC_* variables from .env files.
+// During local development (`next dev`), /config.json does not exist —
+// `.env` files are the documented mechanism (see .env.example) — so the
+// loader skips the fetch entirely and reads the same NEXT_PUBLIC_*
+// variables directly. This keeps a recurring 404 out of dev logs.
 //
 // Usage:
 //   await loadRuntimeConfig();    // call once during app initialization
@@ -61,7 +63,8 @@ let _config: RuntimeConfig | null = null;
 
 /**
  * Load runtime configuration. Fetches `/config.json` (container deployment)
- * and falls back to `process.env.NEXT_PUBLIC_*` (local development).
+ * and falls back to `process.env.NEXT_PUBLIC_*`. In local development the
+ * fetch is skipped — env vars are the only supported source.
  *
  * Must be called exactly once before any call to {@link getRuntimeConfig}.
  * Subsequent calls return the cached result without re-fetching.
@@ -69,7 +72,12 @@ let _config: RuntimeConfig | null = null;
 export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
   if (_config) return _config;
 
-  const fromFile = await fetchConfigJson();
+  // Next.js inlines NODE_ENV into client bundles: `next dev` gets
+  // "development", `next build` (static export) gets "production". In dev
+  // /config.json never exists, so skip the fetch instead of logging a 404
+  // on every session.
+  const isDev = process.env.NODE_ENV === "development";
+  const fromFile = isDev ? null : await fetchConfigJson();
   const merged = fromFile ?? buildFromEnv();
 
   if (merged.authMode === "oidc") {

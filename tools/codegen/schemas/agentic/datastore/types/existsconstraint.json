@@ -1,0 +1,72 @@
+{
+  "name": "ExistsConstraint",
+  "description": "ExistsConstraint validates a record against another collection in the\n same datastore, requiring a matching record to exist (`exists`) or to\n not exist (`not_exists`).\n\n @internal\n Bounded by design: target collection in the same datastore only;\n `where` is CEL over exactly `this` (the candidate) and `that` (a\n record of the target collection), plus `tz`; one level, read-only.\n Evaluated inside the write transaction — BEGIN IMMEDIATE in OSS\n SQLite, FOR SHARE row locks or SERIALIZABLE in cloud Postgres — so no\n write commits against a stale check. Violations surface as\n FAILED_PRECONDITION carrying the declared message.",
+  "protoType": "ai.stigmer.agentic.datastore.v1.ExistsConstraint",
+  "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Constraint name, unique within the collection.",
+      "required": true,
+      "validation": {
+        "required": true,
+        "maxLength": 63,
+        "pattern": "^[a-z][a-z0-9_]*$"
+      }
+    },
+    {
+      "name": "Collection",
+      "jsonName": "collection",
+      "protoField": "collection",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Target collection in the same datastore.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Where",
+      "jsonName": "where",
+      "protoField": "where",
+      "type": {
+        "kind": "string"
+      },
+      "description": "CEL condition matching candidate (`this`) against target records\n (`that`).",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "When",
+      "jsonName": "when",
+      "protoField": "when",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Optional CEL gate: the constraint applies only when this evaluates\n true.",
+      "required": false
+    },
+    {
+      "name": "Message",
+      "jsonName": "message",
+      "protoField": "message",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Error message returned on violation, written to be relayed to an\n end user by an agent.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    }
+  ]
+}

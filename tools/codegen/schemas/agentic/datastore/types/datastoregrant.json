@@ -1,0 +1,59 @@
+{
+  "name": "DatastoreGrant",
+  "description": "DatastoreGrant gives a role a set of verbs on one collection's records.",
+  "protoType": "ai.stigmer.agentic.datastore.v1.DatastoreGrant",
+  "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Role",
+      "jsonName": "role",
+      "protoField": "role",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Name of a declared role.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Verbs",
+      "jsonName": "verbs",
+      "protoField": "verbs",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string",
+          "enumType": "ai.stigmer.agentic.datastore.v1.DatastoreVerb",
+          "enumValues": [
+            "read",
+            "insert",
+            "update",
+            "delete"
+          ]
+        }
+      },
+      "description": "Verbs granted to the role on this collection.",
+      "required": false,
+      "validation": {
+        "minItems": 1
+      }
+    },
+    {
+      "name": "Scope",
+      "jsonName": "scope",
+      "protoField": "scope",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.datastore.v1.DatastoreGrantScope",
+        "enumValues": [
+          "all",
+          "own"
+        ]
+      },
+      "description": "Row scope of the grant.\n\n Defaults to all records. `own` limits update and delete (and read)\n to records whose server-stamped created_by matches the caller.",
+      "required": false
+    }
+  ]
+}

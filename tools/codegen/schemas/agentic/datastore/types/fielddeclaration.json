@@ -1,0 +1,93 @@
+{
+  "name": "FieldDeclaration",
+  "description": "FieldDeclaration is a typed field on a collection's records.\n\n @internal\n System fields (id, created_at, updated_at, created_by) are not\n declared — they are part of the record envelope, server-stamped, and\n never caller-writable. Their names are reserved below, plus `org`\n (the stamped tenancy column in cloud record tables) and `partition`\n (the DD-010 data-partition label: ambient scope set by the server,\n never data — not declarable, not in payloads, not filterable).",
+  "protoType": "ai.stigmer.agentic.datastore.v1.FieldDeclaration",
+  "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Field name, unique within the collection.\n\n Format: lowercase snake_case. The record envelope's system field\n names (id, created_at, updated_at, created_by), `org`, and\n `partition` are reserved.",
+      "required": true,
+      "validation": {
+        "required": true,
+        "maxLength": 63,
+        "pattern": "^[a-z][a-z0-9_]*$"
+      }
+    },
+    {
+      "name": "Type",
+      "jsonName": "type",
+      "protoField": "type",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.datastore.v1.FieldType",
+        "enumValues": [
+          "string",
+          "integer",
+          "number",
+          "bool",
+          "timestamp",
+          "date",
+          "time",
+          "json"
+        ]
+      },
+      "description": "Value type for this field.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Required",
+      "jsonName": "required",
+      "protoField": "required",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether a value must be present on every record.\n\n Absent optional fields evaluate as null in constraint expressions.",
+      "required": false
+    },
+    {
+      "name": "Default",
+      "jsonName": "default",
+      "protoField": "default",
+      "type": {
+        "kind": "value"
+      },
+      "description": "Default value applied when the field is absent on insert.\n\n @internal\n Type compatibility between the default and the declared type is\n domain validation (google.protobuf.Value is untyped here).",
+      "required": false
+    },
+    {
+      "name": "EnumValues",
+      "jsonName": "enumValues",
+      "protoField": "enum_values",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Allowed values for string fields.\n\n Declaring enum_values on a non-string field is rejected.",
+      "required": false,
+      "validation": {
+        "maxItems": 100
+      }
+    },
+    {
+      "name": "Description",
+      "jsonName": "description",
+      "protoField": "description",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Human-readable description, surfaced to agents via describe_datastore.",
+      "required": false
+    }
+  ]
+}

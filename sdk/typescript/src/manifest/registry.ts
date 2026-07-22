@@ -31,6 +31,9 @@ import { AgentShareQueryController } from "@stigmer/protos/ai/stigmer/agentic/ag
 import { type ChannelApp, ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
+import { type Datastore, DatastoreSchema } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
+import { DatastoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/command_pb";
+import { DatastoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/query_pb";
 import { type Environment, EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
@@ -96,13 +99,25 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     apply: (c, m) => c(McpServerCommandController).apply(m as McpServer),
     getByReference: (c, ref) => c(McpServerQueryController).getByReference(ref),
   },
+  // A Datastore applies before the Agents that reference it via
+  // datastore_usages (the McpServer-before-Agent pattern).
+  {
+    kind: ApiResourceKind.datastore,
+    yamlKind: "Datastore",
+    displayName: "Datastore",
+    apiVersion: AGENTIC_V1,
+    schema: DatastoreSchema,
+    applyOrder: 2,
+    apply: (c, m) => c(DatastoreCommandController).apply(m as Datastore),
+    getByReference: (c, ref) => c(DatastoreQueryController).getByReference(ref),
+  },
   {
     kind: ApiResourceKind.agent,
     yamlKind: "Agent",
     displayName: "Agent",
     apiVersion: AGENTIC_V1,
     schema: AgentSchema,
-    applyOrder: 2,
+    applyOrder: 3,
     apply: (c, m) => c(AgentCommandController).apply(m as Agent),
     getByReference: (c, ref) => c(AgentQueryController).getByReference(ref),
   },
@@ -112,7 +127,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     displayName: "Workflow",
     apiVersion: AGENTIC_V1,
     schema: WorkflowSchema,
-    applyOrder: 3,
+    applyOrder: 4,
     apply: (c, m) => c(WorkflowCommandController).apply(m as Workflow),
     getByReference: (c, ref) => c(WorkflowQueryController).getByReference(ref),
   },
@@ -122,7 +137,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     displayName: "Environment",
     apiVersion: AGENTIC_V1,
     schema: EnvironmentSchema,
-    applyOrder: 4,
+    applyOrder: 5,
     apply: (c, m) => c(EnvironmentCommandController).apply(m as Environment),
     getByReference: (c, ref) => c(EnvironmentQueryController).getByReference(ref),
   },
@@ -132,7 +147,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     displayName: "Identity Provider",
     apiVersion: IAM_V1,
     schema: IdentityProviderSchema,
-    applyOrder: 5,
+    applyOrder: 6,
     apply: (c, m) => c(IdentityProviderCommandController).apply(m as IdentityProvider),
     getByReference: (c, ref) => c(IdentityProviderQueryController).getByReference(ref),
   },
@@ -142,7 +157,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     displayName: "OAuth App",
     apiVersion: IAM_V1,
     schema: OAuthAppSchema,
-    applyOrder: 6,
+    applyOrder: 7,
     apply: (c, m) => c(OAuthAppCommandController).apply(m as OAuthApp),
     getByReference: (c, ref) => c(OAuthAppQueryController).getByReference(ref),
   },
@@ -152,7 +167,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     displayName: "Channel App",
     apiVersion: AGENTIC_V1,
     schema: ChannelAppSchema,
-    applyOrder: 7,
+    applyOrder: 8,
     apply: (c, m) => c(ChannelAppCommandController).apply(m as ChannelApp),
     getByReference: (c, ref) => c(ChannelAppQueryController).getByReference(ref),
   },
@@ -162,7 +177,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     displayName: "Agent Instance",
     apiVersion: AGENTIC_V1,
     schema: AgentInstanceSchema,
-    applyOrder: 8,
+    applyOrder: 9,
     apply: (c, m) => c(AgentInstanceCommandController).apply(m as AgentInstance),
     getByReference: (c, ref) => c(AgentInstanceQueryController).getByReference(ref),
   },
@@ -172,7 +187,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     displayName: "Agent Share",
     apiVersion: AGENTIC_V1,
     schema: AgentShareSchema,
-    applyOrder: 9,
+    applyOrder: 10,
     apply: (c, m) => c(AgentShareCommandController).apply(m as AgentShare),
     getByReference: (c, ref) => c(AgentShareQueryController).getByReference(ref),
   },
@@ -183,7 +198,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     displayName: "Agent Channel",
     apiVersion: AGENTIC_V1,
     schema: AgentChannelSchema,
-    applyOrder: 10,
+    applyOrder: 11,
     apply: (c, m) => c(AgentChannelCommandController).apply(m as AgentChannel),
     getByReference: (c, ref) => c(AgentChannelQueryController).getByReference(ref),
   },

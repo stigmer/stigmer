@@ -44,16 +44,19 @@ export interface ApplyOutcome {
 const APPLY_ORDER: ReadonlyMap<ApiResourceKind, number> = new Map([
   [ApiResourceKind.organization, 0],
   [ApiResourceKind.mcp_server, 1],
-  [ApiResourceKind.agent, 2],
-  [ApiResourceKind.workflow, 3],
-  [ApiResourceKind.environment, 4],
-  [ApiResourceKind.identity_provider, 5],
-  [ApiResourceKind.oauth_app, 6],
-  [ApiResourceKind.agent_instance, 7],
-  [ApiResourceKind.workflow_instance, 8],
-  [ApiResourceKind.session, 9],
-  // After agent (2) and environment (4): a share references both.
-  [ApiResourceKind.agent_share, 10],
+  // Before agent: an Agent references a Datastore via datastore_usages
+  // (the McpServer-before-Agent pattern; mirrors the SDK manifest registry).
+  [ApiResourceKind.datastore, 2],
+  [ApiResourceKind.agent, 3],
+  [ApiResourceKind.workflow, 4],
+  [ApiResourceKind.environment, 5],
+  [ApiResourceKind.identity_provider, 6],
+  [ApiResourceKind.oauth_app, 7],
+  [ApiResourceKind.agent_instance, 8],
+  [ApiResourceKind.workflow_instance, 9],
+  [ApiResourceKind.session, 10],
+  // After agent and environment: a share references both.
+  [ApiResourceKind.agent_share, 11],
 ]);
 
 /** Expand a path into ordered, kind-resolved apply items (strict YAML parse). */

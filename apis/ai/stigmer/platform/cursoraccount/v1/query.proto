@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package ai.stigmer.platform.cursoraccount.v1;
+
+import "ai/stigmer/commons/rpc/method_options.proto";
+import "ai/stigmer/platform/cursoraccount/v1/io.proto";
+
+// CursorAccountQueryController handles read operations for managed
+// Cursor accounts.
+//
+// Platform-gated like the command controller: even redacted, the resource
+// reveals team structure and per-member spend, which are
+// platform-internal.
+//
+// @internal
+// Cloud-only; not implemented by the OSS Go server.
+service CursorAccountQueryController {
+  // List all Cursor accounts with routing/sync summaries. Key material
+  // is always redacted.
+  rpc listCursorAccounts(ListCursorAccountsInput) returns (CursorAccountsResponse) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_cursor_accounts;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can view cursor accounts";
+  }
+
+  // Retrieve one account's detail view: the redacted account, the latest
+  // roster/spend snapshot, and the computed key-coverage join (which
+  // members hold stored keys, which keys lost their owner, who has no
+  // key).
+  rpc getCursorAccountView(GetCursorAccountViewInput) returns (CursorAccountView) {
+    option (ai.stigmer.commons.rpc.config).resource_kind = platform;
+    option (ai.stigmer.commons.rpc.config).permission = can_manage_cursor_accounts;
+    option (ai.stigmer.commons.rpc.config).resource_id = "stigmer";
+    option (ai.stigmer.commons.rpc.config).error_msg = "only platform operators can view cursor accounts";
+  }
+}

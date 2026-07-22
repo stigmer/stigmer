@@ -71,21 +71,22 @@ func (s *SessionClient) ListByChannel(ctx context.Context, input *sessionv1.List
 
 // SessionInput holds the fields for creating/updating a Session.
 type SessionInput struct {
-	Name             string
-	Slug             string
-	Org              string
-	Labels           map[string]string
-	Visibility       apiresource.ApiResourceVisibility
-	AgentInstanceId  string
-	Subject          string
-	HarnessStateId   string
-	Metadata         map[string]string
-	WorkspaceEntries []*WorkspaceEntryInput
-	McpServerUsages  []*McpServerUsageInput
-	SkillRefs        []ResourceRef
-	Harness          sessionv1.Harness
-	CursorMode       sessionv1.CursorMode
-	ExecutionTarget  sessionv1.ExecutionTarget
+	Name                  string
+	Slug                  string
+	Org                   string
+	Labels                map[string]string
+	Visibility            apiresource.ApiResourceVisibility
+	AgentInstanceId       string
+	Subject               string
+	HarnessStateId        string
+	HarnessStateIdHistory []string
+	Metadata              map[string]string
+	WorkspaceEntries      []*WorkspaceEntryInput
+	McpServerUsages       []*McpServerUsageInput
+	SkillRefs             []ResourceRef
+	Harness               sessionv1.Harness
+	CursorMode            sessionv1.CursorMode
+	ExecutionTarget       sessionv1.ExecutionTarget
 }
 
 func (i *SessionInput) toProto() *sessionv1.Session {
@@ -104,6 +105,7 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 	resource.Spec.AgentInstanceId = i.AgentInstanceId
 	resource.Spec.Subject = i.Subject
 	resource.Spec.HarnessStateId = i.HarnessStateId
+	resource.Spec.HarnessStateIdHistory = i.HarnessStateIdHistory
 	resource.Spec.Metadata = i.Metadata
 	for _, item := range i.WorkspaceEntries {
 		resource.Spec.WorkspaceEntries = append(resource.Spec.WorkspaceEntries, item.toProto())
@@ -139,6 +141,7 @@ func SessionInputFromProto(p *sessionv1.Session) *SessionInput {
 		input.AgentInstanceId = s.GetAgentInstanceId()
 		input.Subject = s.GetSubject()
 		input.HarnessStateId = s.GetHarnessStateId()
+		input.HarnessStateIdHistory = s.GetHarnessStateIdHistory()
 		input.Metadata = s.GetMetadata()
 		for _, item := range s.GetWorkspaceEntries() {
 			input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))
