@@ -19,7 +19,10 @@ import {
 } from "@stigmer/protos/ai/stigmer/billing/v1/pricing_override_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
-import { PricingGovernanceConsole } from "../PricingGovernanceConsole";
+import {
+  PricingGovernanceConsole,
+  type PricingGovernanceTab,
+} from "../PricingGovernanceConsole";
 
 interface MockBilling {
   listModelPricingBaselines: ReturnType<typeof vi.fn>;
@@ -173,6 +176,82 @@ describe("PricingGovernanceConsole — tabs", () => {
         expect.objectContaining({ overrideId: "ovr-1", approve: true }),
       ),
     );
+  });
+});
+
+describe("PricingGovernanceConsole — defaultTab", () => {
+  it("opens on the Sign-Offs tab when defaultTab is 'sign-offs' (deep link)", async () => {
+    const client = createMockStigmer({
+      getModelPricingGovernance: vi.fn().mockResolvedValue({
+        entries: [],
+        pendingOverrides: [pendingOverride()],
+      }),
+    });
+
+    render(<PricingGovernanceConsole defaultTab="sign-offs" />, {
+      wrapper: wrapper(client),
+    });
+
+    // The queue itself is rendered — no tab click — proving the seed
+    // landed, not just the tab highlight.
+    expect(await screen.findByRole("button", { name: "Approve" })).toBeTruthy();
+    expect(
+      screen
+        .getByRole("tab", { name: /Sign-Offs/ })
+        .getAttribute("aria-selected"),
+    ).toBe("true");
+  });
+
+  it("opens on the Models tab when no defaultTab is given (existing default)", async () => {
+    const client = createMockStigmer({
+      listModelPricingBaselines: vi
+        .fn()
+        .mockResolvedValue({ baselines: [sonnetBaseline()] }),
+    });
+
+    render(<PricingGovernanceConsole />, { wrapper: wrapper(client) });
+
+    expect(await screen.findByLabelText("Search models")).toBeTruthy();
+    expect(
+      screen.getByRole("tab", { name: "Models" }).getAttribute("aria-selected"),
+    ).toBe("true");
+  });
+
+  it("falls back to Models for a runtime-invalid defaultTab (JS consumers)", async () => {
+    const client = createMockStigmer({
+      listModelPricingBaselines: vi
+        .fn()
+        .mockResolvedValue({ baselines: [sonnetBaseline()] }),
+    });
+
+    render(
+      <PricingGovernanceConsole
+        defaultTab={"bogus" as unknown as PricingGovernanceTab}
+      />,
+      { wrapper: wrapper(client) },
+    );
+
+    // Not a tabless surface — the boundary guard normalizes to Models.
+    expect(await screen.findByLabelText("Search models")).toBeTruthy();
+    expect(
+      screen.getByRole("tab", { name: "Models" }).getAttribute("aria-selected"),
+    ).toBe("true");
+  });
+
+  it("pins the tab ids as an external deep-link contract", async () => {
+    // "models" and "sign-offs" are wire values: external surfaces (e.g.
+    // the cloud governance Discord notification) compose ?tab= URLs
+    // against them via consumer wiring. Renaming one breaks every link
+    // in the wild — this pin makes that a test failure first.
+    const client = createMockStigmer();
+
+    render(<PricingGovernanceConsole />, { wrapper: wrapper(client) });
+
+    const tabs = await screen.findAllByRole("tab");
+    expect(tabs.map((t) => t.getAttribute("data-cursor-target"))).toEqual([
+      "tab-models",
+      "tab-sign-offs",
+    ]);
   });
 });
 

@@ -70,7 +70,10 @@ export type { PricingGovernancePanelProps } from "./PricingGovernancePanel.js";
 export { ModelCatalogPanel } from "./ModelCatalogPanel.js";
 export type { ModelCatalogPanelProps } from "./ModelCatalogPanel.js";
 export { PricingGovernanceConsole } from "./PricingGovernanceConsole.js";
-export type { PricingGovernanceConsoleProps } from "./PricingGovernanceConsole.js";
+export type {
+  PricingGovernanceConsoleProps,
+  PricingGovernanceTab,
+} from "./PricingGovernanceConsole.js";
 
 // Credit pack catalog and formatting utilities
 export { CREDIT_PACKS, formatPackPrice, formatCreditCount } from "./credit-packs.js";

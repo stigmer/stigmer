@@ -895,6 +895,7 @@ export type {
   PricingGovernancePanelProps,
   ModelCatalogPanelProps,
   PricingGovernanceConsoleProps,
+  PricingGovernanceTab,
   CreditPackInfo,
 } from "./billing/index.js";
 
