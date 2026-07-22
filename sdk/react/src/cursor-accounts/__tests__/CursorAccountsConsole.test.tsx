@@ -303,6 +303,65 @@ describe("CursorAccountsConsole", () => {
     expect(submitted.enabled).toBe(true);
   });
 
+  it("bulk-imports keys one per line, keeping failed lines for retry", async () => {
+    const accountWithNewKey = scenarAccount({
+      memberKeys: [
+        scenarAccount().memberKeys[0],
+        create(CursorMemberKeySchema, {
+          keyId: "k-new",
+          apiKey: "***REDACTED***",
+          boundEmail: "morgan@scenar.ai",
+          enabled: true,
+        }),
+      ],
+    });
+    const addMemberKey = vi
+      .fn()
+      .mockResolvedValueOnce(accountWithNewKey)
+      .mockRejectedValueOnce(
+        new StigmerError("invalid-argument", "Key rejected by Cursor", 3),
+      );
+    const syncAccount = vi.fn().mockResolvedValue(scenarView());
+    const client = createMockStigmer({
+      listAccounts: vi.fn().mockResolvedValue({ accounts: [scenarSummary()] }),
+      getAccountView: vi.fn().mockResolvedValue(scenarView()),
+      addMemberKey,
+      syncAccount,
+    });
+    render(<CursorAccountsConsole />, { wrapper: wrapper(client) });
+
+    await waitFor(() => expect(screen.getByText("scenar team")).toBeTruthy());
+    await userEvent.click(screen.getByRole("button", { name: /scenar team/ }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Import keys" })).toBeTruthy(),
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Import keys" }));
+    const textarea = screen.getByLabelText(/one user-scoped API key per line/);
+    await userEvent.type(textarea, "key_good_1234{Enter}key_bad_5678");
+    await userEvent.click(screen.getByRole("button", { name: "Import 2 keys" }));
+
+    await waitFor(() => expect(addMemberKey).toHaveBeenCalledTimes(2));
+    expect(addMemberKey).toHaveBeenNthCalledWith(1, {
+      accountId: "acc-1",
+      apiKey: "key_good_1234",
+    });
+    expect(addMemberKey).toHaveBeenNthCalledWith(2, {
+      accountId: "acc-1",
+      apiKey: "key_bad_5678",
+    });
+
+    // Per-line outcomes: success bound to its member, failure with the error.
+    await waitFor(() =>
+      expect(screen.getByText(/added — bound to morgan@scenar\.ai/)).toBeTruthy(),
+    );
+    expect(screen.getByText(/Key rejected by Cursor/)).toBeTruthy();
+    // Only the failed key remains in the box for retry.
+    expect((textarea as HTMLTextAreaElement).value).toBe("key_bad_5678");
+    // The roster sync runs automatically after the import.
+    await waitFor(() => expect(syncAccount).toHaveBeenCalledWith("acc-1"));
+  });
+
   it("keeps the stored admin key when the editor's masked value is untouched", async () => {
     const upsertAccount = vi.fn().mockResolvedValue(scenarAccount());
     const client = createMockStigmer({

@@ -314,7 +314,17 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	fgaEnabled := cfg.OpenFGAAPIURL != "" && cfg.OpenFGAStoreID != "" && cfg.OpenFGAModelID != ""
 	productionSecurity := cfg.Security == SecurityModeProduction
 
-	profiles := "mongo,temporal,iam,logging,auth0,skill-r2,agent-execution-r2,claimcheck-r2"
+	// This list deliberately reproduces the cloud service's required profile
+	// set (application.yaml) minus what tests stub out (mongock, vault); a new
+	// always-on cloud profile that gates required beans must be added here
+	// too, or the Spring context fails to boot with a missing-bean error.
+	//
+	// records-postgres: required for the Datastore record-substrate beans to
+	// exist (an unconditional pipeline step injects DatastoreRecordStore). No
+	// Postgres container is needed — the records pool is lazy by design
+	// (initializationFailTimeout = -1), so the service boots safely against
+	// the localhost:5432 defaults and record RPCs fail loudly on first use.
+	profiles := "mongo,temporal,iam,logging,auth0,skill-r2,agent-execution-r2,claimcheck-r2,records-postgres"
 	if cfg.SandboxType != "" {
 		profiles += ",sandbox"
 	}
