@@ -41,6 +41,7 @@ const SettingsLayout = lazy(() => import("./pages/settings/SettingsLayout"));
 const SettingsLanding = lazy(() => import("./pages/settings/SettingsLanding"));
 const BillingPage = lazy(() => import("./pages/settings/BillingPage"));
 const PricingGovernancePage = lazy(() => import("./pages/settings/PricingGovernancePage"));
+const CursorAccountsPage = lazy(() => import("./pages/settings/CursorAccountsPage"));
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -255,6 +256,14 @@ const routes: RouteObject[] = [
                 element: (
                   <LazyPage>
                     <PricingGovernancePage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: "cursor-accounts",
+                element: (
+                  <LazyPage>
+                    <CursorAccountsPage />
                   </LazyPage>
                 ),
               },

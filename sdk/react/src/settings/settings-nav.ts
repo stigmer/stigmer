@@ -8,6 +8,7 @@ import {
   KeyRound,
   Link,
   MessageSquare,
+  MousePointerClick,
   Plug,
   Scale,
   ShieldCheck,
@@ -25,6 +26,14 @@ export interface SettingsNavItem {
     /** Optional CSS class name applied to the icon. */
     className?: string;
   }>;
+  /**
+   * Platform-level permission (on `platform:stigmer`) required for this
+   * entry to appear. Only meaningful inside
+   * {@link PLATFORM_SETTINGS_NAV_GROUP} — items in the base groups are
+   * visible to every signed-in user and leave this unset.
+   * {@link useSettingsNavGroups} checks it fail-closed.
+   */
+  readonly requiredPermission?: string;
 }
 
 /** Grouping model used to render settings navigation sections. */
@@ -92,6 +101,10 @@ export const SETTINGS_NAV_GROUPS: readonly SettingsNavGroup[] = [
  * change based on who is looking. This group is appended for platform
  * operators only — use {@link useSettingsNavGroups} to get the
  * permission-aware list instead of composing the two by hand.
+ *
+ * Every item here declares its `requiredPermission`; the hook filters
+ * per item (fail-closed), so an operator holding one platform permission
+ * but not another sees exactly their slice of this group.
  */
 export const PLATFORM_SETTINGS_NAV_GROUP: SettingsNavGroup = {
   label: "Platform",
@@ -102,6 +115,13 @@ export const PLATFORM_SETTINGS_NAV_GROUP: SettingsNavGroup = {
       href: "/settings/pricing-governance",
       label: "Pricing Governance",
       icon: Scale,
+      requiredPermission: "can_manage_model_pricing",
+    },
+    {
+      href: "/settings/cursor-accounts",
+      label: "Cursor Accounts",
+      icon: MousePointerClick,
+      requiredPermission: "can_manage_cursor_accounts",
     },
   ],
 };

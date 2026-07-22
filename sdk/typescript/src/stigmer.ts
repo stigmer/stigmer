@@ -1,5 +1,6 @@
 import { ActivityClient } from "./activity.js";
 import { BillingClient } from "./billing.js";
+import { CursorAccountsClient } from "./cursor-accounts.js";
 import { GeneratedClient } from "./gen/client.js";
 import { GitHubClient } from "./github.js";
 import { ManifestClient } from "./manifest/index.js";
@@ -75,6 +76,8 @@ export class Stigmer extends GeneratedClient {
 
   readonly activity: ActivityClient;
   readonly billing: BillingClient;
+  /** Managed Cursor accounts (platform operators only). */
+  readonly cursorAccounts: CursorAccountsClient;
   readonly platform: PlatformClient;
   readonly search: SearchClient;
   readonly github: GitHubClient;
@@ -97,6 +100,7 @@ export class Stigmer extends GeneratedClient {
 
     this.activity = new ActivityClient(transport);
     this.billing = new BillingClient(transport);
+    this.cursorAccounts = new CursorAccountsClient(transport);
     this.platform = new PlatformClient(transport);
     this.search = new SearchClient(transport);
     this.github = new GitHubClient(transport);

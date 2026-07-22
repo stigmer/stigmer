@@ -899,6 +899,33 @@ export type {
   CreditPackInfo,
 } from "./billing/index.js";
 
+// Cursor accounts — platform-operator management of managed Cursor teams
+// (admin keys, member execution keys, org assignments, roster/spend)
+export {
+  useCursorAccounts,
+  useCursorAccountView,
+  useUpsertCursorAccount,
+  useDeleteCursorAccount,
+  useCursorMemberKeyActions,
+  useSyncCursorAccount,
+  CursorAccountsConsole,
+  CursorAccountEditor,
+  CursorAccountsAccessNotice,
+} from "./cursor-accounts/index.js";
+export type {
+  UseCursorAccountsReturn,
+  UseCursorAccountViewReturn,
+  UseUpsertCursorAccountReturn,
+  DeleteCursorAccountInput,
+  UseDeleteCursorAccountReturn,
+  AddCursorMemberKeyInput,
+  RemoveCursorMemberKeyInput,
+  UseCursorMemberKeyActionsReturn,
+  UseSyncCursorAccountReturn,
+  CursorAccountsConsoleProps,
+  CursorAccountEditorProps,
+} from "./cursor-accounts/index.js";
+
 // Settings — navigation structure + section components shared across app shells
 export {
   SETTINGS_NAV_GROUPS,

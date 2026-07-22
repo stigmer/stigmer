@@ -78,6 +78,13 @@
       "components": 1
     },
     {
+      "slug": "cursor-accounts",
+      "title": "cursor-accounts",
+      "description": "",
+      "hooks": 6,
+      "components": 3
+    },
+    {
       "slug": "dashboard",
       "title": "Dashboard",
       "description": "Hooks for dashboard metrics, activity feeds, and analytics data.",

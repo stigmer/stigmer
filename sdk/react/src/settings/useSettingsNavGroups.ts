@@ -17,22 +17,23 @@ const PLATFORM_RESOURCE = { kind: "platform", id: "stigmer" } as const;
 
 /**
  * Permission-aware settings navigation: {@link SETTINGS_NAV_GROUPS}
- * for everyone, plus {@link PLATFORM_SETTINGS_NAV_GROUP} appended when
- * the caller holds `can_manage_model_pricing` on `platform:stigmer`
- * (i.e. is a platform operator).
+ * for everyone, plus the {@link PLATFORM_SETTINGS_NAV_GROUP} items the
+ * caller's platform permissions unlock (per-item `requiredPermission`,
+ * checked against `platform:stigmer`). The group appears when at least
+ * one of its items is visible.
  *
- * The check runs fail-closed — the opposite of the `useCheckPermission`
+ * The checks run fail-closed — the opposite of the `useCheckPermission`
  * default — because navigation is *discoverability*, not *capability*:
  * an action gate can safely fail open (the server re-checks every
  * request), but an operator-only nav entry must not appear while the
  * check is loading, when it errors, or on deployments where the IAM
  * service (and the surface it points to) does not exist.
  *
- * Gating is deliberately group-level on this single permission — it is
- * the only operator console surface today. If a second platform surface
- * with a different permission arrives, extend {@link SettingsNavItem}
- * with a per-item `requiredPermission` and filter here, rather than
- * adding more one-off hooks.
+ * Implementation note: hooks must be called unconditionally, so each
+ * distinct platform permission gets its own static check below. When a
+ * new platform surface adds a new permission, add its check to
+ * PLATFORM_PERMISSION_CHECKS' shape here — the exhaustiveness guard in
+ * the tests catches a forgotten one.
  *
  * @example
  * ```tsx
@@ -41,17 +42,40 @@ const PLATFORM_RESOURCE = { kind: "platform", id: "stigmer" } as const;
  * ```
  */
 export function useSettingsNavGroups(): readonly SettingsNavGroup[] {
-  const { allowed } = useCheckPermission(
+  const pricing = useCheckPermission(
     PLATFORM_RESOURCE,
     "can_manage_model_pricing",
     { fail: "closed" },
   );
-
-  return useMemo(
-    () =>
-      allowed
-        ? [...SETTINGS_NAV_GROUPS, PLATFORM_SETTINGS_NAV_GROUP]
-        : SETTINGS_NAV_GROUPS,
-    [allowed],
+  const cursorAccounts = useCheckPermission(
+    PLATFORM_RESOURCE,
+    "can_manage_cursor_accounts",
+    { fail: "closed" },
   );
+
+  const pricingAllowed = pricing.allowed;
+  const cursorAccountsAllowed = cursorAccounts.allowed;
+
+  return useMemo(() => {
+    const verdicts: Record<string, boolean> = {
+      can_manage_model_pricing: pricingAllowed,
+      can_manage_cursor_accounts: cursorAccountsAllowed,
+    };
+
+    const visibleItems = PLATFORM_SETTINGS_NAV_GROUP.items.filter(
+      // Fail closed on both axes: an item with no declared permission or
+      // with a permission this hook does not check yet stays hidden.
+      (item) =>
+        item.requiredPermission !== undefined &&
+        verdicts[item.requiredPermission] === true,
+    );
+
+    if (visibleItems.length === 0) {
+      return SETTINGS_NAV_GROUPS;
+    }
+    return [
+      ...SETTINGS_NAV_GROUPS,
+      { ...PLATFORM_SETTINGS_NAV_GROUP, items: visibleItems },
+    ];
+  }, [pricingAllowed, cursorAccountsAllowed]);
 }

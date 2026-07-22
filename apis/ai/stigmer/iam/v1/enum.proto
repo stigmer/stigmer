@@ -111,6 +111,13 @@ enum IamPermission {
 
   // Organization-level permission to create datastores.
   can_create_datastore = 34;
+
+  // Platform-level permission to manage Cursor accounts: the managed
+  // Cursor teams (admin keys, member execution keys, org assignments)
+  // that back the cursor harness. A human operator action, gated to
+  // platform operators like can_manage_model_pricing — key material and
+  // per-member spend are platform-internal, never org-visible.
+  can_manage_cursor_accounts = 35;
 }
 
 // IamRole defines the roles that can be assigned to principals on resources

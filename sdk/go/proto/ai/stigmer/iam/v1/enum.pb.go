@@ -116,6 +116,12 @@ const (
 	IamPermission_can_use_records IamPermission = 33
 	// Organization-level permission to create datastores.
 	IamPermission_can_create_datastore IamPermission = 34
+	// Platform-level permission to manage Cursor accounts: the managed
+	// Cursor teams (admin keys, member execution keys, org assignments)
+	// that back the cursor harness. A human operator action, gated to
+	// platform operators like can_manage_model_pricing — key material and
+	// per-member spend are platform-internal, never org-visible.
+	IamPermission_can_manage_cursor_accounts IamPermission = 35
 )
 
 // Enum value maps for IamPermission.
@@ -155,6 +161,7 @@ var (
 		32: "can_manage_model_pricing",
 		33: "can_use_records",
 		34: "can_create_datastore",
+		35: "can_manage_cursor_accounts",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -191,6 +198,7 @@ var (
 		"can_manage_model_pricing":     32,
 		"can_use_records":              33,
 		"can_create_datastore":         34,
+		"can_manage_cursor_accounts":   35,
 	}
 )
 
@@ -294,7 +302,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xbb\x06\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xdb\x06\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -331,7 +339,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x16can_create_channel_app\x10\x1f\x12\x1c\n" +
 	"\x18can_manage_model_pricing\x10 \x12\x13\n" +
 	"\x0fcan_use_records\x10!\x12\x18\n" +
-	"\x14can_create_datastore\x10\"*Q\n" +
+	"\x14can_create_datastore\x10\"\x12\x1e\n" +
+	"\x1acan_manage_cursor_accounts\x10#*Q\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +

@@ -10,22 +10,23 @@ description: Pre-composed settings sections for organization console embedding.
 ### useSettingsNavGroups
 
 Permission-aware settings navigation: [`SETTINGS_NAV_GROUPS`](#settings_nav_groups)
-for everyone, plus [`PLATFORM_SETTINGS_NAV_GROUP`](#platform_settings_nav_group) appended when
-the caller holds `can_manage_model_pricing` on `platform:stigmer`
-(i.e. is a platform operator).
+for everyone, plus the [`PLATFORM_SETTINGS_NAV_GROUP`](#platform_settings_nav_group) items the
+caller's platform permissions unlock (per-item `requiredPermission`,
+checked against `platform:stigmer`). The group appears when at least
+one of its items is visible.
 
-The check runs fail-closed — the opposite of the `useCheckPermission`
+The checks run fail-closed — the opposite of the `useCheckPermission`
 default — because navigation is *discoverability*, not *capability*:
 an action gate can safely fail open (the server re-checks every
 request), but an operator-only nav entry must not appear while the
 check is loading, when it errors, or on deployments where the IAM
 service (and the surface it points to) does not exist.
 
-Gating is deliberately group-level on this single permission — it is
-the only operator console surface today. If a second platform surface
-with a different permission arrives, extend [`SettingsNavItem`](#settingsnavitem)
-with a per-item `requiredPermission` and filter here, rather than
-adding more one-off hooks.
+Implementation note: hooks must be called unconditionally, so each
+distinct platform permission gets its own static check below. When a
+new platform surface adds a new permission, add its check to
+PLATFORM_PERMISSION_CHECKS' shape here — the exhaustiveness guard in
+the tests catches a forgotten one.
 
 **Signature**
 
@@ -119,6 +120,10 @@ change based on who is looking. This group is appended for platform
 operators only — use [`useSettingsNavGroups`](#usesettingsnavgroups) to get the
 permission-aware list instead of composing the two by hand.
 
+Every item here declares its `requiredPermission`; the hook filters
+per item (fail-closed), so an operator holding one platform permission
+but not another sees exactly their slice of this group.
+
 
 ### SETTINGS_NAV_GROUPS
 
@@ -147,6 +152,7 @@ Single navigable entry in the settings sidebar.
     href: { type: "string", description: "Route for the settings page entry.", required: true },
     icon: { type: "ComponentType<{ className?: string }>", description: "Lucide icon component rendered next to the label.", required: true },
     label: { type: "string", description: "Short, user-facing label shown in navigation.", required: true },
+    requiredPermission: { type: "string", description: "Platform-level permission (on `platform:stigmer`) required for this entry to appear. Only meaningful inside PLATFORM_SETTINGS_NAV_GROUP — items in the base groups are visible to every signed-in user and leave this unset. useSettingsNavGroups checks it fail-closed." },
   }}
 />
 

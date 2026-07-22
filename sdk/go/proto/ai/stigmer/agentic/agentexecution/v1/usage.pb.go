@@ -977,9 +977,19 @@ type LlmCallUsageRecord struct {
 	ServiceTier       string `protobuf:"bytes,35,opt,name=service_tier,json=serviceTier,proto3" json:"service_tier,omitempty"`
 	ProviderRequestId string `protobuf:"bytes,36,opt,name=provider_request_id,json=providerRequestId,proto3" json:"provider_request_id,omitempty"`
 	Harness           string `protobuf:"bytes,37,opt,name=harness,proto3" json:"harness,omitempty"`
-	HttpStatusCode    int32  `protobuf:"varint,40,opt,name=http_status_code,json=httpStatusCode,proto3" json:"http_status_code,omitempty"`
-	FinishReason      string `protobuf:"bytes,41,opt,name=finish_reason,json=finishReason,proto3" json:"finish_reason,omitempty"`
-	ErrorCode         string `protobuf:"bytes,42,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
+	// ─── Cursor Account Attribution (cursor harness only) ─────────────────────
+	// Which managed CursorAccount / member key served this call, stamped by
+	// the billing handler from the session's key pin at write time (never
+	// threaded through the proxy payload — the pin is the single source of
+	// truth). Identifiers only, never key material. Empty for the native
+	// harness, for env-key fallback traffic, and for records written before
+	// managed key selection was enabled. Lets provider reconciliation
+	// iterate per-account Cursor ledgers.
+	CursorAccountId string `protobuf:"bytes,38,opt,name=cursor_account_id,json=cursorAccountId,proto3" json:"cursor_account_id,omitempty"`
+	CursorKeyId     string `protobuf:"bytes,39,opt,name=cursor_key_id,json=cursorKeyId,proto3" json:"cursor_key_id,omitempty"`
+	HttpStatusCode  int32  `protobuf:"varint,40,opt,name=http_status_code,json=httpStatusCode,proto3" json:"http_status_code,omitempty"`
+	FinishReason    string `protobuf:"bytes,41,opt,name=finish_reason,json=finishReason,proto3" json:"finish_reason,omitempty"`
+	ErrorCode       string `protobuf:"bytes,42,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
 	// ─── Token Usage ────────────────────────────────────────────────────────────
 	Tokens *TokenUsage `protobuf:"bytes,50,opt,name=tokens,proto3" json:"tokens,omitempty"`
 	// ─── Cost ───────────────────────────────────────────────────────────────────
@@ -1169,6 +1179,20 @@ func (x *LlmCallUsageRecord) GetProviderRequestId() string {
 func (x *LlmCallUsageRecord) GetHarness() string {
 	if x != nil {
 		return x.Harness
+	}
+	return ""
+}
+
+func (x *LlmCallUsageRecord) GetCursorAccountId() string {
+	if x != nil {
+		return x.CursorAccountId
+	}
+	return ""
+}
+
+func (x *LlmCallUsageRecord) GetCursorKeyId() string {
+	if x != nil {
+		return x.CursorKeyId
 	}
 	return ""
 }
@@ -1689,7 +1713,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\n" +
 	"debited_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tdebitedAt\x122\n" +
 	"\x15billing_attempt_count\x18\x05 \x01(\x05R\x13billingAttemptCount\x12,\n" +
-	"\x12last_billing_error\x18\x06 \x01(\tR\x10lastBillingError\"\xed\f\n" +
+	"\x12last_billing_error\x18\x06 \x01(\tR\x10lastBillingError\"\xbd\r\n" +
 	"\x12LlmCallUsageRecord\x12&\n" +
 	"\x0fusage_record_id\x18\x01 \x01(\tR\rusageRecordId\x12!\n" +
 	"\fexecution_id\x18\x02 \x01(\tR\vexecutionId\x12*\n" +
@@ -1715,7 +1739,9 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\tstreaming\x18\" \x01(\bR\tstreaming\x12!\n" +
 	"\fservice_tier\x18# \x01(\tR\vserviceTier\x12.\n" +
 	"\x13provider_request_id\x18$ \x01(\tR\x11providerRequestId\x12\x18\n" +
-	"\aharness\x18% \x01(\tR\aharness\x12(\n" +
+	"\aharness\x18% \x01(\tR\aharness\x12*\n" +
+	"\x11cursor_account_id\x18& \x01(\tR\x0fcursorAccountId\x12\"\n" +
+	"\rcursor_key_id\x18' \x01(\tR\vcursorKeyId\x12(\n" +
 	"\x10http_status_code\x18( \x01(\x05R\x0ehttpStatusCode\x12#\n" +
 	"\rfinish_reason\x18) \x01(\tR\ffinishReason\x12\x1d\n" +
 	"\n" +

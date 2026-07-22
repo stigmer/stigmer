@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package ai.stigmer.platform.cursoraccount.v1;
+
+import "ai/stigmer/platform/cursoraccount/v1/cursor_account.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// Input for creating or updating a CursorAccount.
+//
+// Create: account_id empty; admin_api_key plaintext (validated live
+// against GET /teams/members before persistence).
+// Update: account_id set; admin_api_key plaintext to rotate or
+// "***REDACTED***" to keep the stored value. member_keys on the embedded
+// account are IGNORED here — keys have their own add/remove/enable RPCs
+// so key mutations are individually validated and audited.
+message UpsertCursorAccountInput {
+  CursorAccount account = 1 [(buf.validate.field).required = true];
+}
+
+// Input for deleting a CursorAccount.
+message DeleteCursorAccountInput {
+  string account_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Deletion is refused while live sessions are pinned to this account's
+  // keys (their end-of-session agent disposal still needs the keys).
+  // Setting force overrides the guard; the orphaned pin count is logged.
+  bool force = 2;
+}
+
+// Input for adding one member key to an account. The key is presented to
+// Cursor's GET /v1/me before persistence; the returned identity is bound
+// server-side. A non-user-scoped key (e.g. a team admin key) fails with
+// Cursor's own explanatory error.
+message AddCursorMemberKeyInput {
+  string account_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Plaintext user-scoped API key. The redaction marker is not accepted:
+  // rotation is remove + add, so the identity binding can never go stale.
+  string api_key = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 256
+  ];
+
+  // Optional operator label.
+  string label = 3 [(buf.validate.field).string.max_len = 128];
+}
+
+// Input for removing one member key.
+message RemoveCursorMemberKeyInput {
+  string account_id = 1 [(buf.validate.field).string.min_len = 1];
+  string key_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Removal is refused while live sessions are pinned to this key (the
+  // runner archives the Cursor agent with the session's key at disposal;
+  // removing it would orphan those agent handles). Setting force
+  // overrides the guard; the orphaned pin count is logged.
+  bool force = 3;
+}
+
+// Input for enabling or disabling one member key. Disabling blocks NEW
+// sessions immediately; pinned sessions keep working.
+message SetCursorMemberKeyEnabledInput {
+  string account_id = 1 [(buf.validate.field).string.min_len = 1];
+  string key_id = 2 [(buf.validate.field).string.min_len = 1];
+  bool enabled = 3;
+}
+
+// Input for an on-demand roster + spend sync of one account.
+message SyncCursorAccountInput {
+  string account_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// Input for listing all accounts. Empty by design: this is a
+// platform-operator surface over a small collection.
+message ListCursorAccountsInput {}
+
+// One account plus derived routing/sync facts for the console list.
+message CursorAccountSummary {
+  // The account with all key material redacted.
+  CursorAccount account = 1;
+
+  // Count of enabled member keys — 0 means "not routable", surfaced
+  // prominently in the console.
+  int32 enabled_key_count = 2;
+
+  // When the latest sync snapshot was taken; unset when never synced.
+  google.protobuf.Timestamp last_synced_at = 3;
+}
+
+message CursorAccountsResponse {
+  repeated CursorAccountSummary accounts = 1;
+}
+
+// Input for the single-account detail view.
+message GetCursorAccountViewInput {
+  string account_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// CursorMemberKeyState classifies one stored member key against the
+// latest roster snapshot. Computed on read (never stored) so it can
+// not drift from its inputs.
+enum CursorMemberKeyState {
+  cursor_member_key_state_unspecified = 0;
+
+  // Key owner is an active roster member.
+  member_key_active = 1;
+
+  // Key owner shows as "removed" in the roster — the key is excluded
+  // from selection and flagged for the operator.
+  member_key_owner_removed = 2;
+
+  // Key owner does not appear in the roster at all (or no sync has run
+  // yet, in which case every key reports this until the first sync).
+  member_key_owner_unknown = 3;
+}
+
+// One member key joined with roster + spend facts for the detail view.
+message CursorMemberKeyView {
+  // The key entry with material redacted.
+  CursorMemberKey key = 1;
+
+  CursorMemberKeyState state = 2;
+
+  // Spend of the owning member this cycle; unset when the member has no
+  // spend row (spend reports active members only).
+  CursorMemberSpend spend = 3;
+}
+
+// Full detail view of one account: the redacted account, the latest
+// roster/spend snapshot, and the computed key-coverage join.
+message CursorAccountView {
+  CursorAccount account = 1;
+
+  // Latest sync snapshot; unset when never synced.
+  CursorAccountSyncSnapshot snapshot = 2;
+
+  // Every stored member key joined with roster and spend facts.
+  repeated CursorMemberKeyView key_views = 3;
+
+  // Active roster members (role != "removed") for whom no member key is
+  // stored — the operator's "coverage gap" list.
+  repeated CursorTeamMember members_without_keys = 4;
+}

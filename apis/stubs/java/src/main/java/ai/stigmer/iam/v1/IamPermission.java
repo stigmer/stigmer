@@ -261,6 +261,18 @@ public enum IamPermission
    * <code>can_create_datastore = 34;</code>
    */
   can_create_datastore(34),
+  /**
+   * <pre>
+   * Platform-level permission to manage Cursor accounts: the managed
+   * Cursor teams (admin keys, member execution keys, org assignments)
+   * that back the cursor harness. A human operator action, gated to
+   * platform operators like can_manage_model_pricing — key material and
+   * per-member spend are platform-internal, never org-visible.
+   * </pre>
+   *
+   * <code>can_manage_cursor_accounts = 35;</code>
+   */
+  can_manage_cursor_accounts(35),
   UNRECOGNIZED(-1),
   ;
 
@@ -509,6 +521,18 @@ public enum IamPermission
    * <code>can_create_datastore = 34;</code>
    */
   public static final int can_create_datastore_VALUE = 34;
+  /**
+   * <pre>
+   * Platform-level permission to manage Cursor accounts: the managed
+   * Cursor teams (admin keys, member execution keys, org assignments)
+   * that back the cursor harness. A human operator action, gated to
+   * platform operators like can_manage_model_pricing — key material and
+   * per-member spend are platform-internal, never org-visible.
+   * </pre>
+   *
+   * <code>can_manage_cursor_accounts = 35;</code>
+   */
+  public static final int can_manage_cursor_accounts_VALUE = 35;
 
 
   public final int getNumber() {
@@ -569,6 +593,7 @@ public enum IamPermission
       case 32: return can_manage_model_pricing;
       case 33: return can_use_records;
       case 34: return can_create_datastore;
+      case 35: return can_manage_cursor_accounts;
       default: return null;
     }
   }
