@@ -78,27 +78,35 @@ export default function OidcAuthProvider({
   config: OidcConfig;
   children: React.ReactNode;
 }) {
-  const managerRef = useRef(resolveActiveManager(config));
+  // Lazy-init so the UserManager is constructed once per mount, not built
+  // and discarded on every render (useRef arguments are evaluated
+  // unconditionally). Populated during the first render, so it is always
+  // non-null by the time effects and callbacks run.
+  const managerRef = useRef<UserManager | null>(null);
+  managerRef.current ??= resolveActiveManager(config);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [callbackError, setCallbackError] = useState<string | null>(null);
 
   useEffect(() => {
-    const manager = managerRef.current;
+    const manager = managerRef.current!;
     const isCallback = window.location.pathname === CALLBACK_PATH;
 
     const init = async () => {
       try {
         if (isCallback) {
-          const callbackUser = await processSsoOrAuth0Callback(manager);
+          // The callback processing is single-flighted at module scope, so
+          // this effect body must stay idempotent: React StrictMode runs
+          // mount effects twice, and both runs land here with identical
+          // values. setUser/setAuthToken are naturally idempotent, and
+          // replace() with the same URL is harmless.
+          const { user: callbackUser, redirectPath } =
+            await processSsoOrAuth0Callback(manager);
           setUser(callbackUser);
           setAuthToken(callbackUser.access_token);
 
-          const savedPath =
-            sessionStorage.getItem(REDIRECT_PATH_KEY) ?? "/";
-          sessionStorage.removeItem(REDIRECT_PATH_KEY);
-          window.location.replace(savedPath);
+          window.location.replace(redirectPath);
           // Don't set isLoading=false — the full-page navigation will
           // unmount this tree. Keeping isLoading=true prevents AuthGuard
           // from flashing content at the callback URL.
@@ -154,7 +162,7 @@ export default function OidcAuthProvider({
   const login = useCallback(() => {
     const path = window.location.pathname + window.location.search;
     sessionStorage.setItem(REDIRECT_PATH_KEY, path);
-    managerRef.current.signinRedirect();
+    managerRef.current!.signinRedirect();
   }, []);
 
   const logout = useCallback(async () => {
@@ -165,7 +173,7 @@ export default function OidcAuthProvider({
     if (ssoSession) {
       clearSsoSession();
       try {
-        await managerRef.current.removeUser();
+        await managerRef.current!.removeUser();
       } catch {
         // Best-effort — the session storage entry may already be gone.
       }
@@ -175,7 +183,7 @@ export default function OidcAuthProvider({
     }
 
     try {
-      await managerRef.current.signoutRedirect();
+      await managerRef.current!.signoutRedirect();
     } catch (err) {
       console.error("[auth] signoutRedirect failed, falling back:", err);
       const issuer = config.issuer.replace(/\/+$/, "");
@@ -232,23 +240,61 @@ export default function OidcAuthProvider({
 }
 
 // ---------------------------------------------------------------------------
-// SSO callback detection
+// Callback processing — single-flight
 // ---------------------------------------------------------------------------
+
+/** Everything the mount effect needs after a successful code exchange. */
+interface CallbackResult {
+  /** The authenticated user returned by the token exchange. */
+  readonly user: User;
+  /** Pre-login path to navigate to (consumed from sessionStorage). */
+  readonly redirectPath: string;
+}
+
+/**
+ * In-flight (or settled) callback processing for this page load.
+ *
+ * Module scope is deliberate: the one-time authorization code in the URL
+ * is page-load-scoped, so the memo's lifetime matches the resource it
+ * protects. Both success and failure paths leave `/auth/callback` via a
+ * full-page navigation, which resets this state naturally.
+ */
+let callbackResult: Promise<CallbackResult> | null = null;
 
 /**
  * Process the `/auth/callback` for either an SSO or Auth0 login.
+ *
+ * Single-flighted: React StrictMode runs mount effects twice, and any
+ * remount of the provider on the callback page would otherwise redeem the
+ * one-time authorization code a second time — the identity provider
+ * rejects that with `invalid_grant` ("Invalid authorization code").
+ * Every non-idempotent step (token exchange, SSO session save/clear,
+ * redirect-path consumption) lives inside the memoized execution so all
+ * callers receive identical, safely reusable values.
+ */
+function processSsoOrAuth0Callback(
+  auth0Manager: UserManager,
+): Promise<CallbackResult> {
+  callbackResult ??= doCallbackExchange(auth0Manager);
+  return callbackResult;
+}
+
+/**
+ * Perform the authorization-code exchange and consume one-shot state.
  *
  * Checks sessionStorage for SSO login state (written by the login page
  * before the SSO redirect). If present, creates an SSO-specific
  * UserManager to exchange the authorization code, persists the SSO
  * session config for future page loads, and cleans up the ephemeral
  * login state. If absent, delegates to the default Auth0 manager.
+ * Finally, consumes (reads + removes) the saved pre-login path.
  */
-async function processSsoOrAuth0Callback(
+async function doCallbackExchange(
   auth0Manager: UserManager,
-): Promise<User> {
+): Promise<CallbackResult> {
   const ssoLogin = getSsoLoginState();
 
+  let callbackUser: User;
   if (ssoLogin && isValidSsoState(ssoLogin)) {
     const ssoManager = createUserManager({
       issuer: ssoLogin.issuer,
@@ -256,13 +302,16 @@ async function processSsoOrAuth0Callback(
       audience: ssoLogin.audience,
     });
 
-    const callbackUser = await ssoManager.signinRedirectCallback();
+    callbackUser = await ssoManager.signinRedirectCallback();
 
     saveSsoSession(ssoLogin);
     clearSsoLoginState();
-
-    return callbackUser;
+  } else {
+    callbackUser = await auth0Manager.signinRedirectCallback();
   }
 
-  return auth0Manager.signinRedirectCallback();
+  const redirectPath = sessionStorage.getItem(REDIRECT_PATH_KEY) ?? "/";
+  sessionStorage.removeItem(REDIRECT_PATH_KEY);
+
+  return { user: callbackUser, redirectPath };
 }

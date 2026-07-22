@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ThemeProvider } from "next-themes";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { isRetryableError } from "@stigmer/sdk";
