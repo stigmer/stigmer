@@ -111,4 +111,32 @@ public interface InsertRecordRequestOrBuilder extends
    */
   com.google.protobuf.ByteString
       getPartitionBytes();
+
+  /**
+   * <pre>
+   * Organization the datastore belongs to. Direct callers set it;
+   * unset resolves from the caller's context.
+   *
+   * &#64;internal
+   * Same dispatch as FindRecordsRequest.org.
+   * </pre>
+   *
+   * <code>string org = 5 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The org.
+   */
+  java.lang.String getOrg();
+  /**
+   * <pre>
+   * Organization the datastore belongs to. Direct callers set it;
+   * unset resolves from the caller's context.
+   *
+   * &#64;internal
+   * Same dispatch as FindRecordsRequest.org.
+   * </pre>
+   *
+   * <code>string org = 5 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for org.
+   */
+  com.google.protobuf.ByteString
+      getOrgBytes();
 }

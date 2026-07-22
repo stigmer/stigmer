@@ -15,7 +15,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/datastore/v1/record_io.proto.
  */
 export const file_ai_stigmer_agentic_datastore_v1_record_io: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvZGF0YXN0b3JlL3YxL3JlY29yZF9pby5wcm90bxIfYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MSLsAQoOUmVjb3JkRW52ZWxvcGUSCgoCaWQYASABKAkSLgoKY3JlYXRlZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASRQoKY3JlYXRlZF9ieRgEIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuRGF0YXN0b3JlU3ViamVjdBInCgZmaWVsZHMYBSABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0InwKClJlY29yZExpc3QSQAoHcmVjb3JkcxgBIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuUmVjb3JkRW52ZWxvcGUSDQoFdG90YWwYAiABKAUSDQoFbGltaXQYAyABKAUSDgoGb2Zmc2V0GAQgASgFIl4KDFJlY29yZEZpbHRlchJOCgpjb25kaXRpb25zGAEgAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5SZWNvcmRDb25kaXRpb25CCLpIBZIBAhAUIs4BCg9SZWNvcmRDb25kaXRpb24SFQoFZmllbGQYASABKAlCBrpIA8gBARJLCgJvcBgCIAEoDjIyLmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuUmVjb3JkQ29uZGl0aW9uT3BCC7pICMgBAYIBAhABEiUKBXZhbHVlGAMgASgLMhYuZ29vZ2xlLnByb3RvYnVmLlZhbHVlEjAKBnZhbHVlcxgEIAMoCzIWLmdvb2dsZS5wcm90b2J1Zi5WYWx1ZUIIukgFkgECEGQieQoNUmVjb3JkT3JkZXJCeRIVCgVmaWVsZBgBIAEoCUIGukgDyAEBElEKCWRpcmVjdGlvbhgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuUmVjb3JkU29ydERpcmVjdGlvbkIIukgFggECEAEiuQIKEkZpbmRSZWNvcmRzUmVxdWVzdBIZCglkYXRhc3RvcmUYASABKAlCBrpIA8gBARIaCgpjb2xsZWN0aW9uGAIgASgJQga6SAPIAQESPQoGZmlsdGVyGAMgASgLMi0uYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5SZWNvcmRGaWx0ZXISQAoIb3JkZXJfYnkYBCABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuZGF0YXN0b3JlLnYxLlJlY29yZE9yZGVyQnkSGAoFbGltaXQYBSABKAVCCbpIBhoEGGQoABIXCgZvZmZzZXQYBiABKAVCB7pIBBoCKAASOAoJcGFydGl0aW9uGAcgASgJQiW6SCJyIBg/MhxeJHxeW2Etel1bYS16MC05LV0qW2EtejAtOV0kIrcBChNJbnNlcnRSZWNvcmRSZXF1ZXN0EhkKCWRhdGFzdG9yZRgBIAEoCUIGukgDyAEBEhoKCmNvbGxlY3Rpb24YAiABKAlCBrpIA8gBARIvCgZyZWNvcmQYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Qga6SAPIAQESOAoJcGFydGl0aW9uGAQgASgJQiW6SCJyIBg/MhxeJHxeW2Etel1bYS16MC05LV0qW2EtejAtOV0kIssBChNVcGRhdGVSZWNvcmRSZXF1ZXN0EhkKCWRhdGFzdG9yZRgBIAEoCUIGukgDyAEBEhoKCmNvbGxlY3Rpb24YAiABKAlCBrpIA8gBARISCgJpZBgDIAEoCUIGukgDyAEBEi8KBmZpZWxkcxgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RCBrpIA8gBARI4CglwYXJ0aXRpb24YBSABKAlCJbpIInIgGD8yHF4kfF5bYS16XVthLXowLTktXSpbYS16MC05XSQimgEKE0RlbGV0ZVJlY29yZFJlcXVlc3QSGQoJZGF0YXN0b3JlGAEgASgJQga6SAPIAQESGgoKY29sbGVjdGlvbhgCIAEoCUIGukgDyAEBEhIKAmlkGAMgASgJQga6SAPIAQESOAoJcGFydGl0aW9uGAQgASgJQiW6SCJyIBg/MhxeJHxeW2Etel1bYS16MC05LV0qW2EtejAtOV0kIjUKGERlc2NyaWJlRGF0YXN0b3JlUmVxdWVzdBIZCglkYXRhc3RvcmUYASABKAlCBrpIA8gBASKxAQoURGF0YXN0b3JlRGVzY3JpcHRpb24SEQoJZGF0YXN0b3JlGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEhAKCHRpbWV6b25lGAMgASgJEksKC2NvbGxlY3Rpb25zGAQgAygLMjYuYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5Db2xsZWN0aW9uRGVzY3JpcHRpb24SEgoKcGFydGl0aW9ucxgFIAMoCSKRAgoVQ29sbGVjdGlvbkRlc2NyaXB0aW9uEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSQQoGZmllbGRzGAMgAygLMjEuYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5GaWVsZERlY2xhcmF0aW9uEksKC2NvbnN0cmFpbnRzGAQgAygLMjYuYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5Db25zdHJhaW50RGVzY3JpcHRpb24SRQoGYWNjZXNzGAUgAygLMjUuYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5WZXJiR3JhbnREZXNjcmlwdGlvbiJ1ChVDb25zdHJhaW50RGVzY3JpcHRpb24SDAoEbmFtZRgBIAEoCRI9CgRraW5kGAIgASgOMi8uYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5Db25zdHJhaW50S2luZBIPCgdtZXNzYWdlGAMgASgJImcKFFZlcmJHcmFudERlc2NyaXB0aW9uEjwKBHZlcmIYASABKA4yLi5haS5zdGlnbWVyLmFnZW50aWMuZGF0YXN0b3JlLnYxLkRhdGFzdG9yZVZlcmISEQoJb3duX3Njb3BlGAIgASgIKp0BChFSZWNvcmRDb25kaXRpb25PcBIjCh9yZWNvcmRfY29uZGl0aW9uX29wX3Vuc3BlY2lmaWVkEAASBgoCZXEQARIHCgNuZXEQAhIGCgJndBADEgcKA2d0ZRAEEgYKAmx0EAUSBwoDbHRlEAYSCQoFaXNfaW4QBxIKCgZub3RfaW4QCBILCgdpc19udWxsEAkSDAoIbm90X251bGwQCipPChNSZWNvcmRTb3J0RGlyZWN0aW9uEiUKIXJlY29yZF9zb3J0X2RpcmVjdGlvbl91bnNwZWNpZmllZBAAEgcKA2FzYxABEggKBGRlc2MQAipkCg5Db25zdHJhaW50S2luZBIfChtjb25zdHJhaW50X2tpbmRfdW5zcGVjaWZpZWQQABIKCgZ1bmlxdWUQARIJCgVjaGVjaxACEgoKBmV4aXN0cxADEg4KCm5vdF9leGlzdHMQBGIGcHJvdG8z", [file_ai_stigmer_agentic_datastore_v1_spec, file_buf_validate_validate, file_google_protobuf_struct, file_google_protobuf_timestamp]);
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvZGF0YXN0b3JlL3YxL3JlY29yZF9pby5wcm90bxIfYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MSLsAQoOUmVjb3JkRW52ZWxvcGUSCgoCaWQYASABKAkSLgoKY3JlYXRlZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASRQoKY3JlYXRlZF9ieRgEIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuRGF0YXN0b3JlU3ViamVjdBInCgZmaWVsZHMYBSABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0InwKClJlY29yZExpc3QSQAoHcmVjb3JkcxgBIAMoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuUmVjb3JkRW52ZWxvcGUSDQoFdG90YWwYAiABKAUSDQoFbGltaXQYAyABKAUSDgoGb2Zmc2V0GAQgASgFIl4KDFJlY29yZEZpbHRlchJOCgpjb25kaXRpb25zGAEgAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5SZWNvcmRDb25kaXRpb25CCLpIBZIBAhAUIs4BCg9SZWNvcmRDb25kaXRpb24SFQoFZmllbGQYASABKAlCBrpIA8gBARJLCgJvcBgCIAEoDjIyLmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuUmVjb3JkQ29uZGl0aW9uT3BCC7pICMgBAYIBAhABEiUKBXZhbHVlGAMgASgLMhYuZ29vZ2xlLnByb3RvYnVmLlZhbHVlEjAKBnZhbHVlcxgEIAMoCzIWLmdvb2dsZS5wcm90b2J1Zi5WYWx1ZUIIukgFkgECEGQieQoNUmVjb3JkT3JkZXJCeRIVCgVmaWVsZBgBIAEoCUIGukgDyAEBElEKCWRpcmVjdGlvbhgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuUmVjb3JkU29ydERpcmVjdGlvbkIIukgFggECEAEizwIKEkZpbmRSZWNvcmRzUmVxdWVzdBIZCglkYXRhc3RvcmUYASABKAlCBrpIA8gBARIaCgpjb2xsZWN0aW9uGAIgASgJQga6SAPIAQESPQoGZmlsdGVyGAMgASgLMi0uYWkuc3RpZ21lci5hZ2VudGljLmRhdGFzdG9yZS52MS5SZWNvcmRGaWx0ZXISQAoIb3JkZXJfYnkYBCABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuZGF0YXN0b3JlLnYxLlJlY29yZE9yZGVyQnkSGAoFbGltaXQYBSABKAVCCbpIBhoEGGQoABIXCgZvZmZzZXQYBiABKAVCB7pIBBoCKAASOAoJcGFydGl0aW9uGAcgASgJQiW6SCJyIBg/MhxeJHxeW2Etel1bYS16MC05LV0qW2EtejAtOV0kEhQKA29yZxgIIAEoCUIHukgEcgIYPyLNAQoTSW5zZXJ0UmVjb3JkUmVxdWVzdBIZCglkYXRhc3RvcmUYASABKAlCBrpIA8gBARIaCgpjb2xsZWN0aW9uGAIgASgJQga6SAPIAQESLwoGcmVjb3JkGAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdEIGukgDyAEBEjgKCXBhcnRpdGlvbhgEIAEoCUIlukgiciAYPzIcXiR8XlthLXpdW2EtejAtOS1dKlthLXowLTldJBIUCgNvcmcYBSABKAlCB7pIBHICGD8i4QEKE1VwZGF0ZVJlY29yZFJlcXVlc3QSGQoJZGF0YXN0b3JlGAEgASgJQga6SAPIAQESGgoKY29sbGVjdGlvbhgCIAEoCUIGukgDyAEBEhIKAmlkGAMgASgJQga6SAPIAQESLwoGZmllbGRzGAQgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdEIGukgDyAEBEjgKCXBhcnRpdGlvbhgFIAEoCUIlukgiciAYPzIcXiR8XlthLXpdW2EtejAtOS1dKlthLXowLTldJBIUCgNvcmcYBiABKAlCB7pIBHICGD8isAEKE0RlbGV0ZVJlY29yZFJlcXVlc3QSGQoJZGF0YXN0b3JlGAEgASgJQga6SAPIAQESGgoKY29sbGVjdGlvbhgCIAEoCUIGukgDyAEBEhIKAmlkGAMgASgJQga6SAPIAQESOAoJcGFydGl0aW9uGAQgASgJQiW6SCJyIBg/MhxeJHxeW2Etel1bYS16MC05LV0qW2EtejAtOV0kEhQKA29yZxgFIAEoCUIHukgEcgIYPyJLChhEZXNjcmliZURhdGFzdG9yZVJlcXVlc3QSGQoJZGF0YXN0b3JlGAEgASgJQga6SAPIAQESFAoDb3JnGAIgASgJQge6SARyAhg/IrEBChREYXRhc3RvcmVEZXNjcmlwdGlvbhIRCglkYXRhc3RvcmUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSEAoIdGltZXpvbmUYAyABKAkSSwoLY29sbGVjdGlvbnMYBCADKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuZGF0YXN0b3JlLnYxLkNvbGxlY3Rpb25EZXNjcmlwdGlvbhISCgpwYXJ0aXRpb25zGAUgAygJIpECChVDb2xsZWN0aW9uRGVzY3JpcHRpb24SDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRJBCgZmaWVsZHMYAyADKAsyMS5haS5zdGlnbWVyLmFnZW50aWMuZGF0YXN0b3JlLnYxLkZpZWxkRGVjbGFyYXRpb24SSwoLY29uc3RyYWludHMYBCADKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuZGF0YXN0b3JlLnYxLkNvbnN0cmFpbnREZXNjcmlwdGlvbhJFCgZhY2Nlc3MYBSADKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuZGF0YXN0b3JlLnYxLlZlcmJHcmFudERlc2NyaXB0aW9uInUKFUNvbnN0cmFpbnREZXNjcmlwdGlvbhIMCgRuYW1lGAEgASgJEj0KBGtpbmQYAiABKA4yLy5haS5zdGlnbWVyLmFnZW50aWMuZGF0YXN0b3JlLnYxLkNvbnN0cmFpbnRLaW5kEg8KB21lc3NhZ2UYAyABKAkiZwoUVmVyYkdyYW50RGVzY3JpcHRpb24SPAoEdmVyYhgBIAEoDjIuLmFpLnN0aWdtZXIuYWdlbnRpYy5kYXRhc3RvcmUudjEuRGF0YXN0b3JlVmVyYhIRCglvd25fc2NvcGUYAiABKAgqnQEKEVJlY29yZENvbmRpdGlvbk9wEiMKH3JlY29yZF9jb25kaXRpb25fb3BfdW5zcGVjaWZpZWQQABIGCgJlcRABEgcKA25lcRACEgYKAmd0EAMSBwoDZ3RlEAQSBgoCbHQQBRIHCgNsdGUQBhIJCgVpc19pbhAHEgoKBm5vdF9pbhAIEgsKB2lzX251bGwQCRIMCghub3RfbnVsbBAKKk8KE1JlY29yZFNvcnREaXJlY3Rpb24SJQohcmVjb3JkX3NvcnRfZGlyZWN0aW9uX3Vuc3BlY2lmaWVkEAASBwoDYXNjEAESCAoEZGVzYxACKmQKDkNvbnN0cmFpbnRLaW5kEh8KG2NvbnN0cmFpbnRfa2luZF91bnNwZWNpZmllZBAAEgoKBnVuaXF1ZRABEgkKBWNoZWNrEAISCgoGZXhpc3RzEAMSDgoKbm90X2V4aXN0cxAEYgZwcm90bzM", [file_ai_stigmer_agentic_datastore_v1_spec, file_buf_validate_validate, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * RecordEnvelope is a record as returned by every record RPC:
@@ -233,8 +233,8 @@ export const RecordOrderBySchema: GenMessage<RecordOrderBy> = /*@__PURE__*/
  */
 export type FindRecordsRequest = Message<"ai.stigmer.agentic.datastore.v1.FindRecordsRequest"> & {
   /**
-   * Datastore slug. The organization resolves from the caller's
-   * credential — records never cross the org boundary.
+   * Datastore slug, resolved within the organization named by `org` —
+   * records never cross the org boundary.
    *
    * @generated from field: string datastore = 1;
    */
@@ -289,6 +289,21 @@ export type FindRecordsRequest = Message<"ai.stigmer.agentic.datastore.v1.FindRe
    * @generated from field: string partition = 7;
    */
   partition: string;
+
+  /**
+   * Organization the datastore belongs to. Direct callers (console,
+   * CLI, SDK, import) set it; unset resolves from the caller's context.
+   *
+   * @internal
+   * Session-bound runner credentials leave it empty — their org is
+   * server-derived from the session (DD-006 reach chain, lands with
+   * T05). In the OSS edition every slug resolves against the local
+   * system org, and a non-matching explicit org is NOT_FOUND (records
+   * stay home).
+   *
+   * @generated from field: string org = 8;
+   */
+  org: string;
 };
 
 /**
@@ -338,6 +353,17 @@ export type InsertRecordRequest = Message<"ai.stigmer.agentic.datastore.v1.Inser
    * @generated from field: string partition = 4;
    */
   partition: string;
+
+  /**
+   * Organization the datastore belongs to. Direct callers set it;
+   * unset resolves from the caller's context.
+   *
+   * @internal
+   * Same dispatch as FindRecordsRequest.org.
+   *
+   * @generated from field: string org = 5;
+   */
+  org: string;
 };
 
 /**
@@ -393,6 +419,17 @@ export type UpdateRecordRequest = Message<"ai.stigmer.agentic.datastore.v1.Updat
    * @generated from field: string partition = 5;
    */
   partition: string;
+
+  /**
+   * Organization the datastore belongs to. Direct callers set it;
+   * unset resolves from the caller's context.
+   *
+   * @internal
+   * Same dispatch as FindRecordsRequest.org.
+   *
+   * @generated from field: string org = 6;
+   */
+  org: string;
 };
 
 /**
@@ -439,6 +476,17 @@ export type DeleteRecordRequest = Message<"ai.stigmer.agentic.datastore.v1.Delet
    * @generated from field: string partition = 4;
    */
   partition: string;
+
+  /**
+   * Organization the datastore belongs to. Direct callers set it;
+   * unset resolves from the caller's context.
+   *
+   * @internal
+   * Same dispatch as FindRecordsRequest.org.
+   *
+   * @generated from field: string org = 5;
+   */
+  org: string;
 };
 
 /**
@@ -461,6 +509,17 @@ export type DescribeDatastoreRequest = Message<"ai.stigmer.agentic.datastore.v1.
    * @generated from field: string datastore = 1;
    */
   datastore: string;
+
+  /**
+   * Organization the datastore belongs to. Direct callers set it;
+   * unset resolves from the caller's context.
+   *
+   * @internal
+   * Same dispatch as FindRecordsRequest.org.
+   *
+   * @generated from field: string org = 2;
+   */
+  org: string;
 };
 
 /**

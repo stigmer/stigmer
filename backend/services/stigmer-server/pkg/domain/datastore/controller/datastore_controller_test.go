@@ -596,6 +596,35 @@ func TestRecordRPCs_DenyByDefault(t *testing.T) {
 	})
 }
 
+// TestRecordRPCs_ExplicitOrg pins the request-org contract: an empty
+// org resolves to the caller's context (the OSS system org), an
+// explicit matching org resolves identically, and a foreign org is
+// NOT_FOUND — never PERMISSION_DENIED — so whether the foreign
+// datastore exists cannot leak (records stay home, DD-006 inv. 3).
+func TestRecordRPCs_ExplicitOrg(t *testing.T) {
+	env := setupTest(t)
+	_, err := env.controller.Create(testContext(), clinicDatastore("clinic"))
+	require.NoError(t, err)
+
+	t.Run("explicit matching org resolves", func(t *testing.T) {
+		desc, err := env.recordController.DescribeDatastore(testContext(), &datastorev1.DescribeDatastoreRequest{
+			Datastore: "clinic", Org: identity.SystemOrg,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, "clinic", desc.GetDatastore())
+	})
+
+	t.Run("foreign org is NOT_FOUND", func(t *testing.T) {
+		_, err := env.recordController.FindRecords(testContext(), &datastorev1.FindRecordsRequest{
+			Datastore: "clinic", Collection: "bookings", Org: "someone-else",
+		})
+		require.Error(t, err)
+		st := status.Convert(err)
+		assert.Equal(t, codes.NotFound, st.Code())
+		assert.Equal(t, `datastore "clinic" not found`, st.Message())
+	})
+}
+
 func TestDescribeDatastore_ProjectsSchemaAndEffectiveVerbs(t *testing.T) {
 	env := setupTest(t)
 	_, err := env.controller.Create(testContext(), clinicDatastore("clinic"))

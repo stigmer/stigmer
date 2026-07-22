@@ -16,7 +16,7 @@ import (
 // structures; dropping collections or datastores is the resource
 // layer's guarded delete.
 func (c *DatastoreRecordController) DeleteRecord(ctx context.Context, req *datastorev1.DeleteRecordRequest) (*datastorev1.RecordEnvelope, error) {
-	call, err := c.resolveCall(ctx, req.GetDatastore(), req.GetCollection(), req.GetPartition())
+	call, err := c.resolveCall(ctx, req.GetOrg(), req.GetDatastore(), req.GetCollection(), req.GetPartition())
 	if err != nil {
 		return nil, err
 	}

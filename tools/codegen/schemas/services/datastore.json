@@ -404,6 +404,19 @@
             "maxLength": 63,
             "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
           }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.\n\n @internal\n Same dispatch as FindRecordsRequest.org.",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
         }
       ]
     },
@@ -537,6 +550,19 @@
             "maxLength": 63,
             "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
           }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.\n\n @internal\n Same dispatch as FindRecordsRequest.org.",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
         }
       ]
     },
@@ -598,6 +624,19 @@
             "maxLength": 63,
             "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
           }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.\n\n @internal\n Same dispatch as FindRecordsRequest.org.",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
         }
       ]
     },
@@ -614,7 +653,7 @@
           "type": {
             "kind": "string"
           },
-          "description": "Datastore slug. The organization resolves from the caller's\n credential — records never cross the org boundary.",
+          "description": "Datastore slug, resolved within the organization named by `org` —\n records never cross the org boundary.",
           "required": true,
           "validation": {
             "required": true
@@ -691,6 +730,19 @@
             "maxLength": 63,
             "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
           }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the datastore belongs to. Direct callers (console,\n CLI, SDK, import) set it; unset resolves from the caller's context.\n\n @internal\n Session-bound runner credentials leave it empty — their org is\n server-derived from the session (DD-006 reach chain, lands with\n T05). In the OSS edition every slug resolves against the local\n system org, and a non-matching explicit org is NOT_FOUND (records\n stay home).",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
         }
       ]
     },
@@ -763,6 +815,19 @@
           "required": true,
           "validation": {
             "required": true
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the datastore belongs to. Direct callers set it;\n unset resolves from the caller's context.\n\n @internal\n Same dispatch as FindRecordsRequest.org.",
+          "required": false,
+          "validation": {
+            "maxLength": 63
           }
         }
       ]

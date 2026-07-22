@@ -567,8 +567,8 @@ func (x *RecordOrderBy) GetDirection() RecordSortDirection {
 // FindRecordsRequest selects records from one collection.
 type FindRecordsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Datastore slug. The organization resolves from the caller's
-	// credential — records never cross the org boundary.
+	// Datastore slug, resolved within the organization named by `org` —
+	// records never cross the org boundary.
 	Datastore string `protobuf:"bytes,1,opt,name=datastore,proto3" json:"datastore,omitempty"`
 	// Collection to query.
 	Collection string `protobuf:"bytes,2,opt,name=collection,proto3" json:"collection,omitempty"`
@@ -589,7 +589,17 @@ type FindRecordsRequest struct {
 	// server-derived from the session's agent instance (DD-010 SD-2) and
 	// are rejected with INVALID_ARGUMENT if they supply one — no second
 	// channel, mirroring the sender-identity posture.
-	Partition     string `protobuf:"bytes,7,opt,name=partition,proto3" json:"partition,omitempty"`
+	Partition string `protobuf:"bytes,7,opt,name=partition,proto3" json:"partition,omitempty"`
+	// Organization the datastore belongs to. Direct callers (console,
+	// CLI, SDK, import) set it; unset resolves from the caller's context.
+	//
+	// @internal
+	// Session-bound runner credentials leave it empty — their org is
+	// server-derived from the session (DD-006 reach chain, lands with
+	// T05). In the OSS edition every slug resolves against the local
+	// system org, and a non-matching explicit org is NOT_FOUND (records
+	// stay home).
+	Org           string `protobuf:"bytes,8,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -673,6 +683,13 @@ func (x *FindRecordsRequest) GetPartition() string {
 	return ""
 }
 
+func (x *FindRecordsRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
 // InsertRecordRequest inserts one record into a collection.
 type InsertRecordRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -690,7 +707,13 @@ type InsertRecordRequest struct {
 	// only; server-derived (and rejected if supplied) for session-bound
 	// callers. A partition's first write registers it in the datastore's
 	// partition catalog (DD-010 SD-3).
-	Partition     string `protobuf:"bytes,4,opt,name=partition,proto3" json:"partition,omitempty"`
+	Partition string `protobuf:"bytes,4,opt,name=partition,proto3" json:"partition,omitempty"`
+	// Organization the datastore belongs to. Direct callers set it;
+	// unset resolves from the caller's context.
+	//
+	// @internal
+	// Same dispatch as FindRecordsRequest.org.
+	Org           string `protobuf:"bytes,5,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -753,6 +776,13 @@ func (x *InsertRecordRequest) GetPartition() string {
 	return ""
 }
 
+func (x *InsertRecordRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
 // UpdateRecordRequest updates one record by id with a partial merge.
 type UpdateRecordRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -771,7 +801,13 @@ type UpdateRecordRequest struct {
 	//
 	// @internal
 	// Same dispatch as FindRecordsRequest.partition.
-	Partition     string `protobuf:"bytes,5,opt,name=partition,proto3" json:"partition,omitempty"`
+	Partition string `protobuf:"bytes,5,opt,name=partition,proto3" json:"partition,omitempty"`
+	// Organization the datastore belongs to. Direct callers set it;
+	// unset resolves from the caller's context.
+	//
+	// @internal
+	// Same dispatch as FindRecordsRequest.org.
+	Org           string `protobuf:"bytes,6,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -841,6 +877,13 @@ func (x *UpdateRecordRequest) GetPartition() string {
 	return ""
 }
 
+func (x *UpdateRecordRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
 // DeleteRecordRequest deletes one record by id.
 type DeleteRecordRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -855,7 +898,13 @@ type DeleteRecordRequest struct {
 	//
 	// @internal
 	// Same dispatch as FindRecordsRequest.partition.
-	Partition     string `protobuf:"bytes,4,opt,name=partition,proto3" json:"partition,omitempty"`
+	Partition string `protobuf:"bytes,4,opt,name=partition,proto3" json:"partition,omitempty"`
+	// Organization the datastore belongs to. Direct callers set it;
+	// unset resolves from the caller's context.
+	//
+	// @internal
+	// Same dispatch as FindRecordsRequest.org.
+	Org           string `protobuf:"bytes,5,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -918,12 +967,25 @@ func (x *DeleteRecordRequest) GetPartition() string {
 	return ""
 }
 
+func (x *DeleteRecordRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
 // DescribeDatastoreRequest asks for a datastore as the caller
 // experiences it.
 type DescribeDatastoreRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Datastore slug.
-	Datastore     string `protobuf:"bytes,1,opt,name=datastore,proto3" json:"datastore,omitempty"`
+	Datastore string `protobuf:"bytes,1,opt,name=datastore,proto3" json:"datastore,omitempty"`
+	// Organization the datastore belongs to. Direct callers set it;
+	// unset resolves from the caller's context.
+	//
+	// @internal
+	// Same dispatch as FindRecordsRequest.org.
+	Org           string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -961,6 +1023,13 @@ func (*DescribeDatastoreRequest) Descriptor() ([]byte, []int) {
 func (x *DescribeDatastoreRequest) GetDatastore() string {
 	if x != nil {
 		return x.Datastore
+	}
+	return ""
+}
+
+func (x *DescribeDatastoreRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
 	}
 	return ""
 }
@@ -1299,7 +1368,7 @@ const file_ai_stigmer_agentic_datastore_v1_record_io_proto_rawDesc = "" +
 	"\x06values\x18\x04 \x03(\v2\x16.google.protobuf.ValueB\b\xbaH\x05\x92\x01\x02\x10dR\x06values\"\x8b\x01\n" +
 	"\rRecordOrderBy\x12\x1c\n" +
 	"\x05field\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05field\x12\\\n" +
-	"\tdirection\x18\x02 \x01(\x0e24.ai.stigmer.agentic.datastore.v1.RecordSortDirectionB\b\xbaH\x05\x82\x01\x02\x10\x01R\tdirection\"\xfb\x02\n" +
+	"\tdirection\x18\x02 \x01(\x0e24.ai.stigmer.agentic.datastore.v1.RecordSortDirectionB\b\xbaH\x05\x82\x01\x02\x10\x01R\tdirection\"\x96\x03\n" +
 	"\x12FindRecordsRequest\x12$\n" +
 	"\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n" +
 	"\n" +
@@ -1309,14 +1378,16 @@ const file_ai_stigmer_agentic_datastore_v1_record_io_proto_rawDesc = "" +
 	"\border_by\x18\x04 \x01(\v2..ai.stigmer.agentic.datastore.v1.RecordOrderByR\aorderBy\x12\x1f\n" +
 	"\x05limit\x18\x05 \x01(\x05B\t\xbaH\x06\x1a\x04\x18d(\x00R\x05limit\x12\x1f\n" +
 	"\x06offset\x18\x06 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x06offset\x12C\n" +
-	"\tpartition\x18\a \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\"\xe1\x01\n" +
+	"\tpartition\x18\a \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\x12\x19\n" +
+	"\x03org\x18\b \x01(\tB\a\xbaH\x04r\x02\x18?R\x03org\"\xfc\x01\n" +
 	"\x13InsertRecordRequest\x12$\n" +
 	"\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n" +
 	"\n" +
 	"collection\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"collection\x127\n" +
 	"\x06record\x18\x03 \x01(\v2\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x06record\x12C\n" +
-	"\tpartition\x18\x04 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\"\xf9\x01\n" +
+	"\tpartition\x18\x04 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\x12\x19\n" +
+	"\x03org\x18\x05 \x01(\tB\a\xbaH\x04r\x02\x18?R\x03org\"\x94\x02\n" +
 	"\x13UpdateRecordRequest\x12$\n" +
 	"\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n" +
 	"\n" +
@@ -1324,16 +1395,19 @@ const file_ai_stigmer_agentic_datastore_v1_record_io_proto_rawDesc = "" +
 	"collection\x12\x16\n" +
 	"\x02id\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x127\n" +
 	"\x06fields\x18\x04 \x01(\v2\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x06fields\x12C\n" +
-	"\tpartition\x18\x05 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\"\xc0\x01\n" +
+	"\tpartition\x18\x05 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\x12\x19\n" +
+	"\x03org\x18\x06 \x01(\tB\a\xbaH\x04r\x02\x18?R\x03org\"\xdb\x01\n" +
 	"\x13DeleteRecordRequest\x12$\n" +
 	"\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n" +
 	"\n" +
 	"collection\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"collection\x12\x16\n" +
 	"\x02id\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12C\n" +
-	"\tpartition\x18\x04 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\"@\n" +
+	"\tpartition\x18\x04 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\x12\x19\n" +
+	"\x03org\x18\x05 \x01(\tB\a\xbaH\x04r\x02\x18?R\x03org\"[\n" +
 	"\x18DescribeDatastoreRequest\x12$\n" +
-	"\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\"\xec\x01\n" +
+	"\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12\x19\n" +
+	"\x03org\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x18?R\x03org\"\xec\x01\n" +
 	"\x14DatastoreDescription\x12\x1c\n" +
 	"\tdatastore\x18\x01 \x01(\tR\tdatastore\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1a\n" +

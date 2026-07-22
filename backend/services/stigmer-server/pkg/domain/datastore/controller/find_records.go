@@ -21,7 +21,7 @@ import (
 // deterministic ordering (created_at desc, id tiebreak unless order_by
 // overrides).
 func (c *DatastoreRecordController) FindRecords(ctx context.Context, req *datastorev1.FindRecordsRequest) (*datastorev1.RecordList, error) {
-	call, err := c.resolveCall(ctx, req.GetDatastore(), req.GetCollection(), req.GetPartition())
+	call, err := c.resolveCall(ctx, req.GetOrg(), req.GetDatastore(), req.GetCollection(), req.GetPartition())
 	if err != nil {
 		return nil, err
 	}

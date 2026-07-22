@@ -17,7 +17,7 @@ import (
 // merged result inside the write transaction, so the load, the merge,
 // the verdict, and the write are one atomic unit.
 func (c *DatastoreRecordController) UpdateRecord(ctx context.Context, req *datastorev1.UpdateRecordRequest) (*datastorev1.RecordEnvelope, error) {
-	call, err := c.resolveCall(ctx, req.GetDatastore(), req.GetCollection(), req.GetPartition())
+	call, err := c.resolveCall(ctx, req.GetOrg(), req.GetDatastore(), req.GetCollection(), req.GetPartition())
 	if err != nil {
 		return nil, err
 	}

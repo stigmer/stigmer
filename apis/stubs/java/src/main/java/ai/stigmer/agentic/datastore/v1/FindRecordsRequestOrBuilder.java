@@ -12,8 +12,8 @@ public interface FindRecordsRequestOrBuilder extends
 
   /**
    * <pre>
-   * Datastore slug. The organization resolves from the caller's
-   * credential — records never cross the org boundary.
+   * Datastore slug, resolved within the organization named by `org` —
+   * records never cross the org boundary.
    * </pre>
    *
    * <code>string datastore = 1 [json_name = "datastore", (.buf.validate.field) = { ... }</code>
@@ -22,8 +22,8 @@ public interface FindRecordsRequestOrBuilder extends
   java.lang.String getDatastore();
   /**
    * <pre>
-   * Datastore slug. The organization resolves from the caller's
-   * credential — records never cross the org boundary.
+   * Datastore slug, resolved within the organization named by `org` —
+   * records never cross the org boundary.
    * </pre>
    *
    * <code>string datastore = 1 [json_name = "datastore", (.buf.validate.field) = { ... }</code>
@@ -162,4 +162,40 @@ public interface FindRecordsRequestOrBuilder extends
    */
   com.google.protobuf.ByteString
       getPartitionBytes();
+
+  /**
+   * <pre>
+   * Organization the datastore belongs to. Direct callers (console,
+   * CLI, SDK, import) set it; unset resolves from the caller's context.
+   *
+   * &#64;internal
+   * Session-bound runner credentials leave it empty — their org is
+   * server-derived from the session (DD-006 reach chain, lands with
+   * T05). In the OSS edition every slug resolves against the local
+   * system org, and a non-matching explicit org is NOT_FOUND (records
+   * stay home).
+   * </pre>
+   *
+   * <code>string org = 8 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The org.
+   */
+  java.lang.String getOrg();
+  /**
+   * <pre>
+   * Organization the datastore belongs to. Direct callers (console,
+   * CLI, SDK, import) set it; unset resolves from the caller's context.
+   *
+   * &#64;internal
+   * Session-bound runner credentials leave it empty — their org is
+   * server-derived from the session (DD-006 reach chain, lands with
+   * T05). In the OSS edition every slug resolves against the local
+   * system org, and a non-matching explicit org is NOT_FOUND (records
+   * stay home).
+   * </pre>
+   *
+   * <code>string org = 8 [json_name = "org", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for org.
+   */
+  com.google.protobuf.ByteString
+      getOrgBytes();
 }

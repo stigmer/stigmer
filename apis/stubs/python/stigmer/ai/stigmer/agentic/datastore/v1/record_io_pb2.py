@@ -28,7 +28,7 @@ from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/ai/stigmer/agentic/datastore/v1/record_io.proto\x12\x1f\x61i.stigmer.agentic.datastore.v1\x1a*ai/stigmer/agentic/datastore/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x99\x02\n\x0eRecordEnvelope\x12\x0e\n\x02id\x18\x01 \x01(\tR\x02id\x12\x39\n\ncreated_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x39\n\nupdated_at\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tupdatedAt\x12P\n\ncreated_by\x18\x04 \x01(\x0b\x32\x31.ai.stigmer.agentic.datastore.v1.DatastoreSubjectR\tcreatedBy\x12/\n\x06\x66ields\x18\x05 \x01(\x0b\x32\x17.google.protobuf.StructR\x06\x66ields\"\x9b\x01\n\nRecordList\x12I\n\x07records\x18\x01 \x03(\x0b\x32/.ai.stigmer.agentic.datastore.v1.RecordEnvelopeR\x07records\x12\x14\n\x05total\x18\x02 \x01(\x05R\x05total\x12\x14\n\x05limit\x18\x03 \x01(\x05R\x05limit\x12\x16\n\x06offset\x18\x04 \x01(\x05R\x06offset\"j\n\x0cRecordFilter\x12Z\n\nconditions\x18\x01 \x03(\x0b\x32\x30.ai.stigmer.agentic.datastore.v1.RecordConditionB\x08\xbaH\x05\x92\x01\x02\x10\x14R\nconditions\"\xe8\x01\n\x0fRecordCondition\x12\x1c\n\x05\x66ield\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05\x66ield\x12O\n\x02op\x18\x02 \x01(\x0e\x32\x32.ai.stigmer.agentic.datastore.v1.RecordConditionOpB\x0b\xbaH\x08\x82\x01\x02\x10\x01\xc8\x01\x01R\x02op\x12,\n\x05value\x18\x03 \x01(\x0b\x32\x16.google.protobuf.ValueR\x05value\x12\x38\n\x06values\x18\x04 \x03(\x0b\x32\x16.google.protobuf.ValueB\x08\xbaH\x05\x92\x01\x02\x10\x64R\x06values\"\x8b\x01\n\rRecordOrderBy\x12\x1c\n\x05\x66ield\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05\x66ield\x12\\\n\tdirection\x18\x02 \x01(\x0e\x32\x34.ai.stigmer.agentic.datastore.v1.RecordSortDirectionB\x08\xbaH\x05\x82\x01\x02\x10\x01R\tdirection\"\xfb\x02\n\x12\x46indRecordsRequest\x12$\n\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n\ncollection\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\ncollection\x12\x45\n\x06\x66ilter\x18\x03 \x01(\x0b\x32-.ai.stigmer.agentic.datastore.v1.RecordFilterR\x06\x66ilter\x12I\n\x08order_by\x18\x04 \x01(\x0b\x32..ai.stigmer.agentic.datastore.v1.RecordOrderByR\x07orderBy\x12\x1f\n\x05limit\x18\x05 \x01(\x05\x42\t\xbaH\x06\x1a\x04\x18\x64(\x00R\x05limit\x12\x1f\n\x06offset\x18\x06 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x06offset\x12\x43\n\tpartition\x18\x07 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\"\xe1\x01\n\x13InsertRecordRequest\x12$\n\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n\ncollection\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\ncollection\x12\x37\n\x06record\x18\x03 \x01(\x0b\x32\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x06record\x12\x43\n\tpartition\x18\x04 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\"\xf9\x01\n\x13UpdateRecordRequest\x12$\n\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n\ncollection\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\ncollection\x12\x16\n\x02id\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x37\n\x06\x66ields\x18\x04 \x01(\x0b\x32\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x06\x66ields\x12\x43\n\tpartition\x18\x05 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\"\xc0\x01\n\x13\x44\x65leteRecordRequest\x12$\n\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n\ncollection\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\ncollection\x12\x16\n\x02id\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x43\n\tpartition\x18\x04 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\"@\n\x18\x44\x65scribeDatastoreRequest\x12$\n\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\"\xec\x01\n\x14\x44\x61tastoreDescription\x12\x1c\n\tdatastore\x18\x01 \x01(\tR\tdatastore\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12\x1a\n\x08timezone\x18\x03 \x01(\tR\x08timezone\x12X\n\x0b\x63ollections\x18\x04 \x03(\x0b\x32\x36.ai.stigmer.agentic.datastore.v1.CollectionDescriptionR\x0b\x63ollections\x12\x1e\n\npartitions\x18\x05 \x03(\tR\npartitions\"\xc1\x02\n\x15\x43ollectionDescription\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12I\n\x06\x66ields\x18\x03 \x03(\x0b\x32\x31.ai.stigmer.agentic.datastore.v1.FieldDeclarationR\x06\x66ields\x12X\n\x0b\x63onstraints\x18\x04 \x03(\x0b\x32\x36.ai.stigmer.agentic.datastore.v1.ConstraintDescriptionR\x0b\x63onstraints\x12M\n\x06\x61\x63\x63\x65ss\x18\x05 \x03(\x0b\x32\x35.ai.stigmer.agentic.datastore.v1.VerbGrantDescriptionR\x06\x61\x63\x63\x65ss\"\x8a\x01\n\x15\x43onstraintDescription\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12\x43\n\x04kind\x18\x02 \x01(\x0e\x32/.ai.stigmer.agentic.datastore.v1.ConstraintKindR\x04kind\x12\x18\n\x07message\x18\x03 \x01(\tR\x07message\"w\n\x14VerbGrantDescription\x12\x42\n\x04verb\x18\x01 \x01(\x0e\x32..ai.stigmer.agentic.datastore.v1.DatastoreVerbR\x04verb\x12\x1b\n\town_scope\x18\x02 \x01(\x08R\x08ownScope*\x9d\x01\n\x11RecordConditionOp\x12#\n\x1frecord_condition_op_unspecified\x10\x00\x12\x06\n\x02\x65q\x10\x01\x12\x07\n\x03neq\x10\x02\x12\x06\n\x02gt\x10\x03\x12\x07\n\x03gte\x10\x04\x12\x06\n\x02lt\x10\x05\x12\x07\n\x03lte\x10\x06\x12\t\n\x05is_in\x10\x07\x12\n\n\x06not_in\x10\x08\x12\x0b\n\x07is_null\x10\t\x12\x0c\n\x08not_null\x10\n*O\n\x13RecordSortDirection\x12%\n!record_sort_direction_unspecified\x10\x00\x12\x07\n\x03\x61sc\x10\x01\x12\x08\n\x04\x64\x65sc\x10\x02*d\n\x0e\x43onstraintKind\x12\x1f\n\x1b\x63onstraint_kind_unspecified\x10\x00\x12\n\n\x06unique\x10\x01\x12\t\n\x05\x63heck\x10\x02\x12\n\n\x06\x65xists\x10\x03\x12\x0e\n\nnot_exists\x10\x04\x42\xd5\x01\n#com.ai.stigmer.agentic.datastore.v1B\rRecordIoProtoP\x01\xa2\x02\x04\x41SAD\xaa\x02\x1f\x41i.Stigmer.Agentic.Datastore.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Datastore\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Datastore\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Datastore::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n/ai/stigmer/agentic/datastore/v1/record_io.proto\x12\x1f\x61i.stigmer.agentic.datastore.v1\x1a*ai/stigmer/agentic/datastore/v1/spec.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x99\x02\n\x0eRecordEnvelope\x12\x0e\n\x02id\x18\x01 \x01(\tR\x02id\x12\x39\n\ncreated_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x39\n\nupdated_at\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tupdatedAt\x12P\n\ncreated_by\x18\x04 \x01(\x0b\x32\x31.ai.stigmer.agentic.datastore.v1.DatastoreSubjectR\tcreatedBy\x12/\n\x06\x66ields\x18\x05 \x01(\x0b\x32\x17.google.protobuf.StructR\x06\x66ields\"\x9b\x01\n\nRecordList\x12I\n\x07records\x18\x01 \x03(\x0b\x32/.ai.stigmer.agentic.datastore.v1.RecordEnvelopeR\x07records\x12\x14\n\x05total\x18\x02 \x01(\x05R\x05total\x12\x14\n\x05limit\x18\x03 \x01(\x05R\x05limit\x12\x16\n\x06offset\x18\x04 \x01(\x05R\x06offset\"j\n\x0cRecordFilter\x12Z\n\nconditions\x18\x01 \x03(\x0b\x32\x30.ai.stigmer.agentic.datastore.v1.RecordConditionB\x08\xbaH\x05\x92\x01\x02\x10\x14R\nconditions\"\xe8\x01\n\x0fRecordCondition\x12\x1c\n\x05\x66ield\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05\x66ield\x12O\n\x02op\x18\x02 \x01(\x0e\x32\x32.ai.stigmer.agentic.datastore.v1.RecordConditionOpB\x0b\xbaH\x08\x82\x01\x02\x10\x01\xc8\x01\x01R\x02op\x12,\n\x05value\x18\x03 \x01(\x0b\x32\x16.google.protobuf.ValueR\x05value\x12\x38\n\x06values\x18\x04 \x03(\x0b\x32\x16.google.protobuf.ValueB\x08\xbaH\x05\x92\x01\x02\x10\x64R\x06values\"\x8b\x01\n\rRecordOrderBy\x12\x1c\n\x05\x66ield\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05\x66ield\x12\\\n\tdirection\x18\x02 \x01(\x0e\x32\x34.ai.stigmer.agentic.datastore.v1.RecordSortDirectionB\x08\xbaH\x05\x82\x01\x02\x10\x01R\tdirection\"\x96\x03\n\x12\x46indRecordsRequest\x12$\n\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n\ncollection\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\ncollection\x12\x45\n\x06\x66ilter\x18\x03 \x01(\x0b\x32-.ai.stigmer.agentic.datastore.v1.RecordFilterR\x06\x66ilter\x12I\n\x08order_by\x18\x04 \x01(\x0b\x32..ai.stigmer.agentic.datastore.v1.RecordOrderByR\x07orderBy\x12\x1f\n\x05limit\x18\x05 \x01(\x05\x42\t\xbaH\x06\x1a\x04\x18\x64(\x00R\x05limit\x12\x1f\n\x06offset\x18\x06 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\x06offset\x12\x43\n\tpartition\x18\x07 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\x12\x19\n\x03org\x18\x08 \x01(\tB\x07\xbaH\x04r\x02\x18?R\x03org\"\xfc\x01\n\x13InsertRecordRequest\x12$\n\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n\ncollection\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\ncollection\x12\x37\n\x06record\x18\x03 \x01(\x0b\x32\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x06record\x12\x43\n\tpartition\x18\x04 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\x12\x19\n\x03org\x18\x05 \x01(\tB\x07\xbaH\x04r\x02\x18?R\x03org\"\x94\x02\n\x13UpdateRecordRequest\x12$\n\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n\ncollection\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\ncollection\x12\x16\n\x02id\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x37\n\x06\x66ields\x18\x04 \x01(\x0b\x32\x17.google.protobuf.StructB\x06\xbaH\x03\xc8\x01\x01R\x06\x66ields\x12\x43\n\tpartition\x18\x05 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\x12\x19\n\x03org\x18\x06 \x01(\tB\x07\xbaH\x04r\x02\x18?R\x03org\"\xdb\x01\n\x13\x44\x65leteRecordRequest\x12$\n\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12&\n\ncollection\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\ncollection\x12\x16\n\x02id\x18\x03 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x43\n\tpartition\x18\x04 \x01(\tB%\xbaH\"r \x18?2\x1c^$|^[a-z][a-z0-9-]*[a-z0-9]$R\tpartition\x12\x19\n\x03org\x18\x05 \x01(\tB\x07\xbaH\x04r\x02\x18?R\x03org\"[\n\x18\x44\x65scribeDatastoreRequest\x12$\n\tdatastore\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tdatastore\x12\x19\n\x03org\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x18?R\x03org\"\xec\x01\n\x14\x44\x61tastoreDescription\x12\x1c\n\tdatastore\x18\x01 \x01(\tR\tdatastore\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12\x1a\n\x08timezone\x18\x03 \x01(\tR\x08timezone\x12X\n\x0b\x63ollections\x18\x04 \x03(\x0b\x32\x36.ai.stigmer.agentic.datastore.v1.CollectionDescriptionR\x0b\x63ollections\x12\x1e\n\npartitions\x18\x05 \x03(\tR\npartitions\"\xc1\x02\n\x15\x43ollectionDescription\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12 \n\x0b\x64\x65scription\x18\x02 \x01(\tR\x0b\x64\x65scription\x12I\n\x06\x66ields\x18\x03 \x03(\x0b\x32\x31.ai.stigmer.agentic.datastore.v1.FieldDeclarationR\x06\x66ields\x12X\n\x0b\x63onstraints\x18\x04 \x03(\x0b\x32\x36.ai.stigmer.agentic.datastore.v1.ConstraintDescriptionR\x0b\x63onstraints\x12M\n\x06\x61\x63\x63\x65ss\x18\x05 \x03(\x0b\x32\x35.ai.stigmer.agentic.datastore.v1.VerbGrantDescriptionR\x06\x61\x63\x63\x65ss\"\x8a\x01\n\x15\x43onstraintDescription\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12\x43\n\x04kind\x18\x02 \x01(\x0e\x32/.ai.stigmer.agentic.datastore.v1.ConstraintKindR\x04kind\x12\x18\n\x07message\x18\x03 \x01(\tR\x07message\"w\n\x14VerbGrantDescription\x12\x42\n\x04verb\x18\x01 \x01(\x0e\x32..ai.stigmer.agentic.datastore.v1.DatastoreVerbR\x04verb\x12\x1b\n\town_scope\x18\x02 \x01(\x08R\x08ownScope*\x9d\x01\n\x11RecordConditionOp\x12#\n\x1frecord_condition_op_unspecified\x10\x00\x12\x06\n\x02\x65q\x10\x01\x12\x07\n\x03neq\x10\x02\x12\x06\n\x02gt\x10\x03\x12\x07\n\x03gte\x10\x04\x12\x06\n\x02lt\x10\x05\x12\x07\n\x03lte\x10\x06\x12\t\n\x05is_in\x10\x07\x12\n\n\x06not_in\x10\x08\x12\x0b\n\x07is_null\x10\t\x12\x0c\n\x08not_null\x10\n*O\n\x13RecordSortDirection\x12%\n!record_sort_direction_unspecified\x10\x00\x12\x07\n\x03\x61sc\x10\x01\x12\x08\n\x04\x64\x65sc\x10\x02*d\n\x0e\x43onstraintKind\x12\x1f\n\x1b\x63onstraint_kind_unspecified\x10\x00\x12\n\n\x06unique\x10\x01\x12\t\n\x05\x63heck\x10\x02\x12\n\n\x06\x65xists\x10\x03\x12\x0e\n\nnot_exists\x10\x04\x42\xd5\x01\n#com.ai.stigmer.agentic.datastore.v1B\rRecordIoProtoP\x01\xa2\x02\x04\x41SAD\xaa\x02\x1f\x41i.Stigmer.Agentic.Datastore.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Datastore\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Datastore\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Datastore::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -58,6 +58,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_FINDRECORDSREQUEST'].fields_by_name['offset']._serialized_options = b'\272H\004\032\002(\000'
   _globals['_FINDRECORDSREQUEST'].fields_by_name['partition']._loaded_options = None
   _globals['_FINDRECORDSREQUEST'].fields_by_name['partition']._serialized_options = b'\272H\"r \030?2\034^$|^[a-z][a-z0-9-]*[a-z0-9]$'
+  _globals['_FINDRECORDSREQUEST'].fields_by_name['org']._loaded_options = None
+  _globals['_FINDRECORDSREQUEST'].fields_by_name['org']._serialized_options = b'\272H\004r\002\030?'
   _globals['_INSERTRECORDREQUEST'].fields_by_name['datastore']._loaded_options = None
   _globals['_INSERTRECORDREQUEST'].fields_by_name['datastore']._serialized_options = b'\272H\003\310\001\001'
   _globals['_INSERTRECORDREQUEST'].fields_by_name['collection']._loaded_options = None
@@ -66,6 +68,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_INSERTRECORDREQUEST'].fields_by_name['record']._serialized_options = b'\272H\003\310\001\001'
   _globals['_INSERTRECORDREQUEST'].fields_by_name['partition']._loaded_options = None
   _globals['_INSERTRECORDREQUEST'].fields_by_name['partition']._serialized_options = b'\272H\"r \030?2\034^$|^[a-z][a-z0-9-]*[a-z0-9]$'
+  _globals['_INSERTRECORDREQUEST'].fields_by_name['org']._loaded_options = None
+  _globals['_INSERTRECORDREQUEST'].fields_by_name['org']._serialized_options = b'\272H\004r\002\030?'
   _globals['_UPDATERECORDREQUEST'].fields_by_name['datastore']._loaded_options = None
   _globals['_UPDATERECORDREQUEST'].fields_by_name['datastore']._serialized_options = b'\272H\003\310\001\001'
   _globals['_UPDATERECORDREQUEST'].fields_by_name['collection']._loaded_options = None
@@ -76,6 +80,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_UPDATERECORDREQUEST'].fields_by_name['fields']._serialized_options = b'\272H\003\310\001\001'
   _globals['_UPDATERECORDREQUEST'].fields_by_name['partition']._loaded_options = None
   _globals['_UPDATERECORDREQUEST'].fields_by_name['partition']._serialized_options = b'\272H\"r \030?2\034^$|^[a-z][a-z0-9-]*[a-z0-9]$'
+  _globals['_UPDATERECORDREQUEST'].fields_by_name['org']._loaded_options = None
+  _globals['_UPDATERECORDREQUEST'].fields_by_name['org']._serialized_options = b'\272H\004r\002\030?'
   _globals['_DELETERECORDREQUEST'].fields_by_name['datastore']._loaded_options = None
   _globals['_DELETERECORDREQUEST'].fields_by_name['datastore']._serialized_options = b'\272H\003\310\001\001'
   _globals['_DELETERECORDREQUEST'].fields_by_name['collection']._loaded_options = None
@@ -84,14 +90,18 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_DELETERECORDREQUEST'].fields_by_name['id']._serialized_options = b'\272H\003\310\001\001'
   _globals['_DELETERECORDREQUEST'].fields_by_name['partition']._loaded_options = None
   _globals['_DELETERECORDREQUEST'].fields_by_name['partition']._serialized_options = b'\272H\"r \030?2\034^$|^[a-z][a-z0-9-]*[a-z0-9]$'
+  _globals['_DELETERECORDREQUEST'].fields_by_name['org']._loaded_options = None
+  _globals['_DELETERECORDREQUEST'].fields_by_name['org']._serialized_options = b'\272H\004r\002\030?'
   _globals['_DESCRIBEDATASTOREREQUEST'].fields_by_name['datastore']._loaded_options = None
   _globals['_DESCRIBEDATASTOREREQUEST'].fields_by_name['datastore']._serialized_options = b'\272H\003\310\001\001'
-  _globals['_RECORDCONDITIONOP']._serialized_start=3096
-  _globals['_RECORDCONDITIONOP']._serialized_end=3253
-  _globals['_RECORDSORTDIRECTION']._serialized_start=3255
-  _globals['_RECORDSORTDIRECTION']._serialized_end=3334
-  _globals['_CONSTRAINTKIND']._serialized_start=3336
-  _globals['_CONSTRAINTKIND']._serialized_end=3436
+  _globals['_DESCRIBEDATASTOREREQUEST'].fields_by_name['org']._loaded_options = None
+  _globals['_DESCRIBEDATASTOREREQUEST'].fields_by_name['org']._serialized_options = b'\272H\004r\002\030?'
+  _globals['_RECORDCONDITIONOP']._serialized_start=3231
+  _globals['_RECORDCONDITIONOP']._serialized_end=3388
+  _globals['_RECORDSORTDIRECTION']._serialized_start=3390
+  _globals['_RECORDSORTDIRECTION']._serialized_end=3469
+  _globals['_CONSTRAINTKIND']._serialized_start=3471
+  _globals['_CONSTRAINTKIND']._serialized_end=3571
   _globals['_RECORDENVELOPE']._serialized_start=221
   _globals['_RECORDENVELOPE']._serialized_end=502
   _globals['_RECORDLIST']._serialized_start=505
@@ -103,21 +113,21 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_RECORDORDERBY']._serialized_start=1006
   _globals['_RECORDORDERBY']._serialized_end=1145
   _globals['_FINDRECORDSREQUEST']._serialized_start=1148
-  _globals['_FINDRECORDSREQUEST']._serialized_end=1527
-  _globals['_INSERTRECORDREQUEST']._serialized_start=1530
-  _globals['_INSERTRECORDREQUEST']._serialized_end=1755
-  _globals['_UPDATERECORDREQUEST']._serialized_start=1758
-  _globals['_UPDATERECORDREQUEST']._serialized_end=2007
-  _globals['_DELETERECORDREQUEST']._serialized_start=2010
-  _globals['_DELETERECORDREQUEST']._serialized_end=2202
-  _globals['_DESCRIBEDATASTOREREQUEST']._serialized_start=2204
-  _globals['_DESCRIBEDATASTOREREQUEST']._serialized_end=2268
-  _globals['_DATASTOREDESCRIPTION']._serialized_start=2271
-  _globals['_DATASTOREDESCRIPTION']._serialized_end=2507
-  _globals['_COLLECTIONDESCRIPTION']._serialized_start=2510
-  _globals['_COLLECTIONDESCRIPTION']._serialized_end=2831
-  _globals['_CONSTRAINTDESCRIPTION']._serialized_start=2834
-  _globals['_CONSTRAINTDESCRIPTION']._serialized_end=2972
-  _globals['_VERBGRANTDESCRIPTION']._serialized_start=2974
-  _globals['_VERBGRANTDESCRIPTION']._serialized_end=3093
+  _globals['_FINDRECORDSREQUEST']._serialized_end=1554
+  _globals['_INSERTRECORDREQUEST']._serialized_start=1557
+  _globals['_INSERTRECORDREQUEST']._serialized_end=1809
+  _globals['_UPDATERECORDREQUEST']._serialized_start=1812
+  _globals['_UPDATERECORDREQUEST']._serialized_end=2088
+  _globals['_DELETERECORDREQUEST']._serialized_start=2091
+  _globals['_DELETERECORDREQUEST']._serialized_end=2310
+  _globals['_DESCRIBEDATASTOREREQUEST']._serialized_start=2312
+  _globals['_DESCRIBEDATASTOREREQUEST']._serialized_end=2403
+  _globals['_DATASTOREDESCRIPTION']._serialized_start=2406
+  _globals['_DATASTOREDESCRIPTION']._serialized_end=2642
+  _globals['_COLLECTIONDESCRIPTION']._serialized_start=2645
+  _globals['_COLLECTIONDESCRIPTION']._serialized_end=2966
+  _globals['_CONSTRAINTDESCRIPTION']._serialized_start=2969
+  _globals['_CONSTRAINTDESCRIPTION']._serialized_end=3107
+  _globals['_VERBGRANTDESCRIPTION']._serialized_start=3109
+  _globals['_VERBGRANTDESCRIPTION']._serialized_end=3228
 # @@protoc_insertion_point(module_scope)

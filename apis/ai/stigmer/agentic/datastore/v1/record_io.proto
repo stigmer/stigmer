@@ -128,8 +128,8 @@ enum RecordSortDirection {
 
 // FindRecordsRequest selects records from one collection.
 message FindRecordsRequest {
-  // Datastore slug. The organization resolves from the caller's
-  // credential — records never cross the org boundary.
+  // Datastore slug, resolved within the organization named by `org` —
+  // records never cross the org boundary.
   string datastore = 1 [(buf.validate.field).required = true];
 
   // Collection to query.
@@ -163,6 +163,17 @@ message FindRecordsRequest {
     (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*[a-z0-9]$",
     (buf.validate.field).string.max_len = 63
   ];
+
+  // Organization the datastore belongs to. Direct callers (console,
+  // CLI, SDK, import) set it; unset resolves from the caller's context.
+  //
+  // @internal
+  // Session-bound runner credentials leave it empty — their org is
+  // server-derived from the session (DD-006 reach chain, lands with
+  // T05). In the OSS edition every slug resolves against the local
+  // system org, and a non-matching explicit org is NOT_FOUND (records
+  // stay home).
+  string org = 8 [(buf.validate.field).string.max_len = 63];
 }
 
 // InsertRecordRequest inserts one record into a collection.
@@ -188,6 +199,13 @@ message InsertRecordRequest {
     (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*[a-z0-9]$",
     (buf.validate.field).string.max_len = 63
   ];
+
+  // Organization the datastore belongs to. Direct callers set it;
+  // unset resolves from the caller's context.
+  //
+  // @internal
+  // Same dispatch as FindRecordsRequest.org.
+  string org = 5 [(buf.validate.field).string.max_len = 63];
 }
 
 // UpdateRecordRequest updates one record by id with a partial merge.
@@ -215,6 +233,13 @@ message UpdateRecordRequest {
     (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*[a-z0-9]$",
     (buf.validate.field).string.max_len = 63
   ];
+
+  // Organization the datastore belongs to. Direct callers set it;
+  // unset resolves from the caller's context.
+  //
+  // @internal
+  // Same dispatch as FindRecordsRequest.org.
+  string org = 6 [(buf.validate.field).string.max_len = 63];
 }
 
 // DeleteRecordRequest deletes one record by id.
@@ -237,6 +262,13 @@ message DeleteRecordRequest {
     (buf.validate.field).string.pattern = "^$|^[a-z][a-z0-9-]*[a-z0-9]$",
     (buf.validate.field).string.max_len = 63
   ];
+
+  // Organization the datastore belongs to. Direct callers set it;
+  // unset resolves from the caller's context.
+  //
+  // @internal
+  // Same dispatch as FindRecordsRequest.org.
+  string org = 5 [(buf.validate.field).string.max_len = 63];
 }
 
 // DescribeDatastoreRequest asks for a datastore as the caller
@@ -244,6 +276,13 @@ message DeleteRecordRequest {
 message DescribeDatastoreRequest {
   // Datastore slug.
   string datastore = 1 [(buf.validate.field).required = true];
+
+  // Organization the datastore belongs to. Direct callers set it;
+  // unset resolves from the caller's context.
+  //
+  // @internal
+  // Same dispatch as FindRecordsRequest.org.
+  string org = 2 [(buf.validate.field).string.max_len = 63];
 }
 
 // DatastoreDescription is a datastore's schema and the calling

@@ -249,6 +249,7 @@ const result = await stigmer.datastore.findRecords({
   limit: 0,
   offset: 0,
   partition: "...",
+  org: "...",
 });
 ```
 </Tab>
@@ -262,6 +263,7 @@ result, err := client.Datastore.FindRecords(ctx, &stigmer.FindRecordsRequest{
   Limit:      0,
   Offset:     0,
   Partition:  "...",
+  Org:        "...",
 })
 ```
 </Tab>
@@ -275,6 +277,7 @@ result = client.datastores.find_records(FindRecordsRequest(
     limit=0,
     offset=0,
     partition="...",
+    org="...",
 ))
 ```
 </Tab>
@@ -288,6 +291,7 @@ RecordList result = client.datastores().findRecords(FindRecordsRequest.builder()
     .limit(0)
     .offset(0)
     .partition("...")
+    .org("...")
     .build());
 ```
 </Tab>
@@ -513,6 +517,7 @@ const recordEnvelope = await stigmer.datastore.updateRecord({
   id: "...",
   fields: {},
   partition: "...",
+  org: "...",
 });
 ```
 </Tab>
@@ -524,6 +529,7 @@ recordEnvelope, err := client.Datastore.UpdateRecord(ctx, &stigmer.UpdateRecordR
   Id:         "...",
   Fields:     nil,
   Partition:  "...",
+  Org:        "...",
 })
 ```
 </Tab>
@@ -535,6 +541,7 @@ record_envelope = client.datastores.update_record(UpdateRecordRequest(
     id="...",
     fields=None,
     partition="...",
+    org="...",
 ))
 ```
 </Tab>
@@ -546,6 +553,7 @@ RecordEnvelope recordEnvelope = client.datastores().updateRecord(UpdateRecordReq
     .id("...")
     .fields(null)
     .partition("...")
+    .org("...")
     .build());
 ```
 </Tab>
@@ -657,6 +665,7 @@ const recordEnvelope = await stigmer.datastore.deleteRecord({
   collection: "...",
   id: "...",
   partition: "...",
+  org: "...",
 });
 ```
 </Tab>
@@ -667,6 +676,7 @@ recordEnvelope, err := client.Datastore.DeleteRecord(ctx, &stigmer.DeleteRecordR
   Collection: "...",
   Id:         "...",
   Partition:  "...",
+  Org:        "...",
 })
 ```
 </Tab>
@@ -677,6 +687,7 @@ record_envelope = client.datastores.delete_record(DeleteRecordRequest(
     collection="...",
     id="...",
     partition="...",
+    org="...",
 ))
 ```
 </Tab>
@@ -687,6 +698,7 @@ RecordEnvelope recordEnvelope = client.datastores().deleteRecord(DeleteRecordReq
     .collection("...")
     .id("...")
     .partition("...")
+    .org("...")
     .build());
 ```
 </Tab>
@@ -707,6 +719,7 @@ Requires reach only (no per-collection verb): a caller with no grants sees the s
 ```typescript
 const datastoreDescription = await stigmer.datastore.describeDatastore({
   datastore: "...",
+  org: "...",
 });
 ```
 </Tab>
@@ -714,6 +727,7 @@ const datastoreDescription = await stigmer.datastore.describeDatastore({
 ```go
 datastoreDescription, err := client.Datastore.DescribeDatastore(ctx, &stigmer.DescribeDatastoreRequest{
   Datastore: "...",
+  Org:       "...",
 })
 ```
 </Tab>
@@ -721,6 +735,7 @@ datastoreDescription, err := client.Datastore.DescribeDatastore(ctx, &stigmer.De
 ```python
 datastore_description = client.datastores.describe_datastore(DescribeDatastoreRequest(
     datastore="...",
+    org="...",
 ))
 ```
 </Tab>
@@ -728,6 +743,7 @@ datastore_description = client.datastores.describe_datastore(DescribeDatastoreRe
 ```java
 DatastoreDescription datastoreDescription = client.datastores().describeDatastore(DescribeDatastoreRequest.builder()
     .datastore("...")
+    .org("...")
     .build());
 ```
 </Tab>
@@ -751,6 +767,7 @@ const recordEnvelope = await stigmer.datastore.insertRecord({
   collection: "...",
   record: {},
   partition: "...",
+  org: "...",
 });
 ```
 </Tab>
@@ -761,6 +778,7 @@ recordEnvelope, err := client.Datastore.InsertRecord(ctx, &stigmer.InsertRecordR
   Collection: "...",
   Record:     nil,
   Partition:  "...",
+  Org:        "...",
 })
 ```
 </Tab>
@@ -771,6 +789,7 @@ record_envelope = client.datastores.insert_record(InsertRecordRequest(
     collection="...",
     record=None,
     partition="...",
+    org="...",
 ))
 ```
 </Tab>
@@ -781,6 +800,7 @@ RecordEnvelope recordEnvelope = client.datastores().insertRecord(InsertRecordReq
     .collection("...")
     .record(null)
     .partition("...")
+    .org("...")
     .build());
 ```
 </Tab>
@@ -1028,6 +1048,7 @@ InsertRecordRequest inserts one record into a collection.
     collection: { type: "string", description: "Collection to insert into.", required: true },
     record: { type: "object", description: "Declared field values in their canonical encodings.", required: true },
     partition: { type: "string", description: "Data partition to insert into." },
+    org: { type: "string", description: "Organization the datastore belongs to." },
   }}
 />
 
@@ -1056,6 +1077,7 @@ UpdateRecordRequest updates one record by id with a partial merge.
     id: { type: "string", description: "Id of the record to update.", required: true },
     fields: { type: "object", description: "Fields to change.", required: true },
     partition: { type: "string", description: "Data partition holding the record." },
+    org: { type: "string", description: "Organization the datastore belongs to." },
   }}
 />
 
@@ -1069,6 +1091,7 @@ DeleteRecordRequest deletes one record by id.
     collection: { type: "string", description: "Collection holding the record.", required: true },
     id: { type: "string", description: "Id of the record to delete.", required: true },
     partition: { type: "string", description: "Data partition holding the record." },
+    org: { type: "string", description: "Organization the datastore belongs to." },
   }}
 />
 
@@ -1078,13 +1101,14 @@ FindRecordsRequest selects records from one collection.
 
 <TypeTable
   type={{
-    datastore: { type: "string", description: "Datastore slug.", required: true },
+    datastore: { type: "string", description: "Datastore slug, resolved within the organization named by `org` — records never cross the org boundary.", required: true },
     collection: { type: "string", description: "Collection to query.", required: true },
     filter: { type: "RecordFilterInput", description: "Conditions records must match." },
     orderBy: { type: "RecordOrderByInput", description: "Sort order." },
     limit: { type: "number", description: "Page size." },
     offset: { type: "number", description: "Number of records to skip." },
     partition: { type: "string", description: "Data partition to read from." },
+    org: { type: "string", description: "Organization the datastore belongs to." },
   }}
 />
 
@@ -1108,6 +1132,7 @@ DescribeDatastoreRequest asks for a datastore as the caller experiences it.
 <TypeTable
   type={{
     datastore: { type: "string", description: "Datastore slug.", required: true },
+    org: { type: "string", description: "Organization the datastore belongs to." },
   }}
 />
 

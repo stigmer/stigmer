@@ -30,10 +30,10 @@ import (
 // In OSS, Layer 1 reach is the local-trust pass (no credential classes
 // exist — no channel broker, no runner sandbox tokens) and the subject
 // is the fixed local principal (identity.LocalSubject). The org a slug
-// resolves against is the seedpack system org (identity.SystemOrg),
-// because the record requests carry no org field — "org resolves from
-// the caller's credential", and the OSS credential is the local
-// operator of that org.
+// resolves against is the seedpack system org (identity.SystemOrg):
+// an empty request org means "the caller's context", which in OSS is
+// the local operator of that org, and an explicit request org must
+// match it — anything else is NOT_FOUND (records stay home).
 //
 // These handlers are deliberately NOT pipelines: the pipeline framework
 // models resource lifecycle (slug resolution, duplicate checks,
@@ -76,8 +76,8 @@ type recordCall struct {
 // datastore resolution, reach, subject/role resolution, and partition
 // resolution. Handlers that need a verb call requireVerb next;
 // describeDatastore stops here (reach only).
-func (c *DatastoreRecordController) resolveCall(ctx context.Context, datastoreSlug, collection, partition string) (*recordCall, error) {
-	ds, err := c.resolveDatastore(ctx, datastoreSlug)
+func (c *DatastoreRecordController) resolveCall(ctx context.Context, org, datastoreSlug, collection, partition string) (*recordCall, error) {
+	ds, err := c.resolveDatastore(ctx, org, datastoreSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,18 @@ func (call *recordCall) requireVerb(verb datastorev1.DatastoreVerb) (authz.Grant
 // resource. Slugs are per-org unique, so the (slug, org) pair is the
 // full key; the scan mirrors the platform's list-then-filter idiom
 // (there is no org-scoped store query).
-func (c *DatastoreRecordController) resolveDatastore(ctx context.Context, slug string) (*datastorev1.Datastore, error) {
+//
+// An empty request org resolves to the caller's context — in OSS the
+// seedpack system org. An explicit org that names any other org is
+// NOT_FOUND, not PERMISSION_DENIED: records stay home (DD-006 inv. 3),
+// and whether the foreign datastore exists must not leak.
+func (c *DatastoreRecordController) resolveDatastore(ctx context.Context, org, slug string) (*datastorev1.Datastore, error) {
+	if org == "" {
+		org = identity.SystemOrg
+	}
+	if org != identity.SystemOrg {
+		return nil, dserrors.DatastoreNotFound(slug)
+	}
 	resources, err := c.store.ListResources(ctx, apiresourcekind.ApiResourceKind_datastore)
 	if err != nil {
 		return nil, grpclib.InternalError(err, "failed to resolve datastore")
@@ -141,7 +152,7 @@ func (c *DatastoreRecordController) resolveDatastore(ctx context.Context, slug s
 		if err := proto.Unmarshal(data, ds); err != nil {
 			continue
 		}
-		if ds.GetMetadata().GetSlug() == slug && ds.GetMetadata().GetOrg() == identity.SystemOrg {
+		if ds.GetMetadata().GetSlug() == slug && ds.GetMetadata().GetOrg() == org {
 			return ds, nil
 		}
 	}

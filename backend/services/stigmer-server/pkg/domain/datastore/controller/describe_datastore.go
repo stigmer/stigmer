@@ -18,7 +18,7 @@ import (
 // report) is deliberately excluded: a caller learns the shape of the
 // data and what it may do, never who else has access.
 func (c *DatastoreRecordController) DescribeDatastore(ctx context.Context, req *datastorev1.DescribeDatastoreRequest) (*datastorev1.DatastoreDescription, error) {
-	call, err := c.resolveCall(ctx, req.GetDatastore(), "", "")
+	call, err := c.resolveCall(ctx, req.GetOrg(), req.GetDatastore(), "", "")
 	if err != nil {
 		return nil, err
 	}

@@ -19,7 +19,7 @@ import (
 // violating one returns ALREADY_EXISTS with the declared message, never
 // a duplicate).
 func (c *DatastoreRecordController) InsertRecord(ctx context.Context, req *datastorev1.InsertRecordRequest) (*datastorev1.RecordEnvelope, error) {
-	call, err := c.resolveCall(ctx, req.GetDatastore(), req.GetCollection(), req.GetPartition())
+	call, err := c.resolveCall(ctx, req.GetOrg(), req.GetDatastore(), req.GetCollection(), req.GetPartition())
 	if err != nil {
 		return nil, err
 	}
