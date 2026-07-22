@@ -7,6 +7,7 @@
 
 import { type DescMessage, fromJson, type JsonValue } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { DatastoreSchema } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -17,6 +18,7 @@ const VALIDATE_SCHEMAS: ReadonlyMap<ApiResourceKind, DescMessage> = new Map<ApiR
   [ApiResourceKind.workflow, WorkflowSchema],
   [ApiResourceKind.mcp_server, McpServerSchema],
   [ApiResourceKind.project, ProjectSchema],
+  [ApiResourceKind.datastore, DatastoreSchema],
 ]);
 
 export function schemaForValidate(kind: ApiResourceKind): DescMessage | undefined {

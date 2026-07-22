@@ -23,6 +23,8 @@ import { type AgentInstance, AgentInstanceSchema } from "@stigmer/protos/ai/stig
 import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
 import { type AgentShare, AgentShareSchema } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
+import { type Datastore, DatastoreSchema } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
+import { DatastoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/command_pb";
 import { type Environment, EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { type McpServer, McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -72,6 +74,15 @@ export const APPLY_HANDLERS: ReadonlyMap<ApiResourceKind, ApplyHandler> = new Ma
       displayName: "MCP Server",
       schema: McpServerSchema,
       apply: (c, m) => c(McpServerCommandController).apply(m as McpServer),
+    },
+  ],
+  [
+    ApiResourceKind.datastore,
+    {
+      kind: ApiResourceKind.datastore,
+      displayName: "Datastore",
+      schema: DatastoreSchema,
+      apply: (c, m) => c(DatastoreCommandController).apply(m as Datastore),
     },
   ],
   [
