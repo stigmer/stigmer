@@ -82,7 +82,7 @@ spec:
               - name: extract_findings
                 kind: llm_call
                 task_config:
-                  model: "gpt-4o-mini"
+                  model: "claude-haiku-4.5"
                   system_prompt: "Extract structured key findings from the analysis."
                   prompt: >
                     Extract the key findings from this analysis as structured data:

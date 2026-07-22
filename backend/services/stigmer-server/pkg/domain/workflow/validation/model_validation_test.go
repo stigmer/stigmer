@@ -60,7 +60,7 @@ func TestValidateModelReferences_ValidNativeModels(t *testing.T) {
 	spec := &workflowv1.WorkflowSpec{
 		Tasks: []*workflowv1.WorkflowTask{
 			makeLlmCallTask("classify", "claude-sonnet-4.6"),
-			makeLlmCallTask("summarize", "gpt-4o"),
+			makeLlmCallTask("summarize", "claude-haiku-4.5"),
 			makeEvalTask("evaluate", "claude-opus-4.6"),
 		},
 	}
@@ -293,7 +293,7 @@ func TestValidateModelReferences_FarTypo_NoSuggestions(t *testing.T) {
 func TestValidateModelReferences_EvalInvalidModel(t *testing.T) {
 	spec := &workflowv1.WorkflowSpec{
 		Tasks: []*workflowv1.WorkflowTask{
-			makeEvalTask("check", "gpt-4oo"),
+			makeEvalTask("check", "claude-opus-46"),
 		},
 	}
 
@@ -306,8 +306,8 @@ func TestValidateModelReferences_EvalInvalidModel(t *testing.T) {
 	if !strings.Contains(err, "eval") {
 		t.Errorf("Expected error to mention 'eval', got: %s", err)
 	}
-	if !strings.Contains(err, "gpt-4o") {
-		t.Errorf("Expected suggestion 'gpt-4o' for typo 'gpt-4oo', got: %s", err)
+	if !strings.Contains(err, "claude-opus-4.6") {
+		t.Errorf("Expected suggestion 'claude-opus-4.6' for typo 'claude-opus-46', got: %s", err)
 	}
 }
 

@@ -122,7 +122,7 @@ spec:
               - name: extract_findings
                 kind: llm_call
                 task_config:
-                  model: "gpt-4o-mini"
+                  model: "claude-haiku-4.5"
                   system_prompt: "Extract structured key findings from the analysis."
                   prompt: >
                     Extract the key findings from this analysis as structured data:
@@ -280,7 +280,7 @@ spec:
     - name: classify_ticket
       kind: llm_call
       task_config:
-        model: "gpt-4o-mini"
+        model: "claude-haiku-4.5"
         system_prompt: >
           You are a support ticket classifier. Analyze the ticket and classify
           it by severity and category. Be conservative with critical/high
@@ -923,7 +923,7 @@ spec:
               - name: diagnose_error
                 kind: llm_call
                 task_config:
-                  model: "gpt-4o-mini"
+                  model: "claude-haiku-4.5"
                   system_prompt: >
                     You are an API integration specialist. Given an error from
                     an HTTP call, provide a brief, actionable diagnosis.
@@ -1010,7 +1010,7 @@ spec:
       description: "Comma-separated list of topics the response should cover"
       optional: true
     MODEL_UNDER_TEST:
-      description: "Model to evaluate (default: gpt-4o-mini)"
+      description: "Model to evaluate (default: claude-haiku-4.5)"
       optional: true
   budget:
     max_cost_micros: 2000000

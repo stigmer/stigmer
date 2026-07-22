@@ -130,8 +130,8 @@ func TestSeedpackWorkflow_ContentReviewPipeline(t *testing.T) {
 // asserts the workflow completes through the non-critical path.
 func TestSeedpackWorkflow_SupportTicketTriage(t *testing.T) {
 	requireSeedpackPrereqs(t)
-	if os.Getenv("OPENAI_API_KEY") == "" {
-		t.Skip("OPENAI_API_KEY not set — support-ticket-triage uses gpt-4o-mini")
+	if os.Getenv("ANTHROPIC_API_KEY") == "" {
+		t.Skip("ANTHROPIC_API_KEY not set — support-ticket-triage uses claude-haiku-4.5")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -256,10 +256,8 @@ func TestSeedpackWorkflow_SupportTicketTriage(t *testing.T) {
 // JQ transforms, and a human approval gate.
 func TestSeedpackWorkflow_ResearchAndSummarize(t *testing.T) {
 	requireSeedpackPrereqs(t)
-	hasAnthropic := os.Getenv("ANTHROPIC_API_KEY") != ""
-	hasOpenAI := os.Getenv("OPENAI_API_KEY") != ""
-	if !hasAnthropic || !hasOpenAI {
-		t.Skip("both ANTHROPIC_API_KEY and OPENAI_API_KEY required — research-and-summarize uses claude-sonnet-4.5 and gpt-4o-mini")
+	if os.Getenv("ANTHROPIC_API_KEY") == "" {
+		t.Skip("ANTHROPIC_API_KEY not set — research-and-summarize uses claude-sonnet-4.5 and claude-haiku-4.5")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
