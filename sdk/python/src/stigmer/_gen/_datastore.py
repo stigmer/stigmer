@@ -20,10 +20,13 @@ from ai.stigmer.agentic.datastore.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
+from ai.stigmer.search.v1 import query_pb2_grpc as search_query_pb2_grpc
+from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
+from ai.stigmer.commons.rpc import pagination_pb2
 from ai.stigmer.iam.iampolicy.v1 import spec_pb2 as iampolicy_spec_pb2
 
 from ._errors import wrap_error
-from ._types import DeleteResourceInput, ResourceRef
+from ._types import DeleteResourceInput, ListParams, ListResult, ResourceRef
 
 
 class DatastoreClient:
@@ -34,6 +37,7 @@ class DatastoreClient:
         self._query = query_pb2_grpc.DatastoreQueryControllerStub(channel)
         self._datastoreRecordCommand = record_command_pb2_grpc.DatastoreRecordCommandControllerStub(channel)
         self._datastoreRecordQuery = record_query_pb2_grpc.DatastoreRecordQueryControllerStub(channel)
+        self._search = search_query_pb2_grpc.SearchServiceStub(channel)
 
     def apply(self, input: DatastoreInput) -> api_pb2.Datastore:
         try:
@@ -79,12 +83,6 @@ class DatastoreClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def list(self, input: io_pb2.ListDatastoresRequest) -> io_pb2.DatastoreList:
-        try:
-            return self._query.list(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
     def insert_record(self, input: record_io_pb2.InsertRecordRequest) -> record_io_pb2.RecordEnvelope:
         try:
             return self._datastoreRecordCommand.insertRecord(input)
@@ -112,6 +110,29 @@ class DatastoreClient:
     def describe_datastore(self, input: record_io_pb2.DescribeDatastoreRequest) -> record_io_pb2.DatastoreDescription:
         try:
             return self._datastoreRecordQuery.describeDatastore(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list(self, params: ListParams) -> ListResult:
+        try:
+            req = search_io_pb2.SearchRequest(
+                kinds=[api_resource_kind_pb2.ApiResourceKind.datastore],
+                query=params.query,
+                org=params.org,
+                exclude_public=params.exclude_public,
+                cross_org_public=params.cross_org_public,
+            )
+            if params.page is not None:
+                req.page.CopyFrom(pagination_pb2.PageInfo(
+                    num=params.page.num,
+                    size=params.page.size,
+                ))
+            resp = self._search.search(req)
+            return ListResult(
+                entries=list(resp.entries),
+                total_count=resp.total_count,
+                total_pages=resp.total_pages,
+            )
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

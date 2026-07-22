@@ -24,10 +24,13 @@ spec:
       - name: admin
       - name: patient
     bindings:
+      # whatsapp_phone values are the channel-verified wa_id: digits only,
+      # no leading "+". Bindings match by exact string equality, so a "+"
+      # here would silently never match the sender.
       - subject:
           channel_sender:
             sender_kind: whatsapp_phone
-            value: "+919800000001"
+            value: "919800000001"
         role: admin
     default_role: patient
   collections:
@@ -87,7 +90,6 @@ Datastore datastore = client.datastores().get("dst_01j5q3k7m8r2s4tnz2hfp0q0c3");
 |--------|-------------|
 | [`get`](#get) | Get a datastore by ID. |
 | [`getByReference`](#getbyreference) | Get a datastore by its organization-scoped reference (org/slug). |
-| [`list`](#list) | List datastores with optional label filtering. |
 | [`findRecords`](#findrecords) | Find records in a collection with a typed filter. |
 | [`apply`](#apply) | Create or update a datastore. |
 | [`create`](#create) | Create a datastore. |
@@ -184,53 +186,6 @@ Datastore datastore = client.datastores().getByReference(ApiResourceReference.bu
 **Parameters**: [`ResourceRef`](#resourceref)
 
 **Returns**: [`Datastore`](#datastore)
-
-### list
-
-List datastores with optional label filtering.
-
-<SDKTabs>
-<Tab value="TypeScript">
-```typescript
-const result = await stigmer.datastore.list({
-  org: "...",
-  labels: {},
-  pageInfo: {},
-});
-```
-</Tab>
-<Tab value="Go">
-```go
-result, err := client.Datastore.List(ctx, &stigmer.ListDatastoresRequest{
-  Org:      "...",
-  Labels:   map[string]string{},
-  PageInfo: &stigmer.PageInfoInput{},
-})
-```
-</Tab>
-<Tab value="Python">
-```python
-result = client.datastores.list(ListDatastoresRequest(
-    org="...",
-    labels={},
-    page_info=None,
-))
-```
-</Tab>
-<Tab value="Java">
-```java
-DatastoreList result = client.datastores().list(ListDatastoresRequest.builder()
-    .org("...")
-    .labels(Map.of())
-    .pageInfo(null)
-    .build());
-```
-</Tab>
-</SDKTabs>
-
-**Parameters**: [`ListDatastoresRequest`](#listdatastoresrequest)
-
-**Returns**: [`DatastoreList`](#datastorelist)
 
 ### findRecords
 

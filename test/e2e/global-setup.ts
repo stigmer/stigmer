@@ -64,6 +64,17 @@ async function globalSetup() {
   console.log(`[e2e] Backend not detected on :${API_PORT} — starting full stack`);
   const state = await startBackendStack({ apiPort: API_PORT });
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+
+  // Same rationale as the mock-LLM path above: a fresh OSS stack has no
+  // organizations, so the web's OrgGate would park every functional spec
+  // on the onboarding screen. Seeding here makes the suite deterministic
+  // on fresh boots instead of depending on a long-lived dev backend.
+  const client = createNodeClient({
+    baseUrl: `http://localhost:${API_PORT}`,
+    getAccessToken: () => null,
+  });
+  await ensureDefaultOrg(client);
+  console.log(`[e2e] Seeded "default" org on the fresh stack`);
 }
 
 export default globalSetup;

@@ -3,7 +3,7 @@
 import { type MouseEvent, useCallback, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bot, FileCode2, Plus, Sparkles, Server, Workflow } from "lucide-react";
+import { Bot, Database, FileCode2, Plus, Sparkles, Server, Workflow } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { getDraftSessionUrl } from "@/domain/session/draft-session";
@@ -11,6 +11,7 @@ import { readPersistedScope } from "@/domain/library/scope-persistence";
 import {
   ApplyManifestDialog,
   useAgentCount,
+  useDatastoreCount,
   useSkillCount,
   useMcpServerCount,
   useWorkflowCount,
@@ -46,6 +47,12 @@ const RESOURCE_CARDS = [
     label: "MCP Servers",
     href: "/library/mcp-servers",
     icon: <Server className="size-5" aria-hidden="true" />,
+  },
+  {
+    key: "datastores",
+    label: "Datastores",
+    href: "/library/datastores",
+    icon: <Database className="size-5" aria-hidden="true" />,
   },
 ] as const;
 
@@ -83,13 +90,21 @@ function useResourceCounts(org: string | null) {
   const workflowScope = readPersistedScope("workflows");
   const skillScope = readPersistedScope("skills");
   const mcpScope = readPersistedScope("mcp-servers");
+  const datastoreScope = readPersistedScope("datastores");
 
   const agents = useAgentCount(org, { scope: agentScope });
   const workflows = useWorkflowCount(org, { scope: workflowScope });
   const skills = useSkillCount(org, { scope: skillScope });
   const mcpServers = useMcpServerCount(org, { scope: mcpScope });
+  const datastores = useDatastoreCount(org, { scope: datastoreScope });
 
-  return { agents, workflows, skills, "mcp-servers": mcpServers } as const;
+  return {
+    agents,
+    workflows,
+    skills,
+    "mcp-servers": mcpServers,
+    datastores,
+  } as const;
 }
 
 export function LibraryLanding() {

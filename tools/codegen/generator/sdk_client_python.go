@@ -601,6 +601,9 @@ func generatePythonResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConf
 	for _, svc := range schema.Services {
 		imports.addService(svc.Role, pyServiceModule(&svc))
 		for _, m := range svc.Methods {
+			if searchListSupersedesMethod(schema, &m) {
+				continue
+			}
 			if isIDType(m.InputType) {
 				imports.needsIoPb2 = true
 			}
@@ -670,6 +673,9 @@ func generatePythonResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConf
 
 	for _, svc := range schema.Services {
 		for _, m := range svc.Methods {
+			if searchListSupersedesMethod(schema, &m) {
+				continue
+			}
 			generatePythonMethod(&body, &m, &svc, schema, cfg, hasInputType, imports, methodTypePb2Map)
 		}
 	}

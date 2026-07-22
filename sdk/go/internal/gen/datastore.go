@@ -8,7 +8,9 @@ import (
 	datastorev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/datastore/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	rpc "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/rpc"
 	iampolicyv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/iampolicy/v1"
+	searchv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -19,6 +21,7 @@ type DatastoreClient struct {
 	query                  datastorev1.DatastoreQueryControllerClient
 	datastoreRecordCommand datastorev1.DatastoreRecordCommandControllerClient
 	datastoreRecordQuery   datastorev1.DatastoreRecordQueryControllerClient
+	search                 searchv1.SearchServiceClient
 }
 
 func NewDatastoreClient(conn grpc.ClientConnInterface) *DatastoreClient {
@@ -27,6 +30,7 @@ func NewDatastoreClient(conn grpc.ClientConnInterface) *DatastoreClient {
 		query:                  datastorev1.NewDatastoreQueryControllerClient(conn),
 		datastoreRecordCommand: datastorev1.NewDatastoreRecordCommandControllerClient(conn),
 		datastoreRecordQuery:   datastorev1.NewDatastoreRecordQueryControllerClient(conn),
+		search:                 searchv1.NewSearchServiceClient(conn),
 	}
 }
 
@@ -70,11 +74,6 @@ func (d *DatastoreClient) GetByReference(ctx context.Context, ref ResourceRef) (
 	return resp, wrapErr(err)
 }
 
-func (d *DatastoreClient) List(ctx context.Context, input *datastorev1.ListDatastoresRequest) (*datastorev1.DatastoreList, error) {
-	resp, err := d.query.List(ctx, input)
-	return resp, wrapErr(err)
-}
-
 func (d *DatastoreClient) InsertRecord(ctx context.Context, input *datastorev1.InsertRecordRequest) (*datastorev1.RecordEnvelope, error) {
 	resp, err := d.datastoreRecordCommand.InsertRecord(ctx, input)
 	return resp, wrapErr(err)
@@ -98,6 +97,28 @@ func (d *DatastoreClient) FindRecords(ctx context.Context, input *datastorev1.Fi
 func (d *DatastoreClient) DescribeDatastore(ctx context.Context, input *datastorev1.DescribeDatastoreRequest) (*datastorev1.DatastoreDescription, error) {
 	resp, err := d.datastoreRecordQuery.DescribeDatastore(ctx, input)
 	return resp, wrapErr(err)
+}
+
+func (d *DatastoreClient) List(ctx context.Context, params *ListParams) (*ListResult, error) {
+	req := &searchv1.SearchRequest{
+		Kinds:          []apiresourcekind.ApiResourceKind{apiresourcekind.ApiResourceKind_datastore},
+		Query:          params.Query,
+		Org:            params.Org,
+		ExcludePublic:  params.ExcludePublic,
+		CrossOrgPublic: params.CrossOrgPublic,
+	}
+	if params.Page != nil {
+		req.Page = &rpc.PageInfo{Num: params.Page.Num, Size: params.Page.Size}
+	}
+	resp, err := d.search.Search(ctx, req)
+	if err != nil {
+		return nil, wrapErr(err)
+	}
+	return &ListResult{
+		Entries:    resp.GetEntries(),
+		TotalCount: resp.GetTotalCount(),
+		TotalPages: resp.GetTotalPages(),
+	}, nil
 }
 
 // DatastoreInput holds the fields for creating/updating a Datastore.

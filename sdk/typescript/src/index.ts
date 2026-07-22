@@ -49,6 +49,7 @@ export {
   getUserMessage,
   type ErrorReason,
   getErrorReason,
+  getRecordConstraint,
   type RpcErrorMetadata,
   annotateRpcError,
   getRpcMetadata,

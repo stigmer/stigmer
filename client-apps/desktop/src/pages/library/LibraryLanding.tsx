@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, FileCode2, Sparkles, Server, Workflow } from "lucide-react";
+import { Bot, Database, FileCode2, Sparkles, Server, Workflow } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import {
   ApplyManifestDialog,
   useAgentCount,
+  useDatastoreCount,
   useSkillCount,
   useMcpServerCount,
   useWorkflowCount,
@@ -19,6 +20,7 @@ export default function LibraryLanding() {
   const workflows = useWorkflowCount(org);
   const skills = useSkillCount(org);
   const mcpServers = useMcpServerCount(org);
+  const datastores = useDatastoreCount(org);
   const [applyYamlOpen, setApplyYamlOpen] = useState(false);
 
   return (
@@ -52,6 +54,13 @@ export default function LibraryLanding() {
           count={mcpServers.count}
           isLoading={mcpServers.isLoading}
           onClick={() => navigate("/library/mcp-servers")}
+        />
+        <ResourceCountCard
+          icon={<Database className="size-5" aria-hidden="true" />}
+          label="Datastores"
+          count={datastores.count}
+          isLoading={datastores.isLoading}
+          onClick={() => navigate("/library/datastores")}
         />
       </div>
 

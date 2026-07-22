@@ -721,7 +721,15 @@ func docFormatInputJava(fields []docFieldEntry) string {
 func docCollectMethods(schema *ServiceSchemaFile) []MethodSchema {
 	var methods []MethodSchema
 	for si := range schema.Services {
-		methods = append(methods, schema.Services[si].Methods...)
+		for mi := range schema.Services[si].Methods {
+			m := schema.Services[si].Methods[mi]
+			// Search-list kinds don't expose the typed query-controller List
+			// on the SDK client, so it isn't documented either.
+			if searchListSupersedesMethod(schema, &m) {
+				continue
+			}
+			methods = append(methods, m)
+		}
 	}
 	return methods
 }

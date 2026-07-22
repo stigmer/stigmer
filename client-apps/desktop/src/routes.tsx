@@ -28,6 +28,8 @@ const SkillListPage = lazy(() => import("./pages/library/SkillListPage"));
 const SkillDetailPage = lazy(() => import("./pages/library/SkillDetailPage"));
 const McpServerListPage = lazy(() => import("./pages/library/McpServerListPage"));
 const McpServerDetailPage = lazy(() => import("./pages/library/McpServerDetailPage"));
+const DatastoreListPage = lazy(() => import("./pages/library/DatastoreListPage"));
+const DatastoreDetailPage = lazy(() => import("./pages/library/DatastoreDetailPage"));
 const AgentNewPage = lazy(() => import("./pages/library/AgentNewPage"));
 const SkillNewPage = lazy(() => import("./pages/library/SkillNewPage"));
 const McpServerNewPage = lazy(() => import("./pages/library/McpServerNewPage"));
@@ -166,6 +168,22 @@ const routes: RouteObject[] = [
             element: (
               <LazyPage>
                 <McpServerDetailPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "datastores",
+            element: (
+              <LazyPage>
+                <DatastoreListPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "datastores/:org/:slug",
+            element: (
+              <LazyPage>
+                <DatastoreDetailPage />
               </LazyPage>
             ),
           },

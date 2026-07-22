@@ -2,12 +2,12 @@
 
 import { wrapError } from "./errors.js";
 import { stripUndefined } from "./proto-utils.js";
-import { type DeleteResourceInput, type ResourceRef } from "./types.js";
-import { create, type JsonValue } from "@bufbuild/protobuf";
+import { type DeleteResourceInput, type ListParams, type ListResult, type ResourceRef } from "./types.js";
+import { create, fromJson, type JsonValue } from "@bufbuild/protobuf";
+import { ValueSchema } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { DatastoreSchema, type Datastore } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
 import { DatastoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/command_pb";
-import { ListDatastoresRequestSchema, DatastoreListSchema, type ListDatastoresRequest, type DatastoreList } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/io_pb";
 import { DatastoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/query_pb";
 import { DatastoreRecordCommandController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/record_command_pb";
 import { InsertRecordRequestSchema, RecordEnvelopeSchema, UpdateRecordRequestSchema, DeleteRecordRequestSchema, FindRecordsRequestSchema, RecordListSchema, DescribeDatastoreRequestSchema, DatastoreDescriptionSchema, type InsertRecordRequest, type RecordEnvelope, type UpdateRecordRequest, type DeleteRecordRequest, type FindRecordsRequest, type RecordList, type DescribeDatastoreRequest, type DatastoreDescription } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/record_io_pb";
@@ -17,7 +17,10 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import { ApiResourceRefSchema } from "@stigmer/protos/ai/stigmer/iam/iampolicy/v1/spec_pb";
+import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 
 /** Provides operations on datastore resources. */
 export class DatastoreClient {
@@ -25,12 +28,14 @@ export class DatastoreClient {
   private readonly query: Client<typeof DatastoreQueryController>;
   private readonly datastoreRecordCommand: Client<typeof DatastoreRecordCommandController>;
   private readonly datastoreRecordQuery: Client<typeof DatastoreRecordQueryController>;
+  private readonly search: Client<typeof SearchService>;
 
   constructor(transport: Transport) {
     this.command = createClient(DatastoreCommandController, transport);
     this.query = createClient(DatastoreQueryController, transport);
     this.datastoreRecordCommand = createClient(DatastoreRecordCommandController, transport);
     this.datastoreRecordQuery = createClient(DatastoreRecordQueryController, transport);
+    this.search = createClient(SearchService, transport);
   }
 
   async apply(input: DatastoreInput): Promise<Datastore> {
@@ -79,12 +84,6 @@ export class DatastoreClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async list(input: ListDatastoresRequest): Promise<DatastoreList> {
-    try {
-      return await this.query.list(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
   async insertRecord(input: InsertRecordRequest): Promise<RecordEnvelope> {
     try {
       return await this.datastoreRecordCommand.insertRecord(input);
@@ -112,6 +111,24 @@ export class DatastoreClient {
   async describeDatastore(input: DescribeDatastoreRequest): Promise<DatastoreDescription> {
     try {
       return await this.datastoreRecordQuery.describeDatastore(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async list(params: ListParams): Promise<ListResult> {
+    try {
+      const resp = await this.search.search(create(SearchRequestSchema, {
+        kinds: [ApiResourceKind.datastore],
+        query: params.query,
+        org: params.org,
+        excludePublic: params.excludePublic ?? false,
+        crossOrgPublic: params.crossOrgPublic ?? false,
+        page: params.page ? create(PageInfoSchema, params.page) : undefined,
+      }));
+      return {
+        entries: resp.entries,
+        totalCount: resp.totalCount,
+        totalPages: resp.totalPages,
+      };
     } catch (e) { throw wrapError(e); }
   }
 }
@@ -273,21 +290,21 @@ function buildDatastoreAuthorizationProto(input: DatastoreAuthorizationInput) {
 }
 
 function buildFieldDeclarationProto(input: FieldDeclarationInput) {
-  return Object.assign(create(FieldDeclarationSchema), stripUndefined({
-    name: input.name,
-    type: input.type,
-    required: input.required,
-    default: input.default,
-    enumValues: input.enumValues,
-    description: input.description,
-  }));
+  const msg = create(FieldDeclarationSchema);
+  if (input.name !== undefined) msg.name = input.name;
+  if (input.type !== undefined) msg.type = input.type;
+  if (input.required !== undefined) msg.required = input.required;
+  if (input.default !== undefined) msg.default = fromJson(ValueSchema, input.default);
+  if (input.enumValues) msg.enumValues = input.enumValues;
+  if (input.description !== undefined) msg.description = input.description;
+  return msg;
 }
 
 function buildUniqueWhereProto(input: UniqueWhereInput) {
-  return Object.assign(create(UniqueWhereSchema), stripUndefined({
-    field: input.field,
-    equals: input.equals,
-  }));
+  const msg = create(UniqueWhereSchema);
+  if (input.field !== undefined) msg.field = input.field;
+  if (input.equals !== undefined) msg.equals = fromJson(ValueSchema, input.equals);
+  return msg;
 }
 
 function buildUniqueConstraintProto(input: UniqueConstraintInput) {

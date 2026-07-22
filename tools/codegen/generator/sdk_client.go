@@ -372,6 +372,9 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	hasInputType := specSchema != nil
 	for _, svc := range schema.Services {
 		for _, m := range svc.Methods {
+			if searchListSupersedesMethod(schema, &m) {
+				continue
+			}
 			if m.ServerStreaming {
 				needsIO = true
 			}
@@ -548,6 +551,9 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 
 	for _, svc := range schema.Services {
 		for _, m := range svc.Methods {
+			if searchListSupersedesMethod(schema, &m) {
+				continue
+			}
 			generateMethod(&buf, &m, &svc, schema, cfg, alias, hasInputType)
 			if m.ServerStreaming {
 				genInfo.streamTypes = append(genInfo.streamTypes, cfg.protoResType+m.Name+"Stream")
@@ -2045,6 +2051,16 @@ func resolveType(fullType, shortType, schemaPkg, alias string) (string, string) 
 
 func isEmptyType(fullType string) bool {
 	return fullType == "google.protobuf.Empty"
+}
+
+// searchListSupersedesMethod reports whether a query-controller method is
+// superseded by the SearchService-backed list. Search-list kinds (ListVia ==
+// "SearchService") expose a single `list(ListParams)` on the SDK client, so a
+// typed `List` RPC on the kind's own query controller is not emitted — the
+// two would collide on the method name. The typed RPC stays available on the
+// wire and in the raw proto stubs for callers that need it.
+func searchListSupersedesMethod(schema *ServiceSchemaFile, m *MethodSchema) bool {
+	return schema.ListVia == "SearchService" && strings.EqualFold(m.Name, "List")
 }
 
 // collectSubPackageImports scans method input/output types for types in

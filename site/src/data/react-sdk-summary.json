@@ -92,6 +92,13 @@
       "components": 0
     },
     {
+      "slug": "datastore",
+      "title": "datastore",
+      "description": "",
+      "hooks": 11,
+      "components": 9
+    },
+    {
       "slug": "dependency-graph",
       "title": "Dependency Graph",
       "description": "Hooks and components for visualizing agent specification dependencies.",

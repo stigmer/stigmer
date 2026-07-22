@@ -5,7 +5,6 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.datastore.v1.Datastore;
 import ai.stigmer.agentic.datastore.v1.DatastoreCommandControllerGrpc;
 import ai.stigmer.agentic.datastore.v1.DatastoreDescription;
-import ai.stigmer.agentic.datastore.v1.DatastoreList;
 import ai.stigmer.agentic.datastore.v1.DatastoreQueryControllerGrpc;
 import ai.stigmer.agentic.datastore.v1.DatastoreRecordCommandControllerGrpc;
 import ai.stigmer.agentic.datastore.v1.DatastoreRecordQueryControllerGrpc;
@@ -13,7 +12,6 @@ import ai.stigmer.agentic.datastore.v1.DeleteRecordRequest;
 import ai.stigmer.agentic.datastore.v1.DescribeDatastoreRequest;
 import ai.stigmer.agentic.datastore.v1.FindRecordsRequest;
 import ai.stigmer.agentic.datastore.v1.InsertRecordRequest;
-import ai.stigmer.agentic.datastore.v1.ListDatastoresRequest;
 import ai.stigmer.agentic.datastore.v1.RecordEnvelope;
 import ai.stigmer.agentic.datastore.v1.RecordList;
 import ai.stigmer.agentic.datastore.v1.UpdateRecordRequest;
@@ -21,6 +19,10 @@ import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
+import ai.stigmer.commons.rpc.PageInfo;
+import ai.stigmer.search.v1.SearchRequest;
+import ai.stigmer.search.v1.SearchResponse;
+import ai.stigmer.search.v1.SearchServiceGrpc;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -30,12 +32,14 @@ public final class DatastoreClient {
     private final DatastoreQueryControllerGrpc.DatastoreQueryControllerBlockingStub query;
     private final DatastoreRecordCommandControllerGrpc.DatastoreRecordCommandControllerBlockingStub datastoreRecordCommand;
     private final DatastoreRecordQueryControllerGrpc.DatastoreRecordQueryControllerBlockingStub datastoreRecordQuery;
+    private final SearchServiceGrpc.SearchServiceBlockingStub search;
 
     DatastoreClient(Channel channel) {
         this.command = DatastoreCommandControllerGrpc.newBlockingStub(channel);
         this.query = DatastoreQueryControllerGrpc.newBlockingStub(channel);
         this.datastoreRecordCommand = DatastoreRecordCommandControllerGrpc.newBlockingStub(channel);
         this.datastoreRecordQuery = DatastoreRecordQueryControllerGrpc.newBlockingStub(channel);
+        this.search = SearchServiceGrpc.newBlockingStub(channel);
     }
 
     public Datastore apply(DatastoreInput input) {
@@ -86,12 +90,6 @@ public final class DatastoreClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public DatastoreList list(ListDatastoresRequest input) {
-        try {
-            return query.list(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
     public RecordEnvelope insertRecord(InsertRecordRequest input) {
         try {
             return datastoreRecordCommand.insertRecord(input);
@@ -119,6 +117,29 @@ public final class DatastoreClient {
     public DatastoreDescription describeDatastore(DescribeDatastoreRequest input) {
         try {
             return datastoreRecordQuery.describeDatastore(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ListResult list(ListParams params) {
+        try {
+            SearchRequest.Builder req = SearchRequest.newBuilder()
+                .addKinds(ApiResourceKind.datastore);
+            if (params.getOrg() != null) {
+                req.setOrg(params.getOrg());
+            }
+            if (params.getQuery() != null) {
+                req.setQuery(params.getQuery());
+            }
+            req.setExcludePublic(params.isExcludePublic());
+            req.setCrossOrgPublic(params.isCrossOrgPublic());
+            if (params.getPage() != null) {
+                req.setPage(PageInfo.newBuilder()
+                    .setNum(params.getPage().getNum())
+                    .setSize(params.getPage().getSize())
+                    .build());
+            }
+            SearchResponse resp = search.search(req.build());
+            return new ListResult(resp.getEntriesList(), resp.getTotalCount(), resp.getTotalPages());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

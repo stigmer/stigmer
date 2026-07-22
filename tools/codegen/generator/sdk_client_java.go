@@ -944,6 +944,9 @@ func generateJavaClientClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, h
 
 	for _, svc := range schema.Services {
 		for _, m := range svc.Methods {
+			if searchListSupersedesMethod(schema, &m) {
+				continue
+			}
 			fqcn := resolveJavaFQCN(m.OutputFullType)
 			imports.add(fqcn)
 
@@ -1017,6 +1020,9 @@ func generateJavaClientClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, h
 
 	for _, svc := range schema.Services {
 		for _, m := range svc.Methods {
+			if searchListSupersedesMethod(schema, &m) {
+				continue
+			}
 			body.WriteString("\n")
 			if m.ServerStreaming {
 				generateJavaStreamingMethod(&body, &m, &svc, schema, cfg, imports)

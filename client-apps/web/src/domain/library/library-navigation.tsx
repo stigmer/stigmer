@@ -15,7 +15,12 @@ import { usePathname } from "next/navigation";
 // Types
 // ---------------------------------------------------------------------------
 
-type LibraryResourceType = "agents" | "skills" | "mcp-servers" | "workflows";
+type LibraryResourceType =
+  | "agents"
+  | "skills"
+  | "mcp-servers"
+  | "workflows"
+  | "datastores";
 
 interface ActiveDetail {
   readonly resourceType: LibraryResourceType;
@@ -49,7 +54,7 @@ const LibraryNavigationContext = createContext<LibraryNavigationValue | null>(
 // ---------------------------------------------------------------------------
 
 const LIBRARY_DETAIL_RE =
-  /^\/library\/(agents|skills|mcp-servers|workflows)\/([^/]+)\/([^/]+)\/?$/;
+  /^\/library\/(agents|skills|mcp-servers|workflows|datastores)\/([^/]+)\/([^/]+)\/?$/;
 
 function parseLibraryDetailPath(pathname: string): ActiveDetail | null {
   const match = pathname.match(LIBRARY_DETAIL_RE);

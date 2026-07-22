@@ -136,6 +136,7 @@
       ]
     }
   ],
+  "listVia": "SearchService",
   "methodTypes": [
     {
       "name": "UpdateVisibilityInput",

@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { parse as parseYaml } from "yaml";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import type { Datastore } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { serializeManifest } from "@stigmer/sdk";
@@ -16,9 +17,9 @@ import { serializeWorkflowYaml } from "../workflow/serialize-workflow-yaml.js";
 /** Options for {@link useExportResource}. */
 export interface UseExportResourceOptions {
   /** The resource kind — determines which serializer is used. */
-  readonly kind: "Agent" | "McpServer" | "Workflow";
+  readonly kind: "Agent" | "McpServer" | "Workflow" | "Datastore";
   /** The proto resource to export, or `null` when not yet loaded. */
-  readonly resource: Agent | McpServer | Workflow | null;
+  readonly resource: Agent | McpServer | Workflow | Datastore | null;
 }
 
 /** Return value of {@link useExportResource}. */
@@ -42,13 +43,14 @@ export interface UseExportResourceReturn {
 // ---------------------------------------------------------------------------
 
 /**
- * Headless export hook for Stigmer resources (Agent, McpServer, Workflow).
+ * Headless export hook for Stigmer resources (Agent, McpServer,
+ * Workflow, Datastore).
  *
  * Serializes the resource into YAML and JSON formats and provides
  * stable callbacks for copying to clipboard or triggering a file
  * download. All operations are client-side — no additional API calls.
  *
- * Agent and McpServer serialize through the SDK manifest engine
+ * Non-workflow kinds serialize through the SDK manifest engine
  * ({@link serializeManifest}) — the canonical Stigmer resource format
  * (`apiVersion`, `kind`, `metadata`, `spec`, snake_case fields) that
  * round-trips through `parseManifest` and `stigmer apply -f`. Workflows

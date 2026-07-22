@@ -23,11 +23,16 @@ const (
 
 // SearchableKinds defines the set of resource kinds that support search operations.
 // These are the only kinds that can be searched via the SearchService.
+//
+// Must stay in step with the extractor registry (pkg/query/search/extractor):
+// a kind indexed on write but absent here is silently unqueryable — the
+// datastore Library list depends on this entry.
 var SearchableKinds = map[apiresourcekind.ApiResourceKind]bool{
 	apiresourcekind.ApiResourceKind_agent:      true,
 	apiresourcekind.ApiResourceKind_skill:      true,
 	apiresourcekind.ApiResourceKind_mcp_server: true,
 	apiresourcekind.ApiResourceKind_workflow:   true,
+	apiresourcekind.ApiResourceKind_datastore:  true,
 }
 
 // SearchCriteria is an immutable value object encapsulating all search parameters.
@@ -38,8 +43,9 @@ var SearchableKinds = map[apiresourcekind.ApiResourceKind]bool{
 //   - Search mode: Query provided with specific kind(s), sorted by relevance
 //   - Discover mode: Query provided with no kinds (searches all), sorted by relevance
 //
-// Only searchable resource kinds (agent, skill, mcp_server, workflow) are accepted.
-// Other kinds are silently filtered out for forward compatibility.
+// Only searchable resource kinds (agent, skill, mcp_server, workflow,
+// datastore) are accepted. Other kinds are silently filtered out for
+// forward compatibility.
 type SearchCriteria struct {
 	kinds          []apiresourcekind.ApiResourceKind
 	query          string
