@@ -18,10 +18,13 @@ spec:
       - name: admin
       - name: patient
     bindings:
+      # whatsapp_phone values are the channel-verified wa_id: digits only,
+      # no leading "+". Bindings match by exact string equality, so a "+"
+      # here would silently never match the sender.
       - subject:
           channel_sender:
             sender_kind: whatsapp_phone
-            value: "+919800000001"
+            value: "919800000001"
         role: admin
     default_role: patient
   collections:
