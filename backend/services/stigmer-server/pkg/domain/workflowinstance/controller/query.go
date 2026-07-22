@@ -115,11 +115,11 @@ func (c *WorkflowInstanceController) buildGetByWorkflowPipeline() *pipeline.Pipe
 // loadByWorkflowStep loads workflow instances filtered by workflow_id.
 //
 // This step:
-// 1. Reads workflow_id from request
-// 2. Lists all workflow instances from repository
-// 3. Filters by workflow_id (in-memory), and by metadata.org when the
-//    request carries an org (contract parity with Cloud's org scoping)
-// 4. Stores filtered list in context
+//  1. Reads workflow_id from request
+//  2. Lists all workflow instances from repository
+//  3. Filters by workflow_id (in-memory), and by metadata.org when the
+//     request carries an org (contract parity with Cloud's org scoping)
+//  4. Stores filtered list in context
 //
 // Note: In OSS, we filter in-memory after loading all instances. This is acceptable
 // for local usage. In Cloud (Java), this uses a combined MongoDB query with
