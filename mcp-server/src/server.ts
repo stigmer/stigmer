@@ -19,9 +19,15 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 
 import type { Config } from "./config.js";
+import { registerAgentExecutionTools } from "./domains/agentexecutions/tools.js";
 import { registerAgentResources } from "./domains/agents/resources.js";
 import { registerAgentTools } from "./domains/agents/tools.js";
 import type { BackendTarget } from "./domains/client.js";
+import { registerDatastoreResources } from "./domains/datastores/resources.js";
+import { registerDatastoreTools } from "./domains/datastores/tools.js";
+import { registerEnvironmentResources } from "./domains/environments/resources.js";
+import { registerEnvironmentTools } from "./domains/environments/tools.js";
+import { registerExecutionControlTools } from "./domains/executions/tools.js";
 import { registerMcpServerResources } from "./domains/mcpservers/resources.js";
 import { registerMcpServerTools } from "./domains/mcpservers/tools.js";
 import { registerRecordTools } from "./domains/records/tools.js";
@@ -86,12 +92,16 @@ function registerTools(server: McpServer, target: BackendTarget): void {
   const tools = [
     ...registerSearchTools(server, target),
     ...registerAgentTools(server, target),
+    ...registerAgentExecutionTools(server, target),
     ...registerMcpServerTools(server, target),
     ...registerSkillTools(server, target),
     ...registerWorkflowTools(server, target),
     ...registerValidateWorkflowYamlTool(server, target),
     ...registerTaskKindTools(server, target),
     ...registerWorkflowExecutionTools(server, target),
+    ...registerExecutionControlTools(server, target),
+    ...registerEnvironmentTools(server, target),
+    ...registerDatastoreTools(server, target),
     // The record tools also serve external MCP clients — as direct
     // principals with the org argument and honest annotations (the
     // agent-facing variant lives on the records-only roster).
@@ -111,6 +121,8 @@ function registerResources(server: McpServer, target: BackendTarget): void {
     ...registerMcpServerResources(server, target),
     ...registerSkillResources(server, target),
     ...registerWorkflowResources(server, target),
+    ...registerEnvironmentResources(server, target),
+    ...registerDatastoreResources(server, target),
   ];
   log.info("resources registered", { count: resources.length, resources });
 }

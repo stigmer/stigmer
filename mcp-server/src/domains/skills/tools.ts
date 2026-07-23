@@ -12,6 +12,7 @@ import { resolveToken, type BackendTarget } from "../client.js";
 import { textOrError } from "../toolresult.js";
 import { deleteSkill } from "./delete.js";
 import { fetchSkill } from "./fetch.js";
+import { listSkillVersions } from "./versions.js";
 
 /** Register every Skill-domain tool; returns the registered tool names. */
 export function registerSkillTools(server: McpServer, target: BackendTarget): string[] {
@@ -63,5 +64,37 @@ export function registerSkillTools(server: McpServer, target: BackendTarget): st
       ),
   );
 
-  return ["get_skill", "delete_skill"];
+  server.registerTool(
+    "list_skill_versions",
+    {
+      description:
+        "List a skill's version history (newest first): version hash, tag, who pushed it and " +
+        "when, and which version is current. Fetch one version's full content with get_skill and " +
+        "its hash or tag.",
+      inputSchema: {
+        org: z.string().describe("Organization slug that owns the skill."),
+        slug: z.string().describe("Skill slug — unique identifier within the org."),
+        page_size: z
+          .number()
+          .int()
+          .optional()
+          .describe("Maximum versions per page (default 50)."),
+        page_token: z
+          .string()
+          .optional()
+          .describe("Pagination token from a previous response's next_page_token."),
+      },
+    },
+    (args, extra) =>
+      textOrError(() =>
+        listSkillVersions(target.serverAddress, resolveToken(extra, target.apiKey), {
+          org: args.org,
+          slug: args.slug,
+          pageSize: args.page_size,
+          pageToken: args.page_token,
+        }),
+      ),
+  );
+
+  return ["get_skill", "delete_skill", "list_skill_versions"];
 }

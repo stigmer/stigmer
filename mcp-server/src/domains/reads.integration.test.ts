@@ -1,8 +1,9 @@
 // In-process integration test for the read tools (get_mcp_server, get_skill,
-// get_workflow). Stands up a real Connect backend serving the three query
-// controllers, drives the MCP server through an in-memory client, and asserts
-// each tool returns the backend's protojson verbatim (the parity contract) and
-// that get_skill forwards its optional version to the backend.
+// get_workflow, get_environment, get_datastore). Stands up a real Connect
+// backend serving the query controllers, drives the MCP server through an
+// in-memory client, and asserts each tool returns the backend's protojson
+// verbatim (the parity contract) and that get_skill forwards its optional
+// version to the backend.
 
 import { create, toJson } from "@bufbuild/protobuf";
 import type { ConnectRouter } from "@connectrpc/connect";
@@ -16,6 +17,10 @@ import type { AddressInfo } from "node:net";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { DatastoreSchema } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
+import { DatastoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/query_pb";
+import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -47,6 +52,21 @@ const knownWorkflow = create(WorkflowSchema, {
   metadata: { name: "Release", slug: "release", org: "acme", id: "wkf-1" },
 });
 
+// The backend redacts secret values before they leave the server; the tool
+// must pass that redaction through verbatim.
+const knownEnvironment = create(EnvironmentSchema, {
+  apiVersion: "v1",
+  kind: "environment",
+  metadata: { name: "GitHub Creds", slug: "github-creds", org: "acme", id: "env-1" },
+  spec: { data: { API_KEY: { value: "***REDACTED***", isSecret: true } } },
+});
+
+const knownDatastore = create(DatastoreSchema, {
+  apiVersion: "v1",
+  kind: "datastore",
+  metadata: { name: "Bookings", slug: "bookings", org: "acme", id: "dst-1" },
+});
+
 let backend: Http2Server;
 let client: Client;
 let lastSkillVersion: string | undefined;
@@ -71,6 +91,8 @@ beforeAll(async () => {
       },
     });
     router.service(WorkflowQueryController, { getByReference: () => knownWorkflow });
+    router.service(EnvironmentQueryController, { getByReference: () => knownEnvironment });
+    router.service(DatastoreQueryController, { getByReference: () => knownDatastore });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
   // Force keep-alive sessions closed on teardown, else backend.close() blocks.
@@ -97,7 +119,14 @@ describe("read tools integration", () => {
   it("advertises all read tools", async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual(
-      expect.arrayContaining(["get_agent", "get_mcp_server", "get_skill", "get_workflow"]),
+      expect.arrayContaining([
+        "get_agent",
+        "get_mcp_server",
+        "get_skill",
+        "get_workflow",
+        "get_environment",
+        "get_datastore",
+      ]),
     );
   });
 
@@ -130,5 +159,22 @@ describe("read tools integration", () => {
   it("get_skill forwards an explicit version to the backend", async () => {
     await callTool("get_skill", { org: "acme", slug: "code-review", version: "stable" });
     expect(lastSkillVersion).toBe("stable");
+  });
+
+  it("get_environment passes the server's secret redaction through verbatim", async () => {
+    const result = await callTool("get_environment", { org: "acme", slug: "github-creds" });
+    expect(result.isError).toBeFalsy();
+    const body = JSON.parse(result.content[0]?.text ?? "{}") as Record<string, unknown>;
+    expect(body).toEqual(toJson(EnvironmentSchema, knownEnvironment, { useProtoFieldName: true }));
+    const data = (body.spec as { data: Record<string, { value: string }> }).data;
+    expect(data.API_KEY?.value).toBe("***REDACTED***");
+  });
+
+  it("get_datastore returns the backend protojson", async () => {
+    const result = await callTool("get_datastore", { org: "acme", slug: "bookings" });
+    expect(result.isError).toBeFalsy();
+    expect(JSON.parse(result.content[0]?.text ?? "{}")).toEqual(
+      toJson(DatastoreSchema, knownDatastore, { useProtoFieldName: true }),
+    );
   });
 });

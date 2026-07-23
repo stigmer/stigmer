@@ -24,12 +24,15 @@ import { rpcError } from "../rpcerr.js";
 import { textOrError } from "../toolresult.js";
 
 /**
- * The searchable kinds and their proto enum values. This is deliberately the
- * four searchable kinds (not every ApiResourceKind), mirroring the Go server's
- * `knownKinds` map and its validation surface.
+ * The searchable kinds and their proto enum values. Deliberately a curated
+ * subset (not every ApiResourceKind): the kinds an MCP client can also read
+ * and manage through tools. The backend's extractor registry supports more
+ * (sessions, executions, ...) — add here only alongside a tool surface.
  */
 const knownKinds: Readonly<Record<string, ApiResourceKind>> = {
   agent: ApiResourceKind.agent,
+  datastore: ApiResourceKind.datastore,
+  environment: ApiResourceKind.environment,
   skill: ApiResourceKind.skill,
   mcp_server: ApiResourceKind.mcp_server,
   workflow: ApiResourceKind.workflow,
@@ -50,14 +53,16 @@ export function registerSearchTools(server: McpServer, target: BackendTarget): s
     "search",
     {
       description:
-        "Search and list Stigmer resources (agents, skills, MCP servers, workflows). " +
-        "Set 'kinds' to filter by resource type. Set 'query' for full-text search. " +
+        "Search and list Stigmer resources (agents, skills, MCP servers, workflows, environments, " +
+        "datastores). Set 'kinds' to filter by resource type. Set 'query' for full-text search. " +
         "Set 'org' to scope to an organization. Omit 'query' to list all accessible resources.",
       inputSchema: {
         kinds: z
           .array(z.string())
           .optional()
-          .describe("Resource kinds to search. Valid: agent, skill, mcp_server, workflow. Empty searches all."),
+          .describe(
+            "Resource kinds to search. Valid: agent, skill, mcp_server, workflow, environment, datastore. Empty searches all.",
+          ),
         query: z
           .string()
           .optional()
@@ -125,7 +130,7 @@ function parseKinds(raw: string[] | undefined): ApiResourceKind[] {
     const kind = knownKinds[s];
     if (kind === undefined) {
       throw new Error(
-        `unknown resource kind "${s}"; valid kinds: agent, skill, mcp_server, workflow`,
+        `unknown resource kind "${s}"; valid kinds: agent, skill, mcp_server, workflow, environment, datastore`,
       );
     }
     return kind;

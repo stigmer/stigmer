@@ -26,13 +26,17 @@ import (
 )
 
 // mcpTSApplyResources is the set of resources the TS MCP server exposes an
-// apply_* tool for. It mirrors the Go server's registered apply surface
-// (agents.ApplyTool + mcpservers.ApplyTool) plus workflow, which the Go server
-// has temporarily disabled for a recursive-type limitation that protobuf-es +
-// zod's z.lazy resolves — so the TS server re-enables it. Each entry is a
-// "<domain>/<resource>" schema directory under tools/codegen/schemas.
+// apply_* tool for. The original three mirror the Go server's registered apply
+// surface (agents.ApplyTool + mcpservers.ApplyTool) plus workflow, which the
+// Go server had temporarily disabled for a recursive-type limitation that
+// protobuf-es + zod's z.lazy resolves — so the TS server re-enables it.
+// Environment and datastore complete the authoring loop (agents and records
+// reference both). Each entry is a "<domain>/<resource>" schema directory
+// under tools/codegen/schemas.
 var mcpTSApplyResources = []string{
 	"agentic/agent",
+	"agentic/datastore",
+	"agentic/environment",
 	"agentic/mcpserver",
 	"agentic/workflow",
 }

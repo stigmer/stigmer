@@ -1,16 +1,17 @@
 # `@stigmer/mcp-server`
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for the
-Stigmer platform. It exposes Stigmer **agents, skills, MCP servers, and
-workflows** as MCP tools and resources, so any MCP-capable client (Claude
-Desktop, Cursor, the Stigmer CLI, etc.) can read and manage Stigmer resources
-through a uniform protocol.
+Stigmer platform. It exposes Stigmer **agents, skills, MCP servers, workflows,
+environments, and datastores** as MCP tools and resources — covering both the
+authoring loop (create, read, update, delete, version) and the execution loop
+(run, observe, approve, cancel) — so any MCP-capable client (Claude Desktop,
+Cursor, the Stigmer CLI, etc.) can build on Stigmer through a uniform protocol.
 
 The server is a **stateless protocol bridge**: it holds no per-user state and
 performs no business logic. Every request is translated into a gRPC call against
 `stigmer-server`, which remains the single source of truth and the sole authority
 for authentication and authorization. This package is the TypeScript successor to
-the Go `mcp-server/` and is contract-compatible with it.
+the retired Go `mcp-server/`.
 
 ## Architecture
 
@@ -37,14 +38,20 @@ MCP client ──JSON-RPC──▶ stdio | HTTP session ──▶ tool handler
 - **`apply_*` ergonomics are generated.** The flattened, LLM-friendly input
   schemas for the `apply_*` tools (metadata hoisting, enum→string, reference
   flattening, oneof / `task_config` expansion) are produced at build time by the
-  codegen in `tools/codegen/generator/mcp_ts.go`, mirroring the Go generator so
-  the two servers expose identical tool surfaces. Never hand-edit `src/gen/`.
+  codegen in `tools/codegen/generator/mcp_ts.go`. Never hand-edit `src/gen/`.
 
-## Tools (17)
+## Tools (38)
+
+### Discovery
 
 | Tool | Description |
 | --- | --- |
-| `search` | Search across agents, skills, MCP servers, and workflows; results are enriched with `stigmer://` resource URIs. |
+| `search` | Search across agents, skills, MCP servers, workflows, environments, and datastores; results are enriched with `stigmer://` resource URIs. |
+
+### Authoring
+
+| Tool | Description |
+| --- | --- |
 | `get_agent` | Read an agent by org + slug. |
 | `apply_agent` | Create or update an agent (idempotent). |
 | `delete_agent` | Delete an agent. |
@@ -53,16 +60,54 @@ MCP client ──JSON-RPC──▶ stdio | HTTP session ──▶ tool handler
 | `delete_mcp_server` | Delete an MCP server. |
 | `get_skill` | Read a skill (optionally a specific version). |
 | `delete_skill` | Delete a skill (all versions). |
-| `get_workflow` | Read a workflow by org + slug. |
+| `list_skill_versions` | List a skill's version history. |
+| `get_workflow` | Read a workflow by org + slug, or a historical version by hash. |
 | `apply_workflow` | Create or update a workflow, with typed per-kind task config and recursive nested tasks. |
 | `delete_workflow` | Delete a workflow. |
+| `list_workflow_versions` | List a workflow's version history (timeline only, YAML omitted). |
+| `tag_workflow_version` | Assign or move a tag (e.g. `stable`) onto a workflow version. |
 | `validate_workflow_yaml` | Validate a Serverless Workflow YAML document against the task-kind registry. |
 | `get_task_kind_registry` | List every supported workflow task kind. |
 | `get_task_kind` | Read one task kind's config/output schema and examples. |
+| `get_environment` | Read an environment (secret values arrive server-redacted). |
+| `apply_environment` | Create or update an environment; echoing `***REDACTED***` preserves existing secrets. |
+| `delete_environment` | Delete an environment. |
+| `get_datastore` | Read a datastore definition (collections, constraints, grants). |
+| `apply_datastore` | Create or update a datastore definition (structure only, never records). |
+| `delete_datastore` | Delete a datastore and all records in it. |
+
+### Execution
+
+Runs are asynchronous: the `run_*` tools return immediately with the execution
+ID and the assistant polls the observation tools.
+
+| Tool | Description |
+| --- | --- |
+| `run_agent` | Start an agent execution (new session or `session_id` follow-up). |
+| `run_workflow` | Start a workflow execution. |
+| `get_agent_execution` | Poll an agent execution: phase, message tail (compact view) or full record, pending approvals. |
 | `get_workflow_execution` | Read a workflow execution by id. |
 | `get_workflow_execution_events` | Read the event stream for a workflow execution. |
+| `list_pending_approvals` | Org-wide inbox of workflow `human_input` tasks awaiting a decision. |
+| `submit_agent_execution_approval` | Approve / skip / reject a tool call an agent execution is waiting on. |
+| `submit_workflow_task_approval` | Submit a reviewer decision (outcome + optional form data) for a workflow task. |
+| `cancel_execution` | Gracefully cancel an agent (`aex_*`) or workflow (`wex_*`) execution by ID prefix. |
 
-## Resources (5)
+### Datastore records
+
+Registered on the full roster with an `org` argument; a records-only roster
+(`STIGMER_MCP_ROSTER=records`, HTTP `/records` route) serves the same five tools
+with the agent-facing surface and nothing else.
+
+| Tool | Description |
+| --- | --- |
+| `describe_datastore` | Collections, fields, constraints, and the caller's allowed verbs. |
+| `find_records` | Typed filter query with ordering and paging. |
+| `insert_record` | Insert one record. |
+| `update_record` | Partial-merge update by id. |
+| `delete_record` | Delete one record by id. |
+
+## Resources (7)
 
 Resource templates let clients discover and read resources by `stigmer://` URI:
 
@@ -73,6 +118,8 @@ Resource templates let clients discover and read resources by `stigmer://` URI:
 | `stigmer_skill` | `stigmer://skills/{org}/{slug}` (latest) |
 | `stigmer_skill_version` | `stigmer://skills/{org}/{slug}/{version}` |
 | `stigmer_workflow` | `stigmer://workflows/{org}/{slug}` |
+| `stigmer_environment` | `stigmer://environments/{org}/{slug}` |
+| `stigmer_datastore` | `stigmer://datastores/{org}/{slug}` |
 
 ## Configuration
 
@@ -147,8 +194,8 @@ make codegen-apply
 ```
 
 This runs the Go emitter (`tools/codegen/generator`, target `mcp-ts`) over the
-proto contracts. The same model also drives the Go MCP server, guaranteeing the
-two servers stay in lockstep.
+proto contracts. Adding an `apply_*` tool for a new resource is an append to
+`mcpTSApplyResources` in `tools/codegen/generator/mcp_ts.go` plus regeneration.
 
 ## Conventions
 

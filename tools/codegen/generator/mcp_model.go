@@ -265,6 +265,12 @@ func (m *mcpGen) resolveField(f *FieldSchema) *mcpInputField {
 	field.description = sanitizeDescription(f.Description)
 	field.oneofGroup = f.OneofGroup
 	field.enumType = f.Type.EnumType
+	// For repeated enums the enum metadata lives on the element type
+	// (e.g. Datastore's grant verbs); without this the field degrades to a
+	// plain string array and the emitters skip the enum mapping.
+	if field.enumType == "" && f.Type.Kind == "array" && f.Type.ElementType != nil {
+		field.enumType = f.Type.ElementType.EnumType
+	}
 
 	return field
 }
@@ -279,13 +285,15 @@ func (m *mcpGen) refInputTypeName(f *FieldSchema) string {
 	return name + "Input"
 }
 
-// messageInputTypeName derives the input type name for a proto message.
+// messageInputTypeName derives the input type name for a proto message. Every
+// nested message gets the "Input" suffix without exception: the TS emitter
+// imports the proto message's Schema const into the same module as the input
+// type's zod const, so a bare name (an earlier special case kept leaf *Value
+// types unsuffixed) collides — EnvironmentValue's zod schema would shadow the
+// proto EnvironmentValueSchema its own toProto bridge needs.
 func (m *mcpGen) messageInputTypeName(messageName string) string {
 	if strings.HasSuffix(messageName, "Spec") {
 		return strings.TrimSuffix(messageName, "Spec") + "Input"
-	}
-	if strings.HasSuffix(messageName, "Value") {
-		return messageName // leaf value types keep their name
 	}
 	return messageName + "Input"
 }
@@ -451,6 +459,9 @@ func (m *mcpGen) buildJsonSchemaTag(f *FieldSchema) string {
 	desc = strings.ReplaceAll(desc, `"`, "'")
 
 	enumVals := f.Type.EnumValues
+	if len(enumVals) == 0 && f.Type.Kind == "array" && f.Type.ElementType != nil {
+		enumVals = f.Type.ElementType.EnumValues
+	}
 	if len(enumVals) == 0 && f.Validation != nil {
 		enumVals = f.Validation.Enum
 	}

@@ -1,9 +1,11 @@
 // In-process integration test for the apply tools. Drives apply_agent,
-// apply_mcp_server, and apply_workflow through the full MCP boundary and asserts
-// the codegen projection (src/gen/*) reconstitutes the proto correctly: metadata
-// hoist + slug generation, enum-string conversion, ApiResourceReference kind
-// injection, the stdio/http oneof, and the recursive workflow task_config
-// expansion (http_call leaf, fork/for_each nesting).
+// apply_mcp_server, apply_workflow, apply_environment, and apply_datastore
+// through the full MCP boundary and asserts the codegen projection (src/gen/*)
+// reconstitutes the proto correctly: metadata hoist + slug generation,
+// enum-string conversion (including repeated enums — datastore grant verbs),
+// ApiResourceReference kind injection, the stdio/http oneof, the environment
+// data map with secret flags, and the recursive workflow task_config expansion
+// (http_call leaf, fork/for_each nesting).
 
 import type { ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
@@ -18,6 +20,11 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
+import type { Datastore } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
+import { DatastoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/command_pb";
+import { DatastoreVerb, FieldType } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/spec_pb";
+import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import type { McpServer as McpServerProto } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
@@ -37,6 +44,8 @@ let client: Client;
 let appliedAgent: Agent | undefined;
 let appliedMcpServer: McpServerProto | undefined;
 let appliedWorkflow: Workflow | undefined;
+let appliedEnvironment: Environment | undefined;
+let appliedDatastore: Datastore | undefined;
 const openSessions = new Set<ServerHttp2Session>();
 
 interface ToolResult {
@@ -68,6 +77,18 @@ beforeAll(async () => {
         return req;
       },
     });
+    router.service(EnvironmentCommandController, {
+      apply: (req) => {
+        appliedEnvironment = req;
+        return req;
+      },
+    });
+    router.service(DatastoreCommandController, {
+      apply: (req) => {
+        appliedDatastore = req;
+        return req;
+      },
+    });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
   backend.on("session", (session) => {
@@ -93,7 +114,13 @@ describe("apply tools integration", () => {
   it("advertises every apply tool", async () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual(
-      expect.arrayContaining(["apply_agent", "apply_mcp_server", "apply_workflow"]),
+      expect.arrayContaining([
+        "apply_agent",
+        "apply_mcp_server",
+        "apply_workflow",
+        "apply_environment",
+        "apply_datastore",
+      ]),
     );
   });
 
@@ -216,5 +243,54 @@ describe("apply tools integration", () => {
     const forCfg = tasks[2]?.taskConfig as { each?: string; do?: unknown[] };
     expect(forCfg.each).toBe("item");
     expect(forCfg.do).toHaveLength(1);
+  });
+
+  it("apply_environment rebuilds the data map with secret flags", async () => {
+    const result = await callTool("apply_environment", {
+      name: "GitHub Creds",
+      org: "acme",
+      data: {
+        API_KEY: { value: "sk-real-value", is_secret: true, description: "GitHub PAT" },
+        REGION: { value: "us-east-1" },
+      },
+    });
+    expect(result.isError).toBeFalsy();
+
+    const env = appliedEnvironment;
+    expect(env?.apiVersion).toBe("agentic.stigmer.ai/v1");
+    expect(env?.kind).toBe("Environment");
+    expect(env?.metadata?.slug).toBe("github-creds"); // auto-generated from name
+    expect(env?.spec?.data?.API_KEY).toMatchObject({
+      value: "sk-real-value",
+      isSecret: true,
+      description: "GitHub PAT",
+    });
+    expect(env?.spec?.data?.REGION?.isSecret).toBe(false);
+  });
+
+  it("apply_datastore maps field types and repeated grant verbs to enums", async () => {
+    const result = await callTool("apply_datastore", {
+      name: "Bookings",
+      org: "acme",
+      collections: [
+        {
+          name: "appointments",
+          fields: [{ name: "patient", type: "string", required: true }],
+          grants: [{ role: "assistant", verbs: ["read", "insert"], scope: "own" }],
+        },
+      ],
+    });
+    expect(result.isError).toBeFalsy();
+
+    const ds = appliedDatastore;
+    expect(ds?.kind).toBe("Datastore");
+    expect(ds?.metadata?.slug).toBe("bookings");
+
+    const collection = ds?.spec?.collections?.[0];
+    expect(collection?.fields?.[0]?.type).toBe(FieldType.string);
+
+    // Repeated enum: verb strings map to DatastoreVerb values, not raw strings.
+    const grant = collection?.grants?.[0];
+    expect(grant?.verbs).toEqual([DatastoreVerb.read, DatastoreVerb.insert]);
   });
 });

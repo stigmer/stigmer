@@ -1,4 +1,4 @@
-// In-process integration test for the 5 resource templates. Verifies template
+// In-process integration test for the resource templates. Verifies template
 // discovery, that each read returns the backend protojson as a single
 // application/json entry, and that the skill templates resolve latest (empty
 // version) vs a pinned version.
@@ -17,6 +17,10 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+import { DatastoreSchema } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
+import { DatastoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/query_pb";
+import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
@@ -42,6 +46,16 @@ const workflow = create(WorkflowSchema, {
   kind: "workflow",
   metadata: { slug: "w", org: "acme" },
 });
+const environment = create(EnvironmentSchema, {
+  apiVersion: "v1",
+  kind: "environment",
+  metadata: { slug: "e", org: "acme" },
+});
+const datastore = create(DatastoreSchema, {
+  apiVersion: "v1",
+  kind: "datastore",
+  metadata: { slug: "d", org: "acme" },
+});
 
 let backend: Http2Server;
 let client: Client;
@@ -63,6 +77,8 @@ beforeAll(async () => {
       },
     });
     router.service(WorkflowQueryController, { getByReference: () => workflow });
+    router.service(EnvironmentQueryController, { getByReference: () => environment });
+    router.service(DatastoreQueryController, { getByReference: () => datastore });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
   backend.on("session", (session) => {
@@ -85,7 +101,7 @@ afterAll(async () => {
 });
 
 describe("resource templates integration", () => {
-  it("advertises all five templates", async () => {
+  it("advertises every template", async () => {
     const { resourceTemplates } = await client.listResourceTemplates();
     expect(resourceTemplates.map((t) => t.name)).toEqual(
       expect.arrayContaining([
@@ -94,6 +110,8 @@ describe("resource templates integration", () => {
         "stigmer_skill",
         "stigmer_skill_version",
         "stigmer_workflow",
+        "stigmer_environment",
+        "stigmer_datastore",
       ]),
     );
   });
@@ -135,5 +153,23 @@ describe("resource templates integration", () => {
   it("reads a pinned skill version", async () => {
     await client.readResource({ uri: "stigmer://skills/acme/s/v2.0.0" });
     expect(lastSkillVersion).toBe("v2.0.0");
+  });
+
+  it("reads an environment resource", async () => {
+    const result = (await client.readResource({
+      uri: "stigmer://environments/acme/e",
+    })) as ResourceResult;
+    expect(JSON.parse(result.contents[0]?.text ?? "{}")).toEqual(
+      toJson(EnvironmentSchema, environment, { useProtoFieldName: true }),
+    );
+  });
+
+  it("reads a datastore resource", async () => {
+    const result = (await client.readResource({
+      uri: "stigmer://datastores/acme/d",
+    })) as ResourceResult;
+    expect(JSON.parse(result.contents[0]?.text ?? "{}")).toEqual(
+      toJson(DatastoreSchema, datastore, { useProtoFieldName: true }),
+    );
   });
 });

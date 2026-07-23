@@ -1,5 +1,5 @@
 // In-process integration test for the search tool. Verifies resource_uri
-// enrichment for all four searchable kinds, the empty-response short-circuit,
+// enrichment for every searchable kind, the empty-response short-circuit,
 // the unknown-kind validation error, and pagination passthrough.
 
 import { create, toJson } from "@bufbuild/protobuf";
@@ -35,6 +35,12 @@ const allKindsResponse = create(SearchResponseSchema, {
     create(SearchResultSchema, { kind: ApiResourceKind.skill, org: "acme", slug: "code-review" }),
     create(SearchResultSchema, { kind: ApiResourceKind.mcp_server, org: "acme", slug: "github" }),
     create(SearchResultSchema, { kind: ApiResourceKind.workflow, org: "acme", slug: "release" }),
+    create(SearchResultSchema, {
+      kind: ApiResourceKind.environment,
+      org: "acme",
+      slug: "github-creds",
+    }),
+    create(SearchResultSchema, { kind: ApiResourceKind.datastore, org: "acme", slug: "bookings" }),
   ],
 });
 const emptyResponse = create(SearchResponseSchema, { entries: [] });
@@ -96,6 +102,8 @@ describe("search tool integration", () => {
       "stigmer://skills/acme/code-review",
       "stigmer://mcp-servers/acme/github",
       "stigmer://workflows/acme/release",
+      "stigmer://environments/acme/github-creds",
+      "stigmer://datastores/acme/bookings",
     ]);
   });
 
@@ -112,7 +120,15 @@ describe("search tool integration", () => {
     const result = await callSearch({ kinds: ["bogus"] });
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain('unknown resource kind "bogus"');
-    expect(result.content[0]?.text).toContain("valid kinds: agent, skill, mcp_server, workflow");
+    expect(result.content[0]?.text).toContain(
+      "valid kinds: agent, skill, mcp_server, workflow, environment, datastore",
+    );
+  });
+
+  it("accepts the environment and datastore kinds", async () => {
+    nextResponse = emptyResponse;
+    const result = await callSearch({ kinds: ["environment", "datastore"] });
+    expect(result.isError).toBeFalsy();
   });
 
   it("forwards pagination only when requested", async () => {
