@@ -629,10 +629,20 @@ type CursorMemberKeyView struct {
 	Key   *CursorMemberKey     `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	State CursorMemberKeyState `protobuf:"varint,2,opt,name=state,proto3,enum=ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyState" json:"state,omitempty"`
 	// Spend of the owning member this cycle; unset when the member has no
-	// spend row (spend reports active members only).
-	Spend         *CursorMemberSpend `protobuf:"bytes,3,opt,name=spend,proto3" json:"spend,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+	// returns removed members, with a flat totalPercentUsed=100 — the
+	// roster state above, never spend, decides "removed".)
+	Spend *CursorMemberSpend `protobuf:"bytes,3,opt,name=spend,proto3" json:"spend,omitempty"`
+	// True when the usage guard excludes this key from NEW-session
+	// selection: the account declares on-demand usage disabled AND the
+	// owning member's api_percent_used has crossed the platform soft
+	// limit. Server-computed on read by the same routability predicate
+	// key selection uses (the threshold is server config — clients must
+	// render this flag, never re-derive it). Pinned sessions are not
+	// affected by the guard.
+	UsageGuardTripped bool `protobuf:"varint,4,opt,name=usage_guard_tripped,json=usageGuardTripped,proto3" json:"usage_guard_tripped,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *CursorMemberKeyView) Reset() {
@@ -684,6 +694,13 @@ func (x *CursorMemberKeyView) GetSpend() *CursorMemberSpend {
 		return x.Spend
 	}
 	return nil
+}
+
+func (x *CursorMemberKeyView) GetUsageGuardTripped() bool {
+	if x != nil {
+		return x.UsageGuardTripped
+	}
+	return false
 }
 
 // Full detail view of one account: the redacted account, the latest
@@ -798,11 +815,12 @@ const file_ai_stigmer_platform_cursoraccount_v1_io_proto_rawDesc = "" +
 	"\baccounts\x18\x01 \x03(\v2:.ai.stigmer.platform.cursoraccount.v1.CursorAccountSummaryR\baccounts\"C\n" +
 	"\x19GetCursorAccountViewInput\x12&\n" +
 	"\n" +
-	"account_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\taccountId\"\xff\x01\n" +
+	"account_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\taccountId\"\xaf\x02\n" +
 	"\x13CursorMemberKeyView\x12G\n" +
 	"\x03key\x18\x01 \x01(\v25.ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyR\x03key\x12P\n" +
 	"\x05state\x18\x02 \x01(\x0e2:.ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyStateR\x05state\x12M\n" +
-	"\x05spend\x18\x03 \x01(\v27.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpendR\x05spend\"\x81\x03\n" +
+	"\x05spend\x18\x03 \x01(\v27.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpendR\x05spend\x12.\n" +
+	"\x13usage_guard_tripped\x18\x04 \x01(\bR\x11usageGuardTripped\"\x81\x03\n" +
 	"\x11CursorAccountView\x12M\n" +
 	"\aaccount\x18\x01 \x01(\v23.ai.stigmer.platform.cursoraccount.v1.CursorAccountR\aaccount\x12[\n" +
 	"\bsnapshot\x18\x02 \x01(\v2?.ai.stigmer.platform.cursoraccount.v1.CursorAccountSyncSnapshotR\bsnapshot\x12V\n" +

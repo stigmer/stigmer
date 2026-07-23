@@ -127,32 +127,33 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "ai.stigmer.platform.cursoraccount.v1.Cur" +
       "sorAccountSummaryR\010accounts\"C\n\031GetCursor" +
       "AccountViewInput\022&\n\naccount_id\030\001 \001(\tB\007\272H" +
-      "\004r\002\020\001R\taccountId\"\377\001\n\023CursorMemberKeyView" +
+      "\004r\002\020\001R\taccountId\"\257\002\n\023CursorMemberKeyView" +
       "\022G\n\003key\030\001 \001(\01325.ai.stigmer.platform.curs" +
       "oraccount.v1.CursorMemberKeyR\003key\022P\n\005sta" +
       "te\030\002 \001(\0162:.ai.stigmer.platform.cursoracc" +
       "ount.v1.CursorMemberKeyStateR\005state\022M\n\005s" +
       "pend\030\003 \001(\01327.ai.stigmer.platform.cursora" +
-      "ccount.v1.CursorMemberSpendR\005spend\"\201\003\n\021C" +
-      "ursorAccountView\022M\n\007account\030\001 \001(\01323.ai.s" +
-      "tigmer.platform.cursoraccount.v1.CursorA" +
-      "ccountR\007account\022[\n\010snapshot\030\002 \001(\0132?.ai.s" +
-      "tigmer.platform.cursoraccount.v1.CursorA" +
-      "ccountSyncSnapshotR\010snapshot\022V\n\tkey_view" +
-      "s\030\003 \003(\01329.ai.stigmer.platform.cursoracco" +
-      "unt.v1.CursorMemberKeyViewR\010keyViews\022h\n\024" +
-      "members_without_keys\030\004 \003(\01326.ai.stigmer." +
-      "platform.cursoraccount.v1.CursorTeamMemb" +
-      "erR\022membersWithoutKeys*\222\001\n\024CursorMemberK" +
-      "eyState\022\'\n#cursor_member_key_state_unspe" +
-      "cified\020\000\022\025\n\021member_key_active\020\001\022\034\n\030membe" +
-      "r_key_owner_removed\020\002\022\034\n\030member_key_owne" +
-      "r_unknown\020\003B\276\001B\007IoProtoP\001\242\002\004ASPC\252\002$Ai.St" +
-      "igmer.Platform.Cursoraccount.V1\312\002$Ai\\Sti" +
-      "gmer\\Platform\\Cursoraccount\\V1\342\0020Ai\\Stig" +
-      "mer\\Platform\\Cursoraccount\\V1\\GPBMetadat" +
-      "a\352\002(Ai::Stigmer::Platform::Cursoraccount" +
-      "::V1b\006proto3"
+      "ccount.v1.CursorMemberSpendR\005spend\022.\n\023us" +
+      "age_guard_tripped\030\004 \001(\010R\021usageGuardTripp" +
+      "ed\"\201\003\n\021CursorAccountView\022M\n\007account\030\001 \001(" +
+      "\01323.ai.stigmer.platform.cursoraccount.v1" +
+      ".CursorAccountR\007account\022[\n\010snapshot\030\002 \001(" +
+      "\0132?.ai.stigmer.platform.cursoraccount.v1" +
+      ".CursorAccountSyncSnapshotR\010snapshot\022V\n\t" +
+      "key_views\030\003 \003(\01329.ai.stigmer.platform.cu" +
+      "rsoraccount.v1.CursorMemberKeyViewR\010keyV" +
+      "iews\022h\n\024members_without_keys\030\004 \003(\01326.ai." +
+      "stigmer.platform.cursoraccount.v1.Cursor" +
+      "TeamMemberR\022membersWithoutKeys*\222\001\n\024Curso" +
+      "rMemberKeyState\022\'\n#cursor_member_key_sta" +
+      "te_unspecified\020\000\022\025\n\021member_key_active\020\001\022" +
+      "\034\n\030member_key_owner_removed\020\002\022\034\n\030member_" +
+      "key_owner_unknown\020\003B\276\001B\007IoProtoP\001\242\002\004ASPC" +
+      "\252\002$Ai.Stigmer.Platform.Cursoraccount.V1\312" +
+      "\002$Ai\\Stigmer\\Platform\\Cursoraccount\\V1\342\002" +
+      "0Ai\\Stigmer\\Platform\\Cursoraccount\\V1\\GP" +
+      "BMetadata\352\002(Ai::Stigmer::Platform::Curso" +
+      "raccount::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -226,7 +227,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_platform_cursoraccount_v1_CursorMemberKeyView_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_platform_cursoraccount_v1_CursorMemberKeyView_descriptor,
-        new java.lang.String[] { "Key", "State", "Spend", });
+        new java.lang.String[] { "Key", "State", "Spend", "UsageGuardTripped", });
     internal_static_ai_stigmer_platform_cursoraccount_v1_CursorAccountView_descriptor =
       getDescriptor().getMessageType(11);
     internal_static_ai_stigmer_platform_cursoraccount_v1_CursorAccountView_fieldAccessorTable = new

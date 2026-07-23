@@ -551,6 +551,36 @@ private static final long serialVersionUID = 0L;
     return updatedAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : updatedAt_;
   }
 
+  public static final int ON_DEMAND_USAGE_DISABLED_FIELD_NUMBER = 12;
+  private boolean onDemandUsageDisabled_ = false;
+  /**
+   * <pre>
+   * Operator's assertion that this Cursor team's on-demand usage toggle
+   * is OFF in the Cursor dashboard. Declared, not synced: the Admin API
+   * exposes no settings surface, so Cursor cannot report it (verified
+   * 2026-07-22 against docs and live API).
+   *
+   * When true, member keys whose included API-pool usage crosses the
+   * platform soft limit are excluded from NEW-session selection — with
+   * on-demand off, an exhausted key can no longer serve third-party
+   * models (T06 probe: runs error, no silent degrade).
+   *
+   * Deliberately the negative of Cursor's "on-demand enabled" wording:
+   * proto3 bool absence must mean "assume Cursor's team default
+   * (on-demand ON, guard inactive)" so accounts created before this
+   * field keep their exact selection behavior with no migration. A
+   * positive `on_demand_usage_enabled` field would read false on every
+   * existing document and silently activate the guard fleet-wide.
+   * </pre>
+   *
+   * <code>bool on_demand_usage_disabled = 12 [json_name = "onDemandUsageDisabled"];</code>
+   * @return The onDemandUsageDisabled.
+   */
+  @java.lang.Override
+  public boolean getOnDemandUsageDisabled() {
+    return onDemandUsageDisabled_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -597,6 +627,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(11, getUpdatedAt());
+    }
+    if (onDemandUsageDisabled_ != false) {
+      output.writeBool(12, onDemandUsageDisabled_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -655,6 +688,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(11, getUpdatedAt());
     }
+    if (onDemandUsageDisabled_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(12, onDemandUsageDisabled_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -698,6 +735,8 @@ private static final long serialVersionUID = 0L;
       if (!getUpdatedAt()
           .equals(other.getUpdatedAt())) return false;
     }
+    if (getOnDemandUsageDisabled()
+        != other.getOnDemandUsageDisabled()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -741,6 +780,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + UPDATED_AT_FIELD_NUMBER;
       hash = (53 * hash) + getUpdatedAt().hashCode();
     }
+    hash = (37 * hash) + ON_DEMAND_USAGE_DISABLED_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getOnDemandUsageDisabled());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -938,6 +980,7 @@ private static final long serialVersionUID = 0L;
         updatedAtBuilder_.dispose();
         updatedAtBuilder_ = null;
       }
+      onDemandUsageDisabled_ = false;
       return this;
     }
 
@@ -1021,6 +1064,9 @@ private static final long serialVersionUID = 0L;
             ? updatedAt_
             : updatedAtBuilder_.build();
         to_bitField0_ |= 0x00000002;
+      }
+      if (((from_bitField0_ & 0x00000800) != 0)) {
+        result.onDemandUsageDisabled_ = onDemandUsageDisabled_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1109,6 +1155,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasUpdatedAt()) {
         mergeUpdatedAt(other.getUpdatedAt());
+      }
+      if (other.getOnDemandUsageDisabled() != false) {
+        setOnDemandUsageDisabled(other.getOnDemandUsageDisabled());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1203,6 +1252,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000400;
               break;
             } // case 90
+            case 96: {
+              onDemandUsageDisabled_ = input.readBool();
+              bitField0_ |= 0x00000800;
+              break;
+            } // case 96
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2550,6 +2604,95 @@ private static final long serialVersionUID = 0L;
         updatedAt_ = null;
       }
       return updatedAtBuilder_;
+    }
+
+    private boolean onDemandUsageDisabled_ ;
+    /**
+     * <pre>
+     * Operator's assertion that this Cursor team's on-demand usage toggle
+     * is OFF in the Cursor dashboard. Declared, not synced: the Admin API
+     * exposes no settings surface, so Cursor cannot report it (verified
+     * 2026-07-22 against docs and live API).
+     *
+     * When true, member keys whose included API-pool usage crosses the
+     * platform soft limit are excluded from NEW-session selection — with
+     * on-demand off, an exhausted key can no longer serve third-party
+     * models (T06 probe: runs error, no silent degrade).
+     *
+     * Deliberately the negative of Cursor's "on-demand enabled" wording:
+     * proto3 bool absence must mean "assume Cursor's team default
+     * (on-demand ON, guard inactive)" so accounts created before this
+     * field keep their exact selection behavior with no migration. A
+     * positive `on_demand_usage_enabled` field would read false on every
+     * existing document and silently activate the guard fleet-wide.
+     * </pre>
+     *
+     * <code>bool on_demand_usage_disabled = 12 [json_name = "onDemandUsageDisabled"];</code>
+     * @return The onDemandUsageDisabled.
+     */
+    @java.lang.Override
+    public boolean getOnDemandUsageDisabled() {
+      return onDemandUsageDisabled_;
+    }
+    /**
+     * <pre>
+     * Operator's assertion that this Cursor team's on-demand usage toggle
+     * is OFF in the Cursor dashboard. Declared, not synced: the Admin API
+     * exposes no settings surface, so Cursor cannot report it (verified
+     * 2026-07-22 against docs and live API).
+     *
+     * When true, member keys whose included API-pool usage crosses the
+     * platform soft limit are excluded from NEW-session selection — with
+     * on-demand off, an exhausted key can no longer serve third-party
+     * models (T06 probe: runs error, no silent degrade).
+     *
+     * Deliberately the negative of Cursor's "on-demand enabled" wording:
+     * proto3 bool absence must mean "assume Cursor's team default
+     * (on-demand ON, guard inactive)" so accounts created before this
+     * field keep their exact selection behavior with no migration. A
+     * positive `on_demand_usage_enabled` field would read false on every
+     * existing document and silently activate the guard fleet-wide.
+     * </pre>
+     *
+     * <code>bool on_demand_usage_disabled = 12 [json_name = "onDemandUsageDisabled"];</code>
+     * @param value The onDemandUsageDisabled to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOnDemandUsageDisabled(boolean value) {
+
+      onDemandUsageDisabled_ = value;
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Operator's assertion that this Cursor team's on-demand usage toggle
+     * is OFF in the Cursor dashboard. Declared, not synced: the Admin API
+     * exposes no settings surface, so Cursor cannot report it (verified
+     * 2026-07-22 against docs and live API).
+     *
+     * When true, member keys whose included API-pool usage crosses the
+     * platform soft limit are excluded from NEW-session selection — with
+     * on-demand off, an exhausted key can no longer serve third-party
+     * models (T06 probe: runs error, no silent degrade).
+     *
+     * Deliberately the negative of Cursor's "on-demand enabled" wording:
+     * proto3 bool absence must mean "assume Cursor's team default
+     * (on-demand ON, guard inactive)" so accounts created before this
+     * field keep their exact selection behavior with no migration. A
+     * positive `on_demand_usage_enabled` field would read false on every
+     * existing document and silently activate the guard fleet-wide.
+     * </pre>
+     *
+     * <code>bool on_demand_usage_disabled = 12 [json_name = "onDemandUsageDisabled"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOnDemandUsageDisabled() {
+      bitField0_ = (bitField0_ & ~0x00000800);
+      onDemandUsageDisabled_ = false;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.platform.cursoraccount.v1.CursorAccount)

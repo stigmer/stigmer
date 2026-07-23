@@ -14,7 +14,7 @@ import { INPUT_CLASSES } from "../billing/form-primitives.js";
 import { toError } from "../internal/toError.js";
 import { CursorAccountEditor } from "./CursorAccountEditor.js";
 import { CursorAccountsAccessNotice } from "./CursorAccountsAccessNotice.js";
-import { formatSpendMicros, formatSyncTime } from "./cursor-account-format.js";
+import { formatPoolPercent, formatSpendMicros, formatSyncTime } from "./cursor-account-format.js";
 import { useCursorAccounts } from "./useCursorAccounts.js";
 import { useCursorAccountView } from "./useCursorAccountView.js";
 import { useCursorMemberKeyActions } from "./useCursorMemberKeyActions.js";
@@ -362,6 +362,9 @@ function AccountDetail({
                 : "No org assignments"}
             {" · "}
             {account.enabled ? "enabled" : "disabled"}
+            {account.onDemandUsageDisabled
+              ? " · on-demand usage off (usage guard active)"
+              : ""}
             {" · synced "}
             {formatSyncTime(view.snapshot?.syncedAt)}
           </p>
@@ -726,9 +729,16 @@ function MemberKeyRow({
                 keyView.spend.includedSpendUsdMicros + keyView.spend.overageSpendUsdMicros,
               )} this cycle`
             : ""}
+          {keyView.spend && formatPoolPercent(keyView.spend.apiPercentUsed)
+            ? ` · API pool ${formatPoolPercent(keyView.spend.apiPercentUsed)} used`
+            : ""}
         </span>
       </span>
       <span className="flex items-center gap-2">
+        {/* Server-computed: same routability rule key selection runs. */}
+        {keyView.usageGuardTripped && (
+          <StateBadge tone="warn" label="Usage guard" />
+        )}
         <KeyStateBadge state={keyView.state} enabled={key.enabled} />
         <Button
           size="sm"

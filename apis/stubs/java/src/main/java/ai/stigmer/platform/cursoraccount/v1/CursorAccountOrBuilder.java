@@ -275,4 +275,29 @@ public interface CursorAccountOrBuilder extends
    * <code>.google.protobuf.Timestamp updated_at = 11 [json_name = "updatedAt"];</code>
    */
   com.google.protobuf.TimestampOrBuilder getUpdatedAtOrBuilder();
+
+  /**
+   * <pre>
+   * Operator's assertion that this Cursor team's on-demand usage toggle
+   * is OFF in the Cursor dashboard. Declared, not synced: the Admin API
+   * exposes no settings surface, so Cursor cannot report it (verified
+   * 2026-07-22 against docs and live API).
+   *
+   * When true, member keys whose included API-pool usage crosses the
+   * platform soft limit are excluded from NEW-session selection — with
+   * on-demand off, an exhausted key can no longer serve third-party
+   * models (T06 probe: runs error, no silent degrade).
+   *
+   * Deliberately the negative of Cursor's "on-demand enabled" wording:
+   * proto3 bool absence must mean "assume Cursor's team default
+   * (on-demand ON, guard inactive)" so accounts created before this
+   * field keep their exact selection behavior with no migration. A
+   * positive `on_demand_usage_enabled` field would read false on every
+   * existing document and silently activate the guard fleet-wide.
+   * </pre>
+   *
+   * <code>bool on_demand_usage_disabled = 12 [json_name = "onDemandUsageDisabled"];</code>
+   * @return The onDemandUsageDisabled.
+   */
+  boolean getOnDemandUsageDisabled();
 }

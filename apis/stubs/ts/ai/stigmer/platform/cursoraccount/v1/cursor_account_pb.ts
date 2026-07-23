@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/cursoraccount/v1/cursor_account.proto.
  */
 export const file_ai_stigmer_platform_cursoraccount_v1_cursor_account: GenFile = /*@__PURE__*/
-  fileDesc("CjlhaS9zdGlnbWVyL3BsYXRmb3JtL2N1cnNvcmFjY291bnQvdjEvY3Vyc29yX2FjY291bnQucHJvdG8SJGFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MSKJAwoNQ3Vyc29yQWNjb3VudBISCgphY2NvdW50X2lkGAEgASgJEiEKDGRpc3BsYXlfbmFtZRgCIAEoCUILukgIyAEBcgMYgAESHwoNYWRtaW5fYXBpX2tleRgDIAEoCUIIukgFcgMYgAISDwoHZW5hYmxlZBgEIAEoCBIbChNpc19wbGF0Zm9ybV9kZWZhdWx0GAUgASgIEh4KB29yZ19pZHMYBiADKAlCDbpICpIBByIFcgMYgAESSgoLbWVtYmVyX2tleXMYByADKAsyNS5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yTWVtYmVyS2V5EhIKCmNyZWF0ZWRfYnkYCCABKAkSLgoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKdXBkYXRlZF9ieRgKIAEoCRIuCgp1cGRhdGVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCLrAQoPQ3Vyc29yTWVtYmVyS2V5Eg4KBmtleV9pZBgBIAEoCRIZCgdhcGlfa2V5GAIgASgJQgi6SAVyAxiAAhIXCgVsYWJlbBgDIAEoCUIIukgFcgMYgAESEwoLYm91bmRfZW1haWwYBCABKAkSFQoNYm91bmRfdXNlcl9pZBgFIAEoCRIXCg9jdXJzb3Jfa2V5X25hbWUYBiABKAkSDwoHZW5hYmxlZBgHIAEoCBIQCghhZGRlZF9ieRgIIAEoCRIsCghhZGRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiTgoQQ3Vyc29yVGVhbU1lbWJlchIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEgwKBG5hbWUYAyABKAkSDAoEcm9sZRgEIAEoCSKmAQoRQ3Vyc29yTWVtYmVyU3BlbmQSDwoHdXNlcl9pZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIqChlpbmNsdWRlZF9zcGVuZF91c2RfbWljcm9zGAMgASgDQge6SAQiAigAEikKGG92ZXJhZ2Vfc3BlbmRfdXNkX21pY3JvcxgEIAEoA0IHukgEIgIoABIaChJ0b3RhbF9wZXJjZW50X3VzZWQYBSABKAEitAIKGUN1cnNvckFjY291bnRTeW5jU25hcHNob3QSEgoKYWNjb3VudF9pZBgBIAEoCRItCglzeW5jZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEkcKB21lbWJlcnMYAyADKAsyNi5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yVGVhbU1lbWJlchJGCgVzcGVuZBgEIAMoCzI3LmFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MS5DdXJzb3JNZW1iZXJTcGVuZBIvCgtjeWNsZV9zdGFydBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKc3luY19lcnJvchgGIAEoCWIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CjlhaS9zdGlnbWVyL3BsYXRmb3JtL2N1cnNvcmFjY291bnQvdjEvY3Vyc29yX2FjY291bnQucHJvdG8SJGFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MSKrAwoNQ3Vyc29yQWNjb3VudBISCgphY2NvdW50X2lkGAEgASgJEiEKDGRpc3BsYXlfbmFtZRgCIAEoCUILukgIyAEBcgMYgAESHwoNYWRtaW5fYXBpX2tleRgDIAEoCUIIukgFcgMYgAISDwoHZW5hYmxlZBgEIAEoCBIbChNpc19wbGF0Zm9ybV9kZWZhdWx0GAUgASgIEh4KB29yZ19pZHMYBiADKAlCDbpICpIBByIFcgMYgAESSgoLbWVtYmVyX2tleXMYByADKAsyNS5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yTWVtYmVyS2V5EhIKCmNyZWF0ZWRfYnkYCCABKAkSLgoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKdXBkYXRlZF9ieRgKIAEoCRIuCgp1cGRhdGVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIgChhvbl9kZW1hbmRfdXNhZ2VfZGlzYWJsZWQYDCABKAgi6wEKD0N1cnNvck1lbWJlcktleRIOCgZrZXlfaWQYASABKAkSGQoHYXBpX2tleRgCIAEoCUIIukgFcgMYgAISFwoFbGFiZWwYAyABKAlCCLpIBXIDGIABEhMKC2JvdW5kX2VtYWlsGAQgASgJEhUKDWJvdW5kX3VzZXJfaWQYBSABKAkSFwoPY3Vyc29yX2tleV9uYW1lGAYgASgJEg8KB2VuYWJsZWQYByABKAgSEAoIYWRkZWRfYnkYCCABKAkSLAoIYWRkZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIk4KEEN1cnNvclRlYW1NZW1iZXISDwoHdXNlcl9pZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIMCgRuYW1lGAMgASgJEgwKBHJvbGUYBCABKAki2wEKEUN1cnNvck1lbWJlclNwZW5kEg8KB3VzZXJfaWQYASABKAkSDQoFZW1haWwYAiABKAkSKgoZaW5jbHVkZWRfc3BlbmRfdXNkX21pY3JvcxgDIAEoA0IHukgEIgIoABIpChhvdmVyYWdlX3NwZW5kX3VzZF9taWNyb3MYBCABKANCB7pIBCICKAASGgoSdG90YWxfcGVyY2VudF91c2VkGAUgASgBEhkKEWF1dG9fcGVyY2VudF91c2VkGAYgASgBEhgKEGFwaV9wZXJjZW50X3VzZWQYByABKAEitAIKGUN1cnNvckFjY291bnRTeW5jU25hcHNob3QSEgoKYWNjb3VudF9pZBgBIAEoCRItCglzeW5jZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEkcKB21lbWJlcnMYAyADKAsyNi5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yVGVhbU1lbWJlchJGCgVzcGVuZBgEIAMoCzI3LmFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MS5DdXJzb3JNZW1iZXJTcGVuZBIvCgtjeWNsZV9zdGFydBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKc3luY19lcnJvchgGIAEoCWIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * CursorAccount is one managed Cursor team: the platform-operator resource
@@ -135,6 +135,28 @@ export type CursorAccount = Message<"ai.stigmer.platform.cursoraccount.v1.Cursor
    * @generated from field: google.protobuf.Timestamp updated_at = 11;
    */
   updatedAt?: Timestamp;
+
+  /**
+   * Operator's assertion that this Cursor team's on-demand usage toggle
+   * is OFF in the Cursor dashboard. Declared, not synced: the Admin API
+   * exposes no settings surface, so Cursor cannot report it (verified
+   * 2026-07-22 against docs and live API).
+   *
+   * When true, member keys whose included API-pool usage crosses the
+   * platform soft limit are excluded from NEW-session selection — with
+   * on-demand off, an exhausted key can no longer serve third-party
+   * models (T06 probe: runs error, no silent degrade).
+   *
+   * Deliberately the negative of Cursor's "on-demand enabled" wording:
+   * proto3 bool absence must mean "assume Cursor's team default
+   * (on-demand ON, guard inactive)" so accounts created before this
+   * field keep their exact selection behavior with no migration. A
+   * positive `on_demand_usage_enabled` field would read false on every
+   * existing document and silently activate the guard fleet-wide.
+   *
+   * @generated from field: bool on_demand_usage_disabled = 12;
+   */
+  onDemandUsageDisabled: boolean;
 };
 
 /**
@@ -313,13 +335,35 @@ export type CursorMemberSpend = Message<"ai.stigmer.platform.cursoraccount.v1.Cu
   overageSpendUsdMicros: bigint;
 
   /**
-   * Fraction of the member's usage allowance consumed (0..1 as reported
-   * by Cursor's totalPercentUsed; 0 when Cursor omits it — tiered teams
-   * only).
+   * Percent (0–100) of the member's blended usage allowance consumed
+   * (Cursor's totalPercentUsed, live-verified 2026-07-22 — the T06
+   * probe observed 22.35 for a member at 22%). 0 when Cursor omits it
+   * (non-tiered/Enterprise teams). Caution: removed members report a
+   * flat 100 here regardless of real usage — roster state, not this
+   * field, decides "removed".
    *
    * @generated from field: double total_percent_used = 5;
    */
   totalPercentUsed: number;
+
+  /**
+   * Percent (0–100) of the FIRST-PARTY model pool (Auto/Composer)
+   * consumed — Cursor's autoPercentUsed. 0 when unreported.
+   *
+   * @generated from field: double auto_percent_used = 6;
+   */
+  autoPercentUsed: number;
+
+  /**
+   * Percent (0–100) of the THIRD-PARTY API model pool (Claude/GPT/…)
+   * consumed — Cursor's apiPercentUsed. 0 when unreported. This is the
+   * usage-guard metric: the pools diverge hard in practice (T06
+   * observed api=100 while total=22.35), so the blended figure must
+   * never gate selection.
+   *
+   * @generated from field: double api_percent_used = 7;
+   */
+  apiPercentUsed: number;
 };
 
 /**

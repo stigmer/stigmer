@@ -51,7 +51,9 @@ public interface CursorMemberKeyViewOrBuilder extends
   /**
    * <pre>
    * Spend of the owning member this cycle; unset when the member has no
-   * spend row (spend reports active members only).
+   * spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+   * returns removed members, with a flat totalPercentUsed=100 — the
+   * roster state above, never spend, decides "removed".)
    * </pre>
    *
    * <code>.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 3 [json_name = "spend"];</code>
@@ -61,7 +63,9 @@ public interface CursorMemberKeyViewOrBuilder extends
   /**
    * <pre>
    * Spend of the owning member this cycle; unset when the member has no
-   * spend row (spend reports active members only).
+   * spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+   * returns removed members, with a flat totalPercentUsed=100 — the
+   * roster state above, never spend, decides "removed".)
    * </pre>
    *
    * <code>.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 3 [json_name = "spend"];</code>
@@ -71,10 +75,28 @@ public interface CursorMemberKeyViewOrBuilder extends
   /**
    * <pre>
    * Spend of the owning member this cycle; unset when the member has no
-   * spend row (spend reports active members only).
+   * spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+   * returns removed members, with a flat totalPercentUsed=100 — the
+   * roster state above, never spend, decides "removed".)
    * </pre>
    *
    * <code>.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 3 [json_name = "spend"];</code>
    */
   ai.stigmer.platform.cursoraccount.v1.CursorMemberSpendOrBuilder getSpendOrBuilder();
+
+  /**
+   * <pre>
+   * True when the usage guard excludes this key from NEW-session
+   * selection: the account declares on-demand usage disabled AND the
+   * owning member's api_percent_used has crossed the platform soft
+   * limit. Server-computed on read by the same routability predicate
+   * key selection uses (the threshold is server config — clients must
+   * render this flag, never re-derive it). Pinned sessions are not
+   * affected by the guard.
+   * </pre>
+   *
+   * <code>bool usage_guard_tripped = 4 [json_name = "usageGuardTripped"];</code>
+   * @return The usageGuardTripped.
+   */
+  boolean getUsageGuardTripped();
 }

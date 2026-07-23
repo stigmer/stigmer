@@ -86,10 +86,27 @@ type CursorAccount struct {
 	CreatedBy string                 `protobuf:"bytes,8,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Operator identity of the latest mutation (account fields or keys).
-	UpdatedBy     string                 `protobuf:"bytes,10,opt,name=updated_by,json=updatedBy,proto3" json:"updated_by,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	UpdatedBy string                 `protobuf:"bytes,10,opt,name=updated_by,json=updatedBy,proto3" json:"updated_by,omitempty"`
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Operator's assertion that this Cursor team's on-demand usage toggle
+	// is OFF in the Cursor dashboard. Declared, not synced: the Admin API
+	// exposes no settings surface, so Cursor cannot report it (verified
+	// 2026-07-22 against docs and live API).
+	//
+	// When true, member keys whose included API-pool usage crosses the
+	// platform soft limit are excluded from NEW-session selection — with
+	// on-demand off, an exhausted key can no longer serve third-party
+	// models (T06 probe: runs error, no silent degrade).
+	//
+	// Deliberately the negative of Cursor's "on-demand enabled" wording:
+	// proto3 bool absence must mean "assume Cursor's team default
+	// (on-demand ON, guard inactive)" so accounts created before this
+	// field keep their exact selection behavior with no migration. A
+	// positive `on_demand_usage_enabled` field would read false on every
+	// existing document and silently activate the guard fleet-wide.
+	OnDemandUsageDisabled bool `protobuf:"varint,12,opt,name=on_demand_usage_disabled,json=onDemandUsageDisabled,proto3" json:"on_demand_usage_disabled,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *CursorAccount) Reset() {
@@ -197,6 +214,13 @@ func (x *CursorAccount) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *CursorAccount) GetOnDemandUsageDisabled() bool {
+	if x != nil {
+		return x.OnDemandUsageDisabled
+	}
+	return false
 }
 
 // CursorMemberKey is one execution-capable, user-scoped Cursor API key
@@ -421,12 +445,24 @@ type CursorMemberSpend struct {
 	IncludedSpendUsdMicros int64 `protobuf:"varint,3,opt,name=included_spend_usd_micros,json=includedSpendUsdMicros,proto3" json:"included_spend_usd_micros,omitempty"`
 	// On-demand overage spend this cycle, micro-USD (Cursor "spendCents").
 	OverageSpendUsdMicros int64 `protobuf:"varint,4,opt,name=overage_spend_usd_micros,json=overageSpendUsdMicros,proto3" json:"overage_spend_usd_micros,omitempty"`
-	// Fraction of the member's usage allowance consumed (0..1 as reported
-	// by Cursor's totalPercentUsed; 0 when Cursor omits it — tiered teams
-	// only).
+	// Percent (0–100) of the member's blended usage allowance consumed
+	// (Cursor's totalPercentUsed, live-verified 2026-07-22 — the T06
+	// probe observed 22.35 for a member at 22%). 0 when Cursor omits it
+	// (non-tiered/Enterprise teams). Caution: removed members report a
+	// flat 100 here regardless of real usage — roster state, not this
+	// field, decides "removed".
 	TotalPercentUsed float64 `protobuf:"fixed64,5,opt,name=total_percent_used,json=totalPercentUsed,proto3" json:"total_percent_used,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Percent (0–100) of the FIRST-PARTY model pool (Auto/Composer)
+	// consumed — Cursor's autoPercentUsed. 0 when unreported.
+	AutoPercentUsed float64 `protobuf:"fixed64,6,opt,name=auto_percent_used,json=autoPercentUsed,proto3" json:"auto_percent_used,omitempty"`
+	// Percent (0–100) of the THIRD-PARTY API model pool (Claude/GPT/…)
+	// consumed — Cursor's apiPercentUsed. 0 when unreported. This is the
+	// usage-guard metric: the pools diverge hard in practice (T06
+	// observed api=100 while total=22.35), so the blended figure must
+	// never gate selection.
+	ApiPercentUsed float64 `protobuf:"fixed64,7,opt,name=api_percent_used,json=apiPercentUsed,proto3" json:"api_percent_used,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CursorMemberSpend) Reset() {
@@ -490,6 +526,20 @@ func (x *CursorMemberSpend) GetOverageSpendUsdMicros() int64 {
 func (x *CursorMemberSpend) GetTotalPercentUsed() float64 {
 	if x != nil {
 		return x.TotalPercentUsed
+	}
+	return 0
+}
+
+func (x *CursorMemberSpend) GetAutoPercentUsed() float64 {
+	if x != nil {
+		return x.AutoPercentUsed
+	}
+	return 0
+}
+
+func (x *CursorMemberSpend) GetApiPercentUsed() float64 {
+	if x != nil {
+		return x.ApiPercentUsed
 	}
 	return 0
 }
@@ -591,7 +641,7 @@ var File_ai_stigmer_platform_cursoraccount_v1_cursor_account_proto protoreflect.
 
 const file_ai_stigmer_platform_cursoraccount_v1_cursor_account_proto_rawDesc = "" +
 	"\n" +
-	"9ai/stigmer/platform/cursoraccount/v1/cursor_account.proto\x12$ai.stigmer.platform.cursoraccount.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8a\x04\n" +
+	"9ai/stigmer/platform/cursoraccount/v1/cursor_account.proto\x12$ai.stigmer.platform.cursoraccount.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc3\x04\n" +
 	"\rCursorAccount\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12.\n" +
@@ -611,7 +661,8 @@ const file_ai_stigmer_platform_cursoraccount_v1_cursor_account_proto_rawDesc = "
 	"updated_by\x18\n" +
 	" \x01(\tR\tupdatedBy\x129\n" +
 	"\n" +
-	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xc4\x02\n" +
+	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x127\n" +
+	"\x18on_demand_usage_disabled\x18\f \x01(\bR\x15onDemandUsageDisabled\"\xc4\x02\n" +
 	"\x0fCursorMemberKey\x12\x15\n" +
 	"\x06key_id\x18\x01 \x01(\tR\x05keyId\x12!\n" +
 	"\aapi_key\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x06apiKey\x12\x1e\n" +
@@ -627,13 +678,15 @@ const file_ai_stigmer_platform_cursoraccount_v1_cursor_account_proto_rawDesc = "
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x12\n" +
-	"\x04role\x18\x04 \x01(\tR\x04role\"\xf6\x01\n" +
+	"\x04role\x18\x04 \x01(\tR\x04role\"\xcc\x02\n" +
 	"\x11CursorMemberSpend\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12B\n" +
 	"\x19included_spend_usd_micros\x18\x03 \x01(\x03B\a\xbaH\x04\"\x02(\x00R\x16includedSpendUsdMicros\x12@\n" +
 	"\x18overage_spend_usd_micros\x18\x04 \x01(\x03B\a\xbaH\x04\"\x02(\x00R\x15overageSpendUsdMicros\x12,\n" +
-	"\x12total_percent_used\x18\x05 \x01(\x01R\x10totalPercentUsed\"\xf0\x02\n" +
+	"\x12total_percent_used\x18\x05 \x01(\x01R\x10totalPercentUsed\x12*\n" +
+	"\x11auto_percent_used\x18\x06 \x01(\x01R\x0fautoPercentUsed\x12(\n" +
+	"\x10api_percent_used\x18\a \x01(\x01R\x0eapiPercentUsed\"\xf0\x02\n" +
 	"\x19CursorAccountSyncSnapshot\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x127\n" +

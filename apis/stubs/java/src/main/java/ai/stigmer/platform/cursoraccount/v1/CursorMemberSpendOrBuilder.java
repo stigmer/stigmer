@@ -56,13 +56,41 @@ public interface CursorMemberSpendOrBuilder extends
 
   /**
    * <pre>
-   * Fraction of the member's usage allowance consumed (0..1 as reported
-   * by Cursor's totalPercentUsed; 0 when Cursor omits it — tiered teams
-   * only).
+   * Percent (0–100) of the member's blended usage allowance consumed
+   * (Cursor's totalPercentUsed, live-verified 2026-07-22 — the T06
+   * probe observed 22.35 for a member at 22%). 0 when Cursor omits it
+   * (non-tiered/Enterprise teams). Caution: removed members report a
+   * flat 100 here regardless of real usage — roster state, not this
+   * field, decides "removed".
    * </pre>
    *
    * <code>double total_percent_used = 5 [json_name = "totalPercentUsed"];</code>
    * @return The totalPercentUsed.
    */
   double getTotalPercentUsed();
+
+  /**
+   * <pre>
+   * Percent (0–100) of the FIRST-PARTY model pool (Auto/Composer)
+   * consumed — Cursor's autoPercentUsed. 0 when unreported.
+   * </pre>
+   *
+   * <code>double auto_percent_used = 6 [json_name = "autoPercentUsed"];</code>
+   * @return The autoPercentUsed.
+   */
+  double getAutoPercentUsed();
+
+  /**
+   * <pre>
+   * Percent (0–100) of the THIRD-PARTY API model pool (Claude/GPT/…)
+   * consumed — Cursor's apiPercentUsed. 0 when unreported. This is the
+   * usage-guard metric: the pools diverge hard in practice (T06
+   * observed api=100 while total=22.35), so the blended figure must
+   * never gate selection.
+   * </pre>
+   *
+   * <code>double api_percent_used = 7 [json_name = "apiPercentUsed"];</code>
+   * @return The apiPercentUsed.
+   */
+  double getApiPercentUsed();
 }
