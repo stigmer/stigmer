@@ -35,7 +35,9 @@ export interface CursorAccountEditorProps {
 
 /**
  * Create/edit form for one Cursor account: identity, team Admin API key,
- * enablement, platform-default flag, and org assignments.
+ * enablement, and dedicated-org assignments. The account's class is
+ * derived (DD-008): listed org ids make it DEDICATED to them, an empty
+ * list makes it a shared-pool account — there is no flag to manage.
  *
  * Admin-key semantics mirror the server contract: on edit the field
  * shows the redaction marker and submitting it unchanged keeps the
@@ -55,9 +57,6 @@ export function CursorAccountEditor({
   const [displayName, setDisplayName] = useState(initial?.displayName ?? "");
   const [adminApiKey, setAdminApiKey] = useState(isCreate ? "" : REDACTED);
   const [enabled, setEnabled] = useState(initial?.enabled ?? true);
-  const [isPlatformDefault, setIsPlatformDefault] = useState(
-    initial?.isPlatformDefault ?? false,
-  );
   // UI state is the positive ("on-demand enabled", Cursor's own wording and
   // team default); the proto field is the negative so absence means
   // "assume Cursor's default" on documents that predate the field.
@@ -80,7 +79,8 @@ export function CursorAccountEditor({
         displayName: displayName.trim(),
         adminApiKey: adminApiKey.trim(),
         enabled,
-        isPlatformDefault,
+        // is_platform_default is deprecated (DD-008): the shared pool is
+        // derived from empty org_ids, so current clients never write it.
         onDemandUsageDisabled: !onDemandEnabled,
         orgIds: orgIdsText
           .split(/[\s,]+/)
@@ -124,15 +124,23 @@ export function CursorAccountEditor({
         </p>
       )}
 
-      <Field label="Assigned organization ids">
+      <Field label="Dedicated organization ids">
         <textarea
           className={cn(INPUT_CLASSES, "min-h-16 font-mono")}
           value={orgIdsText}
           onChange={(e) => setOrgIdsText(e.target.value)}
-          placeholder={"one org id per line\n(each org may belong to only one account)"}
+          placeholder={"one org id per line\n(leave empty for a shared-pool account)"}
           disabled={isSubmitting}
         />
       </Field>
+      <p className="text-[11px] text-muted-foreground">
+        Listing org ids DEDICATES this account to them: their sessions use
+        only this account&apos;s keys and fail with a clear message when it
+        runs dry. Leaving this empty makes the account part of the shared
+        pool that serves every other org — pool sessions may move between
+        pool accounts when one is depleted. Each org may appear in at most
+        one account.
+      </p>
 
       <div className="space-y-2">
         <div>
@@ -149,22 +157,6 @@ export function CursorAccountEditor({
             Leave checked for accounts that should serve traffic. Unchecking
             drains the account: new sessions stop routing here immediately,
             but sessions already pinned to one of its keys keep working.
-          </p>
-        </div>
-        <div>
-          <label className="flex items-center gap-1.5 text-xs text-foreground">
-            <input
-              type="checkbox"
-              checked={isPlatformDefault}
-              onChange={(e) => setIsPlatformDefault(e.target.checked)}
-              disabled={isSubmitting}
-            />
-            Platform default (serves unassigned orgs)
-          </label>
-          <p className="mt-0.5 pl-[1.375rem] text-[11px] text-muted-foreground">
-            Check on exactly one account. Orgs not listed in any account&apos;s
-            assigned ids resolve to the platform default; at most one account
-            may hold this flag.
           </p>
         </div>
         <div>
