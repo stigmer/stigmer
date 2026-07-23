@@ -44,6 +44,10 @@ export interface CursorAccountEditorProps {
  * stored key; typing anything else rotates it (validated live against
  * Cursor before persisting). Member keys are NOT edited here — they have
  * their own panel with per-key add/remove/enable.
+ *
+ * The optional team invite link (Cursor dashboard → Invite Members →
+ * Copy Invite Link) round-trips readable — no marker — and powers the
+ * coverage table's "Copy invite" action for off-team key owners.
  */
 export function CursorAccountEditor({
   initial,
@@ -66,6 +70,12 @@ export function CursorAccountEditor({
   const [orgIdsText, setOrgIdsText] = useState(
     (initial?.orgIds ?? []).join("\n"),
   );
+  // Unlike the admin key, the invite link round-trips readable (the
+  // server decrypts it on read — operators must be able to copy it), so
+  // there is no redaction-marker dance: edit the value directly.
+  const [teamInviteLink, setTeamInviteLink] = useState(
+    initial?.teamInviteLink ?? "",
+  );
 
   const canSubmit =
     displayName.trim() !== "" && adminApiKey.trim() !== "" && !isSubmitting;
@@ -82,6 +92,7 @@ export function CursorAccountEditor({
         // is_platform_default is deprecated (DD-008): the shared pool is
         // derived from empty org_ids, so current clients never write it.
         onDemandUsageDisabled: !onDemandEnabled,
+        teamInviteLink: teamInviteLink.trim(),
         orgIds: orgIdsText
           .split(/[\s,]+/)
           .map((s) => s.trim())
@@ -123,6 +134,26 @@ export function CursorAccountEditor({
           new key rotates it (validated against Cursor before saving).
         </p>
       )}
+
+      <Field label="Team invite link">
+        <input
+          className={INPUT_CLASSES}
+          type="url"
+          value={teamInviteLink}
+          onChange={(e) => setTeamInviteLink(e.target.value)}
+          placeholder="https://… (Cursor dashboard → Invite Members → Copy Invite Link)"
+          disabled={isSubmitting}
+          autoComplete="off"
+          spellCheck={false}
+        />
+      </Field>
+      <p className="text-[11px] text-muted-foreground">
+        Optional. Powers one-click &quot;Copy invite&quot; on coverage rows
+        whose key owner is not on the team. The link is long-lived and
+        joinable by anyone holding it (each join consumes a paid seat) —
+        share it deliberately, and revoke or rotate it from the Cursor
+        dashboard. Leave empty to clear.
+      </p>
 
       <Field label="Dedicated organization ids">
         <textarea

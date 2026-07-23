@@ -622,6 +622,64 @@ func (x *GetCursorAccountViewInput) GetAccountId() string {
 	return ""
 }
 
+// One active roster member Stigmer holds no key for, joined with their
+// cycle spend — the operator's coverage-gap row. The spend join happens
+// server-side by the same case-insensitive email rule as key views
+// (computed on read, never stored) so clients never re-derive it.
+type CursorTeamMemberView struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Member *CursorTeamMember      `protobuf:"bytes,1,opt,name=member,proto3" json:"member,omitempty"`
+	// Spend of this member this cycle; unset when the member has no
+	// spend row.
+	Spend         *CursorMemberSpend `protobuf:"bytes,2,opt,name=spend,proto3" json:"spend,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CursorTeamMemberView) Reset() {
+	*x = CursorTeamMemberView{}
+	mi := &file_ai_stigmer_platform_cursoraccount_v1_io_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CursorTeamMemberView) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CursorTeamMemberView) ProtoMessage() {}
+
+func (x *CursorTeamMemberView) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_platform_cursoraccount_v1_io_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CursorTeamMemberView.ProtoReflect.Descriptor instead.
+func (*CursorTeamMemberView) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_platform_cursoraccount_v1_io_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *CursorTeamMemberView) GetMember() *CursorTeamMember {
+	if x != nil {
+		return x.Member
+	}
+	return nil
+}
+
+func (x *CursorTeamMemberView) GetSpend() *CursorMemberSpend {
+	if x != nil {
+		return x.Spend
+	}
+	return nil
+}
+
 // One member key joined with roster + spend facts for the detail view.
 type CursorMemberKeyView struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -647,7 +705,7 @@ type CursorMemberKeyView struct {
 
 func (x *CursorMemberKeyView) Reset() {
 	*x = CursorMemberKeyView{}
-	mi := &file_ai_stigmer_platform_cursoraccount_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_platform_cursoraccount_v1_io_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -659,7 +717,7 @@ func (x *CursorMemberKeyView) String() string {
 func (*CursorMemberKeyView) ProtoMessage() {}
 
 func (x *CursorMemberKeyView) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_platform_cursoraccount_v1_io_proto_msgTypes[10]
+	mi := &file_ai_stigmer_platform_cursoraccount_v1_io_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -672,7 +730,7 @@ func (x *CursorMemberKeyView) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CursorMemberKeyView.ProtoReflect.Descriptor instead.
 func (*CursorMemberKeyView) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_platform_cursoraccount_v1_io_proto_rawDescGZIP(), []int{10}
+	return file_ai_stigmer_platform_cursoraccount_v1_io_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CursorMemberKeyView) GetKey() *CursorMemberKey {
@@ -712,16 +770,24 @@ type CursorAccountView struct {
 	Snapshot *CursorAccountSyncSnapshot `protobuf:"bytes,2,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
 	// Every stored member key joined with roster and spend facts.
 	KeyViews []*CursorMemberKeyView `protobuf:"bytes,3,rep,name=key_views,json=keyViews,proto3" json:"key_views,omitempty"`
-	// Active roster members (role != "removed") for whom no member key is
-	// stored — the operator's "coverage gap" list.
+	// Deprecated: superseded by members_without_keys_views, which carries
+	// the same roster entries with their spend joined server-side. Still
+	// populated (protos are published; older clients may read it); current
+	// clients must read the views field.
+	//
+	// Deprecated: Marked as deprecated in ai/stigmer/platform/cursoraccount/v1/io.proto.
 	MembersWithoutKeys []*CursorTeamMember `protobuf:"bytes,4,rep,name=members_without_keys,json=membersWithoutKeys,proto3" json:"members_without_keys,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// Active roster members (role != "removed") for whom no member key is
+	// stored — the operator's "coverage gap" list, each joined with the
+	// member's cycle spend by the same email rule as key_views.
+	MembersWithoutKeysViews []*CursorTeamMemberView `protobuf:"bytes,5,rep,name=members_without_keys_views,json=membersWithoutKeysViews,proto3" json:"members_without_keys_views,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *CursorAccountView) Reset() {
 	*x = CursorAccountView{}
-	mi := &file_ai_stigmer_platform_cursoraccount_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_platform_cursoraccount_v1_io_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -733,7 +799,7 @@ func (x *CursorAccountView) String() string {
 func (*CursorAccountView) ProtoMessage() {}
 
 func (x *CursorAccountView) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_platform_cursoraccount_v1_io_proto_msgTypes[11]
+	mi := &file_ai_stigmer_platform_cursoraccount_v1_io_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -746,7 +812,7 @@ func (x *CursorAccountView) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CursorAccountView.ProtoReflect.Descriptor instead.
 func (*CursorAccountView) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_platform_cursoraccount_v1_io_proto_rawDescGZIP(), []int{11}
+	return file_ai_stigmer_platform_cursoraccount_v1_io_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CursorAccountView) GetAccount() *CursorAccount {
@@ -770,9 +836,17 @@ func (x *CursorAccountView) GetKeyViews() []*CursorMemberKeyView {
 	return nil
 }
 
+// Deprecated: Marked as deprecated in ai/stigmer/platform/cursoraccount/v1/io.proto.
 func (x *CursorAccountView) GetMembersWithoutKeys() []*CursorTeamMember {
 	if x != nil {
 		return x.MembersWithoutKeys
+	}
+	return nil
+}
+
+func (x *CursorAccountView) GetMembersWithoutKeysViews() []*CursorTeamMemberView {
+	if x != nil {
+		return x.MembersWithoutKeysViews
 	}
 	return nil
 }
@@ -815,17 +889,21 @@ const file_ai_stigmer_platform_cursoraccount_v1_io_proto_rawDesc = "" +
 	"\baccounts\x18\x01 \x03(\v2:.ai.stigmer.platform.cursoraccount.v1.CursorAccountSummaryR\baccounts\"C\n" +
 	"\x19GetCursorAccountViewInput\x12&\n" +
 	"\n" +
-	"account_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\taccountId\"\xaf\x02\n" +
+	"account_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\taccountId\"\xb5\x01\n" +
+	"\x14CursorTeamMemberView\x12N\n" +
+	"\x06member\x18\x01 \x01(\v26.ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberR\x06member\x12M\n" +
+	"\x05spend\x18\x02 \x01(\v27.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpendR\x05spend\"\xaf\x02\n" +
 	"\x13CursorMemberKeyView\x12G\n" +
 	"\x03key\x18\x01 \x01(\v25.ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyR\x03key\x12P\n" +
 	"\x05state\x18\x02 \x01(\x0e2:.ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyStateR\x05state\x12M\n" +
 	"\x05spend\x18\x03 \x01(\v27.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpendR\x05spend\x12.\n" +
-	"\x13usage_guard_tripped\x18\x04 \x01(\bR\x11usageGuardTripped\"\x81\x03\n" +
+	"\x13usage_guard_tripped\x18\x04 \x01(\bR\x11usageGuardTripped\"\xfe\x03\n" +
 	"\x11CursorAccountView\x12M\n" +
 	"\aaccount\x18\x01 \x01(\v23.ai.stigmer.platform.cursoraccount.v1.CursorAccountR\aaccount\x12[\n" +
 	"\bsnapshot\x18\x02 \x01(\v2?.ai.stigmer.platform.cursoraccount.v1.CursorAccountSyncSnapshotR\bsnapshot\x12V\n" +
-	"\tkey_views\x18\x03 \x03(\v29.ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyViewR\bkeyViews\x12h\n" +
-	"\x14members_without_keys\x18\x04 \x03(\v26.ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberR\x12membersWithoutKeys*\x92\x01\n" +
+	"\tkey_views\x18\x03 \x03(\v29.ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyViewR\bkeyViews\x12l\n" +
+	"\x14members_without_keys\x18\x04 \x03(\v26.ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberB\x02\x18\x01R\x12membersWithoutKeys\x12w\n" +
+	"\x1amembers_without_keys_views\x18\x05 \x03(\v2:.ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberViewR\x17membersWithoutKeysViews*\x92\x01\n" +
 	"\x14CursorMemberKeyState\x12'\n" +
 	"#cursor_member_key_state_unspecified\x10\x00\x12\x15\n" +
 	"\x11member_key_active\x10\x01\x12\x1c\n" +
@@ -846,7 +924,7 @@ func file_ai_stigmer_platform_cursoraccount_v1_io_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_platform_cursoraccount_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_platform_cursoraccount_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_ai_stigmer_platform_cursoraccount_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_ai_stigmer_platform_cursoraccount_v1_io_proto_goTypes = []any{
 	(CursorMemberKeyState)(0),              // 0: ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyState
 	(*UpsertCursorAccountInput)(nil),       // 1: ai.stigmer.platform.cursoraccount.v1.UpsertCursorAccountInput
@@ -859,32 +937,36 @@ var file_ai_stigmer_platform_cursoraccount_v1_io_proto_goTypes = []any{
 	(*CursorAccountSummary)(nil),           // 8: ai.stigmer.platform.cursoraccount.v1.CursorAccountSummary
 	(*CursorAccountsResponse)(nil),         // 9: ai.stigmer.platform.cursoraccount.v1.CursorAccountsResponse
 	(*GetCursorAccountViewInput)(nil),      // 10: ai.stigmer.platform.cursoraccount.v1.GetCursorAccountViewInput
-	(*CursorMemberKeyView)(nil),            // 11: ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyView
-	(*CursorAccountView)(nil),              // 12: ai.stigmer.platform.cursoraccount.v1.CursorAccountView
-	(*CursorAccount)(nil),                  // 13: ai.stigmer.platform.cursoraccount.v1.CursorAccount
-	(*timestamppb.Timestamp)(nil),          // 14: google.protobuf.Timestamp
-	(*CursorMemberKey)(nil),                // 15: ai.stigmer.platform.cursoraccount.v1.CursorMemberKey
-	(*CursorMemberSpend)(nil),              // 16: ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend
-	(*CursorAccountSyncSnapshot)(nil),      // 17: ai.stigmer.platform.cursoraccount.v1.CursorAccountSyncSnapshot
-	(*CursorTeamMember)(nil),               // 18: ai.stigmer.platform.cursoraccount.v1.CursorTeamMember
+	(*CursorTeamMemberView)(nil),           // 11: ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView
+	(*CursorMemberKeyView)(nil),            // 12: ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyView
+	(*CursorAccountView)(nil),              // 13: ai.stigmer.platform.cursoraccount.v1.CursorAccountView
+	(*CursorAccount)(nil),                  // 14: ai.stigmer.platform.cursoraccount.v1.CursorAccount
+	(*timestamppb.Timestamp)(nil),          // 15: google.protobuf.Timestamp
+	(*CursorTeamMember)(nil),               // 16: ai.stigmer.platform.cursoraccount.v1.CursorTeamMember
+	(*CursorMemberSpend)(nil),              // 17: ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend
+	(*CursorMemberKey)(nil),                // 18: ai.stigmer.platform.cursoraccount.v1.CursorMemberKey
+	(*CursorAccountSyncSnapshot)(nil),      // 19: ai.stigmer.platform.cursoraccount.v1.CursorAccountSyncSnapshot
 }
 var file_ai_stigmer_platform_cursoraccount_v1_io_proto_depIdxs = []int32{
-	13, // 0: ai.stigmer.platform.cursoraccount.v1.UpsertCursorAccountInput.account:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorAccount
-	13, // 1: ai.stigmer.platform.cursoraccount.v1.CursorAccountSummary.account:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorAccount
-	14, // 2: ai.stigmer.platform.cursoraccount.v1.CursorAccountSummary.last_synced_at:type_name -> google.protobuf.Timestamp
+	14, // 0: ai.stigmer.platform.cursoraccount.v1.UpsertCursorAccountInput.account:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorAccount
+	14, // 1: ai.stigmer.platform.cursoraccount.v1.CursorAccountSummary.account:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorAccount
+	15, // 2: ai.stigmer.platform.cursoraccount.v1.CursorAccountSummary.last_synced_at:type_name -> google.protobuf.Timestamp
 	8,  // 3: ai.stigmer.platform.cursoraccount.v1.CursorAccountsResponse.accounts:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorAccountSummary
-	15, // 4: ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyView.key:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorMemberKey
-	0,  // 5: ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyView.state:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyState
-	16, // 6: ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyView.spend:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend
-	13, // 7: ai.stigmer.platform.cursoraccount.v1.CursorAccountView.account:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorAccount
-	17, // 8: ai.stigmer.platform.cursoraccount.v1.CursorAccountView.snapshot:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorAccountSyncSnapshot
-	11, // 9: ai.stigmer.platform.cursoraccount.v1.CursorAccountView.key_views:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyView
-	18, // 10: ai.stigmer.platform.cursoraccount.v1.CursorAccountView.members_without_keys:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorTeamMember
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	16, // 4: ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView.member:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorTeamMember
+	17, // 5: ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView.spend:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend
+	18, // 6: ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyView.key:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorMemberKey
+	0,  // 7: ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyView.state:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyState
+	17, // 8: ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyView.spend:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend
+	14, // 9: ai.stigmer.platform.cursoraccount.v1.CursorAccountView.account:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorAccount
+	19, // 10: ai.stigmer.platform.cursoraccount.v1.CursorAccountView.snapshot:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorAccountSyncSnapshot
+	12, // 11: ai.stigmer.platform.cursoraccount.v1.CursorAccountView.key_views:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyView
+	16, // 12: ai.stigmer.platform.cursoraccount.v1.CursorAccountView.members_without_keys:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorTeamMember
+	11, // 13: ai.stigmer.platform.cursoraccount.v1.CursorAccountView.members_without_keys_views:type_name -> ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView
+	14, // [14:14] is the sub-list for method output_type
+	14, // [14:14] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_platform_cursoraccount_v1_io_proto_init() }
@@ -899,7 +981,7 @@ func file_ai_stigmer_platform_cursoraccount_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_platform_cursoraccount_v1_io_proto_rawDesc), len(file_ai_stigmer_platform_cursoraccount_v1_io_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

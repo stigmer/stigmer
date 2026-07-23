@@ -127,8 +127,20 @@ type CursorAccount struct {
 	// positive `on_demand_usage_enabled` field would read false on every
 	// existing document and silently activate the guard fleet-wide.
 	OnDemandUsageDisabled bool `protobuf:"varint,12,opt,name=on_demand_usage_disabled,json=onDemandUsageDisabled,proto3" json:"on_demand_usage_disabled,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// Operator-pasted team invite link from the Cursor dashboard (Invite
+	// Members → Copy Invite Link). Cursor's Admin API cannot mint or fetch
+	// one, so this is declared, not synced. Long-lived and joinable by
+	// anyone holding it (each join consumes a paid seat), so it is
+	// encrypted at rest — but unlike the API keys it IS returned readable
+	// on read: a link operators cannot copy serves no one, and every read
+	// surface is operator-gated. Optional: when empty the console shows
+	// dashboard guidance instead of a per-row "Copy invite" action.
+	//
+	// Write: plaintext https:// URL to set/rotate, empty to clear.
+	// Read: plaintext.
+	TeamInviteLink string `protobuf:"bytes,13,opt,name=team_invite_link,json=teamInviteLink,proto3" json:"team_invite_link,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CursorAccount) Reset() {
@@ -244,6 +256,13 @@ func (x *CursorAccount) GetOnDemandUsageDisabled() bool {
 		return x.OnDemandUsageDisabled
 	}
 	return false
+}
+
+func (x *CursorAccount) GetTeamInviteLink() string {
+	if x != nil {
+		return x.TeamInviteLink
+	}
+	return ""
 }
 
 // CursorMemberKey is one execution-capable, user-scoped Cursor API key
@@ -664,7 +683,7 @@ var File_ai_stigmer_platform_cursoraccount_v1_cursor_account_proto protoreflect.
 
 const file_ai_stigmer_platform_cursoraccount_v1_cursor_account_proto_rawDesc = "" +
 	"\n" +
-	"9ai/stigmer/platform/cursoraccount/v1/cursor_account.proto\x12$ai.stigmer.platform.cursoraccount.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc7\x04\n" +
+	"9ai/stigmer/platform/cursoraccount/v1/cursor_account.proto\x12$ai.stigmer.platform.cursoraccount.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfb\x04\n" +
 	"\rCursorAccount\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12.\n" +
@@ -685,7 +704,8 @@ const file_ai_stigmer_platform_cursoraccount_v1_cursor_account_proto_rawDesc = "
 	" \x01(\tR\tupdatedBy\x129\n" +
 	"\n" +
 	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x127\n" +
-	"\x18on_demand_usage_disabled\x18\f \x01(\bR\x15onDemandUsageDisabled\"\xc4\x02\n" +
+	"\x18on_demand_usage_disabled\x18\f \x01(\bR\x15onDemandUsageDisabled\x122\n" +
+	"\x10team_invite_link\x18\r \x01(\tB\b\xbaH\x05r\x03\x18\x80\x04R\x0eteamInviteLink\"\xc4\x02\n" +
 	"\x0fCursorMemberKey\x12\x15\n" +
 	"\x06key_id\x18\x01 \x01(\tR\x05keyId\x12!\n" +
 	"\aapi_key\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x06apiKey\x12\x1e\n" +

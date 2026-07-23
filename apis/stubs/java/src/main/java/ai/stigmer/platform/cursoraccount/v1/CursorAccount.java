@@ -84,6 +84,7 @@ private static final long serialVersionUID = 0L;
     memberKeys_ = java.util.Collections.emptyList();
     createdBy_ = "";
     updatedBy_ = "";
+    teamInviteLink_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -606,6 +607,73 @@ private static final long serialVersionUID = 0L;
     return onDemandUsageDisabled_;
   }
 
+  public static final int TEAM_INVITE_LINK_FIELD_NUMBER = 13;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object teamInviteLink_ = "";
+  /**
+   * <pre>
+   * Operator-pasted team invite link from the Cursor dashboard (Invite
+   * Members → Copy Invite Link). Cursor's Admin API cannot mint or fetch
+   * one, so this is declared, not synced. Long-lived and joinable by
+   * anyone holding it (each join consumes a paid seat), so it is
+   * encrypted at rest — but unlike the API keys it IS returned readable
+   * on read: a link operators cannot copy serves no one, and every read
+   * surface is operator-gated. Optional: when empty the console shows
+   * dashboard guidance instead of a per-row "Copy invite" action.
+   *
+   * Write: plaintext https:// URL to set/rotate, empty to clear.
+   * Read: plaintext.
+   * </pre>
+   *
+   * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+   * @return The teamInviteLink.
+   */
+  @java.lang.Override
+  public java.lang.String getTeamInviteLink() {
+    java.lang.Object ref = teamInviteLink_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      teamInviteLink_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Operator-pasted team invite link from the Cursor dashboard (Invite
+   * Members → Copy Invite Link). Cursor's Admin API cannot mint or fetch
+   * one, so this is declared, not synced. Long-lived and joinable by
+   * anyone holding it (each join consumes a paid seat), so it is
+   * encrypted at rest — but unlike the API keys it IS returned readable
+   * on read: a link operators cannot copy serves no one, and every read
+   * surface is operator-gated. Optional: when empty the console shows
+   * dashboard guidance instead of a per-row "Copy invite" action.
+   *
+   * Write: plaintext https:// URL to set/rotate, empty to clear.
+   * Read: plaintext.
+   * </pre>
+   *
+   * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for teamInviteLink.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getTeamInviteLinkBytes() {
+    java.lang.Object ref = teamInviteLink_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      teamInviteLink_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -655,6 +723,9 @@ private static final long serialVersionUID = 0L;
     }
     if (onDemandUsageDisabled_ != false) {
       output.writeBool(12, onDemandUsageDisabled_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(teamInviteLink_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 13, teamInviteLink_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -717,6 +788,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(12, onDemandUsageDisabled_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(teamInviteLink_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(13, teamInviteLink_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -762,6 +836,8 @@ private static final long serialVersionUID = 0L;
     }
     if (getOnDemandUsageDisabled()
         != other.getOnDemandUsageDisabled()) return false;
+    if (!getTeamInviteLink()
+        .equals(other.getTeamInviteLink())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -808,6 +884,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + ON_DEMAND_USAGE_DISABLED_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getOnDemandUsageDisabled());
+    hash = (37 * hash) + TEAM_INVITE_LINK_FIELD_NUMBER;
+    hash = (53 * hash) + getTeamInviteLink().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1022,6 +1100,7 @@ private static final long serialVersionUID = 0L;
         updatedAtBuilder_ = null;
       }
       onDemandUsageDisabled_ = false;
+      teamInviteLink_ = "";
       return this;
     }
 
@@ -1108,6 +1187,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000800) != 0)) {
         result.onDemandUsageDisabled_ = onDemandUsageDisabled_;
+      }
+      if (((from_bitField0_ & 0x00001000) != 0)) {
+        result.teamInviteLink_ = teamInviteLink_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1199,6 +1281,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getOnDemandUsageDisabled() != false) {
         setOnDemandUsageDisabled(other.getOnDemandUsageDisabled());
+      }
+      if (!other.getTeamInviteLink().isEmpty()) {
+        teamInviteLink_ = other.teamInviteLink_;
+        bitField0_ |= 0x00001000;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1298,6 +1385,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000800;
               break;
             } // case 96
+            case 106: {
+              teamInviteLink_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00001000;
+              break;
+            } // case 106
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2756,6 +2848,148 @@ private static final long serialVersionUID = 0L;
     public Builder clearOnDemandUsageDisabled() {
       bitField0_ = (bitField0_ & ~0x00000800);
       onDemandUsageDisabled_ = false;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object teamInviteLink_ = "";
+    /**
+     * <pre>
+     * Operator-pasted team invite link from the Cursor dashboard (Invite
+     * Members → Copy Invite Link). Cursor's Admin API cannot mint or fetch
+     * one, so this is declared, not synced. Long-lived and joinable by
+     * anyone holding it (each join consumes a paid seat), so it is
+     * encrypted at rest — but unlike the API keys it IS returned readable
+     * on read: a link operators cannot copy serves no one, and every read
+     * surface is operator-gated. Optional: when empty the console shows
+     * dashboard guidance instead of a per-row "Copy invite" action.
+     *
+     * Write: plaintext https:// URL to set/rotate, empty to clear.
+     * Read: plaintext.
+     * </pre>
+     *
+     * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+     * @return The teamInviteLink.
+     */
+    public java.lang.String getTeamInviteLink() {
+      java.lang.Object ref = teamInviteLink_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        teamInviteLink_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Operator-pasted team invite link from the Cursor dashboard (Invite
+     * Members → Copy Invite Link). Cursor's Admin API cannot mint or fetch
+     * one, so this is declared, not synced. Long-lived and joinable by
+     * anyone holding it (each join consumes a paid seat), so it is
+     * encrypted at rest — but unlike the API keys it IS returned readable
+     * on read: a link operators cannot copy serves no one, and every read
+     * surface is operator-gated. Optional: when empty the console shows
+     * dashboard guidance instead of a per-row "Copy invite" action.
+     *
+     * Write: plaintext https:// URL to set/rotate, empty to clear.
+     * Read: plaintext.
+     * </pre>
+     *
+     * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+     * @return The bytes for teamInviteLink.
+     */
+    public com.google.protobuf.ByteString
+        getTeamInviteLinkBytes() {
+      java.lang.Object ref = teamInviteLink_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        teamInviteLink_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Operator-pasted team invite link from the Cursor dashboard (Invite
+     * Members → Copy Invite Link). Cursor's Admin API cannot mint or fetch
+     * one, so this is declared, not synced. Long-lived and joinable by
+     * anyone holding it (each join consumes a paid seat), so it is
+     * encrypted at rest — but unlike the API keys it IS returned readable
+     * on read: a link operators cannot copy serves no one, and every read
+     * surface is operator-gated. Optional: when empty the console shows
+     * dashboard guidance instead of a per-row "Copy invite" action.
+     *
+     * Write: plaintext https:// URL to set/rotate, empty to clear.
+     * Read: plaintext.
+     * </pre>
+     *
+     * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+     * @param value The teamInviteLink to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTeamInviteLink(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      teamInviteLink_ = value;
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Operator-pasted team invite link from the Cursor dashboard (Invite
+     * Members → Copy Invite Link). Cursor's Admin API cannot mint or fetch
+     * one, so this is declared, not synced. Long-lived and joinable by
+     * anyone holding it (each join consumes a paid seat), so it is
+     * encrypted at rest — but unlike the API keys it IS returned readable
+     * on read: a link operators cannot copy serves no one, and every read
+     * surface is operator-gated. Optional: when empty the console shows
+     * dashboard guidance instead of a per-row "Copy invite" action.
+     *
+     * Write: plaintext https:// URL to set/rotate, empty to clear.
+     * Read: plaintext.
+     * </pre>
+     *
+     * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearTeamInviteLink() {
+      teamInviteLink_ = getDefaultInstance().getTeamInviteLink();
+      bitField0_ = (bitField0_ & ~0x00001000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Operator-pasted team invite link from the Cursor dashboard (Invite
+     * Members → Copy Invite Link). Cursor's Admin API cannot mint or fetch
+     * one, so this is declared, not synced. Long-lived and joinable by
+     * anyone holding it (each join consumes a paid seat), so it is
+     * encrypted at rest — but unlike the API keys it IS returned readable
+     * on read: a link operators cannot copy serves no one, and every read
+     * surface is operator-gated. Optional: when empty the console shows
+     * dashboard guidance instead of a per-row "Copy invite" action.
+     *
+     * Write: plaintext https:// URL to set/rotate, empty to clear.
+     * Read: plaintext.
+     * </pre>
+     *
+     * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+     * @param value The bytes for teamInviteLink to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTeamInviteLinkBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      teamInviteLink_ = value;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }

@@ -17,6 +17,7 @@ import {
   CursorAccountViewSchema,
   CursorMemberKeyViewSchema,
   CursorMemberKeyState,
+  CursorTeamMemberViewSchema,
 } from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/io_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
@@ -128,12 +129,29 @@ function scenarView() {
         }),
       }),
     ],
+    // The server populates both the deprecated flat list and the
+    // spend-joined views; the console reads only the views.
     membersWithoutKeys: [
       create(CursorTeamMemberSchema, {
         userId: "u2",
         email: "uncovered@scenar.ai",
         name: "Uncovered U",
         role: "member",
+      }),
+    ],
+    membersWithoutKeysViews: [
+      create(CursorTeamMemberViewSchema, {
+        member: create(CursorTeamMemberSchema, {
+          userId: "u2",
+          email: "uncovered@scenar.ai",
+          name: "Uncovered U",
+          role: "member",
+        }),
+        spend: create(CursorMemberSpendSchema, {
+          userId: "u2",
+          email: "uncovered@scenar.ai",
+          includedSpendUsdMicros: 42000n,
+        }),
       }),
     ],
   });
@@ -194,7 +212,7 @@ describe("CursorAccountsConsole", () => {
     expect(screen.queryByText(/only platform operators/)).toBeNull();
   });
 
-  it("opens the detail view with key coverage, spend, and gap list", async () => {
+  it("opens the detail view with the coverage table: covered and gap rows in their groups", async () => {
     const client = createMockStigmer({
       listAccounts: vi.fn().mockResolvedValue({ accounts: [scenarSummary()] }),
       getAccountView: vi.fn().mockResolvedValue(scenarView()),
@@ -204,12 +222,144 @@ describe("CursorAccountsConsole", () => {
     await waitFor(() => expect(screen.getByText("scenar team")).toBeTruthy());
     await userEvent.click(screen.getByRole("button", { name: /scenar team/ }));
 
-    await waitFor(() => expect(screen.getByText(/zane@scenar\.ai/)).toBeTruthy());
-    // Spend joined to the key row: 169342 micro-USD = $0.17.
-    expect(screen.getByText(/\$0\.17 this cycle/)).toBeTruthy();
-    // Coverage gap: the active member with no key, by name and email.
-    expect(screen.getByText(/uncovered@scenar\.ai/)).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByRole("table", { name: "Team coverage" })).toBeTruthy(),
+    );
+    // Category 1: on the team, key held — email, key name, spend, status.
+    expect(screen.getByText(/On the team — key held/)).toBeTruthy();
+    expect(screen.getByText("zane@scenar.ai")).toBeTruthy();
+    expect(screen.getByText("stigmer-prod")).toBeTruthy();
+    expect(screen.getByText("$0.17")).toBeTruthy(); // 169342 micro-USD
     expect(screen.getByText("Active")).toBeTruthy();
+    // Category 2: on the team, no key — server-joined spend on the gap row.
+    expect(screen.getByText(/On the team — no execution key/)).toBeTruthy();
+    expect(screen.getByText("uncovered@scenar.ai")).toBeTruthy();
+    expect(screen.getByText("$0.04")).toBeTruthy(); // 42000 micro-USD
+    expect(screen.getByText("No key")).toBeTruthy();
+    // Header sync line counts active roster members from server facts.
+    expect(screen.getByText(/2 members/)).toBeTruthy();
+  });
+
+  it("classifies off-team keys with invite guidance; copy button only with a configured link", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    const offTeamView = create(CursorAccountViewSchema, {
+      account: scenarAccount({
+        teamInviteLink: "https://cursor.com/team-invite/abc",
+      }),
+      snapshot: create(CursorAccountSyncSnapshotSchema, {
+        accountId: "acc-1",
+        syncedAt: timestampFromDate(new Date("2026-07-22T12:00:00Z")),
+      }),
+      keyViews: [
+        create(CursorMemberKeyViewSchema, {
+          key: create(CursorMemberKeySchema, {
+            keyId: "k-stranger",
+            apiKey: "***REDACTED***",
+            boundEmail: "stranger@else.where",
+            enabled: true,
+          }),
+          state: CursorMemberKeyState.member_key_owner_unknown,
+        }),
+        create(CursorMemberKeyViewSchema, {
+          key: create(CursorMemberKeySchema, {
+            keyId: "k-gone",
+            apiKey: "***REDACTED***",
+            boundEmail: "gone@scenar.ai",
+            enabled: true,
+          }),
+          state: CursorMemberKeyState.member_key_owner_removed,
+        }),
+      ],
+    });
+    const client = createMockStigmer({
+      listAccounts: vi.fn().mockResolvedValue({ accounts: [scenarSummary()] }),
+      getAccountView: vi.fn().mockResolvedValue(offTeamView),
+    });
+    render(<CursorAccountsConsole />, { wrapper: wrapper(client) });
+
+    await waitFor(() => expect(screen.getByText("scenar team")).toBeTruthy());
+    await userEvent.click(screen.getByRole("button", { name: /scenar team/ }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/Key held — not on the team/)).toBeTruthy(),
+    );
+    // The two off-team causes carry distinct labels.
+    expect(screen.getByText("Not on team")).toBeTruthy();
+    expect(screen.getByText("Left team")).toBeTruthy();
+
+    // One "Copy invite" per off-team row — a copy, never a navigation.
+    const copyButtons = screen.getAllByRole("button", { name: "Copy invite" });
+    expect(copyButtons).toHaveLength(2);
+    await userEvent.click(copyButtons[0]);
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith("https://cursor.com/team-invite/abc"),
+    );
+    expect(screen.getByRole("button", { name: "Copied" })).toBeTruthy();
+  });
+
+  it("points at the Cursor dashboard when no invite link is configured", async () => {
+    const offTeamView = create(CursorAccountViewSchema, {
+      account: scenarAccount(),
+      snapshot: create(CursorAccountSyncSnapshotSchema, {
+        accountId: "acc-1",
+        syncedAt: timestampFromDate(new Date("2026-07-22T12:00:00Z")),
+      }),
+      keyViews: [
+        create(CursorMemberKeyViewSchema, {
+          key: create(CursorMemberKeySchema, {
+            keyId: "k-stranger",
+            apiKey: "***REDACTED***",
+            boundEmail: "stranger@else.where",
+            enabled: true,
+          }),
+          state: CursorMemberKeyState.member_key_owner_unknown,
+        }),
+      ],
+    });
+    const client = createMockStigmer({
+      listAccounts: vi.fn().mockResolvedValue({ accounts: [scenarSummary()] }),
+      getAccountView: vi.fn().mockResolvedValue(offTeamView),
+    });
+    render(<CursorAccountsConsole />, { wrapper: wrapper(client) });
+
+    await waitFor(() => expect(screen.getByText("scenar team")).toBeTruthy());
+    await userEvent.click(screen.getByRole("button", { name: /scenar team/ }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/Key held — not on the team/)).toBeTruthy(),
+    );
+    expect(screen.queryByRole("button", { name: "Copy invite" })).toBeNull();
+    expect(screen.getByText(/paste the team's invite link/)).toBeTruthy();
+  });
+
+  it("withholds classification before the first sync instead of reporting keys off-team", async () => {
+    const unsyncedView = create(CursorAccountViewSchema, {
+      account: scenarAccount(),
+      keyViews: [
+        create(CursorMemberKeyViewSchema, {
+          key: scenarAccount().memberKeys[0],
+          state: CursorMemberKeyState.member_key_owner_unknown,
+        }),
+      ],
+    });
+    const client = createMockStigmer({
+      listAccounts: vi.fn().mockResolvedValue({ accounts: [scenarSummary()] }),
+      getAccountView: vi.fn().mockResolvedValue(unsyncedView),
+    });
+    render(<CursorAccountsConsole />, { wrapper: wrapper(client) });
+
+    await waitFor(() => expect(screen.getByText("scenar team")).toBeTruthy());
+    await userEvent.click(screen.getByRole("button", { name: /scenar team/ }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/not yet classified/)).toBeTruthy(),
+    );
+    expect(screen.getByText("Awaiting sync")).toBeTruthy();
+    expect(screen.queryByText(/Key held — not on the team/)).toBeNull();
   });
 
   it("adds a member key and refreshes both views", async () => {
@@ -294,6 +444,10 @@ describe("CursorAccountsConsole", () => {
       screen.getByLabelText(/Dedicated organization ids/),
       "org-x org-y",
     );
+    await userEvent.type(
+      screen.getByLabelText(/Team invite link/),
+      "https://cursor.com/team-invite/abc",
+    );
     await userEvent.click(screen.getByRole("button", { name: "Create account" }));
 
     await waitFor(() => expect(upsertAccount).toHaveBeenCalledTimes(1));
@@ -301,6 +455,8 @@ describe("CursorAccountsConsole", () => {
     expect(submitted.displayName).toBe("new team");
     expect(submitted.adminApiKey).toBe("key_admin_plain");
     expect(submitted.orgIds).toEqual(["org-x", "org-y"]);
+    // Readable round-trip: the invite link submits as typed, no marker.
+    expect(submitted.teamInviteLink).toBe("https://cursor.com/team-invite/abc");
     expect(submitted.enabled).toBe(true);
     // Checkbox default checked ("on-demand enabled", Cursor's team default)
     // negates into the proto field.
@@ -393,9 +549,13 @@ describe("CursorAccountsConsole", () => {
     await waitFor(() => expect(syncAccount).toHaveBeenCalledWith("acc-1"));
   });
 
-  it("shows API-pool utilization and the usage-guard badge from server-computed facts", async () => {
+  it("shows pool-utilization columns and the usage-guard badge from server-computed facts", async () => {
     const guardedView = create(CursorAccountViewSchema, {
       account: scenarAccount({ onDemandUsageDisabled: true }),
+      snapshot: create(CursorAccountSyncSnapshotSchema, {
+        accountId: "acc-1",
+        syncedAt: timestampFromDate(new Date("2026-07-22T12:00:00Z")),
+      }),
       keyViews: [
         create(CursorMemberKeyViewSchema, {
           key: scenarAccount().memberKeys[0],
@@ -420,9 +580,9 @@ describe("CursorAccountsConsole", () => {
     await waitFor(() => expect(screen.getByText("scenar team")).toBeTruthy());
     await userEvent.click(screen.getByRole("button", { name: /scenar team/ }));
 
-    await waitFor(() =>
-      expect(screen.getByText(/API pool 100% used/)).toBeTruthy(),
-    );
+    // Included % (blended) and API pool % render as separate columns.
+    await waitFor(() => expect(screen.getByText("100%")).toBeTruthy());
+    expect(screen.getByText("27%")).toBeTruthy();
     // The badge renders the server's flag — no client-side threshold math.
     expect(screen.getByText("Usage guard")).toBeTruthy();
     // The header carries the declaration driving the guard.

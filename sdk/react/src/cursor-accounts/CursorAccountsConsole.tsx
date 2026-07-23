@@ -4,17 +4,14 @@ import { useCallback, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage, isPermissionDenied } from "@stigmer/sdk";
 import type { CursorAccount } from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/cursor_account_pb";
-import {
-  CursorMemberKeyState,
-  type CursorAccountSummary,
-  type CursorMemberKeyView,
-} from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/io_pb";
+import type { CursorAccountSummary } from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/io_pb";
 import { Button } from "../button/index.js";
-import { INPUT_CLASSES } from "../billing/form-primitives.js";
-import { toError } from "../internal/toError.js";
+import { StateBadge } from "./badges.js";
 import { CursorAccountEditor } from "./CursorAccountEditor.js";
 import { CursorAccountsAccessNotice } from "./CursorAccountsAccessNotice.js";
-import { formatPoolPercent, formatSpendMicros, formatSyncTime } from "./cursor-account-format.js";
+import { deriveCoverage } from "./cursor-account-coverage.js";
+import { formatSyncTime } from "./cursor-account-format.js";
+import { MemberKeysPanel } from "./MemberKeysPanel.js";
 import { useCursorAccounts } from "./useCursorAccounts.js";
 import { useCursorAccountView } from "./useCursorAccountView.js";
 import { useCursorMemberKeyActions } from "./useCursorMemberKeyActions.js";
@@ -41,9 +38,12 @@ type Flow =
  *
  * - **List** — every account with routability at a glance (an account
  *   with zero enabled member keys cannot serve executions).
- * - **Detail** — org assignments, the member-key panel (add / disable /
- *   remove, each key joined with its owner's roster state and spend),
- *   coverage gaps (active members without keys), and "Sync now".
+ * - **Detail** — org assignments, "Sync now", and the team-coverage
+ *   table: every member and stored key classified into three explicit
+ *   categories (on team with key / on team without key / key held but
+ *   not on team), each row carrying cycle spend and pool-usage columns.
+ *   Off-team rows offer one-click copy of the account's Cursor team
+ *   invite link when the operator has configured one.
  *
  * Requires `can_manage_cursor_accounts` on `platform:stigmer` —
  * non-operators see the designed access notice. Key material never
@@ -324,6 +324,12 @@ function AccountDetail({
 
   const view = detail.view;
   const account = view.account as CursorAccount;
+  // Derived once here: the panel's table consumes the groups, the header
+  // line the member count (active roster = covered + uncovered members —
+  // server-computed facts only, no role-string parsing in the client).
+  const coverage = deriveCoverage(view);
+  const activeMemberCount =
+    coverage.onTeamWithKey.length + coverage.onTeamWithoutKey.length;
 
   if (editing) {
     return (
@@ -367,6 +373,9 @@ function AccountDetail({
               : ""}
             {" · synced "}
             {formatSyncTime(view.snapshot?.syncedAt)}
+            {coverage.hasRoster
+              ? ` · ${activeMemberCount} ${activeMemberCount === 1 ? "member" : "members"}`
+              : ""}
           </p>
         </div>
         <div className="flex gap-2">
@@ -422,399 +431,13 @@ function AccountDetail({
 
       <MemberKeysPanel
         accountId={accountId}
-        keyViews={view.keyViews}
+        view={view}
+        coverage={coverage}
         actions={keyActions}
         onChanged={refreshAll}
         onImported={syncAfterImport}
       />
-
-      {view.membersWithoutKeys.length > 0 && (
-        <section className="space-y-1">
-          <h4 className="text-xs font-semibold text-foreground">
-            Members without execution keys
-          </h4>
-          <p className="text-[11px] text-muted-foreground">
-            Active team members Stigmer holds no key for — sessions can never
-            run under their identity or included quota.
-          </p>
-          <ul role="list" className="m-0 list-none space-y-0.5 p-0 text-xs text-muted-foreground">
-            {view.membersWithoutKeys.map((member) => (
-              <li key={member.email}>
-                {member.name || member.email} · {member.email}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Member keys panel (internal)
-// ---------------------------------------------------------------------------
-
-/** One line's outcome from a bulk key import. */
-interface ImportLineResult {
-  /** Masked identification of the key (never the full material). */
-  readonly keyPreview: string;
-  readonly ok: boolean;
-  /** Bound email on success; the server/Cursor error on failure. */
-  readonly message: string;
-}
-
-/** Parse bulk-import text: one key per line, trimmed, deduped. */
-function parseImportKeys(text: string): string[] {
-  return [...new Set(text.split(/\r?\n/).map((s) => s.trim()).filter((s) => s !== ""))];
-}
-
-function maskKey(key: string, index: number): string {
-  return key.length >= 8 ? `key ${index + 1} (…${key.slice(-4)})` : `key ${index + 1}`;
-}
-
-function MemberKeysPanel({
-  accountId,
-  keyViews,
-  actions,
-  onChanged,
-  onImported,
-}: {
-  readonly accountId: string;
-  readonly keyViews: readonly CursorMemberKeyView[];
-  readonly actions: ReturnType<typeof useCursorMemberKeyActions>;
-  readonly onChanged: () => void;
-  /** Called after a bulk import added at least one key (triggers sync). */
-  readonly onImported: () => void;
-}) {
-  const [newKey, setNewKey] = useState("");
-  const [newLabel, setNewLabel] = useState("");
-  const [showImport, setShowImport] = useState(false);
-  const [importText, setImportText] = useState("");
-  const [isImporting, setIsImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState<
-    { readonly done: number; readonly total: number } | null
-  >(null);
-  const [importResults, setImportResults] = useState<readonly ImportLineResult[] | null>(
-    null,
-  );
-
-  const submitNewKey = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newKey.trim() === "" || actions.isSubmitting) return;
-    void actions
-      .addKey({ accountId, apiKey: newKey.trim(), label: newLabel.trim() || undefined })
-      .then(() => {
-        setNewKey("");
-        setNewLabel("");
-        onChanged();
-      }, () => {
-        // Surfaced via actions.error (incl. Cursor's own key-class 401 text).
-      });
-  };
-
-  const importKeyCount = parseImportKeys(importText).length;
-
-  const submitImport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const keys = parseImportKeys(importText);
-    if (keys.length === 0 || isImporting) return;
-
-    setIsImporting(true);
-    setImportResults(null);
-
-    // Sequential on purpose: each key is validated live against Cursor's
-    // /v1/me, and per-key errors (wrong key class, revoked, duplicate)
-    // must be attributable to their line.
-    const knownKeyIds = new Set(
-      keyViews.map((kv) => kv.key?.keyId).filter((id): id is string => !!id),
-    );
-    const results: ImportLineResult[] = [];
-    const failedKeys: string[] = [];
-    for (const [i, key] of keys.entries()) {
-      setImportProgress({ done: i, total: keys.length });
-      try {
-        const account = await actions.addKey({ accountId, apiKey: key });
-        const addedKey = account.memberKeys.find((mk) => !knownKeyIds.has(mk.keyId));
-        if (addedKey) knownKeyIds.add(addedKey.keyId);
-        results.push({
-          keyPreview: maskKey(key, i),
-          ok: true,
-          message: addedKey?.boundEmail
-            ? `added — bound to ${addedKey.boundEmail}`
-            : "added",
-        });
-      } catch (err) {
-        actions.clearError();
-        failedKeys.push(key);
-        results.push({
-          keyPreview: maskKey(key, i),
-          ok: false,
-          message: getUserMessage(toError(err)),
-        });
-      }
-    }
-
-    setImportProgress(null);
-    setImportResults(results);
-    // Failed lines stay in the box so the operator can fix and retry.
-    setImportText(failedKeys.join("\n"));
-    setIsImporting(false);
-    if (failedKeys.length < keys.length) onImported();
-  };
-
-  return (
-    <section className="space-y-2">
-      <h4 className="text-xs font-semibold text-foreground">Member execution keys</h4>
-
-      {keyViews.length === 0 ? (
-        <p className="text-xs text-muted-foreground" role="status">
-          No execution keys — this account is <strong>not routable</strong>.
-          Add a member's user-scoped API key below.
-        </p>
-      ) : (
-        <ul role="list" aria-label="Member keys" className="m-0 list-none space-y-1 p-0">
-          {keyViews.map((keyView) => (
-            <MemberKeyRow
-              key={keyView.key?.keyId}
-              accountId={accountId}
-              keyView={keyView}
-              actions={actions}
-              onChanged={onChanged}
-            />
-          ))}
-        </ul>
-      )}
-
-      {actions.error && (
-        <p className="text-destructive text-xs" role="alert">
-          {getUserMessage(actions.error)}
-        </p>
-      )}
-
-      <form className="flex flex-wrap items-end gap-2" onSubmit={submitNewKey}>
-        <label className="block min-w-56 flex-1 space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">
-            User-scoped API key
-          </span>
-          <input
-            className={INPUT_CLASSES}
-            type="password"
-            value={newKey}
-            onChange={(e) => setNewKey(e.target.value)}
-            placeholder="the member's personal Cursor API key"
-            disabled={actions.isSubmitting}
-            autoComplete="off"
-          />
-        </label>
-        <label className="block min-w-40 space-y-1">
-          <span className="text-[11px] font-medium text-muted-foreground">
-            Label (optional)
-          </span>
-          <input
-            className={INPUT_CLASSES}
-            value={newLabel}
-            onChange={(e) => setNewLabel(e.target.value)}
-            placeholder="e.g. zane — prod"
-            disabled={actions.isSubmitting}
-          />
-        </label>
-        <Button type="submit" size="sm" disabled={newKey.trim() === "" || actions.isSubmitting}>
-          {actions.isSubmitting ? "Verifying…" : "Add key"}
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={isImporting}
-          onClick={() => {
-            setShowImport((v) => !v);
-            setImportResults(null);
-          }}
-        >
-          {showImport ? "Hide import" : "Import keys"}
-        </Button>
-      </form>
-
-      {showImport && (
-        <form className="space-y-2 rounded-md border border-border bg-card p-3" onSubmit={submitImport}>
-          <label className="block space-y-1">
-            <span className="text-[11px] font-medium text-muted-foreground">
-              Bulk import — one user-scoped API key per line
-            </span>
-            <textarea
-              className={cn(INPUT_CLASSES, "min-h-24 font-mono")}
-              value={importText}
-              onChange={(e) => setImportText(e.target.value)}
-              placeholder={"key_...\nkey_...\nkey_..."}
-              disabled={isImporting}
-              autoComplete="off"
-              spellCheck={false}
-            />
-          </label>
-          <p className="text-[11px] text-muted-foreground">
-            Each key is verified against Cursor and bound to its owning team
-            member, one at a time. Lines that fail stay in the box so you can
-            fix and retry them. A roster sync runs automatically afterwards,
-            so the key badges reflect current team membership.
-          </p>
-          <div className="flex items-center gap-2">
-            <Button type="submit" size="sm" disabled={importKeyCount === 0 || isImporting}>
-              {isImporting && importProgress
-                ? `Importing ${importProgress.done + 1} of ${importProgress.total}…`
-                : importKeyCount > 0
-                  ? `Import ${importKeyCount} ${importKeyCount === 1 ? "key" : "keys"}`
-                  : "Import keys"}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={isImporting}
-              onClick={() => {
-                setShowImport(false);
-                setImportText("");
-                setImportResults(null);
-              }}
-            >
-              Close
-            </Button>
-          </div>
-          {importResults && (
-            <ul
-              role="list"
-              aria-label="Import results"
-              className="m-0 list-none space-y-0.5 p-0 text-[11px]"
-            >
-              {importResults.map((result) => (
-                <li
-                  key={result.keyPreview}
-                  className={result.ok ? "text-muted-foreground" : "text-destructive"}
-                >
-                  {result.keyPreview}: {result.message}
-                </li>
-              ))}
-            </ul>
-          )}
-        </form>
-      )}
-    </section>
-  );
-}
-
-function MemberKeyRow({
-  accountId,
-  keyView,
-  actions,
-  onChanged,
-}: {
-  readonly accountId: string;
-  readonly keyView: CursorMemberKeyView;
-  readonly actions: ReturnType<typeof useCursorMemberKeyActions>;
-  readonly onChanged: () => void;
-}) {
-  const key = keyView.key;
-  if (!key) return null;
-
-  return (
-    <li className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2">
-      <span className="min-w-0">
-        <span className="block truncate text-xs font-medium text-foreground">
-          {key.boundEmail}
-          {key.label ? ` · ${key.label}` : ""}
-        </span>
-        <span className="block text-[11px] text-muted-foreground">
-          {key.cursorKeyName || "unnamed key"}
-          {keyView.spend
-            ? ` · ${formatSpendMicros(
-                keyView.spend.includedSpendUsdMicros + keyView.spend.overageSpendUsdMicros,
-              )} this cycle`
-            : ""}
-          {keyView.spend && formatPoolPercent(keyView.spend.apiPercentUsed)
-            ? ` · API pool ${formatPoolPercent(keyView.spend.apiPercentUsed)} used`
-            : ""}
-        </span>
-      </span>
-      <span className="flex items-center gap-2">
-        {/* Server-computed: same routability rule key selection runs. */}
-        {keyView.usageGuardTripped && (
-          <StateBadge tone="warn" label="Usage guard" />
-        )}
-        <KeyStateBadge state={keyView.state} enabled={key.enabled} />
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={actions.isSubmitting}
-          onClick={() => {
-            void actions
-              .setKeyEnabled(accountId, key.keyId, !key.enabled)
-              .then(onChanged, () => {
-                // Surfaced via actions.error.
-              });
-          }}
-        >
-          {key.enabled ? "Disable" : "Enable"}
-        </Button>
-        <Button
-          size="sm"
-          variant="destructive"
-          disabled={actions.isSubmitting}
-          onClick={() => {
-            void actions
-              .removeKey({ accountId, keyId: key.keyId })
-              .then(onChanged, () => {
-                // Surfaced via actions.error (incl. the live-pin guard's
-                // "disable instead, or force" message).
-              });
-          }}
-        >
-          Remove
-        </Button>
-      </span>
-    </li>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Badges (internal)
-// ---------------------------------------------------------------------------
-
-function StateBadge({
-  tone,
-  label,
-}: {
-  readonly tone: "ok" | "warn" | "muted";
-  readonly label: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-block rounded px-1.5 py-0.5 text-[10px] font-medium",
-        tone === "ok" && "bg-accent text-primary",
-        tone === "warn" && "bg-muted-subtle text-destructive",
-        tone === "muted" && "bg-muted-subtle text-muted-foreground",
-      )}
-    >
-      {label}
-    </span>
-  );
-}
-
-function KeyStateBadge({
-  state,
-  enabled,
-}: {
-  readonly state: CursorMemberKeyState;
-  readonly enabled: boolean;
-}) {
-  if (state === CursorMemberKeyState.member_key_owner_removed) {
-    return <StateBadge tone="warn" label="Owner left team" />;
-  }
-  if (state === CursorMemberKeyState.member_key_owner_unknown) {
-    return <StateBadge tone="muted" label="Owner unknown" />;
-  }
-  return enabled ? (
-    <StateBadge tone="ok" label="Active" />
-  ) : (
-    <StateBadge tone="muted" label="Disabled" />
-  );
-}

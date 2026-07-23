@@ -309,4 +309,44 @@ public interface CursorAccountOrBuilder extends
    * @return The onDemandUsageDisabled.
    */
   boolean getOnDemandUsageDisabled();
+
+  /**
+   * <pre>
+   * Operator-pasted team invite link from the Cursor dashboard (Invite
+   * Members → Copy Invite Link). Cursor's Admin API cannot mint or fetch
+   * one, so this is declared, not synced. Long-lived and joinable by
+   * anyone holding it (each join consumes a paid seat), so it is
+   * encrypted at rest — but unlike the API keys it IS returned readable
+   * on read: a link operators cannot copy serves no one, and every read
+   * surface is operator-gated. Optional: when empty the console shows
+   * dashboard guidance instead of a per-row "Copy invite" action.
+   *
+   * Write: plaintext https:// URL to set/rotate, empty to clear.
+   * Read: plaintext.
+   * </pre>
+   *
+   * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+   * @return The teamInviteLink.
+   */
+  java.lang.String getTeamInviteLink();
+  /**
+   * <pre>
+   * Operator-pasted team invite link from the Cursor dashboard (Invite
+   * Members → Copy Invite Link). Cursor's Admin API cannot mint or fetch
+   * one, so this is declared, not synced. Long-lived and joinable by
+   * anyone holding it (each join consumes a paid seat), so it is
+   * encrypted at rest — but unlike the API keys it IS returned readable
+   * on read: a link operators cannot copy serves no one, and every read
+   * surface is operator-gated. Optional: when empty the console shows
+   * dashboard guidance instead of a per-row "Copy invite" action.
+   *
+   * Write: plaintext https:// URL to set/rotate, empty to clear.
+   * Read: plaintext.
+   * </pre>
+   *
+   * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+   * @return The bytes for teamInviteLink.
+   */
+  com.google.protobuf.ByteString
+      getTeamInviteLinkBytes();
 }
