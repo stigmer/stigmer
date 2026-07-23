@@ -8,6 +8,7 @@ import (
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	agentsharev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1"
 	channelappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/channelapp/v1"
+	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executionctxv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
@@ -56,6 +57,14 @@ type Clients struct {
 	AgentChannelQuery     agentchannelv1.AgentChannelQueryControllerClient
 	ChannelAppCommand     channelappv1.ChannelAppCommandControllerClient
 	ChannelAppQuery       channelappv1.ChannelAppQueryControllerClient
+
+	// Datastore services — resource lifecycle plus the slug-addressed
+	// record layer (reach + grants enforced in-handler, not via FGA
+	// interceptors; see the record controller proto docs)
+	DatastoreCommand       datastorev1.DatastoreCommandControllerClient
+	DatastoreQuery         datastorev1.DatastoreQueryControllerClient
+	DatastoreRecordCommand datastorev1.DatastoreRecordCommandControllerClient
+	DatastoreRecordQuery   datastorev1.DatastoreRecordQueryControllerClient
 
 	// Environment services
 	EnvironmentCommand environmentv1.EnvironmentCommandControllerClient
@@ -141,6 +150,11 @@ func NewClients(conn grpc.ClientConnInterface) *Clients {
 		AgentChannelQuery:     agentchannelv1.NewAgentChannelQueryControllerClient(conn),
 		ChannelAppCommand:     channelappv1.NewChannelAppCommandControllerClient(conn),
 		ChannelAppQuery:       channelappv1.NewChannelAppQueryControllerClient(conn),
+
+		DatastoreCommand:       datastorev1.NewDatastoreCommandControllerClient(conn),
+		DatastoreQuery:         datastorev1.NewDatastoreQueryControllerClient(conn),
+		DatastoreRecordCommand: datastorev1.NewDatastoreRecordCommandControllerClient(conn),
+		DatastoreRecordQuery:   datastorev1.NewDatastoreRecordQueryControllerClient(conn),
 
 		EnvironmentCommand: environmentv1.NewEnvironmentCommandControllerClient(conn),
 		EnvironmentQuery:   environmentv1.NewEnvironmentQueryControllerClient(conn),

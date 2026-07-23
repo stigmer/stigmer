@@ -333,13 +333,14 @@ public interface LlmCallUsageRecordOrBuilder extends
   /**
    * <pre>
    * ─── Cursor Account Attribution (cursor harness only) ─────────────────────
-   * Which managed CursorAccount / member key served this call, stamped by
-   * the billing handler from the session's key pin at write time (never
-   * threaded through the proxy payload — the pin is the single source of
-   * truth). Identifiers only, never key material. Empty for the native
-   * harness, for env-key fallback traffic, and for records written before
-   * managed key selection was enabled. Lets provider reconciliation
-   * iterate per-account Cursor ledgers.
+   * Which managed CursorAccount / member key actually served this call,
+   * threaded through the proxy payload from the key resolution that
+   * injected the upstream credential (RecordLlmCallUsageInput carries the
+   * same identity — the record states what was sent on the wire, never an
+   * after-the-fact pin lookup). Identifiers only, never key material.
+   * Empty for the native harness and for records written before the
+   * serving identity was threaded through. Lets provider reconciliation
+   * attribute conversations across per-account Cursor ledgers.
    * </pre>
    *
    * <code>string cursor_account_id = 38 [json_name = "cursorAccountId"];</code>
@@ -349,13 +350,14 @@ public interface LlmCallUsageRecordOrBuilder extends
   /**
    * <pre>
    * ─── Cursor Account Attribution (cursor harness only) ─────────────────────
-   * Which managed CursorAccount / member key served this call, stamped by
-   * the billing handler from the session's key pin at write time (never
-   * threaded through the proxy payload — the pin is the single source of
-   * truth). Identifiers only, never key material. Empty for the native
-   * harness, for env-key fallback traffic, and for records written before
-   * managed key selection was enabled. Lets provider reconciliation
-   * iterate per-account Cursor ledgers.
+   * Which managed CursorAccount / member key actually served this call,
+   * threaded through the proxy payload from the key resolution that
+   * injected the upstream credential (RecordLlmCallUsageInput carries the
+   * same identity — the record states what was sent on the wire, never an
+   * after-the-fact pin lookup). Identifiers only, never key material.
+   * Empty for the native harness and for records written before the
+   * serving identity was threaded through. Lets provider reconciliation
+   * attribute conversations across per-account Cursor ledgers.
    * </pre>
    *
    * <code>string cursor_account_id = 38 [json_name = "cursorAccountId"];</code>
@@ -405,6 +407,31 @@ public interface LlmCallUsageRecordOrBuilder extends
    */
   com.google.protobuf.ByteString
       getErrorCodeBytes();
+
+  /**
+   * <pre>
+   * Which credential class served this call (cursor harness only).
+   * UNSPECIFIED on native-harness records and on records written before
+   * this field existed (their cursor_account_id semantics are the legacy
+   * pin-derived stamp).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 43 [json_name = "cursorKeySource"];</code>
+   * @return The enum numeric value on the wire for cursorKeySource.
+   */
+  int getCursorKeySourceValue();
+  /**
+   * <pre>
+   * Which credential class served this call (cursor harness only).
+   * UNSPECIFIED on native-harness records and on records written before
+   * this field existed (their cursor_account_id semantics are the legacy
+   * pin-derived stamp).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 43 [json_name = "cursorKeySource"];</code>
+   * @return The cursorKeySource.
+   */
+  ai.stigmer.agentic.agentexecution.v1.CursorKeySource getCursorKeySource();
 
   /**
    * <pre>

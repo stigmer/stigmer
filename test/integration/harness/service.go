@@ -98,6 +98,18 @@ type ServiceConfig struct {
 	MinIOAccessKey string
 	MinIOSecretKey string
 
+	// Records Postgres — the Datastore record substrate behind the
+	// always-active records-postgres profile. When RecordsPGHost is set,
+	// RECORDS_PG_* env vars point the (lazy) records pool at a live
+	// database and the record RPCs are fully functional; when empty, the
+	// service still boots (initializationFailTimeout = -1) and record
+	// RPCs fail loudly on first use.
+	RecordsPGHost     string
+	RecordsPGPort     string
+	RecordsPGDatabase string
+	RecordsPGUser     string
+	RecordsPGPassword string
+
 	// LogDir is the directory for the service log file.
 	// If empty, a temporary directory is used.
 	LogDir string
@@ -320,10 +332,12 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	// too, or the Spring context fails to boot with a missing-bean error.
 	//
 	// records-postgres: required for the Datastore record-substrate beans to
-	// exist (an unconditional pipeline step injects DatastoreRecordStore). No
-	// Postgres container is needed — the records pool is lazy by design
-	// (initializationFailTimeout = -1), so the service boots safely against
-	// the localhost:5432 defaults and record RPCs fail loudly on first use.
+	// exist (an unconditional pipeline step injects DatastoreRecordStore).
+	// The harness starts a Postgres container (StartPostgres) and suites
+	// pass it via ServiceConfig.RecordsPG*, making the record RPCs fully
+	// live. When a suite leaves RecordsPGHost empty, the lazy pool
+	// (initializationFailTimeout = -1) still lets the service boot against
+	// the localhost:5432 defaults; record RPCs then fail loudly on first use.
 	profiles := "mongo,temporal,iam,logging,auth0,skill-r2,agent-execution-r2,claimcheck-r2,records-postgres"
 	if cfg.SandboxType != "" {
 		profiles += ",sandbox"
@@ -418,6 +432,19 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		// Generated via: openssl genrsa 2048 | openssl pkcs8 -topk8 -nocrypt -outform DER | base64
 		fmt.Sprintf("STIGMER_JWT_SIGNING_KEY=%s", StigmerJWTSigningKeyBase64),
 	)
+
+	// Records Postgres — the Datastore record substrate. When unset, the
+	// application-records-postgres.yaml localhost defaults apply and the
+	// lazy pool leaves record RPCs failing loudly on first use.
+	if cfg.RecordsPGHost != "" {
+		env = append(env,
+			fmt.Sprintf("RECORDS_PG_HOST=%s", cfg.RecordsPGHost),
+			fmt.Sprintf("RECORDS_PG_PORT=%s", cfg.RecordsPGPort),
+			fmt.Sprintf("RECORDS_PG_DATABASE=%s", cfg.RecordsPGDatabase),
+			fmt.Sprintf("RECORDS_PG_USERNAME=%s", cfg.RecordsPGUser),
+			fmt.Sprintf("RECORDS_PG_PASSWORD=%s", cfg.RecordsPGPassword),
+		)
+	}
 
 	// Optional previous signing key for key-rotation overlap tests. When set,
 	// the service accepts tokens signed by this key in addition to the primary.

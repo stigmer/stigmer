@@ -113,6 +113,21 @@ message RecordLlmCallUsageInput {
   // Set by the proxy controller based on which proxy path handled the request.
   // When empty, the billing handler falls back to the model pricing registry.
   string harness = 14;
+
+  // Cursor serving identity (cursor harness only): which managed
+  // CursorAccount / member key the proxy actually injected upstream for
+  // this call. Reported by the proxy from its key resolution so the
+  // stored record can never disagree with the wire — the billing handler
+  // stamps these verbatim and performs no pin lookup. Identifiers only,
+  // never key material. Empty for native-harness calls.
+  string cursor_account_id = 15;
+  string cursor_key_id = 16;
+
+  // Which credential served this call (cursor harness only). The
+  // CursorAccount store is the only credential source, so a current
+  // proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
+  // caller.
+  ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17;
 }
 
 // RecordLlmCallUsageResponse returns the cost result so callers can

@@ -32,6 +32,7 @@ type TestHarness struct {
 	Temporal      *TemporalDevServer
 	OpenFGA       *OpenFGAContainer
 	MinIO         *MinIOContainer
+	Postgres      *PostgresContainer
 	Jaeger        *JaegerContainer
 	Service       *JavaService
 	UnifiedRunner *UnifiedRunnerStatic
@@ -128,12 +129,12 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 
 	otelEnabled := IsOTelRequested()
 
-	var mongoErr, redisErr, temporalErr, minioErr, jaegerErr error
+	var mongoErr, redisErr, temporalErr, minioErr, postgresErr, jaegerErr error
 	var wg sync.WaitGroup
 
-	startCount := 4
+	startCount := 5
 	if otelEnabled {
-		startCount = 5
+		startCount = 6
 	}
 	wg.Add(startCount)
 
@@ -173,6 +174,15 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 		}
 	}()
 
+	go func() {
+		defer wg.Done()
+		logger.Info("starting postgres (records substrate)")
+		h.Postgres, postgresErr = StartPostgres(ctx)
+		if postgresErr == nil {
+			logger.Info("postgres ready", "host", h.Postgres.Host, "port", h.Postgres.Port)
+		}
+	}()
+
 	if otelEnabled {
 		go func() {
 			defer wg.Done()
@@ -204,6 +214,10 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 	if minioErr != nil {
 		h.Stop(ctx)
 		return nil, fmt.Errorf("minio: %w", minioErr)
+	}
+	if postgresErr != nil {
+		h.Stop(ctx)
+		return nil, fmt.Errorf("postgres: %w", postgresErr)
 	}
 	if jaegerErr != nil {
 		h.Stop(ctx)
@@ -269,6 +283,12 @@ func (h *TestHarness) Stop(ctx context.Context) {
 	if h.MinIO != nil {
 		if err := StopContainer(ctx, h.MinIO.Container); err != nil {
 			h.logger.Error("failed to stop minio", "error", err)
+		}
+	}
+
+	if h.Postgres != nil {
+		if err := StopContainer(ctx, h.Postgres.Container); err != nil {
+			h.logger.Error("failed to stop postgres", "error", err)
 		}
 	}
 

@@ -153,14 +153,15 @@ describe("CursorAccountsConsole", () => {
     );
   });
 
-  it("lists accounts with routability at a glance", async () => {
+  it("lists accounts with routability and the derived pool class at a glance", async () => {
     const notRoutable = create(CursorAccountSummarySchema, {
       account: scenarAccount({
         accountId: "acc-2",
         displayName: "empty team",
         memberKeys: [],
+        // No org assignment = shared-pool account (DD-008): the class is
+        // derived from org_ids, never from the deprecated default flag.
         orgIds: [],
-        isPlatformDefault: true,
       }),
       enabledKeyCount: 0,
     });
@@ -174,7 +175,7 @@ describe("CursorAccountsConsole", () => {
     await waitFor(() => expect(screen.getByText("scenar team")).toBeTruthy());
     expect(screen.getByText("empty team")).toBeTruthy();
     expect(screen.getByText("Not routable")).toBeTruthy();
-    expect(screen.getByText("platform default")).toBeTruthy();
+    expect(screen.getByText("shared pool")).toBeTruthy();
   });
 
   it("shows the designed access notice on PERMISSION_DENIED", async () => {
@@ -290,7 +291,7 @@ describe("CursorAccountsConsole", () => {
       "key_admin_plain",
     );
     await userEvent.type(
-      screen.getByLabelText(/Assigned organization ids/),
+      screen.getByLabelText(/Dedicated organization ids/),
       "org-x org-y",
     );
     await userEvent.click(screen.getByRole("button", { name: "Create account" }));
@@ -304,6 +305,9 @@ describe("CursorAccountsConsole", () => {
     // Checkbox default checked ("on-demand enabled", Cursor's team default)
     // negates into the proto field.
     expect(submitted.onDemandUsageDisabled).toBe(false);
+    // The deprecated default flag is never written by current clients —
+    // the shared pool is derived from empty org_ids (DD-008).
+    expect(submitted.isPlatformDefault).toBe(false);
   });
 
   it("declares on-demand usage off through the editor checkbox", async () => {

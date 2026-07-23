@@ -192,7 +192,9 @@ function useUpsertCursorAccount(): UseUpsertCursorAccountReturn
 ### CursorAccountEditor
 
 Create/edit form for one Cursor account: identity, team Admin API key,
-enablement, platform-default flag, and org assignments.
+enablement, and dedicated-org assignments. The account's class is
+derived (DD-008): listed org ids make it DEDICATED to them, an empty
+list makes it a shared-pool account — there is no flag to manage.
 
 Admin-key semantics mirror the server contract: on edit the field
 shows the redaction marker and submitting it unchanged keeps the

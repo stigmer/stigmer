@@ -110,6 +110,21 @@ func WithSubject(subject string) SessionOption {
 	}
 }
 
+// WithSessionMetadata merges entries into the session spec metadata map.
+// The record RPCs' sender-identity resolution reads the channel-sender
+// keys from here (see ChannelSenderMetadataKey), so tests use this to
+// model a broker-created channel session without running a channel.
+func WithSessionMetadata(metadata map[string]string) SessionOption {
+	return func(s *sessionv1.SessionSpec) {
+		if s.Metadata == nil {
+			s.Metadata = make(map[string]string, len(metadata))
+		}
+		for k, v := range metadata {
+			s.Metadata[k] = v
+		}
+	}
+}
+
 // WithExecutionTarget sets the execution target on the session spec.
 func WithExecutionTarget(target sessionv1.ExecutionTarget) SessionOption {
 	return func(s *sessionv1.SessionSpec) {

@@ -346,6 +346,68 @@ func (CostCalculationStatus) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescGZIP(), []int{4}
 }
 
+// Which credential actually served a cursor-harness LLM call.
+//
+// Recorded so per-call attribution states a fact about the traffic, not an
+// inference from surrounding state. The proxy resolves the key, injects it
+// upstream, and reports the same identity with the usage payload — the
+// record can therefore never disagree with what was sent on the wire. The
+// CursorAccount store is the only credential source, so MANAGED_KEY is the
+// only source a current proxy can report.
+//
+// @internal
+// UNSPECIFIED doubles as the legacy marker: records written before the
+// serving identity was threaded through the proxy payload (when the
+// billing handler re-read the session's key pin at stamp time) carry no
+// source and must not be re-interpreted.
+type CursorKeySource int32
+
+const (
+	CursorKeySource_CURSOR_KEY_SOURCE_UNSPECIFIED CursorKeySource = 0
+	// A managed CursorAccount member key served the call. The
+	// cursor_account_id / cursor_key_id fields identify it.
+	CursorKeySource_CURSOR_KEY_SOURCE_MANAGED_KEY CursorKeySource = 1
+)
+
+// Enum value maps for CursorKeySource.
+var (
+	CursorKeySource_name = map[int32]string{
+		0: "CURSOR_KEY_SOURCE_UNSPECIFIED",
+		1: "CURSOR_KEY_SOURCE_MANAGED_KEY",
+	}
+	CursorKeySource_value = map[string]int32{
+		"CURSOR_KEY_SOURCE_UNSPECIFIED": 0,
+		"CURSOR_KEY_SOURCE_MANAGED_KEY": 1,
+	}
+)
+
+func (x CursorKeySource) Enum() *CursorKeySource {
+	p := new(CursorKeySource)
+	*p = x
+	return p
+}
+
+func (x CursorKeySource) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CursorKeySource) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_enumTypes[5].Descriptor()
+}
+
+func (CursorKeySource) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_usage_proto_enumTypes[5]
+}
+
+func (x CursorKeySource) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use CursorKeySource.Descriptor instead.
+func (CursorKeySource) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescGZIP(), []int{5}
+}
+
 // Normalized token usage from a single LLM call.
 // Disjoint buckets: every token falls into exactly one category for cost calculation.
 type TokenUsage struct {
@@ -978,18 +1040,24 @@ type LlmCallUsageRecord struct {
 	ProviderRequestId string `protobuf:"bytes,36,opt,name=provider_request_id,json=providerRequestId,proto3" json:"provider_request_id,omitempty"`
 	Harness           string `protobuf:"bytes,37,opt,name=harness,proto3" json:"harness,omitempty"`
 	// ─── Cursor Account Attribution (cursor harness only) ─────────────────────
-	// Which managed CursorAccount / member key served this call, stamped by
-	// the billing handler from the session's key pin at write time (never
-	// threaded through the proxy payload — the pin is the single source of
-	// truth). Identifiers only, never key material. Empty for the native
-	// harness, for env-key fallback traffic, and for records written before
-	// managed key selection was enabled. Lets provider reconciliation
-	// iterate per-account Cursor ledgers.
+	// Which managed CursorAccount / member key actually served this call,
+	// threaded through the proxy payload from the key resolution that
+	// injected the upstream credential (RecordLlmCallUsageInput carries the
+	// same identity — the record states what was sent on the wire, never an
+	// after-the-fact pin lookup). Identifiers only, never key material.
+	// Empty for the native harness and for records written before the
+	// serving identity was threaded through. Lets provider reconciliation
+	// attribute conversations across per-account Cursor ledgers.
 	CursorAccountId string `protobuf:"bytes,38,opt,name=cursor_account_id,json=cursorAccountId,proto3" json:"cursor_account_id,omitempty"`
 	CursorKeyId     string `protobuf:"bytes,39,opt,name=cursor_key_id,json=cursorKeyId,proto3" json:"cursor_key_id,omitempty"`
 	HttpStatusCode  int32  `protobuf:"varint,40,opt,name=http_status_code,json=httpStatusCode,proto3" json:"http_status_code,omitempty"`
 	FinishReason    string `protobuf:"bytes,41,opt,name=finish_reason,json=finishReason,proto3" json:"finish_reason,omitempty"`
 	ErrorCode       string `protobuf:"bytes,42,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
+	// Which credential class served this call (cursor harness only).
+	// UNSPECIFIED on native-harness records and on records written before
+	// this field existed (their cursor_account_id semantics are the legacy
+	// pin-derived stamp).
+	CursorKeySource CursorKeySource `protobuf:"varint,43,opt,name=cursor_key_source,json=cursorKeySource,proto3,enum=ai.stigmer.agentic.agentexecution.v1.CursorKeySource" json:"cursor_key_source,omitempty"`
 	// ─── Token Usage ────────────────────────────────────────────────────────────
 	Tokens *TokenUsage `protobuf:"bytes,50,opt,name=tokens,proto3" json:"tokens,omitempty"`
 	// ─── Cost ───────────────────────────────────────────────────────────────────
@@ -1216,6 +1284,13 @@ func (x *LlmCallUsageRecord) GetErrorCode() string {
 		return x.ErrorCode
 	}
 	return ""
+}
+
+func (x *LlmCallUsageRecord) GetCursorKeySource() CursorKeySource {
+	if x != nil {
+		return x.CursorKeySource
+	}
+	return CursorKeySource_CURSOR_KEY_SOURCE_UNSPECIFIED
 }
 
 func (x *LlmCallUsageRecord) GetTokens() *TokenUsage {
@@ -1713,7 +1788,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\n" +
 	"debited_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tdebitedAt\x122\n" +
 	"\x15billing_attempt_count\x18\x05 \x01(\x05R\x13billingAttemptCount\x12,\n" +
-	"\x12last_billing_error\x18\x06 \x01(\tR\x10lastBillingError\"\xbd\r\n" +
+	"\x12last_billing_error\x18\x06 \x01(\tR\x10lastBillingError\"\xa0\x0e\n" +
 	"\x12LlmCallUsageRecord\x12&\n" +
 	"\x0fusage_record_id\x18\x01 \x01(\tR\rusageRecordId\x12!\n" +
 	"\fexecution_id\x18\x02 \x01(\tR\vexecutionId\x12*\n" +
@@ -1745,7 +1820,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\x10http_status_code\x18( \x01(\x05R\x0ehttpStatusCode\x12#\n" +
 	"\rfinish_reason\x18) \x01(\tR\ffinishReason\x12\x1d\n" +
 	"\n" +
-	"error_code\x18* \x01(\tR\terrorCode\x12H\n" +
+	"error_code\x18* \x01(\tR\terrorCode\x12a\n" +
+	"\x11cursor_key_source\x18+ \x01(\x0e25.ai.stigmer.agentic.agentexecution.v1.CursorKeySourceR\x0fcursorKeySource\x12H\n" +
 	"\x06tokens\x182 \x01(\v20.ai.stigmer.agentic.agentexecution.v1.TokenUsageR\x06tokens\x12C\n" +
 	"\x04cost\x183 \x01(\v2/.ai.stigmer.agentic.agentexecution.v1.CostStampR\x04cost\x12T\n" +
 	"\fproxy_timing\x18< \x01(\v21.ai.stigmer.agentic.agentexecution.v1.ProxyTimingR\vproxyTiming\x12.\n" +
@@ -1830,7 +1906,10 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"!COST_CALCULATION_STATUS_ESTIMATED\x10\x02\x12+\n" +
 	"'COST_CALCULATION_STATUS_PRICE_NOT_FOUND\x10\x03\x12&\n" +
 	"\"COST_CALCULATION_STATUS_RECONCILED\x10\x04\x12+\n" +
-	"'COST_CALCULATION_STATUS_MANUAL_ADJUSTED\x10\x05B\xcd\x02\n" +
+	"'COST_CALCULATION_STATUS_MANUAL_ADJUSTED\x10\x05*W\n" +
+	"\x0fCursorKeySource\x12!\n" +
+	"\x1dCURSOR_KEY_SOURCE_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dCURSOR_KEY_SOURCE_MANAGED_KEY\x10\x01B\xcd\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\n" +
 	"UsageProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
@@ -1846,7 +1925,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescGZIP() []byte 
 	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
 var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_goTypes = []any{
 	(UsageMeteringSource)(0),      // 0: ai.stigmer.agentic.agentexecution.v1.UsageMeteringSource
@@ -1854,46 +1933,48 @@ var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_goTypes = []any{
 	(UsageCompletionStatus)(0),    // 2: ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus
 	(BillingDebitStatus)(0),       // 3: ai.stigmer.agentic.agentexecution.v1.BillingDebitStatus
 	(CostCalculationStatus)(0),    // 4: ai.stigmer.agentic.agentexecution.v1.CostCalculationStatus
-	(*TokenUsage)(nil),            // 5: ai.stigmer.agentic.agentexecution.v1.TokenUsage
-	(*PricingSnapshot)(nil),       // 6: ai.stigmer.agentic.agentexecution.v1.PricingSnapshot
-	(*CostStamp)(nil),             // 7: ai.stigmer.agentic.agentexecution.v1.CostStamp
-	(*ProxyTiming)(nil),           // 8: ai.stigmer.agentic.agentexecution.v1.ProxyTiming
-	(*BillingLink)(nil),           // 9: ai.stigmer.agentic.agentexecution.v1.BillingLink
-	(*LlmCallUsageRecord)(nil),    // 10: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord
-	(*UsageReportAggregate)(nil),  // 11: ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
-	(*ModelUsage)(nil),            // 12: ai.stigmer.agentic.agentexecution.v1.ModelUsage
-	(*StreamingUsageSummary)(nil), // 13: ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
-	nil,                           // 14: ai.stigmer.agentic.agentexecution.v1.TokenUsage.ProviderTokenDetailsEntry
-	nil,                           // 15: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.LabelsEntry
-	(*timestamppb.Timestamp)(nil), // 16: google.protobuf.Timestamp
+	(CursorKeySource)(0),          // 5: ai.stigmer.agentic.agentexecution.v1.CursorKeySource
+	(*TokenUsage)(nil),            // 6: ai.stigmer.agentic.agentexecution.v1.TokenUsage
+	(*PricingSnapshot)(nil),       // 7: ai.stigmer.agentic.agentexecution.v1.PricingSnapshot
+	(*CostStamp)(nil),             // 8: ai.stigmer.agentic.agentexecution.v1.CostStamp
+	(*ProxyTiming)(nil),           // 9: ai.stigmer.agentic.agentexecution.v1.ProxyTiming
+	(*BillingLink)(nil),           // 10: ai.stigmer.agentic.agentexecution.v1.BillingLink
+	(*LlmCallUsageRecord)(nil),    // 11: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord
+	(*UsageReportAggregate)(nil),  // 12: ai.stigmer.agentic.agentexecution.v1.UsageReportAggregate
+	(*ModelUsage)(nil),            // 13: ai.stigmer.agentic.agentexecution.v1.ModelUsage
+	(*StreamingUsageSummary)(nil), // 14: ai.stigmer.agentic.agentexecution.v1.StreamingUsageSummary
+	nil,                           // 15: ai.stigmer.agentic.agentexecution.v1.TokenUsage.ProviderTokenDetailsEntry
+	nil,                           // 16: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.LabelsEntry
+	(*timestamppb.Timestamp)(nil), // 17: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_agentexecution_v1_usage_proto_depIdxs = []int32{
-	14, // 0: ai.stigmer.agentic.agentexecution.v1.TokenUsage.provider_token_details:type_name -> ai.stigmer.agentic.agentexecution.v1.TokenUsage.ProviderTokenDetailsEntry
-	16, // 1: ai.stigmer.agentic.agentexecution.v1.PricingSnapshot.pricing_effective_at:type_name -> google.protobuf.Timestamp
+	15, // 0: ai.stigmer.agentic.agentexecution.v1.TokenUsage.provider_token_details:type_name -> ai.stigmer.agentic.agentexecution.v1.TokenUsage.ProviderTokenDetailsEntry
+	17, // 1: ai.stigmer.agentic.agentexecution.v1.PricingSnapshot.pricing_effective_at:type_name -> google.protobuf.Timestamp
 	4,  // 2: ai.stigmer.agentic.agentexecution.v1.CostStamp.calculation_status:type_name -> ai.stigmer.agentic.agentexecution.v1.CostCalculationStatus
-	6,  // 3: ai.stigmer.agentic.agentexecution.v1.CostStamp.pricing:type_name -> ai.stigmer.agentic.agentexecution.v1.PricingSnapshot
-	16, // 4: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.proxy_received_at:type_name -> google.protobuf.Timestamp
-	16, // 5: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.upstream_request_started_at:type_name -> google.protobuf.Timestamp
-	16, // 6: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.first_response_byte_at:type_name -> google.protobuf.Timestamp
-	16, // 7: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.last_response_byte_at:type_name -> google.protobuf.Timestamp
-	16, // 8: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.proxy_completed_at:type_name -> google.protobuf.Timestamp
+	7,  // 3: ai.stigmer.agentic.agentexecution.v1.CostStamp.pricing:type_name -> ai.stigmer.agentic.agentexecution.v1.PricingSnapshot
+	17, // 4: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.proxy_received_at:type_name -> google.protobuf.Timestamp
+	17, // 5: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.upstream_request_started_at:type_name -> google.protobuf.Timestamp
+	17, // 6: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.first_response_byte_at:type_name -> google.protobuf.Timestamp
+	17, // 7: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.last_response_byte_at:type_name -> google.protobuf.Timestamp
+	17, // 8: ai.stigmer.agentic.agentexecution.v1.ProxyTiming.proxy_completed_at:type_name -> google.protobuf.Timestamp
 	3,  // 9: ai.stigmer.agentic.agentexecution.v1.BillingLink.debit_status:type_name -> ai.stigmer.agentic.agentexecution.v1.BillingDebitStatus
-	16, // 10: ai.stigmer.agentic.agentexecution.v1.BillingLink.debited_at:type_name -> google.protobuf.Timestamp
-	16, // 11: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.observed_at:type_name -> google.protobuf.Timestamp
-	16, // 12: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.created_at:type_name -> google.protobuf.Timestamp
+	17, // 10: ai.stigmer.agentic.agentexecution.v1.BillingLink.debited_at:type_name -> google.protobuf.Timestamp
+	17, // 11: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.observed_at:type_name -> google.protobuf.Timestamp
+	17, // 12: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 13: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.metering_source:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMeteringSource
 	1,  // 14: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.trust_level:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageTrustLevel
 	2,  // 15: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.usage_status:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageCompletionStatus
-	5,  // 16: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.tokens:type_name -> ai.stigmer.agentic.agentexecution.v1.TokenUsage
-	7,  // 17: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.cost:type_name -> ai.stigmer.agentic.agentexecution.v1.CostStamp
-	8,  // 18: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.proxy_timing:type_name -> ai.stigmer.agentic.agentexecution.v1.ProxyTiming
-	9,  // 19: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.billing:type_name -> ai.stigmer.agentic.agentexecution.v1.BillingLink
-	15, // 20: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.labels:type_name -> ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.LabelsEntry
-	21, // [21:21] is the sub-list for method output_type
-	21, // [21:21] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	5,  // 16: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.cursor_key_source:type_name -> ai.stigmer.agentic.agentexecution.v1.CursorKeySource
+	6,  // 17: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.tokens:type_name -> ai.stigmer.agentic.agentexecution.v1.TokenUsage
+	8,  // 18: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.cost:type_name -> ai.stigmer.agentic.agentexecution.v1.CostStamp
+	9,  // 19: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.proxy_timing:type_name -> ai.stigmer.agentic.agentexecution.v1.ProxyTiming
+	10, // 20: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.billing:type_name -> ai.stigmer.agentic.agentexecution.v1.BillingLink
+	16, // 21: ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.labels:type_name -> ai.stigmer.agentic.agentexecution.v1.LlmCallUsageRecord.LabelsEntry
+	22, // [22:22] is the sub-list for method output_type
+	22, // [22:22] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_usage_proto_init() }
@@ -1906,7 +1987,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_usage_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc)),
-			NumEnums:      5,
+			NumEnums:      6,
 			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,

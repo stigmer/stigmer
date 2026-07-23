@@ -24,8 +24,10 @@ const (
 )
 
 // CursorAccount is one managed Cursor team: the platform-operator resource
-// that replaces the single STIGMER_PROXY_CURSOR_API_KEY env var as the
-// source of Cursor credentials for the cursor harness.
+// that is the ONLY source of Cursor credentials for the cursor harness —
+// member keys for execution and unscoped platform traffic, the team admin
+// key for roster/spend sync and ledger reconciliation. (It replaced the
+// historical single STIGMER_PROXY_CURSOR_API_KEY env var, which is gone.)
 //
 // One document = one Cursor team. It carries two credential classes with
 // strictly different capabilities (verified empirically 2026-07-22, see the
@@ -41,11 +43,25 @@ const (
 // Consequently an account with no enabled member keys is visible but NOT
 // routable — no execution traffic can be sent under it.
 //
-// Org assignment: each Stigmer organization resolves to exactly ONE
-// account (an explicit entry in org_ids, else the single account marked
-// is_platform_default). Load spreading happens WITHIN an account across
-// its member keys, never across accounts — this keeps billing attribution
-// and provider reconciliation per-team.
+// Org assignment — two account classes, derived from org_ids alone:
+//
+//   - DEDICATED (org_ids non-empty): the account is a cost boundary for
+//     exactly those organizations. Their sessions are served only by this
+//     account's keys; when it has no usable keys, sessions fail with an
+//     explicit operator-actionable error rather than silently spending
+//     another team's quota (DD-008).
+//   - SHARED POOL (org_ids empty + enabled): the account is part of the
+//     platform-operated pool serving every org with no dedicated account.
+//     Pool sessions may move across pool accounts when their current
+//     account is depleted — all pool teams bill to the platform operator,
+//     so movement is capacity management, not a cost-boundary breach.
+//     Keep an account out of rotation (e.g. a quarantined probe team) by
+//     leaving it disabled.
+//
+// Load spreading for NEW sessions is least-recently-used across the
+// eligible key set (the dedicated account's keys, or all pool accounts'
+// keys); an existing session stays pinned to one key until that key
+// becomes unusable.
 //
 // Secrets at rest: admin_api_key and CursorMemberKey.api_key are encrypted
 // (AES-256-GCM, "enc:v1:" prefix) before persistence and replaced with
@@ -72,12 +88,18 @@ type CursorAccount struct {
 	// one of its keys keep working (the hard kill switch is revoking the
 	// key in the Cursor dashboard).
 	Enabled bool `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	// Marks the account that serves orgs with no explicit assignment.
-	// At most one account may be the platform default (index-enforced).
+	// Deprecated: superseded by the derived shared pool (DD-008). Every
+	// enabled account with empty org_ids now serves unassigned orgs; a
+	// single "default" marker is meaningless under that rule, so selection
+	// and the console ignore this field. Kept on the wire for old clients;
+	// never written by current ones.
+	//
+	// Deprecated: Marked as deprecated in ai/stigmer/platform/cursoraccount/v1/cursor_account.proto.
 	IsPlatformDefault bool `protobuf:"varint,5,opt,name=is_platform_default,json=isPlatformDefault,proto3" json:"is_platform_default,omitempty"`
-	// Stigmer organization ids explicitly served by this account. An org
-	// may appear in at most one account across the collection
-	// (unique-multikey-index-enforced).
+	// Stigmer organization ids this account is DEDICATED to. An org may
+	// appear in at most one account across the collection
+	// (unique-multikey-index-enforced). Empty = shared-pool account (see
+	// the message doc for the two account classes).
 	OrgIds []string `protobuf:"bytes,6,rep,name=org_ids,json=orgIds,proto3" json:"org_ids,omitempty"`
 	// Execution-capable member keys. Selection picks among enabled entries
 	// (least-recently-used for new sessions, then sticky per session).
@@ -167,6 +189,7 @@ func (x *CursorAccount) GetEnabled() bool {
 	return false
 }
 
+// Deprecated: Marked as deprecated in ai/stigmer/platform/cursoraccount/v1/cursor_account.proto.
 func (x *CursorAccount) GetIsPlatformDefault() bool {
 	if x != nil {
 		return x.IsPlatformDefault
@@ -641,14 +664,14 @@ var File_ai_stigmer_platform_cursoraccount_v1_cursor_account_proto protoreflect.
 
 const file_ai_stigmer_platform_cursoraccount_v1_cursor_account_proto_rawDesc = "" +
 	"\n" +
-	"9ai/stigmer/platform/cursoraccount/v1/cursor_account.proto\x12$ai.stigmer.platform.cursoraccount.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc3\x04\n" +
+	"9ai/stigmer/platform/cursoraccount/v1/cursor_account.proto\x12$ai.stigmer.platform.cursoraccount.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc7\x04\n" +
 	"\rCursorAccount\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12.\n" +
 	"\fdisplay_name\x18\x02 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\vdisplayName\x12,\n" +
 	"\radmin_api_key\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\vadminApiKey\x12\x18\n" +
-	"\aenabled\x18\x04 \x01(\bR\aenabled\x12.\n" +
-	"\x13is_platform_default\x18\x05 \x01(\bR\x11isPlatformDefault\x12&\n" +
+	"\aenabled\x18\x04 \x01(\bR\aenabled\x122\n" +
+	"\x13is_platform_default\x18\x05 \x01(\bB\x02\x18\x01R\x11isPlatformDefault\x12&\n" +
 	"\aorg_ids\x18\x06 \x03(\tB\r\xbaH\n" +
 	"\x92\x01\a\"\x05r\x03\x18\x80\x01R\x06orgIds\x12V\n" +
 	"\vmember_keys\x18\a \x03(\v25.ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyR\n" +

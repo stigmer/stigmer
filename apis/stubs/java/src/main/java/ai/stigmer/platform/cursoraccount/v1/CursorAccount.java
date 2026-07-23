@@ -8,8 +8,10 @@ package ai.stigmer.platform.cursoraccount.v1;
 /**
  * <pre>
  * CursorAccount is one managed Cursor team: the platform-operator resource
- * that replaces the single STIGMER_PROXY_CURSOR_API_KEY env var as the
- * source of Cursor credentials for the cursor harness.
+ * that is the ONLY source of Cursor credentials for the cursor harness —
+ * member keys for execution and unscoped platform traffic, the team admin
+ * key for roster/spend sync and ledger reconciliation. (It replaced the
+ * historical single STIGMER_PROXY_CURSOR_API_KEY env var, which is gone.)
  *
  * One document = one Cursor team. It carries two credential classes with
  * strictly different capabilities (verified empirically 2026-07-22, see the
@@ -25,11 +27,25 @@ package ai.stigmer.platform.cursoraccount.v1;
  * Consequently an account with no enabled member keys is visible but NOT
  * routable — no execution traffic can be sent under it.
  *
- * Org assignment: each Stigmer organization resolves to exactly ONE
- * account (an explicit entry in org_ids, else the single account marked
- * is_platform_default). Load spreading happens WITHIN an account across
- * its member keys, never across accounts — this keeps billing attribution
- * and provider reconciliation per-team.
+ * Org assignment — two account classes, derived from org_ids alone:
+ *
+ * - DEDICATED (org_ids non-empty): the account is a cost boundary for
+ * exactly those organizations. Their sessions are served only by this
+ * account's keys; when it has no usable keys, sessions fail with an
+ * explicit operator-actionable error rather than silently spending
+ * another team's quota (DD-008).
+ * - SHARED POOL (org_ids empty + enabled): the account is part of the
+ * platform-operated pool serving every org with no dedicated account.
+ * Pool sessions may move across pool accounts when their current
+ * account is depleted — all pool teams bill to the platform operator,
+ * so movement is capacity management, not a cost-boundary breach.
+ * Keep an account out of rotation (e.g. a quarantined probe team) by
+ * leaving it disabled.
+ *
+ * Load spreading for NEW sessions is least-recently-used across the
+ * eligible key set (the dedicated account's keys, or all pool accounts'
+ * keys); an existing session stays pinned to one key until that key
+ * becomes unusable.
  *
  * Secrets at rest: admin_api_key and CursorMemberKey.api_key are encrypted
  * (AES-256-GCM, "enc:v1:" prefix) before persistence and replaced with
@@ -266,15 +282,20 @@ private static final long serialVersionUID = 0L;
   private boolean isPlatformDefault_ = false;
   /**
    * <pre>
-   * Marks the account that serves orgs with no explicit assignment.
-   * At most one account may be the platform default (index-enforced).
+   * Deprecated: superseded by the derived shared pool (DD-008). Every
+   * enabled account with empty org_ids now serves unassigned orgs; a
+   * single "default" marker is meaningless under that rule, so selection
+   * and the console ignore this field. Kept on the wire for old clients;
+   * never written by current ones.
    * </pre>
    *
-   * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault"];</code>
+   * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
+   * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
+   *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=83
    * @return The isPlatformDefault.
    */
   @java.lang.Override
-  public boolean getIsPlatformDefault() {
+  @java.lang.Deprecated public boolean getIsPlatformDefault() {
     return isPlatformDefault_;
   }
 
@@ -284,9 +305,10 @@ private static final long serialVersionUID = 0L;
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
    * <pre>
-   * Stigmer organization ids explicitly served by this account. An org
-   * may appear in at most one account across the collection
-   * (unique-multikey-index-enforced).
+   * Stigmer organization ids this account is DEDICATED to. An org may
+   * appear in at most one account across the collection
+   * (unique-multikey-index-enforced). Empty = shared-pool account (see
+   * the message doc for the two account classes).
    * </pre>
    *
    * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
@@ -298,9 +320,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Stigmer organization ids explicitly served by this account. An org
-   * may appear in at most one account across the collection
-   * (unique-multikey-index-enforced).
+   * Stigmer organization ids this account is DEDICATED to. An org may
+   * appear in at most one account across the collection
+   * (unique-multikey-index-enforced). Empty = shared-pool account (see
+   * the message doc for the two account classes).
    * </pre>
    *
    * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
@@ -311,9 +334,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Stigmer organization ids explicitly served by this account. An org
-   * may appear in at most one account across the collection
-   * (unique-multikey-index-enforced).
+   * Stigmer organization ids this account is DEDICATED to. An org may
+   * appear in at most one account across the collection
+   * (unique-multikey-index-enforced). Empty = shared-pool account (see
+   * the message doc for the two account classes).
    * </pre>
    *
    * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
@@ -325,9 +349,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Stigmer organization ids explicitly served by this account. An org
-   * may appear in at most one account across the collection
-   * (unique-multikey-index-enforced).
+   * Stigmer organization ids this account is DEDICATED to. An org may
+   * appear in at most one account across the collection
+   * (unique-multikey-index-enforced). Empty = shared-pool account (see
+   * the message doc for the two account classes).
    * </pre>
    *
    * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
@@ -883,8 +908,10 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * CursorAccount is one managed Cursor team: the platform-operator resource
-   * that replaces the single STIGMER_PROXY_CURSOR_API_KEY env var as the
-   * source of Cursor credentials for the cursor harness.
+   * that is the ONLY source of Cursor credentials for the cursor harness —
+   * member keys for execution and unscoped platform traffic, the team admin
+   * key for roster/spend sync and ledger reconciliation. (It replaced the
+   * historical single STIGMER_PROXY_CURSOR_API_KEY env var, which is gone.)
    *
    * One document = one Cursor team. It carries two credential classes with
    * strictly different capabilities (verified empirically 2026-07-22, see the
@@ -900,11 +927,25 @@ private static final long serialVersionUID = 0L;
    * Consequently an account with no enabled member keys is visible but NOT
    * routable — no execution traffic can be sent under it.
    *
-   * Org assignment: each Stigmer organization resolves to exactly ONE
-   * account (an explicit entry in org_ids, else the single account marked
-   * is_platform_default). Load spreading happens WITHIN an account across
-   * its member keys, never across accounts — this keeps billing attribution
-   * and provider reconciliation per-team.
+   * Org assignment — two account classes, derived from org_ids alone:
+   *
+   * - DEDICATED (org_ids non-empty): the account is a cost boundary for
+   * exactly those organizations. Their sessions are served only by this
+   * account's keys; when it has no usable keys, sessions fail with an
+   * explicit operator-actionable error rather than silently spending
+   * another team's quota (DD-008).
+   * - SHARED POOL (org_ids empty + enabled): the account is part of the
+   * platform-operated pool serving every org with no dedicated account.
+   * Pool sessions may move across pool accounts when their current
+   * account is depleted — all pool teams bill to the platform operator,
+   * so movement is capacity management, not a cost-boundary breach.
+   * Keep an account out of rotation (e.g. a quarantined probe team) by
+   * leaving it disabled.
+   *
+   * Load spreading for NEW sessions is least-recently-used across the
+   * eligible key set (the dedicated account's keys, or all pool accounts'
+   * keys); an existing session stays pinned to one key until that key
+   * becomes unusable.
    *
    * Secrets at rest: admin_api_key and CursorMemberKey.api_key are encrypted
    * (AES-256-GCM, "enc:v1:" prefix) before persistence and replaced with
@@ -1641,28 +1682,38 @@ private static final long serialVersionUID = 0L;
     private boolean isPlatformDefault_ ;
     /**
      * <pre>
-     * Marks the account that serves orgs with no explicit assignment.
-     * At most one account may be the platform default (index-enforced).
+     * Deprecated: superseded by the derived shared pool (DD-008). Every
+     * enabled account with empty org_ids now serves unassigned orgs; a
+     * single "default" marker is meaningless under that rule, so selection
+     * and the console ignore this field. Kept on the wire for old clients;
+     * never written by current ones.
      * </pre>
      *
-     * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault"];</code>
+     * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
+     * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
+     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=83
      * @return The isPlatformDefault.
      */
     @java.lang.Override
-    public boolean getIsPlatformDefault() {
+    @java.lang.Deprecated public boolean getIsPlatformDefault() {
       return isPlatformDefault_;
     }
     /**
      * <pre>
-     * Marks the account that serves orgs with no explicit assignment.
-     * At most one account may be the platform default (index-enforced).
+     * Deprecated: superseded by the derived shared pool (DD-008). Every
+     * enabled account with empty org_ids now serves unassigned orgs; a
+     * single "default" marker is meaningless under that rule, so selection
+     * and the console ignore this field. Kept on the wire for old clients;
+     * never written by current ones.
      * </pre>
      *
-     * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault"];</code>
+     * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
+     * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
+     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=83
      * @param value The isPlatformDefault to set.
      * @return This builder for chaining.
      */
-    public Builder setIsPlatformDefault(boolean value) {
+    @java.lang.Deprecated public Builder setIsPlatformDefault(boolean value) {
 
       isPlatformDefault_ = value;
       bitField0_ |= 0x00000010;
@@ -1671,14 +1722,19 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Marks the account that serves orgs with no explicit assignment.
-     * At most one account may be the platform default (index-enforced).
+     * Deprecated: superseded by the derived shared pool (DD-008). Every
+     * enabled account with empty org_ids now serves unassigned orgs; a
+     * single "default" marker is meaningless under that rule, so selection
+     * and the console ignore this field. Kept on the wire for old clients;
+     * never written by current ones.
      * </pre>
      *
-     * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault"];</code>
+     * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
+     * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
+     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=83
      * @return This builder for chaining.
      */
-    public Builder clearIsPlatformDefault() {
+    @java.lang.Deprecated public Builder clearIsPlatformDefault() {
       bitField0_ = (bitField0_ & ~0x00000010);
       isPlatformDefault_ = false;
       onChanged();
@@ -1695,9 +1751,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer organization ids explicitly served by this account. An org
-     * may appear in at most one account across the collection
-     * (unique-multikey-index-enforced).
+     * Stigmer organization ids this account is DEDICATED to. An org may
+     * appear in at most one account across the collection
+     * (unique-multikey-index-enforced). Empty = shared-pool account (see
+     * the message doc for the two account classes).
      * </pre>
      *
      * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
@@ -1710,9 +1767,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer organization ids explicitly served by this account. An org
-     * may appear in at most one account across the collection
-     * (unique-multikey-index-enforced).
+     * Stigmer organization ids this account is DEDICATED to. An org may
+     * appear in at most one account across the collection
+     * (unique-multikey-index-enforced). Empty = shared-pool account (see
+     * the message doc for the two account classes).
      * </pre>
      *
      * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
@@ -1723,9 +1781,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer organization ids explicitly served by this account. An org
-     * may appear in at most one account across the collection
-     * (unique-multikey-index-enforced).
+     * Stigmer organization ids this account is DEDICATED to. An org may
+     * appear in at most one account across the collection
+     * (unique-multikey-index-enforced). Empty = shared-pool account (see
+     * the message doc for the two account classes).
      * </pre>
      *
      * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
@@ -1737,9 +1796,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer organization ids explicitly served by this account. An org
-     * may appear in at most one account across the collection
-     * (unique-multikey-index-enforced).
+     * Stigmer organization ids this account is DEDICATED to. An org may
+     * appear in at most one account across the collection
+     * (unique-multikey-index-enforced). Empty = shared-pool account (see
+     * the message doc for the two account classes).
      * </pre>
      *
      * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
@@ -1752,9 +1812,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer organization ids explicitly served by this account. An org
-     * may appear in at most one account across the collection
-     * (unique-multikey-index-enforced).
+     * Stigmer organization ids this account is DEDICATED to. An org may
+     * appear in at most one account across the collection
+     * (unique-multikey-index-enforced). Empty = shared-pool account (see
+     * the message doc for the two account classes).
      * </pre>
      *
      * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
@@ -1773,9 +1834,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer organization ids explicitly served by this account. An org
-     * may appear in at most one account across the collection
-     * (unique-multikey-index-enforced).
+     * Stigmer organization ids this account is DEDICATED to. An org may
+     * appear in at most one account across the collection
+     * (unique-multikey-index-enforced). Empty = shared-pool account (see
+     * the message doc for the two account classes).
      * </pre>
      *
      * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
@@ -1793,9 +1855,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer organization ids explicitly served by this account. An org
-     * may appear in at most one account across the collection
-     * (unique-multikey-index-enforced).
+     * Stigmer organization ids this account is DEDICATED to. An org may
+     * appear in at most one account across the collection
+     * (unique-multikey-index-enforced). Empty = shared-pool account (see
+     * the message doc for the two account classes).
      * </pre>
      *
      * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
@@ -1813,9 +1876,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer organization ids explicitly served by this account. An org
-     * may appear in at most one account across the collection
-     * (unique-multikey-index-enforced).
+     * Stigmer organization ids this account is DEDICATED to. An org may
+     * appear in at most one account across the collection
+     * (unique-multikey-index-enforced). Empty = shared-pool account (see
+     * the message doc for the two account classes).
      * </pre>
      *
      * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
@@ -1830,9 +1894,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Stigmer organization ids explicitly served by this account. An org
-     * may appear in at most one account across the collection
-     * (unique-multikey-index-enforced).
+     * Stigmer organization ids this account is DEDICATED to. An org may
+     * appear in at most one account across the collection
+     * (unique-multikey-index-enforced). Empty = shared-pool account (see
+     * the message doc for the two account classes).
      * </pre>
      *
      * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>

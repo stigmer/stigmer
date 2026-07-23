@@ -268,4 +268,71 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getHarnessBytes();
+
+  /**
+   * <pre>
+   * Cursor serving identity (cursor harness only): which managed
+   * CursorAccount / member key the proxy actually injected upstream for
+   * this call. Reported by the proxy from its key resolution so the
+   * stored record can never disagree with the wire — the billing handler
+   * stamps these verbatim and performs no pin lookup. Identifiers only,
+   * never key material. Empty for native-harness calls.
+   * </pre>
+   *
+   * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
+   * @return The cursorAccountId.
+   */
+  java.lang.String getCursorAccountId();
+  /**
+   * <pre>
+   * Cursor serving identity (cursor harness only): which managed
+   * CursorAccount / member key the proxy actually injected upstream for
+   * this call. Reported by the proxy from its key resolution so the
+   * stored record can never disagree with the wire — the billing handler
+   * stamps these verbatim and performs no pin lookup. Identifiers only,
+   * never key material. Empty for native-harness calls.
+   * </pre>
+   *
+   * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
+   * @return The bytes for cursorAccountId.
+   */
+  com.google.protobuf.ByteString
+      getCursorAccountIdBytes();
+
+  /**
+   * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
+   * @return The cursorKeyId.
+   */
+  java.lang.String getCursorKeyId();
+  /**
+   * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
+   * @return The bytes for cursorKeyId.
+   */
+  com.google.protobuf.ByteString
+      getCursorKeyIdBytes();
+
+  /**
+   * <pre>
+   * Which credential served this call (cursor harness only). The
+   * CursorAccount store is the only credential source, so a current
+   * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
+   * caller.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+   * @return The enum numeric value on the wire for cursorKeySource.
+   */
+  int getCursorKeySourceValue();
+  /**
+   * <pre>
+   * Which credential served this call (cursor harness only). The
+   * CursorAccount store is the only credential source, so a current
+   * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
+   * caller.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+   * @return The cursorKeySource.
+   */
+  ai.stigmer.agentic.agentexecution.v1.CursorKeySource getCursorKeySource();
 }

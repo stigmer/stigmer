@@ -194,9 +194,11 @@ function AccountRow({
           <span className="block truncate font-medium text-foreground">
             {account.displayName}
           </span>
-          {account.isPlatformDefault && (
+          {/* Account class is DERIVED from org_ids (DD-008): no org
+              assignment means the account belongs to the shared pool. */}
+          {account.orgIds.length === 0 && (
             <span className="block text-[11px] text-muted-foreground">
-              platform default
+              shared pool
             </span>
           )}
         </span>
@@ -356,10 +358,8 @@ function AccountDetail({
           </h3>
           <p className="text-[11px] text-muted-foreground">
             {account.orgIds.length > 0
-              ? `Serves ${account.orgIds.length} org(s): ${account.orgIds.join(", ")}`
-              : account.isPlatformDefault
-                ? "Platform default — serves all unassigned orgs"
-                : "No org assignments"}
+              ? `Dedicated to ${account.orgIds.length} org(s): ${account.orgIds.join(", ")}`
+              : "Shared pool — serves every org with no dedicated account"}
             {" · "}
             {account.enabled ? "enabled" : "disabled"}
             {account.onDemandUsageDisabled
