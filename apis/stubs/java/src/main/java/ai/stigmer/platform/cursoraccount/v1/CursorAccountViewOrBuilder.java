@@ -98,50 +98,114 @@ public interface CursorAccountViewOrBuilder extends
 
   /**
    * <pre>
-   * Active roster members (role != "removed") for whom no member key is
-   * stored — the operator's "coverage gap" list.
+   * Deprecated: superseded by members_without_keys_views, which carries
+   * the same roster entries with their spend joined server-side. Still
+   * populated (protos are published; older clients may read it); current
+   * clients must read the views field.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys"];</code>
+   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
    */
-  java.util.List<ai.stigmer.platform.cursoraccount.v1.CursorTeamMember> 
+  @java.lang.Deprecated java.util.List<ai.stigmer.platform.cursoraccount.v1.CursorTeamMember> 
       getMembersWithoutKeysList();
   /**
    * <pre>
-   * Active roster members (role != "removed") for whom no member key is
-   * stored — the operator's "coverage gap" list.
+   * Deprecated: superseded by members_without_keys_views, which carries
+   * the same roster entries with their spend joined server-side. Still
+   * populated (protos are published; older clients may read it); current
+   * clients must read the views field.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys"];</code>
+   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
    */
-  ai.stigmer.platform.cursoraccount.v1.CursorTeamMember getMembersWithoutKeys(int index);
+  @java.lang.Deprecated ai.stigmer.platform.cursoraccount.v1.CursorTeamMember getMembersWithoutKeys(int index);
   /**
    * <pre>
-   * Active roster members (role != "removed") for whom no member key is
-   * stored — the operator's "coverage gap" list.
+   * Deprecated: superseded by members_without_keys_views, which carries
+   * the same roster entries with their spend joined server-side. Still
+   * populated (protos are published; older clients may read it); current
+   * clients must read the views field.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys"];</code>
+   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
    */
-  int getMembersWithoutKeysCount();
+  @java.lang.Deprecated int getMembersWithoutKeysCount();
   /**
    * <pre>
-   * Active roster members (role != "removed") for whom no member key is
-   * stored — the operator's "coverage gap" list.
+   * Deprecated: superseded by members_without_keys_views, which carries
+   * the same roster entries with their spend joined server-side. Still
+   * populated (protos are published; older clients may read it); current
+   * clients must read the views field.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys"];</code>
+   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
    */
-  java.util.List<? extends ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberOrBuilder> 
+  @java.lang.Deprecated java.util.List<? extends ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberOrBuilder> 
       getMembersWithoutKeysOrBuilderList();
   /**
    * <pre>
-   * Active roster members (role != "removed") for whom no member key is
-   * stored — the operator's "coverage gap" list.
+   * Deprecated: superseded by members_without_keys_views, which carries
+   * the same roster entries with their spend joined server-side. Still
+   * populated (protos are published; older clients may read it); current
+   * clients must read the views field.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys"];</code>
+   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [json_name = "membersWithoutKeys", deprecated = true];</code>
    */
-  ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberOrBuilder getMembersWithoutKeysOrBuilder(
+  @java.lang.Deprecated ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberOrBuilder getMembersWithoutKeysOrBuilder(
+      int index);
+
+  /**
+   * <pre>
+   * Active roster members (role != "removed") for whom no member key is
+   * stored — the operator's "coverage gap" list, each joined with the
+   * member's cycle spend by the same email rule as key_views.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView members_without_keys_views = 5 [json_name = "membersWithoutKeysViews"];</code>
+   */
+  java.util.List<ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView> 
+      getMembersWithoutKeysViewsList();
+  /**
+   * <pre>
+   * Active roster members (role != "removed") for whom no member key is
+   * stored — the operator's "coverage gap" list, each joined with the
+   * member's cycle spend by the same email rule as key_views.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView members_without_keys_views = 5 [json_name = "membersWithoutKeysViews"];</code>
+   */
+  ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView getMembersWithoutKeysViews(int index);
+  /**
+   * <pre>
+   * Active roster members (role != "removed") for whom no member key is
+   * stored — the operator's "coverage gap" list, each joined with the
+   * member's cycle spend by the same email rule as key_views.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView members_without_keys_views = 5 [json_name = "membersWithoutKeysViews"];</code>
+   */
+  int getMembersWithoutKeysViewsCount();
+  /**
+   * <pre>
+   * Active roster members (role != "removed") for whom no member key is
+   * stored — the operator's "coverage gap" list, each joined with the
+   * member's cycle spend by the same email rule as key_views.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView members_without_keys_views = 5 [json_name = "membersWithoutKeysViews"];</code>
+   */
+  java.util.List<? extends ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberViewOrBuilder> 
+      getMembersWithoutKeysViewsOrBuilderList();
+  /**
+   * <pre>
+   * Active roster members (role != "removed") for whom no member key is
+   * stored — the operator's "coverage gap" list, each joined with the
+   * member's cycle spend by the same email rule as key_views.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView members_without_keys_views = 5 [json_name = "membersWithoutKeysViews"];</code>
+   */
+  ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberViewOrBuilder getMembersWithoutKeysViewsOrBuilder(
       int index);
 }

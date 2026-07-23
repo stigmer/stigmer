@@ -982,6 +982,17 @@ func (x *DatastoreRole) GetName() string {
 }
 
 // DatastoreRoleBinding assigns a role to a caller identity.
+//
+// @internal
+// Apply-time integrity (both editions, the shared spec validators):
+// the role must be declared, a principal subject must be an
+// identity_account with no relation qualifier, and no two bindings may
+// share a subject — role resolution is first-match-wins, so a
+// duplicate would be silently shadowed dead configuration. Cloud
+// additionally verifies the bound identity account exists and is an
+// org member (ValidateBindingPrincipalsStep); OSS stores no identity
+// accounts and accepts arbitrary ids so cloud-destined manifests stay
+// locally appliable (recorded limitation, DD-002).
 type DatastoreRoleBinding struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The caller identity this binding matches.
@@ -1117,6 +1128,14 @@ type DatastoreSubject_ChannelSender struct {
 type DatastoreSubject_Principal struct {
 	// Platform principal (an identity account today; teams later
 	// without schema change).
+	//
+	// @internal
+	// Matched by exact kind+id equality against the caller-derived
+	// subject; the relation qualifier is excluded from identity and
+	// rejected at apply. The id is the account id, never a slug or
+	// email — apply-time validation refuses unresolvable values with a
+	// membership-gated did-you-mean instead of letting them bind
+	// nothing silently (dont-dos/001).
 	Principal *v1.ApiResourceRef `protobuf:"bytes,2,opt,name=principal,proto3,oneof"`
 }
 

@@ -115,6 +115,18 @@ enum CursorMemberKeyState {
   member_key_owner_unknown = 3;
 }
 
+// One active roster member Stigmer holds no key for, joined with their
+// cycle spend — the operator's coverage-gap row. The spend join happens
+// server-side by the same case-insensitive email rule as key views
+// (computed on read, never stored) so clients never re-derive it.
+message CursorTeamMemberView {
+  CursorTeamMember member = 1;
+
+  // Spend of this member this cycle; unset when the member has no
+  // spend row.
+  CursorMemberSpend spend = 2;
+}
+
 // One member key joined with roster + spend facts for the detail view.
 message CursorMemberKeyView {
   // The key entry with material redacted.
@@ -149,7 +161,14 @@ message CursorAccountView {
   // Every stored member key joined with roster and spend facts.
   repeated CursorMemberKeyView key_views = 3;
 
+  // Deprecated: superseded by members_without_keys_views, which carries
+  // the same roster entries with their spend joined server-side. Still
+  // populated (protos are published; older clients may read it); current
+  // clients must read the views field.
+  repeated CursorTeamMember members_without_keys = 4 [deprecated = true];
+
   // Active roster members (role != "removed") for whom no member key is
-  // stored — the operator's "coverage gap" list.
-  repeated CursorTeamMember members_without_keys = 4;
+  // stored — the operator's "coverage gap" list, each joined with the
+  // member's cycle spend by the same email rule as key_views.
+  repeated CursorTeamMemberView members_without_keys_views = 5;
 }

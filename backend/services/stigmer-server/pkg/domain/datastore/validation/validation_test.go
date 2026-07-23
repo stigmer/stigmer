@@ -4,10 +4,24 @@ import (
 	"testing"
 
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
+	iampolicyv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+// principalBinding builds a platform-principal role binding for
+// subject-integrity test cases.
+func principalBinding(kind, id, relation, role string) *datastorev1.DatastoreRoleBinding {
+	return &datastorev1.DatastoreRoleBinding{
+		Subject: &datastorev1.DatastoreSubject{
+			Kind: &datastorev1.DatastoreSubject_Principal{
+				Principal: &iampolicyv1.ApiResourceRef{Kind: kind, Id: id, Relation: relation},
+			},
+		},
+		Role: role,
+	}
+}
 
 // validSpec returns a minimal valid spec test cases mutate into
 // violations. The shape mirrors the clinic worked example.
@@ -70,6 +84,13 @@ func TestValidateSpec_ValidClinicShapedSpec(t *testing.T) {
 	require.NoError(t, ValidateSpec(validSpec()))
 }
 
+func TestValidateSpec_ValidPrincipalBinding(t *testing.T) {
+	spec := validSpec()
+	spec.Authorization.Bindings = append(spec.Authorization.Bindings,
+		principalBinding("identity_account", "ia-01hquser123", "", "admin"))
+	require.NoError(t, ValidateSpec(spec))
+}
+
 func TestValidateSpec_NilSpecIsValid(t *testing.T) {
 	require.NoError(t, ValidateSpec(nil))
 }
@@ -130,6 +151,41 @@ func TestValidateSpec_Violations(t *testing.T) {
 				s.Authorization.DefaultRole = "visitor"
 			},
 			wantErr: `default_role references undeclared role "visitor"`,
+		},
+		{
+			name: "binding principal kind other than identity_account",
+			mutate: func(s *datastorev1.DatastoreSpec) {
+				s.Authorization.Bindings = append(s.Authorization.Bindings,
+					principalBinding("team", "tm-01hqteam456", "", "admin"))
+			},
+			wantErr: `binding principal kind "team" is not supported (only identity_account principals can be bound)`,
+		},
+		{
+			name: "binding principal with a relation qualifier",
+			mutate: func(s *datastorev1.DatastoreSpec) {
+				s.Authorization.Bindings = append(s.Authorization.Bindings,
+					principalBinding("identity_account", "ia-01hquser123", "member", "admin"))
+			},
+			wantErr: `binding principal relation "member" is not supported; remove the relation qualifier`,
+		},
+		{
+			name: "duplicate channel sender subject across bindings",
+			mutate: func(s *datastorev1.DatastoreSpec) {
+				s.Authorization.Bindings = append(s.Authorization.Bindings, &datastorev1.DatastoreRoleBinding{
+					Subject: s.Authorization.Bindings[0].Subject,
+					Role:    "patient",
+				})
+			},
+			wantErr: `bindings[1] duplicates the subject of bindings[0]`,
+		},
+		{
+			name: "duplicate principal subject across bindings",
+			mutate: func(s *datastorev1.DatastoreSpec) {
+				s.Authorization.Bindings = append(s.Authorization.Bindings,
+					principalBinding("identity_account", "ia-01hquser123", "", "admin"),
+					principalBinding("identity_account", "ia-01hquser123", "", "patient"))
+			},
+			wantErr: `bindings[2] duplicates the subject of bindings[1]`,
 		},
 		{
 			name: "grant references undeclared role",

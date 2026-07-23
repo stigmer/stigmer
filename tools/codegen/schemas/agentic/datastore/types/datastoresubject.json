@@ -24,7 +24,7 @@
         "kind": "message",
         "messageType": "ApiResourceRef"
       },
-      "description": "Platform principal (an identity account today; teams later\n without schema change).",
+      "description": "Platform principal (an identity account today; teams later\n without schema change).\n\n @internal\n Matched by exact kind+id equality against the caller-derived\n subject; the relation qualifier is excluded from identity and\n rejected at apply. The id is the account id, never a slug or\n email — apply-time validation refuses unresolvable values with a\n membership-gated did-you-mean instead of letting them bind\n nothing silently (dont-dos/001).",
       "required": false,
       "oneofGroup": "kind"
     }

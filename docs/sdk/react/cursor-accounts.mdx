@@ -202,6 +202,10 @@ stored key; typing anything else rotates it (validated live against
 Cursor before persisting). Member keys are NOT edited here — they have
 their own panel with per-key add/remove/enable.
 
+The optional team invite link (Cursor dashboard → Invite Members →
+Copy Invite Link) round-trips readable — no marker — and powers the
+coverage table's "Copy invite" action for off-team key owners.
+
 **Props** — `CursorAccountEditorProps`
 
 <TypeTable
@@ -234,9 +238,12 @@ from the hourly sync.
 
 - **List** — every account with routability at a glance (an account
   with zero enabled member keys cannot serve executions).
-- **Detail** — org assignments, the member-key panel (add / disable /
-  remove, each key joined with its owner's roster state and spend),
-  coverage gaps (active members without keys), and "Sync now".
+- **Detail** — org assignments, "Sync now", and the team-coverage
+  table: every member and stored key classified into three explicit
+  categories (on team with key / on team without key / key held but
+  not on team), each row carrying cycle spend and pool-usage columns.
+  Off-team rows offer one-click copy of the account's Cursor team
+  invite link when the operator has configured one.
 
 Requires `can_manage_cursor_accounts` on `platform:stigmer` —
 non-operators see the designed access notice. Key material never

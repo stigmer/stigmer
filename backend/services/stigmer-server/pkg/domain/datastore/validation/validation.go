@@ -11,6 +11,11 @@
 //   - field/constraint-name uniqueness within a collection
 //   - role-reference integrity: bindings, grants, and default_role name
 //     declared roles
+//   - binding-subject integrity: principal kind is identity_account
+//     (the only kind subject matching can resolve today), no relation
+//     qualifier (subject equality deliberately ignores it), and no two
+//     bindings share a subject (role resolution is first-match-wins,
+//     so a duplicate is silently shadowed dead configuration)
 //   - field defaults are type-compatible with the declared type
 //     (enum_values membership included)
 //   - IANA timezone validity; rejection of tz-referencing expressions
@@ -30,7 +35,9 @@ import (
 	"time"
 
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/celeval"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/identity"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/schema"
 )
 
@@ -88,10 +95,42 @@ func validateAuthorization(spec *datastorev1.DatastoreSpec) error {
 		declared[role.GetName()] = true
 	}
 
-	for _, binding := range authz.GetBindings() {
+	// Per-binding check order (role → principal kind → relation →
+	// duplicate subject) is part of the cross-edition error contract:
+	// a spec with several defects must surface the same first violation
+	// in both editions.
+	seenSubjects := map[string]int{}
+	for i, binding := range authz.GetBindings() {
 		if !declared[binding.GetRole()] {
 			return fmt.Errorf("binding references undeclared role %q", binding.GetRole())
 		}
+
+		// Subject matching resolves principals by exact kind+id
+		// equality against the caller (identity.SubjectKey), and every
+		// caller-derived principal is an identity_account. Any other
+		// kind — and any relation qualifier, which equality deliberately
+		// excludes — would apply cleanly and silently never match, so
+		// both are refused here (dont-dos/001). Relaxes additively if
+		// subject matching ever learns more principal kinds (teams).
+		if p := binding.GetSubject().GetPrincipal(); p != nil {
+			if p.GetKind() != apiresourcekind.ApiResourceKind_identity_account.String() {
+				return fmt.Errorf("binding principal kind %q is not supported (only identity_account principals can be bound)", p.GetKind())
+			}
+			if p.GetRelation() != "" {
+				return fmt.Errorf("binding principal relation %q is not supported; remove the relation qualifier", p.GetRelation())
+			}
+		}
+
+		// Role resolution is first-match-wins over bindings, so a
+		// second binding for the same subject is silently shadowed dead
+		// configuration. The message identifies bindings by index and
+		// never echoes the subject: channel-sender values are
+		// bearer-adjacent and must not be reflected into error strings.
+		key := identity.SubjectKey(binding.GetSubject())
+		if prev, dup := seenSubjects[key]; dup {
+			return fmt.Errorf("bindings[%d] duplicates the subject of bindings[%d]", i, prev)
+		}
+		seenSubjects[key] = i
 	}
 
 	if dr := authz.GetDefaultRole(); dr != "" && !declared[dr] {

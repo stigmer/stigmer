@@ -52,6 +52,7 @@ go_test(
         "//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//apis/stubs/go/ai/stigmer/iam/iampolicy/v1:iampolicy",
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/libs/go/store",
         "//backend/libs/go/store/sqlite",

@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/cursoraccount/v1/io.proto.
  */
 export const file_ai_stigmer_platform_cursoraccount_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL3BsYXRmb3JtL2N1cnNvcmFjY291bnQvdjEvaW8ucHJvdG8SJGFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MSJoChhVcHNlcnRDdXJzb3JBY2NvdW50SW5wdXQSTAoHYWNjb3VudBgBIAEoCzIzLmFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MS5DdXJzb3JBY2NvdW50Qga6SAPIAQEiRgoYRGVsZXRlQ3Vyc29yQWNjb3VudElucHV0EhsKCmFjY291bnRfaWQYASABKAlCB7pIBHICEAESDQoFZm9yY2UYAiABKAgibQoXQWRkQ3Vyc29yTWVtYmVyS2V5SW5wdXQSGwoKYWNjb3VudF9pZBgBIAEoCUIHukgEcgIQARIcCgdhcGlfa2V5GAIgASgJQgu6SAjIAQFyAxiAAhIXCgVsYWJlbBgDIAEoCUIIukgFcgMYgAEiYQoaUmVtb3ZlQ3Vyc29yTWVtYmVyS2V5SW5wdXQSGwoKYWNjb3VudF9pZBgBIAEoCUIHukgEcgIQARIXCgZrZXlfaWQYAiABKAlCB7pIBHICEAESDQoFZm9yY2UYAyABKAgiZwoeU2V0Q3Vyc29yTWVtYmVyS2V5RW5hYmxlZElucHV0EhsKCmFjY291bnRfaWQYASABKAlCB7pIBHICEAESFwoGa2V5X2lkGAIgASgJQge6SARyAhABEg8KB2VuYWJsZWQYAyABKAgiNQoWU3luY0N1cnNvckFjY291bnRJbnB1dBIbCgphY2NvdW50X2lkGAEgASgJQge6SARyAhABIhkKF0xpc3RDdXJzb3JBY2NvdW50c0lucHV0IqsBChRDdXJzb3JBY2NvdW50U3VtbWFyeRJECgdhY2NvdW50GAEgASgLMjMuYWkuc3RpZ21lci5wbGF0Zm9ybS5jdXJzb3JhY2NvdW50LnYxLkN1cnNvckFjY291bnQSGQoRZW5hYmxlZF9rZXlfY291bnQYAiABKAUSMgoObGFzdF9zeW5jZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wImYKFkN1cnNvckFjY291bnRzUmVzcG9uc2USTAoIYWNjb3VudHMYASADKAsyOi5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yQWNjb3VudFN1bW1hcnkiOAoZR2V0Q3Vyc29yQWNjb3VudFZpZXdJbnB1dBIbCgphY2NvdW50X2lkGAEgASgJQge6SARyAhABIokCChNDdXJzb3JNZW1iZXJLZXlWaWV3EkIKA2tleRgBIAEoCzI1LmFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MS5DdXJzb3JNZW1iZXJLZXkSSQoFc3RhdGUYAiABKA4yOi5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yTWVtYmVyS2V5U3RhdGUSRgoFc3BlbmQYAyABKAsyNy5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yTWVtYmVyU3BlbmQSGwoTdXNhZ2VfZ3VhcmRfdHJpcHBlZBgEIAEoCCLQAgoRQ3Vyc29yQWNjb3VudFZpZXcSRAoHYWNjb3VudBgBIAEoCzIzLmFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MS5DdXJzb3JBY2NvdW50ElEKCHNuYXBzaG90GAIgASgLMj8uYWkuc3RpZ21lci5wbGF0Zm9ybS5jdXJzb3JhY2NvdW50LnYxLkN1cnNvckFjY291bnRTeW5jU25hcHNob3QSTAoJa2V5X3ZpZXdzGAMgAygLMjkuYWkuc3RpZ21lci5wbGF0Zm9ybS5jdXJzb3JhY2NvdW50LnYxLkN1cnNvck1lbWJlcktleVZpZXcSVAoUbWVtYmVyc193aXRob3V0X2tleXMYBCADKAsyNi5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yVGVhbU1lbWJlciqSAQoUQ3Vyc29yTWVtYmVyS2V5U3RhdGUSJwojY3Vyc29yX21lbWJlcl9rZXlfc3RhdGVfdW5zcGVjaWZpZWQQABIVChFtZW1iZXJfa2V5X2FjdGl2ZRABEhwKGG1lbWJlcl9rZXlfb3duZXJfcmVtb3ZlZBACEhwKGG1lbWJlcl9rZXlfb3duZXJfdW5rbm93bhADYgZwcm90bzM", [file_ai_stigmer_platform_cursoraccount_v1_cursor_account, file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("Ci1haS9zdGlnbWVyL3BsYXRmb3JtL2N1cnNvcmFjY291bnQvdjEvaW8ucHJvdG8SJGFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MSJoChhVcHNlcnRDdXJzb3JBY2NvdW50SW5wdXQSTAoHYWNjb3VudBgBIAEoCzIzLmFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MS5DdXJzb3JBY2NvdW50Qga6SAPIAQEiRgoYRGVsZXRlQ3Vyc29yQWNjb3VudElucHV0EhsKCmFjY291bnRfaWQYASABKAlCB7pIBHICEAESDQoFZm9yY2UYAiABKAgibQoXQWRkQ3Vyc29yTWVtYmVyS2V5SW5wdXQSGwoKYWNjb3VudF9pZBgBIAEoCUIHukgEcgIQARIcCgdhcGlfa2V5GAIgASgJQgu6SAjIAQFyAxiAAhIXCgVsYWJlbBgDIAEoCUIIukgFcgMYgAEiYQoaUmVtb3ZlQ3Vyc29yTWVtYmVyS2V5SW5wdXQSGwoKYWNjb3VudF9pZBgBIAEoCUIHukgEcgIQARIXCgZrZXlfaWQYAiABKAlCB7pIBHICEAESDQoFZm9yY2UYAyABKAgiZwoeU2V0Q3Vyc29yTWVtYmVyS2V5RW5hYmxlZElucHV0EhsKCmFjY291bnRfaWQYASABKAlCB7pIBHICEAESFwoGa2V5X2lkGAIgASgJQge6SARyAhABEg8KB2VuYWJsZWQYAyABKAgiNQoWU3luY0N1cnNvckFjY291bnRJbnB1dBIbCgphY2NvdW50X2lkGAEgASgJQge6SARyAhABIhkKF0xpc3RDdXJzb3JBY2NvdW50c0lucHV0IqsBChRDdXJzb3JBY2NvdW50U3VtbWFyeRJECgdhY2NvdW50GAEgASgLMjMuYWkuc3RpZ21lci5wbGF0Zm9ybS5jdXJzb3JhY2NvdW50LnYxLkN1cnNvckFjY291bnQSGQoRZW5hYmxlZF9rZXlfY291bnQYAiABKAUSMgoObGFzdF9zeW5jZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wImYKFkN1cnNvckFjY291bnRzUmVzcG9uc2USTAoIYWNjb3VudHMYASADKAsyOi5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yQWNjb3VudFN1bW1hcnkiOAoZR2V0Q3Vyc29yQWNjb3VudFZpZXdJbnB1dBIbCgphY2NvdW50X2lkGAEgASgJQge6SARyAhABIqYBChRDdXJzb3JUZWFtTWVtYmVyVmlldxJGCgZtZW1iZXIYASABKAsyNi5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yVGVhbU1lbWJlchJGCgVzcGVuZBgCIAEoCzI3LmFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MS5DdXJzb3JNZW1iZXJTcGVuZCKJAgoTQ3Vyc29yTWVtYmVyS2V5VmlldxJCCgNrZXkYASABKAsyNS5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yTWVtYmVyS2V5EkkKBXN0YXRlGAIgASgOMjouYWkuc3RpZ21lci5wbGF0Zm9ybS5jdXJzb3JhY2NvdW50LnYxLkN1cnNvck1lbWJlcktleVN0YXRlEkYKBXNwZW5kGAMgASgLMjcuYWkuc3RpZ21lci5wbGF0Zm9ybS5jdXJzb3JhY2NvdW50LnYxLkN1cnNvck1lbWJlclNwZW5kEhsKE3VzYWdlX2d1YXJkX3RyaXBwZWQYBCABKAgitAMKEUN1cnNvckFjY291bnRWaWV3EkQKB2FjY291bnQYASABKAsyMy5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yQWNjb3VudBJRCghzbmFwc2hvdBgCIAEoCzI/LmFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MS5DdXJzb3JBY2NvdW50U3luY1NuYXBzaG90EkwKCWtleV92aWV3cxgDIAMoCzI5LmFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MS5DdXJzb3JNZW1iZXJLZXlWaWV3ElgKFG1lbWJlcnNfd2l0aG91dF9rZXlzGAQgAygLMjYuYWkuc3RpZ21lci5wbGF0Zm9ybS5jdXJzb3JhY2NvdW50LnYxLkN1cnNvclRlYW1NZW1iZXJCAhgBEl4KGm1lbWJlcnNfd2l0aG91dF9rZXlzX3ZpZXdzGAUgAygLMjouYWkuc3RpZ21lci5wbGF0Zm9ybS5jdXJzb3JhY2NvdW50LnYxLkN1cnNvclRlYW1NZW1iZXJWaWV3KpIBChRDdXJzb3JNZW1iZXJLZXlTdGF0ZRInCiNjdXJzb3JfbWVtYmVyX2tleV9zdGF0ZV91bnNwZWNpZmllZBAAEhUKEW1lbWJlcl9rZXlfYWN0aXZlEAESHAoYbWVtYmVyX2tleV9vd25lcl9yZW1vdmVkEAISHAoYbWVtYmVyX2tleV9vd25lcl91bmtub3duEANiBnByb3RvMw", [file_ai_stigmer_platform_cursoraccount_v1_cursor_account, file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * Input for creating or updating a CursorAccount.
@@ -280,6 +280,36 @@ export const GetCursorAccountViewInputSchema: GenMessage<GetCursorAccountViewInp
   messageDesc(file_ai_stigmer_platform_cursoraccount_v1_io, 9);
 
 /**
+ * One active roster member Stigmer holds no key for, joined with their
+ * cycle spend — the operator's coverage-gap row. The spend join happens
+ * server-side by the same case-insensitive email rule as key views
+ * (computed on read, never stored) so clients never re-derive it.
+ *
+ * @generated from message ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView
+ */
+export type CursorTeamMemberView = Message<"ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView"> & {
+  /**
+   * @generated from field: ai.stigmer.platform.cursoraccount.v1.CursorTeamMember member = 1;
+   */
+  member?: CursorTeamMember;
+
+  /**
+   * Spend of this member this cycle; unset when the member has no
+   * spend row.
+   *
+   * @generated from field: ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 2;
+   */
+  spend?: CursorMemberSpend;
+};
+
+/**
+ * Describes the message ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView.
+ * Use `create(CursorTeamMemberViewSchema)` to create a new message.
+ */
+export const CursorTeamMemberViewSchema: GenMessage<CursorTeamMemberView> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_platform_cursoraccount_v1_io, 10);
+
+/**
  * One member key joined with roster + spend facts for the detail view.
  *
  * @generated from message ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyView
@@ -326,7 +356,7 @@ export type CursorMemberKeyView = Message<"ai.stigmer.platform.cursoraccount.v1.
  * Use `create(CursorMemberKeyViewSchema)` to create a new message.
  */
 export const CursorMemberKeyViewSchema: GenMessage<CursorMemberKeyView> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_platform_cursoraccount_v1_io, 10);
+  messageDesc(file_ai_stigmer_platform_cursoraccount_v1_io, 11);
 
 /**
  * Full detail view of one account: the redacted account, the latest
@@ -355,12 +385,24 @@ export type CursorAccountView = Message<"ai.stigmer.platform.cursoraccount.v1.Cu
   keyViews: CursorMemberKeyView[];
 
   /**
-   * Active roster members (role != "removed") for whom no member key is
-   * stored — the operator's "coverage gap" list.
+   * Deprecated: superseded by members_without_keys_views, which carries
+   * the same roster entries with their spend joined server-side. Still
+   * populated (protos are published; older clients may read it); current
+   * clients must read the views field.
    *
-   * @generated from field: repeated ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4;
+   * @generated from field: repeated ai.stigmer.platform.cursoraccount.v1.CursorTeamMember members_without_keys = 4 [deprecated = true];
+   * @deprecated
    */
   membersWithoutKeys: CursorTeamMember[];
+
+  /**
+   * Active roster members (role != "removed") for whom no member key is
+   * stored — the operator's "coverage gap" list, each joined with the
+   * member's cycle spend by the same email rule as key_views.
+   *
+   * @generated from field: repeated ai.stigmer.platform.cursoraccount.v1.CursorTeamMemberView members_without_keys_views = 5;
+   */
+  membersWithoutKeysViews: CursorTeamMemberView[];
 };
 
 /**
@@ -368,7 +410,7 @@ export type CursorAccountView = Message<"ai.stigmer.platform.cursoraccount.v1.Cu
  * Use `create(CursorAccountViewSchema)` to create a new message.
  */
 export const CursorAccountViewSchema: GenMessage<CursorAccountView> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_platform_cursoraccount_v1_io, 11);
+  messageDesc(file_ai_stigmer_platform_cursoraccount_v1_io, 12);
 
 /**
  * CursorMemberKeyState classifies one stored member key against the

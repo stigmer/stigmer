@@ -44,6 +44,14 @@ public interface DatastoreSubjectOrBuilder extends
    * <pre>
    * Platform principal (an identity account today; teams later
    * without schema change).
+   *
+   * &#64;internal
+   * Matched by exact kind+id equality against the caller-derived
+   * subject; the relation qualifier is excluded from identity and
+   * rejected at apply. The id is the account id, never a slug or
+   * email — apply-time validation refuses unresolvable values with a
+   * membership-gated did-you-mean instead of letting them bind
+   * nothing silently (dont-dos/001).
    * </pre>
    *
    * <code>.ai.stigmer.iam.iampolicy.v1.ApiResourceRef principal = 2 [json_name = "principal"];</code>
@@ -54,6 +62,14 @@ public interface DatastoreSubjectOrBuilder extends
    * <pre>
    * Platform principal (an identity account today; teams later
    * without schema change).
+   *
+   * &#64;internal
+   * Matched by exact kind+id equality against the caller-derived
+   * subject; the relation qualifier is excluded from identity and
+   * rejected at apply. The id is the account id, never a slug or
+   * email — apply-time validation refuses unresolvable values with a
+   * membership-gated did-you-mean instead of letting them bind
+   * nothing silently (dont-dos/001).
    * </pre>
    *
    * <code>.ai.stigmer.iam.iampolicy.v1.ApiResourceRef principal = 2 [json_name = "principal"];</code>
@@ -64,6 +80,14 @@ public interface DatastoreSubjectOrBuilder extends
    * <pre>
    * Platform principal (an identity account today; teams later
    * without schema change).
+   *
+   * &#64;internal
+   * Matched by exact kind+id equality against the caller-derived
+   * subject; the relation qualifier is excluded from identity and
+   * rejected at apply. The id is the account id, never a slug or
+   * email — apply-time validation refuses unresolvable values with a
+   * membership-gated did-you-mean instead of letting them bind
+   * nothing silently (dont-dos/001).
    * </pre>
    *
    * <code>.ai.stigmer.iam.iampolicy.v1.ApiResourceRef principal = 2 [json_name = "principal"];</code>
