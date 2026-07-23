@@ -301,6 +301,33 @@ describe("CursorAccountsConsole", () => {
     expect(submitted.adminApiKey).toBe("key_admin_plain");
     expect(submitted.orgIds).toEqual(["org-x", "org-y"]);
     expect(submitted.enabled).toBe(true);
+    // Checkbox default checked ("on-demand enabled", Cursor's team default)
+    // negates into the proto field.
+    expect(submitted.onDemandUsageDisabled).toBe(false);
+  });
+
+  it("declares on-demand usage off through the editor checkbox", async () => {
+    const upsertAccount = vi.fn().mockResolvedValue(scenarAccount());
+    const client = createMockStigmer({
+      listAccounts: vi.fn().mockResolvedValue({ accounts: [] }),
+      upsertAccount,
+    });
+    render(<CursorAccountsConsole />, { wrapper: wrapper(client) });
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Add account" })).toBeTruthy(),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Add account" }));
+
+    await userEvent.type(screen.getByLabelText(/Display name/), "capped team");
+    await userEvent.type(screen.getByLabelText(/Team Admin API key/), "key_admin");
+    await userEvent.click(
+      screen.getByRole("checkbox", { name: /On-demand usage enabled/ }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Create account" }));
+
+    await waitFor(() => expect(upsertAccount).toHaveBeenCalledTimes(1));
+    expect(upsertAccount.mock.calls[0][0].account.onDemandUsageDisabled).toBe(true);
   });
 
   it("bulk-imports keys one per line, keeping failed lines for retry", async () => {
@@ -360,6 +387,42 @@ describe("CursorAccountsConsole", () => {
     expect((textarea as HTMLTextAreaElement).value).toBe("key_bad_5678");
     // The roster sync runs automatically after the import.
     await waitFor(() => expect(syncAccount).toHaveBeenCalledWith("acc-1"));
+  });
+
+  it("shows API-pool utilization and the usage-guard badge from server-computed facts", async () => {
+    const guardedView = create(CursorAccountViewSchema, {
+      account: scenarAccount({ onDemandUsageDisabled: true }),
+      keyViews: [
+        create(CursorMemberKeyViewSchema, {
+          key: scenarAccount().memberKeys[0],
+          state: CursorMemberKeyState.member_key_active,
+          usageGuardTripped: true,
+          spend: create(CursorMemberSpendSchema, {
+            email: "zane@scenar.ai",
+            includedSpendUsdMicros: 169342n,
+            apiPercentUsed: 100,
+            autoPercentUsed: 5.19,
+            totalPercentUsed: 26.58,
+          }),
+        }),
+      ],
+    });
+    const client = createMockStigmer({
+      listAccounts: vi.fn().mockResolvedValue({ accounts: [scenarSummary()] }),
+      getAccountView: vi.fn().mockResolvedValue(guardedView),
+    });
+    render(<CursorAccountsConsole />, { wrapper: wrapper(client) });
+
+    await waitFor(() => expect(screen.getByText("scenar team")).toBeTruthy());
+    await userEvent.click(screen.getByRole("button", { name: /scenar team/ }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/API pool 100% used/)).toBeTruthy(),
+    );
+    // The badge renders the server's flag — no client-side threshold math.
+    expect(screen.getByText("Usage guard")).toBeTruthy();
+    // The header carries the declaration driving the guard.
+    expect(screen.getByText(/on-demand usage off \(usage guard active\)/)).toBeTruthy();
   });
 
   it("keeps the stored admin key when the editor's masked value is untouched", async () => {

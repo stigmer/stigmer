@@ -27,3 +27,16 @@ export function formatSyncTime(ts: Timestamp | undefined): string {
     minute: "2-digit",
   });
 }
+
+/**
+ * Cursor's pool-usage percent (0–100, live-verified) to a display string
+ * (`26.97` → `"27%"`). Returns null for 0 — Cursor omits the field on
+ * non-tiered teams and the sync stores 0, so 0 means "unreported", never
+ * "untouched pool"; rendering it would assert precision that isn't there.
+ */
+export function formatPoolPercent(percent: number): string | null {
+  if (percent <= 0) {
+    return null;
+  }
+  return `${Math.round(percent)}%`;
+}

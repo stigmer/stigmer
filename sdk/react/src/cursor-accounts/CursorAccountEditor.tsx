@@ -58,6 +58,12 @@ export function CursorAccountEditor({
   const [isPlatformDefault, setIsPlatformDefault] = useState(
     initial?.isPlatformDefault ?? false,
   );
+  // UI state is the positive ("on-demand enabled", Cursor's own wording and
+  // team default); the proto field is the negative so absence means
+  // "assume Cursor's default" on documents that predate the field.
+  const [onDemandEnabled, setOnDemandEnabled] = useState(
+    !(initial?.onDemandUsageDisabled ?? false),
+  );
   const [orgIdsText, setOrgIdsText] = useState(
     (initial?.orgIds ?? []).join("\n"),
   );
@@ -75,6 +81,7 @@ export function CursorAccountEditor({
         adminApiKey: adminApiKey.trim(),
         enabled,
         isPlatformDefault,
+        onDemandUsageDisabled: !onDemandEnabled,
         orgIds: orgIdsText
           .split(/[\s,]+/)
           .map((s) => s.trim())
@@ -158,6 +165,24 @@ export function CursorAccountEditor({
             Check on exactly one account. Orgs not listed in any account&apos;s
             assigned ids resolve to the platform default; at most one account
             may hold this flag.
+          </p>
+        </div>
+        <div>
+          <label className="flex items-center gap-1.5 text-xs text-foreground">
+            <input
+              type="checkbox"
+              checked={onDemandEnabled}
+              onChange={(e) => setOnDemandEnabled(e.target.checked)}
+              disabled={isSubmitting}
+            />
+            On-demand usage enabled (as configured in the Cursor dashboard)
+          </label>
+          <p className="mt-0.5 pl-[1.375rem] text-[11px] text-muted-foreground">
+            Declared here because Cursor&apos;s Admin API cannot report the
+            team&apos;s on-demand setting. Uncheck only when the dashboard has
+            on-demand usage OFF: new sessions then avoid member keys whose
+            included third-party (API) pool is nearly spent, since such keys
+            can no longer serve third-party models at all.
           </p>
         </div>
       </div>

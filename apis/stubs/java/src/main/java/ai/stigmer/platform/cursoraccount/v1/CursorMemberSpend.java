@@ -173,9 +173,12 @@ private static final long serialVersionUID = 0L;
   private double totalPercentUsed_ = 0D;
   /**
    * <pre>
-   * Fraction of the member's usage allowance consumed (0..1 as reported
-   * by Cursor's totalPercentUsed; 0 when Cursor omits it — tiered teams
-   * only).
+   * Percent (0–100) of the member's blended usage allowance consumed
+   * (Cursor's totalPercentUsed, live-verified 2026-07-22 — the T06
+   * probe observed 22.35 for a member at 22%). 0 when Cursor omits it
+   * (non-tiered/Enterprise teams). Caution: removed members report a
+   * flat 100 here regardless of real usage — roster state, not this
+   * field, decides "removed".
    * </pre>
    *
    * <code>double total_percent_used = 5 [json_name = "totalPercentUsed"];</code>
@@ -184,6 +187,41 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public double getTotalPercentUsed() {
     return totalPercentUsed_;
+  }
+
+  public static final int AUTO_PERCENT_USED_FIELD_NUMBER = 6;
+  private double autoPercentUsed_ = 0D;
+  /**
+   * <pre>
+   * Percent (0–100) of the FIRST-PARTY model pool (Auto/Composer)
+   * consumed — Cursor's autoPercentUsed. 0 when unreported.
+   * </pre>
+   *
+   * <code>double auto_percent_used = 6 [json_name = "autoPercentUsed"];</code>
+   * @return The autoPercentUsed.
+   */
+  @java.lang.Override
+  public double getAutoPercentUsed() {
+    return autoPercentUsed_;
+  }
+
+  public static final int API_PERCENT_USED_FIELD_NUMBER = 7;
+  private double apiPercentUsed_ = 0D;
+  /**
+   * <pre>
+   * Percent (0–100) of the THIRD-PARTY API model pool (Claude/GPT/…)
+   * consumed — Cursor's apiPercentUsed. 0 when unreported. This is the
+   * usage-guard metric: the pools diverge hard in practice (T06
+   * observed api=100 while total=22.35), so the blended figure must
+   * never gate selection.
+   * </pre>
+   *
+   * <code>double api_percent_used = 7 [json_name = "apiPercentUsed"];</code>
+   * @return The apiPercentUsed.
+   */
+  @java.lang.Override
+  public double getApiPercentUsed() {
+    return apiPercentUsed_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -215,6 +253,12 @@ private static final long serialVersionUID = 0L;
     if (java.lang.Double.doubleToRawLongBits(totalPercentUsed_) != 0) {
       output.writeDouble(5, totalPercentUsed_);
     }
+    if (java.lang.Double.doubleToRawLongBits(autoPercentUsed_) != 0) {
+      output.writeDouble(6, autoPercentUsed_);
+    }
+    if (java.lang.Double.doubleToRawLongBits(apiPercentUsed_) != 0) {
+      output.writeDouble(7, apiPercentUsed_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -242,6 +286,14 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeDoubleSize(5, totalPercentUsed_);
     }
+    if (java.lang.Double.doubleToRawLongBits(autoPercentUsed_) != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeDoubleSize(6, autoPercentUsed_);
+    }
+    if (java.lang.Double.doubleToRawLongBits(apiPercentUsed_) != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeDoubleSize(7, apiPercentUsed_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -268,6 +320,12 @@ private static final long serialVersionUID = 0L;
     if (java.lang.Double.doubleToLongBits(getTotalPercentUsed())
         != java.lang.Double.doubleToLongBits(
             other.getTotalPercentUsed())) return false;
+    if (java.lang.Double.doubleToLongBits(getAutoPercentUsed())
+        != java.lang.Double.doubleToLongBits(
+            other.getAutoPercentUsed())) return false;
+    if (java.lang.Double.doubleToLongBits(getApiPercentUsed())
+        != java.lang.Double.doubleToLongBits(
+            other.getApiPercentUsed())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -292,6 +350,12 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + TOTAL_PERCENT_USED_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         java.lang.Double.doubleToLongBits(getTotalPercentUsed()));
+    hash = (37 * hash) + AUTO_PERCENT_USED_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        java.lang.Double.doubleToLongBits(getAutoPercentUsed()));
+    hash = (37 * hash) + API_PERCENT_USED_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        java.lang.Double.doubleToLongBits(getApiPercentUsed()));
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -439,6 +503,8 @@ private static final long serialVersionUID = 0L;
       includedSpendUsdMicros_ = 0L;
       overageSpendUsdMicros_ = 0L;
       totalPercentUsed_ = 0D;
+      autoPercentUsed_ = 0D;
+      apiPercentUsed_ = 0D;
       return this;
     }
 
@@ -487,6 +553,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.totalPercentUsed_ = totalPercentUsed_;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.autoPercentUsed_ = autoPercentUsed_;
+      }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.apiPercentUsed_ = apiPercentUsed_;
+      }
     }
 
     @java.lang.Override
@@ -519,6 +591,12 @@ private static final long serialVersionUID = 0L;
       }
       if (java.lang.Double.doubleToRawLongBits(other.getTotalPercentUsed()) != 0) {
         setTotalPercentUsed(other.getTotalPercentUsed());
+      }
+      if (java.lang.Double.doubleToRawLongBits(other.getAutoPercentUsed()) != 0) {
+        setAutoPercentUsed(other.getAutoPercentUsed());
+      }
+      if (java.lang.Double.doubleToRawLongBits(other.getApiPercentUsed()) != 0) {
+        setApiPercentUsed(other.getApiPercentUsed());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -571,6 +649,16 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 41
+            case 49: {
+              autoPercentUsed_ = input.readDouble();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 49
+            case 57: {
+              apiPercentUsed_ = input.readDouble();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 57
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -823,9 +911,12 @@ private static final long serialVersionUID = 0L;
     private double totalPercentUsed_ ;
     /**
      * <pre>
-     * Fraction of the member's usage allowance consumed (0..1 as reported
-     * by Cursor's totalPercentUsed; 0 when Cursor omits it — tiered teams
-     * only).
+     * Percent (0–100) of the member's blended usage allowance consumed
+     * (Cursor's totalPercentUsed, live-verified 2026-07-22 — the T06
+     * probe observed 22.35 for a member at 22%). 0 when Cursor omits it
+     * (non-tiered/Enterprise teams). Caution: removed members report a
+     * flat 100 here regardless of real usage — roster state, not this
+     * field, decides "removed".
      * </pre>
      *
      * <code>double total_percent_used = 5 [json_name = "totalPercentUsed"];</code>
@@ -837,9 +928,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Fraction of the member's usage allowance consumed (0..1 as reported
-     * by Cursor's totalPercentUsed; 0 when Cursor omits it — tiered teams
-     * only).
+     * Percent (0–100) of the member's blended usage allowance consumed
+     * (Cursor's totalPercentUsed, live-verified 2026-07-22 — the T06
+     * probe observed 22.35 for a member at 22%). 0 when Cursor omits it
+     * (non-tiered/Enterprise teams). Caution: removed members report a
+     * flat 100 here regardless of real usage — roster state, not this
+     * field, decides "removed".
      * </pre>
      *
      * <code>double total_percent_used = 5 [json_name = "totalPercentUsed"];</code>
@@ -855,9 +949,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Fraction of the member's usage allowance consumed (0..1 as reported
-     * by Cursor's totalPercentUsed; 0 when Cursor omits it — tiered teams
-     * only).
+     * Percent (0–100) of the member's blended usage allowance consumed
+     * (Cursor's totalPercentUsed, live-verified 2026-07-22 — the T06
+     * probe observed 22.35 for a member at 22%). 0 when Cursor omits it
+     * (non-tiered/Enterprise teams). Caution: removed members report a
+     * flat 100 here regardless of real usage — roster state, not this
+     * field, decides "removed".
      * </pre>
      *
      * <code>double total_percent_used = 5 [json_name = "totalPercentUsed"];</code>
@@ -866,6 +963,109 @@ private static final long serialVersionUID = 0L;
     public Builder clearTotalPercentUsed() {
       bitField0_ = (bitField0_ & ~0x00000010);
       totalPercentUsed_ = 0D;
+      onChanged();
+      return this;
+    }
+
+    private double autoPercentUsed_ ;
+    /**
+     * <pre>
+     * Percent (0–100) of the FIRST-PARTY model pool (Auto/Composer)
+     * consumed — Cursor's autoPercentUsed. 0 when unreported.
+     * </pre>
+     *
+     * <code>double auto_percent_used = 6 [json_name = "autoPercentUsed"];</code>
+     * @return The autoPercentUsed.
+     */
+    @java.lang.Override
+    public double getAutoPercentUsed() {
+      return autoPercentUsed_;
+    }
+    /**
+     * <pre>
+     * Percent (0–100) of the FIRST-PARTY model pool (Auto/Composer)
+     * consumed — Cursor's autoPercentUsed. 0 when unreported.
+     * </pre>
+     *
+     * <code>double auto_percent_used = 6 [json_name = "autoPercentUsed"];</code>
+     * @param value The autoPercentUsed to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAutoPercentUsed(double value) {
+
+      autoPercentUsed_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Percent (0–100) of the FIRST-PARTY model pool (Auto/Composer)
+     * consumed — Cursor's autoPercentUsed. 0 when unreported.
+     * </pre>
+     *
+     * <code>double auto_percent_used = 6 [json_name = "autoPercentUsed"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAutoPercentUsed() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      autoPercentUsed_ = 0D;
+      onChanged();
+      return this;
+    }
+
+    private double apiPercentUsed_ ;
+    /**
+     * <pre>
+     * Percent (0–100) of the THIRD-PARTY API model pool (Claude/GPT/…)
+     * consumed — Cursor's apiPercentUsed. 0 when unreported. This is the
+     * usage-guard metric: the pools diverge hard in practice (T06
+     * observed api=100 while total=22.35), so the blended figure must
+     * never gate selection.
+     * </pre>
+     *
+     * <code>double api_percent_used = 7 [json_name = "apiPercentUsed"];</code>
+     * @return The apiPercentUsed.
+     */
+    @java.lang.Override
+    public double getApiPercentUsed() {
+      return apiPercentUsed_;
+    }
+    /**
+     * <pre>
+     * Percent (0–100) of the THIRD-PARTY API model pool (Claude/GPT/…)
+     * consumed — Cursor's apiPercentUsed. 0 when unreported. This is the
+     * usage-guard metric: the pools diverge hard in practice (T06
+     * observed api=100 while total=22.35), so the blended figure must
+     * never gate selection.
+     * </pre>
+     *
+     * <code>double api_percent_used = 7 [json_name = "apiPercentUsed"];</code>
+     * @param value The apiPercentUsed to set.
+     * @return This builder for chaining.
+     */
+    public Builder setApiPercentUsed(double value) {
+
+      apiPercentUsed_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Percent (0–100) of the THIRD-PARTY API model pool (Claude/GPT/…)
+     * consumed — Cursor's apiPercentUsed. 0 when unreported. This is the
+     * usage-guard metric: the pools diverge hard in practice (T06
+     * observed api=100 while total=22.35), so the blended figure must
+     * never gate selection.
+     * </pre>
+     *
+     * <code>double api_percent_used = 7 [json_name = "apiPercentUsed"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearApiPercentUsed() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      apiPercentUsed_ = 0D;
       onChanged();
       return this;
     }

@@ -100,14 +100,16 @@ class GetCursorAccountViewInput(_message.Message):
     def __init__(self, account_id: _Optional[str] = ...) -> None: ...
 
 class CursorMemberKeyView(_message.Message):
-    __slots__ = ("key", "state", "spend")
+    __slots__ = ("key", "state", "spend", "usage_guard_tripped")
     KEY_FIELD_NUMBER: _ClassVar[int]
     STATE_FIELD_NUMBER: _ClassVar[int]
     SPEND_FIELD_NUMBER: _ClassVar[int]
+    USAGE_GUARD_TRIPPED_FIELD_NUMBER: _ClassVar[int]
     key: _cursor_account_pb2.CursorMemberKey
     state: CursorMemberKeyState
     spend: _cursor_account_pb2.CursorMemberSpend
-    def __init__(self, key: _Optional[_Union[_cursor_account_pb2.CursorMemberKey, _Mapping]] = ..., state: _Optional[_Union[CursorMemberKeyState, str]] = ..., spend: _Optional[_Union[_cursor_account_pb2.CursorMemberSpend, _Mapping]] = ...) -> None: ...
+    usage_guard_tripped: bool
+    def __init__(self, key: _Optional[_Union[_cursor_account_pb2.CursorMemberKey, _Mapping]] = ..., state: _Optional[_Union[CursorMemberKeyState, str]] = ..., spend: _Optional[_Union[_cursor_account_pb2.CursorMemberSpend, _Mapping]] = ..., usage_guard_tripped: bool = ...) -> None: ...
 
 class CursorAccountView(_message.Message):
     __slots__ = ("account", "snapshot", "key_views", "members_without_keys")

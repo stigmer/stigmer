@@ -115,7 +115,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Spend of the owning member this cycle; unset when the member has no
-   * spend row (spend reports active members only).
+   * spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+   * returns removed members, with a flat totalPercentUsed=100 — the
+   * roster state above, never spend, decides "removed".)
    * </pre>
    *
    * <code>.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 3 [json_name = "spend"];</code>
@@ -128,7 +130,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Spend of the owning member this cycle; unset when the member has no
-   * spend row (spend reports active members only).
+   * spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+   * returns removed members, with a flat totalPercentUsed=100 — the
+   * roster state above, never spend, decides "removed".)
    * </pre>
    *
    * <code>.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 3 [json_name = "spend"];</code>
@@ -141,7 +145,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Spend of the owning member this cycle; unset when the member has no
-   * spend row (spend reports active members only).
+   * spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+   * returns removed members, with a flat totalPercentUsed=100 — the
+   * roster state above, never spend, decides "removed".)
    * </pre>
    *
    * <code>.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 3 [json_name = "spend"];</code>
@@ -149,6 +155,27 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public ai.stigmer.platform.cursoraccount.v1.CursorMemberSpendOrBuilder getSpendOrBuilder() {
     return spend_ == null ? ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend.getDefaultInstance() : spend_;
+  }
+
+  public static final int USAGE_GUARD_TRIPPED_FIELD_NUMBER = 4;
+  private boolean usageGuardTripped_ = false;
+  /**
+   * <pre>
+   * True when the usage guard excludes this key from NEW-session
+   * selection: the account declares on-demand usage disabled AND the
+   * owning member's api_percent_used has crossed the platform soft
+   * limit. Server-computed on read by the same routability predicate
+   * key selection uses (the threshold is server config — clients must
+   * render this flag, never re-derive it). Pinned sessions are not
+   * affected by the guard.
+   * </pre>
+   *
+   * <code>bool usage_guard_tripped = 4 [json_name = "usageGuardTripped"];</code>
+   * @return The usageGuardTripped.
+   */
+  @java.lang.Override
+  public boolean getUsageGuardTripped() {
+    return usageGuardTripped_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -174,6 +201,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(3, getSpend());
     }
+    if (usageGuardTripped_ != false) {
+      output.writeBool(4, usageGuardTripped_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -194,6 +224,10 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(3, getSpend());
+    }
+    if (usageGuardTripped_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(4, usageGuardTripped_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -221,6 +255,8 @@ private static final long serialVersionUID = 0L;
       if (!getSpend()
           .equals(other.getSpend())) return false;
     }
+    if (getUsageGuardTripped()
+        != other.getUsageGuardTripped()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -242,6 +278,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + SPEND_FIELD_NUMBER;
       hash = (53 * hash) + getSpend().hashCode();
     }
+    hash = (37 * hash) + USAGE_GUARD_TRIPPED_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getUsageGuardTripped());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -395,6 +434,7 @@ private static final long serialVersionUID = 0L;
         spendBuilder_.dispose();
         spendBuilder_ = null;
       }
+      usageGuardTripped_ = false;
       return this;
     }
 
@@ -444,6 +484,9 @@ private static final long serialVersionUID = 0L;
             : spendBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.usageGuardTripped_ = usageGuardTripped_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -467,6 +510,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasSpend()) {
         mergeSpend(other.getSpend());
+      }
+      if (other.getUsageGuardTripped() != false) {
+        setUsageGuardTripped(other.getUsageGuardTripped());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -513,6 +559,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
+            case 32: {
+              usageGuardTripped_ = input.readBool();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 32
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -745,7 +796,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Spend of the owning member this cycle; unset when the member has no
-     * spend row (spend reports active members only).
+     * spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+     * returns removed members, with a flat totalPercentUsed=100 — the
+     * roster state above, never spend, decides "removed".)
      * </pre>
      *
      * <code>.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 3 [json_name = "spend"];</code>
@@ -757,7 +810,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Spend of the owning member this cycle; unset when the member has no
-     * spend row (spend reports active members only).
+     * spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+     * returns removed members, with a flat totalPercentUsed=100 — the
+     * roster state above, never spend, decides "removed".)
      * </pre>
      *
      * <code>.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 3 [json_name = "spend"];</code>
@@ -773,7 +828,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Spend of the owning member this cycle; unset when the member has no
-     * spend row (spend reports active members only).
+     * spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+     * returns removed members, with a flat totalPercentUsed=100 — the
+     * roster state above, never spend, decides "removed".)
      * </pre>
      *
      * <code>.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 3 [json_name = "spend"];</code>
@@ -794,7 +851,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Spend of the owning member this cycle; unset when the member has no
-     * spend row (spend reports active members only).
+     * spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+     * returns removed members, with a flat totalPercentUsed=100 — the
+     * roster state above, never spend, decides "removed".)
      * </pre>
      *
      * <code>.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 3 [json_name = "spend"];</code>
@@ -813,7 +872,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Spend of the owning member this cycle; unset when the member has no
-     * spend row (spend reports active members only).
+     * spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+     * returns removed members, with a flat totalPercentUsed=100 — the
+     * roster state above, never spend, decides "removed".)
      * </pre>
      *
      * <code>.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 3 [json_name = "spend"];</code>
@@ -839,7 +900,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Spend of the owning member this cycle; unset when the member has no
-     * spend row (spend reports active members only).
+     * spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+     * returns removed members, with a flat totalPercentUsed=100 — the
+     * roster state above, never spend, decides "removed".)
      * </pre>
      *
      * <code>.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 3 [json_name = "spend"];</code>
@@ -857,7 +920,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Spend of the owning member this cycle; unset when the member has no
-     * spend row (spend reports active members only).
+     * spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+     * returns removed members, with a flat totalPercentUsed=100 — the
+     * roster state above, never spend, decides "removed".)
      * </pre>
      *
      * <code>.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 3 [json_name = "spend"];</code>
@@ -870,7 +935,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Spend of the owning member this cycle; unset when the member has no
-     * spend row (spend reports active members only).
+     * spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+     * returns removed members, with a flat totalPercentUsed=100 — the
+     * roster state above, never spend, decides "removed".)
      * </pre>
      *
      * <code>.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 3 [json_name = "spend"];</code>
@@ -886,7 +953,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Spend of the owning member this cycle; unset when the member has no
-     * spend row (spend reports active members only).
+     * spend row. (Cursor's spend endpoint drifted 2026-07-23: it now also
+     * returns removed members, with a flat totalPercentUsed=100 — the
+     * roster state above, never spend, decides "removed".)
      * </pre>
      *
      * <code>.ai.stigmer.platform.cursoraccount.v1.CursorMemberSpend spend = 3 [json_name = "spend"];</code>
@@ -903,6 +972,68 @@ private static final long serialVersionUID = 0L;
         spend_ = null;
       }
       return spendBuilder_;
+    }
+
+    private boolean usageGuardTripped_ ;
+    /**
+     * <pre>
+     * True when the usage guard excludes this key from NEW-session
+     * selection: the account declares on-demand usage disabled AND the
+     * owning member's api_percent_used has crossed the platform soft
+     * limit. Server-computed on read by the same routability predicate
+     * key selection uses (the threshold is server config — clients must
+     * render this flag, never re-derive it). Pinned sessions are not
+     * affected by the guard.
+     * </pre>
+     *
+     * <code>bool usage_guard_tripped = 4 [json_name = "usageGuardTripped"];</code>
+     * @return The usageGuardTripped.
+     */
+    @java.lang.Override
+    public boolean getUsageGuardTripped() {
+      return usageGuardTripped_;
+    }
+    /**
+     * <pre>
+     * True when the usage guard excludes this key from NEW-session
+     * selection: the account declares on-demand usage disabled AND the
+     * owning member's api_percent_used has crossed the platform soft
+     * limit. Server-computed on read by the same routability predicate
+     * key selection uses (the threshold is server config — clients must
+     * render this flag, never re-derive it). Pinned sessions are not
+     * affected by the guard.
+     * </pre>
+     *
+     * <code>bool usage_guard_tripped = 4 [json_name = "usageGuardTripped"];</code>
+     * @param value The usageGuardTripped to set.
+     * @return This builder for chaining.
+     */
+    public Builder setUsageGuardTripped(boolean value) {
+
+      usageGuardTripped_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * True when the usage guard excludes this key from NEW-session
+     * selection: the account declares on-demand usage disabled AND the
+     * owning member's api_percent_used has crossed the platform soft
+     * limit. Server-computed on read by the same routability predicate
+     * key selection uses (the threshold is server config — clients must
+     * render this flag, never re-derive it). Pinned sessions are not
+     * affected by the guard.
+     * </pre>
+     *
+     * <code>bool usage_guard_tripped = 4 [json_name = "usageGuardTripped"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearUsageGuardTripped() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      usageGuardTripped_ = false;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.platform.cursoraccount.v1.CursorMemberKeyView)
