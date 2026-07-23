@@ -113,6 +113,22 @@ message RecordLlmCallUsageInput {
   // Set by the proxy controller based on which proxy path handled the request.
   // When empty, the billing handler falls back to the model pricing registry.
   string harness = 14;
+
+  // Cursor serving identity (cursor harness only): which managed
+  // CursorAccount / member key the proxy actually injected upstream for
+  // this call. Reported by the proxy from its key resolution so the
+  // stored record can never disagree with the wire — the billing handler
+  // stamps these verbatim and performs no pin lookup. Identifiers only,
+  // never key material. Empty for native-harness calls and for env-key
+  // fallback traffic (cursor_key_source distinguishes the latter).
+  string cursor_account_id = 15;
+  string cursor_key_id = 16;
+
+  // Which credential class served this call (cursor harness only).
+  // ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
+  // while managed capacity was unavailable — recorded honestly so
+  // attribution and reconciliation can separate it from managed traffic.
+  ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17;
 }
 
 // RecordLlmCallUsageResponse returns the cost result so callers can

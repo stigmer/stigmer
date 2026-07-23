@@ -268,4 +268,73 @@ public interface RecordLlmCallUsageInputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getHarnessBytes();
+
+  /**
+   * <pre>
+   * Cursor serving identity (cursor harness only): which managed
+   * CursorAccount / member key the proxy actually injected upstream for
+   * this call. Reported by the proxy from its key resolution so the
+   * stored record can never disagree with the wire — the billing handler
+   * stamps these verbatim and performs no pin lookup. Identifiers only,
+   * never key material. Empty for native-harness calls and for env-key
+   * fallback traffic (cursor_key_source distinguishes the latter).
+   * </pre>
+   *
+   * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
+   * @return The cursorAccountId.
+   */
+  java.lang.String getCursorAccountId();
+  /**
+   * <pre>
+   * Cursor serving identity (cursor harness only): which managed
+   * CursorAccount / member key the proxy actually injected upstream for
+   * this call. Reported by the proxy from its key resolution so the
+   * stored record can never disagree with the wire — the billing handler
+   * stamps these verbatim and performs no pin lookup. Identifiers only,
+   * never key material. Empty for native-harness calls and for env-key
+   * fallback traffic (cursor_key_source distinguishes the latter).
+   * </pre>
+   *
+   * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
+   * @return The bytes for cursorAccountId.
+   */
+  com.google.protobuf.ByteString
+      getCursorAccountIdBytes();
+
+  /**
+   * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
+   * @return The cursorKeyId.
+   */
+  java.lang.String getCursorKeyId();
+  /**
+   * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
+   * @return The bytes for cursorKeyId.
+   */
+  com.google.protobuf.ByteString
+      getCursorKeyIdBytes();
+
+  /**
+   * <pre>
+   * Which credential class served this call (cursor harness only).
+   * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
+   * while managed capacity was unavailable — recorded honestly so
+   * attribution and reconciliation can separate it from managed traffic.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+   * @return The enum numeric value on the wire for cursorKeySource.
+   */
+  int getCursorKeySourceValue();
+  /**
+   * <pre>
+   * Which credential class served this call (cursor harness only).
+   * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
+   * while managed capacity was unavailable — recorded honestly so
+   * attribution and reconciliation can separate it from managed traffic.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+   * @return The cursorKeySource.
+   */
+  ai.stigmer.agentic.agentexecution.v1.CursorKeySource getCursorKeySource();
 }

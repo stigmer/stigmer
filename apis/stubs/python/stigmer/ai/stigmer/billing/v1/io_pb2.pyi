@@ -61,7 +61,7 @@ class AuthorizeExecutionResponse(_message.Message):
     def __init__(self, authorized: bool = ..., reservation_id: _Optional[str] = ..., reserved_micros: _Optional[int] = ..., available_balance_micros: _Optional[int] = ..., denial_reason: _Optional[str] = ...) -> None: ...
 
 class RecordLlmCallUsageInput(_message.Message):
-    __slots__ = ("execution_id", "sequence", "provider", "resolved_model", "requested_model", "tokens", "usage_status", "provider_request_id", "http_status_code", "streaming", "finish_reason", "proxy_timing", "provider_usage_json", "harness")
+    __slots__ = ("execution_id", "sequence", "provider", "resolved_model", "requested_model", "tokens", "usage_status", "provider_request_id", "http_status_code", "streaming", "finish_reason", "proxy_timing", "provider_usage_json", "harness", "cursor_account_id", "cursor_key_id", "cursor_key_source")
     EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     SEQUENCE_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
@@ -76,6 +76,9 @@ class RecordLlmCallUsageInput(_message.Message):
     PROXY_TIMING_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_USAGE_JSON_FIELD_NUMBER: _ClassVar[int]
     HARNESS_FIELD_NUMBER: _ClassVar[int]
+    CURSOR_ACCOUNT_ID_FIELD_NUMBER: _ClassVar[int]
+    CURSOR_KEY_ID_FIELD_NUMBER: _ClassVar[int]
+    CURSOR_KEY_SOURCE_FIELD_NUMBER: _ClassVar[int]
     execution_id: str
     sequence: int
     provider: str
@@ -90,7 +93,10 @@ class RecordLlmCallUsageInput(_message.Message):
     proxy_timing: _usage_pb2.ProxyTiming
     provider_usage_json: str
     harness: str
-    def __init__(self, execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., provider: _Optional[str] = ..., resolved_model: _Optional[str] = ..., requested_model: _Optional[str] = ..., tokens: _Optional[_Union[_usage_pb2.TokenUsage, _Mapping]] = ..., usage_status: _Optional[_Union[_usage_pb2.UsageCompletionStatus, str]] = ..., provider_request_id: _Optional[str] = ..., http_status_code: _Optional[int] = ..., streaming: bool = ..., finish_reason: _Optional[str] = ..., proxy_timing: _Optional[_Union[_usage_pb2.ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., harness: _Optional[str] = ...) -> None: ...
+    cursor_account_id: str
+    cursor_key_id: str
+    cursor_key_source: _usage_pb2.CursorKeySource
+    def __init__(self, execution_id: _Optional[str] = ..., sequence: _Optional[int] = ..., provider: _Optional[str] = ..., resolved_model: _Optional[str] = ..., requested_model: _Optional[str] = ..., tokens: _Optional[_Union[_usage_pb2.TokenUsage, _Mapping]] = ..., usage_status: _Optional[_Union[_usage_pb2.UsageCompletionStatus, str]] = ..., provider_request_id: _Optional[str] = ..., http_status_code: _Optional[int] = ..., streaming: bool = ..., finish_reason: _Optional[str] = ..., proxy_timing: _Optional[_Union[_usage_pb2.ProxyTiming, _Mapping]] = ..., provider_usage_json: _Optional[str] = ..., harness: _Optional[str] = ..., cursor_account_id: _Optional[str] = ..., cursor_key_id: _Optional[str] = ..., cursor_key_source: _Optional[_Union[_usage_pb2.CursorKeySource, str]] = ...) -> None: ...
 
 class RecordLlmCallUsageResponse(_message.Message):
     __slots__ = ("usage_record_id", "provider_cost_micros", "customer_billable_amount_micros", "is_billable", "is_duplicate")

@@ -113,6 +113,32 @@ enum CostCalculationStatus {
   COST_CALCULATION_STATUS_MANUAL_ADJUSTED = 5;
 }
 
+// Which credential class actually served a cursor-harness LLM call.
+//
+// Recorded so per-call attribution states a fact about the traffic, not an
+// inference from surrounding state. The proxy resolves the key, injects it
+// upstream, and reports the same identity with the usage payload — the
+// record can therefore never disagree with what was sent on the wire.
+//
+// @internal
+// UNSPECIFIED doubles as the legacy marker: records written before the
+// serving identity was threaded through the proxy payload (when the
+// billing handler re-read the session's key pin at stamp time) carry no
+// source and must not be re-interpreted.
+enum CursorKeySource {
+  CURSOR_KEY_SOURCE_UNSPECIFIED = 0;
+
+  // A managed CursorAccount member key served the call. The
+  // cursor_account_id / cursor_key_id fields identify it.
+  CURSOR_KEY_SOURCE_MANAGED_KEY = 1;
+
+  // The platform escape-hatch env key (STIGMER_PROXY_CURSOR_API_KEY)
+  // served the call — managed capacity was exhausted or selection did
+  // not apply. cursor_account_id / cursor_key_id are empty: the env key
+  // belongs to no managed account by definition.
+  CURSOR_KEY_SOURCE_ENV_FALLBACK = 2;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // TOKEN USAGE
 //
@@ -343,19 +369,28 @@ message LlmCallUsageRecord {
   string harness = 37;
 
   // ─── Cursor Account Attribution (cursor harness only) ─────────────────────
-  // Which managed CursorAccount / member key served this call, stamped by
-  // the billing handler from the session's key pin at write time (never
-  // threaded through the proxy payload — the pin is the single source of
-  // truth). Identifiers only, never key material. Empty for the native
-  // harness, for env-key fallback traffic, and for records written before
-  // managed key selection was enabled. Lets provider reconciliation
-  // iterate per-account Cursor ledgers.
+  // Which managed CursorAccount / member key actually served this call,
+  // threaded through the proxy payload from the key resolution that
+  // injected the upstream credential (RecordLlmCallUsageInput carries the
+  // same identity — the record states what was sent on the wire, never an
+  // after-the-fact pin lookup). Identifiers only, never key material.
+  // Empty for the native harness, for env-key fallback traffic
+  // (cursor_key_source says so explicitly), and for records written
+  // before the serving identity was threaded through. Lets provider
+  // reconciliation attribute conversations across per-account Cursor
+  // ledgers.
   string cursor_account_id = 38;
   string cursor_key_id = 39;
 
   int32 http_status_code = 40;
   string finish_reason = 41;
   string error_code = 42;
+
+  // Which credential class served this call (cursor harness only).
+  // UNSPECIFIED on native-harness records and on records written before
+  // this field existed (their cursor_account_id semantics are the legacy
+  // pin-derived stamp).
+  CursorKeySource cursor_key_source = 43;
 
   // ─── Token Usage ────────────────────────────────────────────────────────────
   TokenUsage tokens = 50;

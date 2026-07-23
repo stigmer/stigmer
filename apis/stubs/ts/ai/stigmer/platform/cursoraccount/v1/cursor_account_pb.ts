@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/cursoraccount/v1/cursor_account.proto.
  */
 export const file_ai_stigmer_platform_cursoraccount_v1_cursor_account: GenFile = /*@__PURE__*/
-  fileDesc("CjlhaS9zdGlnbWVyL3BsYXRmb3JtL2N1cnNvcmFjY291bnQvdjEvY3Vyc29yX2FjY291bnQucHJvdG8SJGFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MSKrAwoNQ3Vyc29yQWNjb3VudBISCgphY2NvdW50X2lkGAEgASgJEiEKDGRpc3BsYXlfbmFtZRgCIAEoCUILukgIyAEBcgMYgAESHwoNYWRtaW5fYXBpX2tleRgDIAEoCUIIukgFcgMYgAISDwoHZW5hYmxlZBgEIAEoCBIbChNpc19wbGF0Zm9ybV9kZWZhdWx0GAUgASgIEh4KB29yZ19pZHMYBiADKAlCDbpICpIBByIFcgMYgAESSgoLbWVtYmVyX2tleXMYByADKAsyNS5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yTWVtYmVyS2V5EhIKCmNyZWF0ZWRfYnkYCCABKAkSLgoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKdXBkYXRlZF9ieRgKIAEoCRIuCgp1cGRhdGVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIgChhvbl9kZW1hbmRfdXNhZ2VfZGlzYWJsZWQYDCABKAgi6wEKD0N1cnNvck1lbWJlcktleRIOCgZrZXlfaWQYASABKAkSGQoHYXBpX2tleRgCIAEoCUIIukgFcgMYgAISFwoFbGFiZWwYAyABKAlCCLpIBXIDGIABEhMKC2JvdW5kX2VtYWlsGAQgASgJEhUKDWJvdW5kX3VzZXJfaWQYBSABKAkSFwoPY3Vyc29yX2tleV9uYW1lGAYgASgJEg8KB2VuYWJsZWQYByABKAgSEAoIYWRkZWRfYnkYCCABKAkSLAoIYWRkZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIk4KEEN1cnNvclRlYW1NZW1iZXISDwoHdXNlcl9pZBgBIAEoCRINCgVlbWFpbBgCIAEoCRIMCgRuYW1lGAMgASgJEgwKBHJvbGUYBCABKAki2wEKEUN1cnNvck1lbWJlclNwZW5kEg8KB3VzZXJfaWQYASABKAkSDQoFZW1haWwYAiABKAkSKgoZaW5jbHVkZWRfc3BlbmRfdXNkX21pY3JvcxgDIAEoA0IHukgEIgIoABIpChhvdmVyYWdlX3NwZW5kX3VzZF9taWNyb3MYBCABKANCB7pIBCICKAASGgoSdG90YWxfcGVyY2VudF91c2VkGAUgASgBEhkKEWF1dG9fcGVyY2VudF91c2VkGAYgASgBEhgKEGFwaV9wZXJjZW50X3VzZWQYByABKAEitAIKGUN1cnNvckFjY291bnRTeW5jU25hcHNob3QSEgoKYWNjb3VudF9pZBgBIAEoCRItCglzeW5jZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEkcKB21lbWJlcnMYAyADKAsyNi5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yVGVhbU1lbWJlchJGCgVzcGVuZBgEIAMoCzI3LmFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MS5DdXJzb3JNZW1iZXJTcGVuZBIvCgtjeWNsZV9zdGFydBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKc3luY19lcnJvchgGIAEoCWIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("CjlhaS9zdGlnbWVyL3BsYXRmb3JtL2N1cnNvcmFjY291bnQvdjEvY3Vyc29yX2FjY291bnQucHJvdG8SJGFpLnN0aWdtZXIucGxhdGZvcm0uY3Vyc29yYWNjb3VudC52MSKvAwoNQ3Vyc29yQWNjb3VudBISCgphY2NvdW50X2lkGAEgASgJEiEKDGRpc3BsYXlfbmFtZRgCIAEoCUILukgIyAEBcgMYgAESHwoNYWRtaW5fYXBpX2tleRgDIAEoCUIIukgFcgMYgAISDwoHZW5hYmxlZBgEIAEoCBIfChNpc19wbGF0Zm9ybV9kZWZhdWx0GAUgASgIQgIYARIeCgdvcmdfaWRzGAYgAygJQg26SAqSAQciBXIDGIABEkoKC21lbWJlcl9rZXlzGAcgAygLMjUuYWkuc3RpZ21lci5wbGF0Zm9ybS5jdXJzb3JhY2NvdW50LnYxLkN1cnNvck1lbWJlcktleRISCgpjcmVhdGVkX2J5GAggASgJEi4KCmNyZWF0ZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCnVwZGF0ZWRfYnkYCiABKAkSLgoKdXBkYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASIAoYb25fZGVtYW5kX3VzYWdlX2Rpc2FibGVkGAwgASgIIusBCg9DdXJzb3JNZW1iZXJLZXkSDgoGa2V5X2lkGAEgASgJEhkKB2FwaV9rZXkYAiABKAlCCLpIBXIDGIACEhcKBWxhYmVsGAMgASgJQgi6SAVyAxiAARITCgtib3VuZF9lbWFpbBgEIAEoCRIVCg1ib3VuZF91c2VyX2lkGAUgASgJEhcKD2N1cnNvcl9rZXlfbmFtZRgGIAEoCRIPCgdlbmFibGVkGAcgASgIEhAKCGFkZGVkX2J5GAggASgJEiwKCGFkZGVkX2F0GAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJOChBDdXJzb3JUZWFtTWVtYmVyEg8KB3VzZXJfaWQYASABKAkSDQoFZW1haWwYAiABKAkSDAoEbmFtZRgDIAEoCRIMCgRyb2xlGAQgASgJItsBChFDdXJzb3JNZW1iZXJTcGVuZBIPCgd1c2VyX2lkGAEgASgJEg0KBWVtYWlsGAIgASgJEioKGWluY2x1ZGVkX3NwZW5kX3VzZF9taWNyb3MYAyABKANCB7pIBCICKAASKQoYb3ZlcmFnZV9zcGVuZF91c2RfbWljcm9zGAQgASgDQge6SAQiAigAEhoKEnRvdGFsX3BlcmNlbnRfdXNlZBgFIAEoARIZChFhdXRvX3BlcmNlbnRfdXNlZBgGIAEoARIYChBhcGlfcGVyY2VudF91c2VkGAcgASgBIrQCChlDdXJzb3JBY2NvdW50U3luY1NuYXBzaG90EhIKCmFjY291bnRfaWQYASABKAkSLQoJc3luY2VkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBJHCgdtZW1iZXJzGAMgAygLMjYuYWkuc3RpZ21lci5wbGF0Zm9ybS5jdXJzb3JhY2NvdW50LnYxLkN1cnNvclRlYW1NZW1iZXISRgoFc3BlbmQYBCADKAsyNy5haS5zdGlnbWVyLnBsYXRmb3JtLmN1cnNvcmFjY291bnQudjEuQ3Vyc29yTWVtYmVyU3BlbmQSLwoLY3ljbGVfc3RhcnQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCnN5bmNfZXJyb3IYBiABKAliBnByb3RvMw", [file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * CursorAccount is one managed Cursor team: the platform-operator resource
@@ -34,11 +34,25 @@ export const file_ai_stigmer_platform_cursoraccount_v1_cursor_account: GenFile =
  * Consequently an account with no enabled member keys is visible but NOT
  * routable — no execution traffic can be sent under it.
  *
- * Org assignment: each Stigmer organization resolves to exactly ONE
- * account (an explicit entry in org_ids, else the single account marked
- * is_platform_default). Load spreading happens WITHIN an account across
- * its member keys, never across accounts — this keeps billing attribution
- * and provider reconciliation per-team.
+ * Org assignment — two account classes, derived from org_ids alone:
+ *
+ *   - DEDICATED (org_ids non-empty): the account is a cost boundary for
+ *     exactly those organizations. Their sessions are served only by this
+ *     account's keys; when it has no usable keys, sessions fail with an
+ *     explicit operator-actionable error rather than silently spending
+ *     another team's quota (DD-008).
+ *   - SHARED POOL (org_ids empty + enabled): the account is part of the
+ *     platform-operated pool serving every org with no dedicated account.
+ *     Pool sessions may move across pool accounts when their current
+ *     account is depleted — all pool teams bill to the platform operator,
+ *     so movement is capacity management, not a cost-boundary breach.
+ *     Keep an account out of rotation (e.g. a quarantined probe team) by
+ *     leaving it disabled.
+ *
+ * Load spreading for NEW sessions is least-recently-used across the
+ * eligible key set (the dedicated account's keys, or all pool accounts'
+ * keys); an existing session stays pinned to one key until that key
+ * becomes unusable.
  *
  * Secrets at rest: admin_api_key and CursorMemberKey.api_key are encrypted
  * (AES-256-GCM, "enc:v1:" prefix) before persistence and replaced with
@@ -88,17 +102,22 @@ export type CursorAccount = Message<"ai.stigmer.platform.cursoraccount.v1.Cursor
   enabled: boolean;
 
   /**
-   * Marks the account that serves orgs with no explicit assignment.
-   * At most one account may be the platform default (index-enforced).
+   * Deprecated: superseded by the derived shared pool (DD-008). Every
+   * enabled account with empty org_ids now serves unassigned orgs; a
+   * single "default" marker is meaningless under that rule, so selection
+   * and the console ignore this field. Kept on the wire for old clients;
+   * never written by current ones.
    *
-   * @generated from field: bool is_platform_default = 5;
+   * @generated from field: bool is_platform_default = 5 [deprecated = true];
+   * @deprecated
    */
   isPlatformDefault: boolean;
 
   /**
-   * Stigmer organization ids explicitly served by this account. An org
-   * may appear in at most one account across the collection
-   * (unique-multikey-index-enforced).
+   * Stigmer organization ids this account is DEDICATED to. An org may
+   * appear in at most one account across the collection
+   * (unique-multikey-index-enforced). Empty = shared-pool account (see
+   * the message doc for the two account classes).
    *
    * @generated from field: repeated string org_ids = 6;
    */

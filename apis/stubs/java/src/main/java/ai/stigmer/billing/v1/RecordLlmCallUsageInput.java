@@ -45,6 +45,9 @@ private static final long serialVersionUID = 0L;
     finishReason_ = "";
     providerUsageJson_ = "";
     harness_ = "";
+    cursorAccountId_ = "";
+    cursorKeyId_ = "";
+    cursorKeySource_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -585,6 +588,136 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int CURSOR_ACCOUNT_ID_FIELD_NUMBER = 15;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object cursorAccountId_ = "";
+  /**
+   * <pre>
+   * Cursor serving identity (cursor harness only): which managed
+   * CursorAccount / member key the proxy actually injected upstream for
+   * this call. Reported by the proxy from its key resolution so the
+   * stored record can never disagree with the wire — the billing handler
+   * stamps these verbatim and performs no pin lookup. Identifiers only,
+   * never key material. Empty for native-harness calls and for env-key
+   * fallback traffic (cursor_key_source distinguishes the latter).
+   * </pre>
+   *
+   * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
+   * @return The cursorAccountId.
+   */
+  @java.lang.Override
+  public java.lang.String getCursorAccountId() {
+    java.lang.Object ref = cursorAccountId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      cursorAccountId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Cursor serving identity (cursor harness only): which managed
+   * CursorAccount / member key the proxy actually injected upstream for
+   * this call. Reported by the proxy from its key resolution so the
+   * stored record can never disagree with the wire — the billing handler
+   * stamps these verbatim and performs no pin lookup. Identifiers only,
+   * never key material. Empty for native-harness calls and for env-key
+   * fallback traffic (cursor_key_source distinguishes the latter).
+   * </pre>
+   *
+   * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
+   * @return The bytes for cursorAccountId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getCursorAccountIdBytes() {
+    java.lang.Object ref = cursorAccountId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      cursorAccountId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int CURSOR_KEY_ID_FIELD_NUMBER = 16;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object cursorKeyId_ = "";
+  /**
+   * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
+   * @return The cursorKeyId.
+   */
+  @java.lang.Override
+  public java.lang.String getCursorKeyId() {
+    java.lang.Object ref = cursorKeyId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      cursorKeyId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
+   * @return The bytes for cursorKeyId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getCursorKeyIdBytes() {
+    java.lang.Object ref = cursorKeyId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      cursorKeyId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int CURSOR_KEY_SOURCE_FIELD_NUMBER = 17;
+  private int cursorKeySource_ = 0;
+  /**
+   * <pre>
+   * Which credential class served this call (cursor harness only).
+   * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
+   * while managed capacity was unavailable — recorded honestly so
+   * attribution and reconciliation can separate it from managed traffic.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+   * @return The enum numeric value on the wire for cursorKeySource.
+   */
+  @java.lang.Override public int getCursorKeySourceValue() {
+    return cursorKeySource_;
+  }
+  /**
+   * <pre>
+   * Which credential class served this call (cursor harness only).
+   * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
+   * while managed capacity was unavailable — recorded honestly so
+   * attribution and reconciliation can separate it from managed traffic.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+   * @return The cursorKeySource.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.CursorKeySource getCursorKeySource() {
+    ai.stigmer.agentic.agentexecution.v1.CursorKeySource result = ai.stigmer.agentic.agentexecution.v1.CursorKeySource.forNumber(cursorKeySource_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.CursorKeySource.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -640,6 +773,15 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harness_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 14, harness_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(cursorAccountId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 15, cursorAccountId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(cursorKeyId_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 16, cursorKeyId_);
+    }
+    if (cursorKeySource_ != ai.stigmer.agentic.agentexecution.v1.CursorKeySource.CURSOR_KEY_SOURCE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(17, cursorKeySource_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -698,6 +840,16 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(harness_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(14, harness_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(cursorAccountId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(15, cursorAccountId_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(cursorKeyId_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(16, cursorKeyId_);
+    }
+    if (cursorKeySource_ != ai.stigmer.agentic.agentexecution.v1.CursorKeySource.CURSOR_KEY_SOURCE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(17, cursorKeySource_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -746,6 +898,11 @@ private static final long serialVersionUID = 0L;
         .equals(other.getProviderUsageJson())) return false;
     if (!getHarness()
         .equals(other.getHarness())) return false;
+    if (!getCursorAccountId()
+        .equals(other.getCursorAccountId())) return false;
+    if (!getCursorKeyId()
+        .equals(other.getCursorKeyId())) return false;
+    if (cursorKeySource_ != other.cursorKeySource_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -790,6 +947,12 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getProviderUsageJson().hashCode();
     hash = (37 * hash) + HARNESS_FIELD_NUMBER;
     hash = (53 * hash) + getHarness().hashCode();
+    hash = (37 * hash) + CURSOR_ACCOUNT_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getCursorAccountId().hashCode();
+    hash = (37 * hash) + CURSOR_KEY_ID_FIELD_NUMBER;
+    hash = (53 * hash) + getCursorKeyId().hashCode();
+    hash = (37 * hash) + CURSOR_KEY_SOURCE_FIELD_NUMBER;
+    hash = (53 * hash) + cursorKeySource_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -958,6 +1121,9 @@ private static final long serialVersionUID = 0L;
       }
       providerUsageJson_ = "";
       harness_ = "";
+      cursorAccountId_ = "";
+      cursorKeyId_ = "";
+      cursorKeySource_ = 0;
       return this;
     }
 
@@ -1040,6 +1206,15 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00002000) != 0)) {
         result.harness_ = harness_;
       }
+      if (((from_bitField0_ & 0x00004000) != 0)) {
+        result.cursorAccountId_ = cursorAccountId_;
+      }
+      if (((from_bitField0_ & 0x00008000) != 0)) {
+        result.cursorKeyId_ = cursorKeyId_;
+      }
+      if (((from_bitField0_ & 0x00010000) != 0)) {
+        result.cursorKeySource_ = cursorKeySource_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1112,6 +1287,19 @@ private static final long serialVersionUID = 0L;
         harness_ = other.harness_;
         bitField0_ |= 0x00002000;
         onChanged();
+      }
+      if (!other.getCursorAccountId().isEmpty()) {
+        cursorAccountId_ = other.cursorAccountId_;
+        bitField0_ |= 0x00004000;
+        onChanged();
+      }
+      if (!other.getCursorKeyId().isEmpty()) {
+        cursorKeyId_ = other.cursorKeyId_;
+        bitField0_ |= 0x00008000;
+        onChanged();
+      }
+      if (other.cursorKeySource_ != 0) {
+        setCursorKeySourceValue(other.getCursorKeySourceValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1213,6 +1401,21 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00002000;
               break;
             } // case 114
+            case 122: {
+              cursorAccountId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00004000;
+              break;
+            } // case 122
+            case 130: {
+              cursorKeyId_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00008000;
+              break;
+            } // case 130
+            case 136: {
+              cursorKeySource_ = input.readEnum();
+              bitField0_ |= 0x00010000;
+              break;
+            } // case 136
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2470,6 +2673,287 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       harness_ = value;
       bitField0_ |= 0x00002000;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object cursorAccountId_ = "";
+    /**
+     * <pre>
+     * Cursor serving identity (cursor harness only): which managed
+     * CursorAccount / member key the proxy actually injected upstream for
+     * this call. Reported by the proxy from its key resolution so the
+     * stored record can never disagree with the wire — the billing handler
+     * stamps these verbatim and performs no pin lookup. Identifiers only,
+     * never key material. Empty for native-harness calls and for env-key
+     * fallback traffic (cursor_key_source distinguishes the latter).
+     * </pre>
+     *
+     * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
+     * @return The cursorAccountId.
+     */
+    public java.lang.String getCursorAccountId() {
+      java.lang.Object ref = cursorAccountId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        cursorAccountId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Cursor serving identity (cursor harness only): which managed
+     * CursorAccount / member key the proxy actually injected upstream for
+     * this call. Reported by the proxy from its key resolution so the
+     * stored record can never disagree with the wire — the billing handler
+     * stamps these verbatim and performs no pin lookup. Identifiers only,
+     * never key material. Empty for native-harness calls and for env-key
+     * fallback traffic (cursor_key_source distinguishes the latter).
+     * </pre>
+     *
+     * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
+     * @return The bytes for cursorAccountId.
+     */
+    public com.google.protobuf.ByteString
+        getCursorAccountIdBytes() {
+      java.lang.Object ref = cursorAccountId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        cursorAccountId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Cursor serving identity (cursor harness only): which managed
+     * CursorAccount / member key the proxy actually injected upstream for
+     * this call. Reported by the proxy from its key resolution so the
+     * stored record can never disagree with the wire — the billing handler
+     * stamps these verbatim and performs no pin lookup. Identifiers only,
+     * never key material. Empty for native-harness calls and for env-key
+     * fallback traffic (cursor_key_source distinguishes the latter).
+     * </pre>
+     *
+     * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
+     * @param value The cursorAccountId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCursorAccountId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      cursorAccountId_ = value;
+      bitField0_ |= 0x00004000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Cursor serving identity (cursor harness only): which managed
+     * CursorAccount / member key the proxy actually injected upstream for
+     * this call. Reported by the proxy from its key resolution so the
+     * stored record can never disagree with the wire — the billing handler
+     * stamps these verbatim and performs no pin lookup. Identifiers only,
+     * never key material. Empty for native-harness calls and for env-key
+     * fallback traffic (cursor_key_source distinguishes the latter).
+     * </pre>
+     *
+     * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearCursorAccountId() {
+      cursorAccountId_ = getDefaultInstance().getCursorAccountId();
+      bitField0_ = (bitField0_ & ~0x00004000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Cursor serving identity (cursor harness only): which managed
+     * CursorAccount / member key the proxy actually injected upstream for
+     * this call. Reported by the proxy from its key resolution so the
+     * stored record can never disagree with the wire — the billing handler
+     * stamps these verbatim and performs no pin lookup. Identifiers only,
+     * never key material. Empty for native-harness calls and for env-key
+     * fallback traffic (cursor_key_source distinguishes the latter).
+     * </pre>
+     *
+     * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
+     * @param value The bytes for cursorAccountId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCursorAccountIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      cursorAccountId_ = value;
+      bitField0_ |= 0x00004000;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object cursorKeyId_ = "";
+    /**
+     * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
+     * @return The cursorKeyId.
+     */
+    public java.lang.String getCursorKeyId() {
+      java.lang.Object ref = cursorKeyId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        cursorKeyId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
+     * @return The bytes for cursorKeyId.
+     */
+    public com.google.protobuf.ByteString
+        getCursorKeyIdBytes() {
+      java.lang.Object ref = cursorKeyId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        cursorKeyId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
+     * @param value The cursorKeyId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCursorKeyId(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      cursorKeyId_ = value;
+      bitField0_ |= 0x00008000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearCursorKeyId() {
+      cursorKeyId_ = getDefaultInstance().getCursorKeyId();
+      bitField0_ = (bitField0_ & ~0x00008000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string cursor_key_id = 16 [json_name = "cursorKeyId"];</code>
+     * @param value The bytes for cursorKeyId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCursorKeyIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      cursorKeyId_ = value;
+      bitField0_ |= 0x00008000;
+      onChanged();
+      return this;
+    }
+
+    private int cursorKeySource_ = 0;
+    /**
+     * <pre>
+     * Which credential class served this call (cursor harness only).
+     * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
+     * while managed capacity was unavailable — recorded honestly so
+     * attribution and reconciliation can separate it from managed traffic.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+     * @return The enum numeric value on the wire for cursorKeySource.
+     */
+    @java.lang.Override public int getCursorKeySourceValue() {
+      return cursorKeySource_;
+    }
+    /**
+     * <pre>
+     * Which credential class served this call (cursor harness only).
+     * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
+     * while managed capacity was unavailable — recorded honestly so
+     * attribution and reconciliation can separate it from managed traffic.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+     * @param value The enum numeric value on the wire for cursorKeySource to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setCursorKeySourceValue(int value) {
+      cursorKeySource_ = value;
+      bitField0_ |= 0x00010000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Which credential class served this call (cursor harness only).
+     * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
+     * while managed capacity was unavailable — recorded honestly so
+     * attribution and reconciliation can separate it from managed traffic.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+     * @return The cursorKeySource.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.CursorKeySource getCursorKeySource() {
+      ai.stigmer.agentic.agentexecution.v1.CursorKeySource result = ai.stigmer.agentic.agentexecution.v1.CursorKeySource.forNumber(cursorKeySource_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.CursorKeySource.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Which credential class served this call (cursor harness only).
+     * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
+     * while managed capacity was unavailable — recorded honestly so
+     * attribution and reconciliation can separate it from managed traffic.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+     * @param value The cursorKeySource to set.
+     * @return This builder for chaining.
+     */
+    public Builder setCursorKeySource(ai.stigmer.agentic.agentexecution.v1.CursorKeySource value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00010000;
+      cursorKeySource_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Which credential class served this call (cursor harness only).
+     * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
+     * while managed capacity was unavailable — recorded honestly so
+     * attribution and reconciliation can separate it from managed traffic.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearCursorKeySource() {
+      bitField0_ = (bitField0_ & ~0x00010000);
+      cursorKeySource_ = 0;
       onChanged();
       return this;
     }

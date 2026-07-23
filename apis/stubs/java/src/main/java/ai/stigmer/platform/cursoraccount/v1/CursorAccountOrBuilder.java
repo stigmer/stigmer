@@ -99,20 +99,26 @@ public interface CursorAccountOrBuilder extends
 
   /**
    * <pre>
-   * Marks the account that serves orgs with no explicit assignment.
-   * At most one account may be the platform default (index-enforced).
+   * Deprecated: superseded by the derived shared pool (DD-008). Every
+   * enabled account with empty org_ids now serves unassigned orgs; a
+   * single "default" marker is meaningless under that rule, so selection
+   * and the console ignore this field. Kept on the wire for old clients;
+   * never written by current ones.
    * </pre>
    *
-   * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault"];</code>
+   * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
+   * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
+   *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=81
    * @return The isPlatformDefault.
    */
-  boolean getIsPlatformDefault();
+  @java.lang.Deprecated boolean getIsPlatformDefault();
 
   /**
    * <pre>
-   * Stigmer organization ids explicitly served by this account. An org
-   * may appear in at most one account across the collection
-   * (unique-multikey-index-enforced).
+   * Stigmer organization ids this account is DEDICATED to. An org may
+   * appear in at most one account across the collection
+   * (unique-multikey-index-enforced). Empty = shared-pool account (see
+   * the message doc for the two account classes).
    * </pre>
    *
    * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
@@ -122,9 +128,10 @@ public interface CursorAccountOrBuilder extends
       getOrgIdsList();
   /**
    * <pre>
-   * Stigmer organization ids explicitly served by this account. An org
-   * may appear in at most one account across the collection
-   * (unique-multikey-index-enforced).
+   * Stigmer organization ids this account is DEDICATED to. An org may
+   * appear in at most one account across the collection
+   * (unique-multikey-index-enforced). Empty = shared-pool account (see
+   * the message doc for the two account classes).
    * </pre>
    *
    * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
@@ -133,9 +140,10 @@ public interface CursorAccountOrBuilder extends
   int getOrgIdsCount();
   /**
    * <pre>
-   * Stigmer organization ids explicitly served by this account. An org
-   * may appear in at most one account across the collection
-   * (unique-multikey-index-enforced).
+   * Stigmer organization ids this account is DEDICATED to. An org may
+   * appear in at most one account across the collection
+   * (unique-multikey-index-enforced). Empty = shared-pool account (see
+   * the message doc for the two account classes).
    * </pre>
    *
    * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
@@ -145,9 +153,10 @@ public interface CursorAccountOrBuilder extends
   java.lang.String getOrgIds(int index);
   /**
    * <pre>
-   * Stigmer organization ids explicitly served by this account. An org
-   * may appear in at most one account across the collection
-   * (unique-multikey-index-enforced).
+   * Stigmer organization ids this account is DEDICATED to. An org may
+   * appear in at most one account across the collection
+   * (unique-multikey-index-enforced). Empty = shared-pool account (see
+   * the message doc for the two account classes).
    * </pre>
    *
    * <code>repeated string org_ids = 6 [json_name = "orgIds", (.buf.validate.field) = { ... }</code>
