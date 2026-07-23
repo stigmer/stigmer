@@ -676,6 +676,7 @@ Zero Console dependencies — safe for platform builder embedding.
     collection: { type: "CollectionDeclaration", description: "The collection whose declared schema drives fields and operators.", required: true },
     conditions: { type: "readonly RecordConditionDraft[]", description: "Active conditions (AND-combined, per the DD-005 grammar).", required: true },
     onChange: { type: "(conditions: readonly RecordConditionDraft[]) => void", description: "Called with the full condition set on add/remove/clear.", required: true },
+    readableFields: { type: "readonly string[]", description: "The caller's readable fields from `describeDatastore` (the read verb's `readable_fields`). Empty or omitted means every field. When restricted, unreadable fields are not offered — the server refuses conditions on them." },
   }}
 />
 
@@ -833,8 +834,16 @@ fields. `id` conditions take string values; the audit timestamps take
 RFC 3339 timestamps — both ride the `timestamp`/`string` value
 controls.
 
+`readableFields` is the caller's column-level read access from
+`describeDatastore` (the read verb's `readable_fields`; empty means
+every field). When restricted, unreadable declared fields are not
+offered — the server refuses conditions on them (the existence-oracle
+guard), and the builder must stay structurally unable to express an
+unservable filter (DD-008 invariant 2). System fields are always
+readable and always offered.
+
 ```tsx
-function filterableFields(collection: CollectionDeclaration): FilterableField[]
+function filterableFields(collection: CollectionDeclaration, readableFields?: readonly string[]): FilterableField[]
 ```
 
 

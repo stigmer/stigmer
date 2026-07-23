@@ -41,5 +41,5 @@ func (c *DatastoreRecordController) DeleteRecord(ctx context.Context, req *datas
 		return nil, err
 	}
 
-	return records.Envelope(call.collection, deleted)
+	return records.Envelope(call.collection, deleted, call.readProjection())
 }

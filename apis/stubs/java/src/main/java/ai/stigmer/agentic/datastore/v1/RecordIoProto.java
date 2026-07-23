@@ -182,23 +182,24 @@ public final class RecordIoProto extends com.google.protobuf.GeneratedFile {
       "access\"\212\001\n\025ConstraintDescription\022\022\n\004name" +
       "\030\001 \001(\tR\004name\022C\n\004kind\030\002 \001(\0162/.ai.stigmer." +
       "agentic.datastore.v1.ConstraintKindR\004kin" +
-      "d\022\030\n\007message\030\003 \001(\tR\007message\"w\n\024VerbGrant" +
-      "Description\022B\n\004verb\030\001 \001(\0162..ai.stigmer.a" +
-      "gentic.datastore.v1.DatastoreVerbR\004verb\022" +
-      "\033\n\town_scope\030\002 \001(\010R\010ownScope*\235\001\n\021RecordC" +
-      "onditionOp\022#\n\037record_condition_op_unspec" +
-      "ified\020\000\022\006\n\002eq\020\001\022\007\n\003neq\020\002\022\006\n\002gt\020\003\022\007\n\003gte\020" +
-      "\004\022\006\n\002lt\020\005\022\007\n\003lte\020\006\022\t\n\005is_in\020\007\022\n\n\006not_in\020" +
-      "\010\022\013\n\007is_null\020\t\022\014\n\010not_null\020\n*O\n\023RecordSo" +
-      "rtDirection\022%\n!record_sort_direction_uns" +
-      "pecified\020\000\022\007\n\003asc\020\001\022\010\n\004desc\020\002*d\n\016Constra" +
-      "intKind\022\037\n\033constraint_kind_unspecified\020\000" +
-      "\022\n\n\006unique\020\001\022\t\n\005check\020\002\022\n\n\006exists\020\003\022\016\n\nn" +
-      "ot_exists\020\004B\260\001B\rRecordIoProtoP\001\242\002\004ASAD\252\002" +
-      "\037Ai.Stigmer.Agentic.Datastore.V1\312\002\037Ai\\St" +
-      "igmer\\Agentic\\Datastore\\V1\342\002+Ai\\Stigmer\\" +
-      "Agentic\\Datastore\\V1\\GPBMetadata\352\002#Ai::S" +
-      "tigmer::Agentic::Datastore::V1b\006proto3"
+      "d\022\030\n\007message\030\003 \001(\tR\007message\"\240\001\n\024VerbGran" +
+      "tDescription\022B\n\004verb\030\001 \001(\0162..ai.stigmer." +
+      "agentic.datastore.v1.DatastoreVerbR\004verb" +
+      "\022\033\n\town_scope\030\002 \001(\010R\010ownScope\022\'\n\017readabl" +
+      "e_fields\030\003 \003(\tR\016readableFields*\235\001\n\021Recor" +
+      "dConditionOp\022#\n\037record_condition_op_unsp" +
+      "ecified\020\000\022\006\n\002eq\020\001\022\007\n\003neq\020\002\022\006\n\002gt\020\003\022\007\n\003gt" +
+      "e\020\004\022\006\n\002lt\020\005\022\007\n\003lte\020\006\022\t\n\005is_in\020\007\022\n\n\006not_i" +
+      "n\020\010\022\013\n\007is_null\020\t\022\014\n\010not_null\020\n*O\n\023Record" +
+      "SortDirection\022%\n!record_sort_direction_u" +
+      "nspecified\020\000\022\007\n\003asc\020\001\022\010\n\004desc\020\002*d\n\016Const" +
+      "raintKind\022\037\n\033constraint_kind_unspecified" +
+      "\020\000\022\n\n\006unique\020\001\022\t\n\005check\020\002\022\n\n\006exists\020\003\022\016\n" +
+      "\nnot_exists\020\004B\260\001B\rRecordIoProtoP\001\242\002\004ASAD" +
+      "\252\002\037Ai.Stigmer.Agentic.Datastore.V1\312\002\037Ai\\" +
+      "Stigmer\\Agentic\\Datastore\\V1\342\002+Ai\\Stigme" +
+      "r\\Agentic\\Datastore\\V1\\GPBMetadata\352\002#Ai:" +
+      ":Stigmer::Agentic::Datastore::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -291,7 +292,7 @@ public final class RecordIoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_datastore_v1_VerbGrantDescription_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_datastore_v1_VerbGrantDescription_descriptor,
-        new java.lang.String[] { "Verb", "OwnScope", });
+        new java.lang.String[] { "Verb", "OwnScope", "ReadableFields", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.datastore.v1.SpecProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

@@ -2,7 +2,9 @@ A Datastore declares collections of typed business records that agents read
 and write through built-in, permission-checked record tools. Constraints
 (unique, check, exists) are enforced by the store on every write, and access
 is granted per role to channel senders and platform principals — deny by
-default.
+default. A read grant can carry a `read_fields` allowlist: reads by that
+role return only the listed fields, so records holding personal data stay
+confidential without prompt rules.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -48,7 +50,13 @@ spec:
       grants:
         - role: admin
           verbs: [read, insert, update, delete]
+        # Patients see slot occupancy only: read_fields withholds
+        # patient_name and the created_by booker identity from every
+        # patient read, filter, and sort.
         - role: patient
-          verbs: [read, insert, update]
+          verbs: [read, insert]
+          read_fields: [slot_start, status]
+        - role: patient
+          verbs: [update]
           scope: own
 ```

@@ -11,6 +11,7 @@ go_library(
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore",
         "//backend/libs/go/grpc/request/pipeline/steps",
+        "//backend/services/stigmer-server/pkg/domain/datastore/authz",
         "//backend/services/stigmer-server/pkg/domain/datastore/celeval",
         "//backend/services/stigmer-server/pkg/domain/datastore/dserrors",
         "//backend/services/stigmer-server/pkg/domain/datastore/identity",
@@ -27,6 +28,7 @@ go_test(
     embed = [":records"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/datastore/v1:datastore",
+        "//backend/services/stigmer-server/pkg/domain/datastore/authz",
         "//backend/services/stigmer-server/pkg/domain/datastore/identity",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",

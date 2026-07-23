@@ -66,12 +66,26 @@ export interface FilterableField {
  * fields. `id` conditions take string values; the audit timestamps take
  * RFC 3339 timestamps — both ride the `timestamp`/`string` value
  * controls.
+ *
+ * `readableFields` is the caller's column-level read access from
+ * `describeDatastore` (the read verb's `readable_fields`; empty means
+ * every field). When restricted, unreadable declared fields are not
+ * offered — the server refuses conditions on them (the existence-oracle
+ * guard), and the builder must stay structurally unable to express an
+ * unservable filter (DD-008 invariant 2). System fields are always
+ * readable and always offered.
  */
-export function filterableFields(collection: CollectionDeclaration): FilterableField[] {
+export function filterableFields(
+  collection: CollectionDeclaration,
+  readableFields?: readonly string[],
+): FilterableField[] {
+  const readable =
+    readableFields !== undefined && readableFields.length > 0 ? new Set(readableFields) : null;
   const declared: FilterableField[] = [];
   for (const field of collection.fields) {
     const operators = operatorsForField(field);
     if (operators.length === 0) continue; // json — not filterable
+    if (readable !== null && !readable.has(field.name)) continue; // not readable under the grant
     declared.push({ name: field.name, declaration: field, type: field.type, operators });
   }
   return [

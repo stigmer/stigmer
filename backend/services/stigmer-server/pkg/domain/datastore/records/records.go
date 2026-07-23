@@ -13,7 +13,11 @@
 //
 // Grant enforcement (verb + own scope) is deliberately NOT here — it is
 // the handlers' responsibility, so the data mechanics stay identical
-// for every writer.
+// for every writer. Envelope projection is the one grant-adjacent
+// mechanic: the handlers resolve the caller's column-level read access
+// (authz.ReadProjection) and Envelope applies it mechanically, so every
+// response — find results and write echoes alike — carries only the
+// fields the caller may read.
 package records
 
 import (
@@ -23,6 +27,7 @@ import (
 
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/authz"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/celeval"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/dserrors"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/identity"
@@ -311,8 +316,12 @@ func MapUniqueViolation(err error, coll *datastorev1.CollectionDeclaration) erro
 }
 
 // Envelope projects a store record into the RecordEnvelope contract
-// shape: canonical encodings inside a Struct, absent fields omitted.
-func Envelope(coll *datastorev1.CollectionDeclaration, rec *recordstore.Record) (*datastorev1.RecordEnvelope, error) {
+// shape: canonical encodings inside a Struct, absent fields omitted,
+// limited to the caller's column-level read access. The projection
+// applies to every response — find results and write echoes alike — so
+// a caller never receives a field its read grant does not allow; the
+// zero-value projection (no read grant) yields id and timestamps only.
+func Envelope(coll *datastorev1.CollectionDeclaration, rec *recordstore.Record, proj authz.ReadProjection) (*datastorev1.RecordEnvelope, error) {
 	typed, err := TypedFields(coll, rec.Fields)
 	if err != nil {
 		return nil, err
@@ -320,6 +329,9 @@ func Envelope(coll *datastorev1.CollectionDeclaration, rec *recordstore.Record) 
 
 	structFields := make(map[string]*structpb.Value, len(typed))
 	for name, v := range typed {
+		if !proj.AllowsField(name) {
+			continue
+		}
 		value, err := structpb.NewValue(structValue(v))
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode field %q: %w", name, err)
@@ -327,13 +339,19 @@ func Envelope(coll *datastorev1.CollectionDeclaration, rec *recordstore.Record) 
 		structFields[name] = value
 	}
 
-	return &datastorev1.RecordEnvelope{
+	envelope := &datastorev1.RecordEnvelope{
 		Id:        rec.ID,
 		CreatedAt: timestamppb.New(rec.CreatedAt),
 		UpdatedAt: timestamppb.New(rec.UpdatedAt),
-		CreatedBy: rec.CreatedBy,
 		Fields:    &structpb.Struct{Fields: structFields},
-	}, nil
+	}
+	// created_by is the attribution subject — for channel senders the
+	// phone number, the most direct PII in the envelope. It rides only
+	// when the caller's read grant exposes it.
+	if proj.AllowsCreatedBy() {
+		envelope.CreatedBy = rec.CreatedBy
+	}
+	return envelope, nil
 }
 
 // structValue converts canonical Go values to structpb-compatible ones

@@ -86,7 +86,8 @@ public interface RecordEnvelopeOrBuilder extends
 
   /**
    * <pre>
-   * The verified caller identity that inserted the record.
+   * The verified caller identity that inserted the record. Present
+   * only when the caller's read grant exposes it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.datastore.v1.DatastoreSubject created_by = 4 [json_name = "createdBy"];</code>
@@ -95,7 +96,8 @@ public interface RecordEnvelopeOrBuilder extends
   boolean hasCreatedBy();
   /**
    * <pre>
-   * The verified caller identity that inserted the record.
+   * The verified caller identity that inserted the record. Present
+   * only when the caller's read grant exposes it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.datastore.v1.DatastoreSubject created_by = 4 [json_name = "createdBy"];</code>
@@ -104,7 +106,8 @@ public interface RecordEnvelopeOrBuilder extends
   ai.stigmer.agentic.datastore.v1.DatastoreSubject getCreatedBy();
   /**
    * <pre>
-   * The verified caller identity that inserted the record.
+   * The verified caller identity that inserted the record. Present
+   * only when the caller's read grant exposes it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.datastore.v1.DatastoreSubject created_by = 4 [json_name = "createdBy"];</code>
@@ -113,7 +116,8 @@ public interface RecordEnvelopeOrBuilder extends
 
   /**
    * <pre>
-   * Declared field values in their canonical encodings.
+   * Declared field values in their canonical encodings, limited to the
+   * fields the caller's read grant allows.
    * </pre>
    *
    * <code>.google.protobuf.Struct fields = 5 [json_name = "fields"];</code>
@@ -122,7 +126,8 @@ public interface RecordEnvelopeOrBuilder extends
   boolean hasFields();
   /**
    * <pre>
-   * Declared field values in their canonical encodings.
+   * Declared field values in their canonical encodings, limited to the
+   * fields the caller's read grant allows.
    * </pre>
    *
    * <code>.google.protobuf.Struct fields = 5 [json_name = "fields"];</code>
@@ -131,7 +136,8 @@ public interface RecordEnvelopeOrBuilder extends
   com.google.protobuf.Struct getFields();
   /**
    * <pre>
-   * Declared field values in their canonical encodings.
+   * Declared field values in their canonical encodings, limited to the
+   * fields the caller's read grant allows.
    * </pre>
    *
    * <code>.google.protobuf.Struct fields = 5 [json_name = "fields"];</code>

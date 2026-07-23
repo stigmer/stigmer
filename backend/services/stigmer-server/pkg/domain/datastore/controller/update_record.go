@@ -53,5 +53,5 @@ func (c *DatastoreRecordController) UpdateRecord(ctx context.Context, req *datas
 		return nil, err
 	}
 
-	return records.Envelope(call.collection, updated)
+	return records.Envelope(call.collection, updated, call.readProjection())
 }

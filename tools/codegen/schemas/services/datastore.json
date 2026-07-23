@@ -423,7 +423,7 @@
     },
     {
       "name": "RecordEnvelope",
-      "description": "RecordEnvelope is a record as returned by every record RPC:\n server-managed system fields plus the declared fields.\n\n @internal\n System fields are server-stamped and never caller-writable on any\n surface. Record ids follow the platform id convention with prefix\n `dsr` (dsr_\u003clowercase-ulid\u003e). created_by carries the DD-002\n attribution subject; own-scoped grants resolve against it, and the\n grant system is the privacy boundary for exposing it (own-scoped\n readers only ever see themselves).",
+      "description": "RecordEnvelope is a record as returned by every record RPC:\n server-managed system fields plus the declared fields.\n\n @internal\n System fields are server-stamped and never caller-writable on any\n surface. Record ids follow the platform id convention with prefix\n `dsr` (dsr_\u003clowercase-ulid\u003e). created_by carries the DD-002\n attribution subject; own-scoped grants resolve against it, and the\n grant system is the privacy boundary for exposing it: it is present\n only when the caller's read grant is unrestricted or lists\n `created_by` in read_fields (for channel senders the value is the\n phone number — the most direct PII in the envelope). Every response\n — find results and write echoes alike — carries only the fields the\n caller's read grant allows; a caller with no read grant receives id\n and timestamps only.",
       "protoType": "ai.stigmer.agentic.datastore.v1.RecordEnvelope",
       "protoFile": "apis/ai/stigmer/agentic/datastore/v1/record_io.proto",
       "fields": [
@@ -465,7 +465,7 @@
             "kind": "message",
             "messageType": "DatastoreSubject"
           },
-          "description": "The verified caller identity that inserted the record.",
+          "description": "The verified caller identity that inserted the record. Present\n only when the caller's read grant exposes it.",
           "required": false
         },
         {
@@ -475,7 +475,7 @@
           "type": {
             "kind": "struct"
           },
-          "description": "Declared field values in their canonical encodings.",
+          "description": "Declared field values in their canonical encodings, limited to the\n fields the caller's read grant allows.",
           "required": false
         }
       ]

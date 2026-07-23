@@ -33,6 +33,8 @@ private static final long serialVersionUID = 0L;
   }
   private VerbGrantDescription() {
     verb_ = 0;
+    readableFields_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -94,6 +96,99 @@ private static final long serialVersionUID = 0L;
     return ownScope_;
   }
 
+  public static final int READABLE_FIELDS_FIELD_NUMBER = 3;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList readableFields_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Fields the caller receives on reads, in declaration order. Empty
+   * means every field. Populated only on the read verb, and only when
+   * the caller's read grant declares a field allowlist.
+   *
+   * &#64;internal
+   * Projects DatastoreGrant.read_fields so agents and clients know
+   * which columns carry values before querying (the full field schema
+   * stays in CollectionDescription.fields — structure is not
+   * confidential, and write-granted callers must know a field exists
+   * to write it). Filter conditions and order_by on fields outside
+   * this list are refused with INVALID_ARGUMENT.
+   * </pre>
+   *
+   * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+   * @return A list containing the readableFields.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getReadableFieldsList() {
+    return readableFields_;
+  }
+  /**
+   * <pre>
+   * Fields the caller receives on reads, in declaration order. Empty
+   * means every field. Populated only on the read verb, and only when
+   * the caller's read grant declares a field allowlist.
+   *
+   * &#64;internal
+   * Projects DatastoreGrant.read_fields so agents and clients know
+   * which columns carry values before querying (the full field schema
+   * stays in CollectionDescription.fields — structure is not
+   * confidential, and write-granted callers must know a field exists
+   * to write it). Filter conditions and order_by on fields outside
+   * this list are refused with INVALID_ARGUMENT.
+   * </pre>
+   *
+   * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+   * @return The count of readableFields.
+   */
+  public int getReadableFieldsCount() {
+    return readableFields_.size();
+  }
+  /**
+   * <pre>
+   * Fields the caller receives on reads, in declaration order. Empty
+   * means every field. Populated only on the read verb, and only when
+   * the caller's read grant declares a field allowlist.
+   *
+   * &#64;internal
+   * Projects DatastoreGrant.read_fields so agents and clients know
+   * which columns carry values before querying (the full field schema
+   * stays in CollectionDescription.fields — structure is not
+   * confidential, and write-granted callers must know a field exists
+   * to write it). Filter conditions and order_by on fields outside
+   * this list are refused with INVALID_ARGUMENT.
+   * </pre>
+   *
+   * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+   * @param index The index of the element to return.
+   * @return The readableFields at the given index.
+   */
+  public java.lang.String getReadableFields(int index) {
+    return readableFields_.get(index);
+  }
+  /**
+   * <pre>
+   * Fields the caller receives on reads, in declaration order. Empty
+   * means every field. Populated only on the read verb, and only when
+   * the caller's read grant declares a field allowlist.
+   *
+   * &#64;internal
+   * Projects DatastoreGrant.read_fields so agents and clients know
+   * which columns carry values before querying (the full field schema
+   * stays in CollectionDescription.fields — structure is not
+   * confidential, and write-granted callers must know a field exists
+   * to write it). Filter conditions and order_by on fields outside
+   * this list are refused with INVALID_ARGUMENT.
+   * </pre>
+   *
+   * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the readableFields at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getReadableFieldsBytes(int index) {
+    return readableFields_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -114,6 +209,9 @@ private static final long serialVersionUID = 0L;
     if (ownScope_ != false) {
       output.writeBool(2, ownScope_);
     }
+    for (int i = 0; i < readableFields_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 3, readableFields_.getRaw(i));
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -130,6 +228,14 @@ private static final long serialVersionUID = 0L;
     if (ownScope_ != false) {
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(2, ownScope_);
+    }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < readableFields_.size(); i++) {
+        dataSize += computeStringSizeNoTag(readableFields_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getReadableFieldsList().size();
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -149,6 +255,8 @@ private static final long serialVersionUID = 0L;
     if (verb_ != other.verb_) return false;
     if (getOwnScope()
         != other.getOwnScope()) return false;
+    if (!getReadableFieldsList()
+        .equals(other.getReadableFieldsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -165,6 +273,10 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + OWN_SCOPE_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getOwnScope());
+    if (getReadableFieldsCount() > 0) {
+      hash = (37 * hash) + READABLE_FIELDS_FIELD_NUMBER;
+      hash = (53 * hash) + getReadableFieldsList().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -302,6 +414,8 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       verb_ = 0;
       ownScope_ = false;
+      readableFields_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       return this;
     }
 
@@ -341,6 +455,10 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.ownScope_ = ownScope_;
       }
+      if (((from_bitField0_ & 0x00000004) != 0)) {
+        readableFields_.makeImmutable();
+        result.readableFields_ = readableFields_;
+      }
     }
 
     @java.lang.Override
@@ -360,6 +478,16 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getOwnScope() != false) {
         setOwnScope(other.getOwnScope());
+      }
+      if (!other.readableFields_.isEmpty()) {
+        if (readableFields_.isEmpty()) {
+          readableFields_ = other.readableFields_;
+          bitField0_ |= 0x00000004;
+        } else {
+          ensureReadableFieldsIsMutable();
+          readableFields_.addAll(other.readableFields_);
+        }
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -397,6 +525,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000002;
               break;
             } // case 16
+            case 26: {
+              ensureReadableFieldsIsMutable();
+              readableFields_.add(input.readStringRequireUtf8());
+              break;
+            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -526,6 +659,243 @@ private static final long serialVersionUID = 0L;
     public Builder clearOwnScope() {
       bitField0_ = (bitField0_ & ~0x00000002);
       ownScope_ = false;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.LazyStringArrayList readableFields_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureReadableFieldsIsMutable() {
+      if (!readableFields_.isModifiable()) {
+        readableFields_ = new com.google.protobuf.LazyStringArrayList(readableFields_);
+      }
+      bitField0_ |= 0x00000004;
+    }
+    /**
+     * <pre>
+     * Fields the caller receives on reads, in declaration order. Empty
+     * means every field. Populated only on the read verb, and only when
+     * the caller's read grant declares a field allowlist.
+     *
+     * &#64;internal
+     * Projects DatastoreGrant.read_fields so agents and clients know
+     * which columns carry values before querying (the full field schema
+     * stays in CollectionDescription.fields — structure is not
+     * confidential, and write-granted callers must know a field exists
+     * to write it). Filter conditions and order_by on fields outside
+     * this list are refused with INVALID_ARGUMENT.
+     * </pre>
+     *
+     * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+     * @return A list containing the readableFields.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getReadableFieldsList() {
+      readableFields_.makeImmutable();
+      return readableFields_;
+    }
+    /**
+     * <pre>
+     * Fields the caller receives on reads, in declaration order. Empty
+     * means every field. Populated only on the read verb, and only when
+     * the caller's read grant declares a field allowlist.
+     *
+     * &#64;internal
+     * Projects DatastoreGrant.read_fields so agents and clients know
+     * which columns carry values before querying (the full field schema
+     * stays in CollectionDescription.fields — structure is not
+     * confidential, and write-granted callers must know a field exists
+     * to write it). Filter conditions and order_by on fields outside
+     * this list are refused with INVALID_ARGUMENT.
+     * </pre>
+     *
+     * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+     * @return The count of readableFields.
+     */
+    public int getReadableFieldsCount() {
+      return readableFields_.size();
+    }
+    /**
+     * <pre>
+     * Fields the caller receives on reads, in declaration order. Empty
+     * means every field. Populated only on the read verb, and only when
+     * the caller's read grant declares a field allowlist.
+     *
+     * &#64;internal
+     * Projects DatastoreGrant.read_fields so agents and clients know
+     * which columns carry values before querying (the full field schema
+     * stays in CollectionDescription.fields — structure is not
+     * confidential, and write-granted callers must know a field exists
+     * to write it). Filter conditions and order_by on fields outside
+     * this list are refused with INVALID_ARGUMENT.
+     * </pre>
+     *
+     * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+     * @param index The index of the element to return.
+     * @return The readableFields at the given index.
+     */
+    public java.lang.String getReadableFields(int index) {
+      return readableFields_.get(index);
+    }
+    /**
+     * <pre>
+     * Fields the caller receives on reads, in declaration order. Empty
+     * means every field. Populated only on the read verb, and only when
+     * the caller's read grant declares a field allowlist.
+     *
+     * &#64;internal
+     * Projects DatastoreGrant.read_fields so agents and clients know
+     * which columns carry values before querying (the full field schema
+     * stays in CollectionDescription.fields — structure is not
+     * confidential, and write-granted callers must know a field exists
+     * to write it). Filter conditions and order_by on fields outside
+     * this list are refused with INVALID_ARGUMENT.
+     * </pre>
+     *
+     * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the readableFields at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getReadableFieldsBytes(int index) {
+      return readableFields_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Fields the caller receives on reads, in declaration order. Empty
+     * means every field. Populated only on the read verb, and only when
+     * the caller's read grant declares a field allowlist.
+     *
+     * &#64;internal
+     * Projects DatastoreGrant.read_fields so agents and clients know
+     * which columns carry values before querying (the full field schema
+     * stays in CollectionDescription.fields — structure is not
+     * confidential, and write-granted callers must know a field exists
+     * to write it). Filter conditions and order_by on fields outside
+     * this list are refused with INVALID_ARGUMENT.
+     * </pre>
+     *
+     * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+     * @param index The index to set the value at.
+     * @param value The readableFields to set.
+     * @return This builder for chaining.
+     */
+    public Builder setReadableFields(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureReadableFieldsIsMutable();
+      readableFields_.set(index, value);
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Fields the caller receives on reads, in declaration order. Empty
+     * means every field. Populated only on the read verb, and only when
+     * the caller's read grant declares a field allowlist.
+     *
+     * &#64;internal
+     * Projects DatastoreGrant.read_fields so agents and clients know
+     * which columns carry values before querying (the full field schema
+     * stays in CollectionDescription.fields — structure is not
+     * confidential, and write-granted callers must know a field exists
+     * to write it). Filter conditions and order_by on fields outside
+     * this list are refused with INVALID_ARGUMENT.
+     * </pre>
+     *
+     * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+     * @param value The readableFields to add.
+     * @return This builder for chaining.
+     */
+    public Builder addReadableFields(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureReadableFieldsIsMutable();
+      readableFields_.add(value);
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Fields the caller receives on reads, in declaration order. Empty
+     * means every field. Populated only on the read verb, and only when
+     * the caller's read grant declares a field allowlist.
+     *
+     * &#64;internal
+     * Projects DatastoreGrant.read_fields so agents and clients know
+     * which columns carry values before querying (the full field schema
+     * stays in CollectionDescription.fields — structure is not
+     * confidential, and write-granted callers must know a field exists
+     * to write it). Filter conditions and order_by on fields outside
+     * this list are refused with INVALID_ARGUMENT.
+     * </pre>
+     *
+     * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+     * @param values The readableFields to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllReadableFields(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureReadableFieldsIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, readableFields_);
+      bitField0_ |= 0x00000004;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Fields the caller receives on reads, in declaration order. Empty
+     * means every field. Populated only on the read verb, and only when
+     * the caller's read grant declares a field allowlist.
+     *
+     * &#64;internal
+     * Projects DatastoreGrant.read_fields so agents and clients know
+     * which columns carry values before querying (the full field schema
+     * stays in CollectionDescription.fields — structure is not
+     * confidential, and write-granted callers must know a field exists
+     * to write it). Filter conditions and order_by on fields outside
+     * this list are refused with INVALID_ARGUMENT.
+     * </pre>
+     *
+     * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearReadableFields() {
+      readableFields_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000004);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Fields the caller receives on reads, in declaration order. Empty
+     * means every field. Populated only on the read verb, and only when
+     * the caller's read grant declares a field allowlist.
+     *
+     * &#64;internal
+     * Projects DatastoreGrant.read_fields so agents and clients know
+     * which columns carry values before querying (the full field schema
+     * stays in CollectionDescription.fields — structure is not
+     * confidential, and write-granted callers must know a field exists
+     * to write it). Filter conditions and order_by on fields outside
+     * this list are refused with INVALID_ARGUMENT.
+     * </pre>
+     *
+     * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+     * @param value The bytes of the readableFields to add.
+     * @return This builder for chaining.
+     */
+    public Builder addReadableFieldsBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureReadableFieldsIsMutable();
+      readableFields_.add(value);
+      bitField0_ |= 0x00000004;
       onChanged();
       return this;
     }

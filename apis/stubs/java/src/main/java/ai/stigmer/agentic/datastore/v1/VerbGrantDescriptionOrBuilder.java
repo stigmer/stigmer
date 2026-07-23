@@ -38,4 +38,85 @@ public interface VerbGrantDescriptionOrBuilder extends
    * @return The ownScope.
    */
   boolean getOwnScope();
+
+  /**
+   * <pre>
+   * Fields the caller receives on reads, in declaration order. Empty
+   * means every field. Populated only on the read verb, and only when
+   * the caller's read grant declares a field allowlist.
+   *
+   * &#64;internal
+   * Projects DatastoreGrant.read_fields so agents and clients know
+   * which columns carry values before querying (the full field schema
+   * stays in CollectionDescription.fields — structure is not
+   * confidential, and write-granted callers must know a field exists
+   * to write it). Filter conditions and order_by on fields outside
+   * this list are refused with INVALID_ARGUMENT.
+   * </pre>
+   *
+   * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+   * @return A list containing the readableFields.
+   */
+  java.util.List<java.lang.String>
+      getReadableFieldsList();
+  /**
+   * <pre>
+   * Fields the caller receives on reads, in declaration order. Empty
+   * means every field. Populated only on the read verb, and only when
+   * the caller's read grant declares a field allowlist.
+   *
+   * &#64;internal
+   * Projects DatastoreGrant.read_fields so agents and clients know
+   * which columns carry values before querying (the full field schema
+   * stays in CollectionDescription.fields — structure is not
+   * confidential, and write-granted callers must know a field exists
+   * to write it). Filter conditions and order_by on fields outside
+   * this list are refused with INVALID_ARGUMENT.
+   * </pre>
+   *
+   * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+   * @return The count of readableFields.
+   */
+  int getReadableFieldsCount();
+  /**
+   * <pre>
+   * Fields the caller receives on reads, in declaration order. Empty
+   * means every field. Populated only on the read verb, and only when
+   * the caller's read grant declares a field allowlist.
+   *
+   * &#64;internal
+   * Projects DatastoreGrant.read_fields so agents and clients know
+   * which columns carry values before querying (the full field schema
+   * stays in CollectionDescription.fields — structure is not
+   * confidential, and write-granted callers must know a field exists
+   * to write it). Filter conditions and order_by on fields outside
+   * this list are refused with INVALID_ARGUMENT.
+   * </pre>
+   *
+   * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+   * @param index The index of the element to return.
+   * @return The readableFields at the given index.
+   */
+  java.lang.String getReadableFields(int index);
+  /**
+   * <pre>
+   * Fields the caller receives on reads, in declaration order. Empty
+   * means every field. Populated only on the read verb, and only when
+   * the caller's read grant declares a field allowlist.
+   *
+   * &#64;internal
+   * Projects DatastoreGrant.read_fields so agents and clients know
+   * which columns carry values before querying (the full field schema
+   * stays in CollectionDescription.fields — structure is not
+   * confidential, and write-granted callers must know a field exists
+   * to write it). Filter conditions and order_by on fields outside
+   * this list are refused with INVALID_ARGUMENT.
+   * </pre>
+   *
+   * <code>repeated string readable_fields = 3 [json_name = "readableFields"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the readableFields at the given index.
+   */
+  com.google.protobuf.ByteString
+      getReadableFieldsBytes(int index);
 }

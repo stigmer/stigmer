@@ -15,8 +15,13 @@ package ai.stigmer.agentic.datastore.v1;
  * surface. Record ids follow the platform id convention with prefix
  * `dsr` (dsr_&lt;lowercase-ulid&gt;). created_by carries the DD-002
  * attribution subject; own-scoped grants resolve against it, and the
- * grant system is the privacy boundary for exposing it (own-scoped
- * readers only ever see themselves).
+ * grant system is the privacy boundary for exposing it: it is present
+ * only when the caller's read grant is unrestricted or lists
+ * `created_by` in read_fields (for channel senders the value is the
+ * phone number — the most direct PII in the envelope). Every response
+ * — find results and write echoes alike — carries only the fields the
+ * caller's read grant allows; a caller with no read grant receives id
+ * and timestamps only.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.datastore.v1.RecordEnvelope}
@@ -190,7 +195,8 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.datastore.v1.DatastoreSubject createdBy_;
   /**
    * <pre>
-   * The verified caller identity that inserted the record.
+   * The verified caller identity that inserted the record. Present
+   * only when the caller's read grant exposes it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.datastore.v1.DatastoreSubject created_by = 4 [json_name = "createdBy"];</code>
@@ -202,7 +208,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The verified caller identity that inserted the record.
+   * The verified caller identity that inserted the record. Present
+   * only when the caller's read grant exposes it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.datastore.v1.DatastoreSubject created_by = 4 [json_name = "createdBy"];</code>
@@ -214,7 +221,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The verified caller identity that inserted the record.
+   * The verified caller identity that inserted the record. Present
+   * only when the caller's read grant exposes it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.datastore.v1.DatastoreSubject created_by = 4 [json_name = "createdBy"];</code>
@@ -228,7 +236,8 @@ private static final long serialVersionUID = 0L;
   private com.google.protobuf.Struct fields_;
   /**
    * <pre>
-   * Declared field values in their canonical encodings.
+   * Declared field values in their canonical encodings, limited to the
+   * fields the caller's read grant allows.
    * </pre>
    *
    * <code>.google.protobuf.Struct fields = 5 [json_name = "fields"];</code>
@@ -240,7 +249,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Declared field values in their canonical encodings.
+   * Declared field values in their canonical encodings, limited to the
+   * fields the caller's read grant allows.
    * </pre>
    *
    * <code>.google.protobuf.Struct fields = 5 [json_name = "fields"];</code>
@@ -252,7 +262,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Declared field values in their canonical encodings.
+   * Declared field values in their canonical encodings, limited to the
+   * fields the caller's read grant allows.
    * </pre>
    *
    * <code>.google.protobuf.Struct fields = 5 [json_name = "fields"];</code>
@@ -492,8 +503,13 @@ private static final long serialVersionUID = 0L;
    * surface. Record ids follow the platform id convention with prefix
    * `dsr` (dsr_&lt;lowercase-ulid&gt;). created_by carries the DD-002
    * attribution subject; own-scoped grants resolve against it, and the
-   * grant system is the privacy boundary for exposing it (own-scoped
-   * readers only ever see themselves).
+   * grant system is the privacy boundary for exposing it: it is present
+   * only when the caller's read grant is unrestricted or lists
+   * `created_by` in read_fields (for channel senders the value is the
+   * phone number — the most direct PII in the envelope). Every response
+   * — find results and write echoes alike — carries only the fields the
+   * caller's read grant allows; a caller with no read grant receives id
+   * and timestamps only.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.datastore.v1.RecordEnvelope}
@@ -1139,7 +1155,8 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.datastore.v1.DatastoreSubject, ai.stigmer.agentic.datastore.v1.DatastoreSubject.Builder, ai.stigmer.agentic.datastore.v1.DatastoreSubjectOrBuilder> createdByBuilder_;
     /**
      * <pre>
-     * The verified caller identity that inserted the record.
+     * The verified caller identity that inserted the record. Present
+     * only when the caller's read grant exposes it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.datastore.v1.DatastoreSubject created_by = 4 [json_name = "createdBy"];</code>
@@ -1150,7 +1167,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The verified caller identity that inserted the record.
+     * The verified caller identity that inserted the record. Present
+     * only when the caller's read grant exposes it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.datastore.v1.DatastoreSubject created_by = 4 [json_name = "createdBy"];</code>
@@ -1165,7 +1183,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The verified caller identity that inserted the record.
+     * The verified caller identity that inserted the record. Present
+     * only when the caller's read grant exposes it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.datastore.v1.DatastoreSubject created_by = 4 [json_name = "createdBy"];</code>
@@ -1185,7 +1204,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The verified caller identity that inserted the record.
+     * The verified caller identity that inserted the record. Present
+     * only when the caller's read grant exposes it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.datastore.v1.DatastoreSubject created_by = 4 [json_name = "createdBy"];</code>
@@ -1203,7 +1223,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The verified caller identity that inserted the record.
+     * The verified caller identity that inserted the record. Present
+     * only when the caller's read grant exposes it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.datastore.v1.DatastoreSubject created_by = 4 [json_name = "createdBy"];</code>
@@ -1228,7 +1249,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The verified caller identity that inserted the record.
+     * The verified caller identity that inserted the record. Present
+     * only when the caller's read grant exposes it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.datastore.v1.DatastoreSubject created_by = 4 [json_name = "createdBy"];</code>
@@ -1245,7 +1267,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The verified caller identity that inserted the record.
+     * The verified caller identity that inserted the record. Present
+     * only when the caller's read grant exposes it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.datastore.v1.DatastoreSubject created_by = 4 [json_name = "createdBy"];</code>
@@ -1257,7 +1280,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The verified caller identity that inserted the record.
+     * The verified caller identity that inserted the record. Present
+     * only when the caller's read grant exposes it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.datastore.v1.DatastoreSubject created_by = 4 [json_name = "createdBy"];</code>
@@ -1272,7 +1296,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The verified caller identity that inserted the record.
+     * The verified caller identity that inserted the record. Present
+     * only when the caller's read grant exposes it.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.datastore.v1.DatastoreSubject created_by = 4 [json_name = "createdBy"];</code>
@@ -1296,7 +1321,8 @@ private static final long serialVersionUID = 0L;
         com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> fieldsBuilder_;
     /**
      * <pre>
-     * Declared field values in their canonical encodings.
+     * Declared field values in their canonical encodings, limited to the
+     * fields the caller's read grant allows.
      * </pre>
      *
      * <code>.google.protobuf.Struct fields = 5 [json_name = "fields"];</code>
@@ -1307,7 +1333,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Declared field values in their canonical encodings.
+     * Declared field values in their canonical encodings, limited to the
+     * fields the caller's read grant allows.
      * </pre>
      *
      * <code>.google.protobuf.Struct fields = 5 [json_name = "fields"];</code>
@@ -1322,7 +1349,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Declared field values in their canonical encodings.
+     * Declared field values in their canonical encodings, limited to the
+     * fields the caller's read grant allows.
      * </pre>
      *
      * <code>.google.protobuf.Struct fields = 5 [json_name = "fields"];</code>
@@ -1342,7 +1370,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Declared field values in their canonical encodings.
+     * Declared field values in their canonical encodings, limited to the
+     * fields the caller's read grant allows.
      * </pre>
      *
      * <code>.google.protobuf.Struct fields = 5 [json_name = "fields"];</code>
@@ -1360,7 +1389,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Declared field values in their canonical encodings.
+     * Declared field values in their canonical encodings, limited to the
+     * fields the caller's read grant allows.
      * </pre>
      *
      * <code>.google.protobuf.Struct fields = 5 [json_name = "fields"];</code>
@@ -1385,7 +1415,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Declared field values in their canonical encodings.
+     * Declared field values in their canonical encodings, limited to the
+     * fields the caller's read grant allows.
      * </pre>
      *
      * <code>.google.protobuf.Struct fields = 5 [json_name = "fields"];</code>
@@ -1402,7 +1433,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Declared field values in their canonical encodings.
+     * Declared field values in their canonical encodings, limited to the
+     * fields the caller's read grant allows.
      * </pre>
      *
      * <code>.google.protobuf.Struct fields = 5 [json_name = "fields"];</code>
@@ -1414,7 +1446,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Declared field values in their canonical encodings.
+     * Declared field values in their canonical encodings, limited to the
+     * fields the caller's read grant allows.
      * </pre>
      *
      * <code>.google.protobuf.Struct fields = 5 [json_name = "fields"];</code>
@@ -1429,7 +1462,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Declared field values in their canonical encodings.
+     * Declared field values in their canonical encodings, limited to the
+     * fields the caller's read grant allows.
      * </pre>
      *
      * <code>.google.protobuf.Struct fields = 5 [json_name = "fields"];</code>

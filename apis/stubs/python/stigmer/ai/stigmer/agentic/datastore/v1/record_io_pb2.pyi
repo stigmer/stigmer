@@ -223,9 +223,11 @@ class ConstraintDescription(_message.Message):
     def __init__(self, name: _Optional[str] = ..., kind: _Optional[_Union[ConstraintKind, str]] = ..., message: _Optional[str] = ...) -> None: ...
 
 class VerbGrantDescription(_message.Message):
-    __slots__ = ("verb", "own_scope")
+    __slots__ = ("verb", "own_scope", "readable_fields")
     VERB_FIELD_NUMBER: _ClassVar[int]
     OWN_SCOPE_FIELD_NUMBER: _ClassVar[int]
+    READABLE_FIELDS_FIELD_NUMBER: _ClassVar[int]
     verb: _spec_pb2.DatastoreVerb
     own_scope: bool
-    def __init__(self, verb: _Optional[_Union[_spec_pb2.DatastoreVerb, str]] = ..., own_scope: bool = ...) -> None: ...
+    readable_fields: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, verb: _Optional[_Union[_spec_pb2.DatastoreVerb, str]] = ..., own_scope: bool = ..., readable_fields: _Optional[_Iterable[str]] = ...) -> None: ...

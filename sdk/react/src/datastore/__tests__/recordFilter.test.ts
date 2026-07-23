@@ -56,6 +56,19 @@ describe("filterableFields", () => {
     const status = fields.find((f) => f.name === "status")!;
     expect(status.operators).toContain(RecordConditionOp.is_null);
   });
+
+  it("narrows to the caller's readable fields; system fields stay offered", () => {
+    // A field-restricted read grant: the server refuses conditions on
+    // unreadable fields, so the builder must not offer them.
+    const names = filterableFields(COLLECTION, ["status"]).map((f) => f.name);
+    expect(names).toEqual(["status", "id", "created_at", "updated_at"]);
+  });
+
+  it("empty readable_fields means unrestricted (the proto contract)", () => {
+    expect(filterableFields(COLLECTION, []).map((f) => f.name)).toEqual(
+      filterableFields(COLLECTION).map((f) => f.name),
+    );
+  });
 });
 
 describe("isConditionComplete", () => {

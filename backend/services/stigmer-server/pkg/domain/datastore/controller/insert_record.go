@@ -17,7 +17,9 @@ import (
 // constraints evaluate inside the write transaction, within the call's
 // partition; declared uniques are the duplicate guard (a retried insert
 // violating one returns ALREADY_EXISTS with the declared message, never
-// a duplicate).
+// a duplicate). The echo carries only the fields the caller's READ
+// grant allows — a caller never receives a field it cannot read, even
+// one it just wrote.
 func (c *DatastoreRecordController) InsertRecord(ctx context.Context, req *datastorev1.InsertRecordRequest) (*datastorev1.RecordEnvelope, error) {
 	call, err := c.resolveCall(ctx, req.GetOrg(), req.GetDatastore(), req.GetCollection(), req.GetPartition())
 	if err != nil {
@@ -52,5 +54,5 @@ func (c *DatastoreRecordController) InsertRecord(ctx context.Context, req *datas
 		return nil, err
 	}
 
-	return records.Envelope(call.collection, rec)
+	return records.Envelope(call.collection, rec, call.readProjection())
 }

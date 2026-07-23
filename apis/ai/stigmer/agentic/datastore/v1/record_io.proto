@@ -15,8 +15,13 @@ import "google/protobuf/timestamp.proto";
 // surface. Record ids follow the platform id convention with prefix
 // `dsr` (dsr_<lowercase-ulid>). created_by carries the DD-002
 // attribution subject; own-scoped grants resolve against it, and the
-// grant system is the privacy boundary for exposing it (own-scoped
-// readers only ever see themselves).
+// grant system is the privacy boundary for exposing it: it is present
+// only when the caller's read grant is unrestricted or lists
+// `created_by` in read_fields (for channel senders the value is the
+// phone number — the most direct PII in the envelope). Every response
+// — find results and write echoes alike — carries only the fields the
+// caller's read grant allows; a caller with no read grant receives id
+// and timestamps only.
 message RecordEnvelope {
   // Server-issued record identifier, opaque and immutable.
   string id = 1;
@@ -27,10 +32,12 @@ message RecordEnvelope {
   // When the record was last updated.
   google.protobuf.Timestamp updated_at = 3;
 
-  // The verified caller identity that inserted the record.
+  // The verified caller identity that inserted the record. Present
+  // only when the caller's read grant exposes it.
   DatastoreSubject created_by = 4;
 
-  // Declared field values in their canonical encodings.
+  // Declared field values in their canonical encodings, limited to the
+  // fields the caller's read grant allows.
   google.protobuf.Struct fields = 5;
 }
 
@@ -369,4 +376,17 @@ message VerbGrantDescription {
 
   // True when the verb applies only to records the caller created.
   bool own_scope = 2;
+
+  // Fields the caller receives on reads, in declaration order. Empty
+  // means every field. Populated only on the read verb, and only when
+  // the caller's read grant declares a field allowlist.
+  //
+  // @internal
+  // Projects DatastoreGrant.read_fields so agents and clients know
+  // which columns carry values before querying (the full field schema
+  // stays in CollectionDescription.fields — structure is not
+  // confidential, and write-granted callers must know a field exists
+  // to write it). Filter conditions and order_by on fields outside
+  // this list are refused with INVALID_ARGUMENT.
+  repeated string readable_fields = 3;
 }

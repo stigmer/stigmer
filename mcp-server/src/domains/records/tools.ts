@@ -84,8 +84,10 @@ export function registerRecordTools(
       description:
         "Describe a datastore: its collections, field declarations and encodings, constraint " +
         "messages, data partitions, and the verbs you are allowed to use per collection " +
-        "(empty access means you are not allowed to touch that collection). Call this before " +
-        `the first record operation against an unfamiliar datastore. ${ENCODINGS}`,
+        "(empty access means you are not allowed to touch that collection). A read verb may " +
+        "carry readable_fields: reads then return only those fields, and only they may appear " +
+        "in filter conditions and order_by (empty readable_fields means every field). Call " +
+        `this before the first record operation against an unfamiliar datastore. ${ENCODINGS}`,
       inputSchema: {
         datastore: z.string().describe("Datastore slug (e.g. clinic)."),
         ...orgShape,
@@ -104,7 +106,9 @@ export function registerRecordTools(
       description:
         "Find records in a datastore collection with a typed filter (conditions are AND-combined). " +
         "Returns records plus total/limit/offset for paging. Results are ordered by created_at " +
-        `descending unless order_by is given. ${ENCODINGS}`,
+        "descending unless order_by is given. Records carry only the fields your grant allows " +
+        "(describe_datastore lists them as readable_fields); conditions and order_by on other " +
+        `fields are rejected. ${ENCODINGS}`,
       inputSchema: {
         datastore: z.string().describe("Datastore slug (e.g. clinic)."),
         ...orgShape,

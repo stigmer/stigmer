@@ -112,6 +112,9 @@ func TestCheckVerb(t *testing.T) {
 	})
 
 	t.Run("widest scope wins when grants overlap", func(t *testing.T) {
+		// Duplicate (role, verb) grants are refused at apply time since
+		// read_fields shipped, but stored specs predating that rule are
+		// still served — this pins their documented resolution.
 		overlapping := &datastorev1.CollectionDeclaration{
 			Grants: []*datastorev1.DatastoreGrant{
 				{Role: "patient", Verbs: []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_update},
@@ -144,14 +147,128 @@ func TestEffectiveVerbs(t *testing.T) {
 		require.Len(t, verbs, 3)
 		assert.Equal(t, datastorev1.DatastoreVerb_read, verbs[0].GetVerb())
 		assert.False(t, verbs[0].GetOwnScope())
+		assert.Empty(t, verbs[0].GetReadableFields(), "unrestricted read carries no field list (empty means all)")
 		assert.Equal(t, datastorev1.DatastoreVerb_insert, verbs[1].GetVerb())
 		assert.Equal(t, datastorev1.DatastoreVerb_update, verbs[2].GetVerb())
 		assert.True(t, verbs[2].GetOwnScope())
 	})
 
+	t.Run("restricted read carries readable_fields in declaration order", func(t *testing.T) {
+		restricted := &datastorev1.CollectionDeclaration{
+			Fields: []*datastorev1.FieldDeclaration{
+				{Name: "slot_start", Type: datastorev1.FieldType_timestamp},
+				{Name: "patient_phone", Type: datastorev1.FieldType_string},
+				{Name: "status", Type: datastorev1.FieldType_string},
+			},
+			Grants: []*datastorev1.DatastoreGrant{
+				{Role: "patient", Verbs: []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_read},
+					// Listed out of declaration order on purpose: the
+					// projection re-orders deterministically.
+					ReadFields: []string{"status", "created_by", "slot_start"}},
+			},
+		}
+		verbs := EffectiveVerbs(restricted, "patient", true)
+		require.Len(t, verbs, 1)
+		assert.Equal(t, []string{"slot_start", "status", "created_by"}, verbs[0].GetReadableFields(),
+			"declared fields in declaration order, created_by last")
+	})
+
 	t.Run("no role yields empty access", func(t *testing.T) {
 		assert.Empty(t, EffectiveVerbs(coll, "", false))
 	})
+}
+
+func TestResolveReadProjection(t *testing.T) {
+	coll := &datastorev1.CollectionDeclaration{
+		Name: "bookings",
+		Fields: []*datastorev1.FieldDeclaration{
+			{Name: "slot_start", Type: datastorev1.FieldType_timestamp},
+			{Name: "patient_phone", Type: datastorev1.FieldType_string},
+			{Name: "status", Type: datastorev1.FieldType_string},
+		},
+		Grants: []*datastorev1.DatastoreGrant{
+			{Role: "patient", Verbs: []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_read, datastorev1.DatastoreVerb_insert},
+				ReadFields: []string{"slot_start", "status"}},
+			{Role: "patient", Verbs: []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_update, datastorev1.DatastoreVerb_delete},
+				Scope: datastorev1.DatastoreGrantScope_own},
+			{Role: "admin", Verbs: []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_read}},
+			{Role: "auditor", Verbs: []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_read},
+				ReadFields: []string{"status", "created_by"}},
+			{Role: "clerk", Verbs: []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_insert}},
+		},
+	}
+
+	t.Run("unrestricted read grant allows every column", func(t *testing.T) {
+		proj := ResolveReadProjection(coll, "admin", true)
+		assert.True(t, proj.All)
+		assert.True(t, proj.AllowsField("patient_phone"))
+		assert.True(t, proj.AllowsCreatedBy())
+	})
+
+	t.Run("restricted grant allows exactly its listed fields", func(t *testing.T) {
+		proj := ResolveReadProjection(coll, "patient", true)
+		assert.False(t, proj.All)
+		assert.True(t, proj.AllowsField("slot_start"))
+		assert.True(t, proj.AllowsField("status"))
+		assert.False(t, proj.AllowsField("patient_phone"))
+		assert.False(t, proj.AllowsCreatedBy(),
+			"created_by is exposed only when listed — it is the attribution PII")
+	})
+
+	t.Run("created_by entry exposes attribution without becoming a field", func(t *testing.T) {
+		proj := ResolveReadProjection(coll, "auditor", true)
+		assert.True(t, proj.AllowsCreatedBy())
+		assert.False(t, proj.AllowsField("created_by"),
+			"created_by is not a declared field; it rides on the envelope, not in fields")
+	})
+
+	t.Run("write-only role gets the zero projection", func(t *testing.T) {
+		proj := ResolveReadProjection(coll, "clerk", true)
+		assert.False(t, proj.All)
+		assert.False(t, proj.AllowsField("status"))
+		assert.False(t, proj.AllowsCreatedBy())
+	})
+
+	t.Run("no role gets the zero projection", func(t *testing.T) {
+		proj := ResolveReadProjection(coll, "", false)
+		assert.False(t, proj.AllowsField("status"))
+		assert.False(t, proj.AllowsCreatedBy())
+	})
+
+	t.Run("legacy duplicate read grants resolve unrestricted", func(t *testing.T) {
+		// Stored specs predating the duplicate-(role, verb) rule can
+		// only hold UNRESTRICTED duplicates (read_fields shipped with
+		// the rule): any unrestricted read grant wins, preserving the
+		// access such specs always had.
+		legacy := &datastorev1.CollectionDeclaration{
+			Grants: []*datastorev1.DatastoreGrant{
+				{Role: "patient", Verbs: []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_read},
+					Scope: datastorev1.DatastoreGrantScope_own},
+				{Role: "patient", Verbs: []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_read}},
+			},
+		}
+		proj := ResolveReadProjection(legacy, "patient", true)
+		assert.True(t, proj.All)
+	})
+}
+
+func TestReadableFields(t *testing.T) {
+	coll := &datastorev1.CollectionDeclaration{
+		Fields: []*datastorev1.FieldDeclaration{
+			{Name: "a", Type: datastorev1.FieldType_string},
+			{Name: "b", Type: datastorev1.FieldType_string},
+			{Name: "c", Type: datastorev1.FieldType_string},
+		},
+	}
+
+	assert.Nil(t, ReadableFields(coll, ReadProjection{All: true}), "unrestricted projects no list (empty means all)")
+	assert.Nil(t, ReadableFields(coll, ReadProjection{}), "denied projects no list")
+	assert.Equal(t, []string{"a", "c"},
+		ReadableFields(coll, ReadProjection{Fields: map[string]bool{"c": true, "a": true}}),
+		"declaration order, independent of allowlist order")
+	assert.Equal(t, []string{"b", CreatedByField},
+		ReadableFields(coll, ReadProjection{Fields: map[string]bool{"b": true}, CreatedBy: true}),
+		"created_by rides last")
 }
 
 func TestSubjectKeyContract(t *testing.T) {

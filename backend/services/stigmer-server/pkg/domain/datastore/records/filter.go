@@ -4,6 +4,7 @@ import (
 	"time"
 
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/authz"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/dserrors"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/recordstore"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/schema"
@@ -70,15 +71,21 @@ func opsForFieldType(t datastorev1.FieldType) map[datastorev1.RecordConditionOp]
 }
 
 // BuildConditions validates a find filter against the declared schema —
-// field resolution, the operator matrix, and value canonicalization —
-// and returns substrate-ready conditions. Conditions AND-combine; the
-// caller composes the own-scope conjunction separately (the grammar can
-// neither express nor relax it).
-func BuildConditions(coll *datastorev1.CollectionDeclaration, filter *datastorev1.RecordFilter) ([]recordstore.Condition, error) {
+// field resolution, the caller's column-level read access, the operator
+// matrix, and value canonicalization — and returns substrate-ready
+// conditions. Conditions AND-combine; the caller composes the own-scope
+// conjunction separately (the grammar can neither express nor relax it).
+//
+// The read-projection check closes the existence oracle: without it, a
+// caller barred from reading a field could still probe its values
+// through conditions (filter on a hidden phone number, read the match
+// count). The filterable system fields (id, created_at, updated_at)
+// are always readable and exempt.
+func BuildConditions(coll *datastorev1.CollectionDeclaration, proj authz.ReadProjection, filter *datastorev1.RecordFilter) ([]recordstore.Condition, error) {
 	conditions := filter.GetConditions()
 	out := make([]recordstore.Condition, 0, len(conditions))
 	for _, c := range conditions {
-		built, err := buildCondition(coll, c)
+		built, err := buildCondition(coll, proj, c)
 		if err != nil {
 			return nil, err
 		}
@@ -87,7 +94,7 @@ func BuildConditions(coll *datastorev1.CollectionDeclaration, filter *datastorev
 	return out, nil
 }
 
-func buildCondition(coll *datastorev1.CollectionDeclaration, c *datastorev1.RecordCondition) (recordstore.Condition, error) {
+func buildCondition(coll *datastorev1.CollectionDeclaration, proj authz.ReadProjection, c *datastorev1.RecordCondition) (recordstore.Condition, error) {
 	name := c.GetField()
 	op := c.GetOp()
 
@@ -102,6 +109,13 @@ func buildCondition(coll *datastorev1.CollectionDeclaration, c *datastorev1.Reco
 	if field == nil {
 		return recordstore.Condition{}, dserrors.InvalidFilter(
 			"field %q is not declared in collection %q", name, coll.GetName())
+	}
+
+	// Contract check order: declared → readable → operator matrix. The
+	// field's very usability is denied before its operators are judged.
+	if !proj.AllowsField(name) {
+		return recordstore.Condition{}, dserrors.InvalidFilter(
+			"field %q is not readable under your grant and cannot be used in filter conditions", name)
 	}
 
 	if op == datastorev1.RecordConditionOp_is_null || op == datastorev1.RecordConditionOp_not_null {
@@ -226,9 +240,11 @@ func buildValueCondition(
 }
 
 // BuildOrderBy validates a sort directive: a sortable declared field
-// (json is not sortable) or a system field. Nil input keeps the default
-// ordering (created_at desc, id tiebreak).
-func BuildOrderBy(coll *datastorev1.CollectionDeclaration, orderBy *datastorev1.RecordOrderBy) (*recordstore.OrderBy, error) {
+// (json is not sortable) that the caller's read grant allows, or a
+// system field. Nil input keeps the default ordering (created_at desc,
+// id tiebreak). The read-projection check mirrors BuildConditions:
+// ordering by a hidden field would leak its relative values.
+func BuildOrderBy(coll *datastorev1.CollectionDeclaration, proj authz.ReadProjection, orderBy *datastorev1.RecordOrderBy) (*recordstore.OrderBy, error) {
 	if orderBy == nil {
 		return nil, nil
 	}
@@ -246,6 +262,10 @@ func BuildOrderBy(coll *datastorev1.CollectionDeclaration, orderBy *datastorev1.
 	if field == nil {
 		return nil, dserrors.InvalidFilter(
 			"field %q is not declared in collection %q", name, coll.GetName())
+	}
+	if !proj.AllowsField(name) {
+		return nil, dserrors.InvalidFilter(
+			"field %q is not readable under your grant and cannot be used in order_by", name)
 	}
 	if field.GetType() == datastorev1.FieldType_json {
 		return nil, dserrors.InvalidFilter("field %q of type json is not sortable", name)

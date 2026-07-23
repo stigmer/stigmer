@@ -416,6 +416,7 @@ class DatastoreGrantInput:
     role: str
     verbs: list[int] = field(default_factory=list)
     scope: int = 0
+    read_fields: list[str] = field(default_factory=list)
 
     def _to_proto(self) -> spec_pb2.DatastoreGrant:
         msg = spec_pb2.DatastoreGrant(
@@ -424,5 +425,7 @@ class DatastoreGrantInput:
         )
         if self.verbs:
             msg.verbs.extend(self.verbs)
+        if self.read_fields:
+            msg.read_fields.extend(self.read_fields)
         return msg
 

@@ -27,11 +27,13 @@ const COLLECTION = create(CollectionDeclarationSchema, {
 function renderBuilder(
   conditions: readonly RecordConditionDraft[],
   onChange = vi.fn(),
+  readableFields?: readonly string[],
 ) {
   render(
     <StigmerProvider client={{} as never}>
       <RecordFilterBuilder
         collection={COLLECTION}
+        readableFields={readableFields}
         conditions={conditions}
         onChange={onChange}
       />
@@ -90,6 +92,18 @@ describe("RecordFilterBuilder — draft-then-apply popover", () => {
       .map((o) => o.textContent)
       .filter((t) => t !== "— Select —");
     expect(ops).toEqual(["=", "≠", ">", "≥", "<", "≤"]);
+  });
+
+  it("narrows to the caller's readable fields; system fields stay offered", async () => {
+    // A field-restricted read grant (readable_fields on the read verb):
+    // the server refuses conditions on unreadable fields, so the
+    // builder must not offer them (DD-008 invariant 2).
+    renderBuilder([], vi.fn(), ["status"]);
+    fireEvent.click(screen.getByRole("button", { name: /Add filter/ }));
+
+    const fieldSelect = (await screen.findByLabelText(/Field/)) as HTMLSelectElement;
+    const fieldNames = Array.from(fieldSelect.options).map((o) => o.value);
+    expect(fieldNames).toEqual(["", "status", "id", "created_at", "updated_at"]);
   });
 
   it("applies a complete draft and closes; incomplete drafts cannot apply", async () => {

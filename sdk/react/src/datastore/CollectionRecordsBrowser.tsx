@@ -209,10 +209,22 @@ function RecordsPane({
   const canUpdate = verbs.has(DatastoreVerb.update);
   const canDelete = verbs.has(DatastoreVerb.delete);
 
+  // The caller's column-level read access (empty means every field): a
+  // field-restricted read grant returns only these fields, so the grid
+  // and the filter builder narrow to them — no permanently-empty
+  // columns, no filter the server would refuse (DD-008 invariant 2).
+  const readableFields = useMemo(
+    () => access?.access.find((a) => a.verb === DatastoreVerb.read)?.readableFields ?? [],
+    [access],
+  );
+
   const scope = { org, datastore: datastoreSlug, collection: collection.name, partition };
 
   const filter = useMemo(() => buildRecordFilter(conditions), [conditions]);
-  const columns = useMemo(() => buildRecordColumns(collection), [collection]);
+  const columns = useMemo(
+    () => buildRecordColumns(collection, readableFields),
+    [collection, readableFields],
+  );
 
   // Fetch only once read access is confirmed — the denied panel is the
   // primary render for deny-by-default, not a failed query.
@@ -297,6 +309,7 @@ function RecordsPane({
       <div className="flex flex-wrap items-center gap-2">
         <RecordFilterBuilder
           collection={collection}
+          readableFields={readableFields}
           conditions={conditions}
           onChange={onConditionsChange}
           className="min-w-0 flex-1"
@@ -435,9 +448,22 @@ function DeniedPanel({ message }: { readonly message: string }) {
  * (`id`, `updated_at`, `created_by`) stay out of the default grid —
  * they are shown in the record form's read-only summary; a column
  * toggle is recorded growth.
+ *
+ * `readableFields` narrows the declared columns to the caller's
+ * column-level read access (empty means every field): a hidden field's
+ * cells would be permanently empty, which reads as missing data rather
+ * than restricted access.
  */
-function buildRecordColumns(collection: CollectionDeclaration): RecordColumnDef[] {
-  const fieldColumns: RecordColumnDef[] = collection.fields.map((field) => ({
+function buildRecordColumns(
+  collection: CollectionDeclaration,
+  readableFields: readonly string[],
+): RecordColumnDef[] {
+  const readable = readableFields.length > 0 ? new Set(readableFields) : null;
+  const declaredColumns =
+    readable === null
+      ? collection.fields
+      : collection.fields.filter((field) => readable.has(field.name));
+  const fieldColumns: RecordColumnDef[] = declaredColumns.map((field) => ({
     id: field.name,
     header: field.name,
     sortable: isSortableField(field),

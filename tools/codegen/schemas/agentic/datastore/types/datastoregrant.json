@@ -1,6 +1,6 @@
 {
   "name": "DatastoreGrant",
-  "description": "DatastoreGrant gives a role a set of verbs on one collection's records.",
+  "description": "DatastoreGrant gives a role a set of verbs on one collection's records.\n\n @internal\n Apply-time integrity (both editions, the shared spec validators): a\n (role, verb) pair may appear in at most one grant per collection —\n with one read grant per role, the resolved access is exactly\n {scope, read_fields} and no merge rules exist (a duplicate would\n reopen the composition ambiguity read_fields closes). Stored specs\n that predate this rule keep their widest-scope-wins resolution; they\n can never carry read_fields (the rule ships with the field).",
   "protoType": "ai.stigmer.agentic.datastore.v1.DatastoreGrant",
   "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
   "fields": [
@@ -54,6 +54,22 @@
       },
       "description": "Row scope of the grant.\n\n Defaults to all records. `own` limits update and delete (and read)\n to records whose server-stamped created_by matches the caller.",
       "required": false
+    },
+    {
+      "name": "ReadFields",
+      "jsonName": "readFields",
+      "protoField": "read_fields",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "string"
+        }
+      },
+      "description": "Field allowlist for the read verb: when set, reads by this role\n return only these fields, and filter conditions and order_by may\n reference only these fields. Empty means every field is readable.\n\n Entries name declared fields of the collection, or `created_by` to\n expose the attribution subject. The system fields id, created_at,\n and updated_at are always readable.\n\n @internal\n The column-level GRANT SELECT of the record layer, closing the\n scope-all-reads-carry-PII residual (dont-dos/002): every record RPC\n response — find results AND write echoes — is projected to the\n caller's read-grant field set, and created_by is included only when\n listed (for channel senders it is the phone number, the most direct\n PII in the envelope). A caller with no read grant at all receives\n envelopes with id and timestamps only (write-only access). Empty =\n unrestricted is forced by proto3 repeated-field semantics (no\n presence) and mirrors `scope` unset = all. Requires `read` among\n the grant's verbs — read_fields on a write-only grant is declared\n intent with no effect and is refused at apply, same posture as the\n binding relation qualifier. Entry-to-declared-field resolution is\n domain validation (both editions, byte-identical messages).",
+      "required": false,
+      "validation": {
+        "maxItems": 100
+      }
     }
   ]
 }

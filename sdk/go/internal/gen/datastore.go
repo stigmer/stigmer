@@ -226,9 +226,10 @@ type ExistsConstraintInput struct {
 
 // DatastoreGrantInput is the SDK input type for DatastoreGrant.
 type DatastoreGrantInput struct {
-	Role  string
-	Verbs []datastorev1.DatastoreVerb
-	Scope datastorev1.DatastoreGrantScope
+	Role       string
+	Verbs      []datastorev1.DatastoreVerb
+	Scope      datastorev1.DatastoreGrantScope
+	ReadFields []string
 }
 
 func (i *DatastoreInput) toProto() *datastorev1.Datastore {
@@ -379,9 +380,10 @@ func (i *ExistsConstraintInput) toProto() *datastorev1.ExistsConstraint {
 
 func (i *DatastoreGrantInput) toProto() *datastorev1.DatastoreGrant {
 	return &datastorev1.DatastoreGrant{
-		Role:  i.Role,
-		Verbs: i.Verbs,
-		Scope: i.Scope,
+		Role:       i.Role,
+		Verbs:      i.Verbs,
+		Scope:      i.Scope,
+		ReadFields: i.ReadFields,
 	}
 }
 
@@ -575,5 +577,6 @@ func datastoreGrantInputFromProto(p *datastorev1.DatastoreGrant) *DatastoreGrant
 	input.Role = p.GetRole()
 	input.Verbs = p.GetVerbs()
 	input.Scope = p.GetScope()
+	input.ReadFields = p.GetReadFields()
 	return input
 }

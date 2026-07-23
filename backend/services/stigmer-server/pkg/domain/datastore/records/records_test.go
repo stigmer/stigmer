@@ -5,12 +5,17 @@ import (
 	"testing"
 
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/authz"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/identity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+// allowAll is the unrestricted read projection — the pre-read_fields
+// behavior every legacy expectation in this file was written against.
+var allowAll = authz.ReadProjection{All: true}
 
 func bookingsCollection() *datastorev1.CollectionDeclaration {
 	return &datastorev1.CollectionDeclaration{
@@ -148,13 +153,58 @@ func TestEnvelope_ProjectsCanonicalStruct(t *testing.T) {
 		"patient_name": "Asha",
 		"status":       "confirmed",
 	})
-	envelope, err := Envelope(coll, rec)
+	envelope, err := Envelope(coll, rec, allowAll)
 	require.NoError(t, err)
 	assert.Equal(t, rec.ID, envelope.GetId())
 	assert.Equal(t, "Asha", envelope.GetFields().GetFields()["patient_name"].GetStringValue())
 	assert.NotNil(t, envelope.GetCreatedBy().GetPrincipal())
 	_, hasPhone := envelope.GetFields().GetFields()["patient_phone"]
 	assert.False(t, hasPhone, "absent fields are omitted, not nulled")
+}
+
+func TestEnvelope_ReadProjection(t *testing.T) {
+	coll := bookingsCollection()
+	rec := NewRecord(identity.LocalSubject(), "stigmer", "default", map[string]any{
+		"slot_start":    "2026-07-21T04:30:00.000000000Z",
+		"patient_name":  "Asha",
+		"patient_phone": "9198",
+		"status":        "confirmed",
+	})
+
+	t.Run("restricted grant drops unlisted fields and created_by", func(t *testing.T) {
+		envelope, err := Envelope(coll, rec, authz.ReadProjection{
+			Fields: map[string]bool{"slot_start": true, "status": true},
+		})
+		require.NoError(t, err)
+		fields := envelope.GetFields().GetFields()
+		assert.Contains(t, fields, "slot_start")
+		assert.Contains(t, fields, "status")
+		assert.NotContains(t, fields, "patient_name")
+		assert.NotContains(t, fields, "patient_phone")
+		assert.Nil(t, envelope.GetCreatedBy(),
+			"created_by is the most direct PII in the envelope; a restricted grant must list it explicitly")
+		assert.Equal(t, rec.ID, envelope.GetId(), "system id always rides")
+		assert.NotNil(t, envelope.GetCreatedAt(), "system timestamps always ride")
+	})
+
+	t.Run("restricted grant listing created_by exposes it", func(t *testing.T) {
+		envelope, err := Envelope(coll, rec, authz.ReadProjection{
+			Fields:    map[string]bool{"status": true},
+			CreatedBy: true,
+		})
+		require.NoError(t, err)
+		assert.NotNil(t, envelope.GetCreatedBy().GetPrincipal())
+	})
+
+	t.Run("zero projection yields id and timestamps only", func(t *testing.T) {
+		envelope, err := Envelope(coll, rec, authz.ReadProjection{})
+		require.NoError(t, err)
+		assert.Empty(t, envelope.GetFields().GetFields(),
+			"a caller with no read grant receives no declared fields, even ones it just wrote")
+		assert.Nil(t, envelope.GetCreatedBy())
+		assert.Equal(t, rec.ID, envelope.GetId())
+		assert.NotNil(t, envelope.GetUpdatedAt())
+	})
 }
 
 // --- filter building (the per-type operator matrix) ----------------------
@@ -188,7 +238,7 @@ func TestBuildConditions(t *testing.T) {
 	coll := filterColl()
 
 	t.Run("valid conditions canonicalize values", func(t *testing.T) {
-		conds, err := BuildConditions(coll, &datastorev1.RecordFilter{Conditions: []*datastorev1.RecordCondition{
+		conds, err := BuildConditions(coll, allowAll, &datastorev1.RecordFilter{Conditions: []*datastorev1.RecordCondition{
 			condition("status", datastorev1.RecordConditionOp_eq, "confirmed"),
 			condition("slot_start", datastorev1.RecordConditionOp_gte, "2026-07-21T00:00:00Z"),
 			condition("priority", datastorev1.RecordConditionOp_lt, 5.0),
@@ -229,14 +279,14 @@ func TestBuildConditions(t *testing.T) {
 	}
 	for _, tt := range rejections {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := BuildConditions(coll, &datastorev1.RecordFilter{Conditions: []*datastorev1.RecordCondition{tt.cond}})
+			_, err := BuildConditions(coll, allowAll, &datastorev1.RecordFilter{Conditions: []*datastorev1.RecordCondition{tt.cond}})
 			require.Error(t, err)
 			assert.Contains(t, status.Convert(err).Message(), tt.wantErr)
 		})
 	}
 
 	t.Run("is_in requires values", func(t *testing.T) {
-		_, err := BuildConditions(coll, &datastorev1.RecordFilter{Conditions: []*datastorev1.RecordCondition{
+		_, err := BuildConditions(coll, allowAll, &datastorev1.RecordFilter{Conditions: []*datastorev1.RecordCondition{
 			{Field: "status", Op: datastorev1.RecordConditionOp_is_in},
 		}})
 		require.Error(t, err)
@@ -244,15 +294,35 @@ func TestBuildConditions(t *testing.T) {
 	})
 
 	t.Run("is_null on optional field allowed", func(t *testing.T) {
-		conds, err := BuildConditions(coll, &datastorev1.RecordFilter{Conditions: []*datastorev1.RecordCondition{
+		conds, err := BuildConditions(coll, allowAll, &datastorev1.RecordFilter{Conditions: []*datastorev1.RecordCondition{
 			condition("priority", datastorev1.RecordConditionOp_is_null, nil),
 		}})
 		require.NoError(t, err)
 		assert.Equal(t, datastorev1.RecordConditionOp_is_null, conds[0].Op)
 	})
 
+	t.Run("read-restricted grant closes the existence oracle", func(t *testing.T) {
+		restricted := authz.ReadProjection{Fields: map[string]bool{"status": true, "slot_start": true}}
+
+		_, err := BuildConditions(coll, restricted, &datastorev1.RecordFilter{Conditions: []*datastorev1.RecordCondition{
+			condition("priority", datastorev1.RecordConditionOp_lt, 5.0),
+		}})
+		require.Error(t, err, "a condition on an unreadable field would let the caller probe hidden values")
+		assert.Equal(t,
+			`field "priority" is not readable under your grant and cannot be used in filter conditions`,
+			status.Convert(err).Message(), "relayable message bytes are the cross-edition contract")
+
+		conds, err := BuildConditions(coll, restricted, &datastorev1.RecordFilter{Conditions: []*datastorev1.RecordCondition{
+			condition("status", datastorev1.RecordConditionOp_eq, "confirmed"),
+			condition("id", datastorev1.RecordConditionOp_eq, "dsr_x"),
+			condition("created_at", datastorev1.RecordConditionOp_gte, "2026-07-21T00:00:00Z"),
+		}})
+		require.NoError(t, err, "readable declared fields and system fields stay filterable")
+		assert.Len(t, conds, 3)
+	})
+
 	t.Run("system conditions marked System", func(t *testing.T) {
-		conds, err := BuildConditions(coll, &datastorev1.RecordFilter{Conditions: []*datastorev1.RecordCondition{
+		conds, err := BuildConditions(coll, allowAll, &datastorev1.RecordFilter{Conditions: []*datastorev1.RecordCondition{
 			condition("id", datastorev1.RecordConditionOp_eq, "dsr_x"),
 			condition("created_at", datastorev1.RecordConditionOp_gte, "2026-07-21T00:00:00Z"),
 		}})
@@ -267,13 +337,13 @@ func TestBuildOrderBy(t *testing.T) {
 	coll := filterColl()
 
 	t.Run("nil keeps the default ordering", func(t *testing.T) {
-		ob, err := BuildOrderBy(coll, nil)
+		ob, err := BuildOrderBy(coll, allowAll, nil)
 		require.NoError(t, err)
 		assert.Nil(t, ob)
 	})
 
 	t.Run("declared field with direction", func(t *testing.T) {
-		ob, err := BuildOrderBy(coll, &datastorev1.RecordOrderBy{
+		ob, err := BuildOrderBy(coll, allowAll, &datastorev1.RecordOrderBy{
 			Field: "priority", Direction: datastorev1.RecordSortDirection_desc,
 		})
 		require.NoError(t, err)
@@ -283,20 +353,34 @@ func TestBuildOrderBy(t *testing.T) {
 	})
 
 	t.Run("system field", func(t *testing.T) {
-		ob, err := BuildOrderBy(coll, &datastorev1.RecordOrderBy{Field: "created_at"})
+		ob, err := BuildOrderBy(coll, allowAll, &datastorev1.RecordOrderBy{Field: "created_at"})
 		require.NoError(t, err)
 		assert.True(t, ob.System)
 		assert.False(t, ob.Descending, "unset direction defaults to ascending")
 	})
 
 	t.Run("json not sortable", func(t *testing.T) {
-		_, err := BuildOrderBy(coll, &datastorev1.RecordOrderBy{Field: "notes"})
+		_, err := BuildOrderBy(coll, allowAll, &datastorev1.RecordOrderBy{Field: "notes"})
 		require.Error(t, err)
 	})
 
 	t.Run("created_by not sortable", func(t *testing.T) {
-		_, err := BuildOrderBy(coll, &datastorev1.RecordOrderBy{Field: "created_by"})
+		_, err := BuildOrderBy(coll, allowAll, &datastorev1.RecordOrderBy{Field: "created_by"})
 		require.Error(t, err)
+	})
+
+	t.Run("read-restricted grant refuses ordering by hidden fields", func(t *testing.T) {
+		restricted := authz.ReadProjection{Fields: map[string]bool{"status": true}}
+
+		_, err := BuildOrderBy(coll, restricted, &datastorev1.RecordOrderBy{Field: "priority"})
+		require.Error(t, err, "ordering by a hidden field would leak its relative values")
+		assert.Equal(t,
+			`field "priority" is not readable under your grant and cannot be used in order_by`,
+			status.Convert(err).Message(), "relayable message bytes are the cross-edition contract")
+
+		ob, err := BuildOrderBy(coll, restricted, &datastorev1.RecordOrderBy{Field: "created_at"})
+		require.NoError(t, err, "system fields stay sortable")
+		assert.True(t, ob.System)
 	})
 }
 

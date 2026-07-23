@@ -188,11 +188,13 @@ class ChannelSenderSubject(_message.Message):
     def __init__(self, sender_kind: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
 
 class DatastoreGrant(_message.Message):
-    __slots__ = ("role", "verbs", "scope")
+    __slots__ = ("role", "verbs", "scope", "read_fields")
     ROLE_FIELD_NUMBER: _ClassVar[int]
     VERBS_FIELD_NUMBER: _ClassVar[int]
     SCOPE_FIELD_NUMBER: _ClassVar[int]
+    READ_FIELDS_FIELD_NUMBER: _ClassVar[int]
     role: str
     verbs: _containers.RepeatedScalarFieldContainer[DatastoreVerb]
     scope: DatastoreGrantScope
-    def __init__(self, role: _Optional[str] = ..., verbs: _Optional[_Iterable[_Union[DatastoreVerb, str]]] = ..., scope: _Optional[_Union[DatastoreGrantScope, str]] = ...) -> None: ...
+    read_fields: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, role: _Optional[str] = ..., verbs: _Optional[_Iterable[_Union[DatastoreVerb, str]]] = ..., scope: _Optional[_Union[DatastoreGrantScope, str]] = ..., read_fields: _Optional[_Iterable[str]] = ...) -> None: ...

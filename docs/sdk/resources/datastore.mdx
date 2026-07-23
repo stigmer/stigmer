@@ -8,7 +8,9 @@ A Datastore declares collections of typed business records that agents read
 and write through built-in, permission-checked record tools. Constraints
 (unique, check, exists) are enforced by the store on every write, and access
 is granted per role to channel senders and platform principals — deny by
-default.
+default. A read grant can carry a `read_fields` allowlist: reads by that
+role return only the listed fields, so records holding personal data stay
+confidential without prompt rules.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -54,8 +56,14 @@ spec:
       grants:
         - role: admin
           verbs: [read, insert, update, delete]
+        # Patients see slot occupancy only: read_fields withholds
+        # patient_name and the created_by booker identity from every
+        # patient read, filter, and sort.
         - role: patient
-          verbs: [read, insert, update]
+          verbs: [read, insert]
+          read_fields: [slot_start, status]
+        - role: patient
+          verbs: [update]
           scope: own
 ```
 
@@ -943,6 +951,7 @@ DatastoreGrant gives a role a set of verbs on one collection's records.
     role: { type: "string", description: "Name of a declared role.", required: true },
     verbs: { type: "DatastoreVerb[]", description: "Verbs granted to the role on this collection.", typeDescriptionLink: "#datastoreverb" },
     scope: { type: "DatastoreGrantScope", description: "Row scope of the grant.", typeDescriptionLink: "#datastoregrantscope" },
+    readFields: { type: "string[]", description: "Field allowlist for the read verb: when set, reads by this role return only these fields, and filter conditions and order_by may reference only these fields." },
   }}
 />
 
@@ -1017,7 +1026,7 @@ RecordEnvelope is a record as returned by every record RPC: server-managed syste
     createdAt: { type: "string", description: "When the record was inserted." },
     updatedAt: { type: "string", description: "When the record was last updated." },
     createdBy: { type: "DatastoreSubjectInput", description: "The verified caller identity that inserted the record.", typeDescriptionLink: "#datastoresubjectinput" },
-    fields: { type: "object", description: "Declared field values in their canonical encodings." },
+    fields: { type: "object", description: "Declared field values in their canonical encodings, limited to the fields the caller's read grant allows." },
   }}
 />
 

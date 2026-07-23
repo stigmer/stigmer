@@ -67,6 +67,9 @@ spec:
           verbs: [read, insert, update, delete]
         - role: patient
           verbs: [read, insert]
+          read_fields: [slot_date, slot_time, status]
+        - role: patient
+          verbs: [update]
           scope: own
 ```
 
@@ -80,9 +83,14 @@ Three things in this file do the heavy lifting:
   it. The `message` is what the Agent relays when the rule fires — you write it
   once and every surface shows the same words.
 - **Grants.** The doctor's verified WhatsApp number gets the `admin` role.
-  Everyone else gets `patient`, which can only read and insert records they
-  created (`scope: own`). A patient asking the Agent to change the schedule gets
-  a clean permission error, not a prompt-rule failure.
+  Everyone else gets `patient`. Patients can read bookings to check
+  availability, but `read_fields` limits what a read returns: they see which
+  slots are taken (`slot_date`, `slot_time`, `status`) and never other patients'
+  names or who booked. Field-level confidentiality is enforced by the store —
+  filters and sorting on withheld fields are refused too, so hidden values
+  cannot be probed. Patients may update only records they created
+  (`scope: own`); asking the Agent to change the schedule gets a clean
+  permission error, not a prompt-rule failure.
 
 ## Browsing records in the console
 
@@ -123,13 +131,14 @@ never holds a database credential and never decides who may write what.
 
 ## What the record layer enforces
 
-| Rule                   | Where it lives                                                            |
-| ---------------------- | ------------------------------------------------------------------------- |
-| Field types & required | The store validates every write against the declared schema               |
-| Unique constraints     | Substrate indexes — violations return your declared message               |
-| Check constraints      | CEL expressions evaluated on every insert and update                      |
-| Who can do what        | Role grants resolved from the caller's verified identity, deny-by-default |
-| Attribution            | Every record carries `created_by` — who wrote it, stamped by the server   |
+| Rule                   | Where it lives                                                                                                         |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Field types & required | The store validates every write against the declared schema                                                            |
+| Unique constraints     | Substrate indexes — violations return your declared message                                                            |
+| Check constraints      | CEL expressions evaluated on every insert and update                                                                   |
+| Who can do what        | Role grants resolved from the caller's verified identity, deny-by-default                                              |
+| Who sees which fields  | `read_fields` on a read grant — reads, filters, and sorting are limited to the listed fields                           |
+| Attribution            | Every record carries `created_by` — who wrote it, stamped by the server (returned only to roles whose grant allows it) |
 
 Records also carry system fields (`id`, `created_at`, `updated_at`,
 `created_by`) that no caller can write, and every record lives in a named

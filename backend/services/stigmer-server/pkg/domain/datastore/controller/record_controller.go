@@ -141,6 +141,16 @@ func (call *recordCall) requireVerb(verb datastorev1.DatastoreVerb) (authz.Grant
 	return authz.Grant{}, dserrors.VerbDenied(verb.String(), call.collection.GetName())
 }
 
+// readProjection resolves the caller's column-level read access to the
+// call's collection — the projection every record RPC response passes
+// through (find results and write echoes alike): a caller never
+// receives a field its read grant does not allow. Write handlers call
+// it too; a writer with no read grant gets envelopes with id and
+// timestamps only.
+func (call *recordCall) readProjection() authz.ReadProjection {
+	return authz.ResolveReadProjection(call.collection, call.role, call.hasRole)
+}
+
 // resolveDatastore resolves an org-scoped slug to the datastore
 // resource. Slugs are per-org unique, so the (slug, org) pair is the
 // full key; the scan mirrors the platform's list-then-filter idiom

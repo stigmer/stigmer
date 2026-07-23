@@ -95,6 +95,16 @@ func TestValidateSpec_NilSpecIsValid(t *testing.T) {
 	require.NoError(t, ValidateSpec(nil))
 }
 
+func TestValidateSpec_ValidReadFieldsGrant(t *testing.T) {
+	spec := validSpec()
+	spec.Collections[1].Grants = []*datastorev1.DatastoreGrant{{
+		Role:       "patient",
+		Verbs:      []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_read, datastorev1.DatastoreVerb_insert},
+		ReadFields: []string{"slot_start", "status", "created_by"},
+	}}
+	require.NoError(t, ValidateSpec(spec), "declared fields plus created_by form the allowlist domain")
+}
+
 func TestValidateSpec_Violations(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -193,6 +203,64 @@ func TestValidateSpec_Violations(t *testing.T) {
 				s.Collections[0].Grants[0].Role = "nurse"
 			},
 			wantErr: `grant in collection "schedules" references undeclared role "nurse"`,
+		},
+		{
+			name: "duplicate (role, verb) across grants",
+			mutate: func(s *datastorev1.DatastoreSpec) {
+				c := s.Collections[0]
+				c.Grants = append(c.Grants, &datastorev1.DatastoreGrant{
+					Role:  "patient",
+					Verbs: []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_read},
+					Scope: datastorev1.DatastoreGrantScope_own,
+				})
+			},
+			wantErr: `collection "schedules" grants verb "read" to role "patient" more than once`,
+		},
+		{
+			name: "duplicate verb within one grant",
+			mutate: func(s *datastorev1.DatastoreSpec) {
+				s.Collections[0].Grants[0].Verbs = []datastorev1.DatastoreVerb{
+					datastorev1.DatastoreVerb_read, datastorev1.DatastoreVerb_read,
+				}
+			},
+			wantErr: `collection "schedules" grants verb "read" to role "patient" more than once`,
+		},
+		{
+			name: "read_fields without the read verb",
+			mutate: func(s *datastorev1.DatastoreSpec) {
+				s.Collections[1].Grants = []*datastorev1.DatastoreGrant{{
+					Role:       "patient",
+					Verbs:      []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_insert},
+					ReadFields: []string{"status"},
+				}}
+			},
+			wantErr: `read_fields in a grant for role "patient" in collection "bookings" requires the read verb`,
+		},
+		{
+			// Also the shape a spec lands in when a declared field is
+			// later removed while a grant still lists it: the whole
+			// spec revalidates on update, so the stale reference fails
+			// the apply loudly instead of silently hiding a column.
+			name: "read_fields references undeclared field",
+			mutate: func(s *datastorev1.DatastoreSpec) {
+				s.Collections[1].Grants = []*datastorev1.DatastoreGrant{{
+					Role:       "patient",
+					Verbs:      []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_read},
+					ReadFields: []string{"patient_phone"},
+				}}
+			},
+			wantErr: `read_fields in the grant for role "patient" in collection "bookings" references undeclared field "patient_phone"`,
+		},
+		{
+			name: "read_fields lists a field more than once",
+			mutate: func(s *datastorev1.DatastoreSpec) {
+				s.Collections[1].Grants = []*datastorev1.DatastoreGrant{{
+					Role:       "patient",
+					Verbs:      []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_read},
+					ReadFields: []string{"status", "status"},
+				}}
+			},
+			wantErr: `read_fields in the grant for role "patient" in collection "bookings" lists field "status" more than once`,
 		},
 		{
 			name: "default incompatible with declared type",

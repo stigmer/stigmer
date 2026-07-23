@@ -204,4 +204,42 @@ describe("CollectionRecordsBrowser — grid and affordances", () => {
       expect(screen.getByText(/No records in “bookings” yet/)).toBeTruthy(),
     );
   });
+
+  it("narrows the grid and filter builder to the caller's readable fields", async () => {
+    // A field-restricted read grant (readable_fields on the read verb):
+    // the server projects hidden fields out of every envelope and
+    // refuses conditions on them, so the grid must not show a
+    // permanently-empty column and the builder must not offer an
+    // unservable filter (DD-008 invariant 2).
+    const describeDatastore = vi.fn().mockResolvedValue(
+      create(DatastoreDescriptionSchema, {
+        datastore: "clinic",
+        collections: [
+          {
+            name: "bookings",
+            access: [{ verb: DatastoreVerb.read, readableFields: ["slot_date"] }],
+          },
+        ],
+      }),
+    );
+    const findRecords = vi.fn().mockResolvedValue(
+      create(RecordListSchema, {
+        records: [
+          create(RecordEnvelopeSchema, {
+            id: "dsr_1",
+            fields: { slot_date: "2026-07-22" } as never,
+          }),
+        ],
+        total: 1,
+      }),
+    );
+    renderBrowser({ describeDatastore, findRecords });
+
+    await waitFor(() => expect(screen.getByText("2026-07-22")).toBeTruthy());
+    expect(screen.getByRole("columnheader", { name: "slot_date" })).toBeTruthy();
+    expect(screen.queryByRole("columnheader", { name: "status" })).toBeNull();
+    // The filter builder's field narrowing under the same prop is
+    // pinned in RecordFilterBuilder.test.tsx (its harness mounts the
+    // provider the popover portal needs).
+  });
 });

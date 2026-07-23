@@ -29,6 +29,13 @@ import {
 export interface RecordFilterBuilderProps {
   /** The collection whose declared schema drives fields and operators. */
   readonly collection: CollectionDeclaration;
+  /**
+   * The caller's readable fields from `describeDatastore` (the read
+   * verb's `readable_fields`). Empty or omitted means every field.
+   * When restricted, unreadable fields are not offered — the server
+   * refuses conditions on them.
+   */
+  readonly readableFields?: readonly string[];
   /** Active conditions (AND-combined, per the DD-005 grammar). */
   readonly conditions: readonly RecordConditionDraft[];
   /** Called with the full condition set on add/remove/clear. */
@@ -54,11 +61,15 @@ export interface RecordFilterBuilderProps {
  */
 export function RecordFilterBuilder({
   collection,
+  readableFields,
   conditions,
   onChange,
   className,
 }: RecordFilterBuilderProps) {
-  const fields = useMemo(() => filterableFields(collection), [collection]);
+  const fields = useMemo(
+    () => filterableFields(collection, readableFields),
+    [collection, readableFields],
+  );
 
   const removeCondition = useCallback(
     (index: number) => onChange(conditions.filter((_, i) => i !== index)),

@@ -241,6 +241,7 @@ export interface DatastoreGrantInput {
   role: string;
   verbs?: DatastoreVerb[];
   scope?: DatastoreGrantScope;
+  readFields?: string[];
 }
 
 function buildDatastoreRoleProto(input: DatastoreRoleInput) {
@@ -340,6 +341,7 @@ function buildDatastoreGrantProto(input: DatastoreGrantInput) {
     role: input.role,
     verbs: input.verbs,
     scope: input.scope,
+    readFields: input.readFields,
   }));
 }
 

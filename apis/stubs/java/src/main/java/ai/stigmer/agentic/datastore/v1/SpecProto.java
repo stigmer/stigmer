@@ -179,25 +179,27 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "cy.v1.ApiResourceRefH\000R\tprincipalB\r\n\004kin" +
       "d\022\005\272H\002\010\001\"]\n\024ChannelSenderSubject\022\'\n\013send" +
       "er_kind\030\001 \001(\tB\006\272H\003\310\001\001R\nsenderKind\022\034\n\005val" +
-      "ue\030\002 \001(\tB\006\272H\003\310\001\001R\005value\"\333\001\n\016DatastoreGra" +
+      "ue\030\002 \001(\tB\006\272H\003\310\001\001R\005value\"\237\002\n\016DatastoreGra" +
       "nt\022\032\n\004role\030\001 \001(\tB\006\272H\003\310\001\001R\004role\022W\n\005verbs\030" +
       "\002 \003(\0162..ai.stigmer.agentic.datastore.v1." +
       "DatastoreVerbB\021\272H\016\222\001\013\010\001\"\007\202\001\004\020\001 \000R\005verbs\022" +
       "T\n\005scope\030\003 \001(\01624.ai.stigmer.agentic.data" +
       "store.v1.DatastoreGrantScopeB\010\272H\005\202\001\002\020\001R\005" +
-      "scope*\203\001\n\tFieldType\022\032\n\026field_type_unspec" +
-      "ified\020\000\022\n\n\006string\020\001\022\013\n\007integer\020\002\022\n\n\006numb" +
-      "er\020\003\022\010\n\004bool\020\004\022\r\n\ttimestamp\020\005\022\010\n\004date\020\006\022" +
-      "\010\n\004time\020\007\022\010\n\004json\020\010*]\n\rDatastoreVerb\022\036\n\032" +
-      "datastore_verb_unspecified\020\000\022\010\n\004read\020\001\022\n" +
-      "\n\006insert\020\002\022\n\n\006update\020\003\022\n\n\006delete\020\004*N\n\023Da" +
-      "tastoreGrantScope\022%\n!datastore_grant_sco" +
-      "pe_unspecified\020\000\022\007\n\003all\020\001\022\007\n\003own\020\002B\254\001B\tS" +
-      "pecProtoP\001\242\002\004ASAD\252\002\037Ai.Stigmer.Agentic.D" +
-      "atastore.V1\312\002\037Ai\\Stigmer\\Agentic\\Datasto" +
-      "re\\V1\342\002+Ai\\Stigmer\\Agentic\\Datastore\\V1\\" +
-      "GPBMetadata\352\002#Ai::Stigmer::Agentic::Data" +
-      "store::V1b\006proto3"
+      "scope\022B\n\013read_fields\030\004 \003(\tB!\272H\036\222\001\033\020d\"\027r\025" +
+      "\030?2\021^[a-z][a-z0-9_]*$R\nreadFields*\203\001\n\tFi" +
+      "eldType\022\032\n\026field_type_unspecified\020\000\022\n\n\006s" +
+      "tring\020\001\022\013\n\007integer\020\002\022\n\n\006number\020\003\022\010\n\004bool" +
+      "\020\004\022\r\n\ttimestamp\020\005\022\010\n\004date\020\006\022\010\n\004time\020\007\022\010\n" +
+      "\004json\020\010*]\n\rDatastoreVerb\022\036\n\032datastore_ve" +
+      "rb_unspecified\020\000\022\010\n\004read\020\001\022\n\n\006insert\020\002\022\n" +
+      "\n\006update\020\003\022\n\n\006delete\020\004*N\n\023DatastoreGrant" +
+      "Scope\022%\n!datastore_grant_scope_unspecifi" +
+      "ed\020\000\022\007\n\003all\020\001\022\007\n\003own\020\002B\254\001B\tSpecProtoP\001\242\002" +
+      "\004ASAD\252\002\037Ai.Stigmer.Agentic.Datastore.V1\312" +
+      "\002\037Ai\\Stigmer\\Agentic\\Datastore\\V1\342\002+Ai\\S" +
+      "tigmer\\Agentic\\Datastore\\V1\\GPBMetadata\352" +
+      "\002#Ai::Stigmer::Agentic::Datastore::V1b\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -283,7 +285,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_datastore_v1_DatastoreGrant_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_datastore_v1_DatastoreGrant_descriptor,
-        new java.lang.String[] { "Role", "Verbs", "Scope", });
+        new java.lang.String[] { "Role", "Verbs", "Scope", "ReadFields", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.iam.iampolicy.v1.SpecProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();

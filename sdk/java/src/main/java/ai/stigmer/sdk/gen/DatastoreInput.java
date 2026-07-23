@@ -689,11 +689,13 @@ public final class DatastoreInput {
         private final String role;
         private final java.util.List<DatastoreVerb> verbs;
         private final DatastoreGrantScope scope;
+        private final java.util.List<String> readFields;
 
         private DatastoreGrantInput(Builder builder) {
             this.role = builder.role;
             this.verbs = builder.verbs;
             this.scope = builder.scope;
+            this.readFields = builder.readFields;
         }
 
         DatastoreGrant toProto() {
@@ -707,6 +709,9 @@ public final class DatastoreInput {
             if (this.scope != null) {
                 builder.setScope(this.scope);
             }
+            if (this.readFields != null) {
+                builder.addAllReadFields(this.readFields);
+            }
             return builder.build();
         }
 
@@ -716,12 +721,14 @@ public final class DatastoreInput {
             private String role;
             private java.util.List<DatastoreVerb> verbs;
             private DatastoreGrantScope scope;
+            private java.util.List<String> readFields;
 
             private Builder() {}
 
             public Builder role(String role) { this.role = role; return this; }
             public Builder verbs(java.util.List<DatastoreVerb> verbs) { this.verbs = verbs; return this; }
             public Builder scope(DatastoreGrantScope scope) { this.scope = scope; return this; }
+            public Builder readFields(java.util.List<String> readFields) { this.readFields = readFields; return this; }
 
             public DatastoreGrantInput build() { return new DatastoreGrantInput(this); }
         }

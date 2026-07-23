@@ -690,6 +690,174 @@ func TestDescribeDatastore_ProjectsSchemaAndEffectiveVerbs(t *testing.T) {
 	assert.Equal(t, datastorev1.ConstraintKind_not_exists, constraintNames["not_on_closed_date"])
 }
 
+// TestRecordRPCs_ReadFieldsProjection covers the column-level read
+// boundary end to end (dont-dos/002 closure): a field-restricted read
+// grant projects every response — find results and write echoes alike —
+// suppresses created_by, closes the filter/order existence oracle, and
+// surfaces its readable_fields through describe.
+func TestRecordRPCs_ReadFieldsProjection(t *testing.T) {
+	env := setupTest(t)
+	ds := clinicDatastore("clinic")
+	// The clinic patient posture: availability math may see slot
+	// occupancy, never who booked. schedule_exceptions becomes
+	// write-only to pin the no-read-grant echo.
+	for _, coll := range ds.Spec.Collections {
+		switch coll.Name {
+		case "bookings":
+			coll.Grants = []*datastorev1.DatastoreGrant{{
+				Role: "operator",
+				Verbs: []datastorev1.DatastoreVerb{
+					datastorev1.DatastoreVerb_read, datastorev1.DatastoreVerb_insert,
+					datastorev1.DatastoreVerb_update, datastorev1.DatastoreVerb_delete,
+				},
+				ReadFields: []string{"slot_start", "status"},
+			}}
+		case "schedule_exceptions":
+			coll.Grants = []*datastorev1.DatastoreGrant{{
+				Role:  "operator",
+				Verbs: []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_insert},
+			}}
+		}
+	}
+	created, err := env.controller.Create(testContext(), ds)
+	require.NoError(t, err)
+	plantSchedule(t, env, created.GetMetadata().GetId())
+
+	t.Run("insert echo carries only readable fields, without created_by", func(t *testing.T) {
+		envelope, err := insertBooking(t, env, "clinic", tuesdaySlot, "Asha")
+		require.NoError(t, err)
+		fields := envelope.GetFields().GetFields()
+		assert.Contains(t, fields, "slot_start")
+		assert.Contains(t, fields, "status")
+		assert.NotContains(t, fields, "patient_name",
+			"a caller never receives a field it cannot read, even one it just wrote")
+		assert.Nil(t, envelope.GetCreatedBy())
+		assert.Contains(t, envelope.GetId(), "dsr_", "the id always rides so the caller can address the record")
+	})
+
+	t.Run("find returns projected envelopes", func(t *testing.T) {
+		list, err := env.recordController.FindRecords(testContext(), &datastorev1.FindRecordsRequest{
+			Datastore: "clinic", Collection: "bookings",
+		})
+		require.NoError(t, err)
+		require.Len(t, list.GetRecords(), 1)
+		rec := list.GetRecords()[0]
+		assert.NotContains(t, rec.GetFields().GetFields(), "patient_name")
+		assert.Nil(t, rec.GetCreatedBy(), "attribution is PII; a restricted grant must list created_by explicitly")
+	})
+
+	t.Run("filter on a hidden field is refused (existence oracle)", func(t *testing.T) {
+		_, err := env.recordController.FindRecords(testContext(), &datastorev1.FindRecordsRequest{
+			Datastore: "clinic", Collection: "bookings",
+			Filter: &datastorev1.RecordFilter{Conditions: []*datastorev1.RecordCondition{{
+				Field: "patient_name", Op: datastorev1.RecordConditionOp_eq, Value: structpb.NewStringValue("Asha"),
+			}}},
+		})
+		require.Error(t, err)
+		st := status.Convert(err)
+		assert.Equal(t, codes.InvalidArgument, st.Code())
+		assert.Equal(t,
+			`field "patient_name" is not readable under your grant and cannot be used in filter conditions`,
+			st.Message())
+	})
+
+	t.Run("order_by on a hidden field is refused", func(t *testing.T) {
+		_, err := env.recordController.FindRecords(testContext(), &datastorev1.FindRecordsRequest{
+			Datastore: "clinic", Collection: "bookings",
+			OrderBy: &datastorev1.RecordOrderBy{Field: "patient_name"},
+		})
+		require.Error(t, err)
+		st := status.Convert(err)
+		assert.Equal(t, codes.InvalidArgument, st.Code())
+		assert.Equal(t,
+			`field "patient_name" is not readable under your grant and cannot be used in order_by`,
+			st.Message())
+	})
+
+	t.Run("update and delete echoes are projected too", func(t *testing.T) {
+		list, err := env.recordController.FindRecords(testContext(), &datastorev1.FindRecordsRequest{
+			Datastore: "clinic", Collection: "bookings", Limit: 1,
+		})
+		require.NoError(t, err)
+		id := list.GetRecords()[0].GetId()
+
+		fields, err := structpb.NewStruct(map[string]any{"status": "cancelled"})
+		require.NoError(t, err)
+		updated, err := env.recordController.UpdateRecord(testContext(), &datastorev1.UpdateRecordRequest{
+			Datastore: "clinic", Collection: "bookings", Id: id, Fields: fields,
+		})
+		require.NoError(t, err)
+		assert.Equal(t, "cancelled", updated.GetFields().GetFields()["status"].GetStringValue())
+		assert.NotContains(t, updated.GetFields().GetFields(), "patient_name")
+
+		deleted, err := env.recordController.DeleteRecord(testContext(), &datastorev1.DeleteRecordRequest{
+			Datastore: "clinic", Collection: "bookings", Id: id,
+		})
+		require.NoError(t, err)
+		assert.NotContains(t, deleted.GetFields().GetFields(), "patient_name")
+	})
+
+	t.Run("write-only grant echoes id and timestamps only", func(t *testing.T) {
+		record, err := structpb.NewStruct(map[string]any{"exception_date": "2026-07-24"})
+		require.NoError(t, err)
+		envelope, err := env.recordController.InsertRecord(testContext(), &datastorev1.InsertRecordRequest{
+			Datastore: "clinic", Collection: "schedule_exceptions", Record: record,
+		})
+		require.NoError(t, err)
+		assert.Empty(t, envelope.GetFields().GetFields(), "no read grant means no declared fields in the echo")
+		assert.Nil(t, envelope.GetCreatedBy())
+		assert.Contains(t, envelope.GetId(), "dsr_")
+		assert.NotNil(t, envelope.GetCreatedAt())
+	})
+
+	t.Run("describe surfaces readable_fields on the read verb", func(t *testing.T) {
+		desc, err := env.recordController.DescribeDatastore(testContext(), &datastorev1.DescribeDatastoreRequest{
+			Datastore: "clinic",
+		})
+		require.NoError(t, err)
+		for _, coll := range desc.GetCollections() {
+			switch coll.GetName() {
+			case "bookings":
+				assert.Len(t, coll.GetFields(), 3,
+					"the full field schema stays visible — writers must know a field exists to write it")
+				require.Len(t, coll.GetAccess(), 4)
+				read := coll.GetAccess()[0]
+				require.Equal(t, datastorev1.DatastoreVerb_read, read.GetVerb())
+				assert.Equal(t, []string{"slot_start", "status"}, read.GetReadableFields())
+			case "schedules":
+				read := coll.GetAccess()[0]
+				require.Equal(t, datastorev1.DatastoreVerb_read, read.GetVerb())
+				assert.Empty(t, read.GetReadableFields(), "unrestricted read carries no list (empty means all)")
+			}
+		}
+	})
+}
+
+// TestApply_RejectsReadFieldsViolations proves the new grant rules are
+// wired into the create pipeline: an offending spec is refused and
+// nothing persists.
+func TestApply_RejectsReadFieldsViolations(t *testing.T) {
+	env := setupTest(t)
+
+	ds := clinicDatastore("rejected")
+	ds.Spec.Collections[2].Grants = append(ds.Spec.Collections[2].Grants, &datastorev1.DatastoreGrant{
+		Role:  "operator",
+		Verbs: []datastorev1.DatastoreVerb{datastorev1.DatastoreVerb_read},
+		Scope: datastorev1.DatastoreGrantScope_own,
+	})
+	_, err := env.controller.Apply(testContext(), ds)
+	require.Error(t, err)
+	st := status.Convert(err)
+	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.Contains(t, st.Message(), `collection "bookings" grants verb "read" to role "operator" more than once`)
+
+	_, err = env.recordController.DescribeDatastore(testContext(), &datastorev1.DescribeDatastoreRequest{
+		Datastore: "rejected",
+	})
+	require.Error(t, err)
+	assert.Equal(t, codes.NotFound, status.Convert(err).Code(), "the rejected spec must not persist")
+}
+
 // TestOwnScope_DeniesForeignRecords covers the own-scope denial the RPC
 // surface cannot produce in OSS (every caller is the same local
 // principal): a record attributed to a channel sender is not the local

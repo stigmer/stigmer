@@ -1203,6 +1203,15 @@ func (x *ChannelSenderSubject) GetValue() string {
 }
 
 // DatastoreGrant gives a role a set of verbs on one collection's records.
+//
+// @internal
+// Apply-time integrity (both editions, the shared spec validators): a
+// (role, verb) pair may appear in at most one grant per collection —
+// with one read grant per role, the resolved access is exactly
+// {scope, read_fields} and no merge rules exist (a duplicate would
+// reopen the composition ambiguity read_fields closes). Stored specs
+// that predate this rule keep their widest-scope-wins resolution; they
+// can never carry read_fields (the rule ships with the field).
 type DatastoreGrant struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Name of a declared role.
@@ -1213,7 +1222,30 @@ type DatastoreGrant struct {
 	//
 	// Defaults to all records. `own` limits update and delete (and read)
 	// to records whose server-stamped created_by matches the caller.
-	Scope         DatastoreGrantScope `protobuf:"varint,3,opt,name=scope,proto3,enum=ai.stigmer.agentic.datastore.v1.DatastoreGrantScope" json:"scope,omitempty"`
+	Scope DatastoreGrantScope `protobuf:"varint,3,opt,name=scope,proto3,enum=ai.stigmer.agentic.datastore.v1.DatastoreGrantScope" json:"scope,omitempty"`
+	// Field allowlist for the read verb: when set, reads by this role
+	// return only these fields, and filter conditions and order_by may
+	// reference only these fields. Empty means every field is readable.
+	//
+	// Entries name declared fields of the collection, or `created_by` to
+	// expose the attribution subject. The system fields id, created_at,
+	// and updated_at are always readable.
+	//
+	// @internal
+	// The column-level GRANT SELECT of the record layer, closing the
+	// scope-all-reads-carry-PII residual (dont-dos/002): every record RPC
+	// response — find results AND write echoes — is projected to the
+	// caller's read-grant field set, and created_by is included only when
+	// listed (for channel senders it is the phone number, the most direct
+	// PII in the envelope). A caller with no read grant at all receives
+	// envelopes with id and timestamps only (write-only access). Empty =
+	// unrestricted is forced by proto3 repeated-field semantics (no
+	// presence) and mirrors `scope` unset = all. Requires `read` among
+	// the grant's verbs — read_fields on a write-only grant is declared
+	// intent with no effect and is refused at apply, same posture as the
+	// binding relation qualifier. Entry-to-declared-field resolution is
+	// domain validation (both editions, byte-identical messages).
+	ReadFields    []string `protobuf:"bytes,4,rep,name=read_fields,json=readFields,proto3" json:"read_fields,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1267,6 +1299,13 @@ func (x *DatastoreGrant) GetScope() DatastoreGrantScope {
 		return x.Scope
 	}
 	return DatastoreGrantScope_datastore_grant_scope_unspecified
+}
+
+func (x *DatastoreGrant) GetReadFields() []string {
+	if x != nil {
+		return x.ReadFields
+	}
+	return nil
 }
 
 var File_ai_stigmer_agentic_datastore_v1_spec_proto protoreflect.FileDescriptor
@@ -1340,11 +1379,13 @@ const file_ai_stigmer_agentic_datastore_v1_spec_proto_rawDesc = "" +
 	"\x14ChannelSenderSubject\x12'\n" +
 	"\vsender_kind\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
 	"senderKind\x12\x1c\n" +
-	"\x05value\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xdb\x01\n" +
+	"\x05value\x18\x02 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x9f\x02\n" +
 	"\x0eDatastoreGrant\x12\x1a\n" +
 	"\x04role\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x04role\x12W\n" +
 	"\x05verbs\x18\x02 \x03(\x0e2..ai.stigmer.agentic.datastore.v1.DatastoreVerbB\x11\xbaH\x0e\x92\x01\v\b\x01\"\a\x82\x01\x04\x10\x01 \x00R\x05verbs\x12T\n" +
-	"\x05scope\x18\x03 \x01(\x0e24.ai.stigmer.agentic.datastore.v1.DatastoreGrantScopeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05scope*\x83\x01\n" +
+	"\x05scope\x18\x03 \x01(\x0e24.ai.stigmer.agentic.datastore.v1.DatastoreGrantScopeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05scope\x12B\n" +
+	"\vread_fields\x18\x04 \x03(\tB!\xbaH\x1e\x92\x01\x1b\x10d\"\x17r\x15\x18?2\x11^[a-z][a-z0-9_]*$R\n" +
+	"readFields*\x83\x01\n" +
 	"\tFieldType\x12\x1a\n" +
 	"\x16field_type_unspecified\x10\x00\x12\n" +
 	"\n" +

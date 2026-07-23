@@ -16,6 +16,10 @@
 //     qualifier (subject equality deliberately ignores it), and no two
 //     bindings share a subject (role resolution is first-match-wins,
 //     so a duplicate is silently shadowed dead configuration)
+//   - grant integrity: a (role, verb) pair appears in at most one grant
+//     per collection (read_fields composition must have no merge
+//     rules); read_fields requires the read verb, and its entries
+//     resolve to declared fields (or created_by) without duplicates
 //   - field defaults are type-compatible with the declared type
 //     (enum_values membership included)
 //   - IANA timezone validity; rejection of tz-referencing expressions
@@ -36,6 +40,7 @@ import (
 
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/authz"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/celeval"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/identity"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/datastore/schema"
@@ -238,9 +243,57 @@ func validateCollection(spec *datastorev1.DatastoreSpec, coll *datastorev1.Colle
 		return err
 	}
 
+	// Per-grant check order (role → duplicate (role, verb) →
+	// read_fields-requires-read → read_fields entries) is part of the
+	// cross-edition error contract, like the binding checks above.
+	seenRoleVerbs := map[string]bool{}
 	for _, grant := range coll.GetGrants() {
 		if !declaredRoles[grant.GetRole()] {
 			return fmt.Errorf("grant in collection %q references undeclared role %q", cname, grant.GetRole())
+		}
+
+		// A (role, verb) pair may appear in at most one grant: with one
+		// read grant per role, the caller's column access is exactly
+		// that grant's {scope, read_fields} and no merge rules exist —
+		// a duplicate would either be dead configuration (widest scope
+		// wins) or reopen the composition ambiguity read_fields closes
+		// (an unrestricted own grant unioning onto an all-rows
+		// restricted one). Same posture as duplicate binding subjects:
+		// refused, not silently resolved.
+		hasRead := false
+		for _, verb := range grant.GetVerbs() {
+			key := grant.GetRole() + "/" + verb.String()
+			if seenRoleVerbs[key] {
+				return fmt.Errorf("collection %q grants verb %q to role %q more than once",
+					cname, verb.String(), grant.GetRole())
+			}
+			seenRoleVerbs[key] = true
+			if verb == datastorev1.DatastoreVerb_read {
+				hasRead = true
+			}
+		}
+
+		if len(grant.GetReadFields()) == 0 {
+			continue
+		}
+		// read_fields on a grant without the read verb is declared
+		// intent with no effect — refused, same posture as the binding
+		// relation qualifier.
+		if !hasRead {
+			return fmt.Errorf("read_fields in a grant for role %q in collection %q requires the read verb",
+				grant.GetRole(), cname)
+		}
+		seenReadFields := map[string]bool{}
+		for _, name := range grant.GetReadFields() {
+			if _, declared := fields[name]; !declared && name != authz.CreatedByField {
+				return fmt.Errorf("read_fields in the grant for role %q in collection %q references undeclared field %q",
+					grant.GetRole(), cname, name)
+			}
+			if seenReadFields[name] {
+				return fmt.Errorf("read_fields in the grant for role %q in collection %q lists field %q more than once",
+					grant.GetRole(), cname, name)
+			}
+			seenReadFields[name] = true
 		}
 	}
 

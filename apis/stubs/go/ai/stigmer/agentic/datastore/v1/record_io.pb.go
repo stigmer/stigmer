@@ -216,8 +216,13 @@ func (ConstraintKind) EnumDescriptor() ([]byte, []int) {
 // surface. Record ids follow the platform id convention with prefix
 // `dsr` (dsr_<lowercase-ulid>). created_by carries the DD-002
 // attribution subject; own-scoped grants resolve against it, and the
-// grant system is the privacy boundary for exposing it (own-scoped
-// readers only ever see themselves).
+// grant system is the privacy boundary for exposing it: it is present
+// only when the caller's read grant is unrestricted or lists
+// `created_by` in read_fields (for channel senders the value is the
+// phone number — the most direct PII in the envelope). Every response
+// — find results and write echoes alike — carries only the fields the
+// caller's read grant allows; a caller with no read grant receives id
+// and timestamps only.
 type RecordEnvelope struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Server-issued record identifier, opaque and immutable.
@@ -226,9 +231,11 @@ type RecordEnvelope struct {
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// When the record was last updated.
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	// The verified caller identity that inserted the record.
+	// The verified caller identity that inserted the record. Present
+	// only when the caller's read grant exposes it.
 	CreatedBy *DatastoreSubject `protobuf:"bytes,4,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
-	// Declared field values in their canonical encodings.
+	// Declared field values in their canonical encodings, limited to the
+	// fields the caller's read grant allows.
 	Fields        *structpb.Struct `protobuf:"bytes,5,opt,name=fields,proto3" json:"fields,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1288,9 +1295,21 @@ type VerbGrantDescription struct {
 	// Granted verb.
 	Verb DatastoreVerb `protobuf:"varint,1,opt,name=verb,proto3,enum=ai.stigmer.agentic.datastore.v1.DatastoreVerb" json:"verb,omitempty"`
 	// True when the verb applies only to records the caller created.
-	OwnScope      bool `protobuf:"varint,2,opt,name=own_scope,json=ownScope,proto3" json:"own_scope,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	OwnScope bool `protobuf:"varint,2,opt,name=own_scope,json=ownScope,proto3" json:"own_scope,omitempty"`
+	// Fields the caller receives on reads, in declaration order. Empty
+	// means every field. Populated only on the read verb, and only when
+	// the caller's read grant declares a field allowlist.
+	//
+	// @internal
+	// Projects DatastoreGrant.read_fields so agents and clients know
+	// which columns carry values before querying (the full field schema
+	// stays in CollectionDescription.fields — structure is not
+	// confidential, and write-granted callers must know a field exists
+	// to write it). Filter conditions and order_by on fields outside
+	// this list are refused with INVALID_ARGUMENT.
+	ReadableFields []string `protobuf:"bytes,3,rep,name=readable_fields,json=readableFields,proto3" json:"readable_fields,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *VerbGrantDescription) Reset() {
@@ -1335,6 +1354,13 @@ func (x *VerbGrantDescription) GetOwnScope() bool {
 		return x.OwnScope
 	}
 	return false
+}
+
+func (x *VerbGrantDescription) GetReadableFields() []string {
+	if x != nil {
+		return x.ReadableFields
+	}
+	return nil
 }
 
 var File_ai_stigmer_agentic_datastore_v1_record_io_proto protoreflect.FileDescriptor
@@ -1425,10 +1451,11 @@ const file_ai_stigmer_agentic_datastore_v1_record_io_proto_rawDesc = "" +
 	"\x15ConstraintDescription\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12C\n" +
 	"\x04kind\x18\x02 \x01(\x0e2/.ai.stigmer.agentic.datastore.v1.ConstraintKindR\x04kind\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessage\"w\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\"\xa0\x01\n" +
 	"\x14VerbGrantDescription\x12B\n" +
 	"\x04verb\x18\x01 \x01(\x0e2..ai.stigmer.agentic.datastore.v1.DatastoreVerbR\x04verb\x12\x1b\n" +
-	"\town_scope\x18\x02 \x01(\bR\bownScope*\x9d\x01\n" +
+	"\town_scope\x18\x02 \x01(\bR\bownScope\x12'\n" +
+	"\x0freadable_fields\x18\x03 \x03(\tR\x0ereadableFields*\x9d\x01\n" +
 	"\x11RecordConditionOp\x12#\n" +
 	"\x1frecord_condition_op_unspecified\x10\x00\x12\x06\n" +
 	"\x02eq\x10\x01\x12\a\n" +

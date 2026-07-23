@@ -103,4 +103,129 @@ public interface DatastoreGrantOrBuilder extends
    * @return The scope.
    */
   ai.stigmer.agentic.datastore.v1.DatastoreGrantScope getScope();
+
+  /**
+   * <pre>
+   * Field allowlist for the read verb: when set, reads by this role
+   * return only these fields, and filter conditions and order_by may
+   * reference only these fields. Empty means every field is readable.
+   *
+   * Entries name declared fields of the collection, or `created_by` to
+   * expose the attribution subject. The system fields id, created_at,
+   * and updated_at are always readable.
+   *
+   * &#64;internal
+   * The column-level GRANT SELECT of the record layer, closing the
+   * scope-all-reads-carry-PII residual (dont-dos/002): every record RPC
+   * response — find results AND write echoes — is projected to the
+   * caller's read-grant field set, and created_by is included only when
+   * listed (for channel senders it is the phone number, the most direct
+   * PII in the envelope). A caller with no read grant at all receives
+   * envelopes with id and timestamps only (write-only access). Empty =
+   * unrestricted is forced by proto3 repeated-field semantics (no
+   * presence) and mirrors `scope` unset = all. Requires `read` among
+   * the grant's verbs — read_fields on a write-only grant is declared
+   * intent with no effect and is refused at apply, same posture as the
+   * binding relation qualifier. Entry-to-declared-field resolution is
+   * domain validation (both editions, byte-identical messages).
+   * </pre>
+   *
+   * <code>repeated string read_fields = 4 [json_name = "readFields", (.buf.validate.field) = { ... }</code>
+   * @return A list containing the readFields.
+   */
+  java.util.List<java.lang.String>
+      getReadFieldsList();
+  /**
+   * <pre>
+   * Field allowlist for the read verb: when set, reads by this role
+   * return only these fields, and filter conditions and order_by may
+   * reference only these fields. Empty means every field is readable.
+   *
+   * Entries name declared fields of the collection, or `created_by` to
+   * expose the attribution subject. The system fields id, created_at,
+   * and updated_at are always readable.
+   *
+   * &#64;internal
+   * The column-level GRANT SELECT of the record layer, closing the
+   * scope-all-reads-carry-PII residual (dont-dos/002): every record RPC
+   * response — find results AND write echoes — is projected to the
+   * caller's read-grant field set, and created_by is included only when
+   * listed (for channel senders it is the phone number, the most direct
+   * PII in the envelope). A caller with no read grant at all receives
+   * envelopes with id and timestamps only (write-only access). Empty =
+   * unrestricted is forced by proto3 repeated-field semantics (no
+   * presence) and mirrors `scope` unset = all. Requires `read` among
+   * the grant's verbs — read_fields on a write-only grant is declared
+   * intent with no effect and is refused at apply, same posture as the
+   * binding relation qualifier. Entry-to-declared-field resolution is
+   * domain validation (both editions, byte-identical messages).
+   * </pre>
+   *
+   * <code>repeated string read_fields = 4 [json_name = "readFields", (.buf.validate.field) = { ... }</code>
+   * @return The count of readFields.
+   */
+  int getReadFieldsCount();
+  /**
+   * <pre>
+   * Field allowlist for the read verb: when set, reads by this role
+   * return only these fields, and filter conditions and order_by may
+   * reference only these fields. Empty means every field is readable.
+   *
+   * Entries name declared fields of the collection, or `created_by` to
+   * expose the attribution subject. The system fields id, created_at,
+   * and updated_at are always readable.
+   *
+   * &#64;internal
+   * The column-level GRANT SELECT of the record layer, closing the
+   * scope-all-reads-carry-PII residual (dont-dos/002): every record RPC
+   * response — find results AND write echoes — is projected to the
+   * caller's read-grant field set, and created_by is included only when
+   * listed (for channel senders it is the phone number, the most direct
+   * PII in the envelope). A caller with no read grant at all receives
+   * envelopes with id and timestamps only (write-only access). Empty =
+   * unrestricted is forced by proto3 repeated-field semantics (no
+   * presence) and mirrors `scope` unset = all. Requires `read` among
+   * the grant's verbs — read_fields on a write-only grant is declared
+   * intent with no effect and is refused at apply, same posture as the
+   * binding relation qualifier. Entry-to-declared-field resolution is
+   * domain validation (both editions, byte-identical messages).
+   * </pre>
+   *
+   * <code>repeated string read_fields = 4 [json_name = "readFields", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the element to return.
+   * @return The readFields at the given index.
+   */
+  java.lang.String getReadFields(int index);
+  /**
+   * <pre>
+   * Field allowlist for the read verb: when set, reads by this role
+   * return only these fields, and filter conditions and order_by may
+   * reference only these fields. Empty means every field is readable.
+   *
+   * Entries name declared fields of the collection, or `created_by` to
+   * expose the attribution subject. The system fields id, created_at,
+   * and updated_at are always readable.
+   *
+   * &#64;internal
+   * The column-level GRANT SELECT of the record layer, closing the
+   * scope-all-reads-carry-PII residual (dont-dos/002): every record RPC
+   * response — find results AND write echoes — is projected to the
+   * caller's read-grant field set, and created_by is included only when
+   * listed (for channel senders it is the phone number, the most direct
+   * PII in the envelope). A caller with no read grant at all receives
+   * envelopes with id and timestamps only (write-only access). Empty =
+   * unrestricted is forced by proto3 repeated-field semantics (no
+   * presence) and mirrors `scope` unset = all. Requires `read` among
+   * the grant's verbs — read_fields on a write-only grant is declared
+   * intent with no effect and is refused at apply, same posture as the
+   * binding relation qualifier. Entry-to-declared-field resolution is
+   * domain validation (both editions, byte-identical messages).
+   * </pre>
+   *
+   * <code>repeated string read_fields = 4 [json_name = "readFields", (.buf.validate.field) = { ... }</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the readFields at the given index.
+   */
+  com.google.protobuf.ByteString
+      getReadFieldsBytes(int index);
 }
