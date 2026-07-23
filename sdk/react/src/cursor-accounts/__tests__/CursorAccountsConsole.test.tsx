@@ -237,6 +237,10 @@ describe("CursorAccountsConsole", () => {
     expect(screen.getByText(/On the team — key held/)).toBeTruthy();
     expect(screen.getByText("zane@scenar.ai")).toBeTruthy();
     expect(screen.getByText("stigmer-prod")).toBeTruthy();
+    // The email is the row's identity: full value always hoverable on
+    // both row kinds (the cell wraps rather than truncates).
+    expect(screen.getByTitle("zane@scenar.ai")).toBeTruthy();
+    expect(screen.getByTitle("uncovered@scenar.ai")).toBeTruthy();
     expect(screen.getByText("$0.17")).toBeTruthy(); // included, 169342 micro-USD
     expect(screen.getByText("Active")).toBeTruthy();
     // Category 2: on the team, no key — server-joined spend on the gap row.

@@ -22,9 +22,13 @@ import type { useCursorMemberKeyActions } from "./useCursorMemberKeyActions.js";
  * The four numeric columns mirror Cursor's own Members page (First-Party
  * Models %, API %, On-Demand $) plus the included-quota dollars, so an
  * operator can read this table and the Cursor dashboard side by side.
+ *
+ * Member gets the largest flexible share: the email is the row's
+ * identity, so it wraps rather than truncates when space runs out (see
+ * MemberCell) while the key name stays truncate-with-tooltip.
  */
 const ROW_GRID =
-  "grid grid-cols-[minmax(0,1.8fr)_minmax(0,1.3fr)_4.5rem_4.5rem_4.5rem_4.5rem_minmax(6rem,auto)_minmax(10rem,auto)] items-center gap-2 px-3 py-2";
+  "grid grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_4.5rem_4.5rem_4.5rem_4.5rem_minmax(6rem,auto)_minmax(10rem,auto)] items-center gap-2 px-3 py-2";
 
 /**
  * The roster-coverage table: every member and every stored execution key
@@ -217,6 +221,35 @@ function CoverageGroup({
 // Rows (internal)
 // ---------------------------------------------------------------------------
 
+/**
+ * The member-identity cell shared by key rows and gap rows. The email is
+ * the row's identity, so it must be fully readable: it wraps onto more
+ * lines when the column is narrow (emails are unbroken strings, so they
+ * need explicit word-breaking) with a hover tooltip as backup, unlike
+ * the other text cells which truncate. The secondary name line stays
+ * truncated — it is display sugar, not identity.
+ */
+function MemberCell({
+  email,
+  name,
+}: {
+  readonly email: string;
+  readonly name?: string;
+}) {
+  return (
+    <span role="cell" className="min-w-0">
+      <span className="block break-words font-medium text-foreground" title={email}>
+        {email}
+      </span>
+      {name && (
+        <span className="block truncate text-[11px] text-muted-foreground">
+          {name}
+        </span>
+      )}
+    </span>
+  );
+}
+
 /** A key-backed row: categories 1 and 3, plus the pre-sync unclassified state. */
 function KeyRow({
   accountId,
@@ -238,17 +271,16 @@ function KeyRow({
 
   return (
     <div role="row" className={cn(ROW_GRID, "border-t border-border-muted text-xs")}>
+      <MemberCell email={key.boundEmail} />
       <span role="cell" className="min-w-0">
-        <span className="block truncate font-medium text-foreground">
-          {key.boundEmail}
-        </span>
-      </span>
-      <span role="cell" className="min-w-0">
-        <span className="block truncate text-muted-foreground">
+        <span
+          className="block truncate text-muted-foreground"
+          title={key.cursorKeyName || undefined}
+        >
           {key.cursorKeyName || "unnamed key"}
         </span>
         {key.label && (
-          <span className="block truncate text-[11px] text-muted-foreground">
+          <span className="block truncate text-[11px] text-muted-foreground" title={key.label}>
             {key.label}
           </span>
         )}
@@ -301,16 +333,7 @@ function GapRow({ memberView }: { readonly memberView: CursorTeamMemberView }) {
 
   return (
     <div role="row" className={cn(ROW_GRID, "border-t border-border-muted text-xs")}>
-      <span role="cell" className="min-w-0">
-        <span className="block truncate font-medium text-foreground">
-          {member.email}
-        </span>
-        {member.name && (
-          <span className="block truncate text-[11px] text-muted-foreground">
-            {member.name}
-          </span>
-        )}
-      </span>
+      <MemberCell email={member.email} name={member.name} />
       <span role="cell" className="text-muted-foreground">
         —
       </span>
