@@ -60,7 +60,6 @@ class CursorKeySource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     CURSOR_KEY_SOURCE_UNSPECIFIED: _ClassVar[CursorKeySource]
     CURSOR_KEY_SOURCE_MANAGED_KEY: _ClassVar[CursorKeySource]
-    CURSOR_KEY_SOURCE_ENV_FALLBACK: _ClassVar[CursorKeySource]
 USAGE_METERING_SOURCE_UNSPECIFIED: UsageMeteringSource
 USAGE_METERING_SOURCE_PROXY_PROVIDER_REPORTED: UsageMeteringSource
 USAGE_METERING_SOURCE_RUNNER_PROVIDER_REPORTED_OSS: UsageMeteringSource
@@ -94,7 +93,6 @@ COST_CALCULATION_STATUS_RECONCILED: CostCalculationStatus
 COST_CALCULATION_STATUS_MANUAL_ADJUSTED: CostCalculationStatus
 CURSOR_KEY_SOURCE_UNSPECIFIED: CursorKeySource
 CURSOR_KEY_SOURCE_MANAGED_KEY: CursorKeySource
-CURSOR_KEY_SOURCE_ENV_FALLBACK: CursorKeySource
 
 class TokenUsage(_message.Message):
     __slots__ = ("input_tokens", "output_tokens", "total_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "reasoning_tokens", "tool_use_prompt_tokens", "audio_input_tokens", "audio_output_tokens", "provider_token_details")

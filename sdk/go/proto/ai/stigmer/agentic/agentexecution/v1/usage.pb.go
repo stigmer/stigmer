@@ -346,12 +346,14 @@ func (CostCalculationStatus) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDescGZIP(), []int{4}
 }
 
-// Which credential class actually served a cursor-harness LLM call.
+// Which credential actually served a cursor-harness LLM call.
 //
 // Recorded so per-call attribution states a fact about the traffic, not an
 // inference from surrounding state. The proxy resolves the key, injects it
 // upstream, and reports the same identity with the usage payload — the
-// record can therefore never disagree with what was sent on the wire.
+// record can therefore never disagree with what was sent on the wire. The
+// CursorAccount store is the only credential source, so MANAGED_KEY is the
+// only source a current proxy can report.
 //
 // @internal
 // UNSPECIFIED doubles as the legacy marker: records written before the
@@ -365,11 +367,6 @@ const (
 	// A managed CursorAccount member key served the call. The
 	// cursor_account_id / cursor_key_id fields identify it.
 	CursorKeySource_CURSOR_KEY_SOURCE_MANAGED_KEY CursorKeySource = 1
-	// The platform escape-hatch env key (STIGMER_PROXY_CURSOR_API_KEY)
-	// served the call — managed capacity was exhausted or selection did
-	// not apply. cursor_account_id / cursor_key_id are empty: the env key
-	// belongs to no managed account by definition.
-	CursorKeySource_CURSOR_KEY_SOURCE_ENV_FALLBACK CursorKeySource = 2
 )
 
 // Enum value maps for CursorKeySource.
@@ -377,12 +374,10 @@ var (
 	CursorKeySource_name = map[int32]string{
 		0: "CURSOR_KEY_SOURCE_UNSPECIFIED",
 		1: "CURSOR_KEY_SOURCE_MANAGED_KEY",
-		2: "CURSOR_KEY_SOURCE_ENV_FALLBACK",
 	}
 	CursorKeySource_value = map[string]int32{
-		"CURSOR_KEY_SOURCE_UNSPECIFIED":  0,
-		"CURSOR_KEY_SOURCE_MANAGED_KEY":  1,
-		"CURSOR_KEY_SOURCE_ENV_FALLBACK": 2,
+		"CURSOR_KEY_SOURCE_UNSPECIFIED": 0,
+		"CURSOR_KEY_SOURCE_MANAGED_KEY": 1,
 	}
 )
 
@@ -1050,11 +1045,9 @@ type LlmCallUsageRecord struct {
 	// injected the upstream credential (RecordLlmCallUsageInput carries the
 	// same identity — the record states what was sent on the wire, never an
 	// after-the-fact pin lookup). Identifiers only, never key material.
-	// Empty for the native harness, for env-key fallback traffic
-	// (cursor_key_source says so explicitly), and for records written
-	// before the serving identity was threaded through. Lets provider
-	// reconciliation attribute conversations across per-account Cursor
-	// ledgers.
+	// Empty for the native harness and for records written before the
+	// serving identity was threaded through. Lets provider reconciliation
+	// attribute conversations across per-account Cursor ledgers.
 	CursorAccountId string `protobuf:"bytes,38,opt,name=cursor_account_id,json=cursorAccountId,proto3" json:"cursor_account_id,omitempty"`
 	CursorKeyId     string `protobuf:"bytes,39,opt,name=cursor_key_id,json=cursorKeyId,proto3" json:"cursor_key_id,omitempty"`
 	HttpStatusCode  int32  `protobuf:"varint,40,opt,name=http_status_code,json=httpStatusCode,proto3" json:"http_status_code,omitempty"`
@@ -1913,11 +1906,10 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"!COST_CALCULATION_STATUS_ESTIMATED\x10\x02\x12+\n" +
 	"'COST_CALCULATION_STATUS_PRICE_NOT_FOUND\x10\x03\x12&\n" +
 	"\"COST_CALCULATION_STATUS_RECONCILED\x10\x04\x12+\n" +
-	"'COST_CALCULATION_STATUS_MANUAL_ADJUSTED\x10\x05*{\n" +
+	"'COST_CALCULATION_STATUS_MANUAL_ADJUSTED\x10\x05*W\n" +
 	"\x0fCursorKeySource\x12!\n" +
 	"\x1dCURSOR_KEY_SOURCE_UNSPECIFIED\x10\x00\x12!\n" +
-	"\x1dCURSOR_KEY_SOURCE_MANAGED_KEY\x10\x01\x12\"\n" +
-	"\x1eCURSOR_KEY_SOURCE_ENV_FALLBACK\x10\x02B\xcd\x02\n" +
+	"\x1dCURSOR_KEY_SOURCE_MANAGED_KEY\x10\x01B\xcd\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\n" +
 	"UsageProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 

@@ -338,11 +338,9 @@ public interface LlmCallUsageRecordOrBuilder extends
    * injected the upstream credential (RecordLlmCallUsageInput carries the
    * same identity — the record states what was sent on the wire, never an
    * after-the-fact pin lookup). Identifiers only, never key material.
-   * Empty for the native harness, for env-key fallback traffic
-   * (cursor_key_source says so explicitly), and for records written
-   * before the serving identity was threaded through. Lets provider
-   * reconciliation attribute conversations across per-account Cursor
-   * ledgers.
+   * Empty for the native harness and for records written before the
+   * serving identity was threaded through. Lets provider reconciliation
+   * attribute conversations across per-account Cursor ledgers.
    * </pre>
    *
    * <code>string cursor_account_id = 38 [json_name = "cursorAccountId"];</code>
@@ -357,11 +355,9 @@ public interface LlmCallUsageRecordOrBuilder extends
    * injected the upstream credential (RecordLlmCallUsageInput carries the
    * same identity — the record states what was sent on the wire, never an
    * after-the-fact pin lookup). Identifiers only, never key material.
-   * Empty for the native harness, for env-key fallback traffic
-   * (cursor_key_source says so explicitly), and for records written
-   * before the serving identity was threaded through. Lets provider
-   * reconciliation attribute conversations across per-account Cursor
-   * ledgers.
+   * Empty for the native harness and for records written before the
+   * serving identity was threaded through. Lets provider reconciliation
+   * attribute conversations across per-account Cursor ledgers.
    * </pre>
    *
    * <code>string cursor_account_id = 38 [json_name = "cursorAccountId"];</code>

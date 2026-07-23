@@ -108,7 +108,7 @@ public interface CursorAccountOrBuilder extends
    *
    * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
    * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
-   *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=81
+   *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=83
    * @return The isPlatformDefault.
    */
   @java.lang.Deprecated boolean getIsPlatformDefault();

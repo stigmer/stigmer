@@ -275,15 +275,14 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
       "\002\022+\n\'COST_CALCULATION_STATUS_PRICE_NOT_F" +
       "OUND\020\003\022&\n\"COST_CALCULATION_STATUS_RECONC" +
       "ILED\020\004\022+\n\'COST_CALCULATION_STATUS_MANUAL" +
-      "_ADJUSTED\020\005*{\n\017CursorKeySource\022!\n\035CURSOR" +
+      "_ADJUSTED\020\005*W\n\017CursorKeySource\022!\n\035CURSOR" +
       "_KEY_SOURCE_UNSPECIFIED\020\000\022!\n\035CURSOR_KEY_" +
-      "SOURCE_MANAGED_KEY\020\001\022\"\n\036CURSOR_KEY_SOURC" +
-      "E_ENV_FALLBACK\020\002B\301\001B\nUsageProtoP\001\242\002\004ASAA" +
-      "\252\002$Ai.Stigmer.Agentic.Agentexecution.V1\312" +
-      "\002$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\342\002" +
-      "0Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GP" +
-      "BMetadata\352\002(Ai::Stigmer::Agentic::Agente" +
-      "xecution::V1b\006proto3"
+      "SOURCE_MANAGED_KEY\020\001B\301\001B\nUsageProtoP\001\242\002\004" +
+      "ASAA\252\002$Ai.Stigmer.Agentic.Agentexecution" +
+      ".V1\312\002$Ai\\Stigmer\\Agentic\\Agentexecution\\" +
+      "V1\342\0020Ai\\Stigmer\\Agentic\\Agentexecution\\V" +
+      "1\\GPBMetadata\352\002(Ai::Stigmer::Agentic::Ag" +
+      "entexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

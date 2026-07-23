@@ -8,8 +8,10 @@ package ai.stigmer.platform.cursoraccount.v1;
 /**
  * <pre>
  * CursorAccount is one managed Cursor team: the platform-operator resource
- * that replaces the single STIGMER_PROXY_CURSOR_API_KEY env var as the
- * source of Cursor credentials for the cursor harness.
+ * that is the ONLY source of Cursor credentials for the cursor harness —
+ * member keys for execution and unscoped platform traffic, the team admin
+ * key for roster/spend sync and ledger reconciliation. (It replaced the
+ * historical single STIGMER_PROXY_CURSOR_API_KEY env var, which is gone.)
  *
  * One document = one Cursor team. It carries two credential classes with
  * strictly different capabilities (verified empirically 2026-07-22, see the
@@ -289,7 +291,7 @@ private static final long serialVersionUID = 0L;
    *
    * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
    * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
-   *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=81
+   *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=83
    * @return The isPlatformDefault.
    */
   @java.lang.Override
@@ -906,8 +908,10 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * CursorAccount is one managed Cursor team: the platform-operator resource
-   * that replaces the single STIGMER_PROXY_CURSOR_API_KEY env var as the
-   * source of Cursor credentials for the cursor harness.
+   * that is the ONLY source of Cursor credentials for the cursor harness —
+   * member keys for execution and unscoped platform traffic, the team admin
+   * key for roster/spend sync and ledger reconciliation. (It replaced the
+   * historical single STIGMER_PROXY_CURSOR_API_KEY env var, which is gone.)
    *
    * One document = one Cursor team. It carries two credential classes with
    * strictly different capabilities (verified empirically 2026-07-22, see the
@@ -1687,7 +1691,7 @@ private static final long serialVersionUID = 0L;
      *
      * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
      * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
-     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=81
+     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=83
      * @return The isPlatformDefault.
      */
     @java.lang.Override
@@ -1705,7 +1709,7 @@ private static final long serialVersionUID = 0L;
      *
      * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
      * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
-     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=81
+     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=83
      * @param value The isPlatformDefault to set.
      * @return This builder for chaining.
      */
@@ -1727,7 +1731,7 @@ private static final long serialVersionUID = 0L;
      *
      * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
      * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
-     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=81
+     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=83
      * @return This builder for chaining.
      */
     @java.lang.Deprecated public Builder clearIsPlatformDefault() {

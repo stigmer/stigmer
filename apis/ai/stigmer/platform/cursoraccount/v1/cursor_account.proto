@@ -6,8 +6,10 @@ import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 
 // CursorAccount is one managed Cursor team: the platform-operator resource
-// that replaces the single STIGMER_PROXY_CURSOR_API_KEY env var as the
-// source of Cursor credentials for the cursor harness.
+// that is the ONLY source of Cursor credentials for the cursor harness —
+// member keys for execution and unscoped platform traffic, the team admin
+// key for roster/spend sync and ledger reconciliation. (It replaced the
+// historical single STIGMER_PROXY_CURSOR_API_KEY env var, which is gone.)
 //
 // One document = one Cursor team. It carries two credential classes with
 // strictly different capabilities (verified empirically 2026-07-22, see the

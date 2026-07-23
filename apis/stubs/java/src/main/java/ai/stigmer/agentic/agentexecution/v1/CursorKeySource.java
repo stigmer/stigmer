@@ -7,12 +7,14 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * Which credential class actually served a cursor-harness LLM call.
+ * Which credential actually served a cursor-harness LLM call.
  *
  * Recorded so per-call attribution states a fact about the traffic, not an
  * inference from surrounding state. The proxy resolves the key, injects it
  * upstream, and reports the same identity with the usage payload — the
- * record can therefore never disagree with what was sent on the wire.
+ * record can therefore never disagree with what was sent on the wire. The
+ * CursorAccount store is the only credential source, so MANAGED_KEY is the
+ * only source a current proxy can report.
  *
  * &#64;internal
  * UNSPECIFIED doubles as the legacy marker: records written before the
@@ -39,17 +41,6 @@ public enum CursorKeySource
    * <code>CURSOR_KEY_SOURCE_MANAGED_KEY = 1;</code>
    */
   CURSOR_KEY_SOURCE_MANAGED_KEY(1),
-  /**
-   * <pre>
-   * The platform escape-hatch env key (STIGMER_PROXY_CURSOR_API_KEY)
-   * served the call — managed capacity was exhausted or selection did
-   * not apply. cursor_account_id / cursor_key_id are empty: the env key
-   * belongs to no managed account by definition.
-   * </pre>
-   *
-   * <code>CURSOR_KEY_SOURCE_ENV_FALLBACK = 2;</code>
-   */
-  CURSOR_KEY_SOURCE_ENV_FALLBACK(2),
   UNRECOGNIZED(-1),
   ;
 
@@ -75,17 +66,6 @@ public enum CursorKeySource
    * <code>CURSOR_KEY_SOURCE_MANAGED_KEY = 1;</code>
    */
   public static final int CURSOR_KEY_SOURCE_MANAGED_KEY_VALUE = 1;
-  /**
-   * <pre>
-   * The platform escape-hatch env key (STIGMER_PROXY_CURSOR_API_KEY)
-   * served the call — managed capacity was exhausted or selection did
-   * not apply. cursor_account_id / cursor_key_id are empty: the env key
-   * belongs to no managed account by definition.
-   * </pre>
-   *
-   * <code>CURSOR_KEY_SOURCE_ENV_FALLBACK = 2;</code>
-   */
-  public static final int CURSOR_KEY_SOURCE_ENV_FALLBACK_VALUE = 2;
 
 
   public final int getNumber() {
@@ -114,7 +94,6 @@ public enum CursorKeySource
     switch (value) {
       case 0: return CURSOR_KEY_SOURCE_UNSPECIFIED;
       case 1: return CURSOR_KEY_SOURCE_MANAGED_KEY;
-      case 2: return CURSOR_KEY_SOURCE_ENV_FALLBACK;
       default: return null;
     }
   }

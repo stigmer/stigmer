@@ -598,8 +598,7 @@ private static final long serialVersionUID = 0L;
    * this call. Reported by the proxy from its key resolution so the
    * stored record can never disagree with the wire — the billing handler
    * stamps these verbatim and performs no pin lookup. Identifiers only,
-   * never key material. Empty for native-harness calls and for env-key
-   * fallback traffic (cursor_key_source distinguishes the latter).
+   * never key material. Empty for native-harness calls.
    * </pre>
    *
    * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
@@ -625,8 +624,7 @@ private static final long serialVersionUID = 0L;
    * this call. Reported by the proxy from its key resolution so the
    * stored record can never disagree with the wire — the billing handler
    * stamps these verbatim and performs no pin lookup. Identifiers only,
-   * never key material. Empty for native-harness calls and for env-key
-   * fallback traffic (cursor_key_source distinguishes the latter).
+   * never key material. Empty for native-harness calls.
    * </pre>
    *
    * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
@@ -690,10 +688,10 @@ private static final long serialVersionUID = 0L;
   private int cursorKeySource_ = 0;
   /**
    * <pre>
-   * Which credential class served this call (cursor harness only).
-   * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
-   * while managed capacity was unavailable — recorded honestly so
-   * attribution and reconciliation can separate it from managed traffic.
+   * Which credential served this call (cursor harness only). The
+   * CursorAccount store is the only credential source, so a current
+   * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
+   * caller.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
@@ -704,10 +702,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Which credential class served this call (cursor harness only).
-   * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
-   * while managed capacity was unavailable — recorded honestly so
-   * attribution and reconciliation can separate it from managed traffic.
+   * Which credential served this call (cursor harness only). The
+   * CursorAccount store is the only credential source, so a current
+   * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
+   * caller.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
@@ -2685,8 +2683,7 @@ private static final long serialVersionUID = 0L;
      * this call. Reported by the proxy from its key resolution so the
      * stored record can never disagree with the wire — the billing handler
      * stamps these verbatim and performs no pin lookup. Identifiers only,
-     * never key material. Empty for native-harness calls and for env-key
-     * fallback traffic (cursor_key_source distinguishes the latter).
+     * never key material. Empty for native-harness calls.
      * </pre>
      *
      * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
@@ -2711,8 +2708,7 @@ private static final long serialVersionUID = 0L;
      * this call. Reported by the proxy from its key resolution so the
      * stored record can never disagree with the wire — the billing handler
      * stamps these verbatim and performs no pin lookup. Identifiers only,
-     * never key material. Empty for native-harness calls and for env-key
-     * fallback traffic (cursor_key_source distinguishes the latter).
+     * never key material. Empty for native-harness calls.
      * </pre>
      *
      * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
@@ -2738,8 +2734,7 @@ private static final long serialVersionUID = 0L;
      * this call. Reported by the proxy from its key resolution so the
      * stored record can never disagree with the wire — the billing handler
      * stamps these verbatim and performs no pin lookup. Identifiers only,
-     * never key material. Empty for native-harness calls and for env-key
-     * fallback traffic (cursor_key_source distinguishes the latter).
+     * never key material. Empty for native-harness calls.
      * </pre>
      *
      * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
@@ -2761,8 +2756,7 @@ private static final long serialVersionUID = 0L;
      * this call. Reported by the proxy from its key resolution so the
      * stored record can never disagree with the wire — the billing handler
      * stamps these verbatim and performs no pin lookup. Identifiers only,
-     * never key material. Empty for native-harness calls and for env-key
-     * fallback traffic (cursor_key_source distinguishes the latter).
+     * never key material. Empty for native-harness calls.
      * </pre>
      *
      * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
@@ -2781,8 +2775,7 @@ private static final long serialVersionUID = 0L;
      * this call. Reported by the proxy from its key resolution so the
      * stored record can never disagree with the wire — the billing handler
      * stamps these verbatim and performs no pin lookup. Identifiers only,
-     * never key material. Empty for native-harness calls and for env-key
-     * fallback traffic (cursor_key_source distinguishes the latter).
+     * never key material. Empty for native-harness calls.
      * </pre>
      *
      * <code>string cursor_account_id = 15 [json_name = "cursorAccountId"];</code>
@@ -2874,10 +2867,10 @@ private static final long serialVersionUID = 0L;
     private int cursorKeySource_ = 0;
     /**
      * <pre>
-     * Which credential class served this call (cursor harness only).
-     * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
-     * while managed capacity was unavailable — recorded honestly so
-     * attribution and reconciliation can separate it from managed traffic.
+     * Which credential served this call (cursor harness only). The
+     * CursorAccount store is the only credential source, so a current
+     * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
+     * caller.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
@@ -2888,10 +2881,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Which credential class served this call (cursor harness only).
-     * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
-     * while managed capacity was unavailable — recorded honestly so
-     * attribution and reconciliation can separate it from managed traffic.
+     * Which credential served this call (cursor harness only). The
+     * CursorAccount store is the only credential source, so a current
+     * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
+     * caller.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
@@ -2907,10 +2900,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Which credential class served this call (cursor harness only).
-     * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
-     * while managed capacity was unavailable — recorded honestly so
-     * attribution and reconciliation can separate it from managed traffic.
+     * Which credential served this call (cursor harness only). The
+     * CursorAccount store is the only credential source, so a current
+     * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
+     * caller.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
@@ -2923,10 +2916,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Which credential class served this call (cursor harness only).
-     * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
-     * while managed capacity was unavailable — recorded honestly so
-     * attribution and reconciliation can separate it from managed traffic.
+     * Which credential served this call (cursor harness only). The
+     * CursorAccount store is the only credential source, so a current
+     * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
+     * caller.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
@@ -2942,10 +2935,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Which credential class served this call (cursor harness only).
-     * ENV_FALLBACK marks traffic that ran on the platform escape-hatch key
-     * while managed capacity was unavailable — recorded honestly so
-     * attribution and reconciliation can separate it from managed traffic.
+     * Which credential served this call (cursor harness only). The
+     * CursorAccount store is the only credential source, so a current
+     * proxy always reports MANAGED_KEY; UNSPECIFIED marks a pre-feature
+     * caller.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.CursorKeySource cursor_key_source = 17 [json_name = "cursorKeySource"];</code>
