@@ -45,34 +45,60 @@ interface HasMetadata {
   readonly metadata?: { readonly id?: string; readonly name?: string; readonly slug?: string; readonly org?: string };
 }
 
-type DeleteFn = (client: Stigmer, id: string) => Promise<HasMetadata>;
+// `force` is the RPC-level acknowledgment of destructive side effects (e.g. a
+// datastore's held records) — distinct from, but carried by, the CLI's
+// `-f/--force` flag. Kinds whose delete RPC takes a plain typed ID have no
+// force field and simply ignore the argument.
+type DeleteFn = (client: Stigmer, id: string, force: boolean) => Promise<HasMetadata>;
 
 // Kinds the unified delete handles directly, each bound to its SDK delete call.
 // Kinds that carry a Delete verb but no entry here (identity_provider,
-// oauth_app, environment, workflow_instance, session) fall through to a
+// oauth_app, agent_share, workflow_instance, session) fall through to a
 // "not implemented" usage error, matching Go's default branch.
-// McpServer is the outlier whose delete takes a DeleteResourceInput, not an ID.
+// Kinds whose delete takes a DeleteResourceInput (not an ID) thread the force
+// acknowledgment through; today only the datastore server honors it (the
+// non-empty guard), but force is the contract's generic ack carrier.
 const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<ApiResourceKind, DeleteFn>([
   [ApiResourceKind.agent, (c, id) => c.agent.delete(id)],
   [ApiResourceKind.agent_instance, (c, id) => c.agentInstance.delete(id)],
   [ApiResourceKind.workflow, (c, id) => c.workflow.delete(id)],
-  [ApiResourceKind.mcp_server, (c, id) => c.mcpServer.delete({ resourceId: id })],
+  [ApiResourceKind.mcp_server, (c, id, force) => c.mcpServer.delete({ resourceId: id, force })],
   [ApiResourceKind.project, (c, id) => c.project.delete(id)],
-  [ApiResourceKind.datastore, (c, id) => c.datastore.delete({ resourceId: id })],
+  [ApiResourceKind.datastore, (c, id, force) => c.datastore.delete({ resourceId: id, force })],
+  [ApiResourceKind.environment, (c, id, force) => c.environment.delete({ resourceId: id, force })],
+  [ApiResourceKind.agent_channel, (c, id) => c.agentChannel.delete(id)],
+  [ApiResourceKind.channel_app, (c, id, force) => c.channelapp.delete({ resourceId: id, force })],
   [ApiResourceKind.skill, (c, id) => c.skill.delete(id)],
   [ApiResourceKind.api_key, (c, id) => c.apiKey.delete(id)],
 ]);
+
+// The deletable-types list for the unknown-type error, derived from the
+// handler map (plus the two special-cased routes) so it can never drift from
+// what the dispatch below actually supports. Deliberately NOT derived from the
+// registry's verb matrix — that declares Delete for kinds this dispatch does
+// not wire, and listing those would over-promise.
+function availableDeleteTypes(): string {
+  const wired = [...DELETE_HANDLERS.keys()]
+    .map((kind) => defaultRegistry().getByKind(kind)?.singular)
+    .filter((singular): singular is string => singular !== undefined);
+  return [...wired, "execution", "organization"].join(", ");
+}
 
 /**
  * Build the delete plan for a `<type> <reference>` pair. Routes the three
  * special cases first, then the registry-driven standard path. Throws on
  * unknown/unsupported types before any network call.
+ *
+ * `force` is the caller's acknowledgment of destructive side effects; it rides
+ * the delete RPC for kinds whose contract carries a force field (see
+ * DELETE_HANDLERS). The command layer maps `-f/--force` onto it.
  */
 export async function planDelete(
   client: Stigmer,
   typeArg: string,
   reference: string,
   org: string,
+  force = false,
 ): Promise<DeletePlan> {
   if (isExecutionAlias(typeArg)) {
     return planExecutionCancel(client, reference);
@@ -80,9 +106,7 @@ export async function planDelete(
 
   const info = defaultRegistry().getByAlias(typeArg);
   if (info === undefined) {
-    throw new UsageError(
-      `unknown resource type: ${typeArg}\n\nAvailable types: agent, agent-instance, workflow, mcpserver, project, skill, execution, organization`,
-    );
+    throw new UsageError(`unknown resource type: ${typeArg}\n\nAvailable types: ${availableDeleteTypes()}`);
   }
 
   if (info.kind === ApiResourceKind.organization) {
@@ -98,7 +122,7 @@ export async function planDelete(
     throw new UsageError(`delete not implemented for ${info.displayName}`);
   }
 
-  return planStandardDelete(client, info, reference, org, deleteFn);
+  return planStandardDelete(client, info, reference, org, deleteFn, force);
 }
 
 async function planStandardDelete(
@@ -107,6 +131,7 @@ async function planStandardDelete(
   reference: string,
   org: string,
   deleteFn: DeleteFn,
+  force: boolean,
 ): Promise<DeletePlan> {
   // Safe by construction: every DELETE_HANDLERS key also has a get binding.
   const getter = getterFor(info.kind);
@@ -123,7 +148,7 @@ async function planStandardDelete(
   return {
     warning: buildDeleteWarning(info, resource),
     confirmPrompt: "Proceed with deletion? [y/N]",
-    perform: async () => buildDeleteSuccess(info, await deleteFn(client, id)),
+    perform: async () => buildDeleteSuccess(info, await deleteFn(client, id, force)),
   };
 }
 
@@ -199,6 +224,19 @@ function buildDeleteWarning(info: TypeInfo, message: HasMetadata): CommandResult
     const tag = (message as { spec?: { tag?: string } }).spec?.tag;
     if (tag) section.field("Tag", tag);
     warning.hint("This will delete the skill and all its versions.");
+  }
+
+  if (info.kind === ApiResourceKind.datastore) {
+    // Mirrors the server's non-empty guard (GuardNonEmptyStep): the delete of
+    // a datastore holding records is refused unless force acknowledges it.
+    warning.hint("All records held by this datastore will be destroyed.");
+    warning.hint("A datastore holding records is refused unless --force acknowledges destroying them.");
+  }
+
+  if (info.kind === ApiResourceKind.agent_channel) {
+    // The server's documented distinction: delete is the connection's full
+    // teardown; disabling is the config-preserving pause.
+    warning.hint("Delete is the connection's full teardown; to pause instead, apply with spec.enabled: false.");
   }
 
   warning.hint("This action cannot be undone.");

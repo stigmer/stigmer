@@ -11,8 +11,14 @@ import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
 import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
+import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
+import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
@@ -67,6 +73,26 @@ const knownSearchResult = create(SearchResultSchema, {
   description: "reviews code",
 });
 
+// The three T07 cutover kinds — wired into get-bindings alongside this test.
+const knownEnvironment = create(EnvironmentSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Environment",
+  metadata: { name: "clinic-patient-db", slug: "clinic-patient-db", org: "acme", id: "env_1" },
+});
+
+const knownChannel = create(AgentChannelSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "AgentChannel",
+  metadata: { name: "clinic-patient-whatsapp", slug: "clinic-patient-whatsapp", org: "acme", id: "ach_1" },
+  spec: { enabled: true },
+});
+
+const knownChannelApp = create(ChannelAppSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "ChannelApp",
+  metadata: { name: "clinic-meta-app", slug: "clinic-meta-app", org: "acme", id: "chapp_1" },
+});
+
 let backend: Http2Server;
 let client: Stigmer;
 const openSessions = new Set<ServerHttp2Session>();
@@ -105,6 +131,36 @@ beforeAll(async () => {
     });
     router.service(ApiKeyQueryController, {
       findAll: () => ({ entries: [knownApiKey] }),
+    });
+    router.service(EnvironmentQueryController, {
+      get: (req) => {
+        if (req.value !== "env_1") throw new ConnectError("environment not found", Code.NotFound);
+        return knownEnvironment;
+      },
+      getByReference: (req) => {
+        if (req.slug !== "clinic-patient-db") throw new ConnectError("environment not found", Code.NotFound);
+        return knownEnvironment;
+      },
+    });
+    router.service(AgentChannelQueryController, {
+      get: (req) => {
+        if (req.value !== "ach_1") throw new ConnectError("agent channel not found", Code.NotFound);
+        return knownChannel;
+      },
+      getByReference: (req) => {
+        if (req.slug !== "clinic-patient-whatsapp") throw new ConnectError("agent channel not found", Code.NotFound);
+        return knownChannel;
+      },
+    });
+    router.service(ChannelAppQueryController, {
+      get: (req) => {
+        if (req.value !== "chapp_1") throw new ConnectError("channel app not found", Code.NotFound);
+        return knownChannelApp;
+      },
+      getByReference: (req) => {
+        if (req.slug !== "clinic-meta-app") throw new ConnectError("channel app not found", Code.NotFound);
+        return knownChannelApp;
+      },
     });
   };
   backend = createHttp2Server(connectNodeAdapter({ routes }));
@@ -169,6 +225,58 @@ describe("get integration", () => {
     });
   });
 
+  it("fetches an environment by org/slug and renders backend protojson", async () => {
+    const { schema, message } = await fetchResource(client, ApiResourceKind.environment, {
+      kind: "ref",
+      org: "acme",
+      slug: "clinic-patient-db",
+    });
+    const rendered = JSON.parse(renderResource(schema, message, "json"));
+    expect(rendered).toEqual(toJson(EnvironmentSchema, knownEnvironment, { useProtoFieldName: true }));
+  });
+
+  it("fetches an environment by ID", async () => {
+    const { message } = await fetchResource(client, ApiResourceKind.environment, { kind: "id", id: "env_1" });
+    expect(JSON.parse(renderResource(EnvironmentSchema, message, "json"))).toMatchObject({
+      metadata: { id: "env_1" },
+    });
+  });
+
+  it("fetches an agent channel by org/slug and renders backend protojson", async () => {
+    const { schema, message } = await fetchResource(client, ApiResourceKind.agent_channel, {
+      kind: "ref",
+      org: "acme",
+      slug: "clinic-patient-whatsapp",
+    });
+    const rendered = JSON.parse(renderResource(schema, message, "json"));
+    expect(rendered).toEqual(toJson(AgentChannelSchema, knownChannel, { useProtoFieldName: true }));
+  });
+
+  it("fetches an agent channel by ID", async () => {
+    const { message } = await fetchResource(client, ApiResourceKind.agent_channel, { kind: "id", id: "ach_1" });
+    expect(JSON.parse(renderResource(AgentChannelSchema, message, "json"))).toMatchObject({
+      metadata: { id: "ach_1" },
+      spec: { enabled: true },
+    });
+  });
+
+  it("fetches a channel app by org/slug and renders backend protojson", async () => {
+    const { schema, message } = await fetchResource(client, ApiResourceKind.channel_app, {
+      kind: "ref",
+      org: "acme",
+      slug: "clinic-meta-app",
+    });
+    const rendered = JSON.parse(renderResource(schema, message, "json"));
+    expect(rendered).toEqual(toJson(ChannelAppSchema, knownChannelApp, { useProtoFieldName: true }));
+  });
+
+  it("fetches a channel app by ID", async () => {
+    const { message } = await fetchResource(client, ApiResourceKind.channel_app, { kind: "id", id: "chapp_1" });
+    expect(JSON.parse(renderResource(ChannelAppSchema, message, "json"))).toMatchObject({
+      metadata: { id: "chapp_1" },
+    });
+  });
+
   it("maps a NotFound backend error to ExitCode.NotFound", async () => {
     const err = await fetchResource(client, ApiResourceKind.agent, { kind: "id", id: "missing" }).catch((e) => e);
     const classified = classify(err);
@@ -176,7 +284,9 @@ describe("get integration", () => {
   });
 
   it("rejects an unsupported kind with a usage error", async () => {
-    const err = await fetchResource(client, ApiResourceKind.environment, { kind: "id", id: "x" }).catch((e) => e);
+    // session declares Get in the registry but has no get binding — the
+    // canonical still-unwired kind (environment gained a binding).
+    const err = await fetchResource(client, ApiResourceKind.session, { kind: "id", id: "x" }).catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
   });
 });

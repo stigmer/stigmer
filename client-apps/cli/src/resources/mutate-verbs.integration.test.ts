@@ -16,9 +16,21 @@ import { AgentExecutionSchema } from "@stigmer/protos/ai/stigmer/agentic/agentex
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
+import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
 import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
 import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
+import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
+import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
+import { DatastoreSchema } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
+import { DatastoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/command_pb";
+import { DatastoreQueryController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/query_pb";
+import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
+import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
@@ -51,6 +63,28 @@ const knownWorkflow = create(WorkflowSchema, {
   metadata: { name: "Deploy", slug: "deploy", org: "acme", id: "wfl_1" },
 });
 
+// The mock treats this datastore as NON-EMPTY: delete refuses without the
+// force acknowledgment, mirroring the server's GuardNonEmptyStep contract.
+const knownDatastore = create(DatastoreSchema, {
+  metadata: { name: "clinic-records", slug: "clinic-records", org: "acme", id: "dst_1" },
+});
+
+// Byte-shaped like the Go server's GuardNonEmptyStep refusal (delete_guards.go).
+const nonEmptyGuardMessage =
+  'datastore "clinic-records" holds 12 records across 3 collections; deleting destroys them — pass force to acknowledge';
+
+const knownEnvironment = create(EnvironmentSchema, {
+  metadata: { name: "clinic-patient-db", slug: "clinic-patient-db", org: "acme", id: "env_1" },
+});
+
+const knownChannel = create(AgentChannelSchema, {
+  metadata: { name: "clinic-patient-whatsapp", slug: "clinic-patient-whatsapp", org: "acme", id: "ach_1" },
+});
+
+const knownChannelApp = create(ChannelAppSchema, {
+  metadata: { name: "clinic-meta-app", slug: "clinic-meta-app", org: "acme", id: "chapp_1" },
+});
+
 // Pending execution (cancellable) vs. an already-terminal one.
 const pendingExecution = create(AgentExecutionSchema, {
   metadata: { id: "aex_run" },
@@ -72,10 +106,20 @@ const openSessions = new Set<ServerHttp2Session>();
 // Spies for the command-side calls, reset per test.
 let cancelCalls: string[] = [];
 let tagCalls: { workflowId: string; versionHash: string; tag: string }[] = [];
+// Force-carrying deletes record what actually rode the RPC.
+let datastoreDeletes: { resourceId: string; force: boolean }[] = [];
+let environmentDeletes: { resourceId: string; force: boolean }[] = [];
+let channelAppDeletes: { resourceId: string; force: boolean }[] = [];
+// agent_channel's delete is a typed ID — no force field exists on the wire.
+let channelDeleteIds: string[] = [];
 
 beforeEach(() => {
   cancelCalls = [];
   tagCalls = [];
+  datastoreDeletes = [];
+  environmentDeletes = [];
+  channelAppDeletes = [];
+  channelDeleteIds = [];
 });
 
 beforeAll(async () => {
@@ -115,6 +159,60 @@ beforeAll(async () => {
       delete: (req) => {
         if (req.resourceId !== "mcp_1") throw new ConnectError("bad id", Code.InvalidArgument);
         return knownMcp;
+      },
+    });
+
+    router.service(DatastoreQueryController, {
+      getByReference: (req) => {
+        if (req.slug !== "clinic-records") throw new ConnectError("datastore not found", Code.NotFound);
+        return knownDatastore;
+      },
+    });
+    router.service(DatastoreCommandController, {
+      delete: (req) => {
+        datastoreDeletes.push({ resourceId: req.resourceId, force: req.force });
+        // Mirrors GuardNonEmptyStep: a non-empty datastore refuses without force.
+        if (!req.force) throw new ConnectError(nonEmptyGuardMessage, Code.FailedPrecondition);
+        return knownDatastore;
+      },
+    });
+
+    router.service(EnvironmentQueryController, {
+      getByReference: (req) => {
+        if (req.slug !== "clinic-patient-db") throw new ConnectError("environment not found", Code.NotFound);
+        return knownEnvironment;
+      },
+    });
+    router.service(EnvironmentCommandController, {
+      delete: (req) => {
+        environmentDeletes.push({ resourceId: req.resourceId, force: req.force });
+        return knownEnvironment;
+      },
+    });
+
+    router.service(AgentChannelQueryController, {
+      getByReference: (req) => {
+        if (req.slug !== "clinic-patient-whatsapp") throw new ConnectError("agent channel not found", Code.NotFound);
+        return knownChannel;
+      },
+    });
+    router.service(AgentChannelCommandController, {
+      delete: (req) => {
+        channelDeleteIds.push(req.value);
+        return knownChannel;
+      },
+    });
+
+    router.service(ChannelAppQueryController, {
+      getByReference: (req) => {
+        if (req.slug !== "clinic-meta-app") throw new ConnectError("channel app not found", Code.NotFound);
+        return knownChannelApp;
+      },
+    });
+    router.service(ChannelAppCommandController, {
+      delete: (req) => {
+        channelAppDeletes.push({ resourceId: req.resourceId, force: req.force });
+        return knownChannelApp;
       },
     });
 
@@ -208,14 +306,93 @@ describe("delete (standard kinds)", () => {
     expect(classify(err)?.exitCode).toBe(ExitCode.NotFound);
   });
 
-  it("rejects an unknown type with a usage error", async () => {
+  it("rejects an unknown type and lists exactly the wired types", async () => {
     const err = await planDelete(client, "bogus", "x", "acme").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
+    // The list is derived from DELETE_HANDLERS (+ the two special cases), so
+    // it must name the wired kinds and never the declared-but-unwired ones.
+    const message = String(err.message);
+    for (const wired of ["datastore", "environment", "agentchannel", "channelapp", "execution", "organization"]) {
+      expect(message).toContain(wired);
+    }
+    expect(message).not.toContain("session");
+    expect(message).not.toContain("oauthapp");
   });
 
   it("rejects a kind that has no delete handler with a usage error", async () => {
     const err = await planDelete(client, "session", "ses_1", "acme").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
+  });
+});
+
+describe("delete (force acknowledgment)", () => {
+  it("threads --force to the datastore delete RPC as the destroy-records ack", async () => {
+    const plan = await planDelete(client, "datastore", "clinic-records", "acme", true);
+    const result = await plan.perform();
+
+    expect(result.status).toBe("success");
+    expect(result.message).toBe("Datastore deleted successfully");
+    expect(datastoreDeletes).toEqual([{ resourceId: "dst_1", force: true }]);
+  });
+
+  it("surfaces the non-empty guard refusal verbatim when force is absent", async () => {
+    const plan = await planDelete(client, "datastore", "clinic-records", "acme");
+    const err = await plan.perform().catch((e) => e);
+
+    // A confirmed-but-unforced delete must NOT bypass the server guard: the
+    // RPC carries force=false and the refusal reaches the user verbatim.
+    expect(datastoreDeletes).toEqual([{ resourceId: "dst_1", force: false }]);
+    const classified = classify(err);
+    expect(classified?.exitCode).toBe(ExitCode.Usage);
+    expect(classified?.message).toBe(`Precondition failed: ${nonEmptyGuardMessage}`);
+  });
+
+  it("warns up front that datastore records are destroyed and force-guarded", async () => {
+    const plan = await planDelete(client, "datastore", "clinic-records", "acme");
+    expect(plan.warning.hints).toContain("All records held by this datastore will be destroyed.");
+    expect(plan.warning.hints).toContain(
+      "A datastore holding records is refused unless --force acknowledges destroying them.",
+    );
+  });
+});
+
+describe("delete (cutover kinds: environment, agent channel, channel app)", () => {
+  it("deletes an environment via the DeleteResourceInput shape", async () => {
+    const plan = await planDelete(client, "environment", "clinic-patient-db", "acme");
+    const result = await plan.perform();
+
+    expect(result.status).toBe("success");
+    expect(result.message).toBe("Environment deleted successfully");
+    expect(environmentDeletes).toEqual([{ resourceId: "env_1", force: false }]);
+  });
+
+  it("threads --force through the environment delete (generic ack carrier)", async () => {
+    const plan = await planDelete(client, "environment", "clinic-patient-db", "acme", true);
+    await plan.perform();
+    expect(environmentDeletes).toEqual([{ resourceId: "env_1", force: true }]);
+  });
+
+  it("deletes an agent channel via its typed-ID contract, ignoring force gracefully", async () => {
+    const plan = await planDelete(client, "agent-channel", "clinic-patient-whatsapp", "acme", true);
+
+    // The teardown-vs-pause distinction rides the warning (server doc contract).
+    expect(plan.warning.hints).toContain(
+      "Delete is the connection's full teardown; to pause instead, apply with spec.enabled: false.",
+    );
+
+    const result = await plan.perform();
+    expect(result.status).toBe("success");
+    expect(result.message).toBe("Agent Channel deleted successfully");
+    expect(channelDeleteIds).toEqual(["ach_1"]);
+  });
+
+  it("deletes a channel app via the DeleteResourceInput shape", async () => {
+    const plan = await planDelete(client, "channel-app", "clinic-meta-app", "acme");
+    const result = await plan.perform();
+
+    expect(result.status).toBe("success");
+    expect(result.message).toBe("Channel App deleted successfully");
+    expect(channelAppDeletes).toEqual([{ resourceId: "chapp_1", force: false }]);
   });
 });
 

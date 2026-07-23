@@ -5,8 +5,11 @@
 
 import type { DescMessage, Message } from "@bufbuild/protobuf";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
+import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { DatastoreSchema } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
+import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
@@ -31,6 +34,9 @@ const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
   [ApiResourceKind.mcp_server, refGetter(ApiResourceKind.mcp_server, McpServerSchema, (c) => c.mcpServer)],
   [ApiResourceKind.project, refGetter(ApiResourceKind.project, ProjectSchema, (c) => c.project)],
   [ApiResourceKind.datastore, refGetter(ApiResourceKind.datastore, DatastoreSchema, (c) => c.datastore)],
+  [ApiResourceKind.environment, refGetter(ApiResourceKind.environment, EnvironmentSchema, (c) => c.environment)],
+  [ApiResourceKind.agent_channel, refGetter(ApiResourceKind.agent_channel, AgentChannelSchema, (c) => c.agentChannel)],
+  [ApiResourceKind.channel_app, refGetter(ApiResourceKind.channel_app, ChannelAppSchema, (c) => c.channelapp)],
   [ApiResourceKind.skill, refGetter(ApiResourceKind.skill, SkillSchema, (c) => c.skill)],
   [ApiResourceKind.api_key, idOnlyGetter(ApiKeySchema, (c) => c.apiKey, "API keys")],
 ]);
