@@ -10,6 +10,7 @@ import (
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	iampolicyv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
@@ -235,6 +236,38 @@ func TestCreate_MaterializesSchema(t *testing.T) {
 	partitions, err := env.recordStore.ListPartitions(testContext(), created.GetMetadata().GetId())
 	require.NoError(t, err)
 	assert.Equal(t, []string{recordstore.DefaultPartition}, partitions)
+}
+
+// TestApply_RejectsUnsupportedPrincipalBinding proves the binding-
+// subject integrity rules (dont-dos/001) fire through the real apply
+// path, not just the validation unit: a principal binding that subject
+// matching could never resolve is refused before anything persists.
+func TestApply_RejectsUnsupportedPrincipalBinding(t *testing.T) {
+	env := setupTest(t)
+
+	ds := clinicDatastore("clinic")
+	ds.Spec.Authorization.Bindings = append(ds.Spec.Authorization.Bindings,
+		&datastorev1.DatastoreRoleBinding{
+			Subject: &datastorev1.DatastoreSubject{
+				Kind: &datastorev1.DatastoreSubject_Principal{
+					Principal: &iampolicyv1.ApiResourceRef{Kind: "team", Id: "tm-01hqteam456"},
+				},
+			},
+			Role: "operator",
+		})
+
+	_, err := env.controller.Apply(testContext(), ds)
+	require.Error(t, err)
+	st := status.Convert(err)
+	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.Equal(t,
+		`binding principal kind "team" is not supported (only identity_account principals can be bound)`,
+		st.Message())
+
+	// Rejection happened before persistence: no datastore was stored.
+	resources, err := env.store.ListResources(testContext(), apiresourcekind.ApiResourceKind_datastore)
+	require.NoError(t, err)
+	assert.Empty(t, resources, "a rejected apply must not leave a persisted datastore behind")
 }
 
 func TestApply_SecondApplyPreservesRecordsAndMaterialization(t *testing.T) {

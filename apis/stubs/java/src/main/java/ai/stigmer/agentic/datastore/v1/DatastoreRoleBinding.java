@@ -8,6 +8,17 @@ package ai.stigmer.agentic.datastore.v1;
 /**
  * <pre>
  * DatastoreRoleBinding assigns a role to a caller identity.
+ *
+ * &#64;internal
+ * Apply-time integrity (both editions, the shared spec validators):
+ * the role must be declared, a principal subject must be an
+ * identity_account with no relation qualifier, and no two bindings may
+ * share a subject — role resolution is first-match-wins, so a
+ * duplicate would be silently shadowed dead configuration. Cloud
+ * additionally verifies the bound identity account exists and is an
+ * org member (ValidateBindingPrincipalsStep); OSS stores no identity
+ * accounts and accepts arbitrary ids so cloud-destined manifests stay
+ * locally appliable (recorded limitation, DD-002).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.datastore.v1.DatastoreRoleBinding}
@@ -314,6 +325,17 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * DatastoreRoleBinding assigns a role to a caller identity.
+   *
+   * &#64;internal
+   * Apply-time integrity (both editions, the shared spec validators):
+   * the role must be declared, a principal subject must be an
+   * identity_account with no relation qualifier, and no two bindings may
+   * share a subject — role resolution is first-match-wins, so a
+   * duplicate would be silently shadowed dead configuration. Cloud
+   * additionally verifies the bound identity account exists and is an
+   * org member (ValidateBindingPrincipalsStep); OSS stores no identity
+   * accounts and accepts arbitrary ids so cloud-destined manifests stay
+   * locally appliable (recorded limitation, DD-002).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.datastore.v1.DatastoreRoleBinding}

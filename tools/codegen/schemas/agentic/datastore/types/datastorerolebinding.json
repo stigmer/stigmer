@@ -1,6 +1,6 @@
 {
   "name": "DatastoreRoleBinding",
-  "description": "DatastoreRoleBinding assigns a role to a caller identity.",
+  "description": "DatastoreRoleBinding assigns a role to a caller identity.\n\n @internal\n Apply-time integrity (both editions, the shared spec validators):\n the role must be declared, a principal subject must be an\n identity_account with no relation qualifier, and no two bindings may\n share a subject — role resolution is first-match-wins, so a\n duplicate would be silently shadowed dead configuration. Cloud\n additionally verifies the bound identity account exists and is an\n org member (ValidateBindingPrincipalsStep); OSS stores no identity\n accounts and accepts arbitrary ids so cloud-destined manifests stay\n locally appliable (recorded limitation, DD-002).",
   "protoType": "ai.stigmer.agentic.datastore.v1.DatastoreRoleBinding",
   "protoFile": "apis/ai/stigmer/agentic/datastore/v1/spec.proto",
   "fields": [

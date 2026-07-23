@@ -165,6 +165,16 @@ type recordsReachFixture struct {
 func setupRecordsReachFixture(t *testing.T, ctx context.Context, base *harness.Clients) recordsReachFixture {
 	t.Helper()
 
+	// The spec binds principalSubject as a platform principal, and the
+	// apply-time binding validation requires the bound account to exist
+	// and be an org member — exactly what production requires, so the
+	// fixture materializes both before applying.
+	seedBindingPrincipal(t, ctx, harness.SeedIdentityAccountInput{
+		ID:    principalSubject,
+		Email: "records-reach-principal@test.stigmer.ai",
+		Name:  "Records Reach Principal",
+	}, "member")
+
 	// Datastores before the agent: t.Cleanup runs LIFO, so the agent is
 	// deleted first and the datastore's block-on-agent-reference delete
 	// guard passes.

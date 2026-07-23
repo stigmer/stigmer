@@ -45,6 +45,10 @@ func NewMongoSeeder(ctx context.Context, mongoURI, dbName string) (*MongoSeeder,
 type SeedIdentityAccountInput struct {
 	// ID is the internal identity account ID (metadata.id).
 	ID string
+	// Slug is the account's human handle (metadata.slug). Optional;
+	// seeded only when set (IdentityAccountRepo.findBySlug queries it —
+	// the datastore binding validation's did-you-mean resolves slugs).
+	Slug string
 	// IdpID is the external identity provider subject (spec.idpId).
 	// For Auth0 JWTs this is the JWT "sub" claim.
 	IdpID string
@@ -76,13 +80,18 @@ func (s *MongoSeeder) SeedIdentityAccount(ctx context.Context, input SeedIdentit
 		{Key: "isMachineAccount", Value: input.IsMachineAccount},
 	}
 
+	metadata := bson.D{
+		{Key: "id", Value: input.ID},
+		{Key: "name", Value: input.Name},
+	}
+	if input.Slug != "" {
+		metadata = append(metadata, bson.E{Key: "slug", Value: input.Slug})
+	}
+
 	doc := bson.D{
 		{Key: "apiVersion", Value: "iam.stigmer.ai/v1"},
 		{Key: "kind", Value: "IdentityAccount"},
-		{Key: "metadata", Value: bson.D{
-			{Key: "id", Value: input.ID},
-			{Key: "name", Value: input.Name},
-		}},
+		{Key: "metadata", Value: metadata},
 		{Key: "spec", Value: spec},
 	}
 
@@ -92,6 +101,46 @@ func (s *MongoSeeder) SeedIdentityAccount(ctx context.Context, input SeedIdentit
 	_, err := coll.ReplaceOne(ctx, filter, doc, opts)
 	if err != nil {
 		return fmt.Errorf("upsert identity_account %s: %w", input.ID, err)
+	}
+	return nil
+}
+
+// SeedOrgMembership upserts an iam_policy document granting an identity
+// account an assignable relation (owner/admin/member/viewer) on an
+// organization — the Mongo policy mirror every production policy write
+// persists alongside the OpenFGA tuple. The datastore binding-principal
+// validation reads membership from exactly this mirror
+// (IamPolicyRepo.findByPrincipalAndResource), so tests binding platform
+// principals must seed it for the bound account.
+func (s *MongoSeeder) SeedOrgMembership(ctx context.Context, identityAccountID, org, relation string) error {
+	coll := s.client.Database(s.dbName).Collection("iam_policy")
+
+	policyID := fmt.Sprintf("iampol-test-%s-%s-%s", identityAccountID, org, relation)
+	doc := bson.D{
+		{Key: "apiVersion", Value: "iam.stigmer.ai/v1"},
+		{Key: "kind", Value: "IamPolicy"},
+		{Key: "metadata", Value: bson.D{
+			{Key: "id", Value: policyID},
+			{Key: "org", Value: org},
+		}},
+		{Key: "spec", Value: bson.D{
+			{Key: "principal", Value: bson.D{
+				{Key: "kind", Value: "identity_account"},
+				{Key: "id", Value: identityAccountID},
+			}},
+			{Key: "resource", Value: bson.D{
+				{Key: "kind", Value: "organization"},
+				{Key: "id", Value: org},
+			}},
+			{Key: "relation", Value: relation},
+		}},
+	}
+
+	filter := bson.D{{Key: "metadata.id", Value: policyID}}
+	opts := options.Replace().SetUpsert(true)
+
+	if _, err := coll.ReplaceOne(ctx, filter, doc, opts); err != nil {
+		return fmt.Errorf("upsert iam_policy %s: %w", policyID, err)
 	}
 	return nil
 }
