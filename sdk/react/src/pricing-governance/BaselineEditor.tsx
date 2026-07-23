@@ -10,7 +10,7 @@ import {
   type ModelPricingBaseline,
 } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
-import { Field, INPUT_CLASSES, RateField } from "./form-primitives.js";
+import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
 import {
   ZERO,
   dollarsToMicros,
@@ -23,9 +23,42 @@ import {
 // explicit old→new rate confirmation step (a billing-critical edit is never
 // submitted without the operator seeing exactly which rates move).
 //
-// Internal to the billing module: rendered by PricingGovernanceConsole and
-// ModelCatalogPanel, never exported from the barrel.
+// Internal to the pricing-governance module: rendered by
+// PricingGovernanceConsole and ModelCatalogPanel, never exported from the
+// barrel.
 // ---------------------------------------------------------------------------
+
+/**
+ * Dollar-rate input field (decimal keypad, "$ per million tokens").
+ * File-local: this is the editor's own composition of the shared form
+ * primitives, used nowhere else.
+ */
+function RateField({
+  label,
+  value,
+  placeholder,
+  disabled,
+  onChange,
+}: {
+  readonly label: string;
+  readonly value: string;
+  readonly placeholder?: string;
+  readonly disabled: boolean;
+  readonly onChange: (value: string) => void;
+}) {
+  return (
+    <Field label={label}>
+      <input
+        className={INPUT_CLASSES}
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder ?? "0.00"}
+        disabled={disabled}
+      />
+    </Field>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Form model — strings while editing, converted + validated on submit.

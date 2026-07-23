@@ -16,11 +16,15 @@ import type { useCursorMemberKeyActions } from "./useCursorMemberKeyActions.js";
 
 /**
  * One grid template shared by the header and every row so the columns
- * can never drift apart: Member · Key · Cycle spend · Included % ·
- * API pool % · Status · Actions.
+ * can never drift apart: Member · Key · First-party % · API % ·
+ * Included $ · On-demand $ · Status · Actions.
+ *
+ * The four numeric columns mirror Cursor's own Members page (First-Party
+ * Models %, API %, On-Demand $) plus the included-quota dollars, so an
+ * operator can read this table and the Cursor dashboard side by side.
  */
 const ROW_GRID =
-  "grid grid-cols-[minmax(0,1.8fr)_minmax(0,1.3fr)_4.5rem_4.5rem_4.5rem_minmax(6rem,auto)_minmax(10rem,auto)] items-center gap-2 px-3 py-2";
+  "grid grid-cols-[minmax(0,1.8fr)_minmax(0,1.3fr)_4.5rem_4.5rem_4.5rem_4.5rem_minmax(6rem,auto)_minmax(10rem,auto)] items-center gap-2 px-3 py-2";
 
 /**
  * The roster-coverage table: every member and every stored execution key
@@ -70,13 +74,16 @@ export function MemberCoverageTable({
         <span role="columnheader">Member</span>
         <span role="columnheader">Key</span>
         <span role="columnheader" className="text-right">
-          Cycle spend
+          First-party
+        </span>
+        <span role="columnheader" className="text-right">
+          API
         </span>
         <span role="columnheader" className="text-right">
           Included
         </span>
         <span role="columnheader" className="text-right">
-          API pool
+          On-demand
         </span>
         <span role="columnheader">Status</span>
         <span role="columnheader" className="text-right">
@@ -123,10 +130,17 @@ export function MemberCoverageTable({
         </CoverageGroup>
       )}
 
-      {coverage.onTeamWithoutKey.length > 0 && (
+      {/* Rendered whenever a roster exists — an empty gap is an answer
+          ("fully covered"), not an absence. Hiding the group made a
+          healthy roster indistinguishable from a broken sync. */}
+      {coverage.hasRoster && (
         <CoverageGroup
           title="On the team — no execution key"
-          description="Sessions can never run under these members' identity or included quota. Add their user-scoped keys below to close the gap."
+          description={
+            coverage.onTeamWithoutKey.length > 0
+              ? "Sessions can never run under these members' identity or included quota. Add their user-scoped keys below to close the gap."
+              : "Every active roster member holds an execution key — the roster is fully covered."
+          }
           count={coverage.onTeamWithoutKey.length}
         >
           {coverage.onTeamWithoutKey.map((memberView) => (
@@ -180,7 +194,7 @@ function CoverageGroup({
   return (
     <div role="rowgroup" className="border-b border-border last:border-b-0">
       <div role="row" className="bg-muted-subtle px-3 py-1.5">
-        <div role="cell" aria-colspan={7}>
+        <div role="cell" aria-colspan={8}>
           <span className="text-[11px] font-semibold text-foreground">
             {title}
             <span className="ml-1.5 font-normal text-muted-foreground">
@@ -312,24 +326,28 @@ function GapRow({ memberView }: { readonly memberView: CursorTeamMemberView }) {
 }
 
 /**
- * The three numeric cells (cycle spend, included %, API pool %), shared
- * by key rows and gap rows. An unset spend row renders as em-dashes:
- * Cursor omits spend for some team shapes, and 0-percent means
- * "unreported", never "untouched pool".
+ * The four numeric cells — first-party pool %, API pool %, included $,
+ * on-demand $ — shared by key rows and gap rows. Each maps 1:1 onto a
+ * stored `CursorMemberSpend` field; the blended `totalPercentUsed` is
+ * deliberately not rendered (it maps to nothing on Cursor's dashboard
+ * and reports a flat 100 for removed members). Only a member with no
+ * spend row at all renders em-dashes — Cursor omits the row itself for
+ * some team shapes.
  */
 function SpendCells({ spend }: { readonly spend: CursorMemberSpend | undefined }) {
   return (
     <>
       <span role="cell" className="text-right tabular-nums text-muted-foreground">
-        {spend
-          ? formatSpendMicros(spend.includedSpendUsdMicros + spend.overageSpendUsdMicros)
-          : "—"}
+        {spend ? formatPoolPercent(spend.autoPercentUsed) : "—"}
       </span>
       <span role="cell" className="text-right tabular-nums text-muted-foreground">
-        {(spend && formatPoolPercent(spend.totalPercentUsed)) ?? "—"}
+        {spend ? formatPoolPercent(spend.apiPercentUsed) : "—"}
       </span>
       <span role="cell" className="text-right tabular-nums text-muted-foreground">
-        {(spend && formatPoolPercent(spend.apiPercentUsed)) ?? "—"}
+        {spend ? formatSpendMicros(spend.includedSpendUsdMicros) : "—"}
+      </span>
+      <span role="cell" className="text-right tabular-nums text-muted-foreground">
+        {spend ? formatSpendMicros(spend.overageSpendUsdMicros) : "—"}
       </span>
     </>
   );

@@ -109,6 +109,14 @@ function scenarView() {
           name: "Uncovered U",
           role: "member",
         }),
+        // Cursor marks departed seats role:"removed" in place; they stay
+        // in the roster snapshot but never in the coverage categories.
+        create(CursorTeamMemberSchema, {
+          userId: "u3",
+          email: "departed@scenar.ai",
+          name: "Departed D",
+          role: "removed",
+        }),
       ],
       spend: [
         create(CursorMemberSpendSchema, {
@@ -229,15 +237,65 @@ describe("CursorAccountsConsole", () => {
     expect(screen.getByText(/On the team — key held/)).toBeTruthy();
     expect(screen.getByText("zane@scenar.ai")).toBeTruthy();
     expect(screen.getByText("stigmer-prod")).toBeTruthy();
-    expect(screen.getByText("$0.17")).toBeTruthy(); // 169342 micro-USD
+    expect(screen.getByText("$0.17")).toBeTruthy(); // included, 169342 micro-USD
     expect(screen.getByText("Active")).toBeTruthy();
     // Category 2: on the team, no key — server-joined spend on the gap row.
     expect(screen.getByText(/On the team — no execution key/)).toBeTruthy();
     expect(screen.getByText("uncovered@scenar.ai")).toBeTruthy();
-    expect(screen.getByText("$0.04")).toBeTruthy(); // 42000 micro-USD
+    expect(screen.getByText("$0.04")).toBeTruthy(); // included, 42000 micro-USD
     expect(screen.getByText("No key")).toBeTruthy();
-    // Header sync line counts active roster members from server facts.
-    expect(screen.getByText(/2 members/)).toBeTruthy();
+    // Both rows carry all four numeric columns: zero on-demand renders as
+    // a real dollar amount and zero pool percents as "0%" (matching
+    // Cursor's dashboard), never as em-dashes — those mean "no spend row".
+    expect(screen.getAllByText("$0.00")).toHaveLength(2); // on-demand × 2 rows
+    expect(screen.getAllByText("0%")).toHaveLength(4); // first-party + API × 2 rows
+    // Removed roster entries never render as coverage rows.
+    expect(screen.queryByText("departed@scenar.ai")).toBeNull();
+    // Header sync line: active members from server facts, removed seats
+    // by list arithmetic (roster entries minus active members).
+    expect(screen.getByText(/2 members · 1 removed seat/)).toBeTruthy();
+  });
+
+  it("affirms full coverage instead of hiding the gap group when every active member holds a key", async () => {
+    const coveredView = create(CursorAccountViewSchema, {
+      account: scenarAccount(),
+      snapshot: create(CursorAccountSyncSnapshotSchema, {
+        accountId: "acc-1",
+        syncedAt: timestampFromDate(new Date("2026-07-22T12:00:00Z")),
+        members: [
+          create(CursorTeamMemberSchema, {
+            userId: "u1",
+            email: "zane@scenar.ai",
+            name: "Zane S",
+            role: "owner",
+          }),
+        ],
+      }),
+      keyViews: [
+        create(CursorMemberKeyViewSchema, {
+          key: scenarAccount().memberKeys[0],
+          state: CursorMemberKeyState.member_key_active,
+        }),
+      ],
+      // A fully covered roster: the server sends no gap views.
+    });
+    const client = createMockStigmer({
+      listAccounts: vi.fn().mockResolvedValue({ accounts: [scenarSummary()] }),
+      getAccountView: vi.fn().mockResolvedValue(coveredView),
+    });
+    render(<CursorAccountsConsole />, { wrapper: wrapper(client) });
+
+    await waitFor(() => expect(screen.getByText("scenar team")).toBeTruthy());
+    await userEvent.click(screen.getByRole("button", { name: /scenar team/ }));
+
+    // The gap group renders with an affirmative answer, so "fully
+    // covered" is distinguishable from "the sync never classified".
+    await waitFor(() =>
+      expect(screen.getByText(/On the team — no execution key/)).toBeTruthy(),
+    );
+    expect(screen.getByText(/roster is fully covered/)).toBeTruthy();
+    // A member with no spend row at all renders em-dash cells.
+    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
   });
 
   it("classifies off-team keys with invite guidance; copy button only with a configured link", async () => {
@@ -580,9 +638,16 @@ describe("CursorAccountsConsole", () => {
     await waitFor(() => expect(screen.getByText("scenar team")).toBeTruthy());
     await userEvent.click(screen.getByRole("button", { name: /scenar team/ }));
 
-    // Included % (blended) and API pool % render as separate columns.
-    await waitFor(() => expect(screen.getByText("100%")).toBeTruthy());
-    expect(screen.getByText("27%")).toBeTruthy();
+    // The four numeric columns map 1:1 onto Cursor's Members page:
+    // first-party pool %, API pool %, included $, on-demand $.
+    await waitFor(() => expect(screen.getByText("100%")).toBeTruthy()); // API
+    expect(screen.getByText("5%")).toBeTruthy(); // first-party (5.19)
+    expect(screen.getByText("$0.17")).toBeTruthy(); // included, 169342 micro-USD
+    expect(screen.getByText("$0.00")).toBeTruthy(); // on-demand, none
+    // The blended totalPercentUsed (26.58) is deliberately not rendered —
+    // it maps to nothing on Cursor's dashboard and reads a flat 100 for
+    // removed members.
+    expect(screen.queryByText("27%")).toBeNull();
     // The badge renders the server's flag — no client-side threshold math.
     expect(screen.getByText("Usage guard")).toBeTruthy();
     // The header carries the declaration driving the guard.

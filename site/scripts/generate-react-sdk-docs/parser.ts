@@ -259,6 +259,16 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Inline editing primitive for text fields and labels.",
   },
+  "cursor-accounts": {
+    title: "Cursor Accounts",
+    description:
+      "Platform-operator console for managed Cursor team accounts.",
+  },
+  "pricing-governance": {
+    title: "Pricing Governance",
+    description:
+      "Platform-operator console for the model registry baseline and pricing overrides.",
+  },
 };
 
 // Proto qualified-name → docs/sdk/resources/ slug
@@ -289,8 +299,14 @@ const SOURCE_PATH_OVERRIDES: Record<string, string> = {
   search: "library",
 };
 
-// Domains excluded from generated documentation. These are internal UI
-// primitives or test utilities that are not part of the public SDK surface.
+// Domains excluded from generated documentation: internal UI primitives
+// and test utilities that are not part of the public SDK surface, plus
+// platform-operator-only surfaces — the docs site's audience is Stigmer
+// customers, who can never reach those consoles (they are gated on
+// platform:stigmer permissions). Operator surfaces are whole modules by
+// design (cursor-accounts, pricing-governance), so exclusion stays
+// domain-level: a new operator export lands in an operator module and is
+// excluded automatically, with nothing to remember per symbol.
 const EXCLUDED_DOMAINS = new Set([
   "test",
   "action-menu",
@@ -298,6 +314,8 @@ const EXCLUDED_DOMAINS = new Set([
   "feedback",
   "empty-state",
   "inline-edit",
+  "cursor-accounts",
+  "pricing-governance",
 ]);
 
 // Built-in type names that should never get a typeDescriptionLink

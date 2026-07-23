@@ -909,21 +909,16 @@ export type {
   OrgSwitcherProps,
 } from "./organization/index.js";
 
-// Billing — data hooks, behavior hooks, styled components, catalog, and formatting utilities
+// Billing — customer-facing data hooks, behavior hooks, styled components,
+// catalog, and formatting utilities
 export {
   useBillingAccount,
   useCreditLedger,
   useBillingUsageReport,
   useCustomerModelPricing,
-  usePricingGovernance,
-  useModelPricingBaselines,
-  useModelGovernanceView,
   useCreateCheckoutSession,
   useCreateBillingPortalSession,
   useSetAutoRechargeConfig,
-  useDecidePricingOverride,
-  useUpsertModelPricingBaseline,
-  useRetireModelPricingBaseline,
   BillingSection,
   CreditBalanceCard,
   PaymentMethodCard,
@@ -931,9 +926,6 @@ export {
   CreditPackGrid,
   CreditLedgerTable,
   LowBalanceBanner,
-  PricingGovernancePanel,
-  ModelCatalogPanel,
-  PricingGovernanceConsole,
   CREDIT_PACKS,
   formatPackPrice,
   formatCreditCount,
@@ -950,23 +942,11 @@ export type {
   UseCreditLedgerOptions,
   UseBillingUsageReportReturn,
   UseCustomerModelPricingReturn,
-  UsePricingGovernanceReturn,
-  UseModelPricingBaselinesOptions,
-  UseModelPricingBaselinesReturn,
-  GovernanceFlow,
-  ModelGovernanceRow,
-  UseModelGovernanceViewReturn,
   CreateCheckoutSessionInput,
   UseCreateCheckoutSessionReturn,
   UseCreateBillingPortalSessionReturn,
   SetAutoRechargeConfigInput,
   UseSetAutoRechargeConfigReturn,
-  DecidePricingOverrideInput,
-  UseDecidePricingOverrideReturn,
-  UpsertModelPricingBaselineInput,
-  UseUpsertModelPricingBaselineReturn,
-  RetireModelPricingBaselineInput,
-  UseRetireModelPricingBaselineReturn,
   BillingSectionProps,
   CreditBalanceCardProps,
   PaymentMethodCardProps,
@@ -974,12 +954,40 @@ export type {
   CreditPackGridProps,
   CreditLedgerTableProps,
   LowBalanceBannerProps,
+  CreditPackInfo,
+} from "./billing/index.js";
+
+// Pricing governance — platform-operator authoring of the model registry
+// baseline and pricing-override sign-offs (gated on can_manage_model_pricing)
+export {
+  usePricingGovernance,
+  useModelPricingBaselines,
+  useModelGovernanceView,
+  useDecidePricingOverride,
+  useUpsertModelPricingBaseline,
+  useRetireModelPricingBaseline,
+  PricingGovernancePanel,
+  ModelCatalogPanel,
+  PricingGovernanceConsole,
+} from "./pricing-governance/index.js";
+export type {
+  UsePricingGovernanceReturn,
+  UseModelPricingBaselinesOptions,
+  UseModelPricingBaselinesReturn,
+  GovernanceFlow,
+  ModelGovernanceRow,
+  UseModelGovernanceViewReturn,
+  DecidePricingOverrideInput,
+  UseDecidePricingOverrideReturn,
+  UpsertModelPricingBaselineInput,
+  UseUpsertModelPricingBaselineReturn,
+  RetireModelPricingBaselineInput,
+  UseRetireModelPricingBaselineReturn,
   PricingGovernancePanelProps,
   ModelCatalogPanelProps,
   PricingGovernanceConsoleProps,
   PricingGovernanceTab,
-  CreditPackInfo,
-} from "./billing/index.js";
+} from "./pricing-governance/index.js";
 
 // Cursor accounts — platform-operator management of managed Cursor teams
 // (admin keys, member execution keys, org assignments, roster/spend)

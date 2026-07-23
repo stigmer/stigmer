@@ -5,7 +5,7 @@ import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { CursorAccountView } from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/io_pb";
 import { Button } from "../button/index.js";
-import { INPUT_CLASSES } from "../billing/form-primitives.js";
+import { INPUT_CLASSES } from "../internal/form-primitives.js";
 import { toError } from "../internal/toError.js";
 import type { CursorAccountCoverage } from "./cursor-account-coverage.js";
 import { MemberCoverageTable } from "./MemberCoverageTable.js";

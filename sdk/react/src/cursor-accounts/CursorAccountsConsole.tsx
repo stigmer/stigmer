@@ -33,15 +33,16 @@ type Flow =
 /**
  * The platform-operator console for managed Cursor accounts: the Cursor
  * teams (admin keys, member execution keys, org assignments) that back
- * the cursor harness, with roster coverage and per-member cycle spend
- * from the hourly sync.
+ * the cursor harness, with roster coverage and per-member usage from
+ * the hourly sync.
  *
  * - **List** — every account with routability at a glance (an account
  *   with zero enabled member keys cannot serve executions).
  * - **Detail** — org assignments, "Sync now", and the team-coverage
  *   table: every member and stored key classified into three explicit
  *   categories (on team with key / on team without key / key held but
- *   not on team), each row carrying cycle spend and pool-usage columns.
+ *   not on team), each row carrying Cursor's pool-usage percentages
+ *   (first-party / API) and cycle spend dollars (included / on-demand).
  *   Off-team rows offer one-click copy of the account's Cursor team
  *   invite link when the operator has configured one.
  *
@@ -325,11 +326,18 @@ function AccountDetail({
   const view = detail.view;
   const account = view.account as CursorAccount;
   // Derived once here: the panel's table consumes the groups, the header
-  // line the member count (active roster = covered + uncovered members —
+  // line the member counts (active roster = covered + uncovered members —
   // server-computed facts only, no role-string parsing in the client).
+  // The covered count is exactly one row per member because the server
+  // rejects a second key for an already-bound email, so the removed-seat
+  // count is plain list arithmetic: roster entries minus active members.
+  // It answers "where did my N members go?" when Cursor marks departed
+  // seats role:"removed" in place instead of dropping them.
   const coverage = deriveCoverage(view);
   const activeMemberCount =
     coverage.onTeamWithKey.length + coverage.onTeamWithoutKey.length;
+  const removedSeatCount =
+    (view.snapshot?.members.length ?? 0) - activeMemberCount;
 
   if (editing) {
     return (
@@ -375,6 +383,9 @@ function AccountDetail({
             {formatSyncTime(view.snapshot?.syncedAt)}
             {coverage.hasRoster
               ? ` · ${activeMemberCount} ${activeMemberCount === 1 ? "member" : "members"}`
+              : ""}
+            {coverage.hasRoster && removedSeatCount > 0
+              ? ` · ${removedSeatCount} removed ${removedSeatCount === 1 ? "seat" : "seats"}`
               : ""}
           </p>
         </div>

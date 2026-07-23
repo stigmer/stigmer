@@ -2,7 +2,7 @@ import type { Timestamp } from "@bufbuild/protobuf/wkt";
 
 // BigInt literals (0n) require an ES2020 target, which not every consuming
 // app's tsconfig guarantees — the constructor form is target-agnostic (the
-// billing pricing-format precedent).
+// pricing-governance pricing-format precedent).
 const ZERO = BigInt(0);
 
 /**
@@ -30,13 +30,16 @@ export function formatSyncTime(ts: Timestamp | undefined): string {
 
 /**
  * Cursor's pool-usage percent (0–100, live-verified) to a display string
- * (`26.97` → `"27%"`). Returns null for 0 — Cursor omits the field on
- * non-tiered teams and the sync stores 0, so 0 means "unreported", never
- * "untouched pool"; rendering it would assert precision that isn't there.
+ * (`26.97` → `"27%"`, `0` → `"0%"`).
+ *
+ * Zero renders as "0%", matching Cursor's own Members page. An earlier
+ * revision suppressed it on the theory that Cursor only omits percent
+ * fields on non-tiered teams (so a stored 0 meant "unreported") — live
+ * data falsified that: Cursor also omits them for zero-usage members on
+ * tiered Team plans, where its dashboard shows "0%". The "unreported"
+ * signal is the absence of the member's whole spend row (the caller's
+ * em-dash case), not a zero field inside one.
  */
-export function formatPoolPercent(percent: number): string | null {
-  if (percent <= 0) {
-    return null;
-  }
+export function formatPoolPercent(percent: number): string {
   return `${Math.round(percent)}%`;
 }

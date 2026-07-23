@@ -11,7 +11,7 @@ import { RetireConfirm } from "./RetireConfirm.js";
 import { ModelGovernanceDetail } from "./ModelGovernanceDetail.js";
 import { OperatorAccessNotice } from "./OperatorAccessNotice.js";
 import { GovernanceBadge, PendingOverrideCard, RateCell } from "./governance-primitives.js";
-import { INPUT_CLASSES } from "./form-primitives.js";
+import { INPUT_CLASSES } from "../internal/form-primitives.js";
 import { ZERO } from "./pricing-format.js";
 import { useDecidePricingOverride } from "./useDecidePricingOverride.js";
 import { useRetireModelPricingBaseline } from "./useRetireModelPricingBaseline.js";

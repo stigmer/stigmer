@@ -271,209 +271,6 @@ return pricing.entries.map(entry => (
 ```
 
 
-### useDecidePricingOverride
-
-Behavior hook for deciding PENDING_SIGNOFF pricing overrides from the
-pricing feedback loop.
-
-Wraps `billing.decideModelPricingOverride` with loading and error
-state. On approval the platform recomposes the effective registry
-immediately, so the parent should refetch its governance view after a
-successful decision.
-
-**Signature**
-
-```tsx
-function useDecidePricingOverride(): UseDecidePricingOverrideReturn
-```
-
-**Returns** — `UseDecidePricingOverrideReturn`
-
-<TypeTable
-  type={{
-    clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    decide: { type: "(input: DecidePricingOverrideInput) => Promise<ModelPricingOverride>", description: "Decide a pending pricing override. Returns the decided override with the operator's identity stamped." },
-    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
-    isSubmitting: { type: "boolean", description: "`true` while a decision is being recorded." },
-  }}
-/>
-
-```tsx
-const { decide, isSubmitting } = useDecidePricingOverride();
-
-await decide({ overrideId, approve: true, decisionNote: "Verified vs ledger" });
-refetchGovernance();
-```
-
-
-### useModelGovernanceView
-
-Behavior hook backing the pricing-governance console: joins the model
-registry baseline catalog ([`useModelPricingBaselines`](#usemodelpricingbaselines), with
-history) and the governance view ([`usePricingGovernance`](#usepricinggovernance)) into
-one row per catalog key, and owns the console's search and
-list/create/detail flow state.
-
-The two RPCs describe the same models from different angles — the
-catalog is what operators author, governance is what the pricing
-feedback loop composed on top — so the console renders them as one
-surface instead of two parallel tables. Per-variant governance
-entries fold into their model's row rather than appearing as
-top-level rows.
-
-Platform-operator surface: the caller needs `can_manage_model_pricing`
-on `platform:stigmer`; rates are raw provider prices (pre-markup).
-
-**Signature**
-
-```tsx
-function useModelGovernanceView(): UseModelGovernanceViewReturn
-```
-
-**Returns** — `UseModelGovernanceViewReturn`
-
-<TypeTable
-  type={{
-    backToDetail: { type: "() => void", description: "Leave edit/retire back to the read-only detail." },
-    backToList: { type: "() => void", description: "Return to the model list." },
-    error: { type: "Error | null", description: "First error from the underlying fetches, or `null` when healthy." },
-    flow: { type: "GovernanceFlow", description: "Current console flow state.", typeDescriptionLink: "#governanceflow" },
-    isLoading: { type: "boolean", description: "`true` while either underlying fetch is in its initial load." },
-    modelQuery: { type: "string", description: "Current search text over the model list." },
-    models: { type: "readonly ModelGovernanceRow[]", description: "Unified model rows, filtered by modelQuery, sorted by display name." },
-    openCreate: { type: "() => void", description: "Open the add-model editor." },
-    openDetail: { type: "(modelKey: string) => void", description: "Focus one model (read-only detail)." },
-    openEdit: { type: "() => void", description: "Switch the focused model into the edit form." },
-    openRetire: { type: "() => void", description: "Switch the focused model into the retire confirmation." },
-    pendingCount: { type: "number", description: "Unfiltered pending-override count (for the Sign-Offs tab badge)." },
-    pendingOverrides: { type: "readonly ModelPricingOverride[]", description: "PENDING_SIGNOFF overrides, filtered by signOffQuery, oldest first as served." },
-    refetch: { type: "() => void", description: "Re-fetch both the catalog and the governance view." },
-    selected: { type: "ModelGovernanceRow | null", description: "The focused model when flow is in the detail phase, else `null`." },
-    setModelQuery: { type: "(query: string) => void", description: "Set the model-list search text." },
-    setSignOffQuery: { type: "(query: string) => void", description: "Set the sign-off search text." },
-    signOffQuery: { type: "string", description: "Current search text over the sign-off queue." },
-  }}
-/>
-
-```tsx
-const view = useModelGovernanceView();
-return view.models.map((row) => <ModelRow key={row.key} row={row} />);
-```
-
-
-### useModelPricingBaselines
-
-Data hook that fetches the model registry baseline catalog: the
-operator-governed catalog entries and list prices that (composed with
-any ledger-derived overrides) form the effective registry.
-
-Platform-operator surface: the caller needs `can_manage_model_pricing`
-on `platform:stigmer`, and the rates are raw provider prices
-(pre-markup) — never render them as customer prices.
-
-**Signature**
-
-```tsx
-function useModelPricingBaselines(options?: UseModelPricingBaselinesOptions): UseModelPricingBaselinesReturn
-```
-
-<TypeTable
-  type={{
-    options: { type: "UseModelPricingBaselinesOptions", description: "" },
-  }}
-/>
-
-**Returns** — `UseModelPricingBaselinesReturn`
-
-<TypeTable
-  type={{
-    baselines: { type: "readonly ModelPricingBaseline[] | null", description: "The catalog entries, or `null` before the first successful fetch." },
-    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
-    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
-    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
-    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
-  }}
-/>
-
-```tsx
-const { baselines, isLoading, refetch } = useModelPricingBaselines();
-```
-
-
-### usePricingGovernance
-
-Data hook that fetches the platform pricing governance view: every
-model's baseline vs effective rates, the ACTIVE pricing overrides
-composed into them (with full ledger provenance), and the
-PENDING_SIGNOFF proposals awaiting an operator decision.
-
-Platform-operator surface: the caller needs `can_manage_model_pricing`
-on `platform:stigmer`, and the rates are raw provider prices
-(pre-markup) — never render them as customer prices.
-
-Pass `enabled: false` to skip fetching (stable no-op) — e.g. while the
-caller's operator capability is still resolving.
-
-**Signature**
-
-```tsx
-function usePricingGovernance(options?: { enabled?: boolean }): UsePricingGovernanceReturn
-```
-
-<TypeTable
-  type={{
-    options: { type: "{ enabled?: boolean }", description: "" },
-  }}
-/>
-
-**Returns** — `UsePricingGovernanceReturn`
-
-<TypeTable
-  type={{
-    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
-    governance: { type: "ModelPricingGovernanceResponse | null", description: "The governance view, or `null` before the first successful fetch." },
-    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight." },
-    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
-    refetch: { type: "() => void", description: "Discard cached data and re-fetch from the server." },
-  }}
-/>
-
-```tsx
-const { governance, isLoading, refetch } = usePricingGovernance();
-
-if (isLoading) return <Skeleton />;
-return <PricingGovernancePanel />;
-```
-
-
-### useRetireModelPricingBaseline
-
-Behavior hook for retiring models from the registry catalog.
-
-Wraps `billing.retireModelPricingBaseline` with loading and error
-state. Retirement removes the model from every price surface on the
-next composition pass; the document is kept for audit and the key can
-be revived by a subsequent upsert. The parent should refetch its
-catalog view after a successful retirement.
-
-**Signature**
-
-```tsx
-function useRetireModelPricingBaseline(): UseRetireModelPricingBaselineReturn
-```
-
-**Returns** — `UseRetireModelPricingBaselineReturn`
-
-<TypeTable
-  type={{
-    clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
-    isSubmitting: { type: "boolean", description: "`true` while a retirement is being recorded." },
-    retire: { type: "(input: RetireModelPricingBaselineInput) => Promise<ModelPricingBaseline>", description: "Retire a model from the catalog. Returns the RETIRED document." },
-  }}
-/>
-
-
 ### useSetAutoRechargeConfig
 
 Behavior hook for configuring auto-recharge settings.
@@ -510,35 +307,6 @@ await setConfig({
   monthlyCapMicros: BigInt(200_000_000),
 });
 ```
-
-
-### useUpsertModelPricingBaseline
-
-Behavior hook for creating or revising model registry baseline entries.
-
-Wraps `billing.upsertModelPricingBaseline` with loading and error
-state. The platform recomposes the effective registry immediately, so
-the parent should refetch its catalog view after a successful upsert.
-
-A concurrent-edit conflict surfaces as an ABORTED error telling the
-operator to reload and re-apply — render it, don't retry silently.
-
-**Signature**
-
-```tsx
-function useUpsertModelPricingBaseline(): UseUpsertModelPricingBaselineReturn
-```
-
-**Returns** — `UseUpsertModelPricingBaselineReturn`
-
-<TypeTable
-  type={{
-    clearError: { type: "() => void", description: "Reset `error` to `null`." },
-    error: { type: "Error | null", description: "Error from the last failed attempt, or `null` when healthy." },
-    isSubmitting: { type: "boolean", description: "`true` while a revision is being written." },
-    upsert: { type: "(input: UpsertModelPricingBaselineInput) => Promise<ModelPricingBaseline>", description: "Create or revise a baseline entry. Returns the new revision with server-stamped lifecycle fields." },
-  }}
-/>
 
 
 ## Components
@@ -704,36 +472,6 @@ it reflects a real account state that the user should address.
 ```
 
 
-### ModelCatalogPanel
-
-Platform-operator panel for authoring the model registry baseline:
-the catalog list with revision history, an add/edit form with an
-explicit old-to-new rate confirmation, and typed-confirmation
-retirement (DD-004 — this replaces hand edits of
-`model-registry.json`).
-
-Prefer [`PricingGovernanceConsole`](#pricinggovernanceconsole) for new surfaces — it
-composes this catalog with the governance view into one tabbed
-console. This standalone panel remains for consumers embedding just
-the catalog editor.
-
-Requires `can_manage_model_pricing` on `platform:stigmer` — render it
-only in operator-scoped surfaces. Rates are raw provider prices
-(pre-markup), not customer prices.
-
-**Props** — `ModelCatalogPanelProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names." },
-  }}
-/>
-
-```tsx
-<ModelCatalogPanel />
-```
-
-
 ### PaymentMethodCard
 
 Displays the saved payment method with a button to open the
@@ -762,67 +500,6 @@ add, update, or remove payment methods.
   accountStatus={account.status}
   onManage={() => openPortal(orgId)}
 />
-```
-
-
-### PricingGovernanceConsole
-
-The platform-operator pricing console: a tabbed surface over the
-model registry baseline and the pricing feedback loop.
-
-- **Models** — every catalog entry joined with its governance state
-  (effective vs baseline rates, ledger verification), searchable.
-  Selecting a row opens a read-only detail record; editing (with an
-  explicit old→new rate confirmation) and typed-confirmation
-  retirement are deliberate steps from there.
-- **Sign-Offs** — pricing overrides proposed by reconciliation and
-  awaiting a human decision, searchable; the tab badge shows the
-  pending count from anywhere in the console.
-
-Requires `can_manage_model_pricing` on `platform:stigmer` — render it
-only in operator-scoped surfaces (non-operators see the designed
-access notice). Rates shown are raw provider prices (pre-markup),
-not customer prices.
-
-**Props** — `PricingGovernanceConsoleProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names." },
-    defaultTab: { type: "PricingGovernanceTab", description: "The tab shown on first render. Defaults to `\"models\"`.  Read once at mount, like a form field's `defaultValue` — changing it afterwards has no effect, and the user's tab choice stays local (the console never writes it back anywhere). Wire it from routing to make the tab URL-addressable:  ```tsx // e.g. honoring a ?tab=sign-offs deep link const tab = new URLSearchParams(window.location.search).get(\"tab\"); <PricingGovernanceConsole   defaultTab={tab === \"sign-offs\" ? \"sign-offs\" : undefined} /> ```", typeDescriptionLink: "#pricinggovernancetab" },
-  }}
-/>
-
-```tsx
-<PricingGovernanceConsole />
-```
-
-
-### PricingGovernancePanel
-
-Platform-operator panel for the pricing feedback loop: pending
-override sign-offs (approve/reject) and the effective-vs-baseline
-pricing state of every model.
-
-Prefer [`PricingGovernanceConsole`](#pricinggovernanceconsole) for new surfaces — it
-composes this panel's content with the model catalog into one tabbed
-console. This standalone panel remains for consumers embedding just
-the governance view.
-
-Requires `can_manage_model_pricing` on `platform:stigmer` — render it
-only in operator-scoped surfaces. Rates shown are raw provider prices
-(pre-markup), not customer prices.
-
-**Props** — `PricingGovernancePanelProps`
-
-<TypeTable
-  type={{
-    className: { type: "string", description: "Additional CSS class names." },
-  }}
-/>
-
-```tsx
-<PricingGovernancePanel />
 ```
 
 
@@ -861,19 +538,6 @@ Metadata for a self-serve credit pack.
     displayName: { type: "string", description: "Display name shown in the UI.", required: true },
     packId: { type: "string", description: "Stable identifier matching the backend catalog (e.g., \"starter\").", required: true },
     priceCents: { type: "number", description: "Price in USD cents (e.g., 1000 = $10.00).", required: true },
-  }}
-/>
-
-
-### DecidePricingOverrideInput
-
-Input for [`useDecidePricingOverride`](#usedecidepricingoverride).
-
-<TypeTable
-  type={{
-    approve: { type: "boolean", description: "`true` approves (the override becomes ACTIVE and supersedes any current ACTIVE override on the same pricing key); `false` rejects.", required: true },
-    decisionNote: { type: "string", description: "Optional note recorded on the decision for the audit trail." },
-    overrideId: { type: "string", description: "The PENDING_SIGNOFF override to decide.", required: true },
   }}
 />
 
@@ -932,13 +596,6 @@ function formatPackPrice(cents: number): string
 ```
 
 
-### GovernanceFlow
-
-Where the operator is in the console: browsing the model list,
-creating a new catalog entry, or focused on one model (viewing,
-editing, or retiring it).
-
-
 ### isCredit
 
 Whether a ledger entry type represents a credit (positive amount).
@@ -972,48 +629,6 @@ function ledgerEntryLabel(type: LedgerEntryType): string
 ```
 
 
-### ModelGovernanceRow
-
-One model in the unified governance view: the ACTIVE catalog baseline
-joined with its effective-registry governance state and its
-append-only revision history.
-
-<TypeTable
-  type={{
-    baseline: { type: "ModelPricingBaseline", description: "The ACTIVE baseline revision (catalog fields + list rates).", required: true },
-    governance: { type: "ModelPricingGovernanceEntry | null", description: "The base-variant governance entry (baseline vs effective rates, active overrides, ledger reconcilability), or `null` when the governance view has no entry for this key — the row then renders baseline rates with no governance state.", required: true },
-    history: { type: "readonly ModelPricingBaseline[]", description: "SUPERSEDED / RETIRED revisions, newest first as served.", required: true },
-    key: { type: "string", description: "Stable identity: `modelId|provider|harness` (the catalog key).", required: true },
-    variantGovernance: { type: "readonly ModelPricingGovernanceEntry[]", description: "Governance entries for this model's named pricing variants.", required: true },
-  }}
-/>
-
-
-### PricingGovernanceTab
-
-Tab ids of [`PricingGovernanceConsole`](#pricinggovernanceconsole), accepted by
-`PricingGovernanceConsoleProps.defaultTab`.
-
-These ids are deep-link targets: consumers wire them from their own
-routing (e.g. a `?tab=sign-offs` query param), and external surfaces
-compose URLs against them. Renaming a member is a breaking change to
-every link in the wild, not just to this component's props.
-
-
-### RetireModelPricingBaselineInput
-
-Input for [`useRetireModelPricingBaseline`](#useretiremodelpricingbaseline).
-
-<TypeTable
-  type={{
-    harness: { type: "string", description: "", required: true },
-    modelId: { type: "string", description: "", required: true },
-    provider: { type: "string", description: "", required: true },
-    revisionNote: { type: "string", description: "Optional operator note recorded on the retirement." },
-  }}
-/>
-
-
 ### SetAutoRechargeConfigInput
 
 Input for [`useSetAutoRechargeConfig`](#usesetautorechargeconfig).
@@ -1029,18 +644,6 @@ Input for [`useSetAutoRechargeConfig`](#usesetautorechargeconfig).
 />
 
 
-### UpsertModelPricingBaselineInput
-
-Input for [`useUpsertModelPricingBaseline`](#useupsertmodelpricingbaseline).
-
-<TypeTable
-  type={{
-    baseline: { type: "ModelPricingBaseline", description: "The baseline entry to create or revise, keyed by (modelId, provider, harness). Lifecycle fields (baselineId, status, decision stamps, pricing effectiveAt) are server-owned and ignored.", required: true },
-    revisionNote: { type: "string", description: "Optional operator note recorded on the revision for the audit trail." },
-  }}
-/>
-
-
 ### UseCreditLedgerOptions
 
 Options for [`useCreditLedger`](#usecreditledger).
@@ -1051,18 +654,6 @@ Options for [`useCreditLedger`](#usecreditledger).
     pageSize: { type: "number", description: "Page size. Defaults to 20." },
     typeFilter: { type: "LedgerEntryType[]", description: "Filter to specific ledger entry types. Empty means all types." },
     view: { type: "LedgerView", description: "Server-resolved ledger slice. When set to `LedgerView.statement`, the server returns only customer-facing money-movement entry types and excludes internal mechanics (per-call usage debits, reservation holds/releases). Defaults to the full ledger." },
-  }}
-/>
-
-
-### UseModelPricingBaselinesOptions
-
-Options for [`useModelPricingBaselines`](#usemodelpricingbaselines).
-
-<TypeTable
-  type={{
-    enabled: { type: "boolean", description: "Pass `false` to skip fetching (stable no-op)." },
-    includeHistory: { type: "boolean", description: "When `true`, includes SUPERSEDED and RETIRED revisions (the full append-only audit history). Default: ACTIVE entries only." },
   }}
 />
 

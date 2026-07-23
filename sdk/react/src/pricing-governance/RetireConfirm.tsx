@@ -4,7 +4,7 @@ import { useState } from "react";
 import { getUserMessage } from "@stigmer/sdk";
 import type { ModelPricingBaseline } from "@stigmer/protos/ai/stigmer/billing/v1/model_pricing_baseline_pb";
 import { Button } from "../button/index.js";
-import { INPUT_CLASSES } from "./form-primitives.js";
+import { INPUT_CLASSES } from "../internal/form-primitives.js";
 
 // ---------------------------------------------------------------------------
 // RetireConfirm — typed confirmation for retiring a catalog entry (a

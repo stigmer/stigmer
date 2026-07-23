@@ -46,8 +46,8 @@
       "slug": "billing",
       "title": "Billing",
       "description": "Hooks and components for subscription plans, payment methods, and invoices.",
-      "hooks": 13,
-      "components": 10
+      "hooks": 7,
+      "components": 7
     },
     {
       "slug": "button",
@@ -76,13 +76,6 @@
       "description": "The unified message input with model selection, workspace, and attachments.",
       "hooks": 1,
       "components": 1
-    },
-    {
-      "slug": "cursor-accounts",
-      "title": "cursor-accounts",
-      "description": "",
-      "hooks": 6,
-      "components": 3
     },
     {
       "slug": "dashboard",

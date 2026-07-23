@@ -1,3 +1,8 @@
+// Billing — the customer-facing surface: subscription plans, credit
+// balance and ledger, payment methods, usage reports, and customer model
+// pricing. The platform-operator pricing surface (registry baseline
+// authoring, override sign-offs) lives in ../pricing-governance.
+
 // Data hooks
 export { useBillingAccount } from "./useBillingAccount.js";
 export type { UseBillingAccountReturn } from "./useBillingAccount.js";
@@ -7,19 +12,6 @@ export { useBillingUsageReport } from "./useBillingUsageReport.js";
 export type { UseBillingUsageReportReturn } from "./useBillingUsageReport.js";
 export { useCustomerModelPricing } from "./useCustomerModelPricing.js";
 export type { UseCustomerModelPricingReturn } from "./useCustomerModelPricing.js";
-export { usePricingGovernance } from "./usePricingGovernance.js";
-export type { UsePricingGovernanceReturn } from "./usePricingGovernance.js";
-export { useModelPricingBaselines } from "./useModelPricingBaselines.js";
-export type {
-  UseModelPricingBaselinesOptions,
-  UseModelPricingBaselinesReturn,
-} from "./useModelPricingBaselines.js";
-export { useModelGovernanceView } from "./useModelGovernanceView.js";
-export type {
-  GovernanceFlow,
-  ModelGovernanceRow,
-  UseModelGovernanceViewReturn,
-} from "./useModelGovernanceView.js";
 
 // Behavior hooks
 export { useCreateCheckoutSession } from "./useCreateCheckoutSession.js";
@@ -34,21 +26,6 @@ export type {
   SetAutoRechargeConfigInput,
   UseSetAutoRechargeConfigReturn,
 } from "./useSetAutoRechargeConfig.js";
-export { useDecidePricingOverride } from "./useDecidePricingOverride.js";
-export type {
-  DecidePricingOverrideInput,
-  UseDecidePricingOverrideReturn,
-} from "./useDecidePricingOverride.js";
-export { useUpsertModelPricingBaseline } from "./useUpsertModelPricingBaseline.js";
-export type {
-  UpsertModelPricingBaselineInput,
-  UseUpsertModelPricingBaselineReturn,
-} from "./useUpsertModelPricingBaseline.js";
-export { useRetireModelPricingBaseline } from "./useRetireModelPricingBaseline.js";
-export type {
-  RetireModelPricingBaselineInput,
-  UseRetireModelPricingBaselineReturn,
-} from "./useRetireModelPricingBaseline.js";
 
 // Styled components
 export { BillingSection } from "./BillingSection.js";
@@ -65,15 +42,6 @@ export { CreditLedgerTable } from "./CreditLedgerTable.js";
 export type { CreditLedgerTableProps } from "./CreditLedgerTable.js";
 export { LowBalanceBanner } from "./LowBalanceBanner.js";
 export type { LowBalanceBannerProps } from "./LowBalanceBanner.js";
-export { PricingGovernancePanel } from "./PricingGovernancePanel.js";
-export type { PricingGovernancePanelProps } from "./PricingGovernancePanel.js";
-export { ModelCatalogPanel } from "./ModelCatalogPanel.js";
-export type { ModelCatalogPanelProps } from "./ModelCatalogPanel.js";
-export { PricingGovernanceConsole } from "./PricingGovernanceConsole.js";
-export type {
-  PricingGovernanceConsoleProps,
-  PricingGovernanceTab,
-} from "./PricingGovernanceConsole.js";
 
 // Credit pack catalog and formatting utilities
 export { CREDIT_PACKS, formatPackPrice, formatCreditCount } from "./credit-packs.js";

@@ -3,12 +3,12 @@
 import { cn } from "@stigmer/theme";
 
 // ---------------------------------------------------------------------------
-// Shared form primitives for the operator pricing surfaces (BaselineEditor,
-// RetireConfirm, the console's search inputs). Internal — not exported
-// from the billing barrel.
+// Shared form primitives for the operator consoles (pricing-governance
+// editors and search inputs, cursor-accounts editor and key forms).
+// Internal — never exported from the package barrel.
 // ---------------------------------------------------------------------------
 
-/** Standard text-input styling for the pricing surfaces. */
+/** Standard text-input styling for the operator consoles. */
 export const INPUT_CLASSES = cn(
   "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
   "placeholder:text-muted-foreground",
@@ -36,33 +36,5 @@ export function Field({
       </span>
       {children}
     </label>
-  );
-}
-
-/** Dollar-rate input field (decimal keypad, "$ per million tokens"). */
-export function RateField({
-  label,
-  value,
-  placeholder,
-  disabled,
-  onChange,
-}: {
-  readonly label: string;
-  readonly value: string;
-  readonly placeholder?: string;
-  readonly disabled: boolean;
-  readonly onChange: (value: string) => void;
-}) {
-  return (
-    <Field label={label}>
-      <input
-        className={INPUT_CLASSES}
-        inputMode="decimal"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder ?? "0.00"}
-        disabled={disabled}
-      />
-    </Field>
   );
 }

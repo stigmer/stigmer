@@ -9,7 +9,7 @@ import {
   type CursorAccount,
 } from "@stigmer/protos/ai/stigmer/platform/cursoraccount/v1/cursor_account_pb";
 import { Button } from "../button/index.js";
-import { Field, INPUT_CLASSES } from "../billing/form-primitives.js";
+import { Field, INPUT_CLASSES } from "../internal/form-primitives.js";
 
 /**
  * The redaction marker the server uses for stored secrets. Sending it
