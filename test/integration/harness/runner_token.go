@@ -76,6 +76,18 @@ func MintSandboxToken(sub, sessionID string) (string, error) {
 		})
 }
 
+// MintTokenOfType signs a Stigmer JWT carrying only the given token_type
+// claim (e.g. "embedded_runner", "guest", "channel"). The record RPCs'
+// reach layer dispatches on token_type alone, so this is all a test needs
+// to exercise the credential classes that must be refused; the enricher
+// tolerates the absent scope claims (they stay null and fail closed).
+func MintTokenOfType(sub, tokenType string) (string, error) {
+	return mintStigmerToken(StigmerJWTSigningKeyBase64, "stigmer-signing-key-1", sub, "",
+		map[string]any{
+			"token_type": tokenType,
+		})
+}
+
 // mintStigmerToken is the shared signing core: base claims (iss/sub/org/exp)
 // plus an optional audience and arbitrary extra claims.
 func mintStigmerToken(keyBase64, kid, sub, audience string, extraClaims map[string]any) (string, error) {

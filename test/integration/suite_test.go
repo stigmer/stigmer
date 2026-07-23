@@ -96,6 +96,16 @@ func TestMain(m *testing.M) {
 		suiteLogger.Info("MinIO enabled for Java service", "endpoint", svcCfg.MinIOEndpoint)
 	}
 
+	if testHarness.Postgres != nil {
+		svcCfg.RecordsPGHost = testHarness.Postgres.Host
+		svcCfg.RecordsPGPort = testHarness.Postgres.Port
+		svcCfg.RecordsPGDatabase = testHarness.Postgres.Database
+		svcCfg.RecordsPGUser = testHarness.Postgres.User
+		svcCfg.RecordsPGPassword = testHarness.Postgres.Password
+		suiteLogger.Info("records Postgres enabled for Java service",
+			"host", svcCfg.RecordsPGHost, "port", svcCfg.RecordsPGPort)
+	}
+
 	svc, err := harness.StartJavaService(ctx, svcCfg, suiteLogger)
 	if err != nil {
 		suiteLogger.Error("failed to start java service", "error", err)
