@@ -1,6 +1,7 @@
 "use client";
 
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge.js";
 import { TodoList } from "./TodoList.js";
@@ -47,10 +48,19 @@ export function ExecutionProgress({
   if (phase === undefined) return null;
 
   const todos = execution.status?.todos;
-  // Populated by the server only on EXECUTION_FAILED — surface it next to the
-  // badge so this widget explains a failure rather than showing a bare phase
-  // (consistent with the failure reason in the message thread).
-  const error = execution.status?.error;
+  // Populated by the server on EXECUTION_FAILED and EXECUTION_TERMINATED —
+  // surface it next to the badge so this widget explains a failure rather
+  // than showing a bare phase (consistent with the message thread).
+  //
+  // CANCELLED is carved out: cancel is a quiet terminal state, not a failure
+  // (stigmer#282). A CANCELLED execution can still carry a non-empty error —
+  // cancel preserves a preexisting error by design, and an older server may
+  // have written a cancellation sentinel — so the phase, not the error field,
+  // decides whether to render the alert. The muted Cancelled badge suffices.
+  const error =
+    phase === ExecutionPhase.EXECUTION_CANCELLED
+      ? undefined
+      : execution.status?.error;
 
   return (
     <div

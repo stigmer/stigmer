@@ -51,6 +51,23 @@ func TestAgentExecution_Cancel(t *testing.T) {
 				agentexecv1.ExecutionPhase_EXECUTION_CANCELLED, 2*time.Minute)
 			require.NoError(t, err, "execution should reach CANCELLED")
 			harness.AssertAgentPhase(t, result, agentexecv1.ExecutionPhase_EXECUTION_CANCELLED)
+
+			// Quiet cancelled contract (stigmer#282): a user-initiated cancel is
+			// not a failure, so status.error must stay empty. The cancel RPC
+			// persists CANCELLED synchronously, but the Temporal workflow's
+			// cancellation cleanup writes asynchronously afterwards — re-fetch
+			// after a settle window so a regression in that async writer (the
+			// old "Execution cancelled" sentinel) is caught end-to-end.
+			require.Empty(t, result.GetStatus().GetError(),
+				"cancelled execution must not carry an error")
+
+			time.Sleep(10 * time.Second)
+			settled, err := clients.AgentExecutionQuery.Get(ctx,
+				&agentexecv1.AgentExecutionId{Value: exec.GetMetadata().GetId()})
+			require.NoError(t, err, "execution should be fetchable after cancellation cleanup")
+			harness.AssertAgentPhase(t, settled, agentexecv1.ExecutionPhase_EXECUTION_CANCELLED)
+			require.Empty(t, settled.GetStatus().GetError(),
+				"cancellation cleanup must not write an error sentinel")
 		})
 	}
 }

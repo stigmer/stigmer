@@ -604,6 +604,50 @@ describe("MessageThread", () => {
     expect(screen.queryByText(/stale error/i)).toBeNull();
   });
 
+  // Cancelled is a quiet terminal state (stigmer#282): a user-initiated Stop
+  // must never render as a failure. A CANCELLED execution can legitimately
+  // carry a non-empty status.error — cancel preserves a preexisting error by
+  // design, and pre-fix servers wrote an "Execution cancelled" sentinel — so
+  // the phase, not the error field, decides whether the loud banner renders.
+  it("renders a CANCELLED execution quietly even when it carries a legacy error sentinel", () => {
+    const exec = makeExecution({
+      id: "exec-cancelled",
+      specMessage: "do the thing",
+      phase: ExecutionPhase.EXECUTION_CANCELLED,
+      error: "Execution cancelled",
+    });
+    const onRetryExecution = vi.fn();
+
+    render(
+      <MessageThread executions={[exec]} onRetryExecution={onRetryExecution} />,
+    );
+
+    // The muted phase badge is the visible cancelled state.
+    expect(screen.getByText(/cancelled/i)).toBeTruthy();
+
+    // No destructive banner, no error text, no Retry.
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByText("Execution cancelled")).toBeNull();
+    expect(screen.queryByRole("button", { name: /retry/i })).toBeNull();
+  });
+
+  it("renders a CANCELLED execution with a preserved prior error quietly", () => {
+    const exec = makeExecution({
+      id: "exec-cancelled-preserved",
+      phase: ExecutionPhase.EXECUTION_CANCELLED,
+      error: "Execution interrupted: agent was unresponsive. Retry or resume.",
+    });
+
+    render(<MessageThread executions={[exec]} />);
+
+    expect(screen.getByText(/cancelled/i)).toBeTruthy();
+    // Neither the loud alert framing nor the neutral interrupted/Resume
+    // framing may appear — the preserved error stays out of the transcript.
+    expect(screen.queryByText(/Execution interrupted/i)).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("button", { name: /resume/i })).toBeNull();
+  });
+
   it("offers a Retry that resends the originating message on failure", () => {
     const exec = makeExecution({
       id: "exec-retry",

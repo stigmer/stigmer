@@ -941,12 +941,20 @@ export function buildThreadItems(
       key: `phase-${lastPhase}`,
     });
 
-    // The server populates `status.error` only on EXECUTION_FAILED. Surface it
+    // The server populates `status.error` on EXECUTION_FAILED and
+    // EXECUTION_TERMINATED — never on a user-initiated cancel. Surface it
     // beside the badge so a failure that produced no messages still explains
     // itself (the CLI shows this reason; the chat previously showed nothing).
     // Kept as its own item so the badge component stays presentational.
+    //
+    // CANCELLED is carved out: cancel is a quiet terminal state, not a failure
+    // (stigmer#282). A CANCELLED execution can still carry a non-empty error —
+    // cancel preserves a preexisting error by design (merge semantics), and an
+    // older server may have written a "Execution cancelled" sentinel — so the
+    // phase, not the error field, decides whether to render the loud banner.
+    // The muted Cancelled phase badge above remains the visible state.
     const reason = lastExec?.status?.error;
-    if (reason) {
+    if (reason && lastPhase !== ExecutionPhase.EXECUTION_CANCELLED) {
       const specMessage = lastExec?.spec?.message;
       // A failed build turn offers no inline Retry: resending its label as an
       // ordinary message would drop the buildFromPlan flag (no runner

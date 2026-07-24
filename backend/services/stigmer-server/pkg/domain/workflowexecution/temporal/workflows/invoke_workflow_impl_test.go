@@ -341,6 +341,45 @@ func TestChildWorkflow_RecoveryModeAccepted(t *testing.T) {
 	env.AssertExpectations(t)
 }
 
+// TestCancellationStatusIsQuiet pins the quiet-cancelled contract
+// (stigmer#282): the status persisted on cancellation is EXECUTION_CANCELLED
+// with NO error — cancel is a quiet terminal state, not a failure. A
+// regression that reintroduces a "Workflow execution cancelled" error
+// sentinel would make clients render a user-initiated stop as a failure.
+//
+// The full cancel path (external cancel → handleCancellation) cannot run in
+// the test env — ParentClosePolicy REQUEST_CANCEL panics on a closed child
+// dispatcher (see the skipped TestChildWorkflow_CancellationCleanup) — so
+// this exercises updateStatusOnCancellation directly via a wrapper workflow,
+// the same pattern TestVersioning_V0FallsBackToActivity uses. The cancel
+// path itself is validated by integration tests against a real server.
+func TestCancellationStatusIsQuiet(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	registerWfExecCommonMocks(env)
+
+	// The mock only matches a CANCELLED status carrying no error; a sentinel
+	// regression would leave the activity unmatched and fail the assertion.
+	env.OnActivity(stubUpdateWfExecStatus, mock.Anything, mock.MatchedBy(func(status *workflowexecutionv1.WorkflowExecutionStatus) bool {
+		return status.GetPhase() == workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED &&
+			status.GetError() == ""
+	})).Return(nil).Once()
+
+	testWorkflow := func(ctx workflow.Context, executionID string) error {
+		impl := &InvokeWorkflowExecutionWorkflowImpl{}
+		impl.updateStatusOnCancellation(ctx, executionID)
+		return nil
+	}
+	env.RegisterWorkflow(testWorkflow)
+
+	env.ExecuteWorkflow(testWorkflow, "exec-cancel-quiet-1")
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.NoError(t, env.GetWorkflowError())
+	env.AssertExpectations(t)
+}
+
 func TestVersioning_V0FallsBackToActivity(t *testing.T) {
 	s := testsuite.WorkflowTestSuite{}
 	env := s.NewTestWorkflowEnvironment()

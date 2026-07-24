@@ -45,10 +45,22 @@ func stubCompleteExternalActivity(_ []byte, _ *agentexecutionv1.AgentExecution, 
 	return nil
 }
 
+// persistedStatuses records every status the workflow passes to the
+// UpdateExecutionStatus activity, so tests can assert on what was persisted
+// (e.g. the cancellation cleanup write). Capturing here is mandatory: testify
+// matches the FIRST registered expectation for an activity, so a later
+// per-test OnActivity override of UpdateExecutionStatus would silently never
+// run.
+type persistedStatuses struct {
+	statuses []*agentexecutionv1.AgentExecutionStatus
+}
+
 // registerCommonMocks sets up the activity mocks that every test needs:
 // EnsureThread, GenerateSessionSubject, deleteExecutionContext, and
 // the UpdateExecutionStatus local activity (used by persistFinalStatus).
-func registerCommonMocks(env *testsuite.TestWorkflowEnvironment, threadID string) {
+// Returns a recorder of every persisted status; tests that don't need it
+// simply ignore the return value.
+func registerCommonMocks(env *testsuite.TestWorkflowEnvironment, threadID string) *persistedStatuses {
 	env.RegisterActivityWithOptions(stubEnsureThread, activity.RegisterOptions{
 		Name: activities.EnsureThreadActivityName,
 	})
@@ -77,8 +89,12 @@ func registerCommonMocks(env *testsuite.TestWorkflowEnvironment, threadID string
 	env.OnActivity(stubGenerateSessionSubject, mock.Anything).
 		Return(nil)
 
+	recorder := &persistedStatuses{}
 	env.OnActivity(stubUpdateExecutionStatus, mock.Anything, mock.Anything).
-		Return(nil).Maybe()
+		Return(func(_ string, st *agentexecutionv1.AgentExecutionStatus) error {
+			recorder.statuses = append(recorder.statuses, st)
+			return nil
+		}).Maybe()
 
 	env.OnActivity(stubDeleteExecutionContext, mock.Anything).
 		Return(nil).Maybe()
@@ -88,6 +104,8 @@ func registerCommonMocks(env *testsuite.TestWorkflowEnvironment, threadID string
 
 	env.OnActivity(stubCompleteExternalActivity, mock.Anything, mock.Anything, mock.Anything).
 		Return(nil).Maybe()
+
+	return recorder
 }
 
 func TestPauseSignalCancelsActivityAndWaitsForResume(t *testing.T) {
@@ -639,6 +657,63 @@ func TestRecoveryIsBoundedByMaxCycles(t *testing.T) {
 	require.Error(t, env.GetWorkflowError(), "exhausted recovery should surface the failure")
 	// Initial invocation + MaxRecoveryCycles re-invocations before giving up.
 	require.Equal(t, MaxRecoveryCycles+1, callCount)
+}
+
+// TestCancellationPersistsQuietCancelledStatus pins the quiet-cancelled
+// contract (stigmer#282): when the workflow is cancelled externally (user
+// Stop), the cleanup path persists EXECUTION_CANCELLED with NO error — cancel
+// is a quiet terminal state, not a failure — plus the muted MESSAGE_SYSTEM
+// transcript marker. A regression that reintroduces an "Execution cancelled"
+// error sentinel would make the UI render the stop as a red failure.
+func TestCancellationPersistsQuietCancelledStatus(t *testing.T) {
+	s := testsuite.WorkflowTestSuite{}
+	env := s.NewTestWorkflowEnvironment()
+
+	const threadID = "thread-cancel"
+	const executionID = "exec-cancel"
+	persisted := registerCommonMocks(env, threadID)
+
+	// The delayed CancelWorkflow below cancels the in-flight activity, so
+	// this completion result is never reached (in the test env, cancelled
+	// activities don't run the mock callback — see the pause tests).
+	env.OnActivity(stubExecuteDeepAgent, mock.Anything).
+		Return(runnerResult(agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED, ""), nil)
+
+	env.RegisterDelayedCallback(func() {
+		env.CancelWorkflow()
+	}, 0)
+
+	input := &InvokeAgentExecutionWorkflowInput{
+		ExecutionID: executionID,
+		SessionID:   "session-1",
+		AgentID:     "agent-1",
+	}
+
+	env.ExecuteWorkflow((&InvokeAgentExecutionWorkflowImpl{}).Run, input)
+
+	require.True(t, env.IsWorkflowCompleted())
+	require.Error(t, env.GetWorkflowError(), "external cancellation surfaces as a workflow error")
+
+	var cancelled []*agentexecutionv1.AgentExecutionStatus
+	for _, st := range persisted.statuses {
+		if st.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED {
+			cancelled = append(cancelled, st)
+		}
+	}
+	require.NotEmpty(t, cancelled, "cancellation cleanup must persist a CANCELLED status")
+
+	for _, st := range cancelled {
+		require.Empty(t, st.GetError(),
+			"CANCELLED status must not carry an error (cancel is a quiet terminal state)")
+		hasSystemMarker := false
+		for _, msg := range st.GetMessages() {
+			if msg.GetType() == agentexecutionv1.MessageType_MESSAGE_SYSTEM && msg.GetContent() == "Execution was cancelled." {
+				hasSystemMarker = true
+			}
+		}
+		require.True(t, hasSystemMarker,
+			"CANCELLED status must carry the system transcript marker")
+	}
 }
 
 func TestFailedActivityPropagatesError(t *testing.T) {
