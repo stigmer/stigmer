@@ -77,6 +77,18 @@ func TestNewSearchCriteria_FiltersNonSearchableKinds(t *testing.T) {
 		apiresourcekind.ApiResourceKind_session,         // Not searchable
 		apiresourcekind.ApiResourceKind_agent_execution, // Not searchable
 		apiresourcekind.ApiResourceKind_skill,
+		// environment and project are searchable: the CLI's search-backed
+		// `list environment` / `list project` depend on them passing this
+		// filter (a kind indexed on write but absent from SearchableKinds
+		// silently lists as empty — the defect class both entries fixed).
+		apiresourcekind.ApiResourceKind_environment,
+		apiresourcekind.ApiResourceKind_project,
+		// agent_channel and channel_app are not_search_indexed by design
+		// (connection config reached through the agent/org, not library
+		// artifacts); the CLI lists them via dedicated query RPCs. Their
+		// exclusion here is a contract, not an omission.
+		apiresourcekind.ApiResourceKind_agent_channel,
+		apiresourcekind.ApiResourceKind_channel_app,
 	}
 
 	criteria, err := NewSearchCriteria(kinds, "", "", false, false, 1, 20)
@@ -84,9 +96,9 @@ func TestNewSearchCriteria_FiltersNonSearchableKinds(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Should only contain agent and skill
-	if len(criteria.Kinds()) != 2 {
-		t.Errorf("expected 2 kinds after filtering, got %d", len(criteria.Kinds()))
+	// Should only contain agent, skill, environment, and project
+	if len(criteria.Kinds()) != 4 {
+		t.Errorf("expected 4 kinds after filtering, got %d", len(criteria.Kinds()))
 	}
 
 	kindsMap := make(map[apiresourcekind.ApiResourceKind]bool)
@@ -99,6 +111,18 @@ func TestNewSearchCriteria_FiltersNonSearchableKinds(t *testing.T) {
 	}
 	if !kindsMap[apiresourcekind.ApiResourceKind_skill] {
 		t.Error("expected skill kind to be present")
+	}
+	if !kindsMap[apiresourcekind.ApiResourceKind_environment] {
+		t.Error("expected environment kind to be present (search-backed list depends on it)")
+	}
+	if !kindsMap[apiresourcekind.ApiResourceKind_project] {
+		t.Error("expected project kind to be present (search-backed list depends on it)")
+	}
+	if kindsMap[apiresourcekind.ApiResourceKind_agent_channel] {
+		t.Error("expected agent_channel to be filtered out (not_search_indexed by design)")
+	}
+	if kindsMap[apiresourcekind.ApiResourceKind_channel_app] {
+		t.Error("expected channel_app to be filtered out (not_search_indexed by design)")
 	}
 }
 

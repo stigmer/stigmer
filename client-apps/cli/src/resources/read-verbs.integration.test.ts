@@ -7,12 +7,14 @@
 // to the right CLI exit code via classify().
 
 import { create, toJson } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError, type ConnectRouter } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
 import { AgentSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
+import { AgentChannelInstallState } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/status_pb";
 import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
@@ -73,24 +75,71 @@ const knownSearchResult = create(SearchResultSchema, {
   description: "reviews code",
 });
 
-// The three T07 cutover kinds — wired into get-bindings alongside this test.
+// The three T07 cutover kinds — wired into get-bindings and list alongside
+// this test. environment lists via the SearchService (it is search-indexed);
+// the two channel kinds list via their dedicated query RPCs.
 const knownEnvironment = create(EnvironmentSchema, {
   apiVersion: "agentic.stigmer.ai/v1",
   kind: "Environment",
   metadata: { name: "clinic-patient-db", slug: "clinic-patient-db", org: "acme", id: "env_1" },
 });
 
+const knownEnvironmentSearchResult = create(SearchResultSchema, {
+  kind: ApiResourceKind.environment,
+  id: "env_1",
+  name: "clinic-patient-db",
+  slug: "clinic-patient-db",
+  qualifiedSlug: "acme/clinic-patient-db",
+  org: "acme",
+  description: "clinic patient database credentials",
+});
+
+// Spec/status populated to exercise every AGENT_CHANNEL_TABLE column:
+// agent_ref, the provider oneof, install_state, and enabled.
 const knownChannel = create(AgentChannelSchema, {
   apiVersion: "agentic.stigmer.ai/v1",
   kind: "AgentChannel",
   metadata: { name: "clinic-patient-whatsapp", slug: "clinic-patient-whatsapp", org: "acme", id: "ach_1" },
-  spec: { enabled: true },
+  spec: {
+    enabled: true,
+    agentRef: { kind: ApiResourceKind.agent, org: "acme", slug: "clinic-assistant" },
+    providerConfig: { case: "whatsapp", value: { phoneNumberId: "106540352242922" } },
+  },
+  status: { installState: AgentChannelInstallState.installed },
 });
 
+// Secret fields carry the redaction marker, matching what the server's
+// RedactChannelApp pipeline returns on every list/get response.
 const knownChannelApp = create(ChannelAppSchema, {
   apiVersion: "agentic.stigmer.ai/v1",
   kind: "ChannelApp",
   metadata: { name: "clinic-meta-app", slug: "clinic-meta-app", org: "acme", id: "chapp_1" },
+  spec: {
+    providerConfig: {
+      case: "whatsapp",
+      value: {
+        appId: "108954",
+        appSecret: "***REDACTED***",
+        accessToken: "***REDACTED***",
+        verifyToken: "***REDACTED***",
+      },
+    },
+  },
+  status: { audit: { specAudit: { createdAt: timestampFromDate(new Date("2026-07-20T10:00:00Z")) } } },
+});
+
+// Second entry (slack arm) so the list tests cover both provider derivations
+// and the client-side --limit slice (listByOrg has no pagination).
+const secondChannelApp = create(ChannelAppSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "ChannelApp",
+  metadata: { name: "clinic-slack-app", slug: "clinic-slack-app", org: "acme", id: "chapp_2" },
+  spec: {
+    providerConfig: {
+      case: "slack",
+      value: { clientId: "12.34", clientSecret: "***REDACTED***", signingSecret: "***REDACTED***" },
+    },
+  },
 });
 
 let backend: Http2Server;
@@ -124,7 +173,14 @@ beforeAll(async () => {
       },
     });
     router.service(SearchService, {
-      search: () => ({ entries: [knownSearchResult], totalCount: 1, totalPages: 1 }),
+      // Kind-aware: search-backed list sends a single-kind query, so the
+      // environment arm proves the kind actually rode the request.
+      search: (req) => {
+        if (req.kinds.length === 1 && req.kinds[0] === ApiResourceKind.environment) {
+          return { entries: [knownEnvironmentSearchResult], totalCount: 1, totalPages: 1 };
+        }
+        return { entries: [knownSearchResult], totalCount: 1, totalPages: 1 };
+      },
     });
     router.service(OrganizationQueryController, {
       findMyOrganizations: () => ({ entries: [knownOrg] }),
@@ -151,6 +207,10 @@ beforeAll(async () => {
         if (req.slug !== "clinic-patient-whatsapp") throw new ConnectError("agent channel not found", Code.NotFound);
         return knownChannel;
       },
+      list: (req) => {
+        if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
+        return { totalCount: 1, items: [knownChannel] };
+      },
     });
     router.service(ChannelAppQueryController, {
       get: (req) => {
@@ -160,6 +220,10 @@ beforeAll(async () => {
       getByReference: (req) => {
         if (req.slug !== "clinic-meta-app") throw new ConnectError("channel app not found", Code.NotFound);
         return knownChannelApp;
+      },
+      listByOrg: (req) => {
+        if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
+        return { entries: [knownChannelApp, secondChannelApp] };
       },
     });
   };
@@ -323,5 +387,65 @@ describe("list integration", () => {
     expect(out).toContain("AGENT");
     expect(out).toContain("reviewer-default");
     expect(out).toContain("agt_1");
+  });
+
+  it("lists environments via the search service as JSON", async () => {
+    const out = await listResources(client, ApiResourceKind.environment, "acme", 50, "json");
+    expect(JSON.parse(out)).toEqual([
+      toJson(SearchResultSchema, knownEnvironmentSearchResult, { useProtoFieldName: true }),
+    ]);
+  });
+
+  it("renders a human table for environment lists", async () => {
+    const out = await listResources(client, ApiResourceKind.environment, "acme", 50, "table");
+    expect(out).toContain("NAME");
+    expect(out).toContain("acme/clinic-patient-db");
+  });
+
+  it("lists agent channels via the dedicated list RPC as JSON", async () => {
+    const out = await listResources(client, ApiResourceKind.agent_channel, "acme", 50, "json");
+    expect(JSON.parse(out)).toEqual([toJson(AgentChannelSchema, knownChannel, { useProtoFieldName: true })]);
+  });
+
+  it("renders a human table for agent channels with the serving signals", async () => {
+    const out = await listResources(client, ApiResourceKind.agent_channel, "acme", 50, "table");
+    expect(out).toContain("PROVIDER");
+    expect(out).toContain("STATE");
+    expect(out).toContain("ENABLED");
+    expect(out).toContain("acme/clinic-assistant"); // agent_ref as org/slug
+    expect(out).toContain("whatsapp"); // derived from the provider oneof
+    expect(out).toContain("installed"); // status.install_state
+    expect(out).toContain("true"); // spec.enabled
+  });
+
+  it("lists channel apps via listByOrg as JSON", async () => {
+    const out = await listResources(client, ApiResourceKind.channel_app, "acme", 50, "json");
+    expect(JSON.parse(out)).toEqual([
+      toJson(ChannelAppSchema, knownChannelApp, { useProtoFieldName: true }),
+      toJson(ChannelAppSchema, secondChannelApp, { useProtoFieldName: true }),
+    ]);
+  });
+
+  it("renders a human table for channel apps with provider and created date", async () => {
+    const out = await listResources(client, ApiResourceKind.channel_app, "acme", 50, "table");
+    expect(out).toContain("PROVIDER");
+    expect(out).toContain("whatsapp");
+    expect(out).toContain("slack");
+    expect(out).toContain("2026-07-20"); // status.audit.spec_audit.created_at
+    // Secrets never reach the table (redaction markers stay in json/yaml only).
+    expect(out).not.toContain("***REDACTED***");
+  });
+
+  it("applies --limit client-side for channel apps (listByOrg has no pagination)", async () => {
+    const out = await listResources(client, ApiResourceKind.channel_app, "acme", 1, "json");
+    expect(JSON.parse(out)).toEqual([toJson(ChannelAppSchema, knownChannelApp, { useProtoFieldName: true })]);
+  });
+
+  it("rejects a kind whose list is unwired with a usage error", async () => {
+    // agent_share declares List in the registry but has no list branch —
+    // the canonical still-unwired list kind (the three cutover kinds and
+    // environment gained branches).
+    const err = await listResources(client, ApiResourceKind.agent_share, "acme", 50, "json").catch((e) => e);
+    expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
   });
 });
