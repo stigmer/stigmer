@@ -131,6 +131,16 @@ export function linkTargetRelativePath(entry: string): string | null {
   return null;
 }
 
+/**
+ * Public URL of a page's markdown export, given its site-relative page URL.
+ * Mirrors the write layout in scripts/generate-llms-txt.ts: every page
+ * exports to `<url>.md`, except the docs root (relativePath "") which the
+ * writer lands at `docs/index.md` — `/docs.md` does not exist.
+ */
+export function markdownExportUrl(pageUrl: string): string {
+  return pageUrl === "/docs" ? "/docs/index.md" : `${pageUrl}.md`;
+}
+
 /** Turns a section label into a stable slug (e.g. "Tools & MCP" → "tools-mcp"). */
 function sectionSlug(label: string): string {
   return label

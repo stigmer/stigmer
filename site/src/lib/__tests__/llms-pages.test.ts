@@ -8,6 +8,7 @@ import {
   isLinkEntry,
   isSeparator,
   linkTargetRelativePath,
+  markdownExportUrl,
   separatorLabel,
 } from "../llms-pages";
 
@@ -67,6 +68,17 @@ describe("entry classification", () => {
     );
     expect(linkTargetRelativePath("[GitHub](https://github.com)")).toBeNull();
     expect(linkTargetRelativePath("[Pricing](/pricing)")).toBeNull();
+  });
+
+  it("maps page URLs to their markdown export URLs", () => {
+    expect(markdownExportUrl("/docs/concepts/agents")).toBe(
+      "/docs/concepts/agents.md",
+    );
+    // Folder index pages export beside their folder, not inside it.
+    expect(markdownExportUrl("/docs/sdk")).toBe("/docs/sdk.md");
+    // The docs root is the one exception: the writer lands it at
+    // docs/index.md, so /docs.md must never be linked.
+    expect(markdownExportUrl("/docs")).toBe("/docs/index.md");
   });
 });
 

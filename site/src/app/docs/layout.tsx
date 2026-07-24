@@ -6,6 +6,7 @@ import { baseOptions } from "@/lib/layout.shared";
 import { BookOpen } from "lucide-react";
 import type { ReactNode } from "react";
 import { DocsSidebarFolder } from "./sidebar-folder";
+import { DocsSidebarSeparator } from "./sidebar-separator";
 
 export default function Layout({ children }: { children: ReactNode }) {
   // SDK and CLI are root folders (`"root": true` in their meta.json), which
@@ -35,9 +36,16 @@ export default function Layout({ children }: { children: ReactNode }) {
         // Render the tabs as a horizontal bar above the content (Cursor-style)
         // instead of the default dropdown inside the sidebar.
         tabMode="top"
-        // The Folder override hides root folders from the sidebar — they are
-        // already reachable through the tabs (see sidebar-folder.tsx).
-        sidebar={{ tabs, components: { Folder: DocsSidebarFolder } }}
+        // Folder override hides root folders (already reachable through the
+        // tabs, see sidebar-folder.tsx); Separator override renders group
+        // labels as muted uppercase eyebrows (see sidebar-separator.tsx).
+        sidebar={{
+          tabs,
+          components: {
+            Folder: DocsSidebarFolder,
+            Separator: DocsSidebarSeparator,
+          },
+        }}
       >
         {children}
       </DocsLayout>

@@ -15,7 +15,6 @@ export { ProvisionGrantPlayback as DemoProvisionGrantPlayback } from "./demos/sc
 export { MultiTenantSetupPlayback as DemoMultiTenantSetupPlayback } from "./demos/scenarios/multi-tenant-setup-playback";
 export { MultiTenantJitPlayback as DemoMultiTenantJitPlayback } from "./demos/scenarios/multi-tenant-jit-playback";
 export { SsoLoginPlayback as DemoSsoLoginPlayback } from "./demos/scenarios/sso-login-playback";
-export { CopyMarkdownButton } from "./copy-markdown-button";
 export { QuickstartPlayback as DemoQuickstartPlayback } from "./demos/scenarios/quickstart-playback";
 export { QuickstartTour as DemoQuickstartTour } from "./demos/scenarios/quickstart-tour";
 export { FirstSkillTour as DemoFirstSkillTour } from "./demos/scenarios/first-skill-tour";
@@ -37,8 +36,8 @@ export { glossary } from "./glossary";
 export { HarnessCostComparison } from "./harness-cost-comparison";
 export { Hero } from "./welcome-hero";
 export { Mermaid } from "./mermaid";
+export { PageActions } from "./page-actions";
 export { ScenarEmbed } from "./scenar-embed";
-export { PageFeedback } from "./page-feedback";
 export { Term } from "./term";
 export { SDKTabs } from "./sdk-tabs";
 export { ReactSdkDomains } from "./ReactSdkDomains";
