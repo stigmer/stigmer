@@ -248,7 +248,12 @@ export {
 } from "./gen/session.js";
 
 // Session utilities (hand-written)
-export { PENDING_SUBJECT, resolvedSubject } from "./session.js";
+export {
+  PENDING_SUBJECT,
+  SESSION_CONTEXT_METADATA_KEY,
+  mergeSessionContext,
+  resolvedSubject,
+} from "./session.js";
 
 // Tool-call view model (framework-agnostic; shared by @stigmer/react and @stigmer/ink)
 export {

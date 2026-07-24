@@ -47,6 +47,7 @@ import { MessageAccumulator, cancelInProgressSubAgentProtos, collapseRedundantTo
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
 import { readContextBridge } from "../../shared/context-bridge.js";
 import { readSenderIdentity } from "../../shared/sender-identity.js";
+import { readSessionContext } from "../../shared/session-context.js";
 import { withholdSecretContentFromMessages } from "../../shared/tool-row.js";
 import { StallTimeoutError, formatStallFailure } from "../../shared/stall-watchdog.js";
 import { resolveUsableArtifactStorage, loadArtifactStorageConfig, type ArtifactStorage } from "../../shared/artifact-storage.js";
@@ -962,6 +963,7 @@ async function executeCursorInner(
       buildFromPlan,
       contextBridge: readContextBridge(blueprint.sessionSpec.metadata),
       senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
+      sessionContext: readSessionContext(blueprint.sessionSpec.metadata),
     });
 
     // Phase 10a: Inject structured output instruction for Cursor harness
@@ -1541,6 +1543,7 @@ async function executeCursorInner(
             interactionMode,
             contextBridge: readContextBridge(blueprint.sessionSpec.metadata),
             senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
+            sessionContext: readSessionContext(blueprint.sessionSpec.metadata),
           });
 
           console.log(
@@ -2120,6 +2123,13 @@ export interface BuildPromptInput {
    * context already carries it from the session's first turn.
    */
   senderIdentity?: import("../../shared/sender-identity.js").SenderIdentity;
+  /**
+   * Embedder-supplied session context from `SessionSpec.metadata`. Like
+   * the bridge, only the enhanced-prompt path consumes it — a resumed
+   * agent's native context already carries it from the session's first
+   * turn.
+   */
+  sessionContext?: string;
 }
 
 /**
@@ -2199,6 +2209,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     buildFromPlan,
     contextBridge: input.contextBridge,
     senderIdentity: input.senderIdentity,
+    sessionContext: input.sessionContext,
   });
 }
 

@@ -93,3 +93,42 @@ the SDK directly instead of the widget. The Share dialog's **Developer** tab and
 the
 [platform client guide](/docs/guides/authentication/platform-client/overview)
 show the way.
+
+## Give the agent standing user context
+
+SDK integrations can hand the agent standing, per-user context — who the caller
+is, their experience level, their standing instructions — that the agent
+receives on every turn but the conversation never shows. Your agent greets the
+user by name and calibrates its depth and defaults from the first message,
+without a visible context preamble polluting the chat.
+
+Pass `sessionContext` when you create the session — every session-creating
+surface in `@stigmer/react` accepts it
+([`useNewSessionFlow`](/docs/sdk/react/session#usenewsessionflow),
+[`useCreateSession`](/docs/sdk/react/session#usecreatesession), and
+[`useCreateAgentExecution`](/docs/sdk/react/execution#usecreateagentexecution)'s
+bootstrap `sessionSpec`):
+
+```tsx
+const flow = useNewSessionFlow({
+  org: "acme",
+  onSessionCreated: (id) => navigate(`/sessions/${id}`),
+  sessionContext:
+    `Name: ${user.name}. Role: ${user.role}. ` +
+    `Kubernetes experience: beginner. Prefers step-by-step guidance.`,
+});
+```
+
+The value is stored on the session's spec metadata under
+`stigmer.ai/session-context` (exported from `@stigmer/sdk` as
+`SESSION_CONTEXT_METADATA_KEY` for integrations that set the raw `metadata` map
+instead).
+
+Two things it is not:
+
+- **Not authorization.** Anyone who can create the session can set it — the same
+  trust level as typing the first message. Enforce privileges with the
+  credentials bound to the session, never with what the agent reads here.
+- **Not a secrets channel.** It is hidden from the conversation thread, not from
+  the API — `session.get` returns it. Put secrets in `runtimeEnv` or Environment
+  resources instead.

@@ -26,6 +26,7 @@ import {
   formatSenderIdentityText,
   type SenderIdentity,
 } from "../../shared/sender-identity.js";
+import { formatSessionContextText } from "../../shared/session-context.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
@@ -88,6 +89,14 @@ export interface EnhancedPromptOptions {
    * is constant per conversation (channel sessions are keyed per-sender).
    */
   senderIdentity?: SenderIdentity;
+  /**
+   * Embedder-supplied session context (personalization, not
+   * authorization): standing free-text context about the user/session,
+   * read from `SessionSpec.metadata`. Like the bridge, it lands in the
+   * first message and persists in the cursor agent's own conversation
+   * store — the context is constant for the session's lifetime.
+   */
+  sessionContext?: string;
 }
 
 /**
@@ -156,6 +165,12 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
   // back to.
   if (options.senderIdentity) {
     sections.push(formatSenderIdentitySection(options.senderIdentity));
+  }
+
+  // Standing facts about the user (session context) come before the
+  // carried conversation (bridge): the bridge may refer back to them.
+  if (options.sessionContext) {
+    sections.push(formatSessionContextSection(options.sessionContext));
   }
 
   // The rollover context bridge sits directly before the protocol + task so
@@ -305,6 +320,10 @@ export function formatContextBridgeSection(bridge: string): string {
 
 export function formatSenderIdentitySection(identity: SenderIdentity): string {
   return `<conversation_sender>\n${formatSenderIdentityText(identity)}\n</conversation_sender>`;
+}
+
+export function formatSessionContextSection(context: string): string {
+  return `<session_context>\n${formatSessionContextText(context)}\n</session_context>`;
 }
 
 export function formatSkillsSection(skills: SkillMetadata[]): string {

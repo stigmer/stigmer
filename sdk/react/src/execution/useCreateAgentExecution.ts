@@ -2,12 +2,13 @@
 
 import { useCallback, useState } from "react";
 import type { JsonObject } from "@bufbuild/protobuf";
-import type {
-  AttachmentInput,
-  EnvVarInput,
-  McpServerUsageInput,
-  ResourceRef,
-  WorkspaceEntryInput,
+import {
+  mergeSessionContext,
+  type AttachmentInput,
+  type EnvVarInput,
+  type McpServerUsageInput,
+  type ResourceRef,
+  type WorkspaceEntryInput,
 } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
@@ -41,6 +42,36 @@ export interface BootstrapSessionSpec {
   readonly mcpServerUsages?: McpServerUsageInput[];
   /** Skill references to enable for executions in this session. */
   readonly skillRefs?: ResourceRef[];
+  /**
+   * Custom key-value pairs stored on the created session's
+   * `SessionSpec.metadata`.
+   *
+   * A passthrough for embedder-owned keys (correlation IDs, tenant tags)
+   * and for platform-reserved `stigmer.ai/*` keys set explicitly. For the
+   * common case — standing user context injected into the agent's prompt —
+   * prefer the typed {@link sessionContext} field, which maps onto the
+   * reserved `stigmer.ai/session-context` key and wins over a raw entry
+   * under that key when both are provided.
+   */
+  readonly metadata?: Record<string, string>;
+  /**
+   * Standing, per-user context the agent receives on every turn but the
+   * conversation UI never renders — who the caller is, their experience
+   * level, their standing instructions (stigmer/stigmer#286).
+   *
+   * Stored on the created session's `SessionSpec.metadata` under
+   * `stigmer.ai/session-context`; the agent runner injects it into the
+   * system prompt as already-known background, so agents can greet the
+   * user by name and calibrate depth/defaults from the first turn without
+   * a visible context preamble.
+   *
+   * Personalization, not authorization: anyone who can create the session
+   * can set this (the same trust level as authoring the first message).
+   * Hidden from the conversation thread, not from the API — `session.get`
+   * returns it, so never put secrets here; secrets belong in `runtimeEnv`
+   * or Environment resources. Large values bloat every prompt.
+   */
+  readonly sessionContext?: string;
   /** Execution harness. Immutable after the first execution runs. */
   readonly harness?: HarnessOption;
   /** Where session activities execute. Immutable after the first execution runs. */
@@ -293,6 +324,10 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
               workspaceEntries: input.sessionSpec.workspaceEntries,
               mcpServerUsages: input.sessionSpec.mcpServerUsages,
               skillRefs: input.sessionSpec.skillRefs,
+              metadata: mergeSessionContext(
+                input.sessionSpec.metadata,
+                input.sessionSpec.sessionContext,
+              ),
               harness: input.sessionSpec.harness
                 ? toProtoHarness(input.sessionSpec.harness)
                 : undefined,

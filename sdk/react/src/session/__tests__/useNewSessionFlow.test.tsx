@@ -334,6 +334,39 @@ describe("useNewSessionFlow", () => {
       expect(execInput.sessionSpec.harness).toBe("cursor");
     });
 
+    it("forwards metadata and sessionContext verbatim in the sessionSpec", async () => {
+      // The typed-wins merge onto the reserved key happens downstream in
+      // useCreateAgentExecution (covered by its own tests); the flow's job
+      // is faithful forwarding.
+      const opts = {
+        ...defaultOptions(),
+        metadata: { "acme/tenant": "t-1" },
+        sessionContext: "Role: platform admin",
+      };
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.sessionSpec.metadata).toEqual({ "acme/tenant": "t-1" });
+      expect(execInput.sessionSpec.sessionContext).toBe("Role: platform admin");
+    });
+
+    it("leaves metadata and sessionContext undefined when not provided", async () => {
+      const opts = defaultOptions();
+      const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.submit("Hello");
+      });
+
+      const execInput = mockCreateExecution.mock.calls[0][0];
+      expect(execInput.sessionSpec.metadata).toBeUndefined();
+      expect(execInput.sessionSpec.sessionContext).toBeUndefined();
+    });
+
     it("calls onSessionCreated with the server-assigned session id", async () => {
       const opts = defaultOptions();
       const { result } = renderHook(() => useNewSessionFlow(opts), { wrapper: createWrapper() });

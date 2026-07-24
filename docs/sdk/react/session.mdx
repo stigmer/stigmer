@@ -919,10 +919,18 @@ Updates an existing Session resource. The caller provides a full
 `SessionInput` including the session's `name` and `org` (used
 by the backend to identify the resource) and all spec fields.
 
+**Full-replace semantics.** The backend replaces the entire spec with
+what you send — there is no field mask. Round-trip every spec field
+you do not intend to change, *including `metadata`*: an update built
+from a reconstructed partial spec silently wipes the fields it omits
+(workspace entries, MCP servers, and `stigmer.ai/*` metadata keys such
+as the embedder session context). To change only the subject, prefer
+the field-level `session.updateSubject()` RPC instead of this hook.
+
 Typically composed into higher-level hooks like
-[`useSessionConversation`](#usesessionconversation) rather than used directly. Platform
-builders who need direct session mutation can use this hook
-standalone.
+[`useSessionConversation`](#usesessionconversation) (whose update path round-trips the
+fetched spec) rather than used directly. Platform builders who need
+direct session mutation can use this hook standalone.
 
 **Signature**
 
@@ -942,21 +950,32 @@ function useUpdateSession(): UseUpdateSessionReturn
 />
 
 ```tsx
-function RenameSession({ session }: { session: Session }) {
-  const { update, isUpdating, error } = useUpdateSession();
+function TagSession({ session }: { session: Session }) {
+  const { update, isUpdating } = useUpdateSession();
 
-  async function handleRename(newSubject: string) {
+  async function handleTag() {
+    const spec = session.spec;
     await update({
       name: session.metadata!.name,
       org: session.metadata!.org,
-      agentInstanceId: session.spec?.agentInstanceId,
-      subject: newSubject,
+      // Full replace: carry over every fetched spec field...
+      agentInstanceId: spec?.agentInstanceId,
+      subject: spec?.subject,
+      harnessStateId: spec?.harnessStateId,
+      harness: spec?.harness,
+      cursorMode: spec?.cursorMode,
+      executionTarget: spec?.executionTarget,
+      // ...including the spec lists (workspaceEntries, mcpServerUsages,
+      // skillRefs), converted from the fetched proto exactly as
+      // useSessionConversation's update path does...
+      // ...then apply the one change on top of the carried metadata.
+      metadata: { ...spec?.metadata, "acme/reviewed": "true" },
     });
   }
 
   return (
-    <button onClick={() => handleRename("New subject")} disabled={isUpdating}>
-      Rename
+    <button onClick={handleTag} disabled={isUpdating}>
+      Mark reviewed
     </button>
   );
 }
@@ -1742,7 +1761,9 @@ Shared fields present in both variants of [`CreateSessionInput`](#createsessioni
     executionTarget: { type: "ExecutionTargetOption", description: "Where session activities are executed.  - `\"local\"` — Client's embedded runner (desktop app or CLI) polls   the session's task queue. - `\"cloud\"` — Server provisions a cloud sandbox with a runner. - `undefined` — Server decides based on deployment context   (LOCAL for OSS, CLOUD for managed).  Immutable after the first execution runs.", typeDescriptionLink: "#executiontargetoption" },
     harness: { type: "HarnessOption", description: "Execution harness for this session.  Determines which execution engine processes agent activities. Immutable after the first execution runs. Defaults to `\"native\"`.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP server configurations to include for tool access." },
+    metadata: { type: "Record<string, string>", description: "Custom key-value pairs stored on `SessionSpec.metadata`.  A passthrough for embedder-owned keys (correlation IDs, tenant tags) and for platform-reserved `stigmer.ai/*` keys set explicitly. For the common case — standing user context injected into the agent's prompt — prefer the typed sessionContext field, which maps onto the reserved `stigmer.ai/session-context` key and wins over a raw entry under that key when both are provided." },
     org: { type: "string", description: "Organization slug for the new session.", required: true },
+    sessionContext: { type: "string", description: "Standing, per-user context the agent receives on every turn but the conversation UI never renders — who the caller is, their experience level, their standing instructions (stigmer/stigmer#286).  Stored on `SessionSpec.metadata` under `stigmer.ai/session-context`; the agent runner injects it into the system prompt as already-known background, so agents can greet the user by name and calibrate depth/defaults from the first turn without a visible context preamble.  Personalization, not authorization: anyone who can create the session can set this (the same trust level as authoring the first message). Hidden from the conversation thread, not from the API — `session.get` returns it, so never put secrets here; secrets belong in `runtimeEnv` or Environment resources. Large values bloat every prompt." },
     skillRefs: { type: "ResourceRef[]", description: "Skill references to enable for executions in this session." },
     subject: { type: "string", description: "Initial conversation subject (defaults to `PENDING_SUBJECT`)." },
     workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace source entries to attach to the session." },
@@ -1760,9 +1781,11 @@ Options for [`useNewSessionFlow`](#usenewsessionflow).
     defaultHarness: { type: "HarnessOption", description: "Harness pre-selected for new sessions when the user has not made an explicit choice yet (e.g. an embedder whose agents primarily run coding tasks defaults to `\"cursor\"`).  Read once on mount. The user's own selection — persisted to localStorage on explicit change — always takes precedence on subsequent visits.  Ignored for the `\"guest\"` audience: guest sessions always run the platform's share-surface policy (cursor harness, Auto model), never an embedder preference or a stored Console choice.", typeDescriptionLink: "/docs/sdk/react/models#harnessoption" },
     executionTarget: { type: "ExecutionTargetOption", description: "Where session activities should execute.", typeDescriptionLink: "#executiontargetoption" },
     getRuntimeEnv: { type: "RuntimeEnvProvider", description: "Supplies host-app environment variables for the session's first execution. Evaluated once per submission, at submit time, so short-lived credentials stay fresh; evaluated **before** the session is created so a credential failure never strands an empty session.  Host values win over composer-collected env on key collisions. If the provider throws, the submission fails and the error surfaces via UseNewSessionFlowReturn.submitError / onError. See RuntimeEnvProvider.", typeDescriptionLink: "#runtimeenvprovider" },
+    metadata: { type: "Record<string, string>", description: "Custom key-value pairs stored on the created session's `SessionSpec.metadata`.  A passthrough for embedder-owned keys (correlation IDs, tenant tags) and for platform-reserved `stigmer.ai/*` keys set explicitly. For the common case — standing user context injected into the agent's prompt — prefer the typed sessionContext option, which maps onto the reserved `stigmer.ai/session-context` key and wins over a raw entry under that key when both are provided." },
     onError: { type: "(message: string) => void", description: "Called when an error occurs during session creation. The consumer can use this for toast notifications or other UI feedback. If not provided, errors are still available via UseNewSessionFlowReturn.submitError." },
     onSessionCreated: { type: "(sessionId: string) => void", description: "Called after a session and its first execution are created successfully. The consumer is responsible for navigation (e.g. `router.push`).", required: true },
     org: { type: "string", description: "Organization slug. Required for session and execution creation.", required: true },
+    sessionContext: { type: "string", description: "Standing, per-user context the agent receives on every turn but the conversation UI never renders — who the caller is, their experience level, their standing instructions (stigmer/stigmer#286).  Stored on the created session's `SessionSpec.metadata` under `stigmer.ai/session-context`; the agent runner injects it into the system prompt as already-known background, so agents can greet the user by name and calibrate depth/defaults from the first turn without a visible context preamble.  Personalization, not authorization: anyone who can create the session can set this (the same trust level as authoring the first message). Hidden from the conversation thread, not from the API — `session.get` returns it, so never put secrets here; secrets belong in `runtimeEnv` or Environment resources. Large values bloat every prompt." },
   }}
 />
 
