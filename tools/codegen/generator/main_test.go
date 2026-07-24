@@ -1130,6 +1130,23 @@ func TestJavaCamel(t *testing.T) {
 		{"base_url", "baseUrl"},
 		{"resource_id", "resourceId"},
 		{"", ""},
+		// Java keywords must be escaped with a trailing underscore
+		// (broke the v3.3.0 Maven publish via FieldDeclaration.default).
+		{"default", "default_"},
+		{"class", "class_"},
+		{"static", "static_"},
+		{"null", "null_"},
+		// java.lang.Object method names too: `Builder equals(Object)` is an
+		// invalid override of Object.equals (datastore UniqueWhere.equals).
+		{"equals", "equals_"},
+		{"hash_code", "hashCode_"},
+		{"to_string", "toString_"},
+		{"wait", "wait_"},
+		// ...but only exact collisions: multi-part names that merely
+		// contain a reserved name camel-case away from it.
+		{"default_value", "defaultValue"},
+		{"catch_all", "catchAll"},
+		{"equals_any", "equalsAny"},
 	}
 
 	for _, tc := range tests {

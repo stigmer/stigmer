@@ -434,7 +434,7 @@ public final class DatastoreInput {
         private final String name;
         private final FieldType type;
         private final boolean required;
-        private final Object default;
+        private final Object default_;
         private final java.util.List<String> enumValues;
         private final String description;
 
@@ -442,7 +442,7 @@ public final class DatastoreInput {
             this.name = builder.name;
             this.type = builder.type;
             this.required = builder.required;
-            this.default = builder.default;
+            this.default_ = builder.default_;
             this.enumValues = builder.enumValues;
             this.description = builder.description;
         }
@@ -456,8 +456,8 @@ public final class DatastoreInput {
                 builder.setType(this.type);
             }
             builder.setRequired(this.required);
-            if (this.default != null) {
-                builder.setDefault(ProtoConvert.objectToValue(this.default));
+            if (this.default_ != null) {
+                builder.setDefault(ProtoConvert.objectToValue(this.default_));
             }
             if (this.enumValues != null) {
                 builder.addAllEnumValues(this.enumValues);
@@ -474,7 +474,7 @@ public final class DatastoreInput {
             private String name;
             private FieldType type;
             private boolean required;
-            private Object default;
+            private Object default_;
             private java.util.List<String> enumValues;
             private String description;
 
@@ -483,7 +483,7 @@ public final class DatastoreInput {
             public Builder name(String name) { this.name = name; return this; }
             public Builder type(FieldType type) { this.type = type; return this; }
             public Builder required(boolean required) { this.required = required; return this; }
-            public Builder default(Object default) { this.default = default; return this; }
+            public Builder default_(Object default_) { this.default_ = default_; return this; }
             public Builder enumValues(java.util.List<String> enumValues) { this.enumValues = enumValues; return this; }
             public Builder description(String description) { this.description = description; return this; }
 
@@ -544,11 +544,11 @@ public final class DatastoreInput {
     /** SDK input type for UniqueWhere. */
     public static final class UniqueWhereInput {
         private final String field;
-        private final Object equals;
+        private final Object equals_;
 
         private UniqueWhereInput(Builder builder) {
             this.field = builder.field;
-            this.equals = builder.equals;
+            this.equals_ = builder.equals_;
         }
 
         UniqueWhere toProto() {
@@ -556,8 +556,8 @@ public final class DatastoreInput {
             if (this.field != null) {
                 builder.setField(this.field);
             }
-            if (this.equals != null) {
-                builder.setEquals(ProtoConvert.objectToValue(this.equals));
+            if (this.equals_ != null) {
+                builder.setEquals(ProtoConvert.objectToValue(this.equals_));
             }
             return builder.build();
         }
@@ -566,12 +566,12 @@ public final class DatastoreInput {
 
         public static final class Builder {
             private String field;
-            private Object equals;
+            private Object equals_;
 
             private Builder() {}
 
             public Builder field(String field) { this.field = field; return this; }
-            public Builder equals(Object equals) { this.equals = equals; return this; }
+            public Builder equals_(Object equals_) { this.equals_ = equals_; return this; }
 
             public UniqueWhereInput build() { return new UniqueWhereInput(this); }
         }

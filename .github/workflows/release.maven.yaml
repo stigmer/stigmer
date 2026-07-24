@@ -60,7 +60,26 @@ jobs:
           mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
           echo "Set stigmer-java-protos version to $VERSION"
 
+      # Central rejects re-publishing an existing version, so a rerun after a
+      # partial failure (e.g. protos published, SDK didn't) must skip the
+      # already-live artifact instead of failing the whole release. repo1
+      # sync lags a fresh publish by a few minutes, so a rerun within that
+      # window may still attempt a duplicate upload — acceptable, since real
+      # recovery runs happen well after the sync completes.
+      - name: Check if version is already on Central
+        id: central-check
+        run: |
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          URL="https://repo1.maven.org/maven2/ai/stigmer/stigmer-java-protos/$VERSION/stigmer-java-protos-$VERSION.pom"
+          if curl --silent --fail --output /dev/null "$URL"; then
+            echo "stigmer-java-protos:$VERSION is already on Central; skipping publish."
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish to Maven Central
+        if: steps.central-check.outputs.published != 'true'
         working-directory: apis/stubs/java
         # The Central Portal upload endpoint can return transient 403/5xx
         # responses (rate limiting, in-flight publishes). Retry with backoff
@@ -124,7 +143,21 @@ jobs:
           mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
           mvn --batch-mode install -DskipTests
 
+      # Same duplicate-version skip as publish-protos; see the comment there.
+      - name: Check if version is already on Central
+        id: central-check
+        run: |
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          URL="https://repo1.maven.org/maven2/ai/stigmer/stigmer-java/$VERSION/stigmer-java-$VERSION.pom"
+          if curl --silent --fail --output /dev/null "$URL"; then
+            echo "stigmer-java:$VERSION is already on Central; skipping publish."
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish to Maven Central
+        if: steps.central-check.outputs.published != 'true'
         working-directory: sdk/java
         # The protos job returns once its deployment is *validated*, then
         # autoPublish finishes asynchronously. Uploading the SDK bundle while
