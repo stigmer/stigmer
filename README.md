@@ -12,7 +12,7 @@
 
 Define agents in YAML, deploy with one command, call from any app via API.
 Run locally with SQLite or connect to Stigmer Cloud for production.
-Bring your own LLM — Anthropic, OpenAI, or Ollama.
+Bring your own Anthropic API key — agents run on Claude models.
 
 [![License](https://img.shields.io/github/license/stigmer/stigmer)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-community-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/EtANnfsJ8B)
@@ -156,8 +156,8 @@ The Go, TypeScript, Python, and Java SDKs provide typed API clients for all plat
 | **Start with** | `stigmer server` | `stigmer config backend set cloud` |
 | **Storage** | SQLite (`~/.stigmer/stigmer.db`) | Distributed (managed) |
 | **Users** | Single implicit user | Organizations, teams, IAM |
-| **LLM** | Anthropic, OpenAI, or Ollama (your choice) | Configurable |
-| **Best for** | Development, personal projects, air-gapped environments | Team collaboration, production, governance |
+| **LLM** | Anthropic (bring your own API key) | Configurable |
+| **Best for** | Development, personal projects, full data ownership | Team collaboration, production, governance |
 
 Resource definitions are portable across both modes. The CLI talks to the same gRPC service interfaces regardless of backend.
 

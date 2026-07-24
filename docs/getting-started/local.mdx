@@ -10,10 +10,8 @@ A running AI Agent on your machine. You'll install Stigmer, define an Agent in
 YAML, and talk to it from your terminal. Everything stays local—the server uses
 SQLite and connects to your own LLM provider.
 
-**Time**: ~5 minutes **Prerequisites**: macOS or Linux, an LLM API key
-([Anthropic](https://console.anthropic.com/),
-[OpenAI](https://platform.openai.com/), or [Ollama](https://ollama.com/) for
-fully local inference)
+**Time**: ~5 minutes **Prerequisites**: macOS or Linux, an
+[Anthropic API key](https://console.anthropic.com/)
 
 <Callout type="info">
   Want managed cloud instead? See the [Cloud
@@ -47,12 +45,9 @@ stigmer version
 stigmer server
 ```
 
-On first run, Stigmer prompts you to choose an LLM provider and enter your API
-key. Pick one:
-
-- **Anthropic**: Claude models (recommended)
-- **OpenAI**: GPT models
-- **Ollama**: local models, no API key needed
+On first run, Stigmer asks for your Anthropic API key — local agents run on
+Claude models, and the best current model is picked for you automatically. If
+`ANTHROPIC_API_KEY` is already set in your shell, it's used without prompting.
 
 Once configured, the server starts. You'll see:
 
@@ -63,7 +58,7 @@ Web console available at http://localhost:8234
 Leave this terminal running and open a new one for the next steps.
 
 <Callout type="info">
-  Run `stigmer server setup` at any time to change your LLM provider.
+  Run `stigmer server setup` at any time to update your API key.
 </Callout>
 
 </Step>

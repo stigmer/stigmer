@@ -53,8 +53,10 @@ export function buildRunnerEnv(config: DaemonConfig, base: NodeJS.ProcessEnv = p
   if (config.cursorApiKey !== undefined) env.CURSOR_API_KEY = config.cursorApiKey;
   // Explicit set (after the base spread) so the launcher-resolved key wins over any
   // stale inherited value — the delivery path for a `stigmer setup`-persisted key.
+  // Anthropic only: it is the sole provider local execution supports. Other keys
+  // (e.g. a shell-exported OPENAI_API_KEY for advanced per-agent gpt-* overrides)
+  // still reach the runner through the base env spread above.
   if (config.anthropicApiKey !== undefined) env.ANTHROPIC_API_KEY = config.anthropicApiKey;
-  if (config.openaiApiKey !== undefined) env.OPENAI_API_KEY = config.openaiApiKey;
   if (config.activityRouting !== undefined) env.STIGMER_ACTIVITY_ROUTING = config.activityRouting;
   return env;
 }

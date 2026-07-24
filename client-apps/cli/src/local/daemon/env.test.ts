@@ -27,7 +27,6 @@ describe("buildDaemonEnv + readDaemonConfig", () => {
       runner: { nodeBin: "/usr/bin/node", entryPath: "/repo/runner/dist/main.js", appDir: "/repo/runner" },
       cursorApiKey: undefined,
       anthropicApiKey: undefined,
-      openaiApiKey: undefined,
       activityRouting: undefined,
     });
   });
@@ -48,18 +47,26 @@ describe("buildDaemonEnv + readDaemonConfig", () => {
 
   // The config-file-only delivery path: a key from `stigmer setup` is not in the
   // shell env, so the launcher must write it into the contract explicitly.
-  it("delivers a launcher-resolved LLM key with no help from the base env", () => {
+  // Anthropic is the only provider with this path — the local stack executes
+  // on Anthropic only.
+  it("delivers a launcher-resolved Anthropic key with no help from the base env", () => {
     const env = buildDaemonEnv({ ...baseInputs, anthropicApiKey: "sk-ant-cfg" }, {});
     const config = readDaemonConfig(env);
     expect(config.anthropicApiKey).toBe("sk-ant-cfg");
-    expect(config.openaiApiKey).toBeUndefined();
   });
 
-  it("passes shell-exported LLM keys through from the base env", () => {
-    const env = buildDaemonEnv(baseInputs, { ANTHROPIC_API_KEY: "sk-ant-env", OPENAI_API_KEY: "sk-oai-env" });
+  it("passes a shell-exported Anthropic key through from the base env", () => {
+    const env = buildDaemonEnv(baseInputs, { ANTHROPIC_API_KEY: "sk-ant-env" });
     const config = readDaemonConfig(env);
     expect(config.anthropicApiKey).toBe("sk-ant-env");
-    expect(config.openaiApiKey).toBe("sk-oai-env");
+  });
+
+  // Other provider keys have no contract slot; they reach the runner solely via
+  // shell-env inheritance (the child env spreads the base env).
+  it("leaves shell-exported non-Anthropic keys in the env without parsing them", () => {
+    const env = buildDaemonEnv(baseInputs, { OPENAI_API_KEY: "sk-oai-env" });
+    expect(env.OPENAI_API_KEY).toBe("sk-oai-env");
+    expect(readDaemonConfig(env)).not.toHaveProperty("openaiApiKey");
   });
 
   it("requires the data dir and server binary", () => {

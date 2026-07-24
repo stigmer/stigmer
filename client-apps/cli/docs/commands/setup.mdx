@@ -1,12 +1,17 @@
 Configure the LLM provider for agent execution.
 
-`stigmer setup` configures which LLM provider agents use when they run on the
-local stack. Run it without flags for an interactive menu, or pass `--provider`
-(with the related flags) for a non-interactive setup suitable for scripts and
-CI. Either path writes to your local configuration, preserving every other
-setting.
+`stigmer setup` configures the LLM provider agents use when they run on the
+local stack. Local execution runs on Anthropic Claude models, so setup comes
+down to providing an Anthropic API key. Run it without flags for an interactive
+prompt, or pass `--provider` (with the related flags) for a non-interactive
+setup suitable for scripts and CI. Either path writes to your local
+configuration, preserving every other setting.
 
-Supported providers: `anthropic`, `openai`, `ollama`, and `skip`.
+Supported providers: `anthropic`, and `skip` to clear the configuration.
+
+You don't pick a model during setup: the platform model registry selects the
+default automatically, so it stays current without CLI updates. To pin a
+specific model, pass `--model` explicitly.
 
 {/* AUTO_USAGE */}
 
@@ -19,26 +24,28 @@ stigmer setup
 # Non-interactive: configure Anthropic
 stigmer setup --provider anthropic --api-key sk-ant-xxx
 
-# Point at a local Ollama endpoint
-stigmer setup --provider ollama --base-url http://localhost:11434
+# Clear the LLM configuration
+stigmer setup --provider skip
 ```
 
 {/* AUTO_FLAGS */}
 
 ## Examples
 
-### Interactive provider selection
+### Interactive setup
 
 ```bash
 stigmer setup
 ```
 
-A menu walks you through choosing a provider and entering credentials.
+Prompts for your Anthropic API key. If `ANTHROPIC_API_KEY` is already set in
+your environment, it is used without prompting. Press Enter to skip — agents
+won't execute until a provider is configured.
 
 ### Non-interactive configuration for CI
 
 ```bash
-stigmer setup --provider openai --api-key "$OPENAI_API_KEY" --model gpt-4o
+stigmer setup --provider anthropic --api-key "$ANTHROPIC_API_KEY"
 ```
 
 ### Apply a new provider to a running stack

@@ -1,8 +1,8 @@
 // The foreground launcher hands the supervised daemon everything it needs to
-// run through the environment — the same mechanism the Go CLI uses. Centralizing
-// the variable names and the (de)serialization here keeps that contract in one
-// place: the launcher writes it with buildDaemonEnv, the daemon reads it with
-// readDaemonConfig, and nothing in between guesses at string keys.
+// run through the environment. Centralizing the variable names and the
+// (de)serialization here keeps that contract in one place: the launcher writes
+// it with buildDaemonEnv, the daemon reads it with readDaemonConfig, and
+// nothing in between guesses at string keys.
 
 /** Environment variable names that make up the launcher -> daemon contract. */
 export const DaemonEnvVar = {
@@ -18,7 +18,6 @@ export const DaemonEnvVar = {
   RunnerAppDir: "STIGMER_RUNNER_APP_DIR",
   CursorApiKey: "CURSOR_API_KEY",
   AnthropicApiKey: "ANTHROPIC_API_KEY",
-  OpenAiApiKey: "OPENAI_API_KEY",
   ActivityRouting: "STIGMER_ACTIVITY_ROUTING",
 } as const;
 
@@ -41,7 +40,6 @@ export interface DaemonConfig {
   runner?: RunnerLaunch;
   cursorApiKey?: string;
   anthropicApiKey?: string;
-  openaiApiKey?: string;
   activityRouting?: string;
 }
 
@@ -55,12 +53,13 @@ export interface DaemonEnvInputs {
   noWeb: boolean;
   serverBin: string;
   runner?: RunnerLaunch;
-  // LLM provider key resolved by the launcher (env > config file). Must be written
-  // into the daemon env explicitly: unlike a shell-exported key, a key persisted by
-  // `stigmer setup` exists only in the config file and would otherwise never reach
-  // the runner. Only the effective provider's key is set.
+  // Anthropic API key resolved by the launcher (env > config file). Must be
+  // written into the daemon env explicitly: unlike a shell-exported key, a key
+  // persisted by `stigmer setup` exists only in the config file and would
+  // otherwise never reach the runner. Anthropic is the only provider with a
+  // persisted delivery path — other keys (OPENAI_API_KEY, CURSOR_API_KEY)
+  // reach the runner solely via shell-env inheritance.
   anthropicApiKey?: string;
-  openaiApiKey?: string;
 }
 
 /**
@@ -83,7 +82,6 @@ export function buildDaemonEnv(inputs: DaemonEnvInputs, base: NodeJS.ProcessEnv 
     env[DaemonEnvVar.RunnerAppDir] = inputs.runner.appDir;
   }
   if (inputs.anthropicApiKey !== undefined) env[DaemonEnvVar.AnthropicApiKey] = inputs.anthropicApiKey;
-  if (inputs.openaiApiKey !== undefined) env[DaemonEnvVar.OpenAiApiKey] = inputs.openaiApiKey;
   return env;
 }
 
@@ -106,7 +104,6 @@ export function readDaemonConfig(env: NodeJS.ProcessEnv = process.env): DaemonCo
     runner: serverOnly ? undefined : runner,
     cursorApiKey: nonEmpty(env[DaemonEnvVar.CursorApiKey]),
     anthropicApiKey: nonEmpty(env[DaemonEnvVar.AnthropicApiKey]),
-    openaiApiKey: nonEmpty(env[DaemonEnvVar.OpenAiApiKey]),
     activityRouting: nonEmpty(env[DaemonEnvVar.ActivityRouting]),
   };
 }

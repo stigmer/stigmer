@@ -821,11 +821,9 @@ local: node_modules build-ts-stubs ## One-shot local setup: JS deps + proto stub
 	@echo "  stigmer up          # start the local stack"
 	@echo "  stigmer --help"
 	@echo ""
-	@echo "stigmer up will auto-detect API keys from your environment."
+	@echo "Local agents run on Anthropic Claude models:"
 	@echo ""
-	@echo "  Option 1 (recommended):       export ANTHROPIC_API_KEY=sk-ant-..."
-	@echo "  Option 2:                      export OPENAI_API_KEY=sk-..."
-	@echo "  Option 3 (local, lower quality): brew install ollama && ollama serve"
+	@echo "  export ANTHROPIC_API_KEY=sk-ant-...   # or run: stigmer setup"
 	@echo ""
 
 # ─── Site ─────────────────────────────────────

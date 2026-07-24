@@ -55,8 +55,28 @@ describe("buildStatusResult", () => {
     expect(field(result, "Runner", "Status")).toBe("Running ✓ (polling)");
     expect(field(result, "Runner", "Restarts")).toBe("1");
     expect(field(result, "LLM Configuration", "Provider")).toBe("Anthropic (Cloud)");
+    // No model configured: the platform model registry owns the execution
+    // default, and status says so instead of asserting a version.
+    expect(field(result, "LLM Configuration", "Model")).toBe("Auto (platform default)");
     expect(field(result, "LLM Configuration", "API Key")).toBe("Configured ✓");
     expect(field(result, "Web UI", "Temporal")).toBe("http://localhost:8233");
+  });
+
+  it("shows an explicit model override verbatim", async () => {
+    writeHealth({ daemon_pid: process.pid, started_at: new Date().toISOString(), components: {} });
+    writeFileSync(configPath(home), "backend:\n  type: local\n  local:\n    llm:\n      provider: anthropic\n      model: claude-x\n      api_key: sk-x\n");
+
+    const result = await buildStatusResult(home, open);
+    expect(field(result, "LLM Configuration", "Model")).toBe("claude-x");
+  });
+
+  it("reports a non-anthropic provider as unknown — local execution is Anthropic-only", async () => {
+    writeHealth({ daemon_pid: process.pid, started_at: new Date().toISOString(), components: {} });
+    writeFileSync(configPath(home), "backend:\n  type: local\n  local:\n    llm:\n      provider: ollama\n");
+
+    const result = await buildStatusResult(home, open);
+    expect(field(result, "LLM Configuration", "Provider")).toBe("Unknown (ollama)");
+    expect(field(result, "LLM Configuration", "Status")).toBe("Agents will not execute");
   });
 
   it("shows runner as starting before the readiness marker", async () => {

@@ -37,13 +37,15 @@ describe("getSummarizationModel", () => {
     expect(result).toBe("claude-haiku-4.5");
   });
 
-  it("returns the primary model itself for Ollama (no economy tier)", async () => {
+  it("resolves to the primary model itself for a single-model provider", async () => {
+    // Fabricated provider: exercises generic same-provider economy resolution
+    // for providers with exactly one (economy) model.
     mockRegistryResponse([
-      { id: "qwen2.5-coder:7b", provider: "ollama", costTier: "economy", harness: "native" },
+      { id: "solo-model-1", provider: "someprovider", costTier: "economy", harness: "native" },
     ]);
 
-    const result = await getSummarizationModel("qwen2.5-coder:7b");
-    expect(result).toBe("qwen2.5-coder:7b");
+    const result = await getSummarizationModel("solo-model-1");
+    expect(result).toBe("solo-model-1");
   });
 
   it("falls back to cross-provider economy model when primary not found", async () => {
