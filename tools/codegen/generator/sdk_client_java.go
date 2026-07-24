@@ -73,14 +73,51 @@ func javaCapCamel(protoField string) string {
 	return strings.Join(parts, "")
 }
 
-// javaCamel converts a proto snake_case field name to camelCase.
-// "tool_approval_policy" -> "toolApprovalPolicy"
+// javaReservedNames is the set of identifiers that cannot be used as bare
+// Java names in generated code. Two classes:
+//   - reserved keywords (JLS §3.9) plus the boolean/null literals, which are
+//     syntax errors as identifiers (broke the v3.3.0 release via
+//     FieldDeclaration.default);
+//   - java.lang.Object method names, because builder methods share every
+//     object's inherited method namespace — `Builder equals(Object)` fails to
+//     compile as an invalid override of Object.equals (datastore
+//     UniqueWhere.equals). Escaped by name rather than by clashing signature
+//     so a field's type can never change its public builder method name.
+var javaReservedNames = map[string]bool{
+	"abstract": true, "assert": true, "boolean": true, "break": true,
+	"byte": true, "case": true, "catch": true, "char": true, "class": true,
+	"const": true, "continue": true, "default": true, "do": true,
+	"double": true, "else": true, "enum": true, "extends": true,
+	"final": true, "finally": true, "float": true, "for": true,
+	"goto": true, "if": true, "implements": true, "import": true,
+	"instanceof": true, "int": true, "interface": true, "long": true,
+	"native": true, "new": true, "package": true, "private": true,
+	"protected": true, "public": true, "return": true, "short": true,
+	"static": true, "strictfp": true, "super": true, "switch": true,
+	"synchronized": true, "this": true, "throw": true, "throws": true,
+	"transient": true, "try": true, "void": true, "volatile": true,
+	"while": true,
+	"true":  true, "false": true, "null": true,
+	"equals": true, "hashCode": true, "toString": true, "getClass": true,
+	"notify": true, "notifyAll": true, "wait": true, "clone": true,
+	"finalize": true,
+}
+
+// javaCamel converts a proto snake_case field name to a safe camelCase Java
+// identifier, appending a trailing underscore if the result is a reserved
+// name (e.g. "default" -> "default_", "equals" -> "equals_"), mirroring
+// pyFieldName and protoc-java's own escaping convention. Prefixed accessor
+// names (setDefault, addAllX) are built via javaCapCamel and never collide.
 func javaCamel(protoField string) string {
 	cc := javaCapCamel(protoField)
 	if len(cc) == 0 {
 		return cc
 	}
-	return strings.ToLower(cc[:1]) + cc[1:]
+	name := strings.ToLower(cc[:1]) + cc[1:]
+	if javaReservedNames[name] {
+		return name + "_"
+	}
+	return name
 }
 
 func javaSetterName(protoField string) string { return "set" + javaCapCamel(protoField) }

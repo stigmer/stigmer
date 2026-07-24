@@ -1,0 +1,78 @@
+# =============================================================================
+# Java SDK quality gate: stigmer-java
+# =============================================================================
+# This is the only CI that compiles the Java SDK before it ships to Maven
+# Central (elsewhere Java is built solely inside release.maven). It exists
+# because the v3.3.0 release failed at publish time: generated client code
+# containing a Java reserved keyword (`default`) reached main uncompiled and
+# the release job was the first compiler to see it (issue #294).
+#
+# Two gates, one job:
+#   - freshness — regenerates the SDK client code and fails if the committed
+#     copy differs, so stale (or hand-edited) generated code fails here
+#     rather than silently drifting from the generator.
+#   - compile + test — builds the SDK against locally-installed proto stubs,
+#     exactly as release.maven's publish-sdk job does, so any codegen output
+#     that cannot compile fails pre-merge instead of at publish time.
+# =============================================================================
+
+name: ci.java-sdk
+
+on:
+  pull_request:
+    paths:
+      - "apis/**"
+      - "sdk/java/**"
+      - "tools/codegen/**"
+      - ".github/workflows/ci.java-sdk.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "apis/**"
+      - "sdk/java/**"
+      - "tools/codegen/**"
+      - ".github/workflows/ci.java-sdk.yaml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-java-sdk-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  java-sdk:
+    name: codegen freshness / compile / test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      # The SDK pom depends on stigmer-java-protos:0.0.1-SNAPSHOT, so the
+      # stubs must be in the local repository before the SDK can compile
+      # (mirrors release.maven's "Install protos locally" step).
+      - name: Install proto stubs locally
+        working-directory: apis/stubs/java
+        run: mvn --batch-mode install -DskipTests
+
+      - name: Generate SDK client code
+        run: make -C sdk/java codegen
+
+      - name: Verify committed generated code is fresh
+        run: git diff --exit-code sdk/java/src/main/java/ai/stigmer/sdk/gen
+
+      - name: Compile and test
+        run: make -C sdk/java verify

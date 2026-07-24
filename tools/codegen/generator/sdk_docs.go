@@ -585,7 +585,11 @@ func docFieldName(protoField, lang string) string {
 		}
 		return strings.Join(parts, "")
 	case "python":
-		return protoField
+		// Route through the client generator's naming so docs never show an
+		// identifier the generated SDK doesn't have (keyword escaping).
+		return pyFieldName(protoField)
+	case "java":
+		return javaCamel(protoField)
 	default:
 		return tsProtoFieldName(protoField)
 	}
