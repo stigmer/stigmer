@@ -3,6 +3,13 @@
     "getting-started",
     "concepts",
     "guides",
+    "---Agents---",
+    "concepts/agents",
+    "concepts/skills",
+    "concepts/sessions",
+    "concepts/approval-flows",
+    "guides/sharing",
+    "guides/channels",
     "sdk",
     "cli"
   ]

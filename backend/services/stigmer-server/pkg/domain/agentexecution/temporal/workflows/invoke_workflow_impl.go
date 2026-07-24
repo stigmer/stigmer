@@ -1023,6 +1023,14 @@ func (w *InvokeAgentExecutionWorkflowImpl) handleCancellation(
 // updateStatusOnCancellation updates the execution status to CANCELLED.
 // Best-effort: logs on error but never propagates.
 //
+// Deliberately sets NO error: a user-initiated cancel is a quiet terminal
+// state, not a failure (stigmer#282). The proto contract populates
+// status.error only for FAILED/TERMINATED, and the cancel RPC's own persist
+// step honors the same rule ("cancel does not set error" in
+// lifecycle_cancel_cascade_test.go) — display layers key error styling on
+// phase, so writing a sentinel here would render the stop as a red failure.
+// The muted MESSAGE_SYSTEM line below is the durable in-transcript marker.
+//
 // Uses a regular activity for the same replay-safety reasons as updateStatusOnFailure.
 // The caller (handleCancellation) provides a disconnected context so this activity
 // completes even when the workflow context is already cancelled.
@@ -1031,7 +1039,6 @@ func (w *InvokeAgentExecutionWorkflowImpl) updateStatusOnCancellation(ctx workfl
 
 	cancelledStatus := &agentexecutionv1.AgentExecutionStatus{
 		Phase: agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED,
-		Error: "Execution cancelled",
 		Messages: []*agentexecutionv1.AgentMessage{
 			{
 				Type:    agentexecutionv1.MessageType_MESSAGE_SYSTEM,

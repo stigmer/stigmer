@@ -15,6 +15,7 @@ import {
   formatSenderIdentityText,
   type SenderIdentity,
 } from "../../shared/sender-identity.js";
+import { formatSessionContextText } from "../../shared/session-context.js";
 import { PLAN_MODE_DIRECTIVE } from "../../shared/plan-mode-prompt.js";
 import {
   buildImplementPlanDirective,
@@ -134,6 +135,14 @@ export interface PromptBuilderInput {
    * per-sender).
    */
   senderIdentity?: SenderIdentity;
+  /**
+   * Embedder-supplied session context (personalization, not
+   * authorization): standing free-text context about the user/session,
+   * read from `SessionSpec.metadata`. Injected on EVERY turn like the
+   * bridge — the native system prompt is rebuilt per invocation, and the
+   * context is standing session state, like skills.
+   */
+  sessionContext?: string;
 }
 
 export interface InjectedFile {
@@ -183,6 +192,14 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
     prompt +=
       "\n\n## Conversation sender\n\n" +
       formatSenderIdentityText(input.senderIdentity);
+  }
+
+  // Standing facts about the user (session context) come before the
+  // carried conversation (bridge): the bridge may refer back to them.
+  if (input.sessionContext) {
+    prompt +=
+      "\n\n## Session context\n\n" +
+      formatSessionContextText(input.sessionContext);
   }
 
   if (input.contextBridge) {

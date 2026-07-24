@@ -2,12 +2,8 @@
   "title": "Concepts",
   "pages": [
     "what-is-stigmer",
-    "agents",
-    "skills",
     "tools",
     "datastores",
-    "approval-flows",
-    "sessions",
     "runners",
     "harnesses",
     "workflows",

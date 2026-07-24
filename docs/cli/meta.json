@@ -1,4 +1,7 @@
 {
   "title": "CLI",
+  "description": "Operate Stigmer from the terminal",
+  "icon": "SquareTerminal",
+  "root": true,
   "pages": ["index", "commands"]
 }

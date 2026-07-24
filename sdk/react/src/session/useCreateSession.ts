@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import {
   PENDING_SUBJECT,
+  mergeSessionContext,
   type McpServerUsageInput,
   type ResourceRef,
   type WorkspaceEntryInput,
@@ -25,6 +26,34 @@ export interface SharedSessionFields {
   readonly mcpServerUsages?: McpServerUsageInput[];
   /** Skill references to enable for executions in this session. */
   readonly skillRefs?: ResourceRef[];
+  /**
+   * Custom key-value pairs stored on `SessionSpec.metadata`.
+   *
+   * A passthrough for embedder-owned keys (correlation IDs, tenant tags)
+   * and for platform-reserved `stigmer.ai/*` keys set explicitly. For the
+   * common case — standing user context injected into the agent's prompt —
+   * prefer the typed {@link sessionContext} field, which maps onto the
+   * reserved `stigmer.ai/session-context` key and wins over a raw entry
+   * under that key when both are provided.
+   */
+  readonly metadata?: Record<string, string>;
+  /**
+   * Standing, per-user context the agent receives on every turn but the
+   * conversation UI never renders — who the caller is, their experience
+   * level, their standing instructions (stigmer/stigmer#286).
+   *
+   * Stored on `SessionSpec.metadata` under `stigmer.ai/session-context`;
+   * the agent runner injects it into the system prompt as already-known
+   * background, so agents can greet the user by name and calibrate
+   * depth/defaults from the first turn without a visible context preamble.
+   *
+   * Personalization, not authorization: anyone who can create the session
+   * can set this (the same trust level as authoring the first message).
+   * Hidden from the conversation thread, not from the API — `session.get`
+   * returns it, so never put secrets here; secrets belong in `runtimeEnv`
+   * or Environment resources. Large values bloat every prompt.
+   */
+  readonly sessionContext?: string;
   /**
    * Execution harness for this session.
    *
@@ -172,6 +201,7 @@ export function useCreateSession(): UseCreateSessionReturn {
           workspaceEntries: input.workspaceEntries,
           mcpServerUsages: input.mcpServerUsages,
           skillRefs: input.skillRefs,
+          metadata: mergeSessionContext(input.metadata, input.sessionContext),
           agentInstanceId: resolvedInstanceId,
           harness: input.harness ? toProtoHarness(input.harness) : undefined,
           executionTarget: resolvedTarget

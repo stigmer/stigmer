@@ -111,6 +111,36 @@ export interface UseNewSessionFlowOptions {
    * @default "integrator"
    */
   readonly audience?: SessionAudience;
+  /**
+   * Custom key-value pairs stored on the created session's
+   * `SessionSpec.metadata`.
+   *
+   * A passthrough for embedder-owned keys (correlation IDs, tenant tags)
+   * and for platform-reserved `stigmer.ai/*` keys set explicitly. For the
+   * common case — standing user context injected into the agent's prompt —
+   * prefer the typed {@link sessionContext} option, which maps onto the
+   * reserved `stigmer.ai/session-context` key and wins over a raw entry
+   * under that key when both are provided.
+   */
+  readonly metadata?: Record<string, string>;
+  /**
+   * Standing, per-user context the agent receives on every turn but the
+   * conversation UI never renders — who the caller is, their experience
+   * level, their standing instructions (stigmer/stigmer#286).
+   *
+   * Stored on the created session's `SessionSpec.metadata` under
+   * `stigmer.ai/session-context`; the agent runner injects it into the
+   * system prompt as already-known background, so agents can greet the
+   * user by name and calibrate depth/defaults from the first turn without
+   * a visible context preamble.
+   *
+   * Personalization, not authorization: anyone who can create the session
+   * can set this (the same trust level as authoring the first message).
+   * Hidden from the conversation thread, not from the API — `session.get`
+   * returns it, so never put secrets here; secrets belong in `runtimeEnv`
+   * or Environment resources. Large values bloat every prompt.
+   */
+  readonly sessionContext?: string;
 }
 
 /** Return value of {@link useNewSessionFlow}. */
@@ -217,7 +247,15 @@ export interface UseNewSessionFlowReturn {
 export function useNewSessionFlow(
   options: UseNewSessionFlowOptions,
 ): UseNewSessionFlowReturn {
-  const { org, onSessionCreated, onError, getRuntimeEnv, defaultHarness } = options;
+  const {
+    org,
+    onSessionCreated,
+    onError,
+    getRuntimeEnv,
+    defaultHarness,
+    metadata,
+    sessionContext,
+  } = options;
   const isGuest = options.audience === "guest";
   const contextTarget = useExecutionTarget();
   const executionTarget = options.executionTarget ?? contextTarget;
@@ -336,6 +374,10 @@ export function useNewSessionFlow(
             : undefined,
           mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
           skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
+          // The typed-wins merge happens downstream in useCreateAgentExecution;
+          // both fields are forwarded verbatim here.
+          metadata,
+          sessionContext,
           harness,
           executionTarget,
         };
@@ -440,6 +482,8 @@ export function useNewSessionFlow(
       workspace,
       mcpServerUsages,
       skillRefs,
+      metadata,
+      sessionContext,
       agentRef,
       resolution,
       defaultAgent,

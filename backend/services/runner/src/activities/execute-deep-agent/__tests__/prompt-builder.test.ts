@@ -266,6 +266,51 @@ describe("buildEnhancedSystemPrompt", () => {
     });
   });
 
+  describe("embedder session context", () => {
+    const base = {
+      instructions: "Test",
+      provisionResults: [],
+      containerRoot: "",
+      skillsPromptSection: "",
+      workspaceFileRefs: [],
+      workspaceRoot: "",
+      injectedFiles: [],
+    };
+
+    it("appends the context as standing session context (every-turn injection)", () => {
+      const prompt = buildEnhancedSystemPrompt({
+        ...base,
+        sessionContext: "Role: platform admin\nPrefers terse answers.",
+      });
+
+      expect(prompt).toContain("## Session context");
+      expect(prompt).toContain("Role: platform admin");
+      expect(prompt).toContain("Do not repeat it back");
+    });
+
+    it("omits the section when the session carries no context", () => {
+      const prompt = buildEnhancedSystemPrompt(base);
+
+      expect(prompt).not.toContain("## Session context");
+    });
+
+    it("places standing user facts before the carried conversation (bridge)", () => {
+      const prompt = buildEnhancedSystemPrompt({
+        ...base,
+        senderIdentity: { value: "15550001111", kind: "whatsapp_phone" },
+        sessionContext: "Role: platform admin",
+        contextBridge: "User: hi\nAssistant: hello",
+      });
+
+      const sender = prompt.indexOf("## Conversation sender");
+      const context = prompt.indexOf("## Session context");
+      const bridge = prompt.indexOf("## Previous conversation context");
+      expect(sender).toBeGreaterThan(-1);
+      expect(context).toBeGreaterThan(sender);
+      expect(bridge).toBeGreaterThan(context);
+    });
+  });
+
   describe("plan mode", () => {
     const base = {
       instructions: "Test",

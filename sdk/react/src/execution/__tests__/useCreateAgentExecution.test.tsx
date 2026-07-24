@@ -137,6 +137,92 @@ describe("useCreateAgentExecution — one-call session bootstrap (sessionSpec)",
     expect(input.sessionSpec.executionTarget).toBeUndefined();
   });
 
+  it("passes the metadata map through on the bootstrap spec", async () => {
+    const { result } = renderHook(() => useCreateAgentExecution(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    await act(async () => {
+      await result.current.create({
+        org: "acme",
+        message: "Hello",
+        sessionSpec: {
+          agentInstanceId: "ain-1",
+          metadata: { "acme/tenant": "t-1" },
+        },
+      });
+    });
+
+    const input = mockCreate.mock.calls[0][0];
+    expect(input.sessionSpec.metadata).toEqual({ "acme/tenant": "t-1" });
+  });
+
+  it("maps the typed sessionContext onto the reserved metadata key", async () => {
+    const { result } = renderHook(() => useCreateAgentExecution(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    await act(async () => {
+      await result.current.create({
+        org: "acme",
+        message: "Hello",
+        sessionSpec: {
+          agentInstanceId: "ain-1",
+          sessionContext: "Role: platform admin",
+        },
+      });
+    });
+
+    const input = mockCreate.mock.calls[0][0];
+    expect(input.sessionSpec.metadata).toEqual({
+      "stigmer.ai/session-context": "Role: platform admin",
+    });
+  });
+
+  it("lets the typed sessionContext win over a raw entry under the reserved key", async () => {
+    const { result } = renderHook(() => useCreateAgentExecution(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    await act(async () => {
+      await result.current.create({
+        org: "acme",
+        message: "Hello",
+        sessionSpec: {
+          agentInstanceId: "ain-1",
+          metadata: {
+            "acme/tenant": "t-1",
+            "stigmer.ai/session-context": "stale raw value",
+          },
+          sessionContext: "typed value",
+        },
+      });
+    });
+
+    const input = mockCreate.mock.calls[0][0];
+    expect(input.sessionSpec.metadata).toEqual({
+      "acme/tenant": "t-1",
+      "stigmer.ai/session-context": "typed value",
+    });
+  });
+
+  it("omits metadata entirely when neither field is provided", async () => {
+    const { result } = renderHook(() => useCreateAgentExecution(), {
+      wrapper: createWrapper(makeMockClient()),
+    });
+
+    await act(async () => {
+      await result.current.create({
+        org: "acme",
+        message: "Hello",
+        sessionSpec: { agentInstanceId: "ain-1" },
+      });
+    });
+
+    const input = mockCreate.mock.calls[0][0];
+    expect(input.sessionSpec.metadata).toBeUndefined();
+  });
+
   it("returns the server-assigned session id from the bootstrap response", async () => {
     mockCreate.mockResolvedValueOnce({
       metadata: { id: "aex-1" },

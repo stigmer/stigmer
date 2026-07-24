@@ -177,6 +177,55 @@ describe("buildPrompt", () => {
     expect(prompt).not.toContain("<conversation_sender>");
   });
 
+  it("carries the embedder session context on the first execution", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "created_first_execution"),
+        sessionContext: "Role: platform admin\nPrefers terse answers.",
+      }),
+    );
+    expect(prompt).toContain("<session_context>");
+    expect(prompt).toContain("Role: platform admin");
+    // The context is CONTEXT like the bridge; the approval protocol keeps
+    // its pinned last-before-task slot.
+    expect(prompt.indexOf("<session_context>"))
+      .toBeLessThan(prompt.indexOf("<tool_approval_protocol>"));
+  });
+
+  it("orders standing user facts before the carried conversation (bridge)", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "created_first_execution"),
+        senderIdentity: { value: "15550001111", kind: "whatsapp_phone" },
+        sessionContext: "Role: platform admin",
+        contextBridge: "User: hi\nAssistant: hello",
+      }),
+    );
+    const sender = prompt.indexOf("<conversation_sender>");
+    const context = prompt.indexOf("<session_context>");
+    const bridge = prompt.indexOf("<previous_conversation_context>");
+    expect(sender).toBeGreaterThan(-1);
+    expect(context).toBeGreaterThan(sender);
+    expect(bridge).toBeGreaterThan(context);
+  });
+
+  it("never re-sends the context to a successfully resumed agent — its native context carries it", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "resumed_successfully"),
+        sessionContext: "Role: platform admin",
+      }),
+    );
+    expect(prompt).toBe(USER_MESSAGE);
+  });
+
+  it("omits the context section when the session carries none", () => {
+    const prompt = buildPrompt(
+      input({ resolution: resolution("local", "created_first_execution") }),
+    );
+    expect(prompt).not.toContain("<session_context>");
+  });
+
   it("uses the reinvocation prompt for a HITL reinvocation (human-meaningful, no opaque ids)", () => {
     const approvalDecisions = new Map<string, ApprovalAction>([
       ["tool-call-1", ApprovalAction.APPROVE],

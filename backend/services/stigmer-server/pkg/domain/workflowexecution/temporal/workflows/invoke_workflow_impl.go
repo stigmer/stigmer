@@ -385,12 +385,17 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) handleCancellation(ctx workflow.Co
 // updateStatusOnCancellation updates the execution status to CANCELLED.
 // Uses remote activity (v1) to avoid RECORD_MARKER replay bugs on the cancel path.
 // Best-effort: logs on error but never propagates.
+//
+// Deliberately sets NO error: a user-initiated cancel is a quiet terminal
+// state, not a failure (stigmer#282). The proto contract populates
+// status.error only for FAILED executions, and display layers key error
+// styling on it — writing a sentinel here would render the stop as a
+// failure. The CANCELLED phase alone carries the state.
 func (w *InvokeWorkflowExecutionWorkflowImpl) updateStatusOnCancellation(ctx workflow.Context, executionID string) {
 	logger := workflow.GetLogger(ctx)
 
 	cancelledStatus := &workflowexecutionv1.WorkflowExecutionStatus{
 		Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_CANCELLED,
-		Error: "Workflow execution cancelled",
 	}
 
 	v := workflow.GetVersion(ctx, "remote-cleanup-stubs", workflow.DefaultVersion, 1)

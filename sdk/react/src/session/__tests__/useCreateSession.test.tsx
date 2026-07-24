@@ -193,6 +193,100 @@ describe("useCreateSession", () => {
     expect(callArg.executionTarget).toBeUndefined();
   });
 
+  describe("session metadata and sessionContext", () => {
+    it("passes the metadata map through to stigmer.session.create()", async () => {
+      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-md" } });
+      const client = createMockStigmer({ create });
+
+      const { result } = renderHook(() => useCreateSession(), {
+        wrapper: wrapper(client),
+      });
+
+      await act(async () => {
+        await result.current.create({
+          org: "acme",
+          agentInstanceId: "ain-123",
+          metadata: { "acme/tenant": "t-1" },
+        });
+      });
+
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: { "acme/tenant": "t-1" },
+        }),
+      );
+    });
+
+    it("maps the typed sessionContext onto the reserved metadata key", async () => {
+      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-sc" } });
+      const client = createMockStigmer({ create });
+
+      const { result } = renderHook(() => useCreateSession(), {
+        wrapper: wrapper(client),
+      });
+
+      await act(async () => {
+        await result.current.create({
+          org: "acme",
+          agentInstanceId: "ain-123",
+          sessionContext: "Role: platform admin",
+        });
+      });
+
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: { "stigmer.ai/session-context": "Role: platform admin" },
+        }),
+      );
+    });
+
+    it("lets the typed sessionContext win over a raw entry under the reserved key", async () => {
+      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-both" } });
+      const client = createMockStigmer({ create });
+
+      const { result } = renderHook(() => useCreateSession(), {
+        wrapper: wrapper(client),
+      });
+
+      await act(async () => {
+        await result.current.create({
+          org: "acme",
+          agentInstanceId: "ain-123",
+          metadata: {
+            "acme/tenant": "t-1",
+            "stigmer.ai/session-context": "stale raw value",
+          },
+          sessionContext: "typed value",
+        });
+      });
+
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: {
+            "acme/tenant": "t-1",
+            "stigmer.ai/session-context": "typed value",
+          },
+        }),
+      );
+    });
+
+    it("omits metadata entirely when neither field is provided", async () => {
+      const create = vi.fn().mockResolvedValue({ metadata: { id: "ses-none" } });
+      const client = createMockStigmer({ create });
+
+      const { result } = renderHook(() => useCreateSession(), {
+        wrapper: wrapper(client),
+      });
+
+      await act(async () => {
+        await result.current.create({ org: "acme", agentInstanceId: "ain-123" });
+      });
+
+      const callArg = create.mock.calls[0][0];
+      expect(callArg.metadata).toBeUndefined();
+    });
+  });
+
   it("clearError resets the error state", async () => {
     const create = vi.fn().mockRejectedValue(new Error("fail"));
     const client = createMockStigmer({ create });
