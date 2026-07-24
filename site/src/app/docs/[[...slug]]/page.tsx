@@ -37,11 +37,19 @@ export default async function Page(props: PageProps) {
             }
       }
     >
-      <div className="flex items-center justify-between">
-        <DocsTitle>{page.data.title}</DocsTitle>
-        <CopyMarkdownButton markdownUrl={markdownUrl} />
-      </div>
-      <DocsDescription>{page.data.description}</DocsDescription>
+      {/* Hero pages (`hero: true` frontmatter) render their own header via a
+          <Hero> in the MDX body; frontmatter title/description still feed
+          generateMetadata and the llms outputs. Suppressing the row also drops
+          the CopyMarkdownButton there — accepted for landing pages. */}
+      {!page.data.hero && (
+        <>
+          <div className="flex items-center justify-between">
+            <DocsTitle>{page.data.title}</DocsTitle>
+            <CopyMarkdownButton markdownUrl={markdownUrl} />
+          </div>
+          <DocsDescription>{page.data.description}</DocsDescription>
+        </>
+      )}
       <DocsBody>
         <MDX
           components={getMDXComponents({

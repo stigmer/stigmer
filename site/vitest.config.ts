@@ -5,7 +5,7 @@ export default defineConfig({
   // to use the automatic runtime for tests — no explicit React import needed.
   esbuild: { jsx: "automatic" },
   test: {
-    include: ["src/**/*.test.{ts,tsx}"],
+    include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.ts"],
     environment: "happy-dom",
     // Don't actually fetch iframe `src`es over the network during tests.
     environmentOptions: {

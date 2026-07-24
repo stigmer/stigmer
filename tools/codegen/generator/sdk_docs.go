@@ -114,7 +114,49 @@ func runSDKDocsGeneration(schemaDir, outputDir, apisDir string) error {
 	}
 	fmt.Printf("   -> meta.json\n")
 
+	removed, err := docRemoveStalePages(outputDir, slugs)
+	if err != nil {
+		return fmt.Errorf("failed to remove stale pages: %w", err)
+	}
+	for _, name := range removed {
+		fmt.Printf("   -> removed stale %s\n", name)
+	}
+
 	return nil
+}
+
+// docRemoveStalePages deletes .mdx files in outputDir that this generation
+// run did not produce, returning the deleted file names. The output directory
+// is generator-owned in its entirety (DD-01 §7: never hand-edit), so any
+// unrecognized page is a leftover from an earlier generator version — e.g.
+// platform-client-create-response.mdx, orphaned when a resource-type
+// inference bug was fixed but its output was never cleaned up. Stale pages
+// are invisible to the freshness check (it only diffs freshly generated
+// files) yet ship as live URLs in the static export.
+func docRemoveStalePages(outputDir string, slugs []string) ([]string, error) {
+	generated := make(map[string]bool, len(slugs))
+	for _, slug := range slugs {
+		generated[slug+".mdx"] = true
+	}
+
+	entries, err := os.ReadDir(outputDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read output directory: %w", err)
+	}
+
+	var removed []string
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".mdx") || generated[name] {
+			continue
+		}
+		if err := os.Remove(filepath.Join(outputDir, name)); err != nil {
+			return nil, fmt.Errorf("failed to remove stale page %s: %w", name, err)
+		}
+		removed = append(removed, name)
+	}
+	sort.Strings(removed)
+	return removed, nil
 }
 
 // generateCommonsDocPage creates the commons.mdx page documenting shared

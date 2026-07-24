@@ -35,6 +35,7 @@ export { ReviewPayloadRenderer as DemoReviewPayloadRenderer } from "./demos/scen
 export { ReviewPayloadFallback as DemoReviewPayloadFallback } from "./demos/scenarios/review-payload-gate";
 export { glossary } from "./glossary";
 export { HarnessCostComparison } from "./harness-cost-comparison";
+export { Hero } from "./welcome-hero";
 export { Mermaid } from "./mermaid";
 export { ScenarEmbed } from "./scenar-embed";
 export { PageFeedback } from "./page-feedback";
