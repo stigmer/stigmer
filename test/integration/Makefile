@@ -131,6 +131,35 @@ test: ensure-service-jar ## Run offline integration tests (no API keys needed)
 		--packages ./... \
 		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args)
 
+# The mongo→postgres migration's hybrid lane: identical to `test`, but the
+# harness boots the Java service with the app-postgres Spring profile added —
+# ApiResource kinds served from a dedicated Postgres container (Flyway-migrated
+# at service startup), Tier-2 operational stores still on Mongo. Opt-in and
+# additive: the default `test` lane stays the production-shaped Mongo run
+# until the T09 cutover. Separate output dir so the two lanes' reports can be
+# diffed side by side.
+APP_PG_OUTPUT_DIR ?= .test-output-app-postgres
+
+.PHONY: test-app-postgres
+test-app-postgres: ensure-service-jar ## Run offline integration tests in hybrid storage mode (app-postgres profile)
+	@command -v gotestsum >/dev/null 2>&1 || { \
+		echo "error: gotestsum not found"; \
+		echo "  install: go install gotest.tools/gotestsum@latest"; \
+		exit 1; \
+	}
+	@mkdir -p $(APP_PG_OUTPUT_DIR)
+	STIGMER_SERVICE_JAR=$(STIGMER_SERVICE_JAR) \
+	INTEGRATION_TEST_APP_POSTGRES=true \
+	INTEGRATION_TEST_OUTPUT_DIR=$(abspath $(APP_PG_OUTPUT_DIR)) gotestsum \
+		--junitfile $(APP_PG_OUTPUT_DIR)/junit.xml \
+		--junitfile-testsuite-name short \
+		--jsonfile $(APP_PG_OUTPUT_DIR)/test-output.json \
+		--format testname \
+		$(RERUN_FLAGS) \
+		--rerun-fails-report $(APP_PG_OUTPUT_DIR)/rerun-report.txt \
+		--packages ./... \
+		-- -tags integration -timeout 900s -count=1 $(call quarantine_skip_args)
+
 .PHONY: test-providers
 test-providers: ensure-service-jar ## Run provider-backed integration tests (auto-fetches API keys)
 	@command -v gotestsum >/dev/null 2>&1 || { \

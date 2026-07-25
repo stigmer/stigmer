@@ -13,8 +13,8 @@
 //     byte-identically with the OSS edition: INVALID_ARGUMENT;
 //   - referential integrity (account existence, org membership, the
 //     membership-gated did-you-mean) — the cloud-only
-//     ValidateBindingPrincipalsStep against real Mongo:
-//     FAILED_PRECONDITION.
+//     ValidateBindingPrincipalsStep against the real persistence
+//     adapter (Mongo lane or app-postgres lane): FAILED_PRECONDITION.
 //
 // Every rejection asserts the exact message bytes: they are the
 // operator-facing contract the CLI and console render verbatim.
@@ -30,29 +30,33 @@ import (
 	datastorev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/datastore/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	iampolicyv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1"
+	identityaccountv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityaccount/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-// seedBindingPrincipal materializes an identity account in Mongo (and,
-// when membershipRelation is non-empty, its assignable relation on
-// TestOrg in the iam_policy mirror) so datastore principal bindings can
+// seedBindingPrincipal materializes an identity account (and, when
+// membershipRelation is non-empty, its assignable relation on TestOrg)
+// through the real create RPCs, so datastore principal bindings can
 // pass — or deliberately fail — the apply-time referential validation.
-func seedBindingPrincipal(t *testing.T, ctx context.Context, input harness.SeedIdentityAccountInput, membershipRelation string) {
+//
+// Front-door seeding is storage-neutral by construction: the account and the
+// policy mirror land in whichever store the active persistence adapter
+// writes, so this fixture works identically on the Mongo lane and the
+// app-postgres hybrid lane. The server assigns the account id and slug —
+// callers consume them from the returned account.
+func seedBindingPrincipal(t *testing.T, ctx context.Context, name, email, membershipRelation string) *identityaccountv1.IdentityAccount {
 	t.Helper()
 
-	mongoURI := fmt.Sprintf("mongodb://%s:%s", testHarness.Mongo.Host, testHarness.Mongo.Port)
-	seeder, err := harness.NewMongoSeeder(ctx, mongoURI, "stigmer_test")
-	require.NoError(t, err, "connect mongo seeder")
-	defer seeder.Close(ctx)
-
-	require.NoError(t, seeder.SeedIdentityAccount(ctx, input), "seed identity account %s", input.ID)
+	base := harness.NewClients(grpcConn)
+	account := harness.CreateIdentityAccount(t, ctx, base, name, email)
 	if membershipRelation != "" {
-		require.NoError(t, seeder.SeedOrgMembership(ctx, input.ID, harness.TestOrg, membershipRelation),
-			"seed org membership for %s", input.ID)
+		harness.GrantOrgRole(t, ctx, base, harness.TestOrg,
+			account.GetMetadata().GetId(), name, membershipRelation)
 	}
+	return account
 }
 
 // bindingValidationSpec is the minimal spec the scenarios mutate: one
@@ -110,20 +114,19 @@ func TestDatastoreBindingValidation_Apply(t *testing.T) {
 
 	// The cast: a member (exists + assignable relation on TestOrg), and
 	// an outsider (exists on the platform, no relations in TestOrg).
-	memberID := "idt-binding-val-member-" + suffix
-	memberSlug := "binding-val-member-" + suffix
-	outsiderID := "idt-binding-val-outsider-" + suffix
-	seedBindingPrincipal(t, ctx, harness.SeedIdentityAccountInput{
-		ID:    memberID,
-		Slug:  memberSlug,
-		Email: memberSlug + "@test.stigmer.ai",
-		Name:  "Binding Validation Member",
-	}, "member")
-	seedBindingPrincipal(t, ctx, harness.SeedIdentityAccountInput{
-		ID:    outsiderID,
-		Email: "binding-val-outsider-" + suffix + "@test.stigmer.ai",
-		Name:  "Binding Validation Outsider",
-	}, "")
+	// Ids and slugs are server-assigned; the exact-message assertions
+	// below consume them from the created accounts.
+	member := seedBindingPrincipal(t, ctx,
+		"Binding Validation Member "+suffix,
+		"binding-val-member-"+suffix+"@test.stigmer.ai",
+		"member")
+	memberID := member.GetMetadata().GetId()
+	memberSlug := member.GetMetadata().GetSlug()
+	outsider := seedBindingPrincipal(t, ctx,
+		"Binding Validation Outsider "+suffix,
+		"binding-val-outsider-"+suffix+"@test.stigmer.ai",
+		"")
+	outsiderID := outsider.GetMetadata().GetId()
 
 	requireRejects := func(t *testing.T, err error, code codes.Code, message string) {
 		t.Helper()

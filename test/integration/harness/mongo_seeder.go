@@ -16,7 +16,18 @@ const identityAccountCollection = "identity_account"
 // the Java service expects to find during production-mode security resolution.
 // In production security mode (no STIGMER_SECURITY_MODE=test), the gRPC
 // interceptor chain resolves JWT subjects to internal identity accounts via
-// Mongo — so the bootstrap identity must exist before any authenticated call.
+// the persistence layer — so the bootstrap identity must exist before any
+// authenticated call can succeed. That chicken-and-egg is the ONLY legitimate
+// reason to seed a Tier-1 kind (identity_account, iam_policy) behind the
+// service's back, and only the integration-security suite has it.
+//
+// Everything else must seed through the front door instead
+// (CreateIdentityAccount / GrantOrgRole): direct writes are storage-coupled
+// and land in Mongo even when the app-postgres lane
+// (INTEGRATION_TEST_APP_POSTGRES) has moved the kind to Postgres — the seed
+// would silently miss the store the service reads. The Tier-2 helpers below
+// (billing_policy, llm_call_usage_record) are unaffected: those stores stay
+// on Mongo until stigmer-cloud's T04/T05b port them.
 type MongoSeeder struct {
 	client *mongo.Client
 	dbName string

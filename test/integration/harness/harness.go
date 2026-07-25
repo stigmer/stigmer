@@ -33,6 +33,7 @@ type TestHarness struct {
 	OpenFGA       *OpenFGAContainer
 	MinIO         *MinIOContainer
 	Postgres      *PostgresContainer
+	AppPostgres   *AppPostgresContainer
 	Jaeger        *JaegerContainer
 	Service       *JavaService
 	UnifiedRunner *UnifiedRunnerStatic
@@ -87,6 +88,24 @@ func IsOTelRequested() bool {
 	return v == "true" || v == "1"
 }
 
+// AppPostgresEnabled returns true when this run boots the Java service in
+// hybrid storage mode: the app-postgres Spring profile active, ApiResource
+// kinds on PostgreSQL, Tier-2 operational stores still on MongoDB. Tests that
+// assert against storage internals can use this to pick the right side.
+func (h *TestHarness) AppPostgresEnabled() bool {
+	return h.AppPostgres != nil
+}
+
+// IsAppPostgresRequested returns true when the INTEGRATION_TEST_APP_POSTGRES
+// env var is set to "true" or "1" (the mongo→postgres migration's hybrid
+// lane). Default off: the Mongo lane stays the production-shaped default
+// until the T09 cutover, after which the flag — and eventually the Mongo
+// lane itself — is retired (T10).
+func IsAppPostgresRequested() bool {
+	v := os.Getenv("INTEGRATION_TEST_APP_POSTGRES")
+	return v == "true" || v == "1"
+}
+
 // OutputDir returns the root test output directory.
 func (h *TestHarness) OutputDir() string {
 	return h.outputDir
@@ -128,13 +147,17 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 	logger.Info("starting test infrastructure", "output_dir", outputDir)
 
 	otelEnabled := IsOTelRequested()
+	appPostgresEnabled := IsAppPostgresRequested()
 
-	var mongoErr, redisErr, temporalErr, minioErr, postgresErr, jaegerErr error
+	var mongoErr, redisErr, temporalErr, minioErr, postgresErr, appPostgresErr, jaegerErr error
 	var wg sync.WaitGroup
 
 	startCount := 5
 	if otelEnabled {
-		startCount = 6
+		startCount++
+	}
+	if appPostgresEnabled {
+		startCount++
 	}
 	wg.Add(startCount)
 
@@ -183,6 +206,17 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 		}
 	}()
 
+	if appPostgresEnabled {
+		go func() {
+			defer wg.Done()
+			logger.Info("starting postgres (app system-of-record, INTEGRATION_TEST_APP_POSTGRES=true)")
+			h.AppPostgres, appPostgresErr = StartAppPostgres(ctx)
+			if appPostgresErr == nil {
+				logger.Info("app postgres ready", "host", h.AppPostgres.Host, "port", h.AppPostgres.Port)
+			}
+		}()
+	}
+
 	if otelEnabled {
 		go func() {
 			defer wg.Done()
@@ -218,6 +252,10 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 	if postgresErr != nil {
 		h.Stop(ctx)
 		return nil, fmt.Errorf("postgres: %w", postgresErr)
+	}
+	if appPostgresErr != nil {
+		h.Stop(ctx)
+		return nil, fmt.Errorf("app postgres: %w", appPostgresErr)
 	}
 	if jaegerErr != nil {
 		h.Stop(ctx)
@@ -289,6 +327,12 @@ func (h *TestHarness) Stop(ctx context.Context) {
 	if h.Postgres != nil {
 		if err := StopContainer(ctx, h.Postgres.Container); err != nil {
 			h.logger.Error("failed to stop postgres", "error", err)
+		}
+	}
+
+	if h.AppPostgres != nil {
+		if err := StopContainer(ctx, h.AppPostgres.Container); err != nil {
+			h.logger.Error("failed to stop app postgres", "error", err)
 		}
 	}
 

@@ -94,13 +94,24 @@ func CreateStandaloneOrg(t *testing.T, ctx context.Context, ownerConn grpc.Clien
 // can_grant_access on the org — the synthetic owner does, as its creator.
 func grantOrgRole(t *testing.T, ctx context.Context, granter *Clients, orgID string, actor *Actor, relation string) {
 	t.Helper()
+	GrantOrgRole(t, ctx, granter, orgID, actor.AccountID, actor.Name, relation)
+}
+
+// GrantOrgRole grants an identity account a role on the org through the real
+// IamPolicy pipeline — the storage-neutral front door: the create handler
+// persists the policy mirror via the active persistence adapter AND writes the
+// FGA tuple, exactly as production grants do. Revoked on cleanup. granter must
+// hold can_grant_access on the org (the synthetic owner does, as its creator);
+// label names the grantee in failure output.
+func GrantOrgRole(t *testing.T, ctx context.Context, granter *Clients, orgID, accountID, label, relation string) {
+	t.Helper()
 	policy := &iampolicyv1.IamPolicySpec{
-		Principal: &iampolicyv1.ApiResourceRef{Kind: "identity_account", Id: actor.AccountID},
+		Principal: &iampolicyv1.ApiResourceRef{Kind: "identity_account", Id: accountID},
 		Resource:  &iampolicyv1.ApiResourceRef{Kind: "organization", Id: orgID},
 		Relation:  relation,
 	}
 	_, err := granter.IamPolicyCommand.Create(ctx, policy)
-	require.NoError(t, err, "grant %s role on org %s to %s", relation, orgID, actor.Name)
+	require.NoError(t, err, "grant %s role on org %s to %s", relation, orgID, label)
 	t.Cleanup(func() {
 		cleanCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()

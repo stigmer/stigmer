@@ -110,6 +110,20 @@ type ServiceConfig struct {
 	RecordsPGUser     string
 	RecordsPGPassword string
 
+	// App Postgres — the application's system of record behind the
+	// app-postgres Spring profile (mongo→postgres migration). When AppPGHost
+	// is set, the profile is ACTIVATED (hybrid storage mode: ApiResource
+	// kinds on Postgres, Tier-2 operational stores still on Mongo), APP_PG_*
+	// env vars point at this database, and the service runs its Flyway
+	// baseline against it during startup — a failed migration fails the
+	// boot. When empty, the profile stays off and the service runs the
+	// production-shaped Mongo-only stack; nothing else changes.
+	AppPGHost     string
+	AppPGPort     string
+	AppPGDatabase string
+	AppPGUser     string
+	AppPGPassword string
+
 	// LogDir is the directory for the service log file.
 	// If empty, a temporary directory is used.
 	LogDir string
@@ -348,6 +362,14 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	if cfg.OTLPEndpoint != "" {
 		profiles += ",observability"
 	}
+	// Hybrid storage mode (mongo→postgres migration): app-postgres is ADDED
+	// to — never substituted for — the list above. The mongo profile must stay
+	// active alongside it: Tier-2 operational stores (billing, channels,
+	// webhooks, sandboxes, audit sidecars) are still Mongo-backed until
+	// T04/T05b port them.
+	if cfg.AppPGHost != "" {
+		profiles += ",app-postgres"
+	}
 
 	env := os.Environ()
 	env = append(env,
@@ -443,6 +465,21 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 			fmt.Sprintf("RECORDS_PG_DATABASE=%s", cfg.RecordsPGDatabase),
 			fmt.Sprintf("RECORDS_PG_USERNAME=%s", cfg.RecordsPGUser),
 			fmt.Sprintf("RECORDS_PG_PASSWORD=%s", cfg.RecordsPGPassword),
+		)
+	}
+
+	// App Postgres — the ApiResource system of record when the app-postgres
+	// profile is active (see the profile block above for the hybrid-mode
+	// contract). Deliberately a different database than records: the two
+	// datasources are separate clusters in production (DD-011) and must
+	// never share configuration.
+	if cfg.AppPGHost != "" {
+		env = append(env,
+			fmt.Sprintf("APP_PG_HOST=%s", cfg.AppPGHost),
+			fmt.Sprintf("APP_PG_PORT=%s", cfg.AppPGPort),
+			fmt.Sprintf("APP_PG_DATABASE=%s", cfg.AppPGDatabase),
+			fmt.Sprintf("APP_PG_USERNAME=%s", cfg.AppPGUser),
+			fmt.Sprintf("APP_PG_PASSWORD=%s", cfg.AppPGPassword),
 		)
 	}
 

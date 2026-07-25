@@ -154,6 +154,18 @@ jobs:
             output: test/integration/.test-output
             artifact: integration-test-results
             report: Integration Test Report
+          # The mongo→postgres migration's hybrid lane: the same core suite,
+          # but the service boots with the app-postgres profile — ApiResource
+          # kinds on a dedicated Postgres container (Flyway-migrated at
+          # startup), Tier-2 operational stores still on Mongo. Runs alongside
+          # the Mongo lane until the T09 cutover retires the Mongo default;
+          # divergence between the two lanes is a storage-parity bug.
+          - suite: integration-app-postgres
+            label: Core (App Postgres)
+            make: test-integration-app-postgres
+            output: test/integration/.test-output-app-postgres
+            artifact: integration-app-postgres-test-results
+            report: Integration Test Report (App Postgres)
           - suite: security
             label: Security
             make: test-integration-security
@@ -244,9 +256,9 @@ jobs:
       # ── Core-suite-only guards / reports ─────────────────────────────────
 
       - name: Guard against silent test skip
-        if: success() && matrix.suite == 'integration'
+        if: success() && (matrix.suite == 'integration' || matrix.suite == 'integration-app-postgres')
         run: |
-          JUNIT="test/integration/.test-output/junit.xml"
+          JUNIT="${{ matrix.output }}/junit.xml"
           if [ ! -f "$JUNIT" ]; then
             echo "::error::JUnit XML not found at $JUNIT"
             exit 1

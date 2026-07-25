@@ -106,6 +106,20 @@ func TestMain(m *testing.M) {
 			"host", svcCfg.RecordsPGHost, "port", svcCfg.RecordsPGPort)
 	}
 
+	// Hybrid storage mode (INTEGRATION_TEST_APP_POSTGRES=true): the service
+	// boots with the app-postgres profile — ApiResource kinds on Postgres,
+	// Tier-2 operational stores still on Mongo — and Flyway migrates this
+	// database during startup.
+	if testHarness.AppPostgres != nil {
+		svcCfg.AppPGHost = testHarness.AppPostgres.Host
+		svcCfg.AppPGPort = testHarness.AppPostgres.Port
+		svcCfg.AppPGDatabase = testHarness.AppPostgres.Database
+		svcCfg.AppPGUser = testHarness.AppPostgres.User
+		svcCfg.AppPGPassword = testHarness.AppPostgres.Password
+		suiteLogger.Info("app Postgres enabled for Java service (hybrid storage mode)",
+			"host", svcCfg.AppPGHost, "port", svcCfg.AppPGPort)
+	}
+
 	svc, err := harness.StartJavaService(ctx, svcCfg, suiteLogger)
 	if err != nil {
 		suiteLogger.Error("failed to start java service", "error", err)

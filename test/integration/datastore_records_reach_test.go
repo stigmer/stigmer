@@ -67,8 +67,10 @@ const (
 	senderReadonly = "919800000003"
 	senderUnbound  = "919800000009"
 
-	principalSubject = "idt-records-reach-principal"
-	sessionCreator   = "idt-records-reach-creator"
+	// The platform principal's account id is server-assigned at seed time
+	// (recordsReachFixture.principalID); sessionCreator needs no account —
+	// channel-sender sessions resolve identity from the sender metadata.
+	sessionCreator = "idt-records-reach-creator"
 
 	bookingsCollection = "bookings"
 	uniqueSlotMessage  = "that slot is already booked"
@@ -79,8 +81,9 @@ const (
 // conditional unique, and two roles — one holding insert, one not — so
 // reach, sender-identity binding, own scope, verb denial, and the
 // declared constraint are all exercisable without the full clinic's
-// cross-collection machinery.
-func clinicBookingsSpec() *datastorev1.DatastoreSpec {
+// cross-collection machinery. principalID is the seeded platform
+// principal's server-assigned account id, bound to the patient role.
+func clinicBookingsSpec(principalID string) *datastorev1.DatastoreSpec {
 	channelBinding := func(waID, role string) *datastorev1.DatastoreRoleBinding {
 		return &datastorev1.DatastoreRoleBinding{
 			Subject: &datastorev1.DatastoreSubject{
@@ -108,7 +111,7 @@ func clinicBookingsSpec() *datastorev1.DatastoreSpec {
 						Kind: &datastorev1.DatastoreSubject_Principal{
 							Principal: &iampolicyv1.ApiResourceRef{
 								Kind: "identity_account",
-								Id:   principalSubject,
+								Id:   principalID,
 							},
 						},
 					},
@@ -158,27 +161,31 @@ func clinicBookingsSpec() *datastorev1.DatastoreSpec {
 type recordsReachFixture struct {
 	slug           string
 	unattachedSlug string
-	instDefault    *agentinstancev1.AgentInstance
-	instPartB      *agentinstancev1.AgentInstance
+	// principalID is the seeded platform principal's server-assigned
+	// account id — the spec binding, the senderless session's token sub,
+	// and the created_by assertion all consume it.
+	principalID string
+	instDefault *agentinstancev1.AgentInstance
+	instPartB   *agentinstancev1.AgentInstance
 }
 
 func setupRecordsReachFixture(t *testing.T, ctx context.Context, base *harness.Clients) recordsReachFixture {
 	t.Helper()
 
-	// The spec binds principalSubject as a platform principal, and the
+	// The spec binds the principal as a platform principal, and the
 	// apply-time binding validation requires the bound account to exist
 	// and be an org member — exactly what production requires, so the
-	// fixture materializes both before applying.
-	seedBindingPrincipal(t, ctx, harness.SeedIdentityAccountInput{
-		ID:    principalSubject,
-		Email: "records-reach-principal@test.stigmer.ai",
-		Name:  "Records Reach Principal",
-	}, "member")
+	// fixture materializes both (through the real RPCs) before applying.
+	principal := seedBindingPrincipal(t, ctx,
+		"Records Reach Principal "+uuid.New().String()[:8],
+		"records-reach-principal@test.stigmer.ai",
+		"member")
+	principalID := principal.GetMetadata().GetId()
 
 	// Datastores before the agent: t.Cleanup runs LIFO, so the agent is
 	// deleted first and the datastore's block-on-agent-reference delete
 	// guard passes.
-	ds := harness.CreateDatastore(t, ctx, base, "records-reach", clinicBookingsSpec())
+	ds := harness.CreateDatastore(t, ctx, base, "records-reach", clinicBookingsSpec(principalID))
 	unattached := harness.CreateDatastore(t, ctx, base, "records-reach-unattached",
 		&datastorev1.DatastoreSpec{
 			Description:   "same-org datastore the agent does NOT use",
@@ -214,6 +221,7 @@ func setupRecordsReachFixture(t *testing.T, ctx context.Context, base *harness.C
 	return recordsReachFixture{
 		slug:           ds.GetMetadata().GetSlug(),
 		unattachedSlug: unattached.GetMetadata().GetSlug(),
+		principalID:    principalID,
 		instDefault:    createInstance(""),
 		instPartB:      createInstance(partitionB),
 	}
@@ -338,7 +346,7 @@ func TestDatastoreRecordsReach_SessionBound(t *testing.T) {
 	patientB := sessionRecordClients(t, ctx, base, fx.instDefault.GetMetadata().GetId(), sessionCreator, whatsApp(senderPatientB))
 	readonly := sessionRecordClients(t, ctx, base, fx.instDefault.GetMetadata().GetId(), sessionCreator, whatsApp(senderReadonly))
 	unbound := sessionRecordClients(t, ctx, base, fx.instDefault.GetMetadata().GetId(), sessionCreator, whatsApp(senderUnbound))
-	senderless := sessionRecordClients(t, ctx, base, fx.instDefault.GetMetadata().GetId(), principalSubject, nil)
+	senderless := sessionRecordClients(t, ctx, base, fx.instDefault.GetMetadata().GetId(), fx.principalID, nil)
 	patientAPartB := sessionRecordClients(t, ctx, base, fx.instPartB.GetMetadata().GetId(), sessionCreator, whatsApp(senderPatientA))
 
 	t.Run("channel sender insert carries attribution and reads back", func(t *testing.T) {
@@ -440,7 +448,7 @@ func TestDatastoreRecordsReach_SessionBound(t *testing.T) {
 		require.NotNil(t, principal,
 			"a session without channel-sender metadata must attribute to the token principal, got %v",
 			env.GetCreatedBy())
-		require.Equal(t, principalSubject, principal.GetId(), "created_by principal id")
+		require.Equal(t, fx.principalID, principal.GetId(), "created_by principal id")
 	})
 
 	t.Run("partition is instance-derived and scopes records and uniques", func(t *testing.T) {
