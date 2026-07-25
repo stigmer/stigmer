@@ -714,10 +714,11 @@ check-go: ## check bucket: Go vet/test/build + buf lint + binaries
 	@mkdir -p bin
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
 
-check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner)
+check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner, demos)
 	npm run typecheck -w @stigmer/sdk
 	npm run lint -w @stigmer/react
 	npm run typecheck -w @stigmer/react
+	npm run typecheck -w @stigmer/demos
 	npm run lint -w client-apps/web
 	npm run typecheck -w desktop
 	npm run lint -w desktop

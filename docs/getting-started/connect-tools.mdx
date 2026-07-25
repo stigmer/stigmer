@@ -5,7 +5,7 @@ description:
   actions, and ask for human approval before doing anything risky.
 ---
 
-import { DemoConnectToolsTour, DemoConnectPlayback } from "@/components/docs";
+import { DemoConnectToolsTour } from "@/components/docs";
 
 ## What you'll build
 
@@ -98,18 +98,24 @@ Here is what that flow looks like:
 
 Your MCP server is registered, but Stigmer doesn't know what tools it provides
 yet. Connecting reaches out to the live server, catalogs every tool, and
-classifies each one for approval — all in a single step.
+classifies each one for approval — one flow, started from one button.
 
 1. Open the MCP server detail page.
-2. If the server requires credentials (API keys, tokens), enter them when
-   prompted.
-3. Click **Connect**.
+2. Click **Connect**. If the server needs credentials (API keys, tokens),
+   Stigmer asks for them right there — the form appears below the Connect bar
+   before anything is sent.
+3. Enter the credentials and click **Save**. Stigmer stores them securely,
+   connects to the live server, and starts discovery. This takes a few seconds —
+   it's talking to the real endpoint.
 
-Stigmer connects to the live server, discovers every tool, and classifies each
-one automatically. Read-only tools pass through. Tools that modify data, move
+When discovery finishes, the Tools tab fills in and every tool carries a
+classification. Read-only tools pass through. Tools that modify data, move
 money, or have side effects get flagged for human approval:
 
-<DemoConnectPlayback />
+<ScenarEmbed
+  id="mcp-server-connect-tour"
+  title="Connect and discover tools walkthrough"
+/>
 
 In this example, three tools were found: `get_order` (read), `list_orders`
 (read), and `process_return` (write). The first two run automatically.
@@ -444,10 +450,10 @@ The return has been processed.
 
 ## What just happened
 
-You connected tools to your Agent through an MCP server. One click discovered
-the tools and classified approval policies automatically. In your code, two
-changes made the difference: `mcpServerRefs` to give the Agent access to tools,
-and `submitApproval` to handle the human-in-the-loop flow.
+You connected tools to your Agent through an MCP server. Connect discovered the
+tools and classified approval policies automatically. In your code, two changes
+made the difference: `mcpServerRefs` to give the Agent access to tools, and
+`submitApproval` to handle the human-in-the-loop flow.
 
 Your Agent now knows your domain (Skills), uses your tools (MCP servers), and
 follows your rules (approval policies). But look at your Session creation code —

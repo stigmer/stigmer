@@ -862,7 +862,8 @@ dependencies. Platform builders can mount it anywhere.
 
 Detail view for an MCP Server integration.
 
-Fetches the server via [`useMcpServer`](#usemcpserver) internally and renders
+Fetches the server via [`useMcpServer`](#usemcpserver) internally — or renders
+from hoisted state when the caller passes `mcpServerState` — and shows
 its full configuration: validation banner (if invalid), header,
 a **Connect bar** with a single Connect/Reconnect action, and a
 **tabbed capabilities panel** (Tools, Policies, and optionally
@@ -888,6 +889,7 @@ All visual properties flow through `--stgm-*` design tokens.
     defaultCapabilityTab: { type: "CapabilityTab", description: "Initial active capability tab. Defaults to `\"tools\"`. Useful for deep-linking or demo scenarios that need to start on a specific tab.", typeDescriptionLink: "#capabilitytab" },
     defaultShowCredentialForm: { type: "boolean", description: "When `true`, the credential form opens immediately on mount (instead of waiting for a Connect click). Useful for guided tours and demo scenarios that need to show the credential entry step without user interaction." },
     editable: { type: "boolean", description: "When `true`, fields on the detail view become click-to-edit. Each field saves independently via `stigmer.mcpServer.update()`." },
+    mcpServerState: { type: "UseMcpServerReturn", description: "Hoisted resource state from useMcpServer, for callers that already own the fetch. When provided, the view issues **no** `getByReference` RPC of its own and renders entirely from this state — loading, error, and not-found included, so a caller mid-fetch still gets the loading skeleton rather than a false not-found.  Ownership contract: supplying this state means supplying its lifecycle. The view calls `mcpServerState.refetch()` after connect, disconnect, and inline edits, so the `refetch` you pass must refresh the data behind `mcpServer` or the view will render stale state after those actions.  Two callers this serves: - A page that already fetched the server (e.g. for export/YAML   actions) passes `useMcpServer(org, slug)` straight through instead   of paying a duplicate RPC. - A guided tour or demo supplies frozen state   (`{ mcpServer, isLoading: false, isRefetching: false, error: null,   refetch: noop }`) so every depicted beat renders deterministically   from data the tour owns (scenar-cloud DD-006).  When omitted, the view fetches by `org`/`slug` itself, as before.", typeDescriptionLink: "#usemcpserverreturn" },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the MCP server resource has been fetched successfully. Provides the resource display name for use cases like breadcrumbs, document titles, or analytics — without requiring the consumer to also call useMcpServer.  Not called on error or not-found states." },
     onResourceUpdated: { type: "(server: McpServer) => void", description: "Called after a successful inline field save with the updated server." },
     org: { type: "string", description: "Organization slug that owns the MCP server.", required: true },
@@ -899,6 +901,14 @@ All visual properties flow through `--stgm-*` design tokens.
 ```tsx
 // Minimal — self-contained, fetches its own data
 <McpServerDetailView org="acme" slug="github" />
+```
+
+```tsx
+// Hoisted — the page already fetched the server (e.g. for YAML
+// export actions), so pass that state through instead of paying a
+// second getByReference RPC.
+const state = useMcpServer(org, slug);
+<McpServerDetailView org={org} slug={slug} mcpServerState={state} />
 ```
 
 

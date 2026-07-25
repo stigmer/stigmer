@@ -34,6 +34,7 @@ import {
 } from "@stigmer/react";
 import type { McpServerWizardData, WizardStepDef } from "@stigmer/react";
 import { AppShell } from "../_shared/AppShell";
+import { ORDER_MGMT_MCP } from "../_shared/fixtures";
 import { ResourceListPage } from "../_shared/ResourceListPage";
 import {
   type IdentityFormPhase,
@@ -65,9 +66,9 @@ const IDENTITY_EMPTY: McpServerWizardData = createInitialMcpServerWizardData();
  */
 const IDENTITY_INVALID: McpServerWizardData = {
   ...IDENTITY_EMPTY,
-  name: "Order Management API",
-  slug: "order-management-api",
-  description: "REST API for order lookup, inventory, and return processing.",
+  name: ORDER_MGMT_MCP.name,
+  slug: ORDER_MGMT_MCP.slug,
+  description: ORDER_MGMT_MCP.description,
 };
 
 /** The exact message the wizard's step-1 validation produces for this state. */
@@ -76,8 +77,10 @@ const IDENTITY_VALIDATION_ERROR = "HTTP URL is required";
 /** The corrected step 1: URL supplied, auth header wired to an env var. */
 const IDENTITY_COMPLETE: McpServerWizardData = {
   ...IDENTITY_INVALID,
-  httpUrl: "https://api.acme.com/mcp",
-  httpHeaders: [{ key: "Authorization", value: "Bearer ${API_TOKEN}" }],
+  httpUrl: ORDER_MGMT_MCP.url,
+  httpHeaders: [
+    { key: "Authorization", value: `Bearer \${${ORDER_MGMT_MCP.envKey}}` },
+  ],
 };
 
 /** Step 2: the secret the `${API_TOKEN}` header placeholder resolves from. */
@@ -85,8 +88,8 @@ const WITH_ENV: McpServerWizardData = {
   ...IDENTITY_COMPLETE,
   env: [
     {
-      key: "API_TOKEN",
-      description: "Bearer token for the Order Management API",
+      key: ORDER_MGMT_MCP.envKey,
+      description: ORDER_MGMT_MCP.envDescription,
       isSecret: true,
       optional: false,
     },
@@ -108,7 +111,7 @@ const IDENTITY_BY_PHASE: Record<
  * `getUserMessage`, so the beat shows exactly what a live user sees.
  */
 const CREATE_CONFLICT_ERROR: Error = new ConnectError(
-  'an MCP server with slug "order-management-api" already exists in org "acme"',
+  `an MCP server with slug "${ORDER_MGMT_MCP.slug}" already exists in org "${DEMO_ORG}"`,
   Code.AlreadyExists,
 );
 
@@ -196,7 +199,7 @@ function ImportManifestOverlay() {
 
           <div className="mcp-import__row">
             <span className="mcp-import__kind">McpServer</span>
-            <span className="mcp-import__name">Order Management API</span>
+            <span className="mcp-import__name">{ORDER_MGMT_MCP.name}</span>
             <span className="mcp-import__badge">Will create</span>
             <span className="mcp-import__org">{DEMO_ORG}</span>
           </div>

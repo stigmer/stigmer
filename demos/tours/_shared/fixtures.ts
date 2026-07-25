@@ -16,6 +16,30 @@ import { samples } from "@stigmer/react/test";
 export const DEMO_ORG = "acme";
 
 /**
+ * The one MCP server the Getting Started tours tell a story about. Tour 4
+ * (`mcp-server-creation-tour`) creates it; tour 5 (`mcp-server-connect-tour`)
+ * connects it on the same docs page — so every field lives here once, and the
+ * two embeds cannot drift apart.
+ */
+export const ORDER_MGMT_MCP = {
+  name: "Order Management API",
+  slug: "order-management-api",
+  description: "REST API for order lookup, inventory, and return processing.",
+  url: "https://api.acme.com/mcp",
+  /** The env var the Authorization header resolves from at runtime. */
+  envKey: "API_TOKEN",
+  envDescription: "Bearer token for the Order Management API",
+} as const;
+
+/**
+ * Frozen instant for the connect tour's "Discovered <date>" header line.
+ * Fixtures must never read the real clock — a `new Date()` here would make
+ * the packed embed render differently on every replay and every video-export
+ * frame (scenar-cloud DD-006).
+ */
+export const ORDER_MGMT_DISCOVERED_AT = new Date("2026-07-20T09:30:00Z");
+
+/**
  * Zoom applied to real `@stigmer/react` components rendered in the shell's
  * content area. The components are built for full application width; 0.9 fits
  * a full-featured surface (MessageThread, SessionComposer) inside the demo

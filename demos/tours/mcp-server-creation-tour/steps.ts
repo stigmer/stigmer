@@ -29,7 +29,7 @@
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { samples } from "@stigmer/react/test";
 import type { ScenarioStep } from "@scenar/react";
-import { DEMO_ORG } from "../_shared/fixtures";
+import { DEMO_ORG, ORDER_MGMT_MCP } from "../_shared/fixtures";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -66,17 +66,17 @@ export type McpServerCreationTourStep =
 export const MCP_SERVER_YAML = `apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
-  org: acme
-  name: order-management-api
+  org: ${DEMO_ORG}
+  name: ${ORDER_MGMT_MCP.slug}
 spec:
-  description: REST API for order lookup, inventory, and return processing.
+  description: ${ORDER_MGMT_MCP.description}
   http:
-    url: https://api.acme.com/mcp
+    url: ${ORDER_MGMT_MCP.url}
     headers:
-      Authorization: Bearer \${API_TOKEN}
+      Authorization: Bearer \${${ORDER_MGMT_MCP.envKey}}
   env:
-    API_TOKEN:
-      description: Bearer token for the Order Management API
+    ${ORDER_MGMT_MCP.envKey}:
+      description: ${ORDER_MGMT_MCP.envDescription}
       is_secret: true`;
 
 // ---------------------------------------------------------------------------
@@ -107,9 +107,9 @@ export const ALL_SERVERS = [
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000003",
     kind: ApiResourceKind.mcp_server,
-    name: "Order Management API",
-    slug: "order-management-api",
-    description: "REST API for order lookup, inventory, and return processing.",
+    name: ORDER_MGMT_MCP.name,
+    slug: ORDER_MGMT_MCP.slug,
+    description: ORDER_MGMT_MCP.description,
   }),
 ];
 
