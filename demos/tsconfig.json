@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true
+    // No noUnusedLocals/noUnusedParameters: the workspace consumes @stigmer/*
+    // from source, so those flags would also police the SDK's generated files
+    // (they don't pass). Matches sdk/react and sdk/typescript; ESLint owns
+    // unused-identifier checks for authored code in this repo.
+  },
+  "include": ["tours", "tours/**/.scenar/*.tsx", "scripts"]
+}

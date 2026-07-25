@@ -5,11 +5,7 @@ description:
   actions, and ask for human approval before doing anything risky.
 ---
 
-import {
-  DemoConnectToolsTour,
-  DemoMcpServerCreationTour,
-  DemoConnectPlayback,
-} from "@/components/docs";
+import { DemoConnectToolsTour, DemoConnectPlayback } from "@/components/docs";
 
 ## What you'll build
 
@@ -58,26 +54,41 @@ connects to any server that speaks the
 
 1. Open [`app.stigmer.ai`](https://app.stigmer.ai) and go to **Library → MCP
    Servers**.
-2. Click **Add MCP Server**. This opens the MCP Server Creator — an Agent that
-   builds the server configuration from your description.
-3. Tell it about your server: the name, the URL (for HTTP servers), and whether
-   it needs authentication.
+2. Click **Add MCP Server**. You can start from scratch, pick a pre-built
+   template, or import a YAML file you already have. Choose **Start from
+   scratch** to open the creation wizard.
+3. Walk the wizard's three steps: **Identity & Transport** (name the server and
+   say how Stigmer reaches it), **Environment & Auth** (declare the variables
+   and secrets it needs at runtime), and **Review & Create**.
 
-For an HTTP server, the Agent needs the endpoint URL. For a stdio server (a
+For an HTTP server, the wizard needs the endpoint URL. For a stdio server (a
 command-line tool), it needs the command — `npx` for an npm package or the path
-to a Go binary.
+to a Go binary. The form validates as you go: skip a required field and the step
+tells you exactly what's missing. If creation fails on the server — a taken
+slug, for example — the exact error appears inline so you can adjust and
+resubmit.
 
-Here is what that conversation looks like:
+Here is what that flow looks like:
 
-<DemoMcpServerCreationTour />
+<ScenarEmbed
+  id="mcp-server-creation-tour"
+  title="MCP server creation walkthrough"
+/>
 
-4. Review the generated configuration and click **Apply** to save it to your
-   Organization's library.
+4. On **Review & Create**, check the summary and the YAML preview, then click
+   **Create MCP server** to save it to your Organization's library.
 
 <Callout type="info">
   Stigmer supports both **HTTP** servers (REST APIs, webhooks) and **stdio**
-  servers (CLI tools via `npx`, `go run`, or local binaries). The Server Creator
-  Agent handles either — just describe what you have.
+  servers (CLI tools via `npx`, `go run`, or local binaries). The wizard handles
+  either — the transport step adapts to your choice.
+</Callout>
+
+<Callout type="info">
+  The form is YAML underneath: the review step shows the exact `McpServer`
+  manifest being created. If you already have one, choose **Import from file**
+  instead (the console counterpart of `stigmer apply -f`) — or ask the **MCP
+  Server Creator** agent in your Library to draft it from a description.
 </Callout>
 
 </Step>

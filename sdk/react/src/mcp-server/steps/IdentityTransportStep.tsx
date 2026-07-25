@@ -23,6 +23,12 @@ const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
  *
  * Transport type uses a radio group (mutually exclusive modes).
  * Conditional fields render based on the selected transport.
+ *
+ * Fully presentational: state lives in the `data` prop and every edit
+ * flows out through `updateData`. Inside `McpServerCreationWizard` that
+ * state comes from `useWizardState`; standalone consumers (embedded
+ * builders, guided tours) can render any form state — including a
+ * `validationError` — deterministically from props.
  */
 export function IdentityTransportStep({
   data,
@@ -195,7 +201,9 @@ export function IdentityTransportStep({
         </fieldset>
       </div>
 
-      <fieldset className="space-y-3">
+      {/* data-scroll-target: guided tours/demos scroll the transport config
+          (the step's decision point) into view within the wizard's scroll area. */}
+      <fieldset className="space-y-3" data-scroll-target="mcp-transport">
         <legend className="text-sm font-medium text-foreground">
           Transport <span className="text-destructive">*</span>
         </legend>

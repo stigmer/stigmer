@@ -526,6 +526,10 @@ export {
   useUpdateMcpServer,
   mcpServerToInput,
   toServerKey,
+  IdentityTransportStep,
+  EnvironmentAuthStep,
+  ReviewStep,
+  createInitialMcpServerWizardData,
 } from "./mcp-server/index.js";
 export type {
   UseMcpServerReturn,
@@ -563,6 +567,9 @@ export type {
   McpServerCreationWizardProps,
   McpServerCreationResult,
   McpServerWizardData,
+  IdentityTransportStepProps,
+  EnvironmentAuthStepProps,
+  ReviewStepProps,
 } from "./mcp-server/index.js";
 
 // Skill — data hooks, upload, file browser, and mutation

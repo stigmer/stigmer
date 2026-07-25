@@ -12,6 +12,7 @@ on:
     paths:
       - "site/**"
       - "docs/**"
+      - "demos/**"
       - "vale/**"
       - ".github/workflows/release.website.yaml"
   workflow_dispatch:
@@ -46,6 +47,13 @@ jobs:
       - name: Build SDK libraries
         run: npm run build:libs
 
+      # Scenar product tours ship with the site: pack every tour in demos/
+      # into a static embed bundle, served below at stigmer.ai/demos/<tour>/.
+      # Tours consume the in-repo @stigmer/* source, so the embeds always
+      # depict the components this deploy ships.
+      - name: Pack demo tours
+        run: npm run pack-all -w @stigmer/demos
+
       - name: Install Vale
         run: make install-vale
 
@@ -58,6 +66,11 @@ jobs:
           if [ -f site/out/index.html ] && [ ! -f site/out/404.html ]; then
             cp site/out/index.html site/out/404.html
           fi
+
+      - name: Add demo tour bundles to the site
+        run: |
+          mkdir -p site/out/demos
+          cp -R demos/.bundles/. site/out/demos/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

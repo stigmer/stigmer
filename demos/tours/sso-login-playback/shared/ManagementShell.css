@@ -1,0 +1,157 @@
+/*
+ * ManagementShell — token-driven rebuild of the in-repo demo management zone.
+ * Colors use --scenar-* tokens so it themes with the embed (light + dark);
+ * layout/spacing/type are plain CSS (Tailwind utilities no-op under pack).
+ * The sidebar is authored at real-app size then uniformly scaled with `zoom`,
+ * mirroring the original SIDEBAR_ZOOM approach.
+ */
+
+.sx-mgmt {
+  display: flex;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  border: 1px solid var(--scenar-border);
+  background: var(--scenar-card);
+  height: var(--scenar-shell-height, 380px);
+}
+
+.sx-mgmt__nav {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  border-right: 1px solid var(--scenar-border);
+  background: var(--scenar-accent);
+  zoom: 0.55;
+  width: 309px; /* 170 / 0.55 */
+}
+
+.sx-mgmt__org {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 0.25rem;
+}
+
+.sx-mgmt__org-logo {
+  display: flex;
+  height: 1.5rem;
+  width: 1.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, var(--scenar-primary) 10%, transparent);
+}
+
+.sx-mgmt__org-logo span {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--scenar-primary);
+}
+
+.sx-mgmt__org-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--scenar-foreground);
+}
+
+.sx-mgmt__back {
+  padding: 0 0.75rem 0.25rem;
+}
+
+.sx-mgmt__back-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--scenar-muted-foreground);
+}
+
+.sx-mgmt__divider {
+  margin: 0.125rem 0.75rem;
+  border-top: 1px solid var(--scenar-border);
+}
+
+.sx-mgmt__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.25rem 0.75rem 0;
+}
+
+.sx-mgmt__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.sx-mgmt__group-heading {
+  padding: 0 0.5rem 0.125rem;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--scenar-muted-foreground);
+  opacity: 0.6;
+}
+
+.sx-mgmt__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--scenar-muted-foreground);
+}
+
+.sx-mgmt__item--active {
+  background: var(--scenar-surface);
+  color: var(--scenar-foreground);
+}
+
+.sx-mgmt__spacer {
+  flex: 1;
+}
+
+.sx-mgmt__user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-top: 1px solid var(--scenar-border);
+  padding: 0.5rem 1rem;
+}
+
+.sx-mgmt__user-avatar {
+  display: flex;
+  height: 1.25rem;
+  width: 1.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--scenar-muted-foreground) 20%, transparent);
+  color: var(--scenar-muted-foreground);
+}
+
+.sx-mgmt__user-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--scenar-muted-foreground);
+}
+
+.sx-mgmt__content {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  background: var(--scenar-surface);
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { cn } from "@stigmer/theme";
 import { buildMcpServerProto, getUserMessage, serializeManifest } from "@stigmer/sdk";
 import type { McpServerInput } from "@stigmer/sdk";
@@ -20,6 +20,11 @@ export interface ReviewStepProps {
  * Shows a summary card with key configuration details and a full
  * YAML preview of the MCP server that will be created. The "Create"
  * action is in the WizardNav footer, not in this component.
+ *
+ * Fully presentational: renders entirely from props, including the
+ * `isCreating` in-flight state and a submit `error`. Standalone
+ * consumers (embedded builders, guided tours) can therefore depict
+ * any review state — success preview or failure — deterministically.
  */
 export function ReviewStep({
   org,
@@ -27,6 +32,17 @@ export function ReviewStep({
   isCreating,
   error,
 }: ReviewStepProps) {
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  // The error panel renders below the (tall) YAML preview inside the wizard's
+  // internal scroll area, so a failed create could otherwise report itself
+  // out of view. Bring it into view whenever a new error arrives.
+  useEffect(() => {
+    if (error) {
+      errorRef.current?.scrollIntoView({ block: "nearest" });
+    }
+  }, [error]);
+
   const mcpServerInput = useMemo(
     () => buildMcpServerInput(org, data),
     [org, data],
@@ -113,6 +129,7 @@ export function ReviewStep({
       {/* Error display */}
       {error && (
         <div
+          ref={errorRef}
           className="rounded-md border border-destructive bg-muted-faint px-4 py-3"
           role="alert"
         >

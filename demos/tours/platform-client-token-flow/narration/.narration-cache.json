@@ -1,0 +1,37 @@
+{
+  "voice": "",
+  "steps": [
+    {
+      "hash": "418e406fbe4531e80cd22f68eaff15675b831998d2b62d1e8b1f3d7e364558b7",
+      "durationMs": 6350
+    },
+    {
+      "hash": "08acd2ad04843cfd089233f564979882f9de21f3fe693af49e49b1772187e2aa",
+      "durationMs": 8850
+    },
+    {
+      "hash": "bc5d77fdb669835bc7c4a66f38590ca0ea6f30370c6c824b93b48d8c6e354815",
+      "durationMs": 8538
+    },
+    {
+      "hash": "9103c65f528d91dd6b51eb9115a43082d2bd63c2ef8f6fbf503000e198ea3add",
+      "durationMs": 6413
+    },
+    {
+      "hash": "4f3eed89237ab502f07409038f407549effca22d17face9332f261f70ef295fc",
+      "durationMs": 9400
+    },
+    {
+      "hash": "e8167187d0504e007e36d6ce9aa97bdc0b5b41202dec667e6202ac4e4ca8a2eb",
+      "durationMs": 11238
+    },
+    {
+      "hash": "e35b3e6df4d478384beb7d0f570464791dd5a874d0c74fc6e4ca7ed05630a65a",
+      "durationMs": 6613
+    },
+    {
+      "hash": "c9c23a32427df7dfa58ab31b2421c0f7ba644bf15562713df5d378b5574a1745",
+      "durationMs": 10988
+    }
+  ]
+}

@@ -2,14 +2,20 @@
 
 import { ScenarEmbed as ScenarEmbedBase } from "@scenar/embed/react";
 
-/** Base URL of the published bundles on GitHub Pages: `<origin>/<repo>`. */
-const EMBED_BASE = "https://stigmer.github.io/stigmer-demos";
+/**
+ * Base URL of the hosted tour bundles. Tours are authored in this repo's
+ * `demos/` workspace and packed + deployed by the website release workflow,
+ * so the embeds ship atomically with the docs pages that frame them.
+ * Absolute (not a relative `/demos`) so local docs dev shows the released
+ * tours instead of 404ing against the dev server.
+ */
+const EMBED_BASE = "https://stigmer.ai/demos";
 
 interface ScenarEmbedProps {
   /**
-   * The published tour slug — the scenario id under `stigmer-demos` (e.g.
+   * The published tour slug — the scenario id under `demos/tours/` (e.g.
    * `authentication-flow-playback`). Resolves to
-   * `https://stigmer.github.io/stigmer-demos/<id>/`.
+   * `https://stigmer.ai/demos/<id>/`.
    */
   id: string;
   /**
@@ -26,8 +32,8 @@ interface ScenarEmbedProps {
  * component: the iframe creation, strict postMessage bridge, host-theme sync, and
  * resize-to-fit all live in `@scenar/embed` (built on `@scenar/core`'s embed host
  * controller), so the docs no longer hand-mirror the protocol or its layout glue.
- * Tours are authored in the `stigmer-demos` repo, packed, and published to GitHub
- * Pages; this component only frames one by id.
+ * Tours are authored in this repo's `demos/` workspace and deployed with the
+ * website release; this component only frames one by id.
  */
 export function ScenarEmbed({ id, title }: ScenarEmbedProps) {
   return (

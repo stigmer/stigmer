@@ -659,6 +659,56 @@ function useUpdateMcpServer(): UseUpdateMcpServerReturn
 
 ## Components
 
+### EnvironmentAuthStep
+
+Wizard step 2: Environment variables and auth configuration.
+
+Both sections are optional. Env vars start expanded if any exist;
+auth starts collapsed unless already enabled. No validation gate —
+the user can proceed with zero configuration.
+
+Fully presentational: form state lives in the `data` prop and edits
+flow out through `updateData`, so standalone consumers (embedded
+builders, guided tours) can render any configuration state from props.
+
+**Props** — `EnvironmentAuthStepProps`
+
+<TypeTable
+  type={{
+    data: { type: "McpServerWizardData", description: "", required: true, typeDescriptionLink: "#mcpserverwizarddata" },
+    updateData: { type: "(partial: Partial<McpServerWizardData>) => void", description: "", required: true },
+  }}
+/>
+
+
+### IdentityTransportStep
+
+Wizard step 1: MCP server identity and transport configuration.
+
+Collects: name (required), slug (auto-derived), description,
+icon URL, visibility, transport type (HTTP vs Stdio), and the
+transport-specific fields.
+
+Transport type uses a radio group (mutually exclusive modes).
+Conditional fields render based on the selected transport.
+
+Fully presentational: state lives in the `data` prop and every edit
+flows out through `updateData`. Inside `McpServerCreationWizard` that
+state comes from `useWizardState`; standalone consumers (embedded
+builders, guided tours) can render any form state — including a
+`validationError` — deterministically from props.
+
+**Props** — `IdentityTransportStepProps`
+
+<TypeTable
+  type={{
+    data: { type: "McpServerWizardData", description: "", required: true, typeDescriptionLink: "#mcpserverwizarddata" },
+    updateData: { type: "(partial: Partial<McpServerWizardData>) => void", description: "", required: true },
+    validationError: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+
 ### McpServerConfigPanel
 
 Per-server configuration panel composing a credentials form
@@ -995,11 +1045,45 @@ export default function OAuthCallbackPage() {
 ```
 
 
+### ReviewStep
+
+Wizard step 3: Review and create.
+
+Shows a summary card with key configuration details and a full
+YAML preview of the MCP server that will be created. The "Create"
+action is in the WizardNav footer, not in this component.
+
+Fully presentational: renders entirely from props, including the
+`isCreating` in-flight state and a submit `error`. Standalone
+consumers (embedded builders, guided tours) can therefore depict
+any review state — success preview or failure — deterministically.
+
+**Props** — `ReviewStepProps`
+
+<TypeTable
+  type={{
+    data: { type: "McpServerWizardData", description: "", required: true, typeDescriptionLink: "#mcpserverwizarddata" },
+    error: { type: "Error | null", description: "", required: true },
+    isCreating: { type: "boolean", description: "", required: true },
+    org: { type: "string", description: "", required: true },
+  }}
+/>
+
+
 ## Types
 
 ### CapabilityTab
 
 Tab identifier for the MCP server capability panel.
+
+
+### createInitialMcpServerWizardData
+
+Creates the initial empty wizard data.
+
+```tsx
+function createInitialMcpServerWizardData(): McpServerWizardData
+```
 
 
 ### McpServerAuthMode
