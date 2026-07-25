@@ -14,6 +14,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./define": "./src/define.ts",
+    "./jsx": "./src/jsx.ts",
     "./loader": "./dist/embed.global.js"
   },
   "scripts": {
@@ -50,6 +51,10 @@
       "./define": {
         "types": "./dist/define.d.ts",
         "import": "./dist/define.js"
+      },
+      "./jsx": {
+        "types": "./dist/jsx.d.ts",
+        "import": "./dist/jsx.js"
       },
       "./loader": "./dist/embed.global.js"
     }

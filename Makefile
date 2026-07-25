@@ -731,12 +731,13 @@ check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, des
 	cd sdk/ink && npm run tsdoc:check
 	cd sdk/react && npm run tsdoc:check
 
-check-site: ## check bucket: docs lint/format/links + site lint/typecheck/build + demo validation
+check-site: ## check bucket: docs lint/format/links + site lint/typecheck/test/build + demo validation
 	@vale sync 2>/dev/null
 	@vale $(DOCS_SOURCES)
 	@npx prettier --check --prose-wrap always $(DOCS_SOURCES)
 	$(MAKE) -C site lint
 	$(MAKE) -C site typecheck
+	$(MAKE) -C site test-unit
 	$(MAKE) -C site build
 	$(MAKE) -C site validate-demos
 	@lychee --config .lychee.toml --root-dir . docs/

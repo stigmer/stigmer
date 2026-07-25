@@ -46,6 +46,7 @@
     "@scenar/embed": "0.3.0",
     "@scenar/preview": "0.3.0",
     "@scenar/react": "0.3.0",
+    "@stigmer/embed": "file:../sdk/embed",
     "@stigmer/protos": "file:../apis/stubs/ts",
     "@stigmer/react": "file:../sdk/react",
     "@stigmer/sdk": "file:../sdk/typescript",

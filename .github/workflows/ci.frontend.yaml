@@ -18,6 +18,7 @@ on:
       - "sdk/react/**"
       - "sdk/theme/**"
       - "sdk/ink/**"
+      - "sdk/embed/**"
       # Scenar tours consume the @stigmer/* workspace source; an SDK change
       # can break them (and vice versa), so tour changes gate here too.
       - "demos/**"
@@ -38,6 +39,7 @@ on:
       - "sdk/react/**"
       - "sdk/theme/**"
       - "sdk/ink/**"
+      - "sdk/embed/**"
       - "demos/**"
       - "client-apps/web/**"
       - "client-apps/desktop/**"

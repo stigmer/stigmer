@@ -2620,6 +2620,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@stigmer/embed@file:../sdk/embed::locator=stigmer-site%40workspace%3A.":
+  version: 0.0.0-dev
+  resolution: "@stigmer/embed@file:../sdk/embed#../sdk/embed::hash=e4c85f&locator=stigmer-site%40workspace%3A."
+  checksum: 10c0/205a9e24bce24109474150f151511ba39a8637dc704d4dd4c61795053413fdb4aec5b0dac75be28090e2ed1c133695ad122e00765dc43c1d973518c875d026a6
+  languageName: node
+  linkType: hard
+
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
   resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=b62f46&locator=stigmer-site%40workspace%3A."
@@ -10414,6 +10421,7 @@ __metadata:
     "@scenar/embed": "npm:0.3.0"
     "@scenar/preview": "npm:0.3.0"
     "@scenar/react": "npm:0.3.0"
+    "@stigmer/embed": "file:../sdk/embed"
     "@stigmer/protos": "file:../apis/stubs/ts"
     "@stigmer/react": "file:../sdk/react"
     "@stigmer/sdk": "file:../sdk/typescript"

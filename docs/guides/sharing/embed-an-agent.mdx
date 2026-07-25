@@ -77,16 +77,22 @@ iframe shows an empty frame instead of hiding.
 ## React and custom integrations
 
 The widget also works from a bundler — install `@stigmer/embed` and register the
-element:
+element. In a TypeScript React project, also import the `jsx` entry once so the
+element typechecks in TSX:
 
 ```typescript
-import "@stigmer/embed/define";
+import "@stigmer/embed/define"; // registers <stigmer-agent>
+import "@stigmer/embed/jsx"; // TypeScript: makes it a valid JSX element
 ```
 
 Then render
 `<stigmer-agent org="acme" agent="support-agent" app-origin="https://app.stigmer.ai" />`
 anywhere in your markup. The `app-origin` attribute replaces what the script
 tag's URL normally provides.
+
+One caution for React: the element rebuilds its chat — losing the visitor's
+conversation — whenever any attribute changes. Pass stable values, and resolve
+anything dynamic (like a light or dark theme) once, before the element mounts.
 
 For full control — your own UI, your own users, your own authentication — use
 the SDK directly instead of the widget. The Share dialog's **Developer** tab and
