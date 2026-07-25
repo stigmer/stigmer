@@ -3,7 +3,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { ExecutionPhase, MessageType, ToolCallStatus, ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { formatDuration } from "../../execution/ToolCallDetail";
-import { samples, SAMPLE_INSTANT } from "../samples";
+import { samples, SAMPLE_INSTANT, sampleInstant, sampleDate } from "../samples";
 
 describe("samples", () => {
   describe("session", () => {
@@ -258,5 +258,71 @@ describe("samples determinism", () => {
     const key = samples.apiKey({ createdAt: frozen });
     const createdAt = key.status?.audit?.specAudit?.createdAt;
     expect(timestampDate(createdAt!).toISOString()).toBe(frozen);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The reader offset window — why SAMPLE_INSTANT is 11:00 UTC. Components
+// format dates in the reader's local time, and real UTC offsets span −11:00
+// to +14:00 (25 hours against a 24-hour day), so no instant renders one
+// calendar date everywhere. The supported window is UTC−11:00 (Midway)
+// through UTC+12:45 (Chatham, southern winter): every inhabited zone except
+// Tongatapu (+13) and Kiritimati (+14). Local date is monotonic in offset,
+// so agreement at the two boundaries proves agreement throughout.
+//
+// `scripts/verify-scenar-tours.mjs` exports the same boundaries as
+// READER_OFFSET_WINDOW (its own test locks those values); this suite locks
+// the anchor's side of the contract.
+// ---------------------------------------------------------------------------
+
+describe("SAMPLE_INSTANT reader offset window", () => {
+  const WEST_OFFSET_MINUTES = -11 * 60; // UTC−11:00, Midway
+  const EAST_OFFSET_MINUTES = 12 * 60 + 45; // UTC+12:45, Chatham (Jul)
+
+  /** Calendar date (YYYY-MM-DD) the instant renders at a fixed UTC offset. */
+  const localDateAtOffset = (iso: string, offsetMinutes: number): string =>
+    new Date(Date.parse(iso) + offsetMinutes * 60_000).toISOString().slice(0, 10);
+
+  it("renders one calendar date at both window boundaries", () => {
+    const west = localDateAtOffset(SAMPLE_INSTANT, WEST_OFFSET_MINUTES);
+    const east = localDateAtOffset(SAMPLE_INSTANT, EAST_OFFSET_MINUTES);
+    expect(west).toBe("2026-07-20");
+    expect(east).toBe("2026-07-20");
+  });
+
+  // The two anchors this one replaced, kept as negative cases so nobody
+  // "corrects" the constant back: 09:30Z was the original tour-world instant
+  // (read Jul 19 in Honolulu); noon was SAMPLE_INSTANT's first value and the
+  // once-planned fix (read Jul 21 in Auckland, Fiji, and Chatham).
+  it.each([
+    ["2026-07-20T09:30:00.000Z", "drifts at the west boundary"],
+    ["2026-07-20T12:00:00.000Z", "drifts at the east boundary"],
+  ])("rejected anchor %s %s", (iso) => {
+    expect(localDateAtOffset(iso, WEST_OFFSET_MINUTES)).not.toBe(
+      localDateAtOffset(iso, EAST_OFFSET_MINUTES),
+    );
+  });
+});
+
+describe("sampleInstant / sampleDate derivation", () => {
+  it("sampleInstant with no delta is the anchor itself", () => {
+    expect(sampleInstant()).toBe(SAMPLE_INSTANT);
+  });
+
+  it("applies positive and negative deltas exactly", () => {
+    expect(sampleInstant(2_400)).toBe("2026-07-20T11:00:02.400Z");
+    expect(sampleInstant(-86_400_000)).toBe("2026-07-19T11:00:00.000Z");
+  });
+
+  it("sampleDate agrees with sampleInstant at every delta", () => {
+    for (const deltaMs of [0, 1_200, 2_400, -3_600_000, 86_400_000]) {
+      expect(sampleDate(deltaMs).toISOString()).toBe(sampleInstant(deltaMs));
+    }
+  });
+
+  it("the default toolCall span derives from the anchor", () => {
+    const tc = samples.toolCall("lookup_order", "{}");
+    expect(tc.startedAt).toBe(sampleInstant());
+    expect(tc.completedAt).toBe(sampleInstant(1_200));
   });
 });

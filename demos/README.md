@@ -175,22 +175,38 @@ A packed tour must render identical pixels on every browser replay and every
 video-export frame (scenar-cloud DD-006), so fixtures must never read the live
 clock. The `@stigmer/react/test` `samples.*` factories guarantee this by
 construction: every timestamp they stamp is frozen at their exported
-`SAMPLE_INSTANT` (the `2026-07-20` demo day, shared with
-`_shared/order-management-mcp.ts`), and their own SDK test suite locks it in.
-Call any of them freely.
+`SAMPLE_INSTANT`, and their own SDK test suite locks it in. Call any of them
+freely.
 
-When you need a value the factory's overrides do not cover — a second message a
-few minutes later, a specific tool-call duration — mutate the returned protobuf
-message with a **frozen literal** rather than a clock read:
+The tour world also has exactly **one clock**. `SAMPLE_INSTANT` is the demo
+day (`2026-07-20`) at 11:00 UTC — chosen so the calendar date it renders is
+the same for every reader across the *reader offset window*, UTC−11:00
+through UTC+12:45. No instant can cover every zone (real offsets span 25
+hours against a 24-hour day); the anchor's docs in
+`sdk/react/src/test/samples.ts` carry the full reasoning, and its test suite
+locks the window property. Everything downstream — `_shared/` depicted
+resources, tour-local fixtures — derives from that one instant.
+
+When you need a value the factory's overrides do not cover — a message a few
+seconds later, a specific tool-call duration — **derive it from the anchor**
+rather than writing a literal:
 
 ```ts
+import { samples, sampleInstant } from "@stigmer/react/test";
+
 const later = samples.humanMessage("and one more thing");
-later.timestamp = "2026-07-20T12:05:00.000Z";
+later.timestamp = sampleInstant(5_000); // 5s after the anchor
 ```
 
-`scripts/verify-scenar-tours.mjs` still forbids `Date.now()` and non-literal
-`new Date(...)` anywhere under `tours/**`, so a smuggled clock read — including
-one passed as a factory argument — fails the gate.
+`scripts/verify-scenar-tours.mjs` enforces both halves under `tours/**`. A
+smuggled clock read — `Date.now()`, non-literal `new Date(...)`, including
+one passed as a factory argument — fails the determinism check. A
+hand-written instant — an ISO-literal string, `new Date("...")`, local-time
+`new Date(y, m, d)`, an epoch `new Date(0)` — fails the authored-instants
+check, because it forks the tour world's clock and re-takes the window
+decision ad hoc. Instants inside *displayed text* (terminal output, rendered
+JSON payloads) are exempt: they paint as literal text, identically for every
+reader.
 
 ---
 

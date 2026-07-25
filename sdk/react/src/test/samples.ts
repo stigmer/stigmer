@@ -81,33 +81,71 @@ import {
 // ---------------------------------------------------------------------------
 
 /**
- * The frozen instant every timestamped `samples.*` factory defaults to.
+ * The frozen instant every timestamped `samples.*` factory defaults to — the
+ * tour world's single clock. Anything in a demo that needs an instant derives
+ * from this one via {@link sampleInstant} / {@link sampleDate}; nothing
+ * authors a second instant of its own (`scripts/verify-scenar-tours.mjs`
+ * enforces that under `demos/tours/`).
  *
  * These factories must never read the live clock. A `samples.*` value is
  * rendered into Scenar tours that replay in the browser and export to video
  * frame by frame; a clock read paints a pixel that changes between runs, which
  * breaks the "same source, same result" guarantee (scenar-cloud DD-006).
  *
- * The date is `2026-07-20`, the demo day the tour world already uses
- * (`demos/tours/_shared/order-management-mcp.ts`'s `ORDER_MGMT_DISCOVERED_AT`),
- * so a fixture built here sits coherently beside one built there. The time is
- * noon UTC, not that constant's 09:30, because components format audit
- * timestamps in the renderer's local time (e.g. `ApiKeyListPanel` via
- * `toLocaleDateString`). Noon keeps the rendered calendar date stable from
- * UTC-12 through UTC+11; 09:30 would flip to the previous day west of UTC-9.
+ * The date is `2026-07-20`, the tour world's demo day. The time is 11:00 UTC,
+ * chosen by the *reader offset window*: components format dates in the
+ * reader's local time (e.g. `ApiKeyListPanel` via `toLocaleDateString`), and
+ * real UTC offsets span −11:00 (Midway) to +14:00 (Kiritimati) — a 25-hour
+ * range against a 24-hour day, so **no instant renders one calendar date
+ * everywhere**. The supported window is UTC−11:00 through UTC+12:45 — every
+ * inhabited zone except Tongatapu (+13, ~100k) and Kiritimati (+14, ~6k).
+ * 11:00Z holds `Jul 20` across that whole window; the previous noon anchor
+ * flipped to `Jul 21` at UTC+12:45 and beyond (Auckland, Fiji, Chatham).
+ * Instants whose calendar *date* is rendered must stay inside the window's
+ * stable band, 11:00:00Z–11:14:59Z — the anchor sits at its start so all
+ * derivation headroom points forward. Duration deltas (end minus start) are
+ * zone-invariant and may leave the band freely.
+ *
+ * The window stabilises the rendered *date*, not the rendered *string*:
+ * locale-unpinned formatters still vary the format per reader ("Jul 20, 2026"
+ * vs "20 Jul 2026"), and a component that renders a *time of day* is
+ * zone-dependent no matter which instant is chosen. The property test in
+ * `__tests__/samples.test.ts` locks the date-stability claim at both window
+ * boundaries.
  */
-export const SAMPLE_INSTANT = "2026-07-20T12:00:00.000Z";
+export const SAMPLE_INSTANT = "2026-07-20T11:00:00.000Z";
+
+/** {@link SAMPLE_INSTANT} in epoch milliseconds, the base all derivation uses. */
+const SAMPLE_INSTANT_MS = Date.parse(SAMPLE_INSTANT);
 
 /**
- * When a default {@link samples.toolCall} completes. Derived from
- * {@link SAMPLE_INSTANT} plus 1.2s so the rendered duration chip reads a stable
- * "1.2s" — long enough to never collapse to the "0ms" that two adjacent live
- * clock reads used to produce, and pinned to the demo day so the whole fixture
- * world moves together if that day is ever refreshed.
+ * An ISO-8601 instant `deltaMs` after {@link SAMPLE_INSTANT} — the way a
+ * fixture expresses "2.4 seconds later" or "a day earlier" without authoring
+ * a second instant. `sampleInstant()` with no argument is the anchor itself.
+ *
+ * Prefer this over a hand-written literal even for values that never render:
+ * derivation keeps the whole fixture world moving together if the demo day is
+ * ever refreshed, and the tour gate rejects authored instant literals anyway.
  */
-const SAMPLE_TOOL_CALL_COMPLETED_AT = new Date(
-  Date.parse(SAMPLE_INSTANT) + 1_200,
-).toISOString();
+export function sampleInstant(deltaMs = 0): string {
+  return new Date(SAMPLE_INSTANT_MS + deltaMs).toISOString();
+}
+
+/**
+ * {@link sampleInstant} as a `Date`, for APIs that take one (e.g. protobuf's
+ * `timestampFromDate`). Same instant, same derivation rule.
+ */
+export function sampleDate(deltaMs = 0): Date {
+  return new Date(SAMPLE_INSTANT_MS + deltaMs);
+}
+
+/**
+ * When a default {@link samples.toolCall} completes: {@link SAMPLE_INSTANT}
+ * plus 1.2s, so the rendered duration chip reads a stable "1.2s" — long
+ * enough to never collapse to the "0ms" that two adjacent live clock reads
+ * used to produce.
+ */
+const SAMPLE_TOOL_CALL_COMPLETED_AT = sampleInstant(1_200);
 
 // ---------------------------------------------------------------------------
 // Override interfaces — flat projections of commonly-customized fields
@@ -211,20 +249,21 @@ export interface SearchResultOverrides {
  * For a value the overrides do not cover — a different timestamp, a distinct
  * tool-call id — modify the returned object directly rather than growing the
  * override surface: protobuf messages from `create()` are mutable plain
- * objects, and a frozen literal keeps the result deterministic.
+ * objects. Timestamps derive from the anchor via {@link sampleInstant} rather
+ * than a hand-written literal, so the fixture world keeps a single clock.
  *
  * @example
  * ```ts
- * import { samples } from "@stigmer/react/test";
+ * import { samples, sampleInstant } from "@stigmer/react/test";
  *
  * const scenario = buildScenario(
  *   fixtures.session.get(() => samples.session({ subject: "My topic" })),
  *   fixtures.agent.getByReference(() => samples.agent({ name: "My Agent" })),
  * );
  *
- * // Deeper customization — mutate the frozen result with another literal:
+ * // Deeper customization — derive "5 seconds later" from the anchor:
  * const later = samples.humanMessage("later");
- * later.timestamp = "2026-07-20T12:05:00.000Z";
+ * later.timestamp = sampleInstant(5_000);
  * ```
  */
 export const samples = {

@@ -17,10 +17,10 @@
  * - `PendingApproval.requestedAt` is deliberately OMITTED as belt and
  *   braces: `useElapsedSince` renders nothing for an absent timestamp, so
  *   even a broken id match cannot tick.
- * - The completed call carries hand-written frozen ISO timestamps 2.4s
- *   apart, so the rendered duration chip reads a stable "2.4s". It is built
- *   with `create(ToolCallSchema)` rather than `samples.toolCall` — not for
- *   determinism (that factory is now frozen too), but because this beat needs
+ * - The completed call spans `sampleInstant()` to `sampleInstant(2_400)`, so
+ *   the rendered duration chip reads a stable "2.4s". It is built with
+ *   `create(ToolCallSchema)` rather than `samples.toolCall` — not for
+ *   determinism (that factory is frozen too), but because this beat needs
  *   both a specific 2.4s span and the shared `tc-process-return-1` id, and the
  *   factory offers neither.
  *
@@ -32,7 +32,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { McpServerDetailView } from "@stigmer/react";
-import { samples } from "@stigmer/react/test";
+import { samples, sampleInstant } from "@stigmer/react/test";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   ExecutionPhase,
@@ -67,9 +67,14 @@ import {
 /** Ties the pending tool call to its approval; the match keeps the gate inline. */
 const RETURN_TOOL_CALL_ID = "tc-process-return-1";
 
-/** Frozen instants for the completed call's rendered "2.4s" duration chip. */
-const RETURN_STARTED_AT = "2026-07-20T09:31:00.000Z";
-const RETURN_COMPLETED_AT = "2026-07-20T09:31:02.400Z";
+/**
+ * The completed call's span, derived from the tour world's anchor instant.
+ * Only the difference renders (the "2.4s" duration chip), and a difference
+ * of two derivations is 2 400 ms by construction — the stability the old
+ * hand-written pair could only promise in a comment.
+ */
+const RETURN_STARTED_AT = sampleInstant();
+const RETURN_COMPLETED_AT = sampleInstant(2_400);
 
 const returnRequest = samples.humanMessage(
   "Process a return for order #ORD-4821 — the headphones are defective.",

@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 
 import {
   findClockReads,
+  findAuthoredInstants,
   findCrossTourImports,
   findStepsArray,
   validateTimeline,
   extractScenarEmbedIds,
   KNOWN_STEP0_OFFENDERS,
+  READER_OFFSET_WINDOW,
 } from "./verify-scenar-tours.mjs";
 
 // ---------------------------------------------------------------------------
@@ -29,6 +31,11 @@ test("findClockReads flags Date.now(), Math.random(), and bare new Date()", () =
 });
 
 test("findClockReads allows a frozen literal new Date(...)", () => {
+  // Check 1 owns the CLOCK: a Date built from literals reads nothing live,
+  // so it passes here. All three of these forms are rejected by check 5
+  // (findAuthoredInstants) instead — they author an instant that competes
+  // with the tour world's anchor. The two checks partition new Date(...)
+  // between them; nothing is double-reported.
   const source = [
     'export const FROZEN = new Date("2026-07-20T09:30:00Z");',
     "export const EPOCH = new Date(0);",
@@ -89,6 +96,110 @@ test("findClockReads parses TSX without mistaking JSX for comparisons", () => {
     "}",
   ].join("\n");
   assert.deepEqual(findClockReads(source, "index.tsx"), []);
+});
+
+// ---------------------------------------------------------------------------
+// findAuthoredInstants
+// ---------------------------------------------------------------------------
+
+test("findAuthoredInstants flags the three literals the anchor migration removed", () => {
+  // The reproduction cases, verbatim from the tree before 2026-07-25: the
+  // _shared discovered-at Date (the shipped "Jul 19 in Honolulu" bug) and
+  // connect-tools-tour's hand-written tool-call span. Reverting any of them
+  // fails here.
+  const source = [
+    'export const ORDER_MGMT_DISCOVERED_AT = new Date("2026-07-20T09:30:00Z");',
+    'const RETURN_STARTED_AT = "2026-07-20T09:31:00.000Z";',
+    'const RETURN_COMPLETED_AT = "2026-07-20T09:31:02.400Z";',
+  ].join("\n");
+  const violations = findAuthoredInstants(source);
+  assert.equal(violations.length, 3);
+  assert.deepEqual(
+    violations.map((v) => v.line),
+    [1, 2, 3],
+  );
+  for (const v of violations) assert.match(v.reason, /sample(Instant|Date)/);
+});
+
+test("findAuthoredInstants flags an instant even when it is in-window", () => {
+  // The rule is "derive, don't author" — not "author safely". A literal that
+  // happens to render one date today still forks the tour world's clock and
+  // is left behind if the demo day is ever refreshed.
+  const source = 'const AT = "2026-07-20T11:00:00.000Z";';
+  assert.equal(findAuthoredInstants(source).length, 1);
+});
+
+test("findAuthoredInstants closes the two Date forms the determinism check permits", () => {
+  const source = ["const PARTS = new Date(2026, 6, 20);", "const EPOCH = new Date(0);"].join("\n");
+  const violations = findAuthoredInstants(source);
+  assert.equal(violations.length, 2);
+  // Each names WHY it is not a usable absolute instant.
+  assert.match(violations[0].reason, /LOCAL time/);
+  assert.match(violations[1].reason, /epoch/);
+});
+
+test("findAuthoredInstants reports new Date(\"...\") once, not twice", () => {
+  // The construction is the violation; the instant string inside it must not
+  // be reported a second time.
+  const source = 'const D = new Date("2026-07-20T09:30:00Z");';
+  assert.equal(findAuthoredInstants(source).length, 1);
+});
+
+test("findAuthoredInstants leaves non-literal new Date(...) to the determinism check", () => {
+  // Check 1's case — but an authored instant nested inside its argument is
+  // still this check's to find.
+  const clockRead = "const d = new Date(FROZEN.getTime() + 2400);";
+  assert.deepEqual(findAuthoredInstants(clockRead), []);
+  assert.equal(findClockReads(clockRead).length, 1);
+
+  const nested = 'const d = new Date(Date.parse("2026-07-20T09:30:00Z") + 2400);';
+  assert.equal(findAuthoredInstants(nested).length, 1);
+});
+
+test("findAuthoredInstants ignores the displayed-text cases that exist in the tree today", () => {
+  // Verbatim from shipped tours: a date-only value in a rendered JSON
+  // payload (connect-tools-tour), token-expiry labels where the instant is
+  // embedded in prose (platform-client-token-flow, authentication-flow-
+  // playback), and displayed code text (create-agent-tour). All render as
+  // literal text, identically for every reader — flagging them is the
+  // false-positive class this check's anchored full-match rule exists to
+  // avoid. Date-only strings are safe because parsing them is separately
+  // forbidden by the Date-construction rule.
+  const source = [
+    'const result = { estimated_refund_date: "2026-04-07" };',
+    'const check = { detail: "exp 2026-04-18T13:00:00Z", status: "pass" };',
+    "const CODE = ['  name: `session-${Date.now()}`,'];",
+  ].join("\n");
+  assert.deepEqual(findAuthoredInstants(source), []);
+});
+
+test("findAuthoredInstants accepts derivation from the anchor", () => {
+  const source = [
+    'import { sampleInstant, sampleDate } from "@stigmer/react/test";',
+    "const RETURN_STARTED_AT = sampleInstant();",
+    "const RETURN_COMPLETED_AT = sampleInstant(2_400);",
+    "const DISCOVERED = sampleDate();",
+  ].join("\n");
+  assert.deepEqual(findAuthoredInstants(source), []);
+});
+
+test("findAuthoredInstants flags a no-substitution template instant and parses TSX", () => {
+  const source = [
+    "export function renderStep(data: Step) {",
+    "  return <time dateTime={`2026-07-20T09:30:00Z`}>{data.label}</time>;",
+    "}",
+  ].join("\n");
+  const violations = findAuthoredInstants(source, "index.tsx");
+  assert.equal(violations.length, 1);
+});
+
+test("the reader offset window boundaries are the documented policy", () => {
+  // UTC−11:00 (Midway) … UTC+12:45 (Chatham, southern winter): every
+  // inhabited zone except Tongatapu and Kiritimati. Mirrored by the anchor's
+  // property test in sdk/react/src/test/__tests__/samples.test.ts — a silent
+  // widening or narrowing fails one side or the other.
+  assert.equal(READER_OFFSET_WINDOW.westOffsetMinutes, -11 * 60);
+  assert.equal(READER_OFFSET_WINDOW.eastOffsetMinutes, 12 * 60 + 45);
 });
 
 // ---------------------------------------------------------------------------

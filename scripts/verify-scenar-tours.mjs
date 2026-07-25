@@ -4,15 +4,14 @@
  * Static verification gate for the Scenar tours in `demos/tours/` and the
  * docs pages that embed them.
  *
- * Four invariants, each of which has already produced (or nearly produced)
+ * Five invariants, each of which has already produced (or nearly produced)
  * a shipped defect:
  *
  * 1. DETERMINISM (scenar-cloud DD-006). A packed tour must render identical
  *    pixels on every replay and every video-export frame, so tour fixtures
- *    must never read the live clock. `Date.now()`, `Math.random()`, and
- *    non-literal `new Date(...)` are forbidden under `demos/tours/`;
- *    `new Date("2026-07-20T09:30:00Z")` with literal arguments is the
- *    blessed frozen-instant form. The `@stigmer/react/test` `samples.*`
+ *    must never read the live clock. `Date.now()`, `Math.random()`, bare
+ *    `new Date()`, and `new Date(...)` with non-literal arguments are
+ *    forbidden under `demos/tours/`. The `@stigmer/react/test` `samples.*`
  *    factories need no denylist here: they are frozen at `SAMPLE_INSTANT` by
  *    construction and their own suite (`sdk/react/src/test/__tests__/
  *    samples.test.ts`) locks that in, so a tour can call any of them freely.
@@ -41,6 +40,20 @@
  *    enforced: before ManagementShell was hoisted (2026-07), a second tour
  *    could have imported it straight out of sso-login-playback/ with CI
  *    fully green, silently coupling the two tours' lifecycles.
+ *
+ * 5. AUTHORED INSTANTS. Tours derive instants from the tour world's one
+ *    clock — `SAMPLE_INSTANT` via `sampleInstant()`/`sampleDate()` from
+ *    `@stigmer/react/test` — they never author their own. Components format
+ *    dates in the reader's local time, and no UTC instant renders one
+ *    calendar date in every zone (real offsets span 25 hours against a
+ *    24-hour day), so which instants are safe to depict is decided once, at
+ *    the anchor, against the reader offset window (READER_OFFSET_WINDOW
+ *    below). A hand-written literal re-takes that decision ad hoc: the
+ *    shipped "Discovered Jul 20" chip read "Jul 19" in Honolulu for exactly
+ *    that reason. This check also closes two forms the determinism check
+ *    deliberately leaves to it: `new Date(2026, 6, 20)` (LOCAL-time
+ *    construction — a different instant in every zone) and `new Date(0)`
+ *    (an epoch whose rendered date drifts inside the window).
  *
  * Like scripts/verify-esm-node.mjs, checks are AST-based (TypeScript parser
  * via createRequire, no new dependency) rather than regex, so string
@@ -117,8 +130,9 @@ export function findClockReads(sourceText, fileName = "module.ts") {
         violations.push({
           line: lineOf(node),
           reason:
-            "Date.now() reads the live clock — freeze the instant as a " +
-            'literal, e.g. new Date("2026-07-20T09:30:00Z") (DD-006)',
+            "Date.now() reads the live clock — derive from the tour world's " +
+            "anchor instead: sampleInstant(deltaMs) from @stigmer/react/test " +
+            "(DD-006)",
         });
       } else if (obj === "Math" && method === "random") {
         violations.push({
@@ -142,9 +156,146 @@ export function findClockReads(sourceText, fileName = "module.ts") {
           line: lineOf(node),
           reason:
             "new Date(...) without literal arguments reads the live clock — " +
-            'freeze the instant, e.g. new Date("2026-07-20T09:30:00Z") (DD-006)',
+            "derive from the tour world's anchor instead: sampleDate(deltaMs) " +
+            "from @stigmer/react/test (DD-006)",
         });
       }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return violations;
+}
+
+/**
+ * The reader offset window: the range of fixed UTC offsets across which a
+ * depicted calendar date must render identically. UTC−11:00 (Midway,
+ * American Samoa) through UTC+12:45 (Chatham Islands in southern winter)
+ * covers every inhabited zone except Tongatapu (+13:00, ~100k) and
+ * Kiritimati (+14:00, ~6k), which are documented as out of scope — real
+ * offsets span 25 hours against a 24-hour day, so no instant can satisfy
+ * them all.
+ *
+ * Fixed offsets rather than IANA zone names, deliberately: Chatham moves to
+ * +13:45 in southern summer, which paired with Midway spans 24.75 hours and
+ * makes the window unsatisfiable for part of the year. Fixed offsets keep
+ * one rule that holds year-round, and need no Intl/ICU.
+ *
+ * The window is enforced where the one instant lives — `SAMPLE_INSTANT`'s
+ * property test in `sdk/react/src/test/__tests__/samples.test.ts` mirrors
+ * these boundaries — while this gate makes the anchor the *only* instant by
+ * rejecting authored literals (check 5). Note the limits of the guarantee:
+ * the window stabilises the rendered calendar date, not the format a
+ * locale-unpinned formatter picks, and not a rendered time of day.
+ */
+export const READER_OFFSET_WINDOW = {
+  /** UTC−11:00 — Midway, American Samoa. */
+  westOffsetMinutes: -11 * 60,
+  /** UTC+12:45 — Chatham Islands in southern winter. */
+  eastOffsetMinutes: 12 * 60 + 45,
+};
+
+/**
+ * A string that is exactly a full ISO-8601 instant: date, time, and an
+ * explicit Z or offset. Deliberately NOT matched: date-only strings
+ * ("2026-04-07") and instants embedded in prose ("exp 2026-04-18T13:00:00Z")
+ * — both are displayed text that renders identically everywhere, and a bare
+ * date is only hazardous once parsed, which the Date-construction rule
+ * below forbids on its own. connect-tools-tour's tool-result JSON and the
+ * Path-B playbacks' token-expiry labels are live examples of both.
+ */
+const ISO_INSTANT_RE =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/;
+
+/** "UTC−11:00" / "UTC+12:45" for violation messages. */
+function formatUtcOffset(offsetMinutes) {
+  const abs = Math.abs(offsetMinutes);
+  const hh = String(Math.trunc(abs / 60)).padStart(2, "0");
+  const mm = String(abs % 60).padStart(2, "0");
+  return `UTC${offsetMinutes < 0 ? "\u2212" : "+"}${hh}:${mm}`;
+}
+
+const READER_WINDOW_LABEL = `${formatUtcOffset(READER_OFFSET_WINDOW.westOffsetMinutes)}\u2026${formatUtcOffset(READER_OFFSET_WINDOW.eastOffsetMinutes)}`;
+
+/**
+ * Scan one source file for authored instants: hand-written moments in time
+ * that compete with the tour world's one clock (`SAMPLE_INSTANT`). Two
+ * forms are flagged:
+ *
+ * - A string (or no-substitution template) literal that is *exactly* a full
+ *   ISO-8601 instant, wherever it appears — a proto timestamp field, a
+ *   `new Date(...)` argument, displayed text. Even an instant that happens
+ *   to render safely today belongs on the anchor, so the fixture world
+ *   moves together if the demo day is ever refreshed.
+ * - A `Date` constructed from literal arguments — the complement of the
+ *   determinism check, which owns the non-literal/zero-argument forms
+ *   (those read the clock; these author an instant). `new Date(2026, 6, 20)`
+ *   is LOCAL-time construction, a different instant in every zone;
+ *   `new Date(0)` is an epoch whose rendered date drifts inside the window;
+ *   `new Date("...")` authors the instant its argument spells.
+ *
+ * The remedy is always the same and every message names it: derive from the
+ * anchor with `sampleInstant(deltaMs)` / `sampleDate(deltaMs)` from
+ * `@stigmer/react/test`.
+ *
+ * @param sourceText file contents
+ * @param fileName used only to select TS vs TSX parsing
+ * @returns violation objects `{ line, reason }` (line is 1-based)
+ */
+export function findAuthoredInstants(sourceText, fileName = "module.ts") {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const violations = [];
+
+  const lineOf = (node) =>
+    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+
+  const derive = (helper) =>
+    `derive from the tour world's anchor instead: ${helper}(deltaMs) from ` +
+    `@stigmer/react/test (date-stable across ${READER_WINDOW_LABEL})`;
+
+  const visit = (node) => {
+    // new Date(<literals>) — the forms the determinism check permits.
+    if (
+      ts.isNewExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "Date"
+    ) {
+      const args = node.arguments ?? [];
+      if (args.length > 0 && args.every(isLiteralArg)) {
+        let why;
+        if (args.length > 1) {
+          why =
+            `new Date(${args.map((a) => a.getText(sourceFile)).join(", ")}) ` +
+            "constructs from LOCAL time — a different instant in every zone";
+        } else if (ts.isNumericLiteral(args[0])) {
+          why = `new Date(${args[0].text}) is an epoch instant whose rendered date drifts across readers`;
+        } else {
+          why = `new Date(${args[0].getText(sourceFile)}) authors an instant`;
+        }
+        violations.push({ line: lineOf(node), reason: `${why} — ${derive("sampleDate")}` });
+        return; // args are literals; nothing further to find inside
+      }
+    }
+
+    // A literal that IS an instant (anchored full match, see ISO_INSTANT_RE).
+    if (
+      (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) &&
+      ISO_INSTANT_RE.test(node.text)
+    ) {
+      violations.push({
+        line: lineOf(node),
+        reason:
+          `authored instant "${node.text}" — the tour world has one clock; ` +
+          derive("sampleInstant"),
+      });
     }
 
     ts.forEachChild(node, visit);
@@ -438,6 +589,19 @@ async function main() {
     console.log(`  ok  tour boundaries (${sourceFiles.length} source files)`);
   } else {
     fail("tour boundaries", boundaryViolations);
+  }
+
+  // --- 5. Authored instants: tours derive instants, they never author them --
+  const instantViolations = [];
+  for (const file of sourceFiles) {
+    for (const v of findAuthoredInstants(readFileSync(file, "utf8"), file)) {
+      instantViolations.push(`${relative(root, file)}:${v.line}: ${v.reason}`);
+    }
+  }
+  if (instantViolations.length === 0) {
+    console.log(`  ok  authored instants (${sourceFiles.length} source files)`);
+  } else {
+    fail("authored instants", instantViolations);
   }
 
   if (total > 0) {

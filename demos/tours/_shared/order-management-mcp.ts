@@ -23,7 +23,7 @@
 import { create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import type { UseMcpServerReturn } from "@stigmer/react";
-import { samples } from "@stigmer/react/test";
+import { samples, sampleDate } from "@stigmer/react/test";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import {
   McpServerSpecSchema,
@@ -50,12 +50,16 @@ export const ORDER_MGMT_MCP = {
 } as const;
 
 /**
- * Frozen instant for the "Discovered <date>" header line. Fixtures must
- * never read the real clock — a `new Date()` here would make the packed
- * embed render differently on every replay and every video-export frame
- * (scenar-cloud DD-006).
+ * When the server's tools were discovered: the tour world's anchor instant
+ * (`SAMPLE_INSTANT`, the demo day at 11:00 UTC), derived rather than
+ * authored. `McpServerDetailView` formats this as a calendar date in the
+ * reader's local time, and the anchor is the one instant guaranteed to
+ * render the same date across the supported reader offset window — an
+ * independent literal here once read "Jul 19" in Honolulu (see the anchor's
+ * docs in `sdk/react/src/test/samples.ts`). Not exported: the module's
+ * public surface is the settled states, not their ingredients.
  */
-export const ORDER_MGMT_DISCOVERED_AT = new Date("2026-07-20T09:30:00Z");
+const ORDER_MGMT_DISCOVERED_AT = sampleDate();
 
 /** The server exactly as tour 4 created it: HTTP + one secret env var. */
 function buildRegisteredServer(): McpServer {
