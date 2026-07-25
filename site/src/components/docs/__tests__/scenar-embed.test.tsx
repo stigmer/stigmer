@@ -32,7 +32,7 @@ describe("ScenarEmbed", () => {
     );
 
     expect(getIframe().getAttribute("src")).toBe(
-      "https://stigmer.github.io/stigmer-demos/authentication-flow-playback/?theme=dark",
+      "https://stigmer.ai/demos/authentication-flow-playback/?theme=dark",
     );
   });
 
@@ -45,7 +45,7 @@ describe("ScenarEmbed", () => {
     );
 
     expect(getIframe().getAttribute("src")).toBe(
-      "https://stigmer.github.io/stigmer-demos/authentication-flow-playback/?theme=light",
+      "https://stigmer.ai/demos/authentication-flow-playback/?theme=light",
     );
   });
 
