@@ -967,42 +967,42 @@
   resolved "https://registry.npmjs.org/@rtsao/scc/-/scc-1.1.0.tgz"
   integrity sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==
 
-"@scenar/cli@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.npmjs.org/@scenar/cli/-/cli-0.4.0.tgz"
-  integrity sha512-i0d/FTyqeI9jGIkeMYnl+yBVz+tEipFFuPEkt0sJ1Cn9AcYP7DWF1rQBybwev6BZST0VLMCWH9EgWO2h8BH+iQ==
+"@scenar/cli@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.npmjs.org/@scenar/cli/-/cli-0.5.0.tgz"
+  integrity sha512-PMRwwSZsmttizVt7mDFcU5+yADpwXdbs+7lQBgU7dxkWj0XjwL80GjRlAE5R2Q6OQyEdOoa5Ico+scv2vXw/aA==
   dependencies:
-    "@scenar/core" "0.4.0"
-    "@scenar/embed" "0.4.0"
-    "@scenar/sdk" "0.4.0"
+    "@scenar/core" "0.5.0"
+    "@scenar/embed" "0.5.0"
+    "@scenar/sdk" "0.5.0"
     commander "^13.0.0"
     yaml "^2.7.0"
 
-"@scenar/core@^0.4.0", "@scenar/core@0.4.0":
-  version "0.4.0"
-  resolved "https://registry.npmjs.org/@scenar/core/-/core-0.4.0.tgz"
-  integrity sha512-vsspLlo0Pd53CiNOvn9FKNp/6P12BI3Ll/KEu82Wk34zAS4Qu8btdjmW4ZUEUCyb3GFKhfp+UQmpf3aCWrCPiA==
+"@scenar/core@^0.5.0", "@scenar/core@0.5.0":
+  version "0.5.0"
+  resolved "https://registry.npmjs.org/@scenar/core/-/core-0.5.0.tgz"
+  integrity sha512-MR4COEGcEXH8fq0wfmrBzFkE0ij2SYeNe3jTSUismWYc+DPakU8RFDXYFOY/g6EQ4sLgq02r9ts8behuZAmi9A==
 
-"@scenar/embed@0.4.0":
-  version "0.4.0"
-  resolved "https://registry.npmjs.org/@scenar/embed/-/embed-0.4.0.tgz"
-  integrity sha512-34f3NYUiGdJbRyxXQ7pvBYqLTCi6pwoerUphFbBWqR9ixFC/QiRT/pHr815mSyqKJKWRpmmidqT6j51CAQFciw==
+"@scenar/embed@0.5.0":
+  version "0.5.0"
+  resolved "https://registry.npmjs.org/@scenar/embed/-/embed-0.5.0.tgz"
+  integrity sha512-nKmjTirFr6CqWBV2RriU3OhJ6HJPSZkPL2E7ZmdeuTVLc9YUhJHNxzSlujC97WsvuoIj6Jb3whb705NiW4LTQA==
   dependencies:
-    "@scenar/core" "0.4.0"
+    "@scenar/core" "0.5.0"
 
-"@scenar/react@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.npmjs.org/@scenar/react/-/react-0.4.0.tgz"
-  integrity sha512-LC5CqgFBNDj9EdKhMGxkGVJ3Rdzzm92nHI7zMVk/s+E0vPUfdapfL4Mbfew/v+6c6RDi7r87ljfiCfruYxHZEA==
+"@scenar/react@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.npmjs.org/@scenar/react/-/react-0.5.0.tgz"
+  integrity sha512-k71qM7lEP36n5tuVq1IAb3XPWswiNk6y1sn69aIjZ0eOf0KXF3wbPFzgmOxvun8Kqe2Xy/qMQgayL7K09ZgItQ==
   dependencies:
-    "@scenar/core" "0.4.0"
+    "@scenar/core" "0.5.0"
 
-"@scenar/sdk@0.4.0":
-  version "0.4.0"
-  resolved "https://registry.npmjs.org/@scenar/sdk/-/sdk-0.4.0.tgz"
-  integrity sha512-fpiqvLrHBfAYSdGwAiWEg0fVpObmj6FCtlusS68MoQ7DV2IMANF4H1z501bHrX0ml6E9NN4qWWy12Rxo5vwMwg==
+"@scenar/sdk@0.5.0":
+  version "0.5.0"
+  resolved "https://registry.npmjs.org/@scenar/sdk/-/sdk-0.5.0.tgz"
+  integrity sha512-masGIWZYZSU8SfkuuREMvRUvBo3CdHH/tigFbbSvRcy15QsEWntWIJfR/AMA5g+uwyCH2CWNa0T3g7xqeU+40w==
   dependencies:
-    "@scenar/core" "0.4.0"
+    "@scenar/core" "0.5.0"
 
 "@sec-ant/readable-stream@^0.4.1":
   version "0.4.1"
