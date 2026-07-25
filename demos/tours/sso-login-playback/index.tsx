@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Check, Shield } from "lucide-react";
 import { BrowserView, PulseHighlight } from "@scenar/react";
-import { ManagementShell } from "./shared/ManagementShell";
+import { ManagementShell } from "../_shared/ManagementShell";
 import type { SsoLoginStep } from "./steps";
 
 // BrowserView shells render slightly below 1.0 so the mockup sits comfortably

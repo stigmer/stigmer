@@ -65,22 +65,33 @@ const NAV_GROUPS: readonly NavGroup[] = [
 ];
 
 interface ManagementShellProps {
-  activeNav?: ManagementNavId;
-  contentKey: string;
-  slideDirection?: "forward" | "backward";
-  children: ReactNode;
+  /** Which nav item is currently selected. */
+  readonly activeNav?: ManagementNavId;
+  /**
+   * Stable key for the content area — changing it fades the new view in,
+   * mirroring navigating between management pages.
+   */
+  readonly contentKey: string;
+  /**
+   * Direction of the transition when `contentKey` changes:
+   * `"forward"` slides in from the right (navigating deeper),
+   * `"backward"` from the left (going back), unset fades in place.
+   */
+  readonly slideDirection?: "forward" | "backward";
+  readonly children: ReactNode;
 }
 
 /**
- * Schematic management zone layout for the SSO login tour.
+ * Schematic management-zone layout — the org-settings counterpart to
+ * `AppShell`'s workspace zone. Where `AppShell` frames session work (primary
+ * nav, recents), this frames the console's Manage area: the grouped
+ * Organization / Configuration / Billing & Usage navigation, a "Back to
+ * Sessions" link, and a user profile footer, mirroring the real Console
+ * ManagementSidebar.
  *
- * Mirrors the real Console ManagementSidebar with all three navigation groups,
- * a "Back to Sessions" link, and a user profile footer. Rebuilt token-driven
- * (see coding-guidelines/tailwind-to-scenar-tokens.md) so it themes with the
- * embed. The sidebar is rendered at real-app proportions and uniformly scaled
- * via CSS `zoom` to fit the demo container.
- *
- * Single-consumer: stays tour-local under `tours/sso-login-playback/shared/`.
+ * Rebuilt token-driven (see coding-guidelines/tailwind-to-scenar-tokens.md)
+ * so it themes with the embed. The sidebar is rendered at real-app
+ * proportions and uniformly scaled via CSS `zoom` to fit the demo container.
  */
 export function ManagementShell({
   activeNav,

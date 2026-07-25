@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   findClockReads,
+  findCrossTourImports,
   findStepsArray,
   validateTimeline,
   extractScenarEmbedIds,
@@ -88,6 +89,75 @@ test("findClockReads parses TSX without mistaking JSX for comparisons", () => {
     "}",
   ].join("\n");
   assert.deepEqual(findClockReads(source, "index.tsx"), []);
+});
+
+// ---------------------------------------------------------------------------
+// findCrossTourImports
+// ---------------------------------------------------------------------------
+
+test("findCrossTourImports allows same-tour and _shared imports", () => {
+  const source = [
+    'import { tourSteps } from "./steps";',
+    'import { AppShell } from "../_shared/AppShell";',
+    'import "../_shared/AppShell.css";',
+  ].join("\n");
+  assert.deepEqual(findCrossTourImports(source, "my-tour/index.tsx"), []);
+});
+
+test("findCrossTourImports allows _shared from a .scenar subdir and escapes out of tours/", () => {
+  // Both shapes exist today: every providers.tsx reaches _shared two levels
+  // up, and _shared/stigmer-preview.tsx imports the compiled SDK stylesheet
+  // from outside tours/ entirely.
+  const source = [
+    'import { createStigmerPreview } from "../../_shared/stigmer-preview";',
+    'import "../../../sdk/react/dist/styles.css";',
+  ].join("\n");
+  assert.deepEqual(
+    findCrossTourImports(source, "my-tour/.scenar/providers.tsx"),
+    [],
+  );
+});
+
+test("findCrossTourImports ignores bare package specifiers", () => {
+  const source = [
+    'import type { ScenarioStep } from "@scenar/react";',
+    'import { motion } from "framer-motion";',
+  ].join("\n");
+  assert.deepEqual(findCrossTourImports(source, "my-tour/steps.ts"), []);
+});
+
+test("findCrossTourImports flags the exact import the ManagementShell hoist removed", () => {
+  // The reversion case: before the shell moved to _shared/ (2026-07), this
+  // was the only way a second tour could reach it — with CI fully green.
+  const source =
+    'import { ManagementShell } from "../sso-login-playback/shared/ManagementShell";';
+  const violations = findCrossTourImports(source, "quickstart-tour/index.tsx");
+  assert.equal(violations.length, 1);
+  assert.match(violations[0].reason, /sso-login-playback/);
+  assert.match(violations[0].reason, /_shared/);
+});
+
+test("findCrossTourImports flags export-from and dynamic import() forms", () => {
+  const source = [
+    'export { tourSteps } from "../other-tour/steps";',
+    'const mod = await import("../other-tour/index");',
+    "export { local };", // no module specifier — must be skipped, not crash
+  ].join("\n");
+  const violations = findCrossTourImports(source, "my-tour/steps.ts");
+  assert.equal(violations.length, 2);
+  assert.deepEqual(
+    violations.map((v) => v.line),
+    [1, 2],
+  );
+});
+
+test("findCrossTourImports flags _shared depending on a tour", () => {
+  // The dependency direction is one-way: tours consume _shared, never the
+  // reverse — shared chrome importing tour internals couples every consumer.
+  const source = 'import { tourSteps } from "../create-agent-tour/steps";';
+  const violations = findCrossTourImports(source, "_shared/fixtures.ts");
+  assert.equal(violations.length, 1);
+  assert.match(violations[0].reason, /invert the dependency/);
 });
 
 // ---------------------------------------------------------------------------
@@ -212,7 +282,19 @@ test("extractScenarEmbedIds ignores id attributes on other components", () => {
 
 test("the step-0 grandfather set only shrinks", () => {
   // Debt tracker, not an allowlist: entries are removed by re-choreographing
-  // the tour, never added. If this assertion fires because a NEW tour was
-  // added to the set, fix the tour instead.
-  assert.ok(KNOWN_STEP0_OFFENDERS.size <= 5);
+  // the tour, never added or swapped. Exact membership — a size bound would
+  // let a new offender hide behind a retired one. If this fires because a
+  // NEW tour was added to the set, fix the tour instead; if it fires because
+  // an entry was retired, delete the slug here too (that friction is the
+  // ratchet).
+  assert.deepEqual(
+    [...KNOWN_STEP0_OFFENDERS].sort(),
+    [
+      "authentication-flow-playback",
+      "multi-tenant-setup-playback",
+      "platform-client-token-flow",
+      "provision-grant-playback",
+      "sso-login-playback",
+    ],
+  );
 });

@@ -36,17 +36,27 @@ A tour is the directory shape Scenar's `pack` / `narrate` / `serve` consume:
 `steps.ts` + an `index.tsx` that exports `renderStep`. Nothing else is required.
 
 `_shared/` holds three kinds of module. **Chrome** (`AppShell`,
-`ComposerView`, `ResourceListPage`, `WidgetsSidebar`, `api-exchange/`) frames
-real components inside a schematic app. **Product glue**
+`ManagementShell`, `ComposerView`, `ResourceListPage`, `WidgetsSidebar`,
+`api-exchange/`) frames real components inside a schematic app — the two
+shells are the console's two zones: `AppShell` is the workspace (primary
+nav, recents), `ManagementShell` the org-settings area (grouped
+Organization / Configuration / Billing navigation). **Product glue**
 (`stigmer-preview.tsx`) wires styles, theme, and the mock transport once.
 **Depicted resources** (`order-management-mcp.ts`,
 `quickstart-workspace.ts`) are the domain objects several embeds tell one
 story about — the fixture server the Getting Started tours create, connect,
 and use; the reader's project they keep editing. A depicted resource owns its
 identity *and* its built states in one module so embeds on the same docs page
-cannot drift apart. Everything else stays tour-local (the keep-it-local
-precedent is `sso-login-playback/shared/ManagementShell.tsx`); hoist only
-when a second tour genuinely depicts the same thing.
+cannot drift apart. Everything else stays tour-local — views defined inline
+in the tour's own `index.tsx` — and hoists only when a second tour genuinely
+depicts the same thing (`ManagementShell` sat inside `sso-login-playback/`
+until the quickstart tour became its second consumer).
+
+The boundary is enforced, not aspirational: a tour may import from itself
+and from `_shared/`, never from another tour, and `_shared/` may never
+import from a tour. `scripts/verify-scenar-tours.mjs` (run by
+`make check-node` and CI) fails on any import that crosses it — reaching
+into a sibling tour is never the shortcut; hoist instead.
 
 ---
 

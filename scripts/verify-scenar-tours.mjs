@@ -4,7 +4,7 @@
  * Static verification gate for the Scenar tours in `demos/tours/` and the
  * docs pages that embed them.
  *
- * Three invariants, each of which has already produced (or nearly produced)
+ * Four invariants, each of which has already produced (or nearly produced)
  * a shipped defect:
  *
  * 1. DETERMINISM (scenar-cloud DD-006). A packed tour must render identical
@@ -34,6 +34,14 @@
  *    any layer — the component string-concatenates a URL, so a typo ships a
  *    blank iframe to production with CI fully green.
  *
+ * 4. TOUR BOUNDARIES. A tour may import from itself and from `_shared/`,
+ *    never from another tour — and `_shared/` may never import from a tour.
+ *    demos/README.md's hoisting rule ("hoist only when a second tour
+ *    genuinely depicts the same thing") only works with this counterpart
+ *    enforced: before ManagementShell was hoisted (2026-07), a second tour
+ *    could have imported it straight out of sso-login-playback/ with CI
+ *    fully green, silently coupling the two tours' lifecycles.
+ *
  * Like scripts/verify-esm-node.mjs, checks are AST-based (TypeScript parser
  * via createRequire, no new dependency) rather than regex, so string
  * literals and comments can never be mistaken for code — e.g. the displayed
@@ -45,7 +53,7 @@
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 
@@ -80,7 +88,7 @@ function isLiteralArg(arg) {
 }
 
 /**
- * Scan one source file for live-clock reads and denylisted sample factories.
+ * Scan one source file for live-clock reads.
  * Returns violation objects: `{ line, reason }` (line is 1-based).
  */
 export function findClockReads(sourceText, fileName = "module.ts") {
@@ -137,6 +145,82 @@ export function findClockReads(sourceText, fileName = "module.ts") {
             'freeze the instant, e.g. new Date("2026-07-20T09:30:00Z") (DD-006)',
         });
       }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return violations;
+}
+
+/**
+ * Scan one source file under `demos/tours/` for imports that cross a tour
+ * boundary. A tour may import from itself and from `_shared/`, never from
+ * another tour; `_shared/` may never import from a tour. Relative imports
+ * that escape `tours/` entirely are allowed (`_shared/stigmer-preview.tsx`
+ * legitimately reaches the compiled SDK stylesheet), and bare package
+ * specifiers are ignored. Covers static `import`, `export ... from`, and
+ * dynamic `import("...")` — a static-only rule would be trivially bypassed.
+ * Type-only imports are flagged like any other: the coupling is the same.
+ *
+ * @param sourceText file contents
+ * @param tourRelativePath path relative to `demos/tours/`, POSIX separators
+ *        (e.g. `"sso-login-playback/index.tsx"`)
+ * @returns violation objects `{ line, reason }` (line is 1-based)
+ */
+export function findCrossTourImports(sourceText, tourRelativePath) {
+  const sourceFile = ts.createSourceFile(
+    tourRelativePath,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    tourRelativePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const violations = [];
+
+  const lineOf = (node) =>
+    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+
+  const owner = tourRelativePath.split("/")[0];
+  const fileDir = posix.dirname(tourRelativePath);
+
+  const checkSpecifier = (specifierNode) => {
+    const specifier = specifierNode.text;
+    if (!specifier.startsWith(".")) return; // bare package specifier
+    const resolved = posix.normalize(posix.join(fileDir, specifier));
+    if (resolved.startsWith("..")) return; // escapes tours/ entirely
+    const targetOwner = resolved.split("/")[0];
+    if (targetOwner === owner || targetOwner === "_shared") return;
+    violations.push({
+      line: lineOf(specifierNode),
+      reason:
+        owner === "_shared"
+          ? `_shared must not depend on a tour — "${specifier}" reaches into ` +
+            `${targetOwner}/; invert the dependency (the tour imports from _shared)`
+          : `imports across tours — "${specifier}" reaches into ${targetOwner}/; ` +
+            `hoist the module to _shared/ instead (demos/README.md)`,
+    });
+  };
+
+  const visit = (node) => {
+    // import ... from "x" / export ... from "x" (export { y } has no specifier)
+    if (
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteral(node.moduleSpecifier)
+    ) {
+      checkSpecifier(node.moduleSpecifier);
+    }
+
+    // dynamic import("x") with a literal specifier
+    if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      node.arguments.length > 0 &&
+      ts.isStringLiteral(node.arguments[0])
+    ) {
+      checkSpecifier(node.arguments[0]);
     }
 
     ts.forEachChild(node, visit);
@@ -340,6 +424,20 @@ async function main() {
     console.log(`  ok  embed ids (${embedCount} embeds across docs/)`);
   } else {
     fail("embed ids", embedViolations);
+  }
+
+  // --- 4. Tour boundaries: no imports across tours --------------------------
+  const boundaryViolations = [];
+  for (const file of sourceFiles) {
+    const tourRelativePath = relative(TOURS_DIR, file).split(sep).join("/");
+    for (const v of findCrossTourImports(readFileSync(file, "utf8"), tourRelativePath)) {
+      boundaryViolations.push(`${relative(root, file)}:${v.line}: ${v.reason}`);
+    }
+  }
+  if (boundaryViolations.length === 0) {
+    console.log(`  ok  tour boundaries (${sourceFiles.length} source files)`);
+  } else {
+    fail("tour boundaries", boundaryViolations);
   }
 
   if (total > 0) {
