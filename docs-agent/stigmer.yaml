@@ -1,0 +1,15 @@
+apiVersion: tenancy.stigmer.ai/v1
+kind: Project
+metadata:
+  # Unlike the portable org-knowledge-agent template, this project is
+  # deliberately pinned to the `stigmer` organization: it is the first-party
+  # agent behind the "Ask AI" button on stigmer.ai/docs, not a reusable
+  # solution. Applying it anywhere else would produce an agent that answers
+  # for the wrong product.
+  name: docs-agent
+  org: stigmer
+spec:
+  description: >
+    The Stigmer Docs agent — the assistant behind "Ask AI" on stigmer.ai/docs.
+    Answers questions about Stigmer from the official documentation, reading
+    the live published docs so its knowledge is never a stale snapshot.

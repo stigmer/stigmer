@@ -1,0 +1,42 @@
+apiVersion: agentic.stigmer.ai/v1
+kind: AgentShare
+metadata:
+  # The share's slug is the public chat URL segment:
+  # https://app.stigmer.ai/chat/stigmer/stigmer-docs — and the value the
+  # docs site's <stigmer-agent agent="stigmer-docs"> attribute points at.
+  name: stigmer-docs
+  org: stigmer
+spec:
+  agent_ref:
+    kind: agent
+    org: stigmer
+    slug: stigmer-docs
+  enabled: true
+  # Public on purpose: docs readers are anonymous. The blueprint itself
+  # stays visibility_org — a share grants chat access, never blueprint
+  # access. Keep `audience` present in every apply: an apply that omits it
+  # resets the share to public (harmless here, but the field is part of the
+  # contract).
+  audience: agent_share_audience_public
+  # Embedding is locked to the docs site's origin. The hosted chat page at
+  # /chat/stigmer/stigmer-docs stays reachable for anyone with the link —
+  # allowed_origins constrains only which sites may IFRAME the widget.
+  # NOTE: origins are exact — a preview or staging host needs its own entry.
+  allowed_origins:
+    - "https://stigmer.ai"
+  # Visitor-facing copy when a launch-gate limit refuses a message
+  # (≤300 chars each; empty fields fall back to platform defaults).
+  messages:
+    rate_limited: >-
+      You're sending messages a little too quickly. Give it a moment and try
+      again — the docs at stigmer.ai/docs are always open in the meantime.
+    unavailable: >-
+      Ask AI is temporarily unavailable. Everything it knows comes from the
+      documentation at stigmer.ai/docs — the answer is in there too.
+    conversation_ended: >-
+      This conversation reached its limit. Reload the page to start a fresh
+      one, or continue in the docs at stigmer.ai/docs.
+  # No environment_refs, deliberately: the agent's only tool is the seedpack
+  # Fetch server reading public URLs, so guest conversations need zero
+  # credentials. If a credentialed tool is ever added to the agent, bind an
+  # org-shared Environment here — never on the agent's default instance.
