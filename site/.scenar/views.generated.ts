@@ -48,20 +48,16 @@ import { ComposerView } from "../src/components/docs/demos/views/ComposerView";
 import { ManagementShell } from "../src/components/docs/demos/views/ManagementShell";
 import { ResourceListPage } from "../src/components/docs/demos/views/ResourceListPage";
 import { WidgetsSidebar } from "../src/components/docs/demos/views/WidgetsSidebar";
-import { AgentCreationTour } from "../src/components/docs/demos/scenarios/agent-creation-tour/index";
 import { AgentDetail } from "../src/components/docs/demos/scenarios/agent-detail/index";
 import { ApiKeySetup } from "../src/components/docs/demos/scenarios/api-key-setup/index";
 import { ApprovalFlowPlayback } from "../src/components/docs/demos/scenarios/approval-flow-playback/index";
 import { AuthenticationFlowPlayback } from "../src/components/docs/demos/scenarios/authentication-flow-playback/index";
 import { ByoaSetup } from "../src/components/docs/demos/scenarios/byoa-setup/index";
-import { ConnectPlayback } from "../src/components/docs/demos/scenarios/connect-playback/index";
 import { ConnectToolsTour } from "../src/components/docs/demos/scenarios/connect-tools-tour/index";
-import { CreateAgentTour } from "../src/components/docs/demos/scenarios/create-agent-tour/index";
 import { DragReorderValidation } from "../src/components/docs/demos/scenarios/drag-reorder-validation/index";
 import { FederationOverviewTour } from "../src/components/docs/demos/scenarios/federation-overview-tour/index";
 import { FirstSkillTour } from "../src/components/docs/demos/scenarios/first-skill-tour/index";
 import { MarketplaceConnectTour } from "../src/components/docs/demos/scenarios/marketplace-connect-tour/index";
-import { McpServerCreationTour } from "../src/components/docs/demos/scenarios/mcp-server-creation-tour/index";
 import { McpServerDetail } from "../src/components/docs/demos/scenarios/mcp-server-detail/index";
 import { MultiTenantJitPlayback } from "../src/components/docs/demos/scenarios/multi-tenant-jit-playback/index";
 import { MultiTenantSetupPlayback } from "../src/components/docs/demos/scenarios/multi-tenant-setup-playback/index";
@@ -72,7 +68,6 @@ import { ProvisionGrantPlayback } from "../src/components/docs/demos/scenarios/p
 import { QuickstartPlayback } from "../src/components/docs/demos/scenarios/quickstart-playback/index";
 import { QuickstartTour } from "../src/components/docs/demos/scenarios/quickstart-tour/index";
 import { RegisterIdpPlayback } from "../src/components/docs/demos/scenarios/register-idp-playback/index";
-import { SkillCreationTour } from "../src/components/docs/demos/scenarios/skill-creation-tour/index";
 import { SkillDetail } from "../src/components/docs/demos/scenarios/skill-detail/index";
 import { SsoLoginPlayback } from "../src/components/docs/demos/scenarios/sso-login-playback/index";
 import { ToolCallsPlayback } from "../src/components/docs/demos/scenarios/tool-calls-playback/index";
@@ -125,20 +120,16 @@ export const generatedViews = {
   ManagementShell,
   ResourceListPage,
   WidgetsSidebar,
-  AgentCreationTour,
   AgentDetail,
   ApiKeySetup,
   ApprovalFlowPlayback,
   AuthenticationFlowPlayback,
   ByoaSetup,
-  ConnectPlayback,
   ConnectToolsTour,
-  CreateAgentTour,
   DragReorderValidation,
   FederationOverviewTour,
   FirstSkillTour,
   MarketplaceConnectTour,
-  McpServerCreationTour,
   McpServerDetail,
   MultiTenantJitPlayback,
   MultiTenantSetupPlayback,
@@ -149,7 +140,6 @@ export const generatedViews = {
   QuickstartPlayback,
   QuickstartTour,
   RegisterIdpPlayback,
-  SkillCreationTour,
   SkillDetail,
   SsoLoginPlayback,
   ToolCallsPlayback,
