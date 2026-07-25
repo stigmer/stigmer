@@ -206,10 +206,9 @@ function renderStep(step: ApiKeySetupStep) {
  * `ApiKeyCreatedAlert`) backed by fixture data — no live backend.
  *
  * Visual storytelling layers:
- * 1. **Captions** — short labels below the demo describing each action
- * 2. **Zone transition** — sidebar swaps from session to management zone
- * 3. **Animated cursor** — pointer targets user profile, menu, and buttons
- * 4. **User menu** — popup mirrors the real Console's profile menu
+ * 1. **Zone transition** — sidebar swaps from session to management zone
+ * 2. **Animated cursor** — pointer targets user profile, menu, and buttons
+ * 3. **User menu** — popup mirrors the real Console's profile menu
  */
 export function ApiKeySetup() {
   const narrationManifest = useNarrationManifest("api-key-setup");

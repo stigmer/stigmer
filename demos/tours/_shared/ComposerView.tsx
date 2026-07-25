@@ -11,6 +11,18 @@ interface ComposerViewProps {
   /** When set, renders the conversation via `MessageThread`. */
   readonly execution?: AgentExecution;
   /**
+   * Render the execution's pending-approval gates inline on their tool rows.
+   * `MessageThread` gates approval UI on the presence of an
+   * `onApprovalSubmit` handler (`includeApprovals = onApprovalSubmit !=
+   * null`) — but a playback has no decision to route, so the demo layer
+   * names the *intent* and passes an inert handler to the SDK internally.
+   * The depicted execution must carry `status.pendingApprovals` whose
+   * `toolCallId` matches an inline tool call, or the gate falls through to
+   * the bottom backstop card (which ticks an elapsed-time counter — a
+   * DD-006 violation in a packed embed).
+   */
+  readonly showApprovals?: boolean;
+  /**
    * When set, renders `SessionComposer` with its textarea pre-filled with this
    * text (simulating the user having typed a prompt).
    */
@@ -33,6 +45,7 @@ interface ComposerViewProps {
  */
 export function ComposerView({
   execution,
+  showApprovals = false,
   typingMessage,
   agentRef,
   placeholder = "Describe your agent...",
@@ -41,7 +54,11 @@ export function ComposerView({
     return (
       <div className="composer">
         <div className="composer__thread" style={{ zoom: DEMO_CONTENT_ZOOM }}>
-          <MessageThread executions={[execution]} className="composer__message-thread" />
+          <MessageThread
+            executions={[execution]}
+            onApprovalSubmit={showApprovals ? noop : undefined}
+            className="composer__message-thread"
+          />
         </div>
       </div>
     );

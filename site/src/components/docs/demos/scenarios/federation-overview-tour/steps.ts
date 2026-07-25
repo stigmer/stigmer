@@ -78,21 +78,18 @@ export const overviewTourSteps: ScenarioStep<OverviewTourStep>[] = [
   {
     delayMs: 0,
     data: { view: "jit-register" },
-    caption: "JIT path: register IdP with auto-provisioning",
     narration:
       "Register your auth provider and enable JIT provisioning. Stigmer will create accounts and grant roles automatically when users authenticate.",
   },
   {
     delayMs: 3500,
     data: { view: "jit-login" },
-    caption: "User signs in — JIT handles the rest",
     narration:
       "Jane signs in on the Acme platform. With JIT enabled, Stigmer creates her account and grants a role the first time she authenticates. No provisioning code needed.",
   },
   {
     delayMs: 3500,
     data: { view: "jit-success" },
-    caption: "API call succeeds — account auto-provisioned",
     narration:
       "The request succeeds. Stigmer validated the token, auto-provisioned Jane's account, granted the viewer role, and authorized the request — all in one step.",
     interactions: [
@@ -107,28 +104,24 @@ export const overviewTourSteps: ScenarioStep<OverviewTourStep>[] = [
   {
     delayMs: 3500,
     data: { view: "manual-register" },
-    caption: "Manual path: register IdP without JIT",
     narration:
       "Alternatively, register the Identity Provider without JIT. You keep full control, but your backend provisions each user explicitly.",
   },
   {
     delayMs: 3500,
     data: { view: "manual-provision" },
-    caption: "Provision a federated account",
     narration:
       "Call create federated account to map each user's OIDC subject to a Stigmer identity. This runs in your backend for every user.",
   },
   {
     delayMs: 3500,
     data: { view: "manual-grant" },
-    caption: "Grant access via IAM Policy",
     narration:
       "Then grant a role on the Organization. Without this policy, the user's JWT is valid but Stigmer returns 403 Forbidden.",
   },
   {
     delayMs: 3000,
     data: { view: "manual-success" },
-    caption: "API call succeeds — manual setup complete",
     narration:
       "The request succeeds. The same result as JIT, but your backend handled provisioning and access grants explicitly.",
     interactions: [

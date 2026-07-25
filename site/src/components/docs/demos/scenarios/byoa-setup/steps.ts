@@ -234,8 +234,6 @@ export const byoaSetupSteps: ScenarioStep<ByoaSetupStep>[] = [
       grant: NO_GRANT,
       orgApp: NO_ORG_OVERRIDE,
     },
-    caption:
-      "Slack's OAuth sign-in is pending vendor approval",
     narration:
       "This MCP server uses vendor OAuth, but the platform's OAuth app is still waiting for Slack's marketplace approval. The sign-in button is disabled.",
     interactions: [
@@ -250,7 +248,6 @@ export const byoaSetupSteps: ScenarioStep<ByoaSetupStep>[] = [
       grant: NO_GRANT,
       orgApp: NO_ORG_OVERRIDE,
     },
-    caption: "Click \"Use your own OAuth app\" to bypass the block",
   },
   {
     delayMs: 2500,
@@ -260,7 +257,6 @@ export const byoaSetupSteps: ScenarioStep<ByoaSetupStep>[] = [
       grant: NO_GRANT,
       orgApp: NO_ORG_OVERRIDE,
     },
-    caption: "Enter your Slack app's client ID and secret",
     narration:
       "Register an OAuth app with Slack, then enter your client credentials here. Stigmer clones the endpoint URLs and scopes from the platform template — you only provide the client ID and secret.",
     interactions: [
@@ -277,7 +273,6 @@ export const byoaSetupSteps: ScenarioStep<ByoaSetupStep>[] = [
       grant: NO_GRANT,
       orgApp: NO_ORG_OVERRIDE,
     },
-    caption: "Save to override the platform app for your Organization",
   },
   {
     delayMs: 2500,
@@ -287,7 +282,6 @@ export const byoaSetupSteps: ScenarioStep<ByoaSetupStep>[] = [
       grant: NO_GRANT,
       orgApp: HAS_ORG_OVERRIDE,
     },
-    caption: "\"Using your OAuth app\" — sign-in is now enabled",
     narration:
       "Your Organization's OAuth app replaces the platform default. The status shows \"Using your OAuth app\" and sign-in is enabled with your own credentials.",
     interactions: [
@@ -302,7 +296,6 @@ export const byoaSetupSteps: ScenarioStep<ByoaSetupStep>[] = [
       grant: HEALTHY_GRANT,
       orgApp: HAS_ORG_OVERRIDE,
     },
-    caption: "Connected — 5 tools discovered, 2 approval policies classified",
     narration:
       "After signing in with your own app, Stigmer connects to Slack, discovers its tools, and classifies approval policies. Read-only operations like searching and listing pass through automatically.",
     interactions: [

@@ -119,7 +119,6 @@ export const provisionGrantSteps: ScenarioStep<ProvisionGrantStep>[] = [
   {
     delayMs: 0,
     data: { view: "user-signup" },
-    caption: "New user signs up on your platform",
     narration:
       "Jane signs up on the Acme platform. Your backend receives the signup event and starts the Stigmer onboarding flow.",
     interactions: [{ atPercent: 0.5, type: "set_cursor", target: "signup-btn" }],
@@ -127,42 +126,36 @@ export const provisionGrantSteps: ScenarioStep<ProvisionGrantStep>[] = [
   {
     delayMs: 3000,
     data: { view: "code-check" },
-    caption: "Check for an existing account",
     narration:
       "First, check if a federated account already exists using get by external sub. This avoids creating duplicates if the user was previously onboarded.",
   },
   {
     delayMs: 3500,
     data: { view: "terminal-not-found" },
-    caption: "NOT_FOUND — new user",
     narration:
       "The lookup returns NOT_FOUND, which means Jane doesn't have a Stigmer account yet. Time to create one.",
   },
   {
     delayMs: 3000,
     data: { view: "code-create" },
-    caption: "Create the federated account",
     narration:
       "Call create federated account with the user's OIDC subject, email, and name. The external sub is the key that links this Stigmer account to the auth provider identity.",
   },
   {
     delayMs: 3500,
     data: { view: "terminal-created" },
-    caption: "Account created",
     narration:
       "The account is created with a new Stigmer identity ID. Jane now has a federated account, but she can't access any resources yet.",
   },
   {
     delayMs: 3000,
     data: { view: "code-grant" },
-    caption: "Grant a role via IAM Policy",
     narration:
       "Create an IAM Policy to grant Jane the viewer role on the organization. This authorizes her to access resources within the org.",
   },
   {
     delayMs: 3500,
     data: { view: "terminal-granted" },
-    caption: "Onboarding complete",
     narration:
       "Jane is fully onboarded. She has a federated account and a viewer role on the organization. She can now call the Stigmer API with her Auth0 JWT.",
   },

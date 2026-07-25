@@ -18,6 +18,9 @@ on:
       - "client-apps/cli/**"
       - "sdk/ink/**"
       - "sdk/react/**"
+      # The docs site embeds the Ask AI panel through @stigmer/embed's
+      # workspace source, so embed changes can break the site build/tests.
+      - "sdk/embed/**"
       - ".vale.ini"
       - ".prettierrc"
       - "vale/**"
@@ -31,6 +34,9 @@ on:
       - "client-apps/cli/**"
       - "sdk/ink/**"
       - "sdk/react/**"
+      # The docs site embeds the Ask AI panel through @stigmer/embed's
+      # workspace source, so embed changes can break the site build/tests.
+      - "sdk/embed/**"
       - ".vale.ini"
       - ".prettierrc"
       - "vale/**"
@@ -77,6 +83,20 @@ jobs:
 
       - name: Check formatting
         run: make format-docs-check
+
+      # Vitest unit/component tests (e.g. the Ask AI panel invariants).
+      # check-site runs these locally, but this workflow invokes individual
+      # targets rather than check-site — so the tests need their own step to
+      # gate PRs.
+      - name: Run site unit tests
+        run: make -C site test-unit
+
+      # Every <ScenarEmbed id> in docs/** must resolve to a real
+      # demos/tours/<id>/ — nothing else checks this, and a typo ships a
+      # blank iframe with CI green. Also wired in ci.frontend.yaml, which
+      # covers the demos/** side (this workflow doesn't trigger on demos/**).
+      - name: Verify Scenar tours
+        run: node scripts/verify-scenar-tours.mjs
 
       - name: Build documentation site
         run: make build-site

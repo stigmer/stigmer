@@ -33,7 +33,6 @@ export const dragReorderSteps: ScenarioStep<DragReorderStep>[] = [
       backlog: [TASK_ALPHA, TASK_BETA],
       inProgress: [TASK_GAMMA],
     },
-    caption: "Task board — drag to move",
     interactions: [
       { atPercent: 0.2, type: "drag", target: "task-alpha", dragTarget: "drop-in-progress" },
     ],
@@ -45,6 +44,5 @@ export const dragReorderSteps: ScenarioStep<DragReorderStep>[] = [
       backlog: [TASK_BETA],
       inProgress: [TASK_GAMMA, TASK_ALPHA],
     },
-    caption: "Task moved to In Progress",
   },
 ];

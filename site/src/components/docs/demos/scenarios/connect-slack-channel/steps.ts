@@ -111,31 +111,26 @@ export const connectSlackSteps: ScenarioStep<ConnectSlackStep>[] = [
   {
     delayMs: 0,
     data: { view: "channels-empty" },
-    caption: "Every Agent has a Channels tab — this one has no channels yet",
     narration:
       "Channels put an agent where your team already works. This agent has none yet, so its Channels tab offers to connect Slack.",
   },
   {
     delayMs: 3500,
     data: { view: "click-connect" },
-    caption: "Click \"Connect to Slack\"",
   },
   {
     delayMs: 2500,
     data: { view: "connect-dialog" },
-    caption: "Name the connection — the platform Stigmer app needs no setup",
     narration:
       "The dialog names the connection and shows which Slack app will serve it. The platform Stigmer app works with no setup — or register your own app so the bot carries your name.",
   },
   {
     delayMs: 4200,
     data: { view: "click-dialog-connect" },
-    caption: "Click \"Connect to Slack\" to open Slack's consent page",
   },
   {
     delayMs: 2500,
     data: { view: "slack-consent" },
-    caption: "Check the workspace picker in the top-right, then Allow",
     narration:
       "Slack asks which workspace to add the bot to. Check the picker in the top right corner — it defaults to the workspace your browser is signed into. Then review the permissions and allow.",
     interactions: [
@@ -146,7 +141,6 @@ export const connectSlackSteps: ScenarioStep<ConnectSlackStep>[] = [
   {
     delayMs: 4500,
     data: { view: "channels-connected" },
-    caption: "Connected — the card shows the workspace and the serving app",
     narration:
       "The channel is live. Members reach it by messaging Stigmer in Slack, and the answers come from your agent. The card's switch pauses serving at any time.",
   },

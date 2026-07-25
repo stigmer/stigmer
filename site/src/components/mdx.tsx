@@ -7,7 +7,7 @@ import { File, Files, Folder } from "fumadocs-ui/components/files";
 import { ImageZoom } from "fumadocs-ui/components/image-zoom";
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { Card, Cards } from "fumadocs-ui/components/card";
-import { DemoAgentDetail, DemoApiKeySetup, DemoApprovalFlowPlayback, DemoAuthenticationFlowPlayback, DemoByoaSetup, DemoConnectSlackChannel, DemoConnectToolsTour, DemoConnectWhatsAppChannel, DemoDatastoreRecordsBrowser, DemoFederationOverviewTour, DemoFirstSkillTour, DemoMarketplaceConnectTour, DemoMcpServerDetail, DemoMultiTenantJitPlayback, DemoMultiTenantSetupPlayback, DemoOAuthConnectFlow, DemoPlatformClientSetupTour, DemoPlatformClientTokenFlow, DemoProvisionGrantPlayback, DemoQuickstartPlayback, DemoQuickstartTour, DemoRegisterIdpPlayback, DemoReviewPayloadFallback, DemoReviewPayloadRenderer, DemoShareAgentDialog, DemoSkillDetail, DemoSsoLoginPlayback, DemoThemingPlayground, DemoToolCallsPlayback, HarnessCostComparison, Hero, Mermaid, ReactSdkDomains, ScenarEmbed, SDKTabs, Term } from "@/components/docs";
+import { DemoAgentDetail, DemoApiKeySetup, DemoApprovalFlowPlayback, DemoByoaSetup, DemoConnectSlackChannel, DemoConnectWhatsAppChannel, DemoDatastoreRecordsBrowser, DemoFederationOverviewTour, DemoFirstSkillTour, DemoMarketplaceConnectTour, DemoMcpServerDetail, DemoOAuthConnectFlow, DemoPlatformClientSetupTour, DemoQuickstartTour, DemoRegisterIdpPlayback, DemoReviewPayloadFallback, DemoReviewPayloadRenderer, DemoShareAgentDialog, DemoSkillDetail, DemoThemingPlayground, DemoToolCallsPlayback, HarnessCostComparison, Hero, Mermaid, ReactSdkDomains, ScenarEmbed, SDKTabs, Term } from "@/components/docs";
 
 export function getMDXComponents(components?: MDXComponents) {
   return {
@@ -28,30 +28,22 @@ export function getMDXComponents(components?: MDXComponents) {
     DemoAgentDetail,
     DemoApiKeySetup,
     DemoApprovalFlowPlayback,
-    DemoAuthenticationFlowPlayback,
     DemoByoaSetup,
     DemoConnectSlackChannel,
-    DemoConnectToolsTour,
     DemoConnectWhatsAppChannel,
     DemoFederationOverviewTour,
     DemoFirstSkillTour,
     DemoMarketplaceConnectTour,
     DemoDatastoreRecordsBrowser,
     DemoMcpServerDetail,
-    DemoMultiTenantJitPlayback,
-    DemoMultiTenantSetupPlayback,
     DemoOAuthConnectFlow,
     DemoPlatformClientSetupTour,
-    DemoPlatformClientTokenFlow,
-    DemoProvisionGrantPlayback,
-    DemoQuickstartPlayback,
     DemoQuickstartTour,
     DemoRegisterIdpPlayback,
     DemoReviewPayloadFallback,
     DemoReviewPayloadRenderer,
     DemoShareAgentDialog,
     DemoSkillDetail,
-    DemoSsoLoginPlayback,
     DemoThemingPlayground,
     DemoToolCallsPlayback,
     HarnessCostComparison,

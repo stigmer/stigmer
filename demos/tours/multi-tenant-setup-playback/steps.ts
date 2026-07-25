@@ -4,7 +4,7 @@
  * provisioning and access grant.
  *
  * Covers the "Multi-tenant platform setup" guide page. Ported from the in-repo
- * inline demo; the timeline (steps, captions, narration, interactions) is
+ * inline demo; the timeline (steps, narration, interactions) is
  * preserved 1:1. The in-app `cursorTargetFor` helper is converted to explicit
  * `set_cursor` interactions (the packed embed drives the cursor from each
  * step's `interactions`, there is no per-view hook).
@@ -120,7 +120,6 @@ export const multiTenantSetupSteps: ScenarioStep<MultiTenantSetupStep>[] = [
   {
     delayMs: 0,
     data: { view: "tenant-signup" },
-    caption: "New customer signs up on your platform",
     narration:
       "A new customer, Tenant Alpha, signs up on the Acme Cloud platform. Your backend needs to create an isolated Organization for them on Stigmer.",
     interactions: [{ atPercent: 0.5, type: "set_cursor", target: "create-tenant-btn" }],
@@ -128,14 +127,12 @@ export const multiTenantSetupSteps: ScenarioStep<MultiTenantSetupStep>[] = [
   {
     delayMs: 3000,
     data: { view: "code-create-org" },
-    caption: "Create a platform-managed Organization",
     narration:
       "Call organization create with management mode set to platform managed. The external org ID maps your tenant ID to Stigmer's Organization, and the identity provider reference links it to your auth system.",
   },
   {
     delayMs: 4000,
     data: { view: "terminal-org-created" },
-    caption: "Tenant org created",
     narration:
       "The Organization is created with the external ID mapping. You can now look it up later using your own tenant identifier without storing Stigmer IDs.",
   },
@@ -143,7 +140,6 @@ export const multiTenantSetupSteps: ScenarioStep<MultiTenantSetupStep>[] = [
   {
     delayMs: 3500,
     data: { view: "user-signup" },
-    caption: "Tenant user signs up",
     narration:
       "Jane signs up on Tenant Alpha's portal. Your backend now needs to provision her into the correct tenant Organization on Stigmer.",
     interactions: [{ atPercent: 0.5, type: "set_cursor", target: "signup-btn" }],
@@ -151,21 +147,18 @@ export const multiTenantSetupSteps: ScenarioStep<MultiTenantSetupStep>[] = [
   {
     delayMs: 3000,
     data: { view: "code-lookup-org" },
-    caption: "Look up tenant org by external ID",
     narration:
       "Use get by external org ID to find the Stigmer Organization from your platform's tenant identifier. This is the bridge between your tenant model and Stigmer's.",
   },
   {
     delayMs: 3500,
     data: { view: "code-provision-grant" },
-    caption: "Provision user and grant access",
     narration:
       "Create a federated account in the tenant Organization — not in the parent org. Then grant a viewer role scoped to this tenant. The Organization boundary enforces isolation.",
   },
   {
     delayMs: 4000,
     data: { view: "terminal-user-onboarded" },
-    caption: "Tenant user onboarded",
     narration:
       "Jane is fully onboarded into Tenant Alpha. She has a federated account and a viewer role scoped to that tenant. She can access Tenant Alpha's resources but cannot see Tenant Beta's.",
   },

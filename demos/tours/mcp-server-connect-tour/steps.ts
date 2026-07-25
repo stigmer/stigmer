@@ -7,8 +7,8 @@
  *
  * Continuity: this tour picks up exactly where `mcp-server-creation-tour`
  * leaves off ("Next, connect it…") — same server, same org, same env var,
- * all sourced from `_shared/fixtures.ts` (`ORDER_MGMT_MCP`) so the two
- * embeds on the same docs page cannot drift apart.
+ * all sourced from `_shared/order-management-mcp.ts` so the embeds on the
+ * same docs page cannot drift apart.
  *
  * Determinism (scenar-cloud DD-006): the resource that CHANGES across the
  * timeline — the server before vs after discovery — is data this tour owns.
@@ -28,7 +28,6 @@
  * `index.tsx` (a rendering concern); step data carries only semantic tags.
  */
 import type { ScenarioStep } from "@scenar/react";
-import { DEMO_ORG, ORDER_MGMT_MCP } from "../_shared/fixtures";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -48,9 +47,6 @@ export type McpServerConnectTourStep =
     }
   | { view: "credentials"; form: CredentialFormPhase };
 
-/** Re-exported for `index.tsx` and the providers. */
-export { DEMO_ORG, ORDER_MGMT_MCP };
-
 // ---------------------------------------------------------------------------
 // Timeline
 // ---------------------------------------------------------------------------
@@ -68,7 +64,6 @@ export const mcpServerConnectTourSteps: ScenarioStep<McpServerConnectTourStep>[]
   {
     delayMs: 0,
     data: { view: "detail", phase: "registered", tab: "tools" },
-    caption: "Registered — but no tools yet",
     narration:
       "Here's the server you just created. It's registered, but Stigmer hasn't talked to it yet — the Tools tab is empty until you connect.",
     // No interactions here: the embed arms step-0 interactions at mount
@@ -78,7 +73,6 @@ export const mcpServerConnectTourSteps: ScenarioStep<McpServerConnectTourStep>[]
   {
     delayMs: 2500,
     data: { view: "detail", phase: "registered", tab: "tools" },
-    caption: 'Click "Connect"',
     narration:
       "Connecting reaches the live server, catalogs every tool it offers, and classifies each one for approval. It all starts from this one button.",
     interactions: [
@@ -89,7 +83,6 @@ export const mcpServerConnectTourSteps: ScenarioStep<McpServerConnectTourStep>[]
   {
     delayMs: 2500,
     data: { view: "credentials", form: "empty" },
-    caption: "Stigmer asks for what it needs first",
     narration:
       "This server declares a bearer token, so Connect asks for it before dialing out. Save for future runs keeps the token in your personal environment — you enter it once.",
     interactions: [
@@ -101,7 +94,6 @@ export const mcpServerConnectTourSteps: ScenarioStep<McpServerConnectTourStep>[]
   {
     delayMs: 2500,
     data: { view: "credentials", form: "filled" },
-    caption: "Save — Stigmer connects and discovers",
     narration:
       "Paste the token and save. Stigmer stores it securely, connects to the live endpoint, and starts discovery. This takes a few seconds — it's talking to the real server.",
     interactions: [
@@ -112,7 +104,6 @@ export const mcpServerConnectTourSteps: ScenarioStep<McpServerConnectTourStep>[]
   {
     delayMs: 3000,
     data: { view: "detail", phase: "connected", tab: "tools" },
-    caption: "Three tools discovered",
     narration:
       "Connected. Stigmer found three tools — get order, list orders, and process return — and the header now shows when discovery last ran.",
     interactions: [{ atPercent: 0.2, type: "scroll_to", target: "mcp-capabilities" }],
@@ -120,7 +111,6 @@ export const mcpServerConnectTourSteps: ScenarioStep<McpServerConnectTourStep>[]
   {
     delayMs: 2800,
     data: { view: "detail", phase: "connected", tab: "tools" },
-    caption: "Policies were classified automatically",
     narration:
       "Discovery also classified each tool. Read-only lookups pass through automatically — check the Policies tab for the one that doesn't.",
     interactions: [
@@ -131,7 +121,6 @@ export const mcpServerConnectTourSteps: ScenarioStep<McpServerConnectTourStep>[]
   {
     delayMs: 3000,
     data: { view: "detail", phase: "connected", tab: "policies" },
-    caption: "process_return requires approval",
     narration:
       "process return moves money, so it was auto-classified to require human approval. Your agent will pause and ask before any refund goes out — no extra code, the policy lives on the server.",
     interactions: [{ atPercent: 0.15, type: "scroll_to", target: "mcp-capabilities" }],

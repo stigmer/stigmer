@@ -165,7 +165,6 @@ export const agentCreationTourSteps: ScenarioStep<AgentCreationTourStep>[] = [
   {
     delayMs: 0,
     data: { view: "library-click" },
-    caption: "Navigate to Library",
     // No cursor here: the embed arms step-0 interactions at mount (under the
     // poster), so they fire before Play — a @scenar/react quirk every ported
     // tour works around by keeping its first step cursor-less. The pulsing
@@ -174,14 +173,12 @@ export const agentCreationTourSteps: ScenarioStep<AgentCreationTourStep>[] = [
   {
     delayMs: 1500,
     data: { view: "agents-list" },
-    caption: "View your Agents",
     narration:
       "An Agent is a reusable definition of what your AI assistant knows and can do.",
   },
   {
     delayMs: 2000,
     data: { view: "create-agent-click" },
-    caption: 'Click "Add Agent"',
     interactions: [
       { atPercent: 0.3, type: "set_cursor", target: "create-agent" },
       { atPercent: 0.92, type: "clear_cursor" },
@@ -190,36 +187,30 @@ export const agentCreationTourSteps: ScenarioStep<AgentCreationTourStep>[] = [
   {
     delayMs: 1500,
     data: { view: "composer-ready" },
-    caption: "Agent Creator opens",
   },
   {
     delayMs: 2000,
     data: { view: "conversation", execution: snapshot([user1]) },
-    caption: "Describe your agent",
     narration:
       "You tell the creator what the agent should do, and which Skills and tools it needs.",
   },
   {
     delayMs: 2000,
     data: { view: "conversation", execution: snapshot([user1, ai1]) },
-    caption: "Agent asks for details",
   },
   {
     delayMs: 2500,
     data: { view: "conversation", execution: snapshot([user1, ai1, user2]) },
-    caption: "Provide role and rules",
   },
   {
     delayMs: 2000,
     data: { view: "conversation", execution: finalExecution },
-    caption: "Agent definition created",
     narration:
       "The definition brings everything together — your Skill for domain knowledge, your MCP server for tools, and the behavior rules you set.",
   },
   {
     delayMs: 2000,
     data: { view: "artifact-click", execution: finalExecution },
-    caption: "Click to preview",
     interactions: [
       { atPercent: 0.3, type: "set_cursor", target: "artifact-widget" },
       { atPercent: 0.92, type: "clear_cursor" },
@@ -228,12 +219,10 @@ export const agentCreationTourSteps: ScenarioStep<AgentCreationTourStep>[] = [
   {
     delayMs: 1500,
     data: { view: "artifact-preview", execution: finalExecution },
-    caption: "Review the definition",
   },
   {
     delayMs: 3000,
     data: { view: "apply-agent", execution: finalExecution },
-    caption: "Apply to save",
     interactions: [
       // The real ArtifactPreviewContent emits this target on its Apply CTA.
       { atPercent: 0.35, type: "set_cursor", target: "apply-resource-button" },
@@ -243,7 +232,6 @@ export const agentCreationTourSteps: ScenarioStep<AgentCreationTourStep>[] = [
   {
     delayMs: 2000,
     data: { view: "library-complete" },
-    caption: "Agent added to Library",
     narration:
       "Your agent is ready. Any application can call it through the Stigmer API.",
   },

@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: deps dev build start lint typecheck clean preview generate-narration copy-narration validate-demos test-demos
+.PHONY: deps dev build start lint typecheck test-unit clean preview generate-narration copy-narration validate-demos test-demos
 
 PORT ?= 3000
 
@@ -42,6 +42,10 @@ lint:
 # Run TypeScript type checking
 typecheck:
 	yarn typecheck
+
+# Run Vitest unit/component tests (gates check-site and ci.docs)
+test-unit: deps
+	yarn test:unit
 
 # Generate narration audio from scenario step definitions (co-located output)
 generate-narration: deps

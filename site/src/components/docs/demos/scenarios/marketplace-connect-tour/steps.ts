@@ -233,7 +233,6 @@ export const marketplaceConnectSteps: ScenarioStep<MarketplaceConnectStep>[] = [
   {
     delayMs: 0,
     data: { view: "grid-browse", servers: MARKETPLACE_SERVERS },
-    caption: "The tool library shows available MCP servers",
     narration:
       "The tool library is a curated catalog of MCP servers — from GitHub and Slack to databases, monitoring, and design tools.",
   },
@@ -244,12 +243,10 @@ export const marketplaceConnectSteps: ScenarioStep<MarketplaceConnectStep>[] = [
       servers: MARKETPLACE_SERVERS,
       targetSlug: "mcp-server-postgres",
     },
-    caption: "Select a server to see its details",
   },
   {
     delayMs: 2500,
     data: { view: "detail-view", server: baseServer },
-    caption: "The detail view shows transport and environment requirements",
     narration:
       "PostgreSQL uses stdio transport — Stigmer launches the server locally and communicates over stdin and stdout. It needs a connection URL to reach your database.",
     interactions: [
@@ -259,12 +256,10 @@ export const marketplaceConnectSteps: ScenarioStep<MarketplaceConnectStep>[] = [
   {
     delayMs: 3500,
     data: { view: "click-connect", server: baseServer },
-    caption: 'Click "Connect" to discover tools',
   },
   {
     delayMs: 3000,
     data: { view: "connected-tools", server: connectedServer },
-    caption: "5 tools discovered, approval policies classified",
     narration:
       "Stigmer connected to the server, discovered five tools, and classified each one. Read operations like query and list_tables pass through automatically.",
     interactions: [
@@ -274,7 +269,6 @@ export const marketplaceConnectSteps: ScenarioStep<MarketplaceConnectStep>[] = [
   {
     delayMs: 3500,
     data: { view: "connected-policies", server: connectedServer },
-    caption: "execute_sql requires human approval",
     narration:
       "Write operations get flagged for human approval. The agent will pause and ask before running any SQL that modifies your database.",
   },

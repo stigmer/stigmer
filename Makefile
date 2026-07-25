@@ -337,6 +337,10 @@ test-runner: $(RUNNER_DIR)/node_modules ## Run the unified runner vitest suite (
 test-integration: ## Run integration tests (offline, no API keys needed)
 	$(MAKE) -C test/integration test
 
+.PHONY: test-integration-app-postgres
+test-integration-app-postgres: ## Run integration tests with the service in hybrid storage mode (app-postgres profile: ApiResource kinds on Postgres, Tier-2 stores on Mongo)
+	$(MAKE) -C test/integration test-app-postgres
+
 .PHONY: test-integration-providers
 test-integration-providers: ## Run provider-backed integration tests (auto-fetches API keys from Planton)
 	$(MAKE) -C test/integration test-providers
@@ -719,6 +723,7 @@ check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, des
 	npm run lint -w @stigmer/react
 	npm run typecheck -w @stigmer/react
 	npm run typecheck -w @stigmer/demos
+	node scripts/verify-scenar-tours.mjs
 	npm run lint -w client-apps/web
 	npm run typecheck -w desktop
 	npm run lint -w desktop
@@ -731,12 +736,13 @@ check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, des
 	cd sdk/ink && npm run tsdoc:check
 	cd sdk/react && npm run tsdoc:check
 
-check-site: ## check bucket: docs lint/format/links + site lint/typecheck/build + demo validation
+check-site: ## check bucket: docs lint/format/links + site lint/typecheck/test/build + demo validation
 	@vale sync 2>/dev/null
 	@vale $(DOCS_SOURCES)
 	@npx prettier --check --prose-wrap always $(DOCS_SOURCES)
 	$(MAKE) -C site lint
 	$(MAKE) -C site typecheck
+	$(MAKE) -C site test-unit
 	$(MAKE) -C site build
 	$(MAKE) -C site validate-demos
 	@lychee --config .lychee.toml --root-dir . docs/

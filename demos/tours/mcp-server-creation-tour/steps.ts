@@ -29,7 +29,8 @@
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { samples } from "@stigmer/react/test";
 import type { ScenarioStep } from "@scenar/react";
-import { DEMO_ORG, ORDER_MGMT_MCP } from "../_shared/fixtures";
+import { DEMO_ORG } from "../_shared/fixtures";
+import { ORDER_MGMT_MCP } from "../_shared/order-management-mcp";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -131,7 +132,6 @@ export const mcpServerCreationTourSteps: ScenarioStep<McpServerCreationTourStep>
   {
     delayMs: 0,
     data: { view: "home" },
-    caption: "Give your agent tools",
     narration:
       "Your agent knows your domain, but it can't act yet. MCP servers are the bridge to your APIs and services — let's register one.",
     // No cursor here: the embed arms step-0 interactions at mount (under the
@@ -141,7 +141,6 @@ export const mcpServerCreationTourSteps: ScenarioStep<McpServerCreationTourStep>
   {
     delayMs: 2500,
     data: { view: "library-click" },
-    caption: "Open your Library",
     interactions: [
       { atPercent: 0.35, type: "set_cursor", target: "library" },
       { atPercent: 0.92, type: "clear_cursor" },
@@ -150,7 +149,6 @@ export const mcpServerCreationTourSteps: ScenarioStep<McpServerCreationTourStep>
   {
     delayMs: 2000,
     data: { view: "mcp-servers-list" },
-    caption: 'Click "Add MCP Server"',
     narration:
       "Your organization's MCP servers live in the Library. Click Add MCP Server to register a new one.",
     interactions: [
@@ -161,7 +159,6 @@ export const mcpServerCreationTourSteps: ScenarioStep<McpServerCreationTourStep>
   {
     delayMs: 2000,
     data: { view: "creation-picker" },
-    caption: "Three ways to start",
     narration:
       "Start from scratch, pick a pre-built template, or import a YAML file you already have. We'll build this one from scratch.",
     interactions: [
@@ -172,14 +169,12 @@ export const mcpServerCreationTourSteps: ScenarioStep<McpServerCreationTourStep>
   {
     delayMs: 1500,
     data: { view: "wizard-identity", form: "empty" },
-    caption: "Identity & Transport",
     narration:
       "The wizard walks you through three steps. First, identity and transport: name the server and say how Stigmer reaches it — a remote HTTP endpoint, or a local command over stdio.",
   },
   {
     delayMs: 2000,
     data: { view: "wizard-identity", form: "invalid" },
-    caption: "Validation catches mistakes early",
     narration:
       "The form validates as you go. Skip a required field — like the HTTP URL — and the step tells you exactly what's missing before you can continue.",
     interactions: [
@@ -190,7 +185,6 @@ export const mcpServerCreationTourSteps: ScenarioStep<McpServerCreationTourStep>
   {
     delayMs: 2000,
     data: { view: "wizard-identity", form: "complete" },
-    caption: "URL supplied — ready to continue",
     narration:
       "Add the endpoint URL and you're through. Headers can reference environment variables with the dollar-brace syntax, so no secret ever lands in the config itself.",
     interactions: [
@@ -202,35 +196,30 @@ export const mcpServerCreationTourSteps: ScenarioStep<McpServerCreationTourStep>
   {
     delayMs: 2500,
     data: { view: "wizard-env-auth" },
-    caption: "Declare environment variables",
     narration:
       "Step two declares what the server needs at runtime. API TOKEN is marked secret — Stigmer stores it securely and injects it where the header placeholder points.",
   },
   {
     delayMs: 2500,
     data: { view: "wizard-review" },
-    caption: "Review — the form is YAML underneath",
     narration:
       "Step three shows the full picture: a summary, and the exact YAML manifest that will be created. The form is just a friendlier way to write this file.",
   },
   {
     delayMs: 3000,
     data: { view: "wizard-review", failed: true },
-    caption: "Server errors surface inline",
     narration:
       "If creation fails — say the slug is already taken in your org — the server's exact error appears right here. Adjust and create again; nothing is lost.",
   },
   {
     delayMs: 3000,
     data: { view: "import-manifest" },
-    caption: "Already have a manifest? Import it",
     narration:
       "And if you already have that YAML, skip the wizard: the import door accepts a pasted manifest or a file — the console counterpart of stigmer apply dash f.",
   },
   {
     delayMs: 3000,
     data: { view: "library-complete" },
-    caption: "MCP server registered",
     narration:
       "The server is in your Library. Next, connect it — Stigmer will catalog its tools and generate approval policies automatically.",
   },

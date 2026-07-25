@@ -164,7 +164,6 @@ export const quickstartTourSteps: ScenarioStep<QuickstartTourStep>[] = [
   {
     delayMs: 0,
     data: { view: "api-key-created" },
-    caption: "Grab an API key from the console",
     narration:
       "You start by creating an API key in the Stigmer console. Copy it — you'll use it in your code.",
     interactions: [
@@ -174,7 +173,6 @@ export const quickstartTourSteps: ScenarioStep<QuickstartTourStep>[] = [
   {
     delayMs: 3000,
     data: { view: "code-connect" },
-    caption: "Connect and send a message",
     narration:
       "A few lines of code is all you need. Import the SDK, connect with your key, and send a message.",
     interactions: [
@@ -184,19 +182,16 @@ export const quickstartTourSteps: ScenarioStep<QuickstartTourStep>[] = [
   {
     delayMs: 3500,
     data: { view: "terminal-generic" },
-    caption: "Generic question — solid answer",
     narration:
       "The agent answers a general question well. Best practices for handling complaints — covered.",
   },
   {
     delayMs: 3500,
     data: { view: "code-domain-question" },
-    caption: "Now ask about your business",
   },
   {
     delayMs: 3000,
     data: { view: "terminal-domain-fail" },
-    caption: "Domain question — the agent can't help",
     narration:
       "But ask about your return policy, and it can only guess. It has no domain knowledge yet.",
   },

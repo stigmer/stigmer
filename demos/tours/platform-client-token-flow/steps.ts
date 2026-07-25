@@ -162,7 +162,6 @@ export const tokenFlowSteps: ScenarioStep<TokenFlowStep>[] = [
   {
     delayMs: 0,
     data: { view: "platform-login" },
-    caption: "User signs in on your platform",
     narration:
       "Jane signs in to the Acme Dashboard using your authentication system. Stigmer is not involved in this step.",
     interactions: [{ atPercent: 0.5, type: "set_cursor", target: "sign-in-btn" }],
@@ -170,14 +169,12 @@ export const tokenFlowSteps: ScenarioStep<TokenFlowStep>[] = [
   {
     delayMs: 2500,
     data: { view: "backend-mint" },
-    caption: "Your backend calls mintUserToken",
     narration:
       "Your backend endpoint receives the authenticated request and calls Stigmer's mintUserToken with PlatformClient credentials and Jane's identity.",
   },
   {
     delayMs: 3000,
     data: { view: "stigmer-validates-credentials" },
-    caption: "Stigmer validates credentials and resolves user",
     narration:
       "Stigmer verifies the client credentials, resolves Jane's identity, and auto-provisions her account if this is her first encounter.",
     interactions: [
@@ -191,21 +188,18 @@ export const tokenFlowSteps: ScenarioStep<TokenFlowStep>[] = [
   {
     delayMs: 3000,
     data: { view: "token-response" },
-    caption: "Stigmer returns a signed JWT",
     narration:
       "Stigmer mints a short-lived JWT scoped to Jane's identity and returns it to your backend.",
   },
   {
     delayMs: 3000,
     data: { view: "frontend-uses-token" },
-    caption: "Frontend uses the token via StigmerProvider",
     narration:
       "Your frontend fetches the token from your backend and passes it to StigmerProvider via getAccessToken. Jane can now use Stigmer components.",
   },
   {
     delayMs: 3000,
     data: { view: "stigmer-validates-user-token" },
-    caption: "Stigmer validates user token on API calls",
     narration:
       "When Jane's browser calls the Stigmer API, the minted token is verified in-process. The signature, issuer, expiry, and IAM policy are all checked.",
     interactions: [
@@ -219,14 +213,12 @@ export const tokenFlowSteps: ScenarioStep<TokenFlowStep>[] = [
   {
     delayMs: 3000,
     data: { view: "error-unauthenticated" },
-    caption: "Error — invalid client credentials",
     narration:
       "If the client ID or secret is wrong, Stigmer returns UNAUTHENTICATED. Check your environment variables.",
   },
   {
     delayMs: 3000,
     data: { view: "error-not-found" },
-    caption: "Error — user not found",
     narration:
       "If the user doesn't exist and auto-provisioning is disabled, Stigmer returns NOT_FOUND. Enable auto_provision_accounts or create the account first.",
   },

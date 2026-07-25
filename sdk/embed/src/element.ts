@@ -43,7 +43,20 @@ export function setDefaultAppOrigin(origin: string): void {
   defaultAppOrigin = origin;
 }
 
-export class StigmerAgentElement extends HTMLElement {
+/**
+ * SSR shim: `extends HTMLElement` is evaluated when the MODULE loads, not
+ * when the class is registered — so on a server (Next.js prerenders "use
+ * client" components too) a bare `extends HTMLElement` throws
+ * `ReferenceError: HTMLElement is not defined` on import, before the
+ * `customElements` guard in {@link defineStigmerAgent} can help. Extending a
+ * dummy base keeps the module importable everywhere; nothing constructs the
+ * element server-side, so the dummy is never observable.
+ */
+const BaseElement = (
+  typeof HTMLElement === "undefined" ? class {} : HTMLElement
+) as typeof HTMLElement;
+
+export class StigmerAgentElement extends BaseElement {
   static get observedAttributes(): readonly string[] {
     return OBSERVED_ATTRIBUTES;
   }

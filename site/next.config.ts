@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   transpilePackages: [
+    "@stigmer/embed",
     "@stigmer/react",
     "@stigmer/sdk",
     "@stigmer/theme",

@@ -21,8 +21,8 @@ import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/a
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { samples } from "@stigmer/react/test";
-import type { ScenarioStep, TerminalLine } from "@scenar/react";
-import { snapshot } from "../_shared/fixtures";
+import type { ScenarioStep } from "@scenar/react";
+import { DEMO_ORG, snapshot } from "../_shared/fixtures";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -36,8 +36,7 @@ export type CreateAgentTourStep =
   | { view: "code-simplified" }
   | { view: "terminal-result" };
 
-/** Org + slug the fixture agent is published under (the real view fetches it). */
-export const DEMO_ORG = "acme";
+/** Slug the fixture agent is published under (the real view fetches it). */
 export const DEMO_SLUG = "support-agent";
 
 // ---------------------------------------------------------------------------
@@ -149,18 +148,8 @@ export const SIMPLIFIED_CODE = [
   "const session = await stigmer.session.create({",
   '  name: `session-${Date.now()}`,',
   '  org: "my-org",',
-  "  agentInstanceId: agent.status!.defaultInstanceId,",
+    "  agentInstanceId: agent.status!.defaultInstanceId,",
   "});",
-];
-
-export const RESULT_OUTPUT: readonly TerminalLine[] = [
-  { type: "prompt", text: "npx tsx ask-agent.ts" },
-  { type: "blank", text: "" },
-  { type: "output", text: "Order #ORD-4821 has been shipped." },
-  { type: "blank", text: "" },
-  { type: "output", text: "- Item: Wireless Headphones (1x $79.99)" },
-  { type: "output", text: "- Tracking: 1Z999AA10123456784" },
-  { type: "output", text: "- Estimated delivery: April 5, 2026" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -171,35 +160,30 @@ export const createAgentTourSteps: ScenarioStep<CreateAgentTourStep>[] = [
   {
     delayMs: 0,
     data: { view: "agent-creator-typing" },
-    caption: "Describe your agent to the Agent Creator",
     narration:
       "Tell the Agent Creator what your agent does and which Skills and tools it needs.",
   },
   {
     delayMs: 3000,
     data: { view: "agent-created", execution: agentCreatedExecution },
-    caption: "Agent definition generated",
     narration:
       "The creator bundles everything — instructions, Skills, and MCP servers — into one Agent definition.",
   },
   {
     delayMs: 3500,
     data: { view: "agent-config" },
-    caption: "Everything in one place",
     narration:
       "Instructions define the role. Skills provide knowledge. Tools give it hands. All bundled under one name.",
   },
   {
     delayMs: 3500,
     data: { view: "code-simplified" },
-    caption: "One lookup replaces a shopping list",
     narration:
       "No more listing every Skill and MCP server. Get the agent by name. That's it.",
   },
   {
     delayMs: 3500,
     data: { view: "terminal-result" },
-    caption: "Same result — cleaner code",
     narration:
       "The behavior is identical. But your code is simpler, and the Agent owns its configuration.",
   },

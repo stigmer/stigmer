@@ -35,7 +35,6 @@ export const viewportZoomSteps: ScenarioStep<ViewportZoomStep>[] = [
   {
     delayMs: 0,
     data: { view: "dashboard" },
-    caption: "Dashboard overview — zoom into metrics",
     interactions: [
       {
         atPercent: 0.3,
@@ -53,12 +52,10 @@ export const viewportZoomSteps: ScenarioStep<ViewportZoomStep>[] = [
   {
     delayMs: 4000,
     data: { view: "dashboard-zoomed" },
-    caption: "Zoomed into success rate metric",
   },
   {
     delayMs: 4000,
     data: { view: "dashboard-clicked" },
-    caption: "Viewport reset — full dashboard",
     interactions: [
       {
         atPercent: 0.2,

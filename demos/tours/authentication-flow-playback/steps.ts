@@ -116,7 +116,6 @@ export const authFlowSteps: ScenarioStep<AuthFlowStep>[] = [
   {
     delayMs: 0,
     data: { view: "browser-login" },
-    caption: "Jane signs in on Acme Cloud",
     narration:
       "Jane signs in to the Acme platform using her existing credentials. This is standard OIDC — Stigmer isn't involved yet.",
     // Was driven by `cursorTargetFor` in the in-app demo; in the packed embed
@@ -129,21 +128,18 @@ export const authFlowSteps: ScenarioStep<AuthFlowStep>[] = [
   {
     delayMs: 2500,
     data: { view: "browser-jwt" },
-    caption: "Auth provider issues a JWT",
     narration:
       "The auth provider authenticates Jane and issues a JWT containing the issuer, subject, and audience claims that Stigmer needs.",
   },
   {
     delayMs: 3000,
     data: { view: "api-call" },
-    caption: "App calls Stigmer API with the JWT",
     narration:
       "Jane's app passes the JWT directly to the Stigmer API in the Authorization header. No token exchange is needed.",
   },
   {
     delayMs: 3000,
     data: { view: "validate-token" },
-    caption: "Stigmer validates the token",
     narration:
       "Stigmer verifies the JWT signature using the JWKS endpoint, then checks the issuer, audience, and expiration claims.",
     interactions: [
@@ -157,7 +153,6 @@ export const authFlowSteps: ScenarioStep<AuthFlowStep>[] = [
   {
     delayMs: 3000,
     data: { view: "resolve-authorize" },
-    caption: "Identity resolved, access granted (JIT)",
     narration:
       "Stigmer maps the subject claim to Jane's identity. With JIT provisioning, if this is her first authentication, Stigmer creates the account and grants the viewer role automatically.",
     interactions: [
@@ -170,21 +165,18 @@ export const authFlowSteps: ScenarioStep<AuthFlowStep>[] = [
   {
     delayMs: 3000,
     data: { view: "success-response" },
-    caption: "200 OK — request succeeds",
     narration:
       "The request succeeds. Jane can use Stigmer agents and sessions through her Acme platform credentials.",
   },
   {
     delayMs: 3000,
     data: { view: "error-401" },
-    caption: "401 — token validation failed",
     narration:
       "If the token is invalid — wrong audience, expired, or unknown subject — Stigmer returns 401 Unauthorized.",
   },
   {
     delayMs: 3000,
     data: { view: "error-403" },
-    caption: "403 — insufficient permissions",
     narration:
       "If the token is valid but no IAM Policy grants access to the requested resource, Stigmer returns 403 Forbidden.",
   },

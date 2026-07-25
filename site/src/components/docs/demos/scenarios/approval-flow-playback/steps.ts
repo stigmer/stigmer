@@ -99,18 +99,15 @@ export const approvalFlowSteps: ScenarioStep<ApprovalFlowStep>[] = [
   {
     delayMs: 0,
     data: { view: "composer-typing", message: "Process a return for order #ORD-4821 — the headphones are defective." },
-    caption: "Customer requests a return",
     narration: "A customer asks the agent to process a return. This triggers the process_return tool, which requires approval.",
   },
   {
     delayMs: 2000,
     data: { view: "conversation", execution: receivedExecution },
-    caption: "Agent receives the request",
   },
   {
     delayMs: 2000,
     data: { view: "approval-pending", execution: waitingExecution },
-    caption: "Agent pauses for human approval",
     narration: "The agent stops and shows exactly what it wants to do. Nothing happens until a human approves.",
     interactions: [
       { atPercent: 0.4, type: "click", target: "approve-button" },
@@ -119,7 +116,6 @@ export const approvalFlowSteps: ScenarioStep<ApprovalFlowStep>[] = [
   {
     delayMs: 2500,
     data: { view: "conversation", execution: completedExecution },
-    caption: "Approved — agent completes the return",
     narration: "Once approved, the agent completes the return and confirms the details. The execution waited safely until a human said yes.",
   },
 ];

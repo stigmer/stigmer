@@ -34,7 +34,7 @@ import {
 } from "@stigmer/react";
 import type { McpServerWizardData, WizardStepDef } from "@stigmer/react";
 import { AppShell } from "../_shared/AppShell";
-import { ORDER_MGMT_MCP } from "../_shared/fixtures";
+import { ORDER_MGMT_MCP } from "../_shared/order-management-mcp";
 import { ResourceListPage } from "../_shared/ResourceListPage";
 import {
   type IdentityFormPhase,
