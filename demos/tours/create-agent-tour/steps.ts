@@ -21,8 +21,8 @@ import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/a
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { EnvVarDeclarationSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { samples } from "@stigmer/react/test";
-import type { ScenarioStep, TerminalLine } from "@scenar/react";
-import { snapshot } from "../_shared/fixtures";
+import type { ScenarioStep } from "@scenar/react";
+import { DEMO_ORG, snapshot } from "../_shared/fixtures";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -36,8 +36,7 @@ export type CreateAgentTourStep =
   | { view: "code-simplified" }
   | { view: "terminal-result" };
 
-/** Org + slug the fixture agent is published under (the real view fetches it). */
-export const DEMO_ORG = "acme";
+/** Slug the fixture agent is published under (the real view fetches it). */
 export const DEMO_SLUG = "support-agent";
 
 // ---------------------------------------------------------------------------
@@ -149,18 +148,8 @@ export const SIMPLIFIED_CODE = [
   "const session = await stigmer.session.create({",
   '  name: `session-${Date.now()}`,',
   '  org: "my-org",',
-  "  agentInstanceId: agent.status!.defaultInstanceId,",
+    "  agentInstanceId: agent.status!.defaultInstanceId,",
   "});",
-];
-
-export const RESULT_OUTPUT: readonly TerminalLine[] = [
-  { type: "prompt", text: "npx tsx ask-agent.ts" },
-  { type: "blank", text: "" },
-  { type: "output", text: "Order #ORD-4821 has been shipped." },
-  { type: "blank", text: "" },
-  { type: "output", text: "- Item: Wireless Headphones (1x $79.99)" },
-  { type: "output", text: "- Tracking: 1Z999AA10123456784" },
-  { type: "output", text: "- Estimated delivery: April 5, 2026" },
 ];
 
 // ---------------------------------------------------------------------------

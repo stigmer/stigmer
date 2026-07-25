@@ -1,26 +1,19 @@
 import type { CSSProperties, ReactNode } from "react";
 import { AgentDetailView } from "@stigmer/react";
-import { CodeEditorView, TerminalView, type FileTreeEntry } from "@scenar/react";
+import { CodeEditorView, TerminalView } from "@scenar/react";
 import { AppShell } from "../_shared/AppShell";
 import { ComposerView } from "../_shared/ComposerView";
-import { DEMO_CONTENT_ZOOM } from "../_shared/fixtures";
+import { DEMO_CONTENT_ZOOM, DEMO_ORG } from "../_shared/fixtures";
 import {
-  type CreateAgentTourStep,
-  DEMO_ORG,
-  DEMO_SLUG,
-  RESULT_OUTPUT,
-  SIMPLIFIED_CODE,
-} from "./steps";
+  ORDER_LOOKUP_OUTPUT,
+  QUICKSTART_FILE_TREE,
+  QUICKSTART_WORKSPACE,
+} from "../_shared/quickstart-workspace";
+import { type CreateAgentTourStep, DEMO_SLUG, SIMPLIFIED_CODE } from "./steps";
 
 const TYPING_MESSAGE =
   "I want to create a customer support agent. It should use the return-policy " +
   "skill and the order-management-api MCP server.";
-
-const FILE_TREE: FileTreeEntry[] = [
-  { name: "ask-agent.ts", type: "file", depth: 0 },
-  { name: "package.json", type: "file", depth: 0 },
-  { name: "tsconfig.json", type: "file", depth: 0 },
-];
 
 /** Bordered detail card that frames a standalone SDK component (no app shell). */
 const DETAIL_CARD: CSSProperties = {
@@ -71,11 +64,11 @@ export function renderStep(data: CreateAgentTourStep): ReactNode {
     case "code-simplified":
       return (
         <CodeEditorView
-          filename="ask-agent.ts"
+          filename={QUICKSTART_WORKSPACE.entryFile}
           lines={SIMPLIFIED_CODE}
           highlightLines={[8, 9, 10]}
-          fileTree={FILE_TREE}
-          workspaceName="stigmer-quickstart"
+          fileTree={QUICKSTART_FILE_TREE}
+          workspaceName={QUICKSTART_WORKSPACE.name}
           contentKey="simplified"
         />
       );
@@ -83,9 +76,9 @@ export function renderStep(data: CreateAgentTourStep): ReactNode {
     case "terminal-result":
       return (
         <TerminalView
-          title="Terminal — zsh"
-          cwd="~/stigmer-quickstart"
-          lines={RESULT_OUTPUT}
+          title={QUICKSTART_WORKSPACE.terminalTitle}
+          cwd={QUICKSTART_WORKSPACE.cwd}
+          lines={ORDER_LOOKUP_OUTPUT}
           contentKey="result"
         />
       );

@@ -218,6 +218,12 @@ jobs:
       - name: Typecheck Scenar tours
         run: npm run typecheck -w @stigmer/demos
 
+      # Determinism (DD-006), timeline shape, and docs embed-id resolution.
+      # Also wired in ci.docs.yaml: this workflow doesn't trigger on docs/**,
+      # so each workflow guards the half of the contract its paths cover.
+      - name: Verify Scenar tours
+        run: node scripts/verify-scenar-tours.mjs
+
       - name: Verify desktop app
         run: make verify-desktop
         continue-on-error: true

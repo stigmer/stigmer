@@ -29,7 +29,8 @@
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { samples } from "@stigmer/react/test";
 import type { ScenarioStep } from "@scenar/react";
-import { DEMO_ORG, ORDER_MGMT_MCP } from "../_shared/fixtures";
+import { DEMO_ORG } from "../_shared/fixtures";
+import { ORDER_MGMT_MCP } from "../_shared/order-management-mcp";
 
 // ---------------------------------------------------------------------------
 // Data model

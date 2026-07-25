@@ -22,7 +22,9 @@ owns the tour content.
 demos/
   scripts/pack-all.mjs   # packs every tour (used by the website release)
   tours/
-    _shared/             # cross-tour chrome (AppShell, ResourceListPage, …) + stigmer-preview
+    _shared/             # cross-tour chrome (AppShell, ResourceListPage, …),
+                         # stigmer-preview, and depicted resources
+                         # (order-management-mcp, quickstart-workspace)
     <tour-slug>/
       steps.ts           # the timeline: step data, captions, narration, interactions
       index.tsx          # exports renderStep(data, stepIndex) — pure (data) -> ReactNode
@@ -32,6 +34,19 @@ demos/
 
 A tour is the directory shape Scenar's `pack` / `narrate` / `serve` consume:
 `steps.ts` + an `index.tsx` that exports `renderStep`. Nothing else is required.
+
+`_shared/` holds three kinds of module. **Chrome** (`AppShell`,
+`ComposerView`, `ResourceListPage`, `WidgetsSidebar`, `api-exchange/`) frames
+real components inside a schematic app. **Product glue**
+(`stigmer-preview.tsx`) wires styles, theme, and the mock transport once.
+**Depicted resources** (`order-management-mcp.ts`,
+`quickstart-workspace.ts`) are the domain objects several embeds tell one
+story about — the fixture server the Getting Started tours create, connect,
+and use; the reader's project they keep editing. A depicted resource owns its
+identity *and* its built states in one module so embeds on the same docs page
+cannot drift apart. Everything else stays tour-local (the keep-it-local
+precedent is `sso-login-playback/shared/ManagementShell.tsx`); hoist only
+when a second tour genuinely depicts the same thing.
 
 ---
 
@@ -61,6 +76,15 @@ The packed embed runs these automatically — the cursor and all interaction
 effects are wired by `scenar pack`'s embed entry (you do **not** wire `<Cursor>`
 or `useStepInteractions` yourself; that's the difference from in-app Scenar
 usage).
+
+**Import discipline:** `scenar narrate` loads `steps.ts` in a plain Node
+process (tsx loader, no bundler), so it may only pull pure modules — protos,
+`@stigmer/react/test` samples, `@scenar/react` *types*, and the `_shared`
+data modules. Anything that imports a component, CSS, or a browser API
+belongs in `index.tsx` (a rendering concern, compiled by Vite); step data
+carries only semantic tags for which snapshot to show.
+`scripts/verify-scenar-tours.mjs` (run by `make check-node` and CI) imports
+every `steps.ts` exactly the way narrate does, so a violation fails fast.
 
 ### 2. `index.tsx` — `renderStep`
 
@@ -169,4 +193,6 @@ etc. in the packed embed) require `@scenar/*@0.4.0` or later (pinned in
 One known engine quirk: the packed embed arms a step's interactions when the
 step mounts, so **interactions on the first step fire under the poster, before
 Play**. Keep step 0 cursor-less (an establishing beat) until this is fixed in
-`@scenar/react`.
+`@scenar/react`. `scripts/verify-scenar-tours.mjs` enforces this for new
+tours; the five Path-B playbacks that predate the rule are grandfathered in
+its `KNOWN_STEP0_OFFENDERS` set.

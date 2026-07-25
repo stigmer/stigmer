@@ -91,6 +91,13 @@ jobs:
       - name: Run site unit tests
         run: make -C site test-unit
 
+      # Every <ScenarEmbed id> in docs/** must resolve to a real
+      # demos/tours/<id>/ — nothing else checks this, and a typo ships a
+      # blank iframe with CI green. Also wired in ci.frontend.yaml, which
+      # covers the demos/** side (this workflow doesn't trigger on demos/**).
+      - name: Verify Scenar tours
+        run: node scripts/verify-scenar-tours.mjs
+
       - name: Build documentation site
         run: make build-site
 

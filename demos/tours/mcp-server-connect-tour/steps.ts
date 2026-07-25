@@ -7,8 +7,8 @@
  *
  * Continuity: this tour picks up exactly where `mcp-server-creation-tour`
  * leaves off ("Next, connect it…") — same server, same org, same env var,
- * all sourced from `_shared/fixtures.ts` (`ORDER_MGMT_MCP`) so the two
- * embeds on the same docs page cannot drift apart.
+ * all sourced from `_shared/order-management-mcp.ts` so the embeds on the
+ * same docs page cannot drift apart.
  *
  * Determinism (scenar-cloud DD-006): the resource that CHANGES across the
  * timeline — the server before vs after discovery — is data this tour owns.
@@ -28,7 +28,6 @@
  * `index.tsx` (a rendering concern); step data carries only semantic tags.
  */
 import type { ScenarioStep } from "@scenar/react";
-import { DEMO_ORG, ORDER_MGMT_MCP } from "../_shared/fixtures";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -47,9 +46,6 @@ export type McpServerConnectTourStep =
       tab: "tools" | "policies";
     }
   | { view: "credentials"; form: CredentialFormPhase };
-
-/** Re-exported for `index.tsx` and the providers. */
-export { DEMO_ORG, ORDER_MGMT_MCP };
 
 // ---------------------------------------------------------------------------
 // Timeline
