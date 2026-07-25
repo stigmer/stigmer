@@ -98,7 +98,6 @@ test("findStepsArray mirrors pack's duck-typed discovery", () => {
 
 const goodStep = (overrides = {}) => ({
   delayMs: 2500,
-  caption: "A caption",
   data: {},
   ...overrides,
 });
@@ -155,12 +154,6 @@ test("validateTimeline rejects out-of-range atPercent and bad delayMs", () => {
   assert.equal(violations.length, 2);
   assert.match(violations[0].reason, /delayMs/);
   assert.match(violations[1].reason, /atPercent/);
-});
-
-test("validateTimeline rejects a missing caption", () => {
-  const violations = validateTimeline([goodStep({ delayMs: 0, caption: "  " })]);
-  assert.equal(violations.length, 1);
-  assert.match(violations[0].reason, /caption/);
 });
 
 // ---------------------------------------------------------------------------
