@@ -1,4 +1,5 @@
 import { create } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import {
@@ -76,6 +77,39 @@ import {
 } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
 // ---------------------------------------------------------------------------
+// The frozen instant
+// ---------------------------------------------------------------------------
+
+/**
+ * The frozen instant every timestamped `samples.*` factory defaults to.
+ *
+ * These factories must never read the live clock. A `samples.*` value is
+ * rendered into Scenar tours that replay in the browser and export to video
+ * frame by frame; a clock read paints a pixel that changes between runs, which
+ * breaks the "same source, same result" guarantee (scenar-cloud DD-006).
+ *
+ * The date is `2026-07-20`, the demo day the tour world already uses
+ * (`demos/tours/_shared/order-management-mcp.ts`'s `ORDER_MGMT_DISCOVERED_AT`),
+ * so a fixture built here sits coherently beside one built there. The time is
+ * noon UTC, not that constant's 09:30, because components format audit
+ * timestamps in the renderer's local time (e.g. `ApiKeyListPanel` via
+ * `toLocaleDateString`). Noon keeps the rendered calendar date stable from
+ * UTC-12 through UTC+11; 09:30 would flip to the previous day west of UTC-9.
+ */
+export const SAMPLE_INSTANT = "2026-07-20T12:00:00.000Z";
+
+/**
+ * When a default {@link samples.toolCall} completes. Derived from
+ * {@link SAMPLE_INSTANT} plus 1.2s so the rendered duration chip reads a stable
+ * "1.2s" — long enough to never collapse to the "0ms" that two adjacent live
+ * clock reads used to produce, and pinned to the demo day so the whole fixture
+ * world moves together if that day is ever refreshed.
+ */
+const SAMPLE_TOOL_CALL_COMPLETED_AT = new Date(
+  Date.parse(SAMPLE_INSTANT) + 1_200,
+).toISOString();
+
+// ---------------------------------------------------------------------------
 // Override interfaces — flat projections of commonly-customized fields
 // ---------------------------------------------------------------------------
 
@@ -145,6 +179,8 @@ export interface ApiKeyOverrides {
   readonly fingerprint?: string;
   readonly neverExpires?: boolean;
   readonly keyHash?: string;
+  /** Frozen ISO-8601 instant for the key's `createdAt`. Defaults to {@link SAMPLE_INSTANT}. */
+  readonly createdAt?: string;
 }
 
 export interface SearchResultOverrides {
@@ -166,8 +202,16 @@ export interface SearchResultOverrides {
  *
  * Each factory returns a realistic protobuf object with sensible defaults.
  * Pass an overrides object to customize the most commonly-needed fields.
- * For deeper customization, modify the returned object directly — protobuf
- * messages from `create()` are mutable plain objects.
+ *
+ * Every timestamp is frozen at {@link SAMPLE_INSTANT} — these factories never
+ * read the live clock, so a fixture renders identical pixels on every browser
+ * replay and every video-export frame (scenar-cloud DD-006). Do not
+ * reintroduce `Date.now()` or `new Date()` here.
+ *
+ * For a value the overrides do not cover — a different timestamp, a distinct
+ * tool-call id — modify the returned object directly rather than growing the
+ * override surface: protobuf messages from `create()` are mutable plain
+ * objects, and a frozen literal keeps the result deterministic.
  *
  * @example
  * ```ts
@@ -177,6 +221,10 @@ export interface SearchResultOverrides {
  *   fixtures.session.get(() => samples.session({ subject: "My topic" })),
  *   fixtures.agent.getByReference(() => samples.agent({ name: "My Agent" })),
  * );
+ *
+ * // Deeper customization — mutate the frozen result with another literal:
+ * const later = samples.humanMessage("later");
+ * later.timestamp = "2026-07-20T12:05:00.000Z";
  * ```
  */
 export const samples = {
@@ -363,7 +411,7 @@ export const samples = {
       status: create(ApiKeyStatusSchema, {
         audit: create(ApiResourceAuditSchema, {
           specAudit: create(ApiResourceAuditInfoSchema, {
-            createdAt: { seconds: BigInt(Math.floor(Date.now() / 1000)), nanos: 0 },
+            createdAt: timestampFromDate(new Date(o?.createdAt ?? SAMPLE_INSTANT)),
           }),
         }),
       }),
@@ -372,44 +420,52 @@ export const samples = {
 
   // ---- Message & artifact primitives ----
 
-  /** A human (user) message. */
+  /** A human (user) message, stamped at {@link SAMPLE_INSTANT}. */
   humanMessage(content: string): AgentMessage {
     return create(AgentMessageSchema, {
       type: MessageType.MESSAGE_HUMAN,
       content,
-      timestamp: new Date().toISOString(),
+      timestamp: SAMPLE_INSTANT,
     });
   },
 
-  /** An AI (assistant) message, optionally with tool calls. */
+  /** An AI (assistant) message, optionally with tool calls, stamped at {@link SAMPLE_INSTANT}. */
   aiMessage(content: string, toolCalls?: ToolCall[]): AgentMessage {
     return create(AgentMessageSchema, {
       type: MessageType.MESSAGE_AI,
       content,
-      timestamp: new Date().toISOString(),
+      timestamp: SAMPLE_INSTANT,
       toolCalls: toolCalls ?? [],
     });
   },
 
-  /** A completed tool call with a result. */
+  /**
+   * A completed tool call with a result, spanning {@link SAMPLE_INSTANT} to 1.2s
+   * later so its duration chip reads a stable "1.2s".
+   *
+   * The `id` is `tc-${name}`, derived from the name so it is stable across
+   * runs. Two tool calls sharing a name therefore share an id — if a single
+   * demo renders both and one drives an approval (`useApproval(toolCall.id)`),
+   * build the second by hand with a distinct id via `create(ToolCallSchema)`.
+   */
   toolCall(name: string, result: string): ToolCall {
     return create(ToolCallSchema, {
-      id: `tc-${name}-${Date.now()}`,
+      id: `tc-${name}`,
       name,
       result,
       status: ToolCallStatus.TOOL_CALL_COMPLETED,
-      startedAt: new Date().toISOString(),
-      completedAt: new Date().toISOString(),
+      startedAt: SAMPLE_INSTANT,
+      completedAt: SAMPLE_TOOL_CALL_COMPLETED_AT,
     });
   },
 
-  /** A file artifact produced by an execution. */
+  /** A file artifact produced by an execution, stamped at {@link SAMPLE_INSTANT}. */
   artifact(name: string, kind?: ExecutionArtifactKind): ExecutionArtifact {
     return create(ExecutionArtifactSchema, {
       name,
       kind: kind ?? ExecutionArtifactKind.FILE,
       storageKey: `demo-artifact-${name}`,
-      createdAt: new Date().toISOString(),
+      createdAt: SAMPLE_INSTANT,
     });
   },
 

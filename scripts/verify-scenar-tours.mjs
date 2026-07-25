@@ -12,16 +12,10 @@
  *    must never read the live clock. `Date.now()`, `Math.random()`, and
  *    non-literal `new Date(...)` are forbidden under `demos/tours/`;
  *    `new Date("2026-07-20T09:30:00Z")` with literal arguments is the
- *    blessed frozen-instant form. Two `@stigmer/react/test` sample factories
- *    are also denylisted because their clock reads are *rendered*:
- *    `samples.toolCall` (its startedAt→completedAt delta paints a duration
- *    chip that flips between "0ms" and "1ms" per module load) and
- *    `samples.apiKey` (its createdAt paints a date that changes daily).
- *    The other clock-reading factories (humanMessage, aiMessage, artifact)
- *    are NOT denylisted: nothing renders their timestamps today, and
- *    existing tours use them. Exit condition: once `samples.*` accepts a
- *    frozen instant (planned follow-up), widen the denylist to all five and
- *    delete this carve-out.
+ *    blessed frozen-instant form. The `@stigmer/react/test` `samples.*`
+ *    factories need no denylist here: they are frozen at `SAMPLE_INSTANT` by
+ *    construction and their own suite (`sdk/react/src/test/__tests__/
+ *    samples.test.ts`) locks that in, so a tour can call any of them freely.
  *
  * 2. TIMELINE SHAPE. Every `atPercent` must be within [0, 1], and step 0
  *    must carry no interactions — the packed embed arms step-0 interactions
@@ -77,22 +71,6 @@ export const KNOWN_STEP0_OFFENDERS = new Set([
   "sso-login-playback",
 ]);
 
-/** `samples.*` factories whose live-clock output is rendered on screen. */
-const DENYLISTED_SAMPLE_FACTORIES = new Map([
-  [
-    "toolCall",
-    "samples.toolCall() stamps startedAt/completedAt from the live clock and " +
-      "ToolCallItem renders the delta as a duration chip — build the ToolCall " +
-      "by hand with frozen ISO-string timestamps instead",
-  ],
-  [
-    "apiKey",
-    "samples.apiKey() stamps createdAt from the live clock and " +
-      "ApiKeyListPanel renders it as a date — build the ApiKey by hand with a " +
-      "frozen timestamp instead",
-  ],
-]);
-
 function isLiteralArg(arg) {
   return (
     ts.isStringLiteral(arg) ||
@@ -140,11 +118,6 @@ export function findClockReads(sourceText, fileName = "module.ts") {
           reason:
             "Math.random() makes the tour render differently per replay — " +
             "use a fixed value (DD-006)",
-        });
-      } else if (obj === "samples" && DENYLISTED_SAMPLE_FACTORIES.has(method)) {
-        violations.push({
-          line: lineOf(node),
-          reason: DENYLISTED_SAMPLE_FACTORIES.get(method),
         });
       }
     }

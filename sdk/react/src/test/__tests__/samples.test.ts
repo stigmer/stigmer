@@ -1,7 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { ExecutionPhase, MessageType, ToolCallStatus, ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { samples } from "../samples";
+import { formatDuration } from "../../execution/ToolCallDetail";
+import { samples, SAMPLE_INSTANT } from "../samples";
 
 describe("samples", () => {
   describe("session", () => {
@@ -167,5 +169,94 @@ describe("samples", () => {
       expect(r.name).toBe("My Skill");
       expect(r.qualifiedSlug).toBe("acme/my-skill");
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Determinism — the reason these factories exist. A `samples.*` value is
+// rendered into Scenar tours that replay in the browser and export to video
+// frame by frame, so any live-clock read paints a pixel that changes between
+// runs (scenar-cloud DD-006). These tests are the regression lock: each one
+// FAILS if a factory is reverted to reading the clock.
+// ---------------------------------------------------------------------------
+
+describe("samples determinism", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // A zero-arg call for every factory, with representative arguments. The
+  // completeness test below asserts this map covers `samples` exactly, so a
+  // newly-added factory that reads the clock cannot slip past the stability
+  // sweep unnoticed.
+  const invoke: Record<keyof typeof samples, () => unknown> = {
+    session: () => samples.session(),
+    agent: () => samples.agent(),
+    agentExecution: () => samples.agentExecution(),
+    skill: () => samples.skill(),
+    mcpServer: () => samples.mcpServer(),
+    environment: () => samples.environment(),
+    agentInstance: () => samples.agentInstance(),
+    apiKey: () => samples.apiKey(),
+    humanMessage: () => samples.humanMessage("hello"),
+    aiMessage: () => samples.aiMessage("hi"),
+    toolCall: () => samples.toolCall("lookup_order", '{"orderId":"123"}'),
+    artifact: () => samples.artifact("report.md"),
+    sessionList: () => samples.sessionList(),
+    agentExecutionList: () => samples.agentExecutionList(),
+    searchResponse: () => samples.searchResponse(),
+    apiKeyList: () => samples.apiKeyList(),
+    searchResult: () => samples.searchResult(),
+  };
+
+  it("the stability sweep covers every factory", () => {
+    expect(Object.keys(invoke).sort()).toEqual(Object.keys(samples).sort());
+  });
+
+  // Two calls under system clocks a full calendar day apart must produce
+  // identical objects. The day boundary is deliberate: it is what reproduces
+  // the `apiKey` bug (a `createdAt` date that changed daily) and the message
+  // and tool-call timestamp drift, none of which a same-millisecond back-to-
+  // back call would expose.
+  it.each(Object.keys(invoke) as (keyof typeof samples)[])(
+    "%s is identical across a day boundary",
+    (name) => {
+      vi.useFakeTimers();
+
+      vi.setSystemTime(new Date("2026-03-01T08:15:00Z"));
+      const first = invoke[name]();
+
+      vi.setSystemTime(new Date("2026-03-02T21:45:30Z"));
+      const second = invoke[name]();
+
+      expect(second).toEqual(first);
+    },
+  );
+
+  it("stamps the frozen instant on every timestamped primitive", () => {
+    expect(samples.humanMessage("x").timestamp).toBe(SAMPLE_INSTANT);
+    expect(samples.aiMessage("x").timestamp).toBe(SAMPLE_INSTANT);
+    expect(samples.artifact("x").createdAt).toBe(SAMPLE_INSTANT);
+    expect(samples.toolCall("x", "y").startedAt).toBe(SAMPLE_INSTANT);
+
+    const createdAt = samples.apiKey().status?.audit?.specAudit?.createdAt;
+    expect(createdAt).toBeDefined();
+    expect(timestampDate(createdAt!).toISOString()).toBe(SAMPLE_INSTANT);
+  });
+
+  it("renders a stable duration chip rather than the old 0ms flake", () => {
+    const tc = samples.toolCall("lookup_order", "{}");
+    expect(formatDuration(tc.startedAt, tc.completedAt)).toBe("1.2s");
+  });
+
+  it("derives a clock-free tool-call id from the name", () => {
+    expect(samples.toolCall("process_return", "{}").id).toBe("tc-process_return");
+  });
+
+  it("honors an ApiKeyOverrides.createdAt override", () => {
+    const frozen = "2026-01-02T03:04:05.000Z";
+    const key = samples.apiKey({ createdAt: frozen });
+    const createdAt = key.status?.audit?.specAudit?.createdAt;
+    expect(timestampDate(createdAt!).toISOString()).toBe(frozen);
   });
 });

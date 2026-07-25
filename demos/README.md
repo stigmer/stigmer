@@ -159,6 +159,31 @@ surface. A tour whose beats are entirely prop-driven passes a no-op register.
 
 ---
 
+## Fixture determinism
+
+A packed tour must render identical pixels on every browser replay and every
+video-export frame (scenar-cloud DD-006), so fixtures must never read the live
+clock. The `@stigmer/react/test` `samples.*` factories guarantee this by
+construction: every timestamp they stamp is frozen at their exported
+`SAMPLE_INSTANT` (the `2026-07-20` demo day, shared with
+`_shared/order-management-mcp.ts`), and their own SDK test suite locks it in.
+Call any of them freely.
+
+When you need a value the factory's overrides do not cover — a second message a
+few minutes later, a specific tool-call duration — mutate the returned protobuf
+message with a **frozen literal** rather than a clock read:
+
+```ts
+const later = samples.humanMessage("and one more thing");
+later.timestamp = "2026-07-20T12:05:00.000Z";
+```
+
+`scripts/verify-scenar-tours.mjs` still forbids `Date.now()` and non-literal
+`new Date(...)` anywhere under `tours/**`, so a smuggled clock read — including
+one passed as a factory argument — fails the gate.
+
+---
+
 ## Authoring loop
 
 ```bash

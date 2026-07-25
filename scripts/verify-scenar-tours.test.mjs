@@ -55,17 +55,30 @@ test("findClockReads ignores clock reads inside string literals", () => {
   assert.deepEqual(findClockReads(source), []);
 });
 
-test("findClockReads flags denylisted sample factories but not others", () => {
+test("findClockReads allows samples.* factories — they are frozen in the SDK", () => {
+  // Once samples.* stopped reading the live clock (frozen at SAMPLE_INSTANT,
+  // locked by sdk/react's own suite), the gate's per-factory denylist was
+  // deleted. A tour may call any factory freely.
   const source = [
     'const tc = samples.toolCall("get_order", "{}");',
     "const key = samples.apiKey();",
-    'const msg = samples.humanMessage("hi");', // clock-reading but unrendered
-    "const srv = samples.mcpServer({});", // clock-free
+    'const msg = samples.humanMessage("hi");',
+    "const srv = samples.mcpServer({});",
+  ].join("\n");
+  assert.deepEqual(findClockReads(source), []);
+});
+
+test("findClockReads still flags a live clock passed into a factory call", () => {
+  // Deleting the denylist is only safe because the general clock rules remain:
+  // smuggling Date.now()/new Date() through a factory argument is still caught.
+  const source = [
+    'const tc = samples.toolCall("x", new Date().toISOString());',
+    "const key = samples.apiKey({ createdAt: Date.now() });",
   ].join("\n");
   const violations = findClockReads(source);
   assert.equal(violations.length, 2);
-  assert.match(violations[0].reason, /duration chip/);
-  assert.match(violations[1].reason, /createdAt/);
+  assert.match(violations[0].reason, /new Date/);
+  assert.match(violations[1].reason, /Date\.now/);
 });
 
 test("findClockReads parses TSX without mistaking JSX for comparisons", () => {

@@ -18,9 +18,11 @@
  *   braces: `useElapsedSince` renders nothing for an absent timestamp, so
  *   even a broken id match cannot tick.
  * - The completed call carries hand-written frozen ISO timestamps 2.4s
- *   apart, so the rendered duration chip reads a stable "2.4s" — never the
- *   "0ms"/"1ms" flake `samples.toolCall`'s live clock produces (which is why
- *   that factory is denylisted by `verify-scenar-tours`).
+ *   apart, so the rendered duration chip reads a stable "2.4s". It is built
+ *   with `create(ToolCallSchema)` rather than `samples.toolCall` — not for
+ *   determinism (that factory is now frozen too), but because this beat needs
+ *   both a specific 2.4s span and the shared `tc-process-return-1` id, and the
+ *   factory offers neither.
  *
  * The depicted surfaces sit inside `inert` wrappers: the approval gate
  * renders real Approve/Deny buttons a viewer must not be able to click
