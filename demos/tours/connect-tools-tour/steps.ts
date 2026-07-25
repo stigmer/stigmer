@@ -95,14 +95,12 @@ export const connectToolsTourSteps: ScenarioStep<ConnectToolsTourStep>[] = [
   {
     delayMs: 0,
     data: { view: "detail", tab: "tools" },
-    caption: "One connected MCP server — real tools for your agent",
     narration:
       "This is what you're building toward: an order management API connected to Stigmer, its tools discovered and ready for your agent.",
   },
   {
     delayMs: 3000,
     data: { view: "detail", tab: "policies" },
-    caption: "Tools discovered, policies classified",
     narration:
       "Connecting discovered three tools and classified each one. Read operations pass through. Process return moves money, so it requires human approval.",
     interactions: [
@@ -112,21 +110,18 @@ export const connectToolsTourSteps: ScenarioStep<ConnectToolsTourStep>[] = [
   {
     delayMs: 3500,
     data: { view: "code" },
-    caption: "One line connects the tools to your code",
     narration:
       "Add MCP server refs to your session. The agent now has access to real data.",
   },
   {
     delayMs: 3500,
     data: { view: "terminal" },
-    caption: "Agent looks up a real order",
     narration:
       "Ask about an order and the agent calls get_order — real data, not a guess.",
   },
   {
     delayMs: 3500,
     data: { view: "thread", phase: "awaiting-approval" },
-    caption: "Sensitive action — agent pauses for approval",
     narration:
       "Ask to process a return and the agent stops. It shows exactly what it wants to do and waits for a human.",
     interactions: [
@@ -137,7 +132,6 @@ export const connectToolsTourSteps: ScenarioStep<ConnectToolsTourStep>[] = [
   {
     delayMs: 3500,
     data: { view: "thread", phase: "approved" },
-    caption: "Approved — return processed",
     narration:
       "Once approved, the agent completes the action and confirms the result.",
   },

@@ -23,11 +23,12 @@
  *    frozen instant (planned follow-up), widen the denylist to all five and
  *    delete this carve-out.
  *
- * 2. TIMELINE SHAPE. Every step needs a caption, every `atPercent` must be
- *    within [0, 1], and step 0 must carry no interactions — the packed embed
- *    arms step-0 interactions at mount (under the poster), so they fire
- *    before Play. Five tours ported from the docs site predate that rule and
- *    are grandfathered in KNOWN_STEP0_OFFENDERS below.
+ * 2. TIMELINE SHAPE. Every `atPercent` must be within [0, 1], and step 0
+ *    must carry no interactions — the packed embed arms step-0 interactions
+ *    at mount (under the poster), so they fire before Play. Five tours
+ *    ported from the docs site predate that rule and are grandfathered in
+ *    KNOWN_STEP0_OFFENDERS below. (Captions no longer exist — @scenar/core
+ *    0.5.0 removed the field — so narration is the only per-step prose.)
  *
  *    The timeline check dynamically imports each tour's `steps.ts` under the
  *    tsx loader — exactly how `scenar narrate` loads it — so it also proves
@@ -202,9 +203,6 @@ export function validateTimeline(steps, { allowStep0Interactions = false } = {})
   const violations = [];
 
   steps.forEach((step, i) => {
-    if (typeof step.caption !== "string" || step.caption.trim() === "") {
-      violations.push({ step: i, reason: "missing caption" });
-    }
     if (typeof step.delayMs !== "number" || step.delayMs < 0) {
       violations.push({
         step: i,

@@ -61,7 +61,6 @@ A demo is a timed sequence of UI states. We model this as an array of generic st
 interface ScenarioStep<T> {
   delayMs: number;
   data: T;
-  caption?: string;
   narration?: string;
 }
 ```
@@ -171,7 +170,7 @@ const stepIndex = timeSource
   : timerStepIndex;
 ```
 
-That's it. Three lines. If `TimeSourceProvider` is present, the step index is derived from the provided time. If not, the timer-based index is used. The rest of the component — the render prop, the caption, the content — is identical in both paths.
+That's it. Three lines. If `TimeSourceProvider` is present, the step index is derived from the provided time. If not, the timer-based index is used. The rest of the component — the render prop, the content — is identical in both paths.
 
 ```mermaid
 flowchart TB

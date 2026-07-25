@@ -219,8 +219,6 @@ export const oauthConnectSteps: ScenarioStep<OAuthConnectStep>[] = [
       server: baseServer,
       grant: NO_GRANT,
     },
-    caption:
-      "GitHub requires OAuth — the detail view shows \"Sign in to connect\"",
     narration:
       "This MCP server uses OAuth authentication. Instead of entering a token manually, you sign in through GitHub and Stigmer handles the rest.",
     interactions: [
@@ -234,12 +232,10 @@ export const oauthConnectSteps: ScenarioStep<OAuthConnectStep>[] = [
       server: baseServer,
       grant: NO_GRANT,
     },
-    caption: "Click \"Sign in to connect\" to start the OAuth flow",
   },
   {
     delayMs: 2500,
     data: { view: "github-authorize" },
-    caption: "Authorize Stigmer in the popup window",
     narration:
       "A popup opens to GitHub's authorization page. You review the requested permissions and authorize. Stigmer never sees your GitHub password.",
   },
@@ -250,7 +246,6 @@ export const oauthConnectSteps: ScenarioStep<OAuthConnectStep>[] = [
       server: connectedServer,
       grant: HEALTHY_GRANT,
     },
-    caption: "Connected — 6 tools discovered, 3 approval policies classified",
     narration:
       "After authorization, Stigmer exchanges the code for a token, stores it securely, connects to the server, and discovers its tools. Read-only operations pass through automatically.",
     interactions: [
@@ -264,7 +259,6 @@ export const oauthConnectSteps: ScenarioStep<OAuthConnectStep>[] = [
       server: connectedServer,
       grant: HEALTHY_GRANT,
     },
-    caption: "Write operations require human approval",
     narration:
       "Operations that modify your repositories — creating issues, opening pull requests, pushing files — are flagged for human approval before execution.",
   },

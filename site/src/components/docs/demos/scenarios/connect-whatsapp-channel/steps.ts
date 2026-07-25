@@ -160,19 +160,16 @@ export const connectWhatsAppSteps: ScenarioStep<ConnectWhatsAppStep>[] = [
   {
     delayMs: 0,
     data: { view: "channels-empty" },
-    caption: "Every Agent has a Channels tab — this one has no channels yet",
     narration:
       "Channels put an agent where people already are. WhatsApp connects a business phone number — this agent has none yet, so its Channels tab offers to connect one.",
   },
   {
     delayMs: 3500,
     data: { view: "click-connect" },
-    caption: 'Click "Connect to WhatsApp"',
   },
   {
     delayMs: 2500,
     data: { view: "connect-dialog" },
-    caption: "Enter the number's ID — the registered Meta app is preselected",
     narration:
       "The dialog asks for the phone number I D from your Meta app, and which registered app serves it. With a single app registered, it is already selected.",
     // The connect button is disabled until the number is filled, so the
@@ -190,24 +187,20 @@ export const connectWhatsAppSteps: ScenarioStep<ConnectWhatsAppStep>[] = [
   {
     delayMs: 5200,
     data: { view: "click-dialog-connect" },
-    caption: 'Click "Connect to WhatsApp" — the connection completes right here',
   },
   {
     delayMs: 2500,
     data: { view: "channels-connected" },
-    caption: "Connected — the card shows the verified number and business name",
     narration:
       "Stigmer verifies the number with WhatsApp through your app's credentials — no browser hand-off. The card shows the verified number, the business name, and the serving app.",
   },
   {
     delayMs: 4500,
     data: { view: "whatsapp-message" },
-    caption: "Send the number a WhatsApp message",
   },
   {
     delayMs: 3000,
     data: { view: "whatsapp-reply" },
-    caption: "The reply comes from your Agent",
     narration:
       "People simply message the number. The answers come from your agent, with your organization's policies, rate limits, and billing enforced by Stigmer.",
   },

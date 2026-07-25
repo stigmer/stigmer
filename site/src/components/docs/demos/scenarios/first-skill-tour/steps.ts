@@ -120,28 +120,24 @@ export const firstSkillTourSteps: ScenarioStep<FirstSkillTourStep>[] = [
   {
     delayMs: 0,
     data: { view: "skill-creator-typing" },
-    caption: "Describe your domain to the Skill Creator",
     narration:
       "Open the Skill Creator and describe your return policy. The platform turns your answers into structured knowledge.",
   },
   {
     delayMs: 3000,
     data: { view: "skill-created", execution: skillCreatedExecution },
-    caption: "Skill generated from your answers",
     narration:
       "Your return policy is now a Skill — domain knowledge your agent can use when answering questions.",
   },
   {
     delayMs: 3500,
     data: { view: "code-skill-refs" },
-    caption: "One line connects the Skill to your code",
     narration:
       "Add skill refs to your session. That's the only code change.",
   },
   {
     delayMs: 3500,
     data: { view: "terminal-expert" },
-    caption: "Same question — expert answer",
     narration:
       "Same question as the quickstart, completely different answer. Grounded in your actual return policy.",
   },

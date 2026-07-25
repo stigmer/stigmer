@@ -77,29 +77,24 @@ export const platformClientSetupSteps: ScenarioStep<PlatformClientSetupStep>[] =
     {
       delayMs: 0,
       data: { view: "new-session" },
-      caption: "Start here",
       narration:
         "To embed Stigmer in your product, you need a PlatformClient. Let's create one in the Console.",
     },
     {
       delayMs: 2000,
       data: { view: "user-profile-click" },
-      caption: "Click your profile",
     },
     {
       delayMs: 1500,
       data: { view: "user-menu-open" },
-      caption: "Open the menu",
     },
     {
       delayMs: 1500,
       data: { view: "settings-click" },
-      caption: "Go to Settings",
     },
     {
       delayMs: 1500,
       data: { view: "settings-platform-clients" },
-      caption: "Your platform clients",
       narration:
         "Platform clients let your backend mint user tokens. You'll create one for your dashboard.",
       interactions: [
@@ -109,12 +104,10 @@ export const platformClientSetupSteps: ScenarioStep<PlatformClientSetupStep>[] =
     {
       delayMs: 2500,
       data: { view: "create-client-click" },
-      caption: "Create a new client",
     },
     {
       delayMs: 2500,
       data: { view: "create-form" },
-      caption: "Name your client",
       interactions: [
         {
           atPercent: 0.15,
@@ -127,7 +120,6 @@ export const platformClientSetupSteps: ScenarioStep<PlatformClientSetupStep>[] =
     {
       delayMs: 2500,
       data: { view: "secret-revealed" },
-      caption: "Copy your credentials",
       narration:
         "Your client ID and secret are ready. Store the secret securely — you won't see it again.",
     },

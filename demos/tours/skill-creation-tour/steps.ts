@@ -137,7 +137,6 @@ export const skillCreationTourSteps: ScenarioStep<SkillCreationTourStep>[] = [
   {
     delayMs: 0,
     data: { view: "editor" },
-    caption: "Author SKILL.md in your editor",
     narration:
       "A Skill is a plain markdown file: a name, a description, and your domain knowledge. Author it in Cursor, Claude Code, or any editor you like.",
     // No cursor here: the embed arms step-0 interactions at mount (under the
@@ -148,7 +147,6 @@ export const skillCreationTourSteps: ScenarioStep<SkillCreationTourStep>[] = [
   {
     delayMs: 3000,
     data: { view: "library-click" },
-    caption: "Open your Library",
     interactions: [
       { atPercent: 0.35, type: "set_cursor", target: "library" },
       { atPercent: 0.92, type: "clear_cursor" },
@@ -157,14 +155,12 @@ export const skillCreationTourSteps: ScenarioStep<SkillCreationTourStep>[] = [
   {
     delayMs: 2000,
     data: { view: "skills-list" },
-    caption: "View your Skills",
     narration:
       "Skills are pieces of domain knowledge. Each one teaches your agent about a specific topic.",
   },
   {
     delayMs: 2000,
     data: { view: "create-skill-click" },
-    caption: 'Click "Add Skill"',
     interactions: [
       { atPercent: 0.3, type: "set_cursor", target: "create-skill" },
       { atPercent: 0.92, type: "clear_cursor" },
@@ -173,7 +169,6 @@ export const skillCreationTourSteps: ScenarioStep<SkillCreationTourStep>[] = [
   {
     delayMs: 1500,
     data: { view: "uploader" },
-    caption: "Upload your skill package",
     narration:
       "Zip the folder and drop it here. Stigmer validates the package and its SKILL.md automatically.",
     interactions: [
@@ -184,14 +179,12 @@ export const skillCreationTourSteps: ScenarioStep<SkillCreationTourStep>[] = [
   {
     delayMs: 2500,
     data: { view: "skill-detail" },
-    caption: "Skill pushed to your Library",
     narration:
       "Once pushed, your Skill gets its own page, where you can review and update the content at any time.",
   },
   {
     delayMs: 3000,
     data: { view: "library-complete" },
-    caption: "Skill added to Library",
     narration:
       "The Skill is in your Library, ready to attach to any agent.",
   },

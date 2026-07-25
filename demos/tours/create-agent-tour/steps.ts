@@ -160,35 +160,30 @@ export const createAgentTourSteps: ScenarioStep<CreateAgentTourStep>[] = [
   {
     delayMs: 0,
     data: { view: "agent-creator-typing" },
-    caption: "Describe your agent to the Agent Creator",
     narration:
       "Tell the Agent Creator what your agent does and which Skills and tools it needs.",
   },
   {
     delayMs: 3000,
     data: { view: "agent-created", execution: agentCreatedExecution },
-    caption: "Agent definition generated",
     narration:
       "The creator bundles everything — instructions, Skills, and MCP servers — into one Agent definition.",
   },
   {
     delayMs: 3500,
     data: { view: "agent-config" },
-    caption: "Everything in one place",
     narration:
       "Instructions define the role. Skills provide knowledge. Tools give it hands. All bundled under one name.",
   },
   {
     delayMs: 3500,
     data: { view: "code-simplified" },
-    caption: "One lookup replaces a shopping list",
     narration:
       "No more listing every Skill and MCP server. Get the agent by name. That's it.",
   },
   {
     delayMs: 3500,
     data: { view: "terminal-result" },
-    caption: "Same result — cleaner code",
     narration:
       "The behavior is identical. But your code is simpler, and the Agent owns its configuration.",
   },

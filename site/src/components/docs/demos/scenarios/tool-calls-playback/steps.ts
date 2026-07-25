@@ -37,12 +37,10 @@ export const toolCallsPlaybackSteps: ScenarioStep<ToolCallStep>[] = [
   {
     delayMs: 0,
     data: { view: "composer-typing", message: "What's the status of order #ORD-4821?" },
-    caption: "Customer asks about an order",
   },
   {
     delayMs: 2000,
     data: { view: "conversation", execution: snapshot([user1]) },
-    caption: "Agent receives the question",
   },
   {
     delayMs: 2000,
@@ -53,7 +51,6 @@ export const toolCallsPlaybackSteps: ScenarioStep<ToolCallStep>[] = [
         ExecutionPhase.EXECUTION_IN_PROGRESS,
       ),
     },
-    caption: "Agent calls the get_order tool",
     narration: "Instead of guessing, the agent calls get_order to look up the real order details from the system.",
   },
   {
@@ -65,7 +62,6 @@ export const toolCallsPlaybackSteps: ScenarioStep<ToolCallStep>[] = [
         ExecutionPhase.EXECUTION_COMPLETED,
       ),
     },
-    caption: "Agent responds with order details",
     narration: "The response includes real data — tracking number, delivery date, and item details — all from the tool call.",
   },
 ];

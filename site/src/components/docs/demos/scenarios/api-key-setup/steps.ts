@@ -109,26 +109,23 @@ export const apiKeySetupSteps: ScenarioStep<ApiKeySetupStep>[] = [
   {
     delayMs: 0,
     data: { view: "new-session" },
-    caption: "Start here",
     narration: "Before you can call your agent from code, you need an API key. Let's grab one from the console.",
   },
-  { delayMs: 2000, data: { view: "user-profile-click" }, caption: "Click your profile" },
-  { delayMs: 1500, data: { view: "user-menu-open" }, caption: "Open the menu" },
-  { delayMs: 1500, data: { view: "settings-click" }, caption: "Go to Settings" },
+  { delayMs: 2000, data: { view: "user-profile-click" } },
+  { delayMs: 1500, data: { view: "user-menu-open" } },
+  { delayMs: 1500, data: { view: "settings-click" } },
   {
     delayMs: 1500,
     data: { view: "settings-api-keys" },
-    caption: "Your API keys",
     narration: "These are your API keys. You'll create one for the quickstart.",
     interactions: [
       { atPercent: 0.3, type: "hover", target: "create-api-key" },
     ],
   },
-  { delayMs: 2500, data: { view: "create-key-click" }, caption: "Create a new key" },
+  { delayMs: 2500, data: { view: "create-key-click" } },
   {
     delayMs: 2500,
     data: { view: "create-form" },
-    caption: "Name your key",
     interactions: [
       { atPercent: 0.15, type: "type", target: "apikey-name-input", text: CREATED_KEY_NAME },
     ],
@@ -136,7 +133,6 @@ export const apiKeySetupSteps: ScenarioStep<ApiKeySetupStep>[] = [
   {
     delayMs: 2500,
     data: { view: "key-created" },
-    caption: "Copy your API key",
     narration: "Your key is ready. Copy it now — you won't see the full key again after this.",
   },
 ];

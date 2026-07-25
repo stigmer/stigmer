@@ -8,7 +8,7 @@
  *
  * Covers the "JIT provisioning for multi-tenant platforms" section of the
  * multi-tenant setup guide. Ported from the in-repo inline demo; the timeline
- * (steps, captions, narration, interactions) is preserved 1:1.
+ * (steps, narration, interactions) is preserved 1:1.
  */
 
 import type { ScenarioStep, TerminalLine } from "@scenar/react";
@@ -106,21 +106,18 @@ export const multiTenantJitSteps: ScenarioStep<MultiTenantJitStep>[] = [
   {
     delayMs: 0,
     data: { view: "code-register-idp" },
-    caption: "Register IdP with JIT and tenantOrgClaim",
     narration:
       "Register your Identity Provider with JIT provisioning and tenant org claim. The four fields — auto-provision, auto-grant, auto-grant role, and tenant org claim — eliminate all per-user provisioning code.",
   },
   {
     delayMs: 3500,
     data: { view: "code-create-org" },
-    caption: "Create a tenant Organization",
     narration:
       "Create a platform-managed Organization for each tenant. The external org ID is the value Stigmer matches against the JWT claim.",
   },
   {
     delayMs: 4000,
     data: { view: "terminal-org-created" },
-    caption: "Tenant org created",
     narration:
       "The tenant Organization is created with the external ID mapping. This is the only per-tenant setup step — no per-user code follows.",
   },
@@ -128,14 +125,12 @@ export const multiTenantJitSteps: ScenarioStep<MultiTenantJitStep>[] = [
   {
     delayMs: 3500,
     data: { view: "jwt-auth" },
-    caption: "User authenticates with tenant JWT",
     narration:
       "Jane signs in on Tenant Alpha's portal. Her JWT includes an org_id claim with the tenant's external ID. Stigmer reads this claim to route her to the right Organization.",
   },
   {
     delayMs: 3500,
     data: { view: "tenant-resolved" },
-    caption: "Stigmer resolves tenant and provisions automatically",
     narration:
       "Stigmer reads the org_id claim, finds the matching tenant Organization, creates Jane's account, and grants the member role — all automatically. No backend code needed.",
     interactions: [
@@ -149,7 +144,6 @@ export const multiTenantJitSteps: ScenarioStep<MultiTenantJitStep>[] = [
   {
     delayMs: 3000,
     data: { view: "success" },
-    caption: "Request succeeds — user in correct tenant",
     narration:
       "Jane's request succeeds. She has a federated account and a member role scoped to Tenant Alpha. She cannot access Tenant Beta's resources.",
     interactions: [
