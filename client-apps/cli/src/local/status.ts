@@ -89,7 +89,7 @@ function addComponentSection(result: CommandResult, name: string, label: string,
 
   let status = `${displayState(state)} ${symbolFor(state)}`;
   // The runner reports observed readiness (it polls its Temporal queue) on top
-  // of mere liveness — the truthful-visibility improvement over the Go CLI.
+  // of mere liveness — a live process that hasn't connected yet is "starting".
   if (name === "runner" && state === "running") {
     status += component.ready === true ? " (polling)" : " (starting)";
   }
@@ -120,21 +120,23 @@ function addLlmSection(result: CommandResult, home: string): void {
     return;
   }
 
-  const model = resolveModel(config);
-  switch (provider) {
-    case "ollama":
-      section.field("Provider", "Local (Ollama)");
-      section.field("Model", model);
-      break;
-    case "anthropic":
-    case "openai":
-      section.field("Provider", provider === "anthropic" ? "Anthropic (Cloud)" : "OpenAI (Cloud)");
-      section.field("Model", model);
-      section.field("API Key", resolveApiKey(config) !== "" ? "Configured ✓" : "Not configured ✗");
-      break;
-    default:
-      section.field("Provider", `Unknown (${provider})`);
+  // Anthropic is the only provider local execution supports. Anything else in
+  // the config (hand-edited, or left over from an older CLI) is reported as
+  // unknown rather than pretended to work.
+  if (provider !== "anthropic") {
+    section.field("Provider", `Unknown (${provider})`);
+    section.field("Status", "Agents will not execute");
+    result.hint("Reconfigure the provider: stigmer setup");
+    return;
   }
+
+  // An unset model is not a gap: the platform model registry picks the
+  // execution default, so the CLI reports that truthfully instead of asserting
+  // a version it does not control.
+  const model = resolveModel(config);
+  section.field("Provider", "Anthropic (Cloud)");
+  section.field("Model", model !== "" ? model : "Auto (platform default)");
+  section.field("API Key", resolveApiKey(config) !== "" ? "Configured ✓" : "Not configured ✗");
 }
 
 function addWebUiSection(result: CommandResult, health: HealthState): void {

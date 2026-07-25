@@ -183,6 +183,19 @@
 }
 
 /* =============================================================================
+ * DOCS TYPOGRAPHY REFINEMENTS
+ *
+ * Subtle negative letter-spacing on prose headings, matching the tight
+ * tracking of the display headlines (marketing Hero, docs DocsTitle). The
+ * `.not-prose` guard keeps embedded demos and the welcome Hero untouched —
+ * they already control their own type.
+ * ============================================================================= */
+
+.prose :where(h1, h2, h3, h4):not(:where(.not-prose, .not-prose *)) {
+  letter-spacing: -0.015em;
+}
+
+/* =============================================================================
  * STIGMER SDK DEMO SCOPES
  *
  * The site's @theme inline block above wins Tailwind's theme resolution over

@@ -1,0 +1,32 @@
+/*
+ * ComposerView layout — plain CSS only. The real `MessageThread` and
+ * `SessionComposer` ship their own `--stgm-*`-themed styles; this file just
+ * frames and sizes them inside the demo shell content area.
+ */
+.composer {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+
+/* Conversation state: a scrollable, height-capped thread. */
+.composer__thread {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+.composer__message-thread {
+  max-height: 390px;
+  padding: 8px 12px;
+}
+
+/* Empty / typing state: composer centered in the content area. */
+.composer--center {
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.composer__center-inner {
+  width: 100%;
+  max-width: 36rem;
+}

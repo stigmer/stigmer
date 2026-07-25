@@ -659,6 +659,56 @@ function useUpdateMcpServer(): UseUpdateMcpServerReturn
 
 ## Components
 
+### EnvironmentAuthStep
+
+Wizard step 2: Environment variables and auth configuration.
+
+Both sections are optional. Env vars start expanded if any exist;
+auth starts collapsed unless already enabled. No validation gate —
+the user can proceed with zero configuration.
+
+Fully presentational: form state lives in the `data` prop and edits
+flow out through `updateData`, so standalone consumers (embedded
+builders, guided tours) can render any configuration state from props.
+
+**Props** — `EnvironmentAuthStepProps`
+
+<TypeTable
+  type={{
+    data: { type: "McpServerWizardData", description: "", required: true, typeDescriptionLink: "#mcpserverwizarddata" },
+    updateData: { type: "(partial: Partial<McpServerWizardData>) => void", description: "", required: true },
+  }}
+/>
+
+
+### IdentityTransportStep
+
+Wizard step 1: MCP server identity and transport configuration.
+
+Collects: name (required), slug (auto-derived), description,
+icon URL, visibility, transport type (HTTP vs Stdio), and the
+transport-specific fields.
+
+Transport type uses a radio group (mutually exclusive modes).
+Conditional fields render based on the selected transport.
+
+Fully presentational: state lives in the `data` prop and every edit
+flows out through `updateData`. Inside `McpServerCreationWizard` that
+state comes from `useWizardState`; standalone consumers (embedded
+builders, guided tours) can render any form state — including a
+`validationError` — deterministically from props.
+
+**Props** — `IdentityTransportStepProps`
+
+<TypeTable
+  type={{
+    data: { type: "McpServerWizardData", description: "", required: true, typeDescriptionLink: "#mcpserverwizarddata" },
+    updateData: { type: "(partial: Partial<McpServerWizardData>) => void", description: "", required: true },
+    validationError: { type: "string | null", description: "", required: true },
+  }}
+/>
+
+
 ### McpServerConfigPanel
 
 Per-server configuration panel composing a credentials form
@@ -812,7 +862,8 @@ dependencies. Platform builders can mount it anywhere.
 
 Detail view for an MCP Server integration.
 
-Fetches the server via [`useMcpServer`](#usemcpserver) internally and renders
+Fetches the server via [`useMcpServer`](#usemcpserver) internally — or renders
+from hoisted state when the caller passes `mcpServerState` — and shows
 its full configuration: validation banner (if invalid), header,
 a **Connect bar** with a single Connect/Reconnect action, and a
 **tabbed capabilities panel** (Tools, Policies, and optionally
@@ -838,6 +889,7 @@ All visual properties flow through `--stgm-*` design tokens.
     defaultCapabilityTab: { type: "CapabilityTab", description: "Initial active capability tab. Defaults to `\"tools\"`. Useful for deep-linking or demo scenarios that need to start on a specific tab.", typeDescriptionLink: "#capabilitytab" },
     defaultShowCredentialForm: { type: "boolean", description: "When `true`, the credential form opens immediately on mount (instead of waiting for a Connect click). Useful for guided tours and demo scenarios that need to show the credential entry step without user interaction." },
     editable: { type: "boolean", description: "When `true`, fields on the detail view become click-to-edit. Each field saves independently via `stigmer.mcpServer.update()`." },
+    mcpServerState: { type: "UseMcpServerReturn", description: "Hoisted resource state from useMcpServer, for callers that already own the fetch. When provided, the view issues **no** `getByReference` RPC of its own and renders entirely from this state — loading, error, and not-found included, so a caller mid-fetch still gets the loading skeleton rather than a false not-found.  Ownership contract: supplying this state means supplying its lifecycle. The view calls `mcpServerState.refetch()` after connect, disconnect, and inline edits, so the `refetch` you pass must refresh the data behind `mcpServer` or the view will render stale state after those actions.  Two callers this serves: - A page that already fetched the server (e.g. for export/YAML   actions) passes `useMcpServer(org, slug)` straight through instead   of paying a duplicate RPC. - A guided tour or demo supplies frozen state   (`{ mcpServer, isLoading: false, isRefetching: false, error: null,   refetch: noop }`) so every depicted beat renders deterministically   from data the tour owns (scenar-cloud DD-006).  When omitted, the view fetches by `org`/`slug` itself, as before.", typeDescriptionLink: "#usemcpserverreturn" },
     onResourceLoad: { type: "(meta: { id: string; name: string }) => void", description: "Called once when the MCP server resource has been fetched successfully. Provides the resource display name for use cases like breadcrumbs, document titles, or analytics — without requiring the consumer to also call useMcpServer.  Not called on error or not-found states." },
     onResourceUpdated: { type: "(server: McpServer) => void", description: "Called after a successful inline field save with the updated server." },
     org: { type: "string", description: "Organization slug that owns the MCP server.", required: true },
@@ -849,6 +901,14 @@ All visual properties flow through `--stgm-*` design tokens.
 ```tsx
 // Minimal — self-contained, fetches its own data
 <McpServerDetailView org="acme" slug="github" />
+```
+
+```tsx
+// Hoisted — the page already fetched the server (e.g. for YAML
+// export actions), so pass that state through instead of paying a
+// second getByReference RPC.
+const state = useMcpServer(org, slug);
+<McpServerDetailView org={org} slug={slug} mcpServerState={state} />
 ```
 
 
@@ -995,11 +1055,45 @@ export default function OAuthCallbackPage() {
 ```
 
 
+### ReviewStep
+
+Wizard step 3: Review and create.
+
+Shows a summary card with key configuration details and a full
+YAML preview of the MCP server that will be created. The "Create"
+action is in the WizardNav footer, not in this component.
+
+Fully presentational: renders entirely from props, including the
+`isCreating` in-flight state and a submit `error`. Standalone
+consumers (embedded builders, guided tours) can therefore depict
+any review state — success preview or failure — deterministically.
+
+**Props** — `ReviewStepProps`
+
+<TypeTable
+  type={{
+    data: { type: "McpServerWizardData", description: "", required: true, typeDescriptionLink: "#mcpserverwizarddata" },
+    error: { type: "Error | null", description: "", required: true },
+    isCreating: { type: "boolean", description: "", required: true },
+    org: { type: "string", description: "", required: true },
+  }}
+/>
+
+
 ## Types
 
 ### CapabilityTab
 
 Tab identifier for the MCP server capability panel.
+
+
+### createInitialMcpServerWizardData
+
+Creates the initial empty wizard data.
+
+```tsx
+function createInitialMcpServerWizardData(): McpServerWizardData
+```
 
 
 ### McpServerAuthMode

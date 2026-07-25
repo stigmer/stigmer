@@ -8,7 +8,10 @@ import {
 import { notFound } from "next/navigation";
 import { getMDXComponents } from "@/components/mdx";
 import { createRelativeLink } from "fumadocs-ui/mdx";
-import { CopyMarkdownButton, PageFeedback } from "@/components/docs";
+import { PageActions } from "@/components/docs";
+import { buildBreadcrumbItems } from "@/lib/breadcrumb";
+import { markdownExportUrl } from "@/lib/llms-pages";
+import { DocsBreadcrumb } from "../breadcrumb";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -21,27 +24,46 @@ export default async function Page(props: PageProps) {
   if (!page) notFound();
 
   const MDX = page.data.body;
-  const markdownUrl = `${page.url}.md`;
-  const isIndex = !params.slug || params.slug.length === 0;
+  const markdownUrl = markdownExportUrl(page.url);
+  // Tab-aware trail; empty on tab landing pages (/docs, /docs/sdk, /docs/cli),
+  // which hides the breadcrumb there — see buildBreadcrumbItems.
+  const crumbs = buildBreadcrumbItems(source.pageTree, page.url);
+  // Rendered in the right rail on desktop and inside the "On this page"
+  // popover on smaller viewports. Passing the footer also keeps the rail
+  // alive on pages without headings (Fumadocs enables the TOC container when
+  // a footer is present).
+  const actions = (
+    <PageActions
+      markdownUrl={markdownUrl}
+      pageTitle={page.data.title}
+      pageUrl={page.url}
+    />
+  );
 
   return (
     <DocsPage
       toc={page.data.toc}
       full={page.data.full}
-      breadcrumb={
-        isIndex
-          ? { enabled: false }
-          : {
-              includeRoot: { url: "/docs" },
-              includePage: true,
-            }
-      }
+      breadcrumb={{
+        enabled: crumbs.length > 0,
+        component: <DocsBreadcrumb items={crumbs} />,
+      }}
+      tableOfContent={{ footer: actions }}
+      tableOfContentPopover={{ footer: actions }}
     >
-      <div className="flex items-center justify-between">
-        <DocsTitle>{page.data.title}</DocsTitle>
-        <CopyMarkdownButton markdownUrl={markdownUrl} />
-      </div>
-      <DocsDescription>{page.data.description}</DocsDescription>
+      {/* Hero pages (`hero: true` frontmatter) render their own header via a
+          <Hero> in the MDX body; frontmatter title/description still feed
+          generateMetadata and the llms outputs. */}
+      {!page.data.hero && (
+        <>
+          {/* Bold + tight tracking matches the marketing Hero.tsx headline and
+              the welcome page's <Hero> h1 — one display voice across the site. */}
+          <DocsTitle className="font-bold tracking-tight">
+            {page.data.title}
+          </DocsTitle>
+          <DocsDescription>{page.data.description}</DocsDescription>
+        </>
+      )}
       <DocsBody>
         <MDX
           components={getMDXComponents({
@@ -49,7 +71,6 @@ export default async function Page(props: PageProps) {
           })}
         />
       </DocsBody>
-      <PageFeedback pageTitle={page.data.title} pageUrl={page.url} />
     </DocsPage>
   );
 }

@@ -1,0 +1,161 @@
+/*
+ * MCP server creation tour — tour-local chrome. Layout in plain CSS, colors
+ * from the Stigmer `--stgm-*` design tokens (scenar-cloud DD-003), so every
+ * surface flips light/dark with the embed. The real @stigmer/react components
+ * (WizardShell, the wizard steps, CreationPicker) carry their own compiled
+ * styles; these rules only frame them.
+ */
+
+/* --- Creation picker frame ------------------------------------------------ */
+
+.mcp-picker {
+  height: 100%;
+  padding: 24px;
+  zoom: 0.9;
+}
+
+/* --- Wizard frame ---------------------------------------------------------- */
+
+/*
+ * Pins the real WizardShell to the content area's height so its footer (the
+ * `wizard-next` cursor target) stays on screen and long step content scrolls
+ * internally — the console mounts it with a height class the same way.
+ */
+.mcp-wizard {
+  height: 100%;
+  padding: 14px;
+  zoom: 0.8;
+}
+
+.mcp-wizard > * {
+  height: 100%;
+}
+
+/* --- Import dialog replica -------------------------------------------------- */
+
+.mcp-import {
+  position: relative;
+  height: 100%;
+}
+
+.mcp-import__underlay {
+  height: 100%;
+}
+
+/* In-canvas modal backdrop: stays inside the canonical container (and the
+ * embed's CSS zoom), unlike the real <dialog>.showModal() top layer. */
+.mcp-import__backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--stgm-background) 62%, transparent);
+}
+
+.mcp-import__dialog {
+  display: flex;
+  width: 520px;
+  max-height: 92%;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  border: 1px solid var(--stgm-border);
+  border-radius: 10px;
+  background: var(--stgm-card);
+  padding: 16px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+}
+
+.mcp-import__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--stgm-foreground);
+}
+
+.mcp-import__subtitle {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--stgm-muted-foreground);
+}
+
+.mcp-import__yaml {
+  margin: 0;
+  overflow: auto;
+  border: 1px solid var(--stgm-border);
+  border-radius: 6px;
+  background: var(--stgm-muted);
+  padding: 10px 12px;
+  font-family: var(--stgm-font-mono, ui-monospace, monospace);
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--stgm-foreground);
+}
+
+/* Per-document preview row, mirroring ApplyManifestDialog's PreviewRow. */
+.mcp-import__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--stgm-border);
+  border-radius: 6px;
+  background: var(--stgm-background);
+  padding: 8px 10px;
+}
+
+.mcp-import__kind {
+  border-radius: 4px;
+  background: var(--stgm-muted);
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--stgm-muted-foreground);
+}
+
+.mcp-import__name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--stgm-foreground);
+}
+
+.mcp-import__badge {
+  border-radius: 4px;
+  background: var(--stgm-muted);
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--stgm-muted-foreground);
+}
+
+.mcp-import__org {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--stgm-muted-foreground);
+}
+
+.mcp-import__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.mcp-import__button {
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.mcp-import__button--secondary {
+  border: 1px solid var(--stgm-border);
+  background: var(--stgm-background);
+  color: var(--stgm-foreground);
+}
+
+.mcp-import__button--primary {
+  background: var(--stgm-primary);
+  color: var(--stgm-primary-foreground);
+}

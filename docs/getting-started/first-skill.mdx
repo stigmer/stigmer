@@ -5,13 +5,13 @@ description:
   expert responses.
 ---
 
-import { DemoFirstSkillTour, DemoSkillCreationTour } from "@/components/docs";
+import { DemoFirstSkillTour } from "@/components/docs";
 
 ## What you'll build
 
 An Agent that answers with **your** domain expertise—not generic knowledge. You
-will create a Skill through the Stigmer web app, connect it to your code, and
-watch the same question produce a completely different answer.
+will package a Skill and upload it through the Stigmer web app, connect it to
+your code, and watch the same question produce a completely different answer.
 
 **Time**: ~10 minutes **Prerequisites**: Completed the
 [Quickstart](/docs/getting-started/quickstart) or the
@@ -39,24 +39,44 @@ because it has no domain knowledge. The following steps fix that.
 ## Create a Skill
 
 A Skill is a package of domain knowledge—your return policy, product catalog,
-escalation process, or anything else your Agent needs to answer accurately.
+escalation process, or anything else your Agent needs to answer accurately. It's
+plain markdown: a folder with a `SKILL.md` file whose frontmatter gives it a
+name and a description.
 
-1. Open [`app.stigmer.ai`](https://app.stigmer.ai) and go to **Library →
-   Skills**.
-2. Click **Create Skill**.
-3. The Skill Creator Agent asks you a few questions about your domain. Describe
-   your return policy, and it generates a structured Skill from your answers.
+1. Create a folder with a `SKILL.md` file. Write it by hand, or point your AI
+   editor (Cursor, Claude Code, or similar) at an existing policy document and
+   ask it to draft one:
 
-Here is what that conversation looks like:
+```markdown
+---
+name: Return Policy
+description: Acme Corp's customer return and refund policy.
+---
 
-<DemoSkillCreationTour />
+# Return Policy
 
-4. Review the generated Skill and click **Push** to save it to your
-   Organization's library.
+## Standard Returns
+
+Customers may return most items within **14 days** of delivery for a full
+refund.
+```
+
+2. Zip the folder.
+3. Open [`app.stigmer.ai`](https://app.stigmer.ai), go to **Library → Skills**,
+   click **Add Skill**, and drop the zip. Stigmer validates the package and
+   pushes it to your Organization's library.
+
+Here is what that flow looks like:
+
+<ScenarEmbed id="skill-creation-tour" title="Skill creation walkthrough" />
+
+4. Open your new Skill's detail page to review the content—and note the slug;
+   you'll reference it from code in the next step.
 
 <Callout type="info">
-  The Skill Creator produces a markdown document with structured sections. You
-  can edit it later from the web app at any time.
+  Skills follow the Anthropic Agent Skills format—`SKILL.md` with `name` and
+  `description` frontmatter. Upload a new package with the same name any time to
+  publish a new version.
 </Callout>
 
 </Step>
@@ -324,9 +344,9 @@ Same question. Completely different answer.
 
 ## What just happened
 
-You taught your Agent domain knowledge through a conversation in the Stigmer web
-app. One field change in your code, and the Agent went from guessing to
-answering with your company's actual policy.
+You taught your Agent domain knowledge with one markdown file uploaded through
+the Stigmer web app. One field change in your code, and the Agent went from
+guessing to answering with your company's actual policy.
 
 A Skill is domain knowledge packaged as markdown—not code, not configuration.
 You can create as many Skills as you need: product documentation, HR policies,

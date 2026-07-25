@@ -1,9 +1,6 @@
-export { AgentCreationTour as DemoAgentCreationTour } from "./demos/scenarios/agent-creation-tour";
 export { AgentDetail as DemoAgentDetail } from "./demos/scenarios/agent-detail";
 export { DatastoreRecordsBrowser as DemoDatastoreRecordsBrowser } from "./demos/scenarios/datastore-records-browser";
 export { McpServerDetail as DemoMcpServerDetail } from "./demos/scenarios/mcp-server-detail";
-export { McpServerCreationTour as DemoMcpServerCreationTour } from "./demos/scenarios/mcp-server-creation-tour";
-export { ConnectPlayback as DemoConnectPlayback } from "./demos/scenarios/connect-playback";
 export { ApiKeySetup as DemoApiKeySetup } from "./demos/scenarios/api-key-setup";
 export { ApprovalFlowPlayback as DemoApprovalFlowPlayback } from "./demos/scenarios/approval-flow-playback";
 export { SkillDetail as DemoSkillDetail } from "./demos/scenarios/skill-detail";
@@ -15,16 +12,13 @@ export { ProvisionGrantPlayback as DemoProvisionGrantPlayback } from "./demos/sc
 export { MultiTenantSetupPlayback as DemoMultiTenantSetupPlayback } from "./demos/scenarios/multi-tenant-setup-playback";
 export { MultiTenantJitPlayback as DemoMultiTenantJitPlayback } from "./demos/scenarios/multi-tenant-jit-playback";
 export { SsoLoginPlayback as DemoSsoLoginPlayback } from "./demos/scenarios/sso-login-playback";
-export { CopyMarkdownButton } from "./copy-markdown-button";
 export { QuickstartPlayback as DemoQuickstartPlayback } from "./demos/scenarios/quickstart-playback";
 export { QuickstartTour as DemoQuickstartTour } from "./demos/scenarios/quickstart-tour";
 export { FirstSkillTour as DemoFirstSkillTour } from "./demos/scenarios/first-skill-tour";
 export { ConnectToolsTour as DemoConnectToolsTour } from "./demos/scenarios/connect-tools-tour";
-export { CreateAgentTour as DemoCreateAgentTour } from "./demos/scenarios/create-agent-tour";
 export { MarketplaceConnectTour as DemoMarketplaceConnectTour } from "./demos/scenarios/marketplace-connect-tour";
 export { OAuthConnectFlow as DemoOAuthConnectFlow } from "./demos/scenarios/oauth-connect-flow";
 export { ByoaSetup as DemoByoaSetup } from "./demos/scenarios/byoa-setup";
-export { SkillCreationTour as DemoSkillCreationTour } from "./demos/scenarios/skill-creation-tour";
 export { PlatformClientSetupTour as DemoPlatformClientSetupTour } from "./demos/scenarios/platform-client-setup-tour";
 export { PlatformClientTokenFlow as DemoPlatformClientTokenFlow } from "./demos/scenarios/platform-client-token-flow";
 export { ThemingPlayground as DemoThemingPlayground } from "./demos/scenarios/theming-playground";
@@ -35,9 +29,10 @@ export { ReviewPayloadRenderer as DemoReviewPayloadRenderer } from "./demos/scen
 export { ReviewPayloadFallback as DemoReviewPayloadFallback } from "./demos/scenarios/review-payload-gate";
 export { glossary } from "./glossary";
 export { HarnessCostComparison } from "./harness-cost-comparison";
+export { Hero } from "./welcome-hero";
 export { Mermaid } from "./mermaid";
+export { PageActions } from "./page-actions";
 export { ScenarEmbed } from "./scenar-embed";
-export { PageFeedback } from "./page-feedback";
 export { Term } from "./term";
 export { SDKTabs } from "./sdk-tabs";
 export { ReactSdkDomains } from "./ReactSdkDomains";

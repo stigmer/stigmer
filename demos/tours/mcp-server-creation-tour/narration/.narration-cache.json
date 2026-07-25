@@ -1,0 +1,50 @@
+{
+  "voice": "",
+  "steps": [
+    {
+      "hash": "43e27472f8bbe9700cb6252eac2835760927d65f4ff7c88cd1732be0c78112b6",
+      "durationMs": 8675
+    },
+    null,
+    {
+      "hash": "74310de538231c006b7d2bcef506c251c9964b0e1e92bb736a107f74fb734198",
+      "durationMs": 7063
+    },
+    {
+      "hash": "418ee4159c5be4319a3182354e355aebf5cf93e2e2b25da7cd4adc80f8ba348b",
+      "durationMs": 6963
+    },
+    {
+      "hash": "f29cc4171ebb9e320a8a42f728295492d047932a374cbbd8bd6476d3a0ba417e",
+      "durationMs": 12950
+    },
+    {
+      "hash": "f5aab906d7ee4fb62b2aff0858801315fa37f556022e0867234530049e36f972",
+      "durationMs": 9338
+    },
+    {
+      "hash": "4af28b1f78bb2651e5c3909ed7e00f4dd406f40e82709070ccd3eea21b461897",
+      "durationMs": 9938
+    },
+    {
+      "hash": "2751ea36226e4285f59354c0e5c5596f180605f02f7c91750d07ad4bb83634a4",
+      "durationMs": 9713
+    },
+    {
+      "hash": "e6ce7fa5f86930910a4966ebfe4b1184a893ab94f757075cc3c4baf23bb9d395",
+      "durationMs": 9550
+    },
+    {
+      "hash": "56964d1af09a022f30e8c1b379197cec9d71d96f67045f302bc915a9c269c547",
+      "durationMs": 10250
+    },
+    {
+      "hash": "acf86d7e2ceea152fd707bbd0554232bb0821aa4633351ea2271e108811213be",
+      "durationMs": 9075
+    },
+    {
+      "hash": "ccf3a56025c716e1fb4c0639da963c5fdb8e940d3ed30f8a99f012d822a96d5d",
+      "durationMs": 7875
+    }
+  ]
+}

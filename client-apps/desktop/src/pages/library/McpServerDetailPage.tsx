@@ -29,7 +29,11 @@ export default function McpServerDetailPage() {
     resourceId,
     resourceName,
   );
-  const { mcpServer, refetch: refetchMcpServer } = useMcpServer(org ?? "", slug ?? "");
+  // Fetched once here and passed into the view as hoisted state — the page
+  // needs the resource for its YAML actions anyway, and handing it down
+  // spares the view its own duplicate getByReference on every page load.
+  const mcpServerState = useMcpServer(org ?? "", slug ?? "");
+  const { mcpServer, refetch: refetchMcpServer } = mcpServerState;
   const { copyYaml, copyJson, downloadYaml } = useExportResource({
     kind: "McpServer",
     resource: mcpServer,
@@ -141,6 +145,7 @@ export default function McpServerDetailPage() {
       <McpServerDetailView
         org={org}
         slug={slug}
+        mcpServerState={mcpServerState}
         editable
         activeOrg={activeOrg}
         onResourceLoad={handleResourceLoad}

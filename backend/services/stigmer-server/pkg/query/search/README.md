@@ -1,6 +1,6 @@
 # Search Query Layer - CQRS Read Side
 
-This package implements the query layer for the unified Search bounded context, providing full-text search across all searchable API resources (Agent, Skill, McpServer, Workflow).
+This package implements the query layer for the unified Search bounded context, providing full-text search across all searchable API resources (Agent, Skill, McpServer, Workflow, Project, Datastore, Environment).
 
 ## Architecture Overview
 

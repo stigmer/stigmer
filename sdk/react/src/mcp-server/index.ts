@@ -100,4 +100,17 @@ export type {
   McpServerCreationResult,
 } from "./McpServerCreationWizard.js";
 
+// Individual wizard steps are exported as presentational building blocks:
+// they are fully prop-driven (data, validationError, error, isCreating),
+// which lets platform builders and guided tours/demos render any wizard
+// state — including validation and submit failures — deterministically,
+// without driving the stateful McpServerCreationWizard through user events.
+export { IdentityTransportStep } from "./steps/IdentityTransportStep.js";
+export type { IdentityTransportStepProps } from "./steps/IdentityTransportStep.js";
+export { EnvironmentAuthStep } from "./steps/EnvironmentAuthStep.js";
+export type { EnvironmentAuthStepProps } from "./steps/EnvironmentAuthStep.js";
+export { ReviewStep } from "./steps/ReviewStep.js";
+export type { ReviewStepProps } from "./steps/ReviewStep.js";
+
+export { createInitialMcpServerWizardData } from "./steps/types.js";
 export type { McpServerWizardData } from "./steps/types.js";

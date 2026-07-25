@@ -47,10 +47,9 @@ describe("buildRunnerEnv", () => {
     expect(withKey.STIGMER_ACTIVITY_ROUTING).toBe("session");
   });
 
-  it("forwards LLM provider keys only when set, resolved value winning over the base env", () => {
+  it("forwards the Anthropic key only when set, resolved value winning over the base env", () => {
     const bare = buildRunnerEnv(config, {});
     expect(bare.ANTHROPIC_API_KEY).toBeUndefined();
-    expect(bare.OPENAI_API_KEY).toBeUndefined();
 
     // The contract value is authoritative: the launcher already applied the
     // env > config precedence, so whatever sits in the child's base env must
@@ -60,6 +59,13 @@ describe("buildRunnerEnv", () => {
       { ANTHROPIC_API_KEY: "sk-ant-other" },
     );
     expect(env.ANTHROPIC_API_KEY).toBe("sk-ant-resolved");
+  });
+
+  // Anthropic is the only key with a contract slot; other provider keys (for
+  // advanced per-agent overrides) flow through shell-env inheritance untouched.
+  it("passes other shell-exported provider keys through via the base env spread", () => {
+    const env = buildRunnerEnv(config, { OPENAI_API_KEY: "sk-oai-shell" });
+    expect(env.OPENAI_API_KEY).toBe("sk-oai-shell");
   });
 
   // The regression guard for the queue bug: the server dispatches to, and the

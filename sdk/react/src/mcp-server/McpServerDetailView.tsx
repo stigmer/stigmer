@@ -14,6 +14,7 @@ import type { ToolApprovalPolicy, McpServerSpec } from "@stigmer/protos/ai/stigm
 import { ValidationState } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import type { EnvVarDeclaration } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { useMcpServer } from "./useMcpServer.js";
+import type { UseMcpServerReturn } from "./useMcpServer.js";
 import { useUpdateMcpServer } from "./useUpdateMcpServer.js";
 import { mcpServerToInput } from "./internal/mcpServerToInput.js";
 import { useMcpServerConnect } from "./useMcpServerConnect.js";
@@ -51,6 +52,31 @@ export interface McpServerDetailViewProps {
   readonly org: string;
   /** MCP server slug (URL-friendly identifier unique within the org). */
   readonly slug: string;
+  /**
+   * Hoisted resource state from {@link useMcpServer}, for callers that
+   * already own the fetch. When provided, the view issues **no**
+   * `getByReference` RPC of its own and renders entirely from this state —
+   * loading, error, and not-found included, so a caller mid-fetch still
+   * gets the loading skeleton rather than a false not-found.
+   *
+   * Ownership contract: supplying this state means supplying its
+   * lifecycle. The view calls `mcpServerState.refetch()` after connect,
+   * disconnect, and inline edits, so the `refetch` you pass must refresh
+   * the data behind `mcpServer` or the view will render stale state after
+   * those actions.
+   *
+   * Two callers this serves:
+   * - A page that already fetched the server (e.g. for export/YAML
+   *   actions) passes `useMcpServer(org, slug)` straight through instead
+   *   of paying a duplicate RPC.
+   * - A guided tour or demo supplies frozen state
+   *   (`{ mcpServer, isLoading: false, isRefetching: false, error: null,
+   *   refetch: noop }`) so every depicted beat renders deterministically
+   *   from data the tour owns (scenar-cloud DD-006).
+   *
+   * When omitted, the view fetches by `org`/`slug` itself, as before.
+   */
+  readonly mcpServerState?: UseMcpServerReturn;
   /**
    * Called once when the MCP server resource has been fetched successfully.
    * Provides the resource display name for use cases like breadcrumbs,
@@ -115,7 +141,8 @@ export interface McpServerDetailViewProps {
 /**
  * Detail view for an MCP Server integration.
  *
- * Fetches the server via {@link useMcpServer} internally and renders
+ * Fetches the server via {@link useMcpServer} internally — or renders
+ * from hoisted state when the caller passes `mcpServerState` — and shows
  * its full configuration: validation banner (if invalid), header,
  * a **Connect bar** with a single Connect/Reconnect action, and a
  * **tabbed capabilities panel** (Tools, Policies, and optionally
@@ -135,10 +162,20 @@ export interface McpServerDetailViewProps {
  * // Minimal — self-contained, fetches its own data
  * <McpServerDetailView org="acme" slug="github" />
  * ```
+ *
+ * @example
+ * ```tsx
+ * // Hoisted — the page already fetched the server (e.g. for YAML
+ * // export actions), so pass that state through instead of paying a
+ * // second getByReference RPC.
+ * const state = useMcpServer(org, slug);
+ * <McpServerDetailView org={org} slug={slug} mcpServerState={state} />
+ * ```
  */
 export function McpServerDetailView({
   org,
   slug,
+  mcpServerState,
   onResourceLoad,
   defaultCapabilityTab = "tools",
   defaultShowCredentialForm = false,
@@ -150,7 +187,16 @@ export function McpServerDetailView({
   onResourceUpdated,
   className,
 }: McpServerDetailViewProps) {
-  const { mcpServer, isLoading, error, refetch } = useMcpServer(org, slug);
+  // Hoisted-state mode: when the caller supplies `mcpServerState`, disable
+  // the internal fetch via the hook's documented null-skip (a stable no-op,
+  // so `fetched` reports isLoading=false with no RPC) and render from the
+  // caller's state instead — all four states (loading/error/not-found/data)
+  // transfer intact.
+  const fetched = useMcpServer(
+    mcpServerState ? null : org,
+    mcpServerState ? null : slug,
+  );
+  const { mcpServer, isLoading, error, refetch } = mcpServerState ?? fetched;
   const { update: updateMcpServer, isUpdating } = useUpdateMcpServer();
 
   const saveMcpField = useCallback(
@@ -493,7 +539,9 @@ export function McpServerDetailView({
         />
       )}
 
-      <Section title="Connection">
+      {/* scrollTarget: guided tours/demos bring the connect flow into view
+          (see IdentityTransportStep's "mcp-transport" for the convention). */}
+      <Section title="Connection" scrollTarget="mcp-connection">
         <StdioSandboxNotice serverType={spec?.serverType} className="mb-3" />
         <OAuthRequiredNotice oauthOnly={spec?.auth?.oauthOnly} className="mb-3" />
         <ConnectBar
@@ -582,7 +630,7 @@ export function McpServerDetailView({
         />
       </dialog>
 
-      <Section title="Capabilities">
+      <Section title="Capabilities" scrollTarget="mcp-capabilities">
         <Tabs
           tabs={capabilityTabs}
           activeTab={capabilityTab}

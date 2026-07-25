@@ -140,6 +140,7 @@ export function CreationPicker<TData>({
           description={`Create a blank ${resourceLabel} and configure it step by step.`}
           icon={<BlankPageIcon />}
           onClick={() => onSelect({ kind: "scratch" })}
+          cursorTarget="creation-path-scratch"
         />
 
         {/* Browse templates */}
@@ -150,6 +151,7 @@ export function CreationPicker<TData>({
             icon={<GridIcon />}
             onClick={() => setView("gallery")}
             badge={`${templates.length} available`}
+            cursorTarget="creation-path-template"
           />
         )}
 
@@ -159,6 +161,7 @@ export function CreationPicker<TData>({
           description="Upload a YAML or JSON configuration file."
           icon={<UploadIcon />}
           onClick={() => onSelect({ kind: "import" })}
+          cursorTarget="creation-path-import"
         />
       </div>
     </div>
@@ -175,17 +178,21 @@ function OptionCard({
   icon,
   onClick,
   badge,
+  cursorTarget,
 }: {
   readonly title: string;
   readonly description: string;
   readonly icon: React.ReactNode;
   readonly onClick: () => void;
   readonly badge?: string;
+  /** `data-cursor-target` hook for guided tours and demo playbacks. */
+  readonly cursorTarget?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      data-cursor-target={cursorTarget}
       className={cn(
         "group flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-6 text-center",
         "transition-colors hover:border-primary hover:bg-accent",

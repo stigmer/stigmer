@@ -1,0 +1,49 @@
+{
+  "steps": [
+    {
+      "src": "./step-0.mp3",
+      "durationMs": 8675
+    },
+    null,
+    {
+      "src": "./step-2.mp3",
+      "durationMs": 7063
+    },
+    {
+      "src": "./step-3.mp3",
+      "durationMs": 6963
+    },
+    {
+      "src": "./step-4.mp3",
+      "durationMs": 12950
+    },
+    {
+      "src": "./step-5.mp3",
+      "durationMs": 9338
+    },
+    {
+      "src": "./step-6.mp3",
+      "durationMs": 9938
+    },
+    {
+      "src": "./step-7.mp3",
+      "durationMs": 9713
+    },
+    {
+      "src": "./step-8.mp3",
+      "durationMs": 9550
+    },
+    {
+      "src": "./step-9.mp3",
+      "durationMs": 10250
+    },
+    {
+      "src": "./step-10.mp3",
+      "durationMs": 9075
+    },
+    {
+      "src": "./step-11.mp3",
+      "durationMs": 7875
+    }
+  ]
+}

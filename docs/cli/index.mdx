@@ -58,9 +58,9 @@ stigmer auth login
 stigmer server
 ```
 
-On first run, an interactive wizard helps you choose an LLM provider (Anthropic,
-OpenAI, or Ollama). The server starts Temporal for durable execution and the
-agent-runner for AI agent processing.
+On first run, an interactive prompt asks for your Anthropic API key — local
+agent execution runs on Anthropic Claude models. The server starts Temporal for
+durable execution and the agent-runner for AI agent processing.
 
 ## Quick start
 
@@ -80,15 +80,11 @@ stigmer apply -f agent.yaml
 
 ## LLM configuration
 
-The CLI supports three LLM providers for local mode:
+Local mode runs agents on Anthropic Claude models. Provide your API key once —
+either export `ANTHROPIC_API_KEY` in your shell or enter it during setup — and
+the platform picks the best current model automatically.
 
-| Provider      | Setup                                          |
-| ------------- | ---------------------------------------------- |
-| **Anthropic** | Set your API key during `stigmer server` setup |
-| **OpenAI**    | Set your API key during `stigmer server` setup |
-| **Ollama**    | Local models, downloaded automatically         |
-
-Reconfigure at any time with `stigmer server setup`.
+Reconfigure at any time with `stigmer setup`.
 
 ## What's next
 

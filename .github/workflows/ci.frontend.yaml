@@ -18,6 +18,9 @@ on:
       - "sdk/react/**"
       - "sdk/theme/**"
       - "sdk/ink/**"
+      # Scenar tours consume the @stigmer/* workspace source; an SDK change
+      # can break them (and vice versa), so tour changes gate here too.
+      - "demos/**"
       - "client-apps/web/**"
       - "client-apps/desktop/**"
       - "client-apps/cli/**"
@@ -35,6 +38,7 @@ on:
       - "sdk/react/**"
       - "sdk/theme/**"
       - "sdk/ink/**"
+      - "demos/**"
       - "client-apps/web/**"
       - "client-apps/desktop/**"
       - "client-apps/cli/**"
@@ -205,6 +209,12 @@ jobs:
 
       - name: Verify web console
         run: make verify-web
+
+      # Tours build against the @stigmer/* workspace source, so this is the
+      # gate that catches an SDK change breaking a tour before release time
+      # (bundles are only packed by release.website.yaml).
+      - name: Typecheck Scenar tours
+        run: npm run typecheck -w @stigmer/demos
 
       - name: Verify desktop app
         run: make verify-desktop

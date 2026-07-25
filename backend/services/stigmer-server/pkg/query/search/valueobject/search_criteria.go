@@ -26,13 +26,18 @@ const (
 //
 // Must stay in step with the extractor registry (pkg/query/search/extractor):
 // a kind indexed on write but absent here is silently unqueryable — the
-// datastore Library list depends on this entry.
+// datastore Library list and the CLI's search-backed `list environment`
+// depend on their entries. agent_channel and channel_app are deliberately
+// absent (not_search_indexed by design; the CLI lists them via their
+// dedicated query RPCs).
 var SearchableKinds = map[apiresourcekind.ApiResourceKind]bool{
-	apiresourcekind.ApiResourceKind_agent:      true,
-	apiresourcekind.ApiResourceKind_skill:      true,
-	apiresourcekind.ApiResourceKind_mcp_server: true,
-	apiresourcekind.ApiResourceKind_workflow:   true,
-	apiresourcekind.ApiResourceKind_datastore:  true,
+	apiresourcekind.ApiResourceKind_agent:       true,
+	apiresourcekind.ApiResourceKind_skill:       true,
+	apiresourcekind.ApiResourceKind_mcp_server:  true,
+	apiresourcekind.ApiResourceKind_workflow:    true,
+	apiresourcekind.ApiResourceKind_project:     true,
+	apiresourcekind.ApiResourceKind_datastore:   true,
+	apiresourcekind.ApiResourceKind_environment: true,
 }
 
 // SearchCriteria is an immutable value object encapsulating all search parameters.
@@ -44,8 +49,8 @@ var SearchableKinds = map[apiresourcekind.ApiResourceKind]bool{
 //   - Discover mode: Query provided with no kinds (searches all), sorted by relevance
 //
 // Only searchable resource kinds (agent, skill, mcp_server, workflow,
-// datastore) are accepted. Other kinds are silently filtered out for
-// forward compatibility.
+// project, datastore, environment) are accepted. Other kinds are silently
+// filtered out for forward compatibility.
 type SearchCriteria struct {
 	kinds          []apiresourcekind.ApiResourceKind
 	query          string

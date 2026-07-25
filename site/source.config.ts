@@ -11,6 +11,13 @@ export const docs = defineDocs({
   dir: "../docs",
   docs: {
     files: ["**/*.mdx", "!_archive/**"],
+    schema: frontmatterSchema.extend({
+      // Landing pages set `hero: true` to render their own header (a <Hero>
+      // in the MDX body) instead of the default DocsTitle/DocsDescription row
+      // — same per-page layout-control idiom as Fumadocs' built-in `full`.
+      // Consumed in app/docs/[[...slug]]/page.tsx.
+      hero: z.boolean().optional(),
+    }),
   },
   meta: {
     files: ["**/meta.json", "!_archive/**"],

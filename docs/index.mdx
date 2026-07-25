@@ -1,71 +1,100 @@
 ---
 title: Stigmer Docs
 description:
-  Build AI agents with Stigmer — an open-source platform. Teach your Agents your
+  Build AI agents with Stigmer — an open-source platform. Teach your agents your
   domain. Connect your tools. Set your rules.
 full: true
+hero: true
 ---
 
-## Get started
+import {
+  Bot,
+  Compass,
+  GraduationCap,
+  Plug,
+  Rocket,
+  SquareCode,
+  SquareTerminal,
+  Terminal,
+  Workflow,
+} from "lucide-react";
 
-<Cards>
+<Hero
+  eyebrow="Get started"
+  title="Stigmer Documentation"
+  description="Stigmer is an open-source platform for building AI agents. Teach your agents your domain, connect the tools you already use, add approval rules, and run them locally or in the cloud."
+>
+  <ScenarEmbed id="create-agent-tour" title="Create an agent walkthrough" />
+</Hero>
+
+## Start here
+
+{/* Viewport (not container) variant on purpose: Cards is itself the */}
+{/* @container, and a container query cannot respond to its own size. */}
+
+<Cards className="lg:grid-cols-3">
   <Card
+    icon={<Rocket />}
     title="Quickstart"
     description="Call an AI agent from your code in 5 minutes."
     href="/docs/getting-started/quickstart"
   />
   <Card
+    icon={<Terminal />}
     title="Local Quickstart"
     description="Run an AI agent on your machine in 5 minutes — no cloud account needed."
     href="/docs/getting-started/local"
   />
   <Card
+    icon={<GraduationCap />}
     title="Your first Skill"
     description="Give your agent domain expertise and see the difference."
     href="/docs/getting-started/first-skill"
   />
+</Cards>
+
+## Build agents
+
+<Cards className="lg:grid-cols-3">
   <Card
+    icon={<Plug />}
     title="Connect your tools"
     description="Give your agent tools and add approval policies."
     href="/docs/getting-started/connect-tools"
   />
   <Card
+    icon={<Bot />}
     title="Create your Agent"
     description="Bundle skills, tools, and instructions into a reusable Agent."
     href="/docs/getting-started/create-agent"
   />
+  <Card
+    icon={<Workflow />}
+    title="First Workflow"
+    description="Write, deploy, and run a multi-step Workflow in 5 minutes."
+    href="/docs/getting-started/first-workflow"
+  />
 </Cards>
 
-## Learn
+## Go deeper
 
-<Cards>
+<Cards className="lg:grid-cols-3">
   <Card
+    icon={<Compass />}
     title="Core Concepts"
     description="Understand Agents, Skills, Sessions, and how they fit together."
     href="/docs/concepts/what-is-stigmer"
   />
-</Cards>
-
-## Reference
-
-<Cards>
   <Card
+    icon={<SquareCode />}
     title="SDK Reference"
     description="Install an SDK and call agents from your application."
     href="/docs/sdk"
   />
   <Card
+    icon={<SquareTerminal />}
     title="CLI Reference"
     description="Install and use the Stigmer CLI from the terminal."
     href="/docs/cli"
-  />
-</Cards>
-
-## Coming soon
-
-<Cards>
-  <Card
-    title="Tutorials"
-    description="Add tools, approval flows, and workflows to your agent step by step. Coming soon."
   />
 </Cards>

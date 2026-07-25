@@ -99,9 +99,8 @@ export async function up(options: UpOptions = {}, home: string = homedir()): Pro
 }
 
 /**
- * Bootstrap the system seedpack into the freshly-started local backend (the TS
- * equivalent of the Go daemon's EnsureSeedpackBootstrapped). Idempotent via a
- * content-hash marker, so repeated `up`s are cheap. Best-effort: the stack is
+ * Bootstrap the system seedpack into the freshly-started local backend.
+ * Idempotent via a content-hash marker, so repeated `up`s are cheap. Best-effort: the stack is
  * already serving by this point, so a seedpack failure is surfaced as a warning
  * with a retry hint rather than tearing the stack down.
  */
@@ -228,23 +227,16 @@ async function stopManagedTemporal(home: string): Promise<void> {
 // the config file, so the launcher must write it into the daemon contract explicitly
 // — unlike a shell-exported key, it cannot flow by env inheritance. resolveApiKey's
 // precedence (env var > config file) makes both cases one code path; when the env
-// var is set this re-writes the same value. Only the effective provider's key is
-// passed: the config file stores a single key, keyed to the chosen provider.
-function resolveLlmKeyInputs(config: Config): Pick<DaemonEnvInputs, "anthropicApiKey" | "openaiApiKey"> {
+// var is set this re-writes the same value. Anthropic is the only provider the
+// local stack executes on, so it is the only key with a persisted delivery path.
+function resolveLlmKeyInputs(config: Config): Pick<DaemonEnvInputs, "anthropicApiKey"> {
+  if (resolveProvider(config) !== "anthropic") return {};
   const key = resolveApiKey(config);
-  if (key === "") return {};
-  switch (resolveProvider(config)) {
-    case "anthropic":
-      return { anthropicApiKey: key };
-    case "openai":
-      return { openaiApiKey: key };
-    default:
-      return {};
-  }
+  return key === "" ? {} : { anthropicApiKey: key };
 }
 
-// Default to managed Temporal unless the opaque local config explicitly opts out
-// (Go parity: managed is the default). Wave 4's `setup` models this section.
+// Default to managed Temporal unless the opaque local config explicitly opts
+// out — zero-config `stigmer up` must work on a fresh machine.
 function isTemporalManaged(config: Config): boolean {
   const local = config.backend.local as { temporal?: { managed?: boolean } } | undefined;
   return local?.temporal?.managed !== false;

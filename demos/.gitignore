@@ -1,0 +1,9 @@
+# Derived pack output (built in the website release workflow)
+.bundles/
+*-bundle/
+.scenar-pack/
+
+# Editor / OS
+.DS_Store
+*.log
+tsconfig.tsbuildinfo

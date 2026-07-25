@@ -6,6 +6,11 @@
  *   out/llms-full.txt  — All documentation concatenated into one file
  *   out/docs/**\/*.md  — Per-page markdown variants
  *
+ * Page collection lives in src/lib/llms-pages.ts (unit-tested); it walks the
+ * docs/ meta.json tree with the same semantics as Fumadocs, so llms.txt
+ * sections mirror the sidebar's capability groups. A coverage check fails the
+ * build if any docs page is silently missing from the collection.
+ *
  * Follows the llms.txt standard: https://llmstxt.org
  *
  * Usage: tsx scripts/generate-llms-txt.ts
@@ -14,7 +19,11 @@
 
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import matter from "gray-matter";
+import {
+  collectDocsPages,
+  findUncollectedPages,
+  type DocsPageEntry as Page,
+} from "../src/lib/llms-pages";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -30,35 +39,15 @@ const PROJECT_DESCRIPTION =
   "orchestration, and MCP security. You write YAML or Go. Agents run " +
   "locally with zero cloud dependency or scale to production.";
 
-/** Top-level sections whose pages belong in the "Optional" llms.txt section. */
-const OPTIONAL_SECTIONS = new Set(["contributing"]);
-
 /** Subdirectory paths (relative to docs/) whose non-index pages are optional. */
 const OPTIONAL_SUBSECTIONS = new Set(["cli/commands"]);
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface SectionMeta {
-  title?: string;
-  pages?: string[];
-}
-
-interface Page {
-  /** Path relative to docs/, with .mdx and /index stripped (e.g. "concepts/agents"). */
-  relativePath: string;
-  title: string;
-  description: string;
-  /** Cleaned markdown content (frontmatter, imports, comments removed). */
-  content: string;
-  /** Absolute URL on the live site. */
-  url: string;
-  /** Top-level section slug (e.g. "concepts"). Empty for root index. */
-  topSection: string;
-  /** Display title of the top-level section (e.g. "Core Concepts"). */
-  topSectionTitle: string;
-}
+/**
+ * Pages that exist on disk but are intentionally absent from the collection.
+ * Every entry needs a reason — anything not listed here that fails the
+ * coverage check breaks the build.
+ */
+const KNOWN_UNCOLLECTED: readonly string[] = [];
 
 // ---------------------------------------------------------------------------
 // Filesystem helpers
@@ -73,164 +62,8 @@ async function pathExists(p: string): Promise<boolean> {
   }
 }
 
-async function isDirectory(p: string): Promise<boolean> {
-  try {
-    return (await fs.stat(p)).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-async function readJson<T>(p: string): Promise<T> {
-  return JSON.parse(await fs.readFile(p, "utf-8"));
-}
-
 async function ensureDir(dir: string): Promise<void> {
   await fs.mkdir(dir, { recursive: true });
-}
-
-// ---------------------------------------------------------------------------
-// Content cleaning
-// ---------------------------------------------------------------------------
-
-/**
- * Strips MDX/JSX authoring noise while preserving semantically useful
- * component tags that LLMs can interpret (Callout, Tabs, Term, etc.).
- */
-function cleanContent(raw: string): string {
-  return (
-    raw
-      // Lines starting with import or export are build-time directives, not content.
-      .replace(/^import\s+.*$/gm, "")
-      .replace(/^export\s+.*$/gm, "")
-      // MDX comments add no value for readers.
-      .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
-      // Collapse runs of blank lines left by the above removals.
-      .replace(/\n{3,}/g, "\n\n")
-      .trim()
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Page collection — walks docs/ respecting meta.json ordering
-// ---------------------------------------------------------------------------
-
-/** Returns true for meta.json separator entries like "---Core Commands---". */
-function isSeparator(entry: string): boolean {
-  return entry.startsWith("---") && entry.endsWith("---");
-}
-
-function toUrl(relativePath: string): string {
-  return relativePath ? `${SITE_URL}/docs/${relativePath}` : `${SITE_URL}/docs`;
-}
-
-async function readPage(
-  mdxRelPath: string,
-  topSection: string,
-  topSectionTitle: string,
-): Promise<Page | null> {
-  const absPath = path.join(DOCS_DIR, mdxRelPath);
-  if (!(await pathExists(absPath))) return null;
-
-  const raw = await fs.readFile(absPath, "utf-8");
-  const { data, content } = matter(raw);
-
-  const relativePath = mdxRelPath
-    .replace(/\.mdx$/, "")
-    .replace(/(^|\/)index$/, "");
-
-  return {
-    relativePath,
-    title: (data.title as string) || path.basename(relativePath) || PROJECT_NAME,
-    description: typeof data.description === "string" ? data.description.trim() : "",
-    content: cleanContent(content),
-    url: toUrl(relativePath),
-    topSection,
-    topSectionTitle,
-  };
-}
-
-/**
- * Resolves a single entry from a meta.json `pages` array to one or more
- * Page objects. Handles direct .mdx files, directories with their own
- * meta.json, and directories with only an index.mdx.
- */
-async function resolveEntry(
-  parentDir: string,
-  entry: string,
-  topSection: string,
-  topSectionTitle: string,
-): Promise<Page[]> {
-  if (entry === "index") {
-    const page = await readPage(
-      path.join(parentDir, "index.mdx"),
-      topSection,
-      topSectionTitle,
-    );
-    return page ? [page] : [];
-  }
-
-  const asFile = path.join(DOCS_DIR, parentDir, `${entry}.mdx`);
-  if (await pathExists(asFile)) {
-    const page = await readPage(
-      path.join(parentDir, `${entry}.mdx`),
-      topSection,
-      topSectionTitle,
-    );
-    return page ? [page] : [];
-  }
-
-  const asDir = path.join(DOCS_DIR, parentDir, entry);
-  if (await isDirectory(asDir)) {
-    const nestedMeta = path.join(asDir, "meta.json");
-    if (await pathExists(nestedMeta)) {
-      return collectDir(path.join(parentDir, entry), topSection, topSectionTitle);
-    }
-    const page = await readPage(
-      path.join(parentDir, entry, "index.mdx"),
-      topSection,
-      topSectionTitle,
-    );
-    return page ? [page] : [];
-  }
-
-  return [];
-}
-
-async function collectDir(
-  dirRelative: string,
-  topSection: string,
-  topSectionTitle: string,
-): Promise<Page[]> {
-  const meta = await readJson<SectionMeta>(
-    path.join(DOCS_DIR, dirRelative, "meta.json"),
-  );
-  const pages: Page[] = [];
-  for (const entry of meta.pages ?? []) {
-    if (isSeparator(entry)) continue;
-    const resolved = await resolveEntry(dirRelative, entry, topSection, topSectionTitle);
-    pages.push(...resolved);
-  }
-  return pages;
-}
-
-async function collectAllPages(): Promise<Page[]> {
-  const rootMeta = await readJson<SectionMeta>(path.join(DOCS_DIR, "meta.json"));
-  const pages: Page[] = [];
-
-  const rootPage = await readPage("index.mdx", "", "");
-  if (rootPage) pages.push(rootPage);
-
-  for (const slug of rootMeta.pages ?? []) {
-    const sectionMetaPath = path.join(DOCS_DIR, slug, "meta.json");
-    if (!(await pathExists(sectionMetaPath))) continue;
-    const sectionMeta = await readJson<SectionMeta>(sectionMetaPath);
-    const sectionTitle = sectionMeta.title ?? slug;
-    const sectionPages = await collectDir(slug, slug, sectionTitle);
-    pages.push(...sectionPages);
-  }
-
-  return pages;
 }
 
 // ---------------------------------------------------------------------------
@@ -238,7 +71,6 @@ async function collectAllPages(): Promise<Page[]> {
 // ---------------------------------------------------------------------------
 
 function isOptionalPage(page: Page): boolean {
-  if (OPTIONAL_SECTIONS.has(page.topSection)) return true;
   for (const sub of OPTIONAL_SUBSECTIONS) {
     if (page.relativePath.startsWith(`${sub}/`)) return true;
   }
@@ -374,9 +206,21 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const pages = await collectAllPages();
+  const pages = await collectDocsPages(DOCS_DIR, SITE_URL);
   if (pages.length === 0) {
     console.error("[llms] Error: no documentation pages found.");
+    process.exit(1);
+  }
+
+  const uncollected = await findUncollectedPages(DOCS_DIR, pages, KNOWN_UNCOLLECTED);
+  if (uncollected.length > 0) {
+    console.error(
+      "[llms] Error: pages exist in docs/ but were not collected — they would " +
+        "silently vanish from llms.txt and the per-page .md exports (used by " +
+        "the Copy-page button). Fix the meta.json tree or, if intentional, " +
+        "add them to KNOWN_UNCOLLECTED with a reason:",
+    );
+    for (const rel of uncollected) console.error(`  - ${rel}`);
     process.exit(1);
   }
 

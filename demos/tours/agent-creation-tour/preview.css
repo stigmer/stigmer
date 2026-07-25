@@ -1,0 +1,12 @@
+/*
+ * ArtifactPreviewContent sizes itself with `max-height: 80vh` — viewport
+ * units, which don't compose with the canonical 560px shell (DemoViewport's
+ * CSS zoom scales the shell but not vh), so the card overflows and clips its
+ * action bar — including the "Apply to acme" button step 10's cursor points
+ * at. Re-cap it in canonical units: the internal body scrolls, the header
+ * and action bar stay visible. Scoped under `.stgm` to outrank the
+ * component's own utility rule.
+ */
+.stgm .agent-tour-preview {
+  max-height: 480px;
+}

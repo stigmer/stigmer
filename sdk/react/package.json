@@ -19,6 +19,7 @@
     "lint:fix": "eslint --fix",
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json && tailwindcss -i src/styles.css -o dist/styles.css --minify",
+    "build:css": "tailwindcss -i src/styles.css -o dist/styles.css --minify",
     "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest",

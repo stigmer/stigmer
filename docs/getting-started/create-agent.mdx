@@ -5,11 +5,7 @@ description:
   then reference it with a single line.
 ---
 
-import {
-  DemoCreateAgentTour,
-  DemoAgentCreationTour,
-  DemoAgentDetail,
-} from "@/components/docs";
+import { DemoAgentDetail } from "@/components/docs";
 
 ## What you'll build
 
@@ -28,7 +24,7 @@ conversation results, fewer moving parts.
   doesn't require it.
 </Callout>
 
-<DemoCreateAgentTour />
+<ScenarEmbed id="create-agent-tour" title="Create an agent walkthrough" />
 
 ## The problem
 
@@ -123,7 +119,7 @@ then produces a complete Agent definition.
 
 Here is what that conversation looks like:
 
-<DemoAgentCreationTour />
+<ScenarEmbed id="agent-creation-tour" title="Agent creation walkthrough" />
 
 4. Review the generated definition and click **Apply** to save it to your
    Organization's library.

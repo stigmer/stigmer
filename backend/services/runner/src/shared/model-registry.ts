@@ -96,12 +96,10 @@ export async function isModelRegistered(modelId: string): Promise<boolean> {
 
 /**
  * Derive the recommended economy-tier model for summarization/classification
- * tasks, given a primary model name.
- *
- * Resolution:
- * 1. Look up the primary model's provider in the registry
- * 2. Map provider → economy model (anthropic→claude-haiku-4.5, openai→gpt-4o-mini)
- * 3. Fall back to the primary model itself if provider is unknown or unmapped
+ * tasks, given a primary model name. Thin alias over getEconomyModel — the
+ * registry (costTier=economy, harness=native, same provider preferred) drives
+ * the choice; no model names are hardcoded here. See getEconomyModel for the
+ * resolution order.
  */
 export async function getSummarizationModel(primaryModel: string): Promise<string> {
   return getEconomyModel(primaryModel);

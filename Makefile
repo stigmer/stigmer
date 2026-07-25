@@ -714,10 +714,11 @@ check-go: ## check bucket: Go vet/test/build + buf lint + binaries
 	@mkdir -p bin
 	cd backend/services/stigmer-server && go build -o ../../../bin/stigmer-server ./cmd/server
 
-check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner)
+check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, desktop, runner, demos)
 	npm run typecheck -w @stigmer/sdk
 	npm run lint -w @stigmer/react
 	npm run typecheck -w @stigmer/react
+	npm run typecheck -w @stigmer/demos
 	npm run lint -w client-apps/web
 	npm run typecheck -w desktop
 	npm run lint -w desktop
@@ -821,11 +822,9 @@ local: node_modules build-ts-stubs ## One-shot local setup: JS deps + proto stub
 	@echo "  stigmer up          # start the local stack"
 	@echo "  stigmer --help"
 	@echo ""
-	@echo "stigmer up will auto-detect API keys from your environment."
+	@echo "Local agents run on Anthropic Claude models:"
 	@echo ""
-	@echo "  Option 1 (recommended):       export ANTHROPIC_API_KEY=sk-ant-..."
-	@echo "  Option 2:                      export OPENAI_API_KEY=sk-..."
-	@echo "  Option 3 (local, lower quality): brew install ollama && ollama serve"
+	@echo "  export ANTHROPIC_API_KEY=sk-ant-...   # or run: stigmer setup"
 	@echo ""
 
 # ─── Site ─────────────────────────────────────

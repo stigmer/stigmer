@@ -2,12 +2,23 @@
 // the LLM settings `setup` writes and `status` reads.
 //
 // The config module (config/config.ts) carries `backend.local` through verbatim
-// so the TS CLI never drops fields it does not model. This module adds a *typed
-// lens* for the one sub-tree T05 owns — `local.llm` — and ports the Go CLI's
-// `ResolveLLM*` precedence (env override > config file > provider default) so the
-// two CLIs agree on which provider/model is effectively in force. Writes merge
-// into a shallow copy of `local`, preserving every sibling key (temporal,
-// execution, …).
+// so the CLI never drops fields it does not model. This module adds a *typed
+// lens* for the one sub-tree setup owns — `local.llm` — and resolves the
+// effective provider/model with env-override precedence (env > config file >
+// API-key autodetect). Writes merge into a shallow copy of `local`, preserving
+// every sibling key (temporal, execution, …).
+//
+// Local agent execution is Anthropic-only: the native runner constructs
+// Anthropic clients, and the platform model registry's native-harness entries
+// are all Anthropic models. Two invariants follow:
+//
+//   1. The model registry — not this config — owns the default execution model.
+//      The runner resolves it from the registry at execution time, so this
+//      module never hardcodes a model version (hardcoded versions here drifted
+//      from the registry repeatedly). An unset model means "platform default".
+//   2. `provider` exists to route the right API key to the runner, not to
+//      select an execution backend; "anthropic" is the only provider the local
+//      stack can serve.
 
 import type { Config } from "../config/config.js";
 
@@ -16,25 +27,12 @@ export interface LlmSettings {
   provider?: string;
   model?: string;
   api_key?: string;
-  base_url?: string;
 }
 
 interface LocalSection {
   llm?: LlmSettings;
   [key: string]: unknown;
 }
-
-/** Default model per provider, matching the Go setup wizard's choices. */
-const DEFAULT_MODEL: Record<string, string> = {
-  ollama: "qwen2.5-coder:7b",
-  anthropic: "claude-sonnet-4.5",
-  openai: "gpt-4",
-};
-
-/** Default base URL per provider (only Ollama needs one). */
-const DEFAULT_BASE_URL: Record<string, string> = {
-  ollama: "http://localhost:11434",
-};
 
 function localSection(config: Config): LocalSection {
   const local = config.backend.local;
@@ -47,12 +45,11 @@ export function readLlm(config: Config): LlmSettings | undefined {
 }
 
 /**
- * Detect a provider from API keys present in the environment (Anthropic first,
- * then OpenAI), matching the Go CLI's `DetectProviderFromAPIKeys`.
+ * Detect a provider from API keys present in the environment. Anthropic is the
+ * only provider local execution supports, so only ANTHROPIC_API_KEY counts.
  */
 export function detectProviderFromEnv(env: NodeJS.ProcessEnv = process.env): string {
   if (env.ANTHROPIC_API_KEY) return "anthropic";
-  if (env.OPENAI_API_KEY) return "openai";
   return "";
 }
 
@@ -64,31 +61,20 @@ export function resolveProvider(config: Config, env: NodeJS.ProcessEnv = process
   return detectProviderFromEnv(env);
 }
 
-/** Effective model: env override > config > provider default. */
+/**
+ * Effective model override: env override > config. Empty string means "no
+ * override" — the runner picks the default from the platform model registry.
+ */
 export function resolveModel(config: Config, env: NodeJS.ProcessEnv = process.env): string {
   if (env.STIGMER_LLM_MODEL) return env.STIGMER_LLM_MODEL;
-  const llm = readLlm(config);
-  if (llm?.model) return llm.model;
-  return DEFAULT_MODEL[resolveProvider(config, env)] ?? "";
+  return readLlm(config)?.model ?? "";
 }
 
-/** Effective API key: provider-specific env var > config. */
+/** Effective API key: ANTHROPIC_API_KEY env var > config. */
 export function resolveApiKey(config: Config, env: NodeJS.ProcessEnv = process.env): string {
-  const provider = resolveProvider(config, env);
-  const envKey = provider === "anthropic" ? env.ANTHROPIC_API_KEY : provider === "openai" ? env.OPENAI_API_KEY : "";
-  if (envKey) return envKey;
+  if (resolveProvider(config, env) !== "anthropic") return "";
+  if (env.ANTHROPIC_API_KEY) return env.ANTHROPIC_API_KEY;
   return readLlm(config)?.api_key ?? "";
-}
-
-/** Fill in provider-appropriate defaults for a partial selection. */
-export function withProviderDefaults(settings: LlmSettings): LlmSettings {
-  const provider = settings.provider ?? "";
-  const out: LlmSettings = { provider };
-  out.model = settings.model ?? DEFAULT_MODEL[provider];
-  if (settings.api_key) out.api_key = settings.api_key;
-  const baseUrl = settings.base_url ?? DEFAULT_BASE_URL[provider];
-  if (baseUrl) out.base_url = baseUrl;
-  return out;
 }
 
 /**

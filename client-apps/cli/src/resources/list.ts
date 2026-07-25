@@ -1,13 +1,17 @@
 // `list` dispatch: render a collection of resources for a kind.
 //
 // Most registry kinds are search-indexed and list through the unified
-// SearchService (matching the Go CLI's search-backed list). Organizations,
-// API keys, and agent instances are not search-indexed and use their
-// dedicated find/list RPCs.
+// SearchService. Kinds that are deliberately not search-indexed
+// (organizations, API keys, agent instances, agent channels, channel apps)
+// use their dedicated find/list RPCs with bespoke table shapes.
 
 import { create } from "@bufbuild/protobuf";
+import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
+import { ListAgentChannelsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
 import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
+import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { ListChannelAppsByOrgInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
@@ -18,7 +22,12 @@ import { UsageError } from "../errors/index.js";
 import type { OutputFormat } from "../output/index.js";
 import { bool, type JsonObject, obj, renderCollection, str, type TableShape } from "./render.js";
 
-// Kinds the SearchService indexes; mirrors the Go CLI's search-backed list set.
+// Kinds that list through the SearchService (list mode: empty query, org
+// scope). Must stay in step with the server's SearchableKinds allowlist
+// (backend/services/stigmer-server/pkg/query/search/valueobject/
+// search_criteria.go): a kind present here but absent there silently lists
+// as empty. agent_channel and channel_app are deliberately NOT here — they
+// are not_search_indexed by design and take dedicated-RPC branches below.
 const SEARCH_KINDS = new Set<ApiResourceKind>([
   ApiResourceKind.agent,
   ApiResourceKind.workflow,
@@ -26,6 +35,7 @@ const SEARCH_KINDS = new Set<ApiResourceKind>([
   ApiResourceKind.project,
   ApiResourceKind.skill,
   ApiResourceKind.datastore,
+  ApiResourceKind.environment,
 ]);
 
 export async function listResources(
@@ -48,6 +58,19 @@ export async function listResources(
       create(ListAgentInstancesRequestSchema, { org, pageInfo: create(PageInfoSchema, { num: 1, size: limit }) }),
     );
     return renderCollection(AgentInstanceSchema, result.items, format, INSTANCE_TABLE);
+  }
+  if (kind === ApiResourceKind.agent_channel) {
+    const result = await client.agentChannel.list(
+      create(ListAgentChannelsRequestSchema, { org, pageInfo: create(PageInfoSchema, { num: 1, size: limit }) }),
+    );
+    return renderCollection(AgentChannelSchema, result.items, format, AGENT_CHANNEL_TABLE);
+  }
+  if (kind === ApiResourceKind.channel_app) {
+    // listByOrg has no pagination on its contract (the per-org set is small
+    // by design); the limit is applied client-side so --limit stays honest.
+    // `channelapp` (not `channelApp`) is a recorded SDK codegen naming quirk.
+    const result = await client.channelapp.listByOrg(create(ListChannelAppsByOrgInputSchema, { org }));
+    return renderCollection(ChannelAppSchema, result.entries.slice(0, limit), format, CHANNEL_APP_TABLE);
   }
   if (!SEARCH_KINDS.has(kind)) {
     throw new UsageError("list is not implemented for this resource type");
@@ -82,6 +105,55 @@ const INSTANCE_TABLE: TableShape = {
     ];
   },
 };
+
+// A channel serves traffic only when installed AND enabled (the install
+// lifecycle and the owner's serving switch are deliberately distinct), so
+// the table surfaces both signals side by side.
+const AGENT_CHANNEL_TABLE: TableShape = {
+  resourceName: "agent channels",
+  headers: ["ID", "SLUG", "AGENT", "PROVIDER", "STATE", "ENABLED"],
+  row: (json) => {
+    const metadata = obj(json, "metadata");
+    const spec = obj(json, "spec");
+    const agentRef = obj(spec, "agent_ref");
+    return [
+      str(metadata, "id"),
+      str(metadata, "slug"),
+      `${str(agentRef, "org")}/${str(agentRef, "slug")}`,
+      providerOf(spec),
+      // Zero-valued enums are omitted from protojson; a channel is
+      // initialized to pending_install on create, so "-" is the rare
+      // unspecified case, matching the date() empty convention.
+      str(obj(json, "status"), "install_state") || "-",
+      bool(spec, "enabled") ? "true" : "false",
+    ];
+  },
+};
+
+// Secret fields never reach this table: list responses are redacted
+// server-side in both editions (the RedactChannelApp pipeline).
+const CHANNEL_APP_TABLE: TableShape = {
+  resourceName: "channel apps",
+  headers: ["ID", "SLUG", "PROVIDER", "CREATED"],
+  row: (json) => {
+    const metadata = obj(json, "metadata");
+    return [
+      str(metadata, "id"),
+      str(metadata, "slug"),
+      providerOf(obj(json, "spec")),
+      date(str(obj(obj(obj(json, "status"), "audit"), "spec_audit"), "created_at")),
+    ];
+  },
+};
+
+// The provider_config oneof serializes as exactly one provider-named key in
+// protojson (AgentChannelSpec and ChannelAppSpec share the same oneof
+// shape). Extend this list when a new provider arm lands in the protos.
+const PROVIDER_KEYS = ["slack", "whatsapp"] as const;
+
+function providerOf(spec: JsonObject): string {
+  return PROVIDER_KEYS.find((key) => key in spec) ?? "-";
+}
 
 const ORG_TABLE: TableShape = {
   resourceName: "organizations",

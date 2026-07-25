@@ -16,6 +16,10 @@ export interface EnvironmentAuthStepProps {
  * Both sections are optional. Env vars start expanded if any exist;
  * auth starts collapsed unless already enabled. No validation gate —
  * the user can proceed with zero configuration.
+ *
+ * Fully presentational: form state lives in the `data` prop and edits
+ * flow out through `updateData`, so standalone consumers (embedded
+ * builders, guided tours) can render any configuration state from props.
  */
 export function EnvironmentAuthStep({
   data,

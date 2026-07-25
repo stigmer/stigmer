@@ -90,6 +90,7 @@ export function WizardNav({
           type="button"
           onClick={onNext}
           disabled={nextDisabled || isSubmitting}
+          data-cursor-target="wizard-next"
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-colors",
             "hover:bg-primary-hover",

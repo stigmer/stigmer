@@ -12,56 +12,82 @@ import {
   renderCommentParts,
 } from "./mdx-utils";
 
-// Hand-maintained page order grouped by adoption journey. Domains not listed
-// here are appended alphabetically at the end so new domains are never lost.
-const DOMAIN_ORDER: readonly string[] = [
-  // Foundation
-  "core",
-  // Sessions & Execution
-  "session",
-  "execution",
-  "composer",
-  // Agents & Workflows
-  "agent",
-  "agent-instance",
-  "workflow",
-  "runner",
-  // Tools & Knowledge
-  "mcp-server",
-  "skill",
-  "library",
-  // Environment & Config
-  "environment",
-  "workspace",
-  "models",
-  // Identity & Access
-  "organization",
-  "iam-policy",
-  "access",
-  "identity-provider",
-  "identity-account",
-  "invitation",
-  "oauth-app",
-  "api-key",
-  // Platform Building Blocks
-  "resource-workbench",
-  "resource-creation",
-  "resource-detail",
-  "settings",
-  "version-history",
-  "dependency-graph",
-  "dashboard",
-  // Integrations
-  "github",
-  "attachment",
-  // Monetization & Usage
-  "billing",
-  "usage",
-  // UI Components
-  "error",
-  "platform-client",
-  "user",
-  "activity",
+// Hand-maintained sidebar grouping, ordered by adoption journey. Each group
+// becomes a "---Label---" Fumadocs separator in the generated meta.json (the
+// same mechanism gen-cli-docs uses for CLI command groups).
+//
+// This list is an exact partition of the TypeDoc domain set, enforced by
+// renderMetaJson: a domain missing from every group fails generation, and so
+// does a listed slug that no longer exists as a domain. Silent tolerance is
+// deliberately rejected — the previous alphabetical-append fallback let eight
+// domains accumulate uncurated, and a stale "runner" slug went unnoticed.
+// gen-react-sdk-docs-check runs in CI, so drift cannot ship.
+export interface DomainGroup {
+  readonly label: string;
+  readonly slugs: readonly string[];
+}
+
+export const DOMAIN_GROUPS: readonly DomainGroup[] = [
+  {
+    label: "Foundation",
+    slugs: ["core"],
+  },
+  {
+    label: "Sessions & Execution",
+    slugs: ["session", "execution", "composer"],
+  },
+  {
+    label: "Agents & Workflows",
+    slugs: ["agent", "agent-instance", "workflow", "sharing", "channel", "channel-app"],
+  },
+  {
+    label: "Tools & Knowledge",
+    slugs: ["mcp-server", "skill", "library", "datastore"],
+  },
+  {
+    label: "Environment & Config",
+    slugs: ["environment", "workspace", "models"],
+  },
+  {
+    label: "Identity & Access",
+    slugs: [
+      "organization",
+      "iam-policy",
+      "access",
+      "identity-provider",
+      "identity-account",
+      "invitation",
+      "oauth-app",
+      "api-key",
+      "platform-client",
+    ],
+  },
+  {
+    label: "Platform Building Blocks",
+    slugs: [
+      "resource-workbench",
+      "resource-creation",
+      "resource-detail",
+      "settings",
+      "version-history",
+      "dependency-graph",
+      "dashboard",
+      "activity",
+      "manifest",
+    ],
+  },
+  {
+    label: "Integrations",
+    slugs: ["github", "attachment", "file-reference"],
+  },
+  {
+    label: "Monetization & Usage",
+    slugs: ["billing", "usage"],
+  },
+  {
+    label: "UI Components",
+    slugs: ["button", "switch", "error", "user"],
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -99,16 +125,57 @@ export function renderDomainPage(domain: Domain): string {
   return mdx;
 }
 
-export function renderMetaJson(domains: Domain[]): string {
-  const slugs = new Set(domains.map((d) => d.slug));
-  const ordered = DOMAIN_ORDER.filter((s) => slugs.has(s));
-  const unlisted = domains
-    .map((d) => d.slug)
-    .filter((s) => !DOMAIN_ORDER.includes(s))
-    .sort();
+export function renderMetaJson(
+  domains: Domain[],
+  groups: readonly DomainGroup[] = DOMAIN_GROUPS,
+): string {
+  const domainSlugs = new Set(domains.map((d) => d.slug));
+  const allGroupSlugs = groups.flatMap((g) => g.slugs);
+  const groupedSlugs = new Set(allGroupSlugs);
+
+  // Fumadocs requires each page to appear exactly once in the tree, so a slug
+  // listed in two groups would break the sidebar.
+  if (groupedSlugs.size !== allGroupSlugs.length) {
+    const seen = new Set<string>();
+    const duplicates = new Set<string>();
+    for (const slug of allGroupSlugs) {
+      if (seen.has(slug)) duplicates.add(slug);
+      seen.add(slug);
+    }
+    throw new Error(
+      `DOMAIN_GROUPS lists slug(s) [${[...duplicates].join(", ")}] in more ` +
+        `than one group (site/scripts/generate-react-sdk-docs/renderer.ts). ` +
+        `Each domain belongs to exactly one group.`,
+    );
+  }
+
+  const unassigned = [...domainSlugs].filter((s) => !groupedSlugs.has(s)).sort();
+  if (unassigned.length > 0) {
+    throw new Error(
+      `domain(s) [${unassigned.join(", ")}] have no group assignment in ` +
+        `DOMAIN_GROUPS (site/scripts/generate-react-sdk-docs/renderer.ts). ` +
+        `Add each to a group so it is placed in the sidebar intentionally.`,
+    );
+  }
+
+  const stale = allGroupSlugs.filter((s) => !domainSlugs.has(s));
+  if (stale.length > 0) {
+    throw new Error(
+      `DOMAIN_GROUPS lists slug(s) [${stale.join(", ")}] that no TypeDoc ` +
+        `domain produces (site/scripts/generate-react-sdk-docs/renderer.ts). ` +
+        `Remove them (or fix the slug) so the grouping stays an exact ` +
+        `partition of the domain set.`,
+    );
+  }
+
+  const pages: string[] = [];
+  for (const group of groups) {
+    pages.push(`---${group.label}---`);
+    pages.push(...group.slugs);
+  }
   const meta = {
     title: "React SDK",
-    pages: [...ordered, ...unlisted],
+    pages,
   };
   return JSON.stringify(meta, null, 2) + "\n";
 }

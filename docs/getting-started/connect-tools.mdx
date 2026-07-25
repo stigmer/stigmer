@@ -5,11 +5,7 @@ description:
   actions, and ask for human approval before doing anything risky.
 ---
 
-import {
-  DemoConnectToolsTour,
-  DemoMcpServerCreationTour,
-  DemoConnectPlayback,
-} from "@/components/docs";
+import { DemoConnectToolsTour } from "@/components/docs";
 
 ## What you'll build
 
@@ -58,26 +54,41 @@ connects to any server that speaks the
 
 1. Open [`app.stigmer.ai`](https://app.stigmer.ai) and go to **Library → MCP
    Servers**.
-2. Click **Add MCP Server**. This opens the MCP Server Creator — an Agent that
-   builds the server configuration from your description.
-3. Tell it about your server: the name, the URL (for HTTP servers), and whether
-   it needs authentication.
+2. Click **Add MCP Server**. You can start from scratch, pick a pre-built
+   template, or import a YAML file you already have. Choose **Start from
+   scratch** to open the creation wizard.
+3. Walk the wizard's three steps: **Identity & Transport** (name the server and
+   say how Stigmer reaches it), **Environment & Auth** (declare the variables
+   and secrets it needs at runtime), and **Review & Create**.
 
-For an HTTP server, the Agent needs the endpoint URL. For a stdio server (a
+For an HTTP server, the wizard needs the endpoint URL. For a stdio server (a
 command-line tool), it needs the command — `npx` for an npm package or the path
-to a Go binary.
+to a Go binary. The form validates as you go: skip a required field and the step
+tells you exactly what's missing. If creation fails on the server — a taken
+slug, for example — the exact error appears inline so you can adjust and
+resubmit.
 
-Here is what that conversation looks like:
+Here is what that flow looks like:
 
-<DemoMcpServerCreationTour />
+<ScenarEmbed
+  id="mcp-server-creation-tour"
+  title="MCP server creation walkthrough"
+/>
 
-4. Review the generated configuration and click **Apply** to save it to your
-   Organization's library.
+4. On **Review & Create**, check the summary and the YAML preview, then click
+   **Create MCP server** to save it to your Organization's library.
 
 <Callout type="info">
   Stigmer supports both **HTTP** servers (REST APIs, webhooks) and **stdio**
-  servers (CLI tools via `npx`, `go run`, or local binaries). The Server Creator
-  Agent handles either — just describe what you have.
+  servers (CLI tools via `npx`, `go run`, or local binaries). The wizard handles
+  either — the transport step adapts to your choice.
+</Callout>
+
+<Callout type="info">
+  The form is YAML underneath: the review step shows the exact `McpServer`
+  manifest being created. If you already have one, choose **Import from file**
+  instead (the console counterpart of `stigmer apply -f`) — or ask the **MCP
+  Server Creator** agent in your Library to draft it from a description.
 </Callout>
 
 </Step>
@@ -87,18 +98,24 @@ Here is what that conversation looks like:
 
 Your MCP server is registered, but Stigmer doesn't know what tools it provides
 yet. Connecting reaches out to the live server, catalogs every tool, and
-classifies each one for approval — all in a single step.
+classifies each one for approval — one flow, started from one button.
 
 1. Open the MCP server detail page.
-2. If the server requires credentials (API keys, tokens), enter them when
-   prompted.
-3. Click **Connect**.
+2. Click **Connect**. If the server needs credentials (API keys, tokens),
+   Stigmer asks for them right there — the form appears below the Connect bar
+   before anything is sent.
+3. Enter the credentials and click **Save**. Stigmer stores them securely,
+   connects to the live server, and starts discovery. This takes a few seconds —
+   it's talking to the real endpoint.
 
-Stigmer connects to the live server, discovers every tool, and classifies each
-one automatically. Read-only tools pass through. Tools that modify data, move
+When discovery finishes, the Tools tab fills in and every tool carries a
+classification. Read-only tools pass through. Tools that modify data, move
 money, or have side effects get flagged for human approval:
 
-<DemoConnectPlayback />
+<ScenarEmbed
+  id="mcp-server-connect-tour"
+  title="Connect and discover tools walkthrough"
+/>
 
 In this example, three tools were found: `get_order` (read), `list_orders`
 (read), and `process_return` (write). The first two run automatically.
@@ -433,10 +450,10 @@ The return has been processed.
 
 ## What just happened
 
-You connected tools to your Agent through an MCP server. One click discovered
-the tools and classified approval policies automatically. In your code, two
-changes made the difference: `mcpServerRefs` to give the Agent access to tools,
-and `submitApproval` to handle the human-in-the-loop flow.
+You connected tools to your Agent through an MCP server. Connect discovered the
+tools and classified approval policies automatically. In your code, two changes
+made the difference: `mcpServerRefs` to give the Agent access to tools, and
+`submitApproval` to handle the human-in-the-loop flow.
 
 Your Agent now knows your domain (Skills), uses your tools (MCP servers), and
 follows your rules (approval policies). But look at your Session creation code —

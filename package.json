@@ -10,6 +10,7 @@
     "sdk/ink",
     "mcp-server",
     "seedpack",
+    "demos",
     "client-apps/cli",
     "client-apps/web",
     "client-apps/desktop",

@@ -9,6 +9,13 @@ export interface SectionProps {
   /** Arbitrary action elements rendered in the header row (e.g. expand, share). */
   readonly headerActions?: ReactNode;
   readonly onEdit?: () => void;
+  /**
+   * Stable id emitted as `data-scroll-target` on the section element, so
+   * guided tours and demos can scroll the section into view by name (the
+   * same convention as `data-cursor-target`). Purely an annotation — no
+   * behavior attaches to it here.
+   */
+  readonly scrollTarget?: string;
   readonly children: ReactNode;
   readonly className?: string;
 }
@@ -26,11 +33,12 @@ export function Section({
   count,
   headerActions,
   onEdit,
+  scrollTarget,
   children,
   className,
 }: SectionProps) {
   return (
-    <section className={className}>
+    <section className={className} data-scroll-target={scrollTarget}>
       <div className="mb-2 flex items-center gap-2">
         <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {title}
