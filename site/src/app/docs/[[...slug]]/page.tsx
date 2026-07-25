@@ -61,7 +61,12 @@ export default async function Page(props: PageProps) {
           <DocsTitle className="font-bold tracking-tight">
             {page.data.title}
           </DocsTitle>
-          <DocsDescription>{page.data.description}</DocsDescription>
+          {/* text-base/mb-6 over the default text-lg/mb-8 — DD-02 density:
+              the oversized description was a big part of the "zoomed" feel
+              above the fold. */}
+          <DocsDescription className="mb-6 text-base">
+            {page.data.description}
+          </DocsDescription>
         </>
       )}
       <DocsBody>

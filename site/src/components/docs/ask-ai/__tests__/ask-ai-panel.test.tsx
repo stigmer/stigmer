@@ -17,11 +17,15 @@ vi.mock("next-themes", () => ({
   useTheme: () => ({ resolvedTheme: mockResolvedTheme }),
 }));
 
-/** The docs layout shape: one provider, two triggers, one panel. */
+/**
+ * The docs layout shape: one provider, two triggers, one panel. Both
+ * triggers live in DocsHeader (DD-02) — `header` on desktop, `nav` on the
+ * mobile cluster — CSS-gated by breakpoint.
+ */
 function Harness() {
   return (
     <AskAiProvider>
-      <AskAiTrigger variant="sidebar" className="max-md:hidden" />
+      <AskAiTrigger variant="header" className="max-md:hidden" />
       <AskAiTrigger variant="nav" className="md:hidden" />
       <AskAiPanel />
     </AskAiProvider>

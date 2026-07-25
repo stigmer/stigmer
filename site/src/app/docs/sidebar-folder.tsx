@@ -39,13 +39,19 @@ export function DocsSidebarFolder({
 
   return (
     <SidebarFolder defaultOpen={(item.defaultOpen ?? false) || path.includes(item)}>
+      {/* py-1.5 matches the DocsSidebarItem density override (DD-02) so
+          folder rows and page rows share one rhythm. */}
       {item.index !== undefined ? (
-        <SidebarFolderLink href={item.index.url} external={item.index.external}>
+        <SidebarFolderLink
+          href={item.index.url}
+          external={item.index.external}
+          className="py-1.5"
+        >
           {item.icon}
           {item.name}
         </SidebarFolderLink>
       ) : (
-        <SidebarFolderTrigger>
+        <SidebarFolderTrigger className="py-1.5">
           {item.icon}
           {item.name}
         </SidebarFolderTrigger>

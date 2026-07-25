@@ -196,6 +196,33 @@
 }
 
 /* =============================================================================
+ * DOCS DENSITY (DD-02)
+ *
+ * Cursor-parity compactness. Cursor's docs body is the same 16px/28px as the
+ * Fumadocs default, so type sizes stay put — the "zoomed" feel came from
+ * loose heading rhythm and roomy chrome. This block tightens vertical
+ * margins; sidebar and header density live with their components
+ * (DocsHeader, DocsSidebar, sidebar-item.tsx). Everything CSS-only sits
+ * here, in one place, for side-by-side calibration against docs.cursor.com.
+ *
+ * The shell is deliberately FULL-BLEED (`--fd-layout-width` stays at the
+ * preset's 100vw): like Cursor, the sidebar hugs the left edge and the TOC
+ * rail the right — no dead margins on wide monitors (developer decision,
+ * 2026-07-25). Reading comfort is preserved by the preset's separate
+ * `--fd-page-width` cap (1200px) on the content column alone. */
+
+/* Tighter heading rhythm. Plugin defaults leave a near-empty band above
+   each section: h2 margin-top is 2em of 24px (48px), h3 is 1.6em of 20px
+   (32px). Cursor sits noticeably tighter. */
+.prose :where(h2):not(:where(.not-prose, .not-prose *)) {
+  margin-top: 1.5em;
+}
+
+.prose :where(h3):not(:where(.not-prose, .not-prose *)) {
+  margin-top: 1.25em;
+}
+
+/* =============================================================================
  * STIGMER SDK DEMO SCOPES
  *
  * The site's @theme inline block above wins Tailwind's theme resolution over

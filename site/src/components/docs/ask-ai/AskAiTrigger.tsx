@@ -6,12 +6,12 @@ import { useAskAi } from "./AskAiProvider";
 
 interface AskAiTriggerProps {
   /**
-   * Which chrome slot this instance sits in:
-   * - `sidebar` — full-width row under the search box (desktop sidebar
-   *   header), styled to read as search's sibling.
-   * - `nav` — compact button for the mobile navbar cluster.
+   * Which chrome slot this instance sits in (both live in `DocsHeader`):
+   * - `header` — bordered pill in the desktop header, styled to read as the
+   *   search toggle's sibling.
+   * - `nav` — compact button for the mobile header cluster.
    */
-  variant: "sidebar" | "nav";
+  variant: "header" | "nav";
   /**
    * Breakpoint gate (`max-md:hidden` / `md:hidden`). Both instances stay
    * mounted; CSS decides which one is visible — the same pattern Fumadocs
@@ -33,8 +33,8 @@ export function AskAiTrigger({ variant, className }: AskAiTriggerProps) {
       className={cn(
         "inline-flex items-center text-sm text-fd-muted-foreground transition-colors",
         "hover:text-fd-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fd-ring",
-        variant === "sidebar" &&
-          "w-full gap-2 rounded-lg border bg-fd-secondary/50 px-2.5 py-1.5 hover:bg-fd-accent",
+        variant === "header" &&
+          "gap-1.5 whitespace-nowrap rounded-lg border bg-fd-secondary/50 px-2.5 py-1.5 hover:bg-fd-accent",
         variant === "nav" && "gap-1.5 rounded-md p-2",
         className,
       )}
