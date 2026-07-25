@@ -166,31 +166,6 @@ coding tasks that need Cursor's built-in tools, the extra context and token rate
 buy capability that native does not have. For a full rundown of cost levers, see
 [Optimizing your costs](/docs/concepts/billing#optimizing-your-costs).
 
-## Measured cost comparison
-
-We run the same tasks through both harnesses with real API spend and publish the
-results below. The headline: **with both harnesses pinned to the same model and
-the same prompt, the task costs about 2.5x to 4x less on native in steady
-state.** The model and its price are identical, so the entire gap is runtime
-overhead — Cursor's agent scaffolding sends roughly twice the tokens of
-native's, and you pay for it on every call.
-
-Two honest caveats the tables carry with them:
-
-- **First calls cost more on both harnesses.** The first call writes the prompt
-  cache; every later call re-reads it at a fraction of the price. The tables
-  show both figures.
-- **Cursor's caching is outside your control.** Native's cache stayed warm on
-  every measured run (zero spread). Cursor's cache sometimes failed to warm
-  across fresh Sessions — the wide spread on some Cursor cells is that
-  inconsistency, not measurement noise.
-
-<HarnessCostComparison />
-
-Numbers come from the cost benchmark suite in `test/integration` (run with
-`make benchmark-cost`); regenerating this page from a new run is a two-step
-process documented in the site's `generate-harness-cost-comparison` script.
-
 ## What's next
 
 Ready to set up the Cursor harness? The
