@@ -28,21 +28,22 @@ Add `payload` and `ui_hint` to the task config. `payload` supports `${ }`
 expressions — point it at the workflow data the reviewer must examine:
 
 ```yaml
-- editorial_review:
-    human_input:
-      prompt: "Review the proposed revision before publishing."
-      payload: ${ $context.draft_revision }
-      ui_hint: article-diff
-      form_schema:
-        type: object
-        properties:
-          notes: { type: string }
-      outcomes:
-        - name: approve
-        - name: request_changes
-          then: revise_draft
-    export:
-      as: "${ . }"
+- name: editorial_review
+  kind: human_input
+  task_config:
+    prompt: "Review the proposed revision before publishing."
+    payload: "${ $context.draft_revision }"
+    ui_hint: article-diff
+    form_schema:
+      type: object
+      properties:
+        notes: { type: string }
+    outcomes:
+      - name: approve
+      - name: request_changes
+        then: revise_draft
+  export:
+    as: "${ . }"
 ```
 
 When the gate activates, the runtime resolves the expression and attaches the

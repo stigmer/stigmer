@@ -39,7 +39,6 @@ spec:
   env:
     TOPIC:
       description: "The topic to summarize"
-      required: true
   tasks:
     - name: generate_summary
       kind: llm_call
@@ -57,16 +56,14 @@ spec:
     - name: format_output
       kind: transform
       task_config:
-        engine: jq
+        engine: TRANSFORM_ENGINE_JQ
         expression: |
           {
-            topic: $topic,
-            summary: $text,
-            word_count: ($text | split(" ") | length)
+            topic: .env.TOPIC,
+            summary: .generate_summary.text,
+            word_count: (.generate_summary.text | split(" ") | length)
           }
-        input:
-          topic: "${ $context.env.TOPIC }"
-          text: "${ $context.generate_summary.text }"
+        input: "${ $context }"
       export:
         as: "${ . }"
 ```

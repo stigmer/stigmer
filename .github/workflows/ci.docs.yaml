@@ -134,6 +134,9 @@ jobs:
       - name: Verify SDK docs are up to date
         run: make gen-sdk-docs-check
 
+      - name: Validate docs YAML against proto contracts
+        run: make check-docs-yaml
+
   links:
     name: Links (Lychee)
     runs-on: ubuntu-latest

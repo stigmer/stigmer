@@ -212,12 +212,14 @@ default.
 Resources reference each other by `kind` and `slug`. When the reference includes
 an `org` field, it points to a resource in a different Organization:
 
-```yaml
+```yaml validate-as="Agent.spec"
 # Same org — org field omitted
 skill_refs:
   - kind: skill
     slug: return-policy
+```
 
+```yaml validate-as="Agent.spec"
 # Cross-org reference
 skill_refs:
   - kind: skill

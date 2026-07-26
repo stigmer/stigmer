@@ -47,6 +47,39 @@ writing context, and good/bad examples.
 - Keep blocks short. If a block exceeds 30 lines, break it into smaller pieces
   with explanatory prose between them.
 
+### YAML blocks are contract-validated
+
+Every ` ```yaml ` block in `docs/` is checked against the real proto contracts
+by `make check-docs-yaml` (CI-enforced). A block must be one of:
+
+1. **A resource manifest** — starts with `apiVersion:`/`kind:`. Validated
+   automatically; no annotation needed.
+2. **An authoring-form task list** — a list of `- name:`/`kind:`/`task_config:`
+   entries. Validated automatically, including nested tasks and every
+   `task_config` against its typed schema.
+3. **An anchored fragment** — a snippet of a larger resource. Tell the gate what
+   it is a fragment of via the fence info string:
+   - ` ```yaml validate-as="Agent" ` — body holds top-level resource fields
+     (`spec:`, `status:`, ...)
+   - ` ```yaml validate-as="Workflow.spec" ` — body holds spec-level fields
+     (`tasks:`, `budget:`, `env:`, ...)
+   - ` ```yaml validate-as="task" ` — body holds task-level fields (`export:`,
+     `flow:`, ...)
+   - ` ```yaml validate-as="task-config:llm_call" ` — body holds fields of one
+     task kind's config
+
+   Absent fields are fine; unknown or misshapen fields fail the build.
+
+4. **Explicitly skipped** — ` ```yaml no-validate="reason" `, only for blocks
+   that are not resource YAML at all (e.g. frontmatter examples like the one
+   below). The reason is mandatory.
+
+Anything else fails the build. Consequences for authors: use full proto enum
+names (`TRANSFORM_ENGINE_JQ`, not `jq`), never invent fields, and never use the
+internal DSL form (`- task_name: { call: ... }`) — always the authoring form.
+Content that is markdown-with-frontmatter (like a `SKILL.md` listing) belongs in
+a ` ```md ` fence, not ` ```yaml `.
+
 ## MDX components
 
 Custom components are available in all `.mdx` files without imports. Use them to
@@ -190,7 +223,7 @@ Click-to-zoom for screenshots and diagrams.
   `AgentLifecycle.mdx`).
 - **Front matter**: every file must have `title` and `description`.
 
-```yaml
+```yaml no-validate="docs-page frontmatter example, not resource YAML"
 ---
 title: How to create an Agent
 description: Step-by-step guide to defining and running your first Agent.

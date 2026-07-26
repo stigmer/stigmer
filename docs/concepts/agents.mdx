@@ -49,14 +49,13 @@ spec:
         - get_order
         - list_orders
         - process_return
-  env_spec:
-    data:
-      ORDER_API_URL:
-        is_secret: false
-        description: Base URL of the order management API
-      ORDER_API_KEY:
-        is_secret: true
-        description: API key for the order management service
+  env:
+    ORDER_API_URL:
+      is_secret: false
+      description: Base URL of the order management API
+    ORDER_API_KEY:
+      is_secret: true
+      description: API key for the order management service
 ```
 
 Here's how this Agent looks in the Stigmer web console:
@@ -70,7 +69,7 @@ Each section of the Agent definition serves a purpose:
 | `instructions`      | The Agent's system prompt — defines its personality, behavior rules, and task guidance |
 | `skill_refs`        | References to [Skills](/docs/concepts/skills) that give the Agent domain knowledge     |
 | `mcp_server_usages` | References to [MCP Servers](/docs/concepts/tools) that give the Agent tool access      |
-| `env_spec`          | Environment variables the Agent needs at runtime (API keys, URLs, configuration)       |
+| `env`               | Environment variables the Agent needs at runtime (API keys, URLs, configuration)       |
 
 ## Blueprint vs. runtime
 

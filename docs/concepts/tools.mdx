@@ -70,14 +70,13 @@ spec:
   stdio:
     command: "npx"
     args: ["@acme/order-mcp-server"]
-  env_spec:
-    data:
-      ORDER_API_URL:
-        is_secret: false
-        description: Base URL of the order management API
-      ORDER_API_KEY:
-        is_secret: true
-        description: API key for authenticating with the service
+  env:
+    ORDER_API_URL:
+      is_secret: false
+      description: Base URL of the order management API
+    ORDER_API_KEY:
+      is_secret: true
+      description: API key for authenticating with the service
   pinned_tool_approvals:
     - tool_name: process_return
       message: "Process return for order '{{args.order_id}}'"
@@ -94,7 +93,7 @@ MCP Servers support two transport modes:
 
 ### Environment declarations
 
-The `env_spec` declares what the MCP Server needs at runtime — API keys, service
+The `env` map declares what the MCP Server needs at runtime — API keys, service
 URLs, configuration values. These are _schemas_, not values. The actual values
 come from [Environments](/docs/concepts/environments) attached to the Agent
 Instance at deployment time.
@@ -127,7 +126,7 @@ production (pointing to the real one) — only the Environment values change.
 [Agents](/docs/concepts/agents) reference MCP Servers through
 `mcp_server_usages` in their definition:
 
-```yaml
+```yaml validate-as="Agent"
 spec:
   mcp_server_usages:
     - mcp_server_ref:
@@ -186,7 +185,7 @@ three authentication patterns, each suited to a different type of integration:
 
 | Pattern                   | When it applies                                                               | How it works                                                                                              |
 | ------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| **Environment variables** | The tool uses API keys or tokens                                              | You declare the variable in `env_spec` and provide the value through an Environment                       |
+| **Environment variables** | The tool uses API keys or tokens                                              | You declare the variable in `env` and provide the value through an Environment                            |
 | **Automatic OAuth (DCR)** | The server implements the MCP Authorization spec                              | Stigmer discovers the authorization server, registers a client automatically, and handles the OAuth flow  |
 | **Vendor OAuth**          | The server requires credentials from a specific vendor (Slack, GitHub, Figma) | Stigmer uses a pre-registered OAuthApp with the vendor's client credentials to run the authorization flow |
 

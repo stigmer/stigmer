@@ -32,24 +32,25 @@ resources:
 The `SKILL.md` file has two parts: YAML frontmatter that tells Stigmer _when_ to
 use the Skill, and a markdown body that provides the actual knowledge.
 
-```yaml
+```md
 ---
 name: return-policy
 description: >
-  Acme Corp return and refund policy. Use when customers ask
-  about returns, exchanges, refunds, or warranty claims.
+  Acme Corp return and refund policy. Use when customers ask about returns,
+  exchanges, refunds, or warranty claims.
 ---
 
 # Return Policy
 
 ## Standard Returns
 
-Customers may return unused items within 30 days of purchase
-for a full refund. Items must be in original packaging.
+Customers may return unused items within 30 days of purchase for a full refund.
+Items must be in original packaging.
 
 ## Exceptions
 
 The following items cannot be returned:
+
 - Personalized or custom-made products
 - Perishable goods
 - Digital downloads after activation
@@ -58,8 +59,8 @@ The following items cannot be returned:
 
 - Credit card: refund appears within 5–10 business days
 - Store credit: issued immediately upon return approval
-- Always refund to the original payment method unless
-  the customer requests store credit
+- Always refund to the original payment method unless the customer requests
+  store credit
 
 ## Escalation Rules
 
@@ -115,7 +116,7 @@ window efficient.
 Skills connect to [Agents](/docs/concepts/agents) through `skill_refs` in the
 Agent definition:
 
-```yaml
+```yaml validate-as="Agent"
 spec:
   skill_refs:
     - kind: skill

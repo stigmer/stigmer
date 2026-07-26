@@ -49,7 +49,7 @@ classifies each tool automatically when you click Connect. Manual overrides live
 in `spec.pinned_tool_approvals` — these persist across reconnects and take
 precedence over the automatic classifications:
 
-```yaml
+```yaml validate-as="McpServer"
 # Auto-classified (status.tool_approvals) — regenerated on each Connect
 status:
   tool_approvals:
@@ -79,7 +79,7 @@ prompt.
 [Agents](/docs/concepts/agents) can override the default policy for each MCP
 Server they reference:
 
-```yaml
+```yaml validate-as="Agent"
 # In the Agent definition
 spec:
   mcp_server_usages:

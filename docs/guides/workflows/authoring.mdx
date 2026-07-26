@@ -51,7 +51,7 @@ spec:
 
 Each entry in the `tasks` list is a single step:
 
-```yaml
+```yaml validate-as="Workflow.spec"
 tasks:
   - name: classify
     kind: llm_call
@@ -87,24 +87,24 @@ is stored under its name. Later tasks reference that data with expressions.
 The `export.as` field controls what gets saved. The expression receives the
 task's raw output as `.`:
 
-```yaml
+```yaml validate-as="task"
 export:
-  as: "${ . }"           # save everything
-  as: "${ .structured }" # save only the structured (JSON) portion
-  as: "${ .text }"       # save only the text portion
+  as: "${ . }" # save everything
+  # as: "${ .structured }"  — save only the structured (JSON) portion
+  # as: "${ .text }"        — save only the text portion
 ```
 
 ### Reading context
 
 Use `${ $context.<taskName>.<field> }` to access earlier task outputs:
 
-```yaml
+```yaml validate-as="task-config:llm_call"
 prompt: "Summarize: ${ $context.fetch_data.body }"
 ```
 
 Environment variables are available as `${ $context.env.<VAR_NAME> }`:
 
-```yaml
+```yaml validate-as="task-config:llm_call"
 prompt: "Topic: ${ $context.env.TOPIC }"
 ```
 
@@ -127,15 +127,14 @@ The `set_vars` task writes values directly into context:
 
 Declare the variables your Workflow needs in `spec.env`:
 
-```yaml
+```yaml validate-as="Workflow.spec"
 env:
   TOPIC:
     description: "The topic to analyze"
-    required: true
   DEPTH:
-    description: "Analysis depth: brief, standard, or thorough"
-    required: false
-    default: "standard"
+    description:
+      "Analysis depth: brief, standard, or thorough (default: standard)"
+    optional: true
   API_KEY:
     description: "External API key"
     is_secret: true
@@ -156,10 +155,10 @@ first task runs, then the second, then the third.
 
 Use `flow.then` to jump to a specific task or end the workflow:
 
-```yaml
+```yaml validate-as="task"
 flow:
-  then: next_task_name    # jump to a named task
-  then: end               # terminate the workflow
+  then: next_task_name # jump to a named task
+  # then: end          — terminate the workflow
 ```
 
 ### Branching with switch_case
@@ -200,7 +199,7 @@ Iterate over a collection, executing a set of sub-tasks for each item:
         task_config:
           prompt: "Process: ${ item }"
     max_parallelism: 5
-    on_error: continue
+    on_error: FOR_EACH_CONTINUE
 ```
 
 | Field             | Purpose                                             |
@@ -374,7 +373,7 @@ The task output includes `reviewer`, `outcome`, and `form_data` — accessible a
 
 Set workflow-level limits on cost, tokens, and duration:
 
-```yaml
+```yaml validate-as="Workflow.spec"
 budget:
   max_cost_micros: 2000000
   max_total_tokens: 200000
@@ -461,10 +460,9 @@ spec:
   env:
     TOPIC:
       description: "The topic to write about"
-      required: true
     GUIDELINES:
       description: "Style guidelines (optional)"
-      required: false
+      optional: true
   budget:
     max_cost_micros: 2000000
     max_duration_seconds: 600
@@ -535,18 +533,15 @@ spec:
     - name: finalize
       kind: transform
       task_config:
-        engine: jq
+        engine: TRANSFORM_ENGINE_JQ
         expression: |
           {
             status: "approved",
-            topic: $topic,
-            content: $content,
-            approved_by: $reviewer
+            topic: .env.TOPIC,
+            content: .draft_content.text,
+            approved_by: .review_content.reviewer
           }
-        input:
-          topic: "${ $context.env.TOPIC }"
-          content: "${ $context.draft_content.text }"
-          reviewer: "${ $context.review_content.reviewer }"
+        input: "${ $context }"
       export:
         as: "${ . }"
 ```

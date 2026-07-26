@@ -39,7 +39,6 @@ spec:
   env:
     TOPIC:
       description: "The topic to write about"
-      required: true
   budget:
     max_cost_micros: 2000000
     max_duration_seconds: 600
@@ -184,7 +183,7 @@ recovers and resumes from the last checkpoint automatically.
 
 Workflows can enforce cost, token, and duration limits:
 
-```yaml
+```yaml validate-as="Workflow.spec"
 budget:
   max_cost_micros: 2000000
   max_total_tokens: 200000

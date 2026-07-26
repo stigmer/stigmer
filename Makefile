@@ -747,6 +747,7 @@ check-site: ## check bucket: docs lint/format/links + site lint/typecheck/test/b
 	@vale sync 2>/dev/null
 	@vale $(DOCS_SOURCES)
 	@npx prettier --check --prose-wrap always $(DOCS_SOURCES)
+	$(MAKE) check-docs-yaml
 	$(MAKE) -C site lint
 	$(MAKE) -C site typecheck
 	$(MAKE) -C site test-unit
@@ -792,6 +793,9 @@ format-docs: ## Format documentation with Prettier
 
 format-docs-check: ## Check documentation formatting (CI, no writes)
 	@npx prettier --check --prose-wrap always $(DOCS_SOURCES)
+
+check-docs-yaml: ## Validate every docs YAML block against the proto contracts (CI)
+	@go run ./tools/codegen/generator --comprehensive --target=docs-yaml-check --docs-dir docs
 
 check-links: ## Check for broken links in documentation
 	@command -v lychee >/dev/null 2>&1 || { \

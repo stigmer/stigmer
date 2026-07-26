@@ -45,10 +45,8 @@ spec:
   env:
     TOPIC:
       description: "The topic to analyze"
-      required: true
     SOURCE_MATERIAL:
       description: "Text or data to analyze"
-      required: true
   budget:
     max_cost_micros: 3000000
     max_total_tokens: 300000
@@ -128,22 +126,15 @@ spec:
     - name: merge_results
       kind: transform
       task_config:
-        engine: jq
+        engine: TRANSFORM_ENGINE_JQ
         expression: |
           {
-            topic: $topic,
-            executive_summary: $summary,
-            key_findings: $findings,
-            finding_count: ($findings.findings | length)
+            topic: .env.TOPIC,
+            executive_summary: .parallel_processing.executive_summary.summarize.text,
+            key_findings: .parallel_processing.key_findings.extract_findings.structured,
+            finding_count: (.parallel_processing.key_findings.extract_findings.structured.findings | length)
           }
-        input:
-          topic: "${ $context.env.TOPIC }"
-          summary:
-            "${ $context.parallel_processing.executive_summary.summarize.text }"
-          findings:
-            "${
-            $context.parallel_processing.key_findings.extract_findings.structured
-            }"
+        input: "${ $context }"
       export:
         as: "${ . }"
       flow:
@@ -171,18 +162,16 @@ spec:
     - name: finalize_report
       kind: transform
       task_config:
-        engine: jq
+        engine: TRANSFORM_ENGINE_JQ
         expression: |
           {
             status: "approved",
-            topic: $report.topic,
-            executive_summary: $report.executive_summary,
-            key_findings: $report.key_findings,
-            approved_by: $review.reviewer
+            topic: .merge_results.topic,
+            executive_summary: .merge_results.executive_summary,
+            key_findings: .merge_results.key_findings,
+            approved_by: .review_report.reviewer
           }
-        input:
-          report: "${ $context.merge_results }"
-          review: "${ $context.review_report }"
+        input: "${ $context }"
       export:
         as: "${ . }"
 ```
@@ -230,10 +219,9 @@ spec:
   env:
     TOPIC:
       description: "The topic to write about"
-      required: true
     GUIDELINES:
       description: "Style guidelines (optional)"
-      required: false
+      optional: true
   budget:
     max_cost_micros: 2000000
     max_duration_seconds: 600
@@ -304,18 +292,15 @@ spec:
     - name: finalize
       kind: transform
       task_config:
-        engine: jq
+        engine: TRANSFORM_ENGINE_JQ
         expression: |
           {
             status: "approved",
-            topic: $topic,
-            content: $content,
-            approved_by: $reviewer
+            topic: .env.TOPIC,
+            content: .draft_content.text,
+            approved_by: .review_content.reviewer
           }
-        input:
-          topic: "${ $context.env.TOPIC }"
-          content: "${ $context.draft_content.text }"
-          reviewer: "${ $context.review_content.reviewer }"
+        input: "${ $context }"
       export:
         as: "${ . }"
 ```
@@ -351,7 +336,7 @@ graph LR
 `}
 />
 
-```yaml
+```yaml validate-as="Workflow.spec"
 tasks:
   - name: classify_ticket
     kind: llm_call
@@ -439,7 +424,7 @@ structured output contract with a fallback path if the Agent doesn't comply.
     agent: acme/data-analyst
     message: "Analyze the Q4 sales data and identify top trends."
     output:
-      response_schema:
+      schema:
         type: object
         required: [trends, confidence]
         properties:
@@ -475,7 +460,7 @@ structured output contract with a fallback path if the Agent doesn't comply.
 
 **Key takeaways**:
 
-- `output.response_schema` tells the Agent what structure to produce
+- `output.schema` tells the Agent what structure to produce
 - `output.fallback_task` redirects to a different task if the schema isn't met
 - `config.max_cost_micros` caps the cost of the Agent's autonomous work
 - The fallback is a `human_input` gate, but could be any task type
@@ -485,7 +470,7 @@ structured output contract with a fallback path if the Agent doesn't comply.
 **Use when**: you want to enforce cost limits on expensive workflows and have a
 human decide whether to continue when the budget is exceeded.
 
-```yaml
+```yaml validate-as="Workflow"
 spec:
   budget:
     max_cost_micros: 5000000
@@ -530,7 +515,7 @@ Always add `export.as` when downstream tasks need the output.
 
 ### Unreachable tasks
 
-```yaml
+```yaml no-validate="teaching anti-pattern with elided task_config placeholders"
 # Wrong — process_data is unreachable
 - name: fetch
   kind: http_call

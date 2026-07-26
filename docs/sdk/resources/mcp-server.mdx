@@ -22,11 +22,10 @@ spec:
   stdio:
     command: npx
     args: ["-y", "@modelcontextprotocol/server-github"]
-  env_spec:
-    data:
-      GITHUB_TOKEN:
-        is_secret: true
-        description: "GitHub personal access token"
+  env:
+    GITHUB_TOKEN:
+      is_secret: true
+      description: "GitHub personal access token"
   pinned_tool_approvals:
     - tool_name: delete_repository
       message: "Delete repository: {{args.repo}}"

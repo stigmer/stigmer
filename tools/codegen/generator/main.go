@@ -2046,6 +2046,7 @@ func main() {
 	expandStruct := flag.String("expand-struct", "", "Expand a Struct field into typed config fields: struct_field:discriminator_field:config_schema_dir")
 	comprehensive := flag.Bool("comprehensive", false, "Auto-discover all domain/resource schemas and generate for each")
 	apisDir := flag.String("apis-dir", "", "Root directory of proto API definitions (used by sdk-docs for overview.md loading and by task-docs for the index enrichment template)")
+	docsDir := flag.String("docs-dir", "", "Root directory of the documentation tree (used by the docs-yaml-check target)")
 	flag.Parse()
 
 	if *comprehensive {
@@ -2106,6 +2107,18 @@ func main() {
 				fmt.Printf("Error in task docs generation: %v\n", err)
 				os.Exit(1)
 			}
+		case "docs-yaml-check":
+			// A pass/fail validator, not a generator: it emits no files, so it
+			// returns before the generation-complete banner below.
+			if *docsDir == "" {
+				fmt.Println("--docs-dir is required for --target=docs-yaml-check")
+				os.Exit(1)
+			}
+			if err := runDocsYamlCheck(*docsDir); err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			return
 		default:
 			fmt.Printf("Comprehensive mode is supported for --target=mcp-ts, --target=sdk-client, --target=sdk-client-ts, --target=sdk-client-python, --target=sdk-client-java, --target=sdk-docs, --target=task-registry, or --target=task-docs (got %s)\n", *target)
 			os.Exit(1)

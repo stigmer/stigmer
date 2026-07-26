@@ -86,7 +86,7 @@ Cursor-specific models and coding tools).
 You set the Harness when creating a Session. Once the first execution runs, the
 Harness is locked for that Session.
 
-```yaml
+```yaml validate-as="Session"
 spec:
   harness: HARNESS_CURSOR
 ```
@@ -102,7 +102,7 @@ changing the Agent definition. Two key overrides:
 
 Add domain knowledge for this conversation only:
 
-```yaml
+```yaml validate-as="Session"
 spec:
   skill_refs:
     - kind: skill
@@ -116,7 +116,7 @@ both, the Session-level reference takes precedence.
 
 Add or restrict tool access per conversation:
 
-```yaml
+```yaml validate-as="Session"
 spec:
   mcp_server_usages:
     - mcp_server_ref:

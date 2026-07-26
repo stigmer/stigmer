@@ -60,7 +60,7 @@ Non-rendered files that remain in `docs/` but are excluded from the sidebar:
 1. Create a `.mdx` file in the appropriate section directory.
 2. Add frontmatter with `title` and `description`:
 
-   ```yaml
+   ```yaml no-validate="docs-page frontmatter example, not resource YAML"
    ---
    title: How to create a Skill
    description: Define a reusable Skill and attach it to an Agent.

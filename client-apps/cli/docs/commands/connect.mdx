@@ -43,7 +43,7 @@ A server's command arguments (stdio) and HTTP headers may reference declared
 environment variables using `${VAR_NAME}` syntax. For example, the filesystem
 server takes its allowed directory as an argument:
 
-```yaml
+```yaml validate-as="McpServer.spec"
 stdio:
   command: npx
   args:
