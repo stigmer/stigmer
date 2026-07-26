@@ -14,8 +14,8 @@
   "dependencies": {
     "@bufbuild/protobuf": "^2.12.0",
     "@connectrpc/connect": "^2.1.2",
-    "@scenar/core": "file:../../scenar/.packs/scenar-core-0.6.2.tgz",
-    "@scenar/react": "file:../../scenar/.packs/scenar-react-0.6.2.tgz",
+    "@scenar/core": "^0.6.0",
+    "@scenar/react": "^0.6.0",
     "@stigmer/protos": "*",
     "@stigmer/react": "*",
     "@stigmer/sdk": "*",
@@ -26,17 +26,14 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@scenar/cli": "file:../../scenar/.packs/scenar-cli-0.6.2.tgz",
+    "@scenar/cli": "^0.6.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
     "edge-tts-universal": "^1.4.0",
     "tsx": "^4.22.4",
     "typescript": "^5.7.0",
-    "vite": "^6.0.0",
-    "@scenar/embed": "file:../../scenar/.packs/scenar-embed-0.6.2.tgz",
-    "@scenar/sdk": "file:../../scenar/.packs/scenar-sdk-0.6.2.tgz",
-    "@scenar/stubs": "file:../../scenar/.packs/scenar-stubs-0.6.2.tgz"
+    "vite": "^6.0.0"
   },
   "engines": {
     "node": ">=20"

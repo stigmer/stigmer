@@ -34,8 +34,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
-    "tsx": "^4.21.0",
-    "@scenar/core": "file:../scenar/.packs/scenar-core-0.6.2.tgz"
+    "tsx": "^4.21.0"
   },
   "resolutions": {
     "@stigmer/protos": "workspace:*",
