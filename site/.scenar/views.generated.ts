@@ -59,7 +59,6 @@ import { MarketplaceConnectTour } from "../src/components/docs/demos/scenarios/m
 import { McpServerDetail } from "../src/components/docs/demos/scenarios/mcp-server-detail/index";
 import { OAuthConnectFlow } from "../src/components/docs/demos/scenarios/oauth-connect-flow/index";
 import { PlatformClientSetupTour } from "../src/components/docs/demos/scenarios/platform-client-setup-tour/index";
-import { QuickstartTour } from "../src/components/docs/demos/scenarios/quickstart-tour/index";
 import { RegisterIdpPlayback } from "../src/components/docs/demos/scenarios/register-idp-playback/index";
 import { SkillDetail } from "../src/components/docs/demos/scenarios/skill-detail/index";
 import { ToolCallsPlayback } from "../src/components/docs/demos/scenarios/tool-calls-playback/index";
@@ -123,7 +122,6 @@ export const generatedViews = {
   McpServerDetail,
   OAuthConnectFlow,
   PlatformClientSetupTour,
-  QuickstartTour,
   RegisterIdpPlayback,
   SkillDetail,
   ToolCallsPlayback,
