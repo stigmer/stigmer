@@ -41,11 +41,33 @@ execFileSync("npm", ["run", "build:css", "-w", "@stigmer/react"], {
 
 rmSync(bundlesDir, { recursive: true, force: true });
 
+/**
+ * The tours' canonical viewport — an explicit choice, never the CLI default.
+ *
+ * 1280x800: a real 16:10 desktop browser-window size, above the console's
+ * own `lg` breakpoint (1024) and its layout minimum (280px sidebar + 48px
+ * main padding + 896px `max-w-4xl` content cap = 1224px — the narrowest
+ * window at which the console renders its content column at full design
+ * width). Tours author at the console's real metrics and this single scale
+ * factor at the viewport boundary does all the fitting (DD-008).
+ *
+ * `--stage` floats each beat on the backdrop with a window shadow — the
+ * screen-recording framing (DD-009).
+ */
+const PACK_FLAGS = ["--width", "1280", "--shell-height", "800", "--stage"];
+
 for (const tour of tours) {
   console.log(`\nPacking ${tour}...`);
   execFileSync(
     "npx",
-    ["scenar", "pack", join("tours", tour), "--out", resolve(bundlesDir, tour)],
+    [
+      "scenar",
+      "pack",
+      join("tours", tour),
+      "--out",
+      resolve(bundlesDir, tour),
+      ...PACK_FLAGS,
+    ],
     { cwd: demosDir, stdio: "inherit" },
   );
 }

@@ -3,7 +3,6 @@ import { Plus } from "lucide-react";
 import { ResourceCards, ResourceList } from "@stigmer/react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { PulseHighlight } from "@scenar/react";
-import { DEMO_CONTENT_ZOOM } from "./fixtures";
 import "./ResourceListPage.css";
 
 interface ResourceListPageProps {
@@ -47,7 +46,7 @@ export function ResourceListPage({
         <h3 className="resource-page__title">{title}</h3>
         <div className="resource-page__create-wrap" data-cursor-target={cursorTarget}>
           <div className="resource-page__create">
-            <Plus size={12} className="resource-page__create-icon" />
+            <Plus size={14} className="resource-page__create-icon" />
             {createLabel}
           </div>
 
@@ -55,7 +54,7 @@ export function ResourceListPage({
         </div>
       </div>
 
-      <div className="resource-page__items" style={{ zoom: DEMO_CONTENT_ZOOM }}>
+      <div className="resource-page__items">
         {layout === "grid" ? (
           <ResourceCards
             items={items as SearchResult[]}

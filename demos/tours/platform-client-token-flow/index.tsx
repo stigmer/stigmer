@@ -13,9 +13,6 @@ import {
   USER_TOKEN_RESULT,
 } from "./steps";
 
-// BrowserView shells render slightly below 1.0 so the mockup sits comfortably
-// in the docs column (ported from the in-repo demo's DEMO_BROWSER_ZOOM).
-const BROWSER_ZOOM = 0.9;
 
 // Semantic "success" green — fixed, does not need to theme.
 const EMERALD = "#10b981";
@@ -134,7 +131,7 @@ export function renderStep(data: TokenFlowStep): ReactNode {
   switch (data.view) {
     case "platform-login":
       return (
-        <BrowserView url="app.acme.com/login" contentKey="login" zoom={BROWSER_ZOOM}>
+        <BrowserView url="app.acme.com/login" contentKey="login">
           <LoginCardPage
             appName="Acme Dashboard"
             subtitle="Sign in to your account"
@@ -186,7 +183,7 @@ export function renderStep(data: TokenFlowStep): ReactNode {
           url="app.acme.com/dashboard"
           contentKey="dashboard"
           slideDirection="forward"
-          zoom={BROWSER_ZOOM}
+         
         >
           <StigmerEmbeddedPage />
         </BrowserView>

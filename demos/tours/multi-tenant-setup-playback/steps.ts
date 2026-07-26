@@ -122,7 +122,9 @@ export const multiTenantSetupSteps: ScenarioStep<MultiTenantSetupStep>[] = [
     data: { view: "tenant-signup" },
     narration:
       "A new customer, Tenant Alpha, signs up on the Acme Cloud platform. Your backend needs to create an isolated Organization for them on Stigmer.",
-    interactions: [{ atPercent: 0.5, type: "set_cursor", target: "create-tenant-btn" }],
+    // Step 0 stays interaction-free: its timers fire under the poster before
+    // Play (the toolchain quirk the verify gate enforces); the rendered
+    // chrome carries the attention cue instead.
   },
   {
     delayMs: 3000,

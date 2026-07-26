@@ -128,6 +128,42 @@ synthetic events (that breaks scrubbing and video export).
 
 ---
 
+## Sizing contract: one scale factor per frame (important)
+
+A tour must read as a **screen recording**: a real app laid out at real
+size, captured once, displayed smaller. That property is geometric — it
+holds only when exactly **one** scale factor exists per rendered frame, and
+the viewport boundary owns it.
+
+- **Canonical viewport is 1280×800** (16:10), set explicitly by
+  `scripts/pack-all.mjs` — never the CLI default. It is derived, not chosen:
+  the console needs 280px (sidebar) + 48px (main padding) + 896px
+  (`max-w-4xl` content cap) = 1224px to render its content column at full
+  design width, and 1280×800 is the smallest common real window above that
+  and above the console's `lg` breakpoint (1024).
+- **Author at the console's real metrics.** The `_shared` shells transcribe
+  the real sidebar (280px, 14px/500 labels, 16px icons — gate invariant 7
+  pins the facts on both sides); page content uses the real zone geometry
+  (library `mx-auto max-w-4xl px-6 py-8`, settings `max-w-3xl`).
+- **Never author `zoom` or `transform: scale()` in a tour** — not as a
+  prop, a style object, or CSS. If content "doesn't fit", the viewport or
+  the depicted content is wrong, not the scale. Gate invariant 6 rejects
+  every authored scale factor under `tours/**`.
+- **Legibility comes from the camera, not from shrinking.** At 1280
+  canonical in a ~896px docs column everything renders at ~0.7×; a
+  `viewport_transition` interaction (zoom toward the region the narration
+  discusses, reset before the beat ends) is how small text becomes readable
+  — see `create-agent-tour/steps.ts` for the pattern.
+- **Console beats live in a browser window.** Wrap them in `BrowserView`
+  with the depicted `app.stigmer.ai` route in the address bar; editor and
+  terminal beats keep their own window shells. `pack-all` passes `--stage`,
+  which floats each beat's window on the backdrop with a real shadow.
+
+Decisions of record: scenar-cloud DD-008 (one scale factor) and DD-009
+(stage framing + rendering mechanism).
+
+---
+
 ## Theme
 
 Packed embeds are light by default and switch to dark when framed with

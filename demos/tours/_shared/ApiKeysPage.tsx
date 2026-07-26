@@ -3,7 +3,7 @@ import {
   ApiKeyListPanel,
   CreateApiKeyForm,
 } from "@stigmer/react";
-import { DEMO_ORG, DEMO_CONTENT_ZOOM } from "./fixtures";
+import { DEMO_ORG } from "./fixtures";
 import "./ApiKeysPage.css";
 
 const noop = () => {};
@@ -62,7 +62,7 @@ interface ApiKeysPageProps {
  */
 export function ApiKeysPage({ state }: ApiKeysPageProps) {
   return (
-    <div className="sx-apikeys" style={{ zoom: DEMO_CONTENT_ZOOM }}>
+    <div className="sx-apikeys">
       <section aria-labelledby="sx-apikeys-heading">
         <div className="sx-apikeys__header">
           <h2 id="sx-apikeys-heading" className="sx-apikeys__heading">

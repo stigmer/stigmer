@@ -4,7 +4,7 @@
  * Static verification gate for the Scenar tours in `demos/tours/` and the
  * docs pages that embed them.
  *
- * Five invariants, each of which has already produced (or nearly produced)
+ * Seven invariants, each of which has already produced (or nearly produced)
  * a shipped defect:
  *
  * 1. DETERMINISM (scenar-cloud DD-006). A packed tour must render identical
@@ -55,6 +55,19 @@
  *    construction — a different instant in every zone) and `new Date(0)`
  *    (an epoch whose rendered date drifts inside the window).
  *
+ * 6. SCALE FACTORS (scenar-cloud DD-008). One scale factor per rendered
+ *    frame, owned by the viewport boundary: tours author content at real
+ *    application metrics and never apply their own `zoom` (props, style
+ *    objects, or CSS) or `transform: scale()`. Composed factors are what
+ *    made the pre-2026-07 tours read as shrunken mockups instead of screen
+ *    recordings — a single live frame composited four of them.
+ *
+ * 7. REPLICA METRICS. The `_shared` shells transcribe the real console
+ *    sidebar's metrics; each REPLICA_METRIC_PAIRS entry pins one fact on
+ *    both sides so drift in either direction fails here instead of
+ *    shipping (the drift class that produced the 112px/10px sidebar whose
+ *    "New Session" wrapped onto two lines).
+ *
  * Like scripts/verify-esm-node.mjs, checks are AST-based (TypeScript parser
  * via createRequire, no new dependency) rather than regex, so string
  * literals and comments can never be mistaken for code — e.g. the displayed
@@ -78,19 +91,14 @@ const TOURS_DIR = join(root, "demos", "tours");
 const DOCS_DIR = join(root, "docs");
 
 /**
- * Tours that shipped with step-0 interactions before the rule existed — the
- * Path-B playbacks ported from the docs site. Their step-0 `set_cursor`
- * arms under the poster (the engine quirk the rule guards against), so they
- * are debt, not exceptions: remove an entry only by re-choreographing that
- * tour (move the cursor beat into step 1), never by adding to this set.
+ * Tours that shipped with step-0 interactions before the rule existed.
+ * Emptied 2026-07-26: the five grandfathered Path-B playbacks were
+ * re-choreographed (their step-0 `set_cursor` removed — the rendered
+ * PulseHighlight chrome carries the attention cue). The set stays as the
+ * mechanism so the rule reads the same, but its test asserts emptiness:
+ * never add to it — fix the tour instead.
  */
-export const KNOWN_STEP0_OFFENDERS = new Set([
-  "authentication-flow-playback",
-  "multi-tenant-setup-playback",
-  "platform-client-token-flow",
-  "provision-grant-playback",
-  "sso-login-playback",
-]);
+export const KNOWN_STEP0_OFFENDERS = new Set([]);
 
 function isLiteralArg(arg) {
   return (
@@ -320,6 +328,129 @@ export function findAuthoredInstants(sourceText, fileName = "module.ts") {
  *        (e.g. `"sso-login-playback/index.tsx"`)
  * @returns violation objects `{ line, reason }` (line is 1-based)
  */
+/**
+ * Scan one TS/TSX source file for authored scale factors — invariant 6.
+ *
+ * A screen recording has exactly one scale factor: the app lays out at real
+ * size and the viewport boundary scales it. Any `zoom` prop or `zoom` style
+ * property inside a tour composes a second factor and turns the depiction
+ * back into a shrunken mockup (the pre-2026-07-26 tours composed up to four).
+ * AST-based: `zoom` as a JSX attribute or an object-literal property is a
+ * violation; the word appearing in comments or displayed strings is not.
+ */
+export function findScaleFactors(sourceText, fileName = "module.ts") {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const violations = [];
+  const lineOf = (node) =>
+    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+
+  const visit = (node) => {
+    if (ts.isJsxAttribute(node) && node.name.getText(sourceFile) === "zoom") {
+      violations.push({
+        line: lineOf(node),
+        reason:
+          "zoom prop authored in a tour — one scale factor per frame: author " +
+          "at real metrics and let the viewport boundary scale (DD-008)",
+      });
+    }
+    if (
+      ts.isPropertyAssignment(node) &&
+      (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) &&
+      node.name.text === "zoom"
+    ) {
+      violations.push({
+        line: lineOf(node),
+        reason:
+          "zoom style property authored in a tour — one scale factor per " +
+          "frame: author at real metrics and let the viewport boundary scale " +
+          "(DD-008)",
+      });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return violations;
+}
+
+/**
+ * Scan one CSS file for authored scale factors — invariant 6's CSS half.
+ * Comment-stripped line scan (tour CSS is plain hand-written CSS): a `zoom:`
+ * declaration or a `transform: ... scale(...)` is a second scale factor.
+ * (`text-transform` and animation keyframe rotations are not matched.)
+ */
+export function findCssScaleFactors(cssText) {
+  const stripped = cssText.replace(/\/\*[\s\S]*?\*\//g, (m) =>
+    m.replace(/[^\n]/g, " "),
+  );
+  const violations = [];
+  const lines = stripped.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/(^|[^-\w])zoom\s*:/.test(line)) {
+      violations.push({
+        line: i + 1,
+        reason:
+          "zoom declaration authored in tour CSS — one scale factor per frame (DD-008)",
+      });
+    }
+    if (/(^|[^-\w])transform\s*:[^;}]*\bscale\(/.test(line)) {
+      violations.push({
+        line: i + 1,
+        reason:
+          "transform: scale() authored in tour CSS — one scale factor per frame (DD-008)",
+      });
+    }
+  }
+  return violations;
+}
+
+/**
+ * Replica-metrics tripwire — invariant 7.
+ *
+ * The tour shells transcribe the real console sidebar's metrics (280px
+ * `w-70`, 14px `text-sm` rows). Each pair names one fact on both sides;
+ * if either side stops containing its needle, the replica and the console
+ * have drifted and the shells must be re-derived (then these needles
+ * updated) — the drift this guards produced the shipped 112px/10px
+ * caricature this rule replaced.
+ */
+export const REPLICA_METRIC_PAIRS = [
+  {
+    fact: "sidebar width (console `w-70` = 280px)",
+    replica: "demos/tours/_shared/AppShell.css",
+    replicaNeedle: "width: 280px",
+    real: "client-apps/web/src/domain/_shared/layout/AppShell.tsx",
+    realNeedle: '"w-70"',
+  },
+  {
+    fact: "nav label size (console `text-sm` = 14px)",
+    replica: "demos/tours/_shared/AppShell.css",
+    replicaNeedle: "font-size: 14px",
+    real: "client-apps/web/src/domain/_shared/layout/Sidebar.tsx",
+    realNeedle: "text-sm font-medium",
+  },
+  {
+    fact: "management sidebar width (console `w-70` = 280px)",
+    replica: "demos/tours/_shared/ManagementShell.css",
+    replicaNeedle: "width: 280px",
+    real: "client-apps/web/src/domain/_shared/layout/AppShell.tsx",
+    realNeedle: '"w-70"',
+  },
+  {
+    fact: "management nav label size (console `text-sm` = 14px)",
+    replica: "demos/tours/_shared/ManagementShell.css",
+    replicaNeedle: "font-size: 14px",
+    real: "client-apps/web/src/domain/_shared/layout/ManagementSidebar.tsx",
+    realNeedle: "text-sm font-medium",
+  },
+];
+
 export function findCrossTourImports(sourceText, tourRelativePath) {
   const sourceFile = ts.createSourceFile(
     tourRelativePath,
@@ -602,6 +733,52 @@ async function main() {
     console.log(`  ok  authored instants (${sourceFiles.length} source files)`);
   } else {
     fail("authored instants", instantViolations);
+  }
+
+  // --- 6. Scale factors: one per frame, owned by the viewport boundary ------
+  const cssFiles = listFiles(TOURS_DIR, (name) => name.endsWith(".css"));
+  const scaleViolations = [];
+  for (const file of sourceFiles) {
+    for (const v of findScaleFactors(readFileSync(file, "utf8"), file)) {
+      scaleViolations.push(`${relative(root, file)}:${v.line}: ${v.reason}`);
+    }
+  }
+  for (const file of cssFiles) {
+    for (const v of findCssScaleFactors(readFileSync(file, "utf8"))) {
+      scaleViolations.push(`${relative(root, file)}:${v.line}: ${v.reason}`);
+    }
+  }
+  if (scaleViolations.length === 0) {
+    console.log(
+      `  ok  scale factors (${sourceFiles.length + cssFiles.length} source + css files)`,
+    );
+  } else {
+    fail("scale factors", scaleViolations);
+  }
+
+  // --- 7. Replica metrics: the shells still match the console they mirror ---
+  const replicaViolations = [];
+  for (const pair of REPLICA_METRIC_PAIRS) {
+    const replicaText = readFileSync(join(root, pair.replica), "utf8");
+    const realText = readFileSync(join(root, pair.real), "utf8");
+    if (!realText.includes(pair.realNeedle)) {
+      replicaViolations.push(
+        `${pair.real}: no longer contains ${JSON.stringify(pair.realNeedle)} — ` +
+          `the console changed its ${pair.fact}; re-derive the tour shell ` +
+          `metrics from it, then update REPLICA_METRIC_PAIRS`,
+      );
+    }
+    if (!replicaText.includes(pair.replicaNeedle)) {
+      replicaViolations.push(
+        `${pair.replica}: no longer contains ${JSON.stringify(pair.replicaNeedle)} — ` +
+          `the tour shell drifted from the console's ${pair.fact}`,
+      );
+    }
+  }
+  if (replicaViolations.length === 0) {
+    console.log(`  ok  replica metrics (${REPLICA_METRIC_PAIRS.length} facts)`);
+  } else {
+    fail("replica metrics", replicaViolations);
   }
 
   if (total > 0) {

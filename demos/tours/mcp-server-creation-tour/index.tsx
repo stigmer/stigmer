@@ -33,6 +33,7 @@ import {
   WizardShell,
 } from "@stigmer/react";
 import type { McpServerWizardData, WizardStepDef } from "@stigmer/react";
+import { BrowserView } from "@scenar/react";
 import { AppShell } from "../_shared/AppShell";
 import { ORDER_MGMT_MCP } from "../_shared/order-management-mcp";
 import { ResourceListPage } from "../_shared/ResourceListPage";
@@ -47,6 +48,18 @@ import {
 import "./tour.css";
 
 const noop = () => {};
+
+/**
+ * Console beats render inside a browser window whose address bar tracks the
+ * depicted route — a screen recording shows an app in its container.
+ */
+function consoleWindow(contentKey: string, path: string, children: ReactNode) {
+  return (
+    <BrowserView url={`app.stigmer.ai${path}`} contentKey={contentKey}>
+      {children}
+    </BrowserView>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Wizard-data snapshots (one per beat)
@@ -221,21 +234,27 @@ function ImportManifestOverlay() {
 export function renderStep(data: McpServerCreationTourStep): ReactNode {
   switch (data.view) {
     case "home":
-      return (
+      return consoleWindow(
+        "home",
+        "/",
         <AppShell contentKey="home">
           <div style={HOME_HINT}>Start a new session</div>
-        </AppShell>
+        </AppShell>,
       );
 
     case "library-click":
-      return (
+      return consoleWindow(
+        "home",
+        "/",
         <AppShell highlightNav="library" contentKey="home">
           <div style={HOME_HINT}>Start a new session</div>
-        </AppShell>
+        </AppShell>,
       );
 
     case "mcp-servers-list":
-      return (
+      return consoleWindow(
+        "servers",
+        "/library/mcp-servers",
         <AppShell activeNav="library" contentKey="servers" slideDirection="forward">
           <ResourceListPage
             title="MCP Servers"
@@ -245,11 +264,13 @@ export function renderStep(data: McpServerCreationTourStep): ReactNode {
             layout="grid"
             highlightCreate
           />
-        </AppShell>
+        </AppShell>,
       );
 
     case "creation-picker":
-      return (
+      return consoleWindow(
+        "picker",
+        "/library/mcp-servers/new",
         <AppShell activeNav="library" contentKey="picker" slideDirection="forward">
           <div className="mcp-picker" inert>
             <CreationPicker
@@ -258,12 +279,14 @@ export function renderStep(data: McpServerCreationTourStep): ReactNode {
               onSelect={noop}
             />
           </div>
-        </AppShell>
+        </AppShell>,
       );
 
     case "wizard-identity": {
       const { data: form, validationError } = IDENTITY_BY_PHASE[data.form];
-      return (
+      return consoleWindow(
+        "wizard",
+        "/library/mcp-servers/new",
         <AppShell activeNav="library" contentKey="wizard" slideDirection="forward">
           <WizardFrame stepIndex={0}>
             <IdentityTransportStep
@@ -272,21 +295,25 @@ export function renderStep(data: McpServerCreationTourStep): ReactNode {
               validationError={validationError}
             />
           </WizardFrame>
-        </AppShell>
+        </AppShell>,
       );
     }
 
     case "wizard-env-auth":
-      return (
+      return consoleWindow(
+        "wizard",
+        "/library/mcp-servers/new",
         <AppShell activeNav="library" contentKey="wizard">
           <WizardFrame stepIndex={1}>
             <EnvironmentAuthStep data={WITH_ENV} updateData={noop} />
           </WizardFrame>
-        </AppShell>
+        </AppShell>,
       );
 
     case "wizard-review":
-      return (
+      return consoleWindow(
+        "wizard",
+        "/library/mcp-servers/new",
         <AppShell activeNav="library" contentKey="wizard">
           <WizardFrame stepIndex={2}>
             <ReviewStep
@@ -296,18 +323,22 @@ export function renderStep(data: McpServerCreationTourStep): ReactNode {
               error={data.failed ? CREATE_CONFLICT_ERROR : null}
             />
           </WizardFrame>
-        </AppShell>
+        </AppShell>,
       );
 
     case "import-manifest":
-      return (
+      return consoleWindow(
+        "import",
+        "/library/mcp-servers",
         <AppShell activeNav="library" contentKey="import">
           <ImportManifestOverlay />
-        </AppShell>
+        </AppShell>,
       );
 
     case "library-complete":
-      return (
+      return consoleWindow(
+        "servers",
+        "/library/mcp-servers",
         <AppShell activeNav="library" contentKey="servers" slideDirection="backward">
           <ResourceListPage
             title="MCP Servers"
@@ -317,7 +348,7 @@ export function renderStep(data: McpServerCreationTourStep): ReactNode {
             layout="grid"
             showNewItem
           />
-        </AppShell>
+        </AppShell>,
       );
   }
 }

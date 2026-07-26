@@ -168,6 +168,18 @@ export const createAgentTourSteps: ScenarioStep<CreateAgentTourStep>[] = [
     data: { view: "agent-created", execution: agentCreatedExecution },
     narration:
       "The creator bundles everything — instructions, Skills, and MCP servers — into one Agent definition.",
+    // The camera leans into the reply while the narration walks through it,
+    // then pulls back before the beat ends — what keeps 14px console text
+    // legible in a docs-column embed of a full desktop viewport.
+    interactions: [
+      {
+        type: "viewport_transition",
+        target: "thread",
+        viewportZoom: 1.5,
+        atPercent: 0.3,
+      },
+      { type: "viewport_transition", viewportReset: true, atPercent: 0.8 },
+    ],
   },
   {
     delayMs: 3500,

@@ -1,9 +1,9 @@
 import type { CSSProperties, ReactNode } from "react";
 import { SkillDetailView, SkillUploader } from "@stigmer/react";
-import { CodeEditorView, type FileTreeEntry } from "@scenar/react";
+import { BrowserView, CodeEditorView, type FileTreeEntry } from "@scenar/react";
 import { AppShell } from "../_shared/AppShell";
 import { ResourceListPage } from "../_shared/ResourceListPage";
-import { DEMO_CONTENT_ZOOM, DEMO_ORG } from "../_shared/fixtures";
+import { DEMO_ORG } from "../_shared/fixtures";
 import {
   type SkillCreationTourStep,
   ALL_SKILLS,
@@ -37,19 +37,40 @@ const UPLOADER_WRAP: CSSProperties = {
   padding: 24,
 };
 
-/** Sizes the real SkillUploader like the console's upload dialog. */
+/**
+ * Sizes the real SkillUploader like the console's upload page card. One
+ * scale factor per frame — no zoom; the card lays out at real size.
+ */
 const UPLOADER_CARD: CSSProperties = {
-  width: 480,
-  zoom: DEMO_CONTENT_ZOOM,
+  width: 560,
 };
 
-/** Scrollable frame for the real SkillDetailView inside the shell. */
+/**
+ * Scrollable library-detail frame at the zone's real geometry
+ * (`mx-auto max-w-4xl px-6 py-8`).
+ */
 const DETAIL_SCROLL: CSSProperties = {
   height: "100%",
   overflowY: "auto",
-  padding: 16,
-  zoom: DEMO_CONTENT_ZOOM,
+  padding: "32px 24px",
 };
+const DETAIL_CONTENT: CSSProperties = {
+  margin: "0 auto",
+  maxWidth: "56rem",
+};
+
+/**
+ * Console beats render inside a browser window whose address bar tracks the
+ * depicted route — a screen recording shows an app in its container. The
+ * editor prologue keeps its own window chrome (`CodeEditorView`).
+ */
+function consoleWindow(contentKey: string, path: string, children: ReactNode) {
+  return (
+    <BrowserView url={`app.stigmer.ai${path}`} contentKey={contentKey}>
+      {children}
+    </BrowserView>
+  );
+}
 
 /**
  * Pure `renderStep`: maps a step's data to the view it renders. The player,
@@ -75,14 +96,18 @@ export function renderStep(data: SkillCreationTourStep): ReactNode {
       );
 
     case "library-click":
-      return (
+      return consoleWindow(
+        "home",
+        "/",
         <AppShell highlightNav="library" contentKey="home">
           <div style={HOME_HINT}>Start a new session</div>
-        </AppShell>
+        </AppShell>,
       );
 
     case "skills-list":
-      return (
+      return consoleWindow(
+        "skills",
+        "/library/skills",
         <AppShell activeNav="library" contentKey="skills" slideDirection="forward">
           <ResourceListPage
             title="Skills"
@@ -90,11 +115,13 @@ export function renderStep(data: SkillCreationTourStep): ReactNode {
             cursorTarget="create-skill"
             items={EXISTING_SKILLS}
           />
-        </AppShell>
+        </AppShell>,
       );
 
     case "create-skill-click":
-      return (
+      return consoleWindow(
+        "skills",
+        "/library/skills",
         <AppShell activeNav="library" contentKey="skills">
           <ResourceListPage
             title="Skills"
@@ -103,31 +130,39 @@ export function renderStep(data: SkillCreationTourStep): ReactNode {
             items={EXISTING_SKILLS}
             highlightCreate
           />
-        </AppShell>
+        </AppShell>,
       );
 
     case "uploader":
-      return (
+      return consoleWindow(
+        "upload",
+        "/library/skills/new",
         <AppShell activeNav="library" contentKey="upload" slideDirection="forward">
           <div style={UPLOADER_WRAP}>
             <div style={UPLOADER_CARD} data-cursor-target="skill-dropzone">
               <SkillUploader org={DEMO_ORG} />
             </div>
           </div>
-        </AppShell>
+        </AppShell>,
       );
 
     case "skill-detail":
-      return (
+      return consoleWindow(
+        "detail",
+        `/library/skills/${SKILL_SLUG}`,
         <AppShell activeNav="library" contentKey="detail" slideDirection="forward">
           <div style={DETAIL_SCROLL}>
-            <SkillDetailView org={DEMO_ORG} slug={SKILL_SLUG} />
+            <div style={DETAIL_CONTENT}>
+              <SkillDetailView org={DEMO_ORG} slug={SKILL_SLUG} />
+            </div>
           </div>
-        </AppShell>
+        </AppShell>,
       );
 
     case "library-complete":
-      return (
+      return consoleWindow(
+        "skills",
+        "/library/skills",
         <AppShell activeNav="library" contentKey="skills" slideDirection="backward">
           <ResourceListPage
             title="Skills"
@@ -136,7 +171,7 @@ export function renderStep(data: SkillCreationTourStep): ReactNode {
             items={ALL_SKILLS}
             showNewItem
           />
-        </AppShell>
+        </AppShell>,
       );
   }
 }

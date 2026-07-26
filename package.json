@@ -35,7 +35,7 @@
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
     "tsx": "^4.21.0",
-    "@scenar/core": "file:../scenar/.packs/scenar-core-0.6.1.tgz"
+    "@scenar/core": "file:../scenar/.packs/scenar-core-0.6.2.tgz"
   },
   "resolutions": {
     "@stigmer/protos": "workspace:*",

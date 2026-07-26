@@ -16,10 +16,6 @@ import {
   SUCCESS_CHECKS,
 } from "./steps";
 
-// BrowserView shells render slightly below 1.0 so the mockup sits comfortably in
-// the docs column (ported from the in-repo demo's DEMO_BROWSER_ZOOM).
-const BROWSER_ZOOM = 0.9;
-
 const MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
 // Semantic colors (do not need to theme): brand accent + success green. These
 // mirror APIExchangeView's fixed status hues.
@@ -211,7 +207,7 @@ export function renderStep(data: MultiTenantJitStep): ReactNode {
         <BrowserView
           url="tenant-alpha.acme.cloud/dashboard"
           contentKey="jwt-auth"
-          zoom={BROWSER_ZOOM}
+         
         >
           <TenantJwtCard />
         </BrowserView>

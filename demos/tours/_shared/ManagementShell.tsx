@@ -1,25 +1,18 @@
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  BarChart3,
-  Box,
-  Building2,
-  CreditCard,
-  KeyRound,
-  Link as LinkIcon,
-  Plug,
-  ShieldCheck,
-  User,
-  Users,
-} from "lucide-react";
-// The console's typeface (see fonts/fonts.css). Imported here as well as in
-// stigmer-preview because this shell is the console-depicting chrome for
-// tours that have no providers file (sso-login-playback), where the preview
-// factory — and with it the font — would otherwise never enter the graph.
+import { ArrowLeft, Building2, PanelLeft } from "lucide-react";
+import { SETTINGS_NAV_GROUPS } from "@stigmer/react";
+// The console's typeface (see fonts/fonts.css). Kept here as well as in
+// stigmer-preview so the shell never renders in a fallback face even if a
+// consumer wires providers differently.
 import "./fonts/fonts.css";
 import "./ManagementShell.css";
 
+/**
+ * Nav ids are the settings routes' basenames (`/settings/api-keys` →
+ * `api-keys`), so a tour's `activeNav` reads like the URL the depicted
+ * page lives at.
+ */
 export type ManagementNavId =
   | "org-profile"
   | "members"
@@ -28,46 +21,10 @@ export type ManagementNavId =
   | "api-keys"
   | "platform-clients"
   | "environments"
+  | "oauth-apps"
+  | "channel-apps"
   | "billing"
   | "usage";
-
-interface NavItem {
-  readonly id: ManagementNavId;
-  readonly label: string;
-  readonly icon: React.ComponentType<{ size?: number | string }>;
-}
-
-interface NavGroup {
-  readonly heading: string;
-  readonly items: readonly NavItem[];
-}
-
-const NAV_GROUPS: readonly NavGroup[] = [
-  {
-    heading: "Organization",
-    items: [
-      { id: "org-profile", label: "Org Profile", icon: Building2 },
-      { id: "members", label: "Members", icon: Users },
-      { id: "invitations", label: "Invitations", icon: LinkIcon },
-      { id: "identity-providers", label: "Identity Providers", icon: ShieldCheck },
-    ],
-  },
-  {
-    heading: "Configuration",
-    items: [
-      { id: "api-keys", label: "API Keys", icon: KeyRound },
-      { id: "platform-clients", label: "Platform Clients", icon: Plug },
-      { id: "environments", label: "Environments", icon: Box },
-    ],
-  },
-  {
-    heading: "Billing & Usage",
-    items: [
-      { id: "billing", label: "Billing", icon: CreditCard },
-      { id: "usage", label: "Usage", icon: BarChart3 },
-    ],
-  },
-];
 
 interface ManagementShellProps {
   /** Which nav item is currently selected. */
@@ -86,17 +43,28 @@ interface ManagementShellProps {
   readonly children: ReactNode;
 }
 
+/** Route basename, used as the nav id and cursor target. */
+function navId(href: string): string {
+  return href.split("/").pop() ?? href;
+}
+
 /**
  * Schematic management-zone layout — the org-settings counterpart to
- * `AppShell`'s workspace zone. Where `AppShell` frames session work (primary
- * nav, recents), this frames the console's Manage area: the grouped
- * Organization / Configuration / Billing & Usage navigation, a "Back to
- * Sessions" link, and a user profile footer, mirroring the real Console
- * ManagementSidebar.
+ * `AppShell`'s workspace zone, at the console's own metrics (280px sidebar,
+ * 14px/500 rows, 16px icons — transcribed from the real
+ * `ManagementSidebar`, which shares the workspace sidebar's geometry). The
+ * grouped navigation comes straight from the SDK's `SETTINGS_NAV_GROUPS`,
+ * the same constant the real sidebar renders, so the depicted nav can never
+ * drift from the shipped one.
  *
- * Rebuilt token-driven (see coding-guidelines/tailwind-to-scenar-tokens.md)
- * so it themes with the embed. The sidebar is rendered at real-app
- * proportions and uniformly scaled via CSS `zoom` to fit the demo container.
+ * One scale factor per frame: no zoom anywhere — the shell lays out at real
+ * size and the viewport boundary owns the scaling. Colored with the
+ * `--stgm-sidebar-*` tokens (the real sidebar's palette); consumers must
+ * have the compiled `@stigmer/react` stylesheet in their graph — every
+ * console-depicting tour wires `createStigmerPreview`, which provides it.
+ *
+ * The shell is the browser page, not a card: it fills its container
+ * edge-to-edge. Window chrome belongs to whatever frames it.
  */
 export function ManagementShell({
   activeNav,
@@ -109,19 +77,24 @@ export function ManagementShell({
 
   return (
     <div className="sx-mgmt">
-      {/* Management sidebar — real-app layout scaled via zoom */}
       <nav className="sx-mgmt__nav" aria-label="Demo management navigation">
-        {/* Org switcher */}
-        <div className="sx-mgmt__org">
-          <div className="sx-mgmt__org-logo">
-            <span>A</span>
+        {/* Top row: collapse affordance + org switcher, as in the console. */}
+        <div className="sx-mgmt__top">
+          <span className="sx-mgmt__collapse" aria-hidden>
+            <PanelLeft size={16} />
+          </span>
+          <div className="sx-mgmt__org">
+            <Building2 size={16} className="sx-mgmt__org-icon" />
+            <span className="sx-mgmt__org-label">
+              <span className="sx-mgmt__org-name">Acme Corp</span>
+              <span className="sx-mgmt__org-slug">acme</span>
+            </span>
           </div>
-          <span className="sx-mgmt__org-name">Acme Corp</span>
         </div>
 
         {/* Back to Sessions */}
-        <div className="sx-mgmt__back">
-          <div className="sx-mgmt__back-inner">
+        <div className="sx-mgmt__nav-item">
+          <div className="sx-mgmt__back" data-cursor-target="back-to-sessions">
             <ArrowLeft size={16} aria-hidden />
             <span>Back to Sessions</span>
           </div>
@@ -129,37 +102,43 @@ export function ManagementShell({
 
         <div className="sx-mgmt__divider" />
 
-        {/* Grouped navigation */}
+        {/* Grouped navigation — the SDK's own settings nav model. */}
         <div className="sx-mgmt__groups">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.heading} className="sx-mgmt__group">
-              <span className="sx-mgmt__group-heading">{group.heading}</span>
-              {group.items.map((item) => (
-                <div
-                  key={item.id}
-                  className={
-                    activeNav === item.id
-                      ? "sx-mgmt__item sx-mgmt__item--active"
-                      : "sx-mgmt__item"
-                  }
-                >
-                  <item.icon size={16} aria-hidden />
-                  <span>{item.label}</span>
-                </div>
-              ))}
+          {SETTINGS_NAV_GROUPS.map((group) => (
+            <div key={group.label} className="sx-mgmt__group">
+              <span className="sx-mgmt__group-heading">{group.label}</span>
+              {group.items.map((item) => {
+                const id = navId(item.href);
+                return (
+                  <div
+                    key={item.href}
+                    data-cursor-target={id}
+                    className={
+                      activeNav === id
+                        ? "sx-mgmt__item sx-mgmt__item--active"
+                        : "sx-mgmt__item"
+                    }
+                  >
+                    {/* The nav model types icons on className only; the
+                        16px real size comes from the stylesheet. */}
+                    <item.icon className="sx-mgmt__item-icon" />
+                    <span>{item.label}</span>
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
 
-        {/* Spacer */}
         <div className="sx-mgmt__spacer" />
 
-        {/* User profile */}
+        {/* User footer */}
         <div className="sx-mgmt__user">
-          <div className="sx-mgmt__user-avatar">
-            <User size={12} aria-hidden />
-          </div>
-          <span className="sx-mgmt__user-email">you@acme.com</span>
+          <span className="sx-mgmt__avatar">Y</span>
+          <span className="sx-mgmt__user-label">
+            <span className="sx-mgmt__user-name">You</span>
+            <span className="sx-mgmt__user-email">you@acme.com</span>
+          </span>
         </div>
       </nav>
 
