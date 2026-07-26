@@ -22,6 +22,12 @@ export interface CreateApiKeyFormProps {
   readonly onCreated?: (apiKey: ApiKey) => void;
   /** Fired when the user cancels creation. */
   readonly onCancel?: () => void;
+  /**
+   * Seeds the name field on mount (e.g. a suggested key name, or a demo
+   * scenario depicting the form mid-fill). One-time: consumed on mount;
+   * subsequent changes are ignored. The field stays fully editable.
+   */
+  readonly initialName?: string;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
@@ -51,11 +57,12 @@ export function CreateApiKeyForm({
   org,
   onCreated,
   onCancel,
+  initialName = "",
   className,
 }: CreateApiKeyFormProps) {
   const { create, isCreating, error, clearError } = useCreateApiKey();
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initialName);
   const [expiry, setExpiry] = useState<ExpiryOption>("never");
 
   const trimmedName = name.trim();

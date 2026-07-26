@@ -2,9 +2,9 @@
  * Platform client setup tour — 8-step walkthrough of creating a
  * PlatformClient in the Stigmer Console and obtaining credentials.
  *
- * Mirrors the api-key-setup pattern: navigates from the session view
- * through the user menu into Settings > Platform Clients, creates a
- * new client, and reveals the one-time secret.
+ * Navigates from the session view through the user menu into
+ * Settings > Platform Clients, creates a new client, and reveals the
+ * one-time secret.
  */
 
 import { create } from "@bufbuild/protobuf";

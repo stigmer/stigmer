@@ -36,20 +36,6 @@ export type QuickstartTourStep =
   | { view: "terminal-domain-fail" };
 
 // ---------------------------------------------------------------------------
-// Fixture data — the created API key (beat 0)
-// ---------------------------------------------------------------------------
-
-/** Name of the key the reader just created, shown in the reveal alert. */
-export const CREATED_KEY_NAME = "quickstart-key";
-
-/**
- * The one-time raw key value the reveal alert displays. Deliberately
- * fake-but-plausible: the docs prose tells the reader their key starts
- * with `sk_`, so the depicted key must too.
- */
-export const CREATED_RAW_KEY = "sk_live_dEm0k3y_a1b2c3d4e5f6g7h8";
-
-// ---------------------------------------------------------------------------
 // Fixture data — code listings (beats 1 and 3)
 // ---------------------------------------------------------------------------
 

@@ -1,0 +1,25 @@
+{
+  "voice": "",
+  "steps": [
+    {
+      "hash": "93f4f8f8753d58634f02bf720c69b403e0423971f536c30cb9622d6e936a2016",
+      "durationMs": 9500
+    },
+    {
+      "hash": "461d63002f29063136fd3ab72725e8e324c18c85ef364506fe47ed8d72817cc2",
+      "durationMs": 2550
+    },
+    {
+      "hash": "a324033e9fab95f6a4cfaa9c61d9e9a77f31687609282203f1da598b2d518541",
+      "durationMs": 5800
+    },
+    {
+      "hash": "99d37e6a4b7614ddb54dd7121fad1bd33266f7226296c530fd407cf911e01d1c",
+      "durationMs": 2463
+    },
+    {
+      "hash": "c3d042ec65d16aa48f10559ecd152052b8654a348c71f5236c44e47e40720d8d",
+      "durationMs": 4988
+    }
+  ]
+}

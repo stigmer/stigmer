@@ -278,8 +278,8 @@ interface DemoManifestEntry {
 
 /**
  * Parse src/components/docs/index.ts to build a map from MDX component
- * name (e.g. "DemoApiKeySetup") to scenario directory name
- * (e.g. "api-key-setup"). This avoids fragile PascalCase-to-kebab
+ * name (e.g. "DemoMcpServerDetail") to scenario directory name
+ * (e.g. "mcp-server-detail"). This avoids fragile PascalCase-to-kebab
  * conversion for acronyms like MCP, OAuth, SSO, API.
  */
 async function buildComponentToScenarioMap(): Promise<Map<string, string>> {

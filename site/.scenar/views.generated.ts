@@ -49,7 +49,6 @@ import { ManagementShell } from "../src/components/docs/demos/views/ManagementSh
 import { ResourceListPage } from "../src/components/docs/demos/views/ResourceListPage";
 import { WidgetsSidebar } from "../src/components/docs/demos/views/WidgetsSidebar";
 import { AgentDetail } from "../src/components/docs/demos/scenarios/agent-detail/index";
-import { ApiKeySetup } from "../src/components/docs/demos/scenarios/api-key-setup/index";
 import { ApprovalFlowPlayback } from "../src/components/docs/demos/scenarios/approval-flow-playback/index";
 import { ByoaSetup } from "../src/components/docs/demos/scenarios/byoa-setup/index";
 import { DragReorderValidation } from "../src/components/docs/demos/scenarios/drag-reorder-validation/index";
@@ -112,7 +111,6 @@ export const generatedViews = {
   ResourceListPage,
   WidgetsSidebar,
   AgentDetail,
-  ApiKeySetup,
   ApprovalFlowPlayback,
   ByoaSetup,
   DragReorderValidation,

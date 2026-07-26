@@ -1,7 +1,6 @@
 export { AgentDetail as DemoAgentDetail } from "./demos/scenarios/agent-detail";
 export { DatastoreRecordsBrowser as DemoDatastoreRecordsBrowser } from "./demos/scenarios/datastore-records-browser";
 export { McpServerDetail as DemoMcpServerDetail } from "./demos/scenarios/mcp-server-detail";
-export { ApiKeySetup as DemoApiKeySetup } from "./demos/scenarios/api-key-setup";
 export { ApprovalFlowPlayback as DemoApprovalFlowPlayback } from "./demos/scenarios/approval-flow-playback";
 export { SkillDetail as DemoSkillDetail } from "./demos/scenarios/skill-detail";
 export { ToolCallsPlayback as DemoToolCallsPlayback } from "./demos/scenarios/tool-calls-playback";

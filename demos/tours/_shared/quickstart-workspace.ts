@@ -16,6 +16,22 @@
  */
 import type { FileTreeEntry, TerminalLine } from "@scenar/react";
 
+/**
+ * The API key the reader creates in the quickstart — a settled depicted
+ * resource, not a builder. `quickstart-tour`'s beat 0 shows its reveal
+ * alert; `api-key-setup` walks its whole creation flow (the name typed in
+ * the form and the key revealed at the end are this same identity, so the
+ * two embeds cannot drift apart). The raw value is deliberately
+ * fake-but-plausible: the docs prose tells the reader their key starts
+ * with `sk_`, so the depicted key must too.
+ */
+export const QUICKSTART_API_KEY = {
+  /** Name of the key, as typed in the create form and shown in the alert. */
+  name: "quickstart-key",
+  /** The one-time raw key value the reveal alert displays. */
+  rawKey: "sk_live_dEm0k3y_a1b2c3d4e5f6g7h8",
+} as const;
+
 /** The workspace's identity, as the editor and terminal shells frame it. */
 export const QUICKSTART_WORKSPACE = {
   /** Folder name shown in the editor title bar and file explorer. */

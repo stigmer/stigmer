@@ -3,26 +3,26 @@
  * and viewport are supplied by `scenar pack` — this file only maps step data
  * to views.
  *
- * Beat 0 is the console's API Keys page in the reveal state (`ApiKeysPage`,
- * tour-local — see its docstring for the no-create-button decision). Beats
- * 1–4 alternate the reader's editor and terminal inside the quickstart
- * workspace shared with `create-agent-tour` and `connect-tools-tour`, so
- * the Getting Started pages depict one continuous project.
+ * Beat 0 is the console's API Keys page in the reveal state
+ * (`_shared/ApiKeysPage` — see its docstring for what each depicted phase
+ * shows and hides). Beats 1–4 alternate the reader's editor and terminal
+ * inside the quickstart workspace shared with `create-agent-tour` and
+ * `connect-tools-tour`, so the Getting Started pages depict one continuous
+ * project.
  */
 import type { ReactNode } from "react";
 import { CodeEditorView, TerminalView } from "@scenar/react";
 import { ManagementShell } from "../_shared/ManagementShell";
 import {
+  QUICKSTART_API_KEY,
   QUICKSTART_FILE_TREE,
   QUICKSTART_WORKSPACE,
 } from "../_shared/quickstart-workspace";
-import { ApiKeysPage } from "./ApiKeysPage";
+import { ApiKeysPage } from "../_shared/ApiKeysPage";
 import {
   type QuickstartTourStep,
   CONNECT_CODE,
   CONNECT_HIGHLIGHT_LINES,
-  CREATED_KEY_NAME,
-  CREATED_RAW_KEY,
   DOMAIN_CODE,
   DOMAIN_FAIL_OUTPUT,
   GENERIC_OUTPUT,
@@ -34,7 +34,13 @@ export function renderStep(data: QuickstartTourStep): ReactNode {
     case "api-key-created":
       return (
         <ManagementShell activeNav="api-keys" contentKey="api-keys">
-          <ApiKeysPage keyName={CREATED_KEY_NAME} rawKey={CREATED_RAW_KEY} />
+          <ApiKeysPage
+            state={{
+              phase: "reveal",
+              keyName: QUICKSTART_API_KEY.name,
+              rawKey: QUICKSTART_API_KEY.rawKey,
+            }}
+          />
         </ManagementShell>
       );
 
