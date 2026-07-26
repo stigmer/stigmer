@@ -134,3 +134,8 @@
   border-radius: 6px;
   background: color-mix(in oklab, var(--stgm-primary) 5%, transparent);
 }
+
+/* Engine-driven hover feedback (`data-hover`): the console's primary-hover. */
+.resource-page__create-wrap[data-hover] .resource-page__create {
+  background: color-mix(in oklab, var(--stgm-primary) 88%, var(--stgm-primary-foreground));
+}

@@ -243,3 +243,14 @@
   overflow-y: auto;
   border-left: 1px solid var(--stgm-border);
 }
+
+/*
+ * Engine-driven hover feedback: `hover` interactions set `data-hover` on
+ * the target (see the scenar skill) — style it like the console's own
+ * hover so a depicted hover reads as the real one.
+ */
+.demo-shell__nav-row[data-hover],
+.demo-shell__recent[data-hover] {
+  background: var(--stgm-sidebar-accent);
+  color: var(--stgm-sidebar-accent-foreground);
+}

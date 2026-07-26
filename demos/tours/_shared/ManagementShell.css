@@ -203,3 +203,10 @@
   overflow: hidden;
   background: var(--stgm-background);
 }
+
+/* Engine-driven hover feedback (`data-hover`), matching the console's own. */
+.sx-mgmt__item[data-hover],
+.sx-mgmt__back[data-hover] {
+  background: var(--stgm-sidebar-accent);
+  color: var(--stgm-sidebar-accent-foreground);
+}
