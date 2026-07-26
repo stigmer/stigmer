@@ -1,7 +1,10 @@
 /*
- * ComposerView layout — plain CSS only. The real `MessageThread` and
- * `SessionComposer` ship their own `--stgm-*`-themed styles; this file just
- * frames and sizes them inside the demo shell content area.
+ * ComposerView layout — plain CSS only, at the real new-session pane's own
+ * geometry (sdk/react NewSessionViewer: `px-4 py-6` scroll pane, `max-w-2xl`
+ * column, `space-y-6`, centered `text-lg font-medium` heading). The real
+ * `MessageThread` and `SessionComposer` ship their own `--stgm-*`-themed
+ * styles; this file only frames them. No zoom anywhere — the shell lays out
+ * at real size and the viewport boundary owns the one scale factor.
  */
 .composer {
   display: flex;
@@ -9,24 +12,38 @@
   flex-direction: column;
 }
 
-/* Conversation state: a scrollable, height-capped thread. */
+/* Conversation state: a scrollable thread filling the content pane. */
 .composer__thread {
   display: flex;
   height: 100%;
   flex-direction: column;
+  overflow-y: auto;
 }
 .composer__message-thread {
-  max-height: 390px;
-  padding: 8px 12px;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 42rem;
+  padding: 24px 16px;
 }
 
-/* Empty / typing state: composer centered in the content area. */
+/* Empty / typing state: heading + composer centered, real pane metrics. */
 .composer--center {
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  overflow-y: auto;
+  padding: 24px 16px;
 }
 .composer__center-inner {
+  display: flex;
   width: 100%;
-  max-width: 36rem;
+  max-width: 42rem;
+  flex-direction: column;
+  gap: 24px;
+}
+.composer__heading {
+  margin: 0;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--stgm-foreground);
 }
