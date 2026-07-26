@@ -17,9 +17,6 @@ import {
   USER_ONBOARDED_OUTPUT,
 } from "./steps";
 
-// BrowserView shells render slightly below 1.0 so the mockup sits comfortably
-// in the docs column (ported from the in-repo demo's DEMO_BROWSER_ZOOM).
-const BROWSER_ZOOM = 0.9;
 
 // ---------------------------------------------------------------------------
 // File tree (CodeEditorView sidebar)
@@ -44,7 +41,7 @@ export function renderStep(data: MultiTenantSetupStep): ReactNode {
   switch (data.view) {
     case "tenant-signup":
       return (
-        <BrowserView url="acme.cloud/admin/tenants" contentKey="admin" zoom={BROWSER_ZOOM}>
+        <BrowserView url="acme.cloud/admin/tenants" contentKey="admin">
           <AdminListPage
             appName="Acme Cloud"
             breadcrumbs={["Tenants"]}
@@ -108,7 +105,7 @@ export function renderStep(data: MultiTenantSetupStep): ReactNode {
 
     case "user-signup":
       return (
-        <BrowserView url="tenant-alpha.acme.cloud/signup" contentKey="signup" zoom={BROWSER_ZOOM}>
+        <BrowserView url="tenant-alpha.acme.cloud/signup" contentKey="signup">
           <LoginCardPage
             appName="Tenant Alpha"
             subtitle="Create your account"

@@ -40,11 +40,11 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { CodeEditorView, TerminalView } from "@scenar/react";
+import { BrowserView, CodeEditorView, TerminalView } from "@scenar/react";
 import { AppShell } from "../_shared/AppShell";
 import { ComposerView } from "../_shared/ComposerView";
 import { renderWidgetsSidebar } from "../_shared/WidgetsSidebar";
-import { DEMO_CONTENT_ZOOM, DEMO_ORG, snapshot } from "../_shared/fixtures";
+import { DEMO_ORG, snapshot } from "../_shared/fixtures";
 import {
   ORDER_MGMT_CONNECTED,
   ORDER_MGMT_MCP,
@@ -154,20 +154,40 @@ const APPROVED = snapshot(
 // Rendering
 // ---------------------------------------------------------------------------
 
-/** Scrollable frame for the real detail view (mcp-server-connect-tour's idiom). */
+/**
+ * Scrollable library-detail frame at the zone's real geometry
+ * (`mx-auto max-w-4xl px-6 py-8`). One scale factor per frame — no zoom.
+ */
 const DETAIL_SCROLL: CSSProperties = {
   height: "100%",
   overflowY: "auto",
-  padding: 16,
-  zoom: DEMO_CONTENT_ZOOM,
+  padding: "32px 24px",
+};
+const DETAIL_CONTENT: CSSProperties = {
+  margin: "0 auto",
+  maxWidth: "56rem",
 };
 
 const FULL_HEIGHT: CSSProperties = { height: "100%" };
 
+/**
+ * Console beats render inside a browser window whose address bar tracks the
+ * depicted route — a screen recording shows an app in its container.
+ */
+function consoleWindow(contentKey: string, path: string, children: ReactNode) {
+  return (
+    <BrowserView url={`app.stigmer.ai${path}`} contentKey={contentKey}>
+      {children}
+    </BrowserView>
+  );
+}
+
 export function renderStep(data: ConnectToolsTourStep): ReactNode {
   switch (data.view) {
     case "detail":
-      return (
+      return consoleWindow(
+        "mcp-detail",
+        `/library/mcp-servers/${ORDER_MGMT_MCP.slug}`,
         // Stable contentKey: both detail beats show one page, so AppShell
         // must not replay its navigation transition between them. The inner
         // key remounts the view exactly when defaultCapabilityTab changes
@@ -175,16 +195,18 @@ export function renderStep(data: ConnectToolsTourStep): ReactNode {
         // re-establishes scroll after the remount.
         <AppShell activeNav="library" contentKey="mcp-detail">
           <div key={`detail-${data.tab}`} style={DETAIL_SCROLL} inert>
-            <McpServerDetailView
-              org={DEMO_ORG}
-              slug={ORDER_MGMT_MCP.slug}
-              activeOrg={DEMO_ORG}
-              editable
-              mcpServerState={ORDER_MGMT_CONNECTED}
-              defaultCapabilityTab={data.tab}
-            />
+            <div style={DETAIL_CONTENT}>
+              <McpServerDetailView
+                org={DEMO_ORG}
+                slug={ORDER_MGMT_MCP.slug}
+                activeOrg={DEMO_ORG}
+                editable
+                mcpServerState={ORDER_MGMT_CONNECTED}
+                defaultCapabilityTab={data.tab}
+              />
+            </div>
           </div>
-        </AppShell>
+        </AppShell>,
       );
 
     case "code":
@@ -211,7 +233,9 @@ export function renderStep(data: ConnectToolsTourStep): ReactNode {
 
     case "thread": {
       const execution = data.phase === "awaiting-approval" ? WAITING : APPROVED;
-      return (
+      return consoleWindow(
+        data.phase,
+        "/",
         <AppShell
           activeNav="new-session"
           contentKey={data.phase}
@@ -223,7 +247,7 @@ export function renderStep(data: ConnectToolsTourStep): ReactNode {
               showApprovals={data.phase === "awaiting-approval"}
             />
           </div>
-        </AppShell>
+        </AppShell>,
       );
     }
   }

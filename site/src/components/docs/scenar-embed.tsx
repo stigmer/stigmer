@@ -42,6 +42,11 @@ export function ScenarEmbed({ id, title }: ScenarEmbedProps) {
       base={EMBED_BASE}
       title={title}
       className="not-prose relative mx-auto my-4 w-full max-w-4xl rounded-lg"
+      // The tours' recorded viewport is 1280x800 (16:10 — demos'
+      // pack-all.mjs), but @scenar/embed's pre-handshake baseline is its own
+      // 896x480 default; pinning the real ratio here removes the layout jump
+      // between first paint and the embed's resize handshake.
+      style={{ aspectRatio: "1280 / 800" }}
     />
   );
 }

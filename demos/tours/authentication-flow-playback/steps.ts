@@ -118,12 +118,9 @@ export const authFlowSteps: ScenarioStep<AuthFlowStep>[] = [
     data: { view: "browser-login" },
     narration:
       "Jane signs in to the Acme platform using her existing credentials. This is standard OIDC — Stigmer isn't involved yet.",
-    // Was driven by `cursorTargetFor` in the in-app demo; in the packed embed
-    // the cursor is interaction-driven, so move it to the sign-in button as the
-    // narration describes the login.
-    interactions: [
-      { atPercent: 0.5, type: "set_cursor", target: "sign-in-btn" },
-    ],
+    // Step 0 stays interaction-free: its timers fire under the poster before
+    // Play (the toolchain quirk the verify gate enforces). The sign-in button
+    // carries a rendered PulseHighlight, which is the attention cue here.
   },
   {
     delayMs: 2500,

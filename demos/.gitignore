@@ -1,5 +1,6 @@
 # Derived pack output (built in the website release workflow)
 .bundles/
+.bundles-spike/
 *-bundle/
 .scenar-pack/
 

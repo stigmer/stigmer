@@ -11,7 +11,7 @@
  * project.
  */
 import type { ReactNode } from "react";
-import { CodeEditorView, TerminalView } from "@scenar/react";
+import { BrowserView, CodeEditorView, TerminalView } from "@scenar/react";
 import { ManagementShell } from "../_shared/ManagementShell";
 import {
   QUICKSTART_API_KEY,
@@ -33,15 +33,17 @@ export function renderStep(data: QuickstartTourStep): ReactNode {
   switch (data.view) {
     case "api-key-created":
       return (
-        <ManagementShell activeNav="api-keys" contentKey="api-keys">
-          <ApiKeysPage
-            state={{
-              phase: "reveal",
-              keyName: QUICKSTART_API_KEY.name,
-              rawKey: QUICKSTART_API_KEY.rawKey,
-            }}
-          />
-        </ManagementShell>
+        <BrowserView url="app.stigmer.ai/settings/api-keys" contentKey="api-keys">
+          <ManagementShell activeNav="api-keys" contentKey="api-keys">
+            <ApiKeysPage
+              state={{
+                phase: "reveal",
+                keyName: QUICKSTART_API_KEY.name,
+                rawKey: QUICKSTART_API_KEY.rawKey,
+              }}
+            />
+          </ManagementShell>
+        </BrowserView>
       );
 
     case "code-connect":

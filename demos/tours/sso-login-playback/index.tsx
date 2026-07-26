@@ -4,11 +4,6 @@ import { BrowserView, PulseHighlight } from "@scenar/react";
 import { ManagementShell } from "../_shared/ManagementShell";
 import type { SsoLoginStep } from "./steps";
 
-// BrowserView shells render slightly below 1.0 so the mockup sits comfortably
-// in the docs column (ported from the in-repo demo's DEMO_BROWSER_ZOOM).
-const BROWSER_ZOOM = 0.9;
-// Content zoom for the management detail panel (ported from DEMO_CONTENT_ZOOM).
-const CONTENT_ZOOM = 0.82;
 
 const MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
 // Semantic colors — fixed, do not need to theme. Emerald = success; orange is
@@ -40,14 +35,14 @@ function DetailField({
 }) {
   return (
     <div>
-      <dt style={{ fontSize: "0.65rem", fontWeight: 500, color: "var(--scenar-muted-foreground)" }}>
+      <dt style={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--scenar-muted-foreground)" }}>
         {label}
       </dt>
       <dd
         style={{
           margin: "0.125rem 0 0",
           wordBreak: "break-all",
-          fontSize: "0.75rem",
+          fontSize: "0.875rem",
           color: "var(--scenar-foreground)",
           fontFamily: mono ? MONO : undefined,
         }}
@@ -60,7 +55,8 @@ function DetailField({
 
 function IdpDetailContent() {
   return (
-    <div style={{ padding: "0.75rem", zoom: CONTENT_ZOOM }}>
+    <div style={{ height: "100%", overflowY: "auto", padding: "32px 24px" }}>
+      <div style={{ margin: "0 auto", maxWidth: "48rem" }}>
       {/* Header */}
       <div style={{ marginBottom: "0.75rem" }}>
         <button
@@ -74,7 +70,7 @@ function IdpDetailContent() {
             background: "none",
             padding: 0,
             cursor: "pointer",
-            fontSize: "0.65rem",
+            fontSize: "0.75rem",
             color: "var(--scenar-muted-foreground)",
           }}
         >
@@ -95,11 +91,11 @@ function IdpDetailContent() {
         </button>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.75rem" }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600, color: "var(--scenar-foreground)" }}>
+            <h3 style={{ margin: 0, fontSize: "1.125rem", fontWeight: 600, color: "var(--scenar-foreground)" }}>
               Acme SSO
             </h3>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <span style={{ fontFamily: MONO, fontSize: "0.75rem", color: "var(--scenar-muted-foreground)" }}>
+              <span style={{ fontFamily: MONO, fontSize: "0.875rem", color: "var(--scenar-muted-foreground)" }}>
                 acme-sso
               </span>
               <span
@@ -110,7 +106,7 @@ function IdpDetailContent() {
                   border: "1px solid color-mix(in srgb, var(--scenar-primary) 30%, transparent)",
                   background: "color-mix(in srgb, var(--scenar-primary) 5%, transparent)",
                   padding: "0.125rem 0.5rem",
-                  fontSize: "0.6rem",
+                  fontSize: "0.75rem",
                   fontWeight: 500,
                   color: "var(--scenar-primary)",
                 }}
@@ -124,7 +120,7 @@ function IdpDetailContent() {
               flexShrink: 0,
               borderRadius: "0.375rem",
               padding: "0.375rem 0.625rem",
-              fontSize: "0.75rem",
+              fontSize: "0.875rem",
               fontWeight: 500,
               color: "var(--scenar-muted-foreground)",
             }}
@@ -143,12 +139,12 @@ function IdpDetailContent() {
 
         {/* SSO Login URL — copyable */}
         <div>
-          <dt style={{ fontSize: "0.65rem", fontWeight: 500, color: "var(--scenar-muted-foreground)" }}>
+          <dt style={{ fontSize: "0.75rem", fontWeight: 500, color: "var(--scenar-muted-foreground)" }}>
             SSO login URL
           </dt>
           <dd style={{ margin: "0.125rem 0 0" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <span style={{ wordBreak: "break-all", fontFamily: MONO, fontSize: "0.75rem", color: "var(--scenar-foreground)" }}>
+              <span style={{ wordBreak: "break-all", fontFamily: MONO, fontSize: "0.875rem", color: "var(--scenar-foreground)" }}>
                 https://app.stigmer.ai/login?org=acme
               </span>
               <div style={{ position: "relative" }} data-cursor-target="copy-url-btn">
@@ -161,7 +157,7 @@ function IdpDetailContent() {
                     background: "none",
                     padding: "0.125rem 0.375rem",
                     cursor: "pointer",
-                    fontSize: "0.6rem",
+                    fontSize: "0.75rem",
                     color: "var(--scenar-muted-foreground)",
                   }}
                 >
@@ -170,7 +166,7 @@ function IdpDetailContent() {
                 <PulseHighlight />
               </div>
             </div>
-            <p style={{ margin: "0.125rem 0 0", fontSize: "0.65rem", color: "var(--scenar-muted-foreground)" }}>
+            <p style={{ margin: "0.125rem 0 0", fontSize: "0.75rem", color: "var(--scenar-muted-foreground)" }}>
               Share this URL with your team members to sign in via SSO
             </p>
           </dd>
@@ -181,6 +177,7 @@ function IdpDetailContent() {
           <DetailField label="Updated" value="Apr 7, 2026" />
         </div>
       </dl>
+      </div>
     </div>
   );
 }
@@ -459,14 +456,19 @@ export function renderStep(data: SsoLoginStep): ReactNode {
   switch (data.view) {
     case "idp-detail":
       return (
-        <ManagementShell activeNav="identity-providers" contentKey="idp-detail">
-          <IdpDetailContent />
-        </ManagementShell>
+        <BrowserView
+          url="app.stigmer.ai/settings/identity-providers"
+          contentKey="idp-detail"
+        >
+          <ManagementShell activeNav="identity-providers" contentKey="idp-detail">
+            <IdpDetailContent />
+          </ManagementShell>
+        </BrowserView>
       );
 
     case "sso-login":
       return (
-        <BrowserView url="app.stigmer.ai/login?org=acme" contentKey="sso-login" zoom={BROWSER_ZOOM}>
+        <BrowserView url="app.stigmer.ai/login?org=acme" contentKey="sso-login">
           <SsoLoginPage />
         </BrowserView>
       );
@@ -477,7 +479,7 @@ export function renderStep(data: SsoLoginStep): ReactNode {
           url="login.acme.com/authorize"
           contentKey="idp-redirect"
           slideDirection="forward"
-          zoom={BROWSER_ZOOM}
+         
         >
           <ExternalIdpLogin />
         </BrowserView>
@@ -489,7 +491,7 @@ export function renderStep(data: SsoLoginStep): ReactNode {
           url="app.stigmer.ai/sessions"
           contentKey="console-welcome"
           slideDirection="forward"
-          zoom={BROWSER_ZOOM}
+         
         >
           <ConsoleWelcome />
         </BrowserView>

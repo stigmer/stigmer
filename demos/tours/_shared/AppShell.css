@@ -1,93 +1,148 @@
 /*
- * AppShell chrome — layout in plain CSS, colors from the Stigmer `--stgm-*`
- * design tokens so the shell themes as one system with the real components it
- * wraps (scenar-cloud DD-003, revised). The tokens flip automatically under
- * `.stgm[data-stgm-color-mode="dark"]`, so both themes work with no extra CSS.
+ * AppShell chrome — the console's workspace zone at the console's own
+ * metrics. Every dimension here is transcribed from the real sidebar
+ * (client-apps/web/src/domain/_shared/layout/Sidebar.tsx): 280px width
+ * (`w-70`), 14px/500 nav labels (`text-sm font-medium`), 16px icons
+ * (`size-4`), `px-3 py-1` item wrappers with `px-2 py-1.5` rows, 11px
+ * uppercase recents header, 12px two-line-clamped entries with a 10px
+ * relative-time column. Do not "shrink to fit": the shell lays out at real
+ * size and the viewport boundary applies the single scale factor.
  *
- * Height comes from `--scenar-shell-height`, which Scenar's DemoViewport sets
- * on the packed embed; the clamp is the authoring-preview fallback.
+ * Colors come from the same `--stgm-sidebar-*` tokens the real sidebar
+ * consumes (via the compiled @stigmer/react stylesheet), so both themes
+ * work with no extra CSS. Layout is plain CSS — Tailwind utilities no-op
+ * under `scenar pack` (scenar-cloud DD-003).
+ *
+ * The shell is the page, not a card: no border, no radius, fills its
+ * container. Window chrome (browser frame / shadow / backdrop) is supplied
+ * by whatever frames the shell.
  */
 .demo-shell {
   display: flex;
   overflow: hidden;
-  height: var(--scenar-shell-height, clamp(320px, 55vh, 560px));
-  border: 1px solid var(--stgm-border);
-  border-radius: var(--stgm-radius);
-  background: var(--stgm-card);
+  height: 100%;
+  background: var(--stgm-background);
   font-family: var(--stgm-font-sans);
 }
 
-/* --- Nav sidebar --- */
+/* --- Nav sidebar (280px, real `w-70`) --- */
 .demo-shell__nav {
   display: flex;
-  width: 112px;
+  width: 280px;
   flex-shrink: 0;
   flex-direction: column;
-  border-right: 1px solid var(--stgm-border);
-  background: var(--stgm-muted);
+  border-right: 1px solid var(--stgm-sidebar-border);
+  background: var(--stgm-sidebar);
+  color: var(--stgm-sidebar-foreground);
 }
 
-.demo-shell__org {
+/* Top row: collapse toggle + org switcher (`gap-1 px-2 py-2`). */
+.demo-shell__top {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: 4px;
+  padding: 8px;
+}
+.demo-shell__collapse {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--stgm-sidebar-foreground);
+}
+.demo-shell__org {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 6px 8px;
 }
 .demo-shell__org-icon {
   flex-shrink: 0;
-  color: var(--stgm-muted-foreground);
+}
+.demo-shell__org-label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
 }
 .demo-shell__org-name {
   overflow: hidden;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--stgm-foreground);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.demo-shell__org-slug {
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--stgm-sidebar-muted-foreground);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.demo-shell__nav-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 0 8px;
+/* Primary nav (`px-3 py-1` wrappers, `px-2 py-1.5 text-sm font-medium` rows). */
+.demo-shell__nav-item {
+  flex: none;
+  padding: 4px 12px;
 }
 .demo-shell__nav-row {
   position: relative; /* anchors PulseHighlight when a row is highlighted */
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 10px;
-  color: var(--stgm-muted-foreground);
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--stgm-sidebar-foreground);
 }
 .demo-shell__nav-row--active {
-  background: var(--stgm-accent);
-  color: var(--stgm-accent-foreground);
+  background: var(--stgm-sidebar-accent);
+  color: var(--stgm-sidebar-accent-foreground);
 }
 .demo-shell__nav-icon {
   flex-shrink: 0;
 }
 
 .demo-shell__sep {
-  margin: 6px 12px;
-  border-top: 1px solid var(--stgm-border);
+  margin: 4px 12px;
+  border-top: 1px solid var(--stgm-sidebar-border);
 }
 
+/* Recents (`p-3`; header `text-[11px] font-semibold tracking-wider`). */
 .demo-shell__recents {
   min-height: 0;
   flex: 1;
   overflow-y: auto;
-  padding: 0 12px;
+  padding: 12px;
 }
 .demo-shell__recents-label {
-  margin: 0 0 4px;
-  font-size: 8px;
+  margin: 0 0 8px;
+  padding: 0 4px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--stgm-muted-foreground);
+  color: var(--stgm-sidebar-muted-foreground);
+}
+.demo-shell__recents-group + .demo-shell__recents-group {
+  margin-top: 16px;
+}
+.demo-shell__recents-group-label {
+  margin: 0 0 4px;
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--stgm-sidebar-muted-foreground);
 }
 .demo-shell__recents-list {
   display: flex;
@@ -98,39 +153,76 @@
   list-style: none;
 }
 .demo-shell__recent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--stgm-sidebar-foreground);
+}
+.demo-shell__recent-icon {
+  margin-top: 2px;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+.demo-shell__recent-subject {
+  display: -webkit-box;
+  min-width: 0;
+  flex: 1;
   overflow: hidden;
-  padding: 2px 6px;
-  border-radius: 2px;
-  font-size: 9px;
-  color: var(--stgm-muted-foreground);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.demo-shell__recent-time {
+  flex-shrink: 0;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--stgm-sidebar-muted-foreground);
+  font-variant-numeric: tabular-nums;
 }
 
+/* User footer (`border-t px-3 py-2`). */
 .demo-shell__user {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 8px 12px;
-  border-top: 1px solid var(--stgm-border);
+  border-top: 1px solid var(--stgm-sidebar-border);
 }
 .demo-shell__avatar {
   display: flex;
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  background: color-mix(in oklab, var(--stgm-muted-foreground) 20%, transparent);
+  background: color-mix(
+    in oklab,
+    var(--stgm-sidebar-muted-foreground) 20%,
+    transparent
+  );
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--stgm-sidebar-foreground);
 }
-.demo-shell__user-icon {
-  color: var(--stgm-muted-foreground);
+.demo-shell__user-label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
 }
 .demo-shell__user-name {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+.demo-shell__user-email {
   overflow: hidden;
-  font-size: 9px;
-  color: var(--stgm-muted-foreground);
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--stgm-sidebar-muted-foreground);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -144,10 +236,21 @@
   background: var(--stgm-background);
 }
 
-/* --- Widget rail (optional right sidebar) --- */
+/* --- Widget rail (optional right sidebar; real session-page panel width) --- */
 .demo-shell__aside {
-  width: 192px;
+  width: 320px;
   flex-shrink: 0;
   overflow-y: auto;
   border-left: 1px solid var(--stgm-border);
+}
+
+/*
+ * Engine-driven hover feedback: `hover` interactions set `data-hover` on
+ * the target (see the scenar skill) — style it like the console's own
+ * hover so a depicted hover reads as the real one.
+ */
+.demo-shell__nav-row[data-hover],
+.demo-shell__recent[data-hover] {
+  background: var(--stgm-sidebar-accent);
+  color: var(--stgm-sidebar-accent-foreground);
 }

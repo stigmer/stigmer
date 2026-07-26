@@ -1,9 +1,9 @@
 import type { CSSProperties, ReactNode } from "react";
 import { AgentDetailView } from "@stigmer/react";
-import { CodeEditorView, TerminalView } from "@scenar/react";
+import { BrowserView, CodeEditorView, TerminalView } from "@scenar/react";
 import { AppShell } from "../_shared/AppShell";
 import { ComposerView } from "../_shared/ComposerView";
-import { DEMO_CONTENT_ZOOM, DEMO_ORG } from "../_shared/fixtures";
+import { DEMO_ORG } from "../_shared/fixtures";
 import {
   ORDER_LOOKUP_OUTPUT,
   QUICKSTART_FILE_TREE,
@@ -15,21 +15,38 @@ const TYPING_MESSAGE =
   "I want to create a customer support agent. It should use the return-policy " +
   "skill and the order-management-api MCP server.";
 
-/** Bordered detail card that frames a standalone SDK component (no app shell). */
-const DETAIL_CARD: CSSProperties = {
-  height: "var(--scenar-shell-height, clamp(320px, 55vh, 560px))",
-  overflow: "hidden",
-  border: "1px solid var(--stgm-border)",
-  borderRadius: "var(--stgm-radius)",
-  background: "var(--stgm-card)",
-};
+/** The console's address as the depicted browser shows it. */
+const CONSOLE_URL = "app.stigmer.ai";
 
-const DETAIL_SCROLL: CSSProperties = {
+/**
+ * The library zone's page scroll pane and content column, at the console's
+ * own geometry (`LibraryLayout`: `mx-auto max-w-4xl px-6 py-8`). No zoom —
+ * the shell lays out at real size (one scale factor per frame).
+ */
+const DETAIL_PAGE: CSSProperties = {
   height: "100%",
   overflowY: "auto",
-  padding: 16,
-  zoom: DEMO_CONTENT_ZOOM,
+  background: "var(--stgm-background)",
 };
+const DETAIL_CONTENT: CSSProperties = {
+  margin: "0 auto",
+  maxWidth: 896,
+  padding: "32px 24px",
+};
+
+/**
+ * The console beats render inside a browser window — a screen recording
+ * depicts an app in its container, not a floating fragment. The editor and
+ * terminal beats keep their own window chrome (`CodeEditorView`,
+ * `TerminalView`), so the tour reads as switching between real apps.
+ */
+function consoleWindow(contentKey: string, path: string, children: ReactNode) {
+  return (
+    <BrowserView url={`${CONSOLE_URL}${path}`} contentKey={contentKey}>
+      {children}
+    </BrowserView>
+  );
+}
 
 /**
  * Pure `renderStep`: maps a step's data to the view it renders. The player,
@@ -39,26 +56,35 @@ const DETAIL_SCROLL: CSSProperties = {
 export function renderStep(data: CreateAgentTourStep): ReactNode {
   switch (data.view) {
     case "agent-creator-typing":
-      return (
+      return consoleWindow(
+        "creator",
+        "/?draft=agent",
         <AppShell activeNav="new-session" contentKey="creator">
-          <ComposerView typingMessage={TYPING_MESSAGE} />
-        </AppShell>
+          <ComposerView heading="Add an Agent" typingMessage={TYPING_MESSAGE} />
+        </AppShell>,
       );
 
     case "agent-created":
-      return (
+      return consoleWindow(
+        "created",
+        "/?draft=agent",
         <AppShell activeNav="new-session" contentKey="created">
-          <ComposerView execution={data.execution} />
-        </AppShell>
+          {/* Cursor/camera anchor for steps that zoom into the reply. */}
+          <div data-cursor-target="thread" style={{ height: "100%" }}>
+            <ComposerView execution={data.execution} />
+          </div>
+        </AppShell>,
       );
 
     case "agent-config":
-      return (
-        <div style={DETAIL_CARD}>
-          <div style={DETAIL_SCROLL}>
+      return consoleWindow(
+        "config",
+        `/library/agents/${DEMO_SLUG}`,
+        <div style={DETAIL_PAGE}>
+          <div style={DETAIL_CONTENT}>
             <AgentDetailView org={DEMO_ORG} slug={DEMO_SLUG} />
           </div>
-        </div>
+        </div>,
       );
 
     case "code-simplified":

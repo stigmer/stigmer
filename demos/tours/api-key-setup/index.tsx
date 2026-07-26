@@ -11,38 +11,48 @@
  * navigation that never happened.
  */
 import type { ReactNode } from "react";
+import { BrowserView } from "@scenar/react";
 import { ManagementShell } from "../_shared/ManagementShell";
 import { ApiKeysPage } from "../_shared/ApiKeysPage";
 import { QUICKSTART_API_KEY } from "../_shared/quickstart-workspace";
 import type { ApiKeySetupStep } from "./steps";
 
+/**
+ * Every beat is the settings zone's API Keys page — one browser window at
+ * one route throughout, so the window's contentKey stays stable and only
+ * the page content transitions.
+ */
+function settingsWindow(contentKey: string, children: ReactNode) {
+  return (
+    <BrowserView url="app.stigmer.ai/settings/api-keys" contentKey="api-keys">
+      <ManagementShell activeNav="api-keys" contentKey={contentKey}>
+        {children}
+      </ManagementShell>
+    </BrowserView>
+  );
+}
+
 export function renderStep(data: ApiKeySetupStep): ReactNode {
   switch (data.view) {
     case "keys-idle":
-      return (
-        <ManagementShell activeNav="api-keys" contentKey="keys-idle">
-          <ApiKeysPage state={{ phase: "idle" }} />
-        </ManagementShell>
-      );
+      return settingsWindow("keys-idle", <ApiKeysPage state={{ phase: "idle" }} />);
 
     case "create-form":
-      return (
-        <ManagementShell activeNav="api-keys" contentKey="create-form">
-          <ApiKeysPage state={{ phase: "creating", initialName: data.name }} />
-        </ManagementShell>
+      return settingsWindow(
+        "create-form",
+        <ApiKeysPage state={{ phase: "creating", initialName: data.name }} />,
       );
 
     case "key-created":
-      return (
-        <ManagementShell activeNav="api-keys" contentKey="key-created">
-          <ApiKeysPage
-            state={{
-              phase: "reveal",
-              keyName: QUICKSTART_API_KEY.name,
-              rawKey: QUICKSTART_API_KEY.rawKey,
-            }}
-          />
-        </ManagementShell>
+      return settingsWindow(
+        "key-created",
+        <ApiKeysPage
+          state={{
+            phase: "reveal",
+            keyName: QUICKSTART_API_KEY.name,
+            rawKey: QUICKSTART_API_KEY.rawKey,
+          }}
+        />,
       );
   }
 }

@@ -5,11 +5,14 @@ import {
   findClockReads,
   findAuthoredInstants,
   findCrossTourImports,
+  findScaleFactors,
+  findCssScaleFactors,
   findStepsArray,
   validateTimeline,
   extractScenarEmbedIds,
   KNOWN_STEP0_OFFENDERS,
   READER_OFFSET_WINDOW,
+  REPLICA_METRIC_PAIRS,
 } from "./verify-scenar-tours.mjs";
 
 // ---------------------------------------------------------------------------
@@ -388,24 +391,76 @@ test("extractScenarEmbedIds ignores id attributes on other components", () => {
 });
 
 // ---------------------------------------------------------------------------
+// findScaleFactors / findCssScaleFactors (invariant 6)
+// ---------------------------------------------------------------------------
+
+test("findScaleFactors flags zoom JSX props and zoom style properties", () => {
+  const source = [
+    'const a = <BrowserView url="x" contentKey="k" zoom={0.9}>{c}</BrowserView>;',
+    'const b = <div style={{ zoom: 0.82 }}>{c}</div>;',
+    'const c2 = <div style={{ "zoom": DEMO_CONTENT_ZOOM }}>{c}</div>;',
+  ].join("\n");
+  const violations = findScaleFactors(source, "index.tsx");
+  assert.equal(violations.length, 3);
+  assert.deepEqual(
+    violations.map((v) => v.line),
+    [1, 2, 3],
+  );
+});
+
+test("findScaleFactors ignores the word zoom in comments, strings, and other identifiers", () => {
+  const source = [
+    "// the embed's CSS zoom does not apply to the top layer",
+    'const label = "zoom: 0.9";',
+    "const zoomLevel = compute();", // a variable, not a property
+    "useZoom(zoomLevel);",
+  ].join("\n");
+  assert.deepEqual(findScaleFactors(source, "index.tsx"), []);
+});
+
+test("findCssScaleFactors flags zoom declarations and transform scale, not text-transform or comments", () => {
+  const css = [
+    "/* the old shell used zoom: 0.55 here */",
+    ".a { zoom: 0.9; }",
+    ".b { transform: translateX(2px) scale(1.5); }",
+    ".c { text-transform: uppercase; }",
+    ".d { transform: rotate(360deg); }",
+    ".e { --scenar-shell-height: 728px; }",
+  ].join("\n");
+  const violations = findCssScaleFactors(css);
+  assert.deepEqual(
+    violations.map((v) => v.line),
+    [2, 3],
+  );
+});
+
+// ---------------------------------------------------------------------------
+// REPLICA_METRIC_PAIRS (invariant 7)
+// ---------------------------------------------------------------------------
+
+test("replica metric pairs name real, existing facts on both sides", () => {
+  // The tripwire only works if the needles are real: every pair must point
+  // at files that exist and contain the fact today. (The gate run itself
+  // asserts the same; this locks the pair shapes against refactors of the
+  // constant.)
+  assert.ok(REPLICA_METRIC_PAIRS.length >= 4);
+  for (const pair of REPLICA_METRIC_PAIRS) {
+    assert.ok(pair.fact && pair.replica && pair.replicaNeedle && pair.real && pair.realNeedle);
+    assert.ok(pair.replica.startsWith("demos/tours/_shared/"));
+    assert.ok(pair.real.startsWith("client-apps/web/"));
+  }
+});
+
+// ---------------------------------------------------------------------------
 // KNOWN_STEP0_OFFENDERS
 // ---------------------------------------------------------------------------
 
 test("the step-0 grandfather set only shrinks", () => {
-  // Debt tracker, not an allowlist: entries are removed by re-choreographing
-  // the tour, never added or swapped. Exact membership — a size bound would
-  // let a new offender hide behind a retired one. If this fires because a
-  // NEW tour was added to the set, fix the tour instead; if it fires because
-  // an entry was retired, delete the slug here too (that friction is the
-  // ratchet).
-  assert.deepEqual(
-    [...KNOWN_STEP0_OFFENDERS].sort(),
-    [
-      "authentication-flow-playback",
-      "multi-tenant-setup-playback",
-      "platform-client-token-flow",
-      "provision-grant-playback",
-      "sso-login-playback",
-    ],
-  );
+  // Debt tracker, not an allowlist — and the debt is paid: the five
+  // grandfathered playbacks were re-choreographed on 2026-07-26 (step-0
+  // cursors removed; the rendered PulseHighlight chrome carries the
+  // attention cue). The set must stay empty: a tour that needs a step-0
+  // interaction is a tour whose choreography is wrong, because step-0
+  // timers arm under the poster and fire before Play.
+  assert.deepEqual([...KNOWN_STEP0_OFFENDERS], []);
 });

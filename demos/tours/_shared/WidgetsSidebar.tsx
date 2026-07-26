@@ -6,7 +6,7 @@ import {
   UsageWidget,
   WriteBacksWidget,
 } from "@stigmer/react";
-import { DEMO_ORG, DEMO_SIDEBAR_ZOOM } from "./fixtures";
+import { DEMO_ORG } from "./fixtures";
 import "./WidgetsSidebar.css";
 
 interface WidgetsSidebarProps {
@@ -29,7 +29,7 @@ interface WidgetsSidebarProps {
  */
 export function WidgetsSidebar({ execution, executions, org }: WidgetsSidebarProps) {
   return (
-    <div className="widgets-rail" style={{ zoom: DEMO_SIDEBAR_ZOOM }}>
+    <div className="widgets-rail">
       <div className="widgets-rail__card">
         <ExecutionProgress execution={execution} />
       </div>

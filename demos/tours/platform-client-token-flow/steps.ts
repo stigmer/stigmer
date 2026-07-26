@@ -164,7 +164,9 @@ export const tokenFlowSteps: ScenarioStep<TokenFlowStep>[] = [
     data: { view: "platform-login" },
     narration:
       "Jane signs in to the Acme Dashboard using your authentication system. Stigmer is not involved in this step.",
-    interactions: [{ atPercent: 0.5, type: "set_cursor", target: "sign-in-btn" }],
+    // Step 0 stays interaction-free: its timers fire under the poster before
+    // Play (the toolchain quirk the verify gate enforces); the rendered
+    // chrome carries the attention cue instead.
   },
   {
     delayMs: 2500,

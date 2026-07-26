@@ -105,6 +105,9 @@ describe("ScenarEmbed", () => {
     expect(wrapper.className).toContain("not-prose");
     expect(wrapper.className).toContain("mx-auto");
     expect(wrapper.className).toContain("max-w-4xl");
-    expect(wrapper.style.aspectRatio).toBe("896 / 480");
+    // The tours' recorded viewport (demos/scripts/pack-all.mjs packs at
+    // 1280x800, 16:10 — DD-008), pinned here so first paint matches the
+    // embed's post-handshake size with no layout jump.
+    expect(wrapper.style.aspectRatio).toBe("1280 / 800");
   });
 });

@@ -7,10 +7,19 @@
  * text-primary create control, 0.75rem muted description, the form's
  * bordered bg-card container.
  */
+/*
+ * The settings zone's page geometry (`app/settings/layout.tsx`:
+ * `mx-auto max-w-3xl px-6 py-8`). One scale factor per frame — no zoom;
+ * the section lays out at real size inside the real column.
+ */
 .sx-apikeys {
   height: 100%;
   overflow-y: auto;
-  padding: 12px 16px 16px;
+  padding: 32px 24px;
+}
+.sx-apikeys > section {
+  margin: 0 auto;
+  max-width: 48rem;
 }
 
 .sx-apikeys__header {

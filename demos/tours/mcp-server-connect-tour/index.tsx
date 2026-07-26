@@ -26,9 +26,10 @@
 import type { CSSProperties } from "react";
 import type { ReactNode } from "react";
 import { McpServerDetailView, type UseMcpServerReturn } from "@stigmer/react";
+import { BrowserView } from "@scenar/react";
 import type { EnvVarInput } from "@stigmer/sdk";
 import { AppShell } from "../_shared/AppShell";
-import { DEMO_CONTENT_ZOOM, DEMO_ORG } from "../_shared/fixtures";
+import { DEMO_ORG } from "../_shared/fixtures";
 import {
   ORDER_MGMT_MCP,
   ORDER_MGMT_REGISTERED as REGISTERED,
@@ -53,12 +54,18 @@ function credentialPoolLookup(key: string): EnvVarInput | undefined {
 // Rendering
 // ---------------------------------------------------------------------------
 
-/** Scrollable frame for the real detail view (skill-creation-tour's idiom). */
+/**
+ * Scrollable library-detail frame at the zone's real geometry
+ * (`mx-auto max-w-4xl px-6 py-8`). One scale factor per frame — no zoom.
+ */
 const DETAIL_SCROLL: CSSProperties = {
   height: "100%",
   overflowY: "auto",
-  padding: 16,
-  zoom: DEMO_CONTENT_ZOOM,
+  padding: "32px 24px",
+};
+const DETAIL_CONTENT: CSSProperties = {
+  margin: "0 auto",
+  maxWidth: "56rem",
 };
 
 /**
@@ -95,21 +102,29 @@ export function renderStep(data: McpServerConnectTourStep): ReactNode {
     detailPropsFor(data);
 
   return (
-    // One page throughout — a stable contentKey keeps AppShell from
-    // replaying its navigation transition on every beat.
-    <AppShell activeNav="library" contentKey="mcp-detail">
-      <div key={key} style={DETAIL_SCROLL} inert>
-        <McpServerDetailView
-          org={DEMO_ORG}
-          slug={ORDER_MGMT_MCP.slug}
-          activeOrg={DEMO_ORG}
-          editable
-          mcpServerState={state}
-          defaultCapabilityTab={tab}
-          defaultShowCredentialForm={showCredentialForm}
-          credentialPoolValues={poolValues}
-        />
-      </div>
-    </AppShell>
+    // The console beat lives in a browser window whose address bar names the
+    // depicted route. One page throughout — a stable contentKey keeps
+    // AppShell from replaying its navigation transition on every beat.
+    <BrowserView
+      url={`app.stigmer.ai/library/mcp-servers/${ORDER_MGMT_MCP.slug}`}
+      contentKey="mcp-detail"
+    >
+      <AppShell activeNav="library" contentKey="mcp-detail">
+        <div key={key} style={DETAIL_SCROLL} inert>
+          <div style={DETAIL_CONTENT}>
+            <McpServerDetailView
+              org={DEMO_ORG}
+              slug={ORDER_MGMT_MCP.slug}
+              activeOrg={DEMO_ORG}
+              editable
+              mcpServerState={state}
+              defaultCapabilityTab={tab}
+              defaultShowCredentialForm={showCredentialForm}
+              credentialPoolValues={poolValues}
+            />
+          </div>
+        </div>
+      </AppShell>
+    </BrowserView>
   );
 }

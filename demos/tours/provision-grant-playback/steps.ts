@@ -121,7 +121,9 @@ export const provisionGrantSteps: ScenarioStep<ProvisionGrantStep>[] = [
     data: { view: "user-signup" },
     narration:
       "Jane signs up on the Acme platform. Your backend receives the signup event and starts the Stigmer onboarding flow.",
-    interactions: [{ atPercent: 0.5, type: "set_cursor", target: "signup-btn" }],
+    // Step 0 stays interaction-free: its timers fire under the poster before
+    // Play (the toolchain quirk the verify gate enforces); the rendered
+    // chrome carries the attention cue instead.
   },
   {
     delayMs: 3000,

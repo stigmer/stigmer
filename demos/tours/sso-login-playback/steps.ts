@@ -31,7 +31,9 @@ export const ssoLoginSteps: ScenarioStep<SsoLoginStep>[] = [
     data: { view: "idp-detail" },
     narration:
       "When SSO is enabled on an Identity Provider, a login URL appears on the detail panel. The admin copies this URL and shares it with the team.",
-    interactions: [{ atPercent: 0.6, type: "set_cursor", target: "copy-url-btn" }],
+    // Step 0 stays interaction-free: its timers fire under the poster before
+    // Play (the toolchain quirk the verify gate enforces); the rendered
+    // chrome carries the attention cue instead.
   },
   {
     delayMs: 3500,

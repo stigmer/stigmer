@@ -16,25 +16,6 @@ import { samples } from "@stigmer/react/test";
 export const DEMO_ORG = "acme";
 
 /**
- * Zoom applied to real `@stigmer/react` components rendered in the shell's
- * content area. The components are built for full application width; 0.9 fits
- * a full-featured surface (MessageThread, SessionComposer) inside the demo
- * shell without distorting typography ratios.
- *
- * In the docs this lived in a shared tokens module; here it travels with the
- * chrome that applies it. `zoom` is what Scenar's own `DemoViewport` uses to
- * scale the canonical layout, so it composes cleanly with the embed.
- */
-export const DEMO_CONTENT_ZOOM = 0.9;
-
-/**
- * Zoom applied to real `@stigmer/react` widgets in the shell's right sidebar
- * (`WidgetsSidebar`). Slightly higher than `DEMO_CONTENT_ZOOM` because the
- * sidebar is narrower and the widgets are already compact.
- */
-export const DEMO_SIDEBAR_ZOOM = 0.92;
-
-/**
  * Build an execution snapshot where the first human message goes into
  * `spec.message` and the rest into `status.messages`. `MessageThread`
  * synthesizes the human bubble from `spec.message`, so this split avoids

@@ -1,11 +1,12 @@
 import type { CSSProperties, ReactNode } from "react";
 import { ArtifactPreviewContent } from "@stigmer/react";
+import { BrowserView } from "@scenar/react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AppShell } from "../_shared/AppShell";
 import { ComposerView } from "../_shared/ComposerView";
 import { ResourceListPage } from "../_shared/ResourceListPage";
 import { renderWidgetsSidebar } from "../_shared/WidgetsSidebar";
-import { DEMO_CONTENT_ZOOM, DEMO_ORG } from "../_shared/fixtures";
+import { DEMO_ORG } from "../_shared/fixtures";
 import {
   type AgentCreationTourStep,
   AGENT_CREATOR_REF,
@@ -15,6 +16,18 @@ import {
 import "./preview.css";
 
 const noop = () => {};
+
+/**
+ * Console beats render inside a browser window whose address bar tracks the
+ * depicted route — a screen recording shows an app in its container.
+ */
+function consoleWindow(contentKey: string, path: string, children: ReactNode) {
+  return (
+    <BrowserView url={`app.stigmer.ai${path}`} contentKey={contentKey}>
+      {children}
+    </BrowserView>
+  );
+}
 
 function firstArtifact(execution: AgentExecution) {
   return execution.status!.artifacts[0];
@@ -70,14 +83,18 @@ const PREVIEW_CARD: CSSProperties = {
 export function renderStep(data: AgentCreationTourStep): ReactNode {
   switch (data.view) {
     case "library-click":
-      return (
+      return consoleWindow(
+        "home",
+        "/",
         <AppShell highlightNav="library" contentKey="home">
           <div style={HOME_HINT}>Start a new session</div>
-        </AppShell>
+        </AppShell>,
       );
 
     case "agents-list":
-      return (
+      return consoleWindow(
+        "agents",
+        "/library/agents",
         <AppShell activeNav="library" contentKey="agents" slideDirection="forward">
           <ResourceListPage
             title="Agents"
@@ -86,11 +103,13 @@ export function renderStep(data: AgentCreationTourStep): ReactNode {
             items={EXISTING_AGENTS}
             layout="grid"
           />
-        </AppShell>
+        </AppShell>,
       );
 
     case "create-agent-click":
-      return (
+      return consoleWindow(
+        "agents",
+        "/library/agents",
         <AppShell activeNav="library" contentKey="agents">
           <ResourceListPage
             title="Agents"
@@ -100,31 +119,37 @@ export function renderStep(data: AgentCreationTourStep): ReactNode {
             layout="grid"
             highlightCreate
           />
-        </AppShell>
+        </AppShell>,
       );
 
     case "composer-ready":
-      return (
+      return consoleWindow(
+        "composer",
+        "/?draft=agent",
         <AppShell activeNav="library" contentKey="composer" slideDirection="forward">
-          <ComposerView agentRef={AGENT_CREATOR_REF} />
-        </AppShell>
+          <ComposerView agentRef={AGENT_CREATOR_REF} heading="Add an Agent" />
+        </AppShell>,
       );
 
     case "conversation":
     case "artifact-click":
-      return (
+      return consoleWindow(
+        "composer",
+        "/?draft=agent",
         <AppShell
           activeNav="library"
           contentKey="composer"
           aside={renderWidgetsSidebar(data.execution)}
         >
           <ComposerView execution={data.execution} />
-        </AppShell>
+        </AppShell>,
       );
 
     case "artifact-preview":
     case "apply-agent":
-      return (
+      return consoleWindow(
+        "composer",
+        "/?draft=agent",
         <AppShell
           activeNav="library"
           contentKey="composer"
@@ -134,24 +159,24 @@ export function renderStep(data: AgentCreationTourStep): ReactNode {
             <ComposerView execution={data.execution} />
           </div>
           <div style={PREVIEW_SCRIM}>
-            <div style={{ zoom: DEMO_CONTENT_ZOOM }}>
-              <div style={PREVIEW_CARD}>
-                <ArtifactPreviewContent
-                  artifact={firstArtifact(data.execution)}
-                  executionId={data.execution.metadata!.id}
-                  org={DEMO_ORG}
-                  isTerminal
-                  onClose={noop}
-                  className="agent-tour-preview"
-                />
-              </div>
+            <div style={PREVIEW_CARD}>
+              <ArtifactPreviewContent
+                artifact={firstArtifact(data.execution)}
+                executionId={data.execution.metadata!.id}
+                org={DEMO_ORG}
+                isTerminal
+                onClose={noop}
+                className="agent-tour-preview"
+              />
             </div>
           </div>
-        </AppShell>
+        </AppShell>,
       );
 
     case "library-complete":
-      return (
+      return consoleWindow(
+        "agents",
+        "/library/agents",
         <AppShell activeNav="library" contentKey="agents" slideDirection="backward">
           <ResourceListPage
             title="Agents"
@@ -161,7 +186,7 @@ export function renderStep(data: AgentCreationTourStep): ReactNode {
             layout="grid"
             showNewItem
           />
-        </AppShell>
+        </AppShell>,
       );
   }
 }

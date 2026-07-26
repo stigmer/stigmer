@@ -1,17 +1,41 @@
 import type { ComponentType, ReactNode } from "react";
 import { motion } from "framer-motion";
-import { Building2, Library, Plus, User } from "lucide-react";
+import {
+  Building2,
+  LayoutDashboard,
+  Library,
+  MessageSquare,
+  PanelLeft,
+  Plus,
+} from "lucide-react";
 import { PulseHighlight } from "@scenar/react";
 import "./AppShell.css";
 
 /** Which primary nav item is selected. */
-export type NavId = "new-session" | "library";
+export type NavId = "new-session" | "dashboard" | "library";
 
-const RECENT_SESSIONS = [
-  "Draft email copy",
-  "Q2 report analysis",
-  "Summarize meeting notes",
-];
+/**
+ * Static recent-activity fixture, shaped like the real sidebar's
+ * time-bucketed groups (subject + relative-time column). Times are displayed
+ * literal text, not clock reads — the tour world has one frozen clock
+ * (DD-006 / SAMPLE_INSTANT) and these strings never tick.
+ */
+const RECENT_ACTIVITY = [
+  {
+    label: "Today",
+    entries: [
+      { subject: "Draft email copy for the Q3 launch", time: "2h" },
+      { subject: "Q2 report analysis", time: "4h" },
+    ],
+  },
+  {
+    label: "Yesterday",
+    entries: [
+      { subject: "Summarize meeting notes", time: "1d" },
+      { subject: "Refund request for order #ORD-4821", time: "1d" },
+    ],
+  },
+] as const;
 
 interface AppShellProps {
   /** Which nav item is currently selected. */
@@ -40,13 +64,22 @@ interface AppShellProps {
 
 /**
  * Schematic web-app layout that frames a tour's real `@stigmer/react`
- * components — an org indicator, primary nav, recent sessions, and a user row
- * around a content area, plus an optional widget rail. It communicates the
- * console's navigation shape without depending on any console internals.
+ * components, mirroring the console's workspace zone at the console's own
+ * metrics: a 280px sidebar (`w-70`) with the real nav set (New Session /
+ * Dashboard / Library), 14px nav labels, 16px icons, time-bucketed recents
+ * with relative-time stamps, and a user footer. Every dimension is
+ * transcribed from `client-apps/web/src/domain/_shared/layout/Sidebar.tsx`
+ * — the "one scale factor" rule: the shell lays out at real-app size and
+ * only the viewport boundary scales it (never per-element zoom).
  *
- * Styled entirely with the Stigmer `--stgm-*` design tokens (see AppShell.css),
- * so the chrome and the real components it wraps read as one product surface
- * and flip light/dark together under the single `StigmerProvider` scope.
+ * Colored with the Stigmer `--stgm-sidebar-*` tokens (the same tokens the
+ * real sidebar consumes), so the chrome and the real components it wraps
+ * read as one product surface and flip light/dark together under the single
+ * `StigmerProvider` scope.
+ *
+ * The shell is the browser page, not a card: it fills its container
+ * edge-to-edge with no border or radius. The window chrome (browser frame,
+ * shadow, backdrop) belongs to whatever frames the shell.
  */
 export function AppShell({
   activeNav,
@@ -62,46 +95,70 @@ export function AppShell({
   return (
     <div className="demo-shell">
       <nav className="demo-shell__nav" aria-label="Demo app navigation">
-        <div className="demo-shell__org">
-          <Building2 size={12} className="demo-shell__org-icon" />
-          <span className="demo-shell__org-name">Acme Corp</span>
+        {/* Top row: collapse affordance + org switcher, as in the console. */}
+        <div className="demo-shell__top">
+          <span className="demo-shell__collapse" aria-hidden>
+            <PanelLeft size={16} />
+          </span>
+          <div className="demo-shell__org">
+            <Building2 size={16} className="demo-shell__org-icon" />
+            <span className="demo-shell__org-label">
+              <span className="demo-shell__org-name">Acme Corp</span>
+              <span className="demo-shell__org-slug">acme</span>
+            </span>
+          </div>
         </div>
 
-        <div className="demo-shell__nav-group">
-          <NavRow
-            id="new-session"
-            label="New Session"
-            icon={Plus}
-            active={activeNav === "new-session"}
-            highlighted={highlightNav === "new-session"}
-          />
-          <NavRow
-            id="library"
-            label="Library"
-            icon={Library}
-            active={activeNav === "library"}
-            highlighted={highlightNav === "library"}
-          />
-        </div>
+        <NavRow
+          id="new-session"
+          label="New Session"
+          icon={Plus}
+          active={activeNav === "new-session"}
+          highlighted={highlightNav === "new-session"}
+        />
+        <NavRow
+          id="dashboard"
+          label="Dashboard"
+          icon={LayoutDashboard}
+          active={activeNav === "dashboard"}
+          highlighted={highlightNav === "dashboard"}
+        />
+        <NavRow
+          id="library"
+          label="Library"
+          icon={Library}
+          active={activeNav === "library"}
+          highlighted={highlightNav === "library"}
+        />
 
         <div className="demo-shell__sep" />
 
         <div className="demo-shell__recents">
           <p className="demo-shell__recents-label">Recents</p>
-          <ul className="demo-shell__recents-list">
-            {RECENT_SESSIONS.map((title) => (
-              <li key={title} className="demo-shell__recent">
-                {title}
-              </li>
-            ))}
-          </ul>
+          {RECENT_ACTIVITY.map((group) => (
+            <div key={group.label} className="demo-shell__recents-group">
+              <p className="demo-shell__recents-group-label">{group.label}</p>
+              <ul className="demo-shell__recents-list">
+                {group.entries.map((entry) => (
+                  <li key={entry.subject} className="demo-shell__recent">
+                    <MessageSquare size={12} className="demo-shell__recent-icon" />
+                    <span className="demo-shell__recent-subject">
+                      {entry.subject}
+                    </span>
+                    <span className="demo-shell__recent-time">{entry.time}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
 
         <div className="demo-shell__user">
-          <div className="demo-shell__avatar">
-            <User size={10} className="demo-shell__user-icon" />
-          </div>
-          <span className="demo-shell__user-name">You</span>
+          <span className="demo-shell__avatar">Y</span>
+          <span className="demo-shell__user-label">
+            <span className="demo-shell__user-name">You</span>
+            <span className="demo-shell__user-email">you@acme.com</span>
+          </span>
         </div>
       </nav>
 
@@ -138,14 +195,16 @@ function NavRow({
   readonly highlighted: boolean;
 }) {
   return (
-    <div
-      data-cursor-target={id}
-      className={`demo-shell__nav-row${active ? " demo-shell__nav-row--active" : ""}`}
-    >
-      <Icon size={12} className="demo-shell__nav-icon" />
-      <span>{label}</span>
+    <div className="demo-shell__nav-item">
+      <div
+        data-cursor-target={id}
+        className={`demo-shell__nav-row${active ? " demo-shell__nav-row--active" : ""}`}
+      >
+        <Icon size={16} className="demo-shell__nav-icon" />
+        <span>{label}</span>
 
-      {highlighted && <PulseHighlight />}
+        {highlighted && <PulseHighlight />}
+      </div>
     </div>
   );
 }
