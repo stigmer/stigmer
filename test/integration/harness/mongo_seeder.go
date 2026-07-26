@@ -25,9 +25,14 @@ const identityAccountCollection = "identity_account"
 // (CreateIdentityAccount / GrantOrgRole): direct writes are storage-coupled
 // and land in Mongo even when the app-postgres lane
 // (INTEGRATION_TEST_APP_POSTGRES) has moved the kind to Postgres — the seed
-// would silently miss the store the service reads. The Tier-2 helpers below
-// (billing_policy, llm_call_usage_record) are unaffected: those stores stay
-// on Mongo until stigmer-cloud's T04/T05b port them.
+// would silently miss the store the service reads. Billing policies used to
+// be seeded here for exactly that reason and were removed when stigmer-cloud's
+// B1 slice ported billing_policy: the Java service now seeds its own active
+// policy set at startup (BillingPolicySeeder), storage-neutrally, on every
+// lane. EnsureBillingIndexes stays: it creates a Mongo INDEX (not data), which
+// the Mongo lane still needs while llm_call_usage_record writes go to Mongo
+// there, and which is a harmless no-op collection on the app-postgres lane
+// (Postgres enforces the same uniqueness via its Flyway DDL).
 type MongoSeeder struct {
 	client *mongo.Client
 	dbName string
@@ -199,61 +204,10 @@ func (s *MongoSeeder) DeleteIdentityAccount(ctx context.Context, id string) erro
 	return err
 }
 
-// SeedBillingPolicies inserts the default billing policies into the
-// billing_policy collection. The Java service normally creates these via
-// Mongock migration, but Mongock is disabled in the integration test
-// environment. Without these policies, the DebitBillingStep fails with
-// "No active billing policy for harness=cursor" and customerBillableAmountMicros
-// remains zero.
-func (s *MongoSeeder) SeedBillingPolicies(ctx context.Context) error {
-	coll := s.client.Database(s.dbName).Collection("billing_policy")
-
-	policies := []bson.D{
-		{
-			{Key: "policy_id", Value: "native-v2"},
-			{Key: "harness", Value: "native"},
-			{Key: "cost_tier", Value: "default"},
-			{Key: "markup_basis_points", Value: int32(12000)},
-			{Key: "minimum_charge_micros", Value: int64(100)},
-			{Key: "rounding_mode", Value: "nearest_micro"},
-			{Key: "active", Value: true},
-		},
-		{
-			{Key: "policy_id", Value: "cursor-v2"},
-			{Key: "harness", Value: "cursor"},
-			{Key: "cost_tier", Value: "default"},
-			{Key: "markup_basis_points", Value: int32(11000)},
-			{Key: "minimum_charge_micros", Value: int64(100)},
-			{Key: "rounding_mode", Value: "nearest_micro"},
-			{Key: "active", Value: true},
-		},
-	}
-
-	for _, doc := range policies {
-		policyID := ""
-		for _, elem := range doc {
-			if elem.Key == "policy_id" {
-				policyID = elem.Value.(string)
-				break
-			}
-		}
-		count, err := coll.CountDocuments(ctx, bson.D{{Key: "policy_id", Value: policyID}})
-		if err != nil {
-			return fmt.Errorf("check billing policy %s: %w", policyID, err)
-		}
-		if count > 0 {
-			continue
-		}
-		if _, err := coll.InsertOne(ctx, doc); err != nil {
-			return fmt.Errorf("seed billing policy %s: %w", policyID, err)
-		}
-	}
-	return nil
-}
-
 // EnsureBillingIndexes creates indexes that Mongock migrations normally
 // create in production. Without the unique index on idempotency_key,
 // duplicate billing records are inserted instead of being deduplicated.
+// Index-only (no data): safe on both storage lanes — see the type comment.
 func (s *MongoSeeder) EnsureBillingIndexes(ctx context.Context) error {
 	coll := s.client.Database(s.dbName).Collection("llm_call_usage_record")
 	_, err := coll.Indexes().CreateOne(ctx, mongo.IndexModel{

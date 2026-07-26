@@ -193,9 +193,12 @@ func TestMain(m *testing.M) {
 		suiteLogger.Warn("failed to provision test billing account — agent_call tests may fail", "error", err)
 	}
 
+	// Billing policies are seeded by the Java service itself at startup
+	// (BillingPolicySeeder) on whichever store is active; only the Mongo
+	// usage-record index still needs manual creation while Mongock is disabled.
 	mongoURI := fmt.Sprintf("mongodb://%s:%s", testHarness.Mongo.Host, testHarness.Mongo.Port)
-	if err := harness.SeedBillingPolicies(ctx, mongoURI, "stigmer_test"); err != nil {
-		suiteLogger.Warn("failed to seed billing policies — billable_cost_micros may be zero", "error", err)
+	if err := harness.EnsureBillingIndexes(ctx, mongoURI, "stigmer_test"); err != nil {
+		suiteLogger.Warn("failed to create billing indexes — duplicate usage records possible", "error", err)
 	}
 
 	if err := harness.SeedDefaultAgent(ctx, grpcConn); err != nil {
