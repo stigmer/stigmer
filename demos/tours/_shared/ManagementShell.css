@@ -13,6 +13,13 @@
   border: 1px solid var(--scenar-border);
   background: var(--scenar-card);
   height: var(--scenar-shell-height, 380px);
+  /*
+   * The console renders in Geist. Resolves through the theme token when the
+   * compiled @stigmer/react stylesheet is present (api-key-setup,
+   * quickstart-tour) and through the var() fallback when it is not
+   * (sso-login-playback loads only fonts.css via ManagementShell.tsx).
+   */
+  font-family: var(--stgm-font-sans, "Geist", system-ui, sans-serif);
 }
 
 .sx-mgmt__nav {

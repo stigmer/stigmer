@@ -13,6 +13,11 @@ import {
   User,
   Users,
 } from "lucide-react";
+// The console's typeface (see fonts/fonts.css). Imported here as well as in
+// stigmer-preview because this shell is the console-depicting chrome for
+// tours that have no providers file (sso-login-playback), where the preview
+// factory — and with it the font — would otherwise never enter the graph.
+import "./fonts/fonts.css";
 import "./ManagementShell.css";
 
 export type ManagementNavId =

@@ -17,6 +17,12 @@
  * irreducibly product-specific (Stigmer's client, provider, and stylesheet).
  * Scenar stays product-agnostic.
  */
+// The console's typeface (Geist, self-hosted — see fonts/fonts.css). It
+// defines the `--font-geist-*` variables that the theme tokens in the
+// compiled stylesheet below fall back through, so it belongs in the graph
+// wherever that stylesheet is.
+import "./fonts/fonts.css";
+
 // The COMPILED stylesheet, not `@stigmer/react/styles.css`: the in-repo
 // workspace export points at the uncompiled Tailwind source, and `scenar pack`
 // deliberately does not run Tailwind (scenar-cloud DD-003). The dist artifact

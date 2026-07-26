@@ -1,0 +1,43 @@
+/*
+ * The console's typeface, self-hosted for packed tour bundles.
+ *
+ * The real console loads Geist / Geist Mono via `next/font/google`
+ * (client-apps/web/src/app/layout.tsx), which defines the
+ * `--font-geist-sans` / `--font-geist-mono` variables that the theme
+ * tokens fall back through: `--stgm-font-sans: var(--font-geist-sans,
+ * system-ui, sans-serif)` (sdk/theme/src/tokens.css). A packed tour
+ * bundle has no Next runtime and loads no fonts, so without this file
+ * every tour depicted the console in the OS UI font instead of Geist —
+ * the single loudest "this is not the real app" tell.
+ *
+ * This sheet closes that gap at the extension point the token comment
+ * documents: it defines the *fallback variables*, never `--stgm-font-sans`
+ * itself, so the token definition stays single-sourced in the theme and
+ * the system fallback survives a font 404. Fonts are vendored (not
+ * fetched from a CDN) because a packed embed is deliberately
+ * self-contained and network-free (scenar-cloud DD-002/DD-003).
+ *
+ * Files are the official Vercel distribution (npm `geist@1.7.2`,
+ * SIL OFL 1.1 — see ./OFL.txt), variable weight 100-900, ~70KB each.
+ */
+
+@font-face {
+  font-family: "Geist";
+  src: url("./Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("./GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-geist-sans: "Geist", system-ui, sans-serif;
+  --font-geist-mono: "Geist Mono", ui-monospace, monospace;
+}
