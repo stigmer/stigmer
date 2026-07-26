@@ -6,7 +6,6 @@ export { SkillDetail as DemoSkillDetail } from "./demos/scenarios/skill-detail";
 export { ToolCallsPlayback as DemoToolCallsPlayback } from "./demos/scenarios/tool-calls-playback";
 export { FederationOverviewTour as DemoFederationOverviewTour } from "./demos/scenarios/federation-overview-tour";
 export { RegisterIdpPlayback as DemoRegisterIdpPlayback } from "./demos/scenarios/register-idp-playback";
-export { FirstSkillTour as DemoFirstSkillTour } from "./demos/scenarios/first-skill-tour";
 export { MarketplaceConnectTour as DemoMarketplaceConnectTour } from "./demos/scenarios/marketplace-connect-tour";
 export { OAuthConnectFlow as DemoOAuthConnectFlow } from "./demos/scenarios/oauth-connect-flow";
 export { ByoaSetup as DemoByoaSetup } from "./demos/scenarios/byoa-setup";

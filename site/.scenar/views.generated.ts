@@ -53,7 +53,6 @@ import { ApprovalFlowPlayback } from "../src/components/docs/demos/scenarios/app
 import { ByoaSetup } from "../src/components/docs/demos/scenarios/byoa-setup/index";
 import { DragReorderValidation } from "../src/components/docs/demos/scenarios/drag-reorder-validation/index";
 import { FederationOverviewTour } from "../src/components/docs/demos/scenarios/federation-overview-tour/index";
-import { FirstSkillTour } from "../src/components/docs/demos/scenarios/first-skill-tour/index";
 import { MarketplaceConnectTour } from "../src/components/docs/demos/scenarios/marketplace-connect-tour/index";
 import { McpServerDetail } from "../src/components/docs/demos/scenarios/mcp-server-detail/index";
 import { OAuthConnectFlow } from "../src/components/docs/demos/scenarios/oauth-connect-flow/index";
@@ -115,7 +114,6 @@ export const generatedViews = {
   ByoaSetup,
   DragReorderValidation,
   FederationOverviewTour,
-  FirstSkillTour,
   MarketplaceConnectTour,
   McpServerDetail,
   OAuthConnectFlow,
