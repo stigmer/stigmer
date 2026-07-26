@@ -17,59 +17,59 @@ assess the semantic quality of workflow data.
 ## YAML Examples
 
 ```yaml
-- check_summary_quality:
-    call: eval
-    with:
-      model: "gpt-4o"
-      subject: "${ $context.summarize.text }"
-      rubric: |
-        Evaluate whether this summary accurately captures the key points
-        of the source document without hallucinations or omissions.
-      scoring_mode: EVAL_PASS_FAIL
-      on_fail: EVAL_FAIL_BRANCH
-      fallback_task: regenerate_summary
-    export:
-      as: "${ . }"
+- name: check_summary_quality
+  kind: eval
+  task_config:
+    model: "gpt-4o"
+    subject: "${ $context.summarize.text }"
+    rubric: |
+      Evaluate whether this summary accurately captures the key points
+      of the source document without hallucinations or omissions.
+    scoring_mode: EVAL_PASS_FAIL
+    on_fail: EVAL_FAIL_BRANCH
+    fallback_task: regenerate_summary
+  export:
+    as: "${ . }"
 ```
 
 ```yaml
-- score_translation:
-    call: eval
-    with:
-      model: "gpt-4o"
-      subject: "${ $context.translate.text }"
-      rubric: |
-        Rate the quality of this translation on accuracy, fluency,
-        and preservation of meaning.
-      scoring_mode: EVAL_NUMERIC_SCORE
-      threshold: 0.7
-      on_fail: EVAL_FAIL_WARN
-    export:
-      as: "${ . }"
+- name: score_translation
+  kind: eval
+  task_config:
+    model: "gpt-4o"
+    subject: "${ $context.translate.text }"
+    rubric: |
+      Rate the quality of this translation on accuracy, fluency,
+      and preservation of meaning.
+    scoring_mode: EVAL_NUMERIC_SCORE
+    threshold: 0.7
+    on_fail: EVAL_FAIL_WARN
+  export:
+    as: "${ . }"
 ```
 
 ```yaml
-- evaluate_response:
-    call: eval
-    with:
-      model: "gpt-4o"
-      subject: "${ $context.agent_response }"
-      rubric: "Evaluate this customer support response."
-      scoring_mode: EVAL_MULTI_CRITERIA
-      threshold: 0.75
-      criteria:
-        - name: accuracy
-          description: "Is the information factually correct?"
-          weight: 3.0
-        - name: helpfulness
-          description: "Does it address the customer's actual question?"
-          weight: 2.0
-        - name: tone
-          description: "Is the tone professional and empathetic?"
-          weight: 1.0
-      on_fail: EVAL_FAIL_RAISE
-    export:
-      as: "${ . }"
+- name: evaluate_response
+  kind: eval
+  task_config:
+    model: "gpt-4o"
+    subject: "${ $context.agent_response }"
+    rubric: "Evaluate this customer support response."
+    scoring_mode: EVAL_MULTI_CRITERIA
+    threshold: 0.75
+    criteria:
+      - name: accuracy
+        description: "Is the information factually correct?"
+        weight: 3.0
+      - name: helpfulness
+        description: "Does it address the customer's actual question?"
+        weight: 2.0
+      - name: tone
+        description: "Is the tone professional and empathetic?"
+        weight: 1.0
+    on_fail: EVAL_FAIL_RAISE
+  export:
+    as: "${ . }"
 ```
 
 ## task_config Fields

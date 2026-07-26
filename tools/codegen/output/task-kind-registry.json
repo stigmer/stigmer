@@ -52,7 +52,7 @@
         "type": "null"
       },
       "yamlExamples": [
-        "- initialize:\n    set:\n      variables:\n        status: \"pending\"\n        timestamp: \"${ now() }\"\n        request_id: \"${ $context.input.id }\"\n"
+        "- name: initialize\n  kind: set_vars\n  task_config:\n    variables:\n      status: \"pending\"\n      timestamp: \"${ now() }\"\n      request_id: \"${ $context.input.id }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/set-vars",
       "isAiNative": false,
@@ -185,7 +185,7 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- fetch_data:\n    call: http\n    with:\n      method: \"GET\"\n      endpoint:\n        uri: \"https://api.example.com/tickets/${ $context.ticket_id }\"\n      headers:\n        Authorization: \"Bearer ${ .secrets.API_TOKEN }\"\n    export:\n      as: \"${ . }\"\n"
+        "- name: fetch_data\n  kind: http_call\n  task_config:\n    method: \"GET\"\n    endpoint:\n      uri: \"https://api.example.com/tickets/${ $context.ticket_id }\"\n    headers:\n      Authorization: \"Bearer ${ .secrets.API_TOKEN }\"\n  export:\n    as: \"${ . }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/http-call",
       "isAiNative": false,
@@ -272,7 +272,7 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- call_service:\n    call: grpc\n    with:\n      service: \"user.UserService\"\n      method: \"GetUser\"\n      request:\n        user_id: \"${ $context.user_id }\"\n    export:\n      as: \"${ . }\"\n"
+        "- name: call_service\n  kind: grpc_call\n  task_config:\n    service: \"user.UserService\"\n    method: \"GetUser\"\n    request:\n      user_id: \"${ $context.user_id }\"\n  export:\n    as: \"${ . }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/grpc-call",
       "isAiNative": false,
@@ -340,7 +340,7 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- process_payment:\n    call: activity\n    with:\n      activity: \"ProcessPayment\"\n      input:\n        amount: \"${ $context.order.total }\"\n        currency: \"USD\"\n    export:\n      as: \"${ . }\"\n"
+        "- name: process_payment\n  kind: activity_call\n  task_config:\n    activity: \"ProcessPayment\"\n    input:\n      amount: \"${ $context.order.total }\"\n      currency: \"USD\"\n  export:\n    as: \"${ . }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/activity-call",
       "isAiNative": false,
@@ -395,7 +395,7 @@
         "type": "null"
       },
       "yamlExamples": [
-        "- route_by_severity:\n    switch:\n      cases:\n        - name: critical\n          when: \"${ $context.triage.severity == 'critical' }\"\n          then: escalate\n        - name: high\n          when: \"${ $context.triage.severity == 'high' }\"\n          then: notify_team\n        - name: default\n          then: log_and_close\n"
+        "- name: route_by_severity\n  kind: switch_case\n  task_config:\n    cases:\n      - name: critical\n        when: \"${ $context.triage.severity == 'critical' }\"\n        then: escalate\n      - name: high\n        when: \"${ $context.triage.severity == 'high' }\"\n        then: notify_team\n      - name: default\n        then: log_and_close\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/switch-case",
       "isAiNative": false,
@@ -537,7 +537,7 @@
         "type": "array"
       },
       "yamlExamples": [
-        "- process_items:\n    for:\n      each: item\n      in: \"${ $context.items }\"\n      do:\n        - classify_item:\n            call: llm\n            with:\n              model: \"gpt-4o-mini\"\n              prompt: \"Classify: ${ $item.description }\"\n"
+        "- name: process_items\n  kind: for_each\n  task_config:\n    each: item\n    in: \"${ $context.items }\"\n    do:\n      - name: classify_item\n        kind: llm_call\n        task_config:\n          model: \"gpt-4o-mini\"\n          prompt: \"Classify: ${ $item.description }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/for-each",
       "isAiNative": false,
@@ -605,7 +605,7 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- parallel_enrichment:\n    fork:\n      branches:\n        - name: fetch_profile\n          do:\n            - get_profile:\n                call: http\n                with:\n                  method: \"GET\"\n                  endpoint:\n                    uri: \"https://api.example.com/users/${ $context.user_id }\"\n        - name: fetch_history\n          do:\n            - get_history:\n                call: http\n                with:\n                  method: \"GET\"\n                  endpoint:\n                    uri: \"https://api.example.com/history/${ $context.user_id }\"\n      compete: false\n"
+        "- name: parallel_enrichment\n  kind: fork\n  task_config:\n    branches:\n      - name: fetch_profile\n        do:\n          - name: get_profile\n            kind: http_call\n            task_config:\n              method: \"GET\"\n              endpoint:\n                uri: \"https://api.example.com/users/${ $context.user_id }\"\n      - name: fetch_history\n        do:\n          - name: get_history\n            kind: http_call\n            task_config:\n              method: \"GET\"\n              endpoint:\n                uri: \"https://api.example.com/history/${ $context.user_id }\"\n    compete: false\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/fork",
       "isAiNative": false,
@@ -674,7 +674,7 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- safe_api_call:\n    try:\n      - risky_call:\n          call: http\n          with:\n            method: \"POST\"\n            endpoint:\n              uri: \"https://api.unreliable.com/submit\"\n    catch:\n      as: error\n      do:\n        - log_failure:\n            set:\n              variables:\n                error_message: \"${ $error.message }\"\n"
+        "- name: safe_api_call\n  kind: try_catch\n  task_config:\n    try:\n      - name: risky_call\n        kind: http_call\n        task_config:\n          method: \"POST\"\n          endpoint:\n            uri: \"https://api.unreliable.com/submit\"\n    catch:\n      as: error\n      do:\n        - name: log_failure\n          kind: set_vars\n          task_config:\n            variables:\n              error_message: \"${ $error.message }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/try-catch",
       "isAiNative": false,
@@ -728,7 +728,7 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- wait_for_approval:\n    listen:\n      to:\n        mode: \"one\"\n        signals:\n          - id: \"approval_signal\"\n            type: \"signal\"\n    export:\n      as: \"${ . }\"\n"
+        "- name: wait_for_approval\n  kind: listen\n  task_config:\n    to:\n      mode: \"one\"\n      signals:\n        - id: \"approval_signal\"\n          type: \"signal\"\n  export:\n    as: \"${ . }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/listen",
       "isAiNative": false,
@@ -788,7 +788,7 @@
         "type": "null"
       },
       "yamlExamples": [
-        "- cooldown:\n    wait:\n      seconds: 30\n"
+        "- name: cooldown\n  kind: wait\n  task_config:\n    duration:\n      seconds: 30\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/wait",
       "isAiNative": false,
@@ -864,7 +864,7 @@
         "type": "null"
       },
       "yamlExamples": [
-        "- fail_invalid:\n    raise:\n      error: \"ValidationError\"\n      message: \"Required field missing: ${ $context.missing_field }\"\n"
+        "- name: fail_invalid\n  kind: raise_error\n  task_config:\n    error: \"ValidationError\"\n    message: \"Required field missing: ${ $context.missing_field }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/raise-error",
       "isAiNative": false,
@@ -932,7 +932,7 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- run_enrichment:\n    run:\n      workflow: \"data-enrichment\"\n      input:\n        user_id: \"${ $context.user.id }\"\n        source: \"parent_workflow\"\n    export:\n      as: \"${ . }\"\n"
+        "- name: run_enrichment\n  kind: run_workflow\n  task_config:\n    workflow: \"data-enrichment\"\n    input:\n      user_id: \"${ $context.user.id }\"\n      source: \"parent_workflow\"\n  export:\n    as: \"${ . }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/run-workflow",
       "isAiNative": false,
@@ -1130,7 +1130,7 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- triage_ticket:\n    call: agent\n    with:\n      agent: \"support-triage\"\n      message: \"${ .ticket.description }\"\n      output:\n        schema:\n          type: object\n          required: [severity, category]\n          properties:\n            severity:\n              type: string\n              enum: [low, medium, high, critical]\n            category:\n              type: string\n        on_invalid: ON_INVALID_RETRY\n        max_retries: 2\n    export:\n      as: \"${ .structured }\"\n"
+        "- name: triage_ticket\n  kind: agent_call\n  task_config:\n    agent: \"support-triage\"\n    message: \"${ .ticket.description }\"\n    output:\n      schema:\n        type: object\n        required: [severity, category]\n        properties:\n          severity:\n            type: string\n            enum: [low, medium, high, critical]\n          category:\n            type: string\n      on_invalid: ON_INVALID_RETRY\n      max_retries: 2\n  export:\n    as: \"${ .structured }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/agent-call",
       "isAiNative": true,
@@ -1390,8 +1390,8 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- classify_severity:\n    call: llm\n    with:\n      model: \"gpt-4o-mini\"\n      system_prompt: \"You are a support ticket classifier.\"\n      prompt: \"Classify this ticket: ${ $context.ticket.description }\"\n      response_schema:\n        type: object\n        required: [severity, category]\n        properties:\n          severity:\n            type: string\n            enum: [low, medium, high, critical]\n          category:\n            type: string\n      on_invalid: ON_INVALID_RETRY\n      max_retries: 2\n    export:\n      as: \"${ . }\"\n",
-        "- summarize:\n    call: llm\n    with:\n      model: \"claude-sonnet-4-5\"\n      prompt: \"Summarize in 2 sentences: ${ $context.document.text }\"\n      temperature: 0.3\n      max_tokens: 200\n    export:\n      as: \"${ . }\"\n"
+        "- name: classify_severity\n  kind: llm_call\n  task_config:\n    model: \"gpt-4o-mini\"\n    system_prompt: \"You are a support ticket classifier.\"\n    prompt: \"Classify this ticket: ${ $context.ticket.description }\"\n    response_schema:\n      type: object\n      required: [severity, category]\n      properties:\n        severity:\n          type: string\n          enum: [low, medium, high, critical]\n        category:\n          type: string\n    on_invalid: ON_INVALID_RETRY\n    max_retries: 2\n  export:\n    as: \"${ . }\"\n",
+        "- name: summarize\n  kind: llm_call\n  task_config:\n    model: \"claude-sonnet-4-5\"\n    prompt: \"Summarize in 2 sentences: ${ $context.document.text }\"\n    temperature: 0.3\n    max_tokens: 200\n  export:\n    as: \"${ . }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/llm-call",
       "isAiNative": true,
@@ -1487,8 +1487,8 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- build_api_payload:\n    transform:\n      engine: jq\n      expression: '{name: .customer.full_name, severity: .triage.severity, summary: .agent_analysis.structured.summary}'\n      input: \"${ $context }\"\n    export:\n      as: \"${ . }\"\n",
-        "- render_message:\n    transform:\n      engine: template\n      expression: \"Ticket {{ .ticket_id }} classified as {{ .severity }}\"\n      input: \"${ $context.build_api_payload }\"\n    export:\n      as: \"${ . }\"\n"
+        "- name: build_api_payload\n  kind: transform\n  task_config:\n    engine: TRANSFORM_ENGINE_JQ\n    expression: '{name: .customer.full_name, severity: .triage.severity, summary: .agent_analysis.structured.summary}'\n    input: \"${ $context }\"\n  export:\n    as: \"${ . }\"\n",
+        "- name: render_message\n  kind: transform\n  task_config:\n    engine: TRANSFORM_ENGINE_TEMPLATE\n    expression: \"Ticket {{ .ticket_id }} classified as {{ .severity }}\"\n    input: \"${ $context.build_api_payload }\"\n  export:\n    as: \"${ . }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/transform",
       "isAiNative": false,
@@ -1707,7 +1707,7 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- manager_approval:\n    human_input:\n      prompt: \"Approve escalation for ${ $context.triage.severity } incident?\"\n      form_schema:\n        type: object\n        properties:\n          notes:\n            type: string\n            description: \"Optional notes for the engineering team\"\n          priority_override:\n            type: string\n            enum: [P1, P2, P3]\n      outcomes:\n        - name: approve\n          label: \"Approve Escalation\"\n        - name: deny\n          label: \"Reject\"\n          then: re_classify\n      approvers:\n        - \"team:engineering-leads\"\n      timeout: 86400\n      on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE\n      notification_channels:\n        - \"slack:#incident-approvals\"\n    export:\n      as: \"${ . }\"\n"
+        "- name: manager_approval\n  kind: human_input\n  task_config:\n    prompt: \"Approve escalation for ${ $context.triage.severity } incident?\"\n    form_schema:\n      type: object\n      properties:\n        notes:\n          type: string\n          description: \"Optional notes for the engineering team\"\n        priority_override:\n          type: string\n          enum: [P1, P2, P3]\n    outcomes:\n      - name: approve\n        label: \"Approve Escalation\"\n      - name: deny\n        label: \"Reject\"\n        then: re_classify\n    approvers:\n      - \"team:engineering-leads\"\n    timeout: 86400\n    on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE\n    notification_channels:\n      - \"slack:#incident-approvals\"\n  export:\n    as: \"${ . }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/human-input",
       "isAiNative": false,
@@ -1869,7 +1869,7 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- check_triage_quality:\n    validate:\n      input: \"${ $context.triage }\"\n      schema:\n        type: object\n        required: [severity, category, customer_impact]\n        properties:\n          severity:\n            type: string\n            enum: [low, medium, high, critical]\n          category:\n            type: string\n            minLength: 1\n          customer_impact:\n            type: boolean\n      rules:\n        - name: critical_needs_rationale\n          expression: \"${ .severity != 'critical' || (.rationale != null \u0026\u0026 .rationale != '') }\"\n          message: \"Critical severity requires a rationale\"\n      on_fail: VALIDATION_FAIL_BRANCH\n      fallback_task: human_review\n    export:\n      as: \"${ . }\"\n"
+        "- name: check_triage_quality\n  kind: validate\n  task_config:\n    input: \"${ $context.triage }\"\n    schema:\n      type: object\n      required: [severity, category, customer_impact]\n      properties:\n        severity:\n          type: string\n          enum: [low, medium, high, critical]\n        category:\n          type: string\n          minLength: 1\n        customer_impact:\n          type: boolean\n    rules:\n      - name: critical_needs_rationale\n        expression: \"${ .severity != 'critical' || (.rationale != null \u0026\u0026 .rationale != '') }\"\n        message: \"Critical severity requires a rationale\"\n    on_fail: VALIDATION_FAIL_BRANCH\n    fallback_task: human_review\n  export:\n    as: \"${ . }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/validate",
       "isAiNative": false,
@@ -1953,7 +1953,7 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- notify_classified:\n    emit_event:\n      event:\n        type: \"stigmer.workflow.ticket.classified\"\n        subject: \"${ $context.ticket.id }\"\n        data:\n          ticket_id: \"${ $context.ticket.id }\"\n          severity: \"${ $context.triage.severity }\"\n          category: \"${ $context.triage.category }\"\n    export:\n      as: \"${ . }\"\n"
+        "- name: notify_classified\n  kind: emit_event\n  task_config:\n    event:\n      type: \"stigmer.workflow.ticket.classified\"\n      subject: \"${ $context.ticket.id }\"\n      data:\n        ticket_id: \"${ $context.ticket.id }\"\n        severity: \"${ $context.triage.severity }\"\n        category: \"${ $context.triage.category }\"\n  export:\n    as: \"${ . }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/emit-event",
       "isAiNative": false,
@@ -2120,7 +2120,7 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- alert_slack:\n    notification:\n      channel: \"slack\"\n      recipients:\n        - \"#incident-response\"\n        - \"@oncall-lead\"\n      subject: \"P${ $context.triage.severity } Incident: ${ $context.ticket.title }\"\n      body: |\n        *Severity*: ${ $context.triage.severity }\n        *Category*: ${ $context.triage.category }\n        *Summary*: ${ $context.agent_analysis.structured.summary }\n      metadata:\n        thread_ts: \"${ $context.slack_thread_id }\"\n    export:\n      as: \"${ . }\"\n"
+        "- name: alert_slack\n  kind: notification\n  task_config:\n    channel: \"slack\"\n    recipients:\n      - \"#incident-response\"\n      - \"@oncall-lead\"\n    subject: \"P${ $context.triage.severity } Incident: ${ $context.ticket.title }\"\n    body: |\n      *Severity*: ${ $context.triage.severity }\n      *Category*: ${ $context.triage.category }\n      *Summary*: ${ $context.agent_analysis.structured.summary }\n    metadata:\n      thread_ts: \"${ $context.slack_thread_id }\"\n  export:\n    as: \"${ . }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/notification",
       "isAiNative": false,
@@ -2387,9 +2387,9 @@
         "type": "object"
       },
       "yamlExamples": [
-        "- check_summary_quality:\n    call: eval\n    with:\n      model: \"gpt-4o\"\n      subject: \"${ $context.summarize.text }\"\n      rubric: |\n        Evaluate whether this summary accurately captures the key points\n        of the source document without hallucinations or omissions.\n      scoring_mode: EVAL_PASS_FAIL\n      on_fail: EVAL_FAIL_BRANCH\n      fallback_task: regenerate_summary\n    export:\n      as: \"${ . }\"\n",
-        "- score_translation:\n    call: eval\n    with:\n      model: \"gpt-4o\"\n      subject: \"${ $context.translate.text }\"\n      rubric: |\n        Rate the quality of this translation on accuracy, fluency,\n        and preservation of meaning.\n      scoring_mode: EVAL_NUMERIC_SCORE\n      threshold: 0.7\n      on_fail: EVAL_FAIL_WARN\n    export:\n      as: \"${ . }\"\n",
-        "- evaluate_response:\n    call: eval\n    with:\n      model: \"gpt-4o\"\n      subject: \"${ $context.agent_response }\"\n      rubric: \"Evaluate this customer support response.\"\n      scoring_mode: EVAL_MULTI_CRITERIA\n      threshold: 0.75\n      criteria:\n        - name: accuracy\n          description: \"Is the information factually correct?\"\n          weight: 3.0\n        - name: helpfulness\n          description: \"Does it address the customer's actual question?\"\n          weight: 2.0\n        - name: tone\n          description: \"Is the tone professional and empathetic?\"\n          weight: 1.0\n      on_fail: EVAL_FAIL_RAISE\n    export:\n      as: \"${ . }\"\n"
+        "- name: check_summary_quality\n  kind: eval\n  task_config:\n    model: \"gpt-4o\"\n    subject: \"${ $context.summarize.text }\"\n    rubric: |\n      Evaluate whether this summary accurately captures the key points\n      of the source document without hallucinations or omissions.\n    scoring_mode: EVAL_PASS_FAIL\n    on_fail: EVAL_FAIL_BRANCH\n    fallback_task: regenerate_summary\n  export:\n    as: \"${ . }\"\n",
+        "- name: score_translation\n  kind: eval\n  task_config:\n    model: \"gpt-4o\"\n    subject: \"${ $context.translate.text }\"\n    rubric: |\n      Rate the quality of this translation on accuracy, fluency,\n      and preservation of meaning.\n    scoring_mode: EVAL_NUMERIC_SCORE\n    threshold: 0.7\n    on_fail: EVAL_FAIL_WARN\n  export:\n    as: \"${ . }\"\n",
+        "- name: evaluate_response\n  kind: eval\n  task_config:\n    model: \"gpt-4o\"\n    subject: \"${ $context.agent_response }\"\n    rubric: \"Evaluate this customer support response.\"\n    scoring_mode: EVAL_MULTI_CRITERIA\n    threshold: 0.75\n    criteria:\n      - name: accuracy\n        description: \"Is the information factually correct?\"\n        weight: 3.0\n      - name: helpfulness\n        description: \"Does it address the customer's actual question?\"\n        weight: 2.0\n      - name: tone\n        description: \"Is the tone professional and empathetic?\"\n        weight: 1.0\n    on_fail: EVAL_FAIL_RAISE\n  export:\n    as: \"${ . }\"\n"
       ],
       "documentationUrl": "/docs/guides/workflows/task-types/eval",
       "isAiNative": true,

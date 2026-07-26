@@ -15,12 +15,13 @@ in workflow state.
 ## YAML Example
 
 ```yaml
-- initialize:
-    set:
-      variables:
-        status: "pending"
-        timestamp: "${ now() }"
-        request_id: "${ $context.input.id }"
+- name: initialize
+  kind: set_vars
+  task_config:
+    variables:
+      status: "pending"
+      timestamp: "${ now() }"
+      request_id: "${ $context.input.id }"
 ```
 
 ## task_config Fields

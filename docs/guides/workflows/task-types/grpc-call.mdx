@@ -15,15 +15,15 @@ requests.
 ## YAML Example
 
 ```yaml
-- call_service:
-    call: grpc
-    with:
-      service: "user.UserService"
-      method: "GetUser"
-      request:
-        user_id: "${ $context.user_id }"
-    export:
-      as: "${ . }"
+- name: call_service
+  kind: grpc_call
+  task_config:
+    service: "user.UserService"
+    method: "GetUser"
+    request:
+      user_id: "${ $context.user_id }"
+  export:
+    as: "${ . }"
 ```
 
 ## task_config Fields

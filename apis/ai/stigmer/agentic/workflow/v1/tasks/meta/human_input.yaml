@@ -40,29 +40,30 @@ field_groups:
 
 yaml_examples:
   - |
-    - manager_approval:
-        human_input:
-          prompt: "Approve escalation for ${ $context.triage.severity } incident?"
-          form_schema:
-            type: object
-            properties:
-              notes:
-                type: string
-                description: "Optional notes for the engineering team"
-              priority_override:
-                type: string
-                enum: [P1, P2, P3]
-          outcomes:
-            - name: approve
-              label: "Approve Escalation"
-            - name: deny
-              label: "Reject"
-              then: re_classify
-          approvers:
-            - "team:engineering-leads"
-          timeout: 86400
-          on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE
-          notification_channels:
-            - "slack:#incident-approvals"
-        export:
-          as: "${ . }"
+    - name: manager_approval
+      kind: human_input
+      task_config:
+        prompt: "Approve escalation for ${ $context.triage.severity } incident?"
+        form_schema:
+          type: object
+          properties:
+            notes:
+              type: string
+              description: "Optional notes for the engineering team"
+            priority_override:
+              type: string
+              enum: [P1, P2, P3]
+        outcomes:
+          - name: approve
+            label: "Approve Escalation"
+          - name: deny
+            label: "Reject"
+            then: re_classify
+        approvers:
+          - "team:engineering-leads"
+        timeout: 86400
+        on_timeout: HUMAN_INPUT_TIMEOUT_ESCALATE
+        notification_channels:
+          - "slack:#incident-approvals"
+      export:
+        as: "${ . }"

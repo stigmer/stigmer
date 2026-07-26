@@ -39,14 +39,15 @@ field_groups:
 
 yaml_examples:
   - |
-    - notify_classified:
-        emit_event:
-          event:
-            type: "stigmer.workflow.ticket.classified"
-            subject: "${ $context.ticket.id }"
-            data:
-              ticket_id: "${ $context.ticket.id }"
-              severity: "${ $context.triage.severity }"
-              category: "${ $context.triage.category }"
-        export:
-          as: "${ . }"
+    - name: notify_classified
+      kind: emit_event
+      task_config:
+        event:
+          type: "stigmer.workflow.ticket.classified"
+          subject: "${ $context.ticket.id }"
+          data:
+            ticket_id: "${ $context.ticket.id }"
+            severity: "${ $context.triage.severity }"
+            category: "${ $context.triage.category }"
+      export:
+        as: "${ . }"

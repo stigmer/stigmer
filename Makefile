@@ -133,7 +133,7 @@ gen-proto-sdk-docs: ## Generate SDK resource docs from proto schemas
 gen-task-docs: ## Generate per-task reference docs from schemas
 	go run ./tools/codegen/generator --comprehensive --target=task-docs \
 		--schema-dir tools/codegen/schemas --output-dir docs/guides/workflows/task-types \
-		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta
+		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta --apis-dir apis
 	npx prettier --write --prose-wrap always docs/guides/workflows/task-types/*.mdx
 
 gen-task-registry: ## Generate task-kind-registry.json + JSON Schemas and sync into the backend embed
@@ -215,12 +215,19 @@ gen-proto-sdk-docs-check: ## Verify proto SDK docs are up to date (CI)
 	echo "✓ Proto SDK docs are up to date"
 
 gen-task-docs-check: ## Verify task docs are up to date (CI)
-	@go run ./tools/codegen/generator --comprehensive --target=task-docs \
-		--schema-dir tools/codegen/schemas --output-dir docs/guides/workflows/task-types \
-		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta && \
-	npx prettier --write --prose-wrap always docs/guides/workflows/task-types/*.mdx > /dev/null 2>&1; \
-	if ! git diff --quiet docs/guides/workflows/task-types/; then \
-		git checkout -- docs/guides/workflows/task-types/; \
+	@tmpdir=$$(mktemp -d) && \
+	go run ./tools/codegen/generator --comprehensive --target=task-docs \
+		--schema-dir tools/codegen/schemas --output-dir "$$tmpdir" \
+		--meta-dir apis/ai/stigmer/agentic/workflow/v1/tasks/meta --apis-dir apis && \
+	npx prettier --write --prose-wrap always --config .prettierrc --ignore-path /dev/null "$$tmpdir"/*.mdx > /dev/null 2>&1; \
+	rc=0; \
+	for f in "$$tmpdir"/*; do \
+		if ! diff -q "$$f" "docs/guides/workflows/task-types/$$(basename $$f)" > /dev/null 2>&1; then \
+			rc=1; break; \
+		fi; \
+	done; \
+	rm -rf "$$tmpdir"; \
+	if [ $$rc -ne 0 ]; then \
 		echo "error: task docs are stale — run 'make gen-task-docs'"; exit 1; \
 	fi; \
 	echo "✓ Task docs are up to date"

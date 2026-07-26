@@ -18,12 +18,13 @@ field_groups:
 
 yaml_examples:
   - |
-    - wait_for_approval:
-        listen:
-          to:
-            mode: "one"
-            signals:
-              - id: "approval_signal"
-                type: "signal"
-        export:
-          as: "${ . }"
+    - name: wait_for_approval
+      kind: listen
+      task_config:
+        to:
+          mode: "one"
+          signals:
+            - id: "approval_signal"
+              type: "signal"
+      export:
+        as: "${ . }"

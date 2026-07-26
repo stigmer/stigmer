@@ -114,10 +114,13 @@ describe("buildBreadcrumbItems", () => {
   });
 
   it("falls back to the root crumb for pages absent from the tree", () => {
-    // The generated task-type pages are valid routes but not sidebar entries
-    // (DD-01 §5 file+folder shadowing) — they keep a bare "Docs" crumb.
+    // Formerly exercised by the generated task-type pages, which were valid
+    // routes shadowed out of the sidebar (DD-01 §5). That last file+folder
+    // hybrid was converted to a real folder with a generated index, so those
+    // pages now get full crumbs like any collapsible folder child; only a
+    // genuinely unlisted route keeps the bare "Docs" crumb.
     expect(
-      buildBreadcrumbItems(tree, "/docs/guides/workflows/task-types/http-call"),
+      buildBreadcrumbItems(tree, "/docs/guides/not-in-the-tree"),
     ).toEqual([{ name: "Docs", url: "/docs" }]);
   });
 });

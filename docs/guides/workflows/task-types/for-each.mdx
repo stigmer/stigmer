@@ -15,16 +15,17 @@ collections.
 ## YAML Example
 
 ```yaml
-- process_items:
-    for:
-      each: item
-      in: "${ $context.items }"
-      do:
-        - classify_item:
-            call: llm
-            with:
-              model: "gpt-4o-mini"
-              prompt: "Classify: ${ $item.description }"
+- name: process_items
+  kind: for_each
+  task_config:
+    each: item
+    in: "${ $context.items }"
+    do:
+      - name: classify_item
+        kind: llm_call
+        task_config:
+          model: "gpt-4o-mini"
+          prompt: "Classify: ${ $item.description }"
 ```
 
 ## task_config Fields

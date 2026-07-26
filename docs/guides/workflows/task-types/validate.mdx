@@ -15,31 +15,32 @@ explicit schema and business-rule validation on workflow data.
 ## YAML Example
 
 ```yaml
-- check_triage_quality:
-    validate:
-      input: "${ $context.triage }"
-      schema:
-        type: object
-        required: [severity, category, customer_impact]
-        properties:
-          severity:
-            type: string
-            enum: [low, medium, high, critical]
-          category:
-            type: string
-            minLength: 1
-          customer_impact:
-            type: boolean
-      rules:
-        - name: critical_needs_rationale
-          expression:
-            "${ .severity != 'critical' || (.rationale != null && .rationale !=
-            '') }"
-          message: "Critical severity requires a rationale"
-      on_fail: VALIDATION_FAIL_BRANCH
-      fallback_task: human_review
-    export:
-      as: "${ . }"
+- name: check_triage_quality
+  kind: validate
+  task_config:
+    input: "${ $context.triage }"
+    schema:
+      type: object
+      required: [severity, category, customer_impact]
+      properties:
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        category:
+          type: string
+          minLength: 1
+        customer_impact:
+          type: boolean
+    rules:
+      - name: critical_needs_rationale
+        expression:
+          "${ .severity != 'critical' || (.rationale != null && .rationale !=
+          '') }"
+        message: "Critical severity requires a rationale"
+    on_fail: VALIDATION_FAIL_BRANCH
+    fallback_task: human_review
+  export:
+    as: "${ . }"
 ```
 
 ## task_config Fields

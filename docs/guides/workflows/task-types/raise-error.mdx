@@ -15,10 +15,11 @@ errors.
 ## YAML Example
 
 ```yaml
-- fail_invalid:
-    raise:
-      error: "ValidationError"
-      message: "Required field missing: ${ $context.missing_field }"
+- name: fail_invalid
+  kind: raise_error
+  task_config:
+    error: "ValidationError"
+    message: "Required field missing: ${ $context.missing_field }"
 ```
 
 ## task_config Fields

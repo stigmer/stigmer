@@ -18,6 +18,8 @@ field_groups:
 
 yaml_examples:
   - |
-    - cooldown:
-        wait:
+    - name: cooldown
+      kind: wait
+      task_config:
+        duration:
           seconds: 30

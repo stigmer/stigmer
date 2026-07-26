@@ -118,6 +118,10 @@ func runTaskRegistryGeneration(schemaDir, outputDir, metaDir string) error {
 	}
 	fmt.Printf("  Loaded %d sidecar metadata files\n", len(sidecars))
 
+	if err := validateSidecarExamples(taskSchemas, sidecars); err != nil {
+		return err
+	}
+
 	// Merge schemas with sidecars into registry entries
 	var entries []TaskKindRegistryEntry
 	for _, schema := range taskSchemas {

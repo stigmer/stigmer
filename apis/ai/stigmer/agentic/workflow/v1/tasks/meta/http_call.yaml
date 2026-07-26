@@ -28,13 +28,13 @@ field_groups:
 
 yaml_examples:
   - |
-    - fetch_data:
-        call: http
-        with:
-          method: "GET"
-          endpoint:
-            uri: "https://api.example.com/tickets/${ $context.ticket_id }"
-          headers:
-            Authorization: "Bearer ${ .secrets.API_TOKEN }"
-        export:
-          as: "${ . }"
+    - name: fetch_data
+      kind: http_call
+      task_config:
+        method: "GET"
+        endpoint:
+          uri: "https://api.example.com/tickets/${ $context.ticket_id }"
+        headers:
+          Authorization: "Bearer ${ .secrets.API_TOKEN }"
+      export:
+        as: "${ . }"

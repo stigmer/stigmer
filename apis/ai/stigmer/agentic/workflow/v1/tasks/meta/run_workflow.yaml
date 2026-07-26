@@ -18,11 +18,12 @@ field_groups:
 
 yaml_examples:
   - |
-    - run_enrichment:
-        run:
-          workflow: "data-enrichment"
-          input:
-            user_id: "${ $context.user.id }"
-            source: "parent_workflow"
-        export:
-          as: "${ . }"
+    - name: run_enrichment
+      kind: run_workflow
+      task_config:
+        workflow: "data-enrichment"
+        input:
+          user_id: "${ $context.user.id }"
+          source: "parent_workflow"
+      export:
+        as: "${ . }"

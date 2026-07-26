@@ -2045,7 +2045,7 @@ func main() {
 	metaDir := flag.String("meta-dir", "", "Directory containing sidecar YAML metadata (used by task-registry target)")
 	expandStruct := flag.String("expand-struct", "", "Expand a Struct field into typed config fields: struct_field:discriminator_field:config_schema_dir")
 	comprehensive := flag.Bool("comprehensive", false, "Auto-discover all domain/resource schemas and generate for each")
-	apisDir := flag.String("apis-dir", "", "Root directory of proto API definitions (used by sdk-docs for overview.md loading)")
+	apisDir := flag.String("apis-dir", "", "Root directory of proto API definitions (used by sdk-docs for overview.md loading and by task-docs for the index enrichment template)")
 	flag.Parse()
 
 	if *comprehensive {
@@ -2098,7 +2098,11 @@ func main() {
 				fmt.Println("--meta-dir is required for --target=task-docs")
 				os.Exit(1)
 			}
-			if err := runTaskDocsGeneration(*schemaDir, *outputDir, *metaDir); err != nil {
+			if *apisDir == "" {
+				fmt.Println("--apis-dir is required for --target=task-docs (index enrichment template)")
+				os.Exit(1)
+			}
+			if err := runTaskDocsGeneration(*schemaDir, *outputDir, *metaDir, *apisDir); err != nil {
 				fmt.Printf("Error in task docs generation: %v\n", err)
 				os.Exit(1)
 			}

@@ -15,14 +15,15 @@ sub-workflows.
 ## YAML Example
 
 ```yaml
-- run_enrichment:
-    run:
-      workflow: "data-enrichment"
-      input:
-        user_id: "${ $context.user.id }"
-        source: "parent_workflow"
-    export:
-      as: "${ . }"
+- name: run_enrichment
+  kind: run_workflow
+  task_config:
+    workflow: "data-enrichment"
+    input:
+      user_id: "${ $context.user.id }"
+      source: "parent_workflow"
+  export:
+    as: "${ . }"
 ```
 
 ## task_config Fields

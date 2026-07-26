@@ -15,15 +15,15 @@ execute activities.
 ## YAML Example
 
 ```yaml
-- process_payment:
-    call: activity
-    with:
-      activity: "ProcessPayment"
-      input:
-        amount: "${ $context.order.total }"
-        currency: "USD"
-    export:
-      as: "${ . }"
+- name: process_payment
+  kind: activity_call
+  task_config:
+    activity: "ProcessPayment"
+    input:
+      amount: "${ $context.order.total }"
+      currency: "USD"
+  export:
+    as: "${ . }"
 ```
 
 ## task_config Fields

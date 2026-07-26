@@ -36,18 +36,19 @@ field_groups:
 
 yaml_examples:
   - |
-    - alert_slack:
-        notification:
-          channel: "slack"
-          recipients:
-            - "#incident-response"
-            - "@oncall-lead"
-          subject: "P${ $context.triage.severity } Incident: ${ $context.ticket.title }"
-          body: |
-            *Severity*: ${ $context.triage.severity }
-            *Category*: ${ $context.triage.category }
-            *Summary*: ${ $context.agent_analysis.structured.summary }
-          metadata:
-            thread_ts: "${ $context.slack_thread_id }"
-        export:
-          as: "${ . }"
+    - name: alert_slack
+      kind: notification
+      task_config:
+        channel: "slack"
+        recipients:
+          - "#incident-response"
+          - "@oncall-lead"
+        subject: "P${ $context.triage.severity } Incident: ${ $context.ticket.title }"
+        body: |
+          *Severity*: ${ $context.triage.severity }
+          *Category*: ${ $context.triage.category }
+          *Summary*: ${ $context.agent_analysis.structured.summary }
+        metadata:
+          thread_ts: "${ $context.slack_thread_id }"
+      export:
+        as: "${ . }"

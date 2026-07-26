@@ -18,14 +18,15 @@ field_groups:
 
 yaml_examples:
   - |
-    - route_by_severity:
-        switch:
-          cases:
-            - name: critical
-              when: "${ $context.triage.severity == 'critical' }"
-              then: escalate
-            - name: high
-              when: "${ $context.triage.severity == 'high' }"
-              then: notify_team
-            - name: default
-              then: log_and_close
+    - name: route_by_severity
+      kind: switch_case
+      task_config:
+        cases:
+          - name: critical
+            when: "${ $context.triage.severity == 'critical' }"
+            then: escalate
+          - name: high
+            when: "${ $context.triage.severity == 'high' }"
+            then: notify_team
+          - name: default
+            then: log_and_close

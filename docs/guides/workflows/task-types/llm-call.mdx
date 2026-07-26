@@ -17,37 +17,37 @@ LLM API calls without the overhead of a full agent invocation.
 ## YAML Examples
 
 ```yaml
-- classify_severity:
-    call: llm
-    with:
-      model: "gpt-4o-mini"
-      system_prompt: "You are a support ticket classifier."
-      prompt: "Classify this ticket: ${ $context.ticket.description }"
-      response_schema:
-        type: object
-        required: [severity, category]
-        properties:
-          severity:
-            type: string
-            enum: [low, medium, high, critical]
-          category:
-            type: string
-      on_invalid: ON_INVALID_RETRY
-      max_retries: 2
-    export:
-      as: "${ . }"
+- name: classify_severity
+  kind: llm_call
+  task_config:
+    model: "gpt-4o-mini"
+    system_prompt: "You are a support ticket classifier."
+    prompt: "Classify this ticket: ${ $context.ticket.description }"
+    response_schema:
+      type: object
+      required: [severity, category]
+      properties:
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        category:
+          type: string
+    on_invalid: ON_INVALID_RETRY
+    max_retries: 2
+  export:
+    as: "${ . }"
 ```
 
 ```yaml
-- summarize:
-    call: llm
-    with:
-      model: "claude-sonnet-4-5"
-      prompt: "Summarize in 2 sentences: ${ $context.document.text }"
-      temperature: 0.3
-      max_tokens: 200
-    export:
-      as: "${ . }"
+- name: summarize
+  kind: llm_call
+  task_config:
+    model: "claude-sonnet-4-5"
+    prompt: "Summarize in 2 sentences: ${ $context.document.text }"
+    temperature: 0.3
+    max_tokens: 200
+  export:
+    as: "${ . }"
 ```
 
 ## task_config Fields

@@ -15,15 +15,16 @@ external signals.
 ## YAML Example
 
 ```yaml
-- wait_for_approval:
-    listen:
-      to:
-        mode: "one"
-        signals:
-          - id: "approval_signal"
-            type: "signal"
-    export:
-      as: "${ . }"
+- name: wait_for_approval
+  kind: listen
+  task_config:
+    to:
+      mode: "one"
+      signals:
+        - id: "approval_signal"
+          type: "signal"
+  export:
+    as: "${ . }"
 ```
 
 ## task_config Fields

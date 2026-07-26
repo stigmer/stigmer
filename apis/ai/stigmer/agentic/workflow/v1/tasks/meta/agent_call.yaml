@@ -49,22 +49,22 @@ field_groups:
 
 yaml_examples:
   - |
-    - triage_ticket:
-        call: agent
-        with:
-          agent: "support-triage"
-          message: "${ .ticket.description }"
-          output:
-            schema:
-              type: object
-              required: [severity, category]
-              properties:
-                severity:
-                  type: string
-                  enum: [low, medium, high, critical]
-                category:
-                  type: string
-            on_invalid: ON_INVALID_RETRY
-            max_retries: 2
-        export:
-          as: "${ .structured }"
+    - name: triage_ticket
+      kind: agent_call
+      task_config:
+        agent: "support-triage"
+        message: "${ .ticket.description }"
+        output:
+          schema:
+            type: object
+            required: [severity, category]
+            properties:
+              severity:
+                type: string
+                enum: [low, medium, high, critical]
+              category:
+                type: string
+          on_invalid: ON_INVALID_RETRY
+          max_retries: 2
+      export:
+        as: "${ .structured }"

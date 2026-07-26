@@ -17,8 +17,10 @@ Supports both relative durations and absolute timestamps.
 ## YAML Example
 
 ```yaml
-- cooldown:
-    wait:
+- name: cooldown
+  kind: wait
+  task_config:
+    duration:
       seconds: 30
 ```
 

@@ -15,26 +15,27 @@ parallel.
 ## YAML Example
 
 ```yaml
-- parallel_enrichment:
-    fork:
-      branches:
-        - name: fetch_profile
-          do:
-            - get_profile:
-                call: http
-                with:
-                  method: "GET"
-                  endpoint:
-                    uri: "https://api.example.com/users/${ $context.user_id }"
-        - name: fetch_history
-          do:
-            - get_history:
-                call: http
-                with:
-                  method: "GET"
-                  endpoint:
-                    uri: "https://api.example.com/history/${ $context.user_id }"
-      compete: false
+- name: parallel_enrichment
+  kind: fork
+  task_config:
+    branches:
+      - name: fetch_profile
+        do:
+          - name: get_profile
+            kind: http_call
+            task_config:
+              method: "GET"
+              endpoint:
+                uri: "https://api.example.com/users/${ $context.user_id }"
+      - name: fetch_history
+        do:
+          - name: get_history
+            kind: http_call
+            task_config:
+              method: "GET"
+              endpoint:
+                uri: "https://api.example.com/history/${ $context.user_id }"
+    compete: false
 ```
 
 ## task_config Fields

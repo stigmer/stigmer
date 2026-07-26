@@ -14,21 +14,24 @@ TryTaskConfig defines the configuration for try_catch tasks that handle errors.
 ## YAML Example
 
 ```yaml
-- safe_api_call:
+- name: safe_api_call
+  kind: try_catch
+  task_config:
     try:
-      - risky_call:
-          call: http
-          with:
-            method: "POST"
-            endpoint:
-              uri: "https://api.unreliable.com/submit"
+      - name: risky_call
+        kind: http_call
+        task_config:
+          method: "POST"
+          endpoint:
+            uri: "https://api.unreliable.com/submit"
     catch:
       as: error
       do:
-        - log_failure:
-            set:
-              variables:
-                error_message: "${ $error.message }"
+        - name: log_failure
+          kind: set_vars
+          task_config:
+            variables:
+              error_message: "${ $error.message }"
 ```
 
 ## task_config Fields
