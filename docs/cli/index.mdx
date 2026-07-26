@@ -19,8 +19,20 @@ brew install stigmer/tap/stigmer
 
 ### Shell script (macOS / Linux)
 
+No prerequisites — the installer bundles its own Node.js runtime under
+`~/.stigmer` and never touches your system. Re-run it any time to upgrade.
+
 ```bash
-curl -fsSL https://get.stigmer.ai | sh
+curl -fsSL https://stigmer.ai/install.sh | sh
+```
+
+### npm
+
+Already have Node.js 22.13 or newer? The CLI is published as
+[`@stigmer/cli`](https://www.npmjs.com/package/@stigmer/cli):
+
+```bash
+npm install -g @stigmer/cli
 ```
 
 ### From source

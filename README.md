@@ -38,8 +38,11 @@ stigmer run support-bot "How do I reset my password?"
 <summary>Other install methods</summary>
 
 ```bash
-# Shell script (macOS/Linux)
-curl -fsSL https://raw.githubusercontent.com/stigmer/stigmer/main/scripts/install.sh | bash
+# Shell script (macOS/Linux) — no prerequisites, bundles its own Node.js runtime
+curl -fsSL https://stigmer.ai/install.sh | sh
+
+# npm (requires Node.js >= 22.13)
+npm install -g @stigmer/cli
 
 # From source
 git clone https://github.com/stigmer/stigmer.git

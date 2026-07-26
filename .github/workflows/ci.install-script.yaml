@@ -1,0 +1,87 @@
+# =============================================================================
+# Install Script CI
+# =============================================================================
+# Quality gate for the public CLI installer served at
+# https://stigmer.ai/install.sh (source: site/public/install.sh). The script
+# goes live on the next website deploy after merging to main, so every change
+# must prove the exact end-user flow: shellcheck, then a real `sh install.sh`
+# run on a Node-less Linux container and on macOS, asserting that the
+# installed `stigmer version` works.
+# =============================================================================
+
+name: ci.install-script
+
+on:
+  pull_request:
+    paths:
+      - "site/public/install.sh"
+      - ".github/workflows/ci.install-script.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "site/public/install.sh"
+      - ".github/workflows/ci.install-script.yaml"
+  workflow_dispatch:
+
+concurrency:
+  group: install-script-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+# Make the installer's `npm install` resilient to transient registry drops
+# (ECONNRESET). npm reads these npm_config_* vars, so the install retries
+# with backoff instead of failing the job on the first dropped download.
+# Same pattern as ci.docs.yaml.
+env:
+  npm_config_fetch_retries: "5"
+  npm_config_fetch_retry_factor: "2"
+  npm_config_fetch_retry_mintimeout: "20000"
+  npm_config_fetch_retry_maxtimeout: "120000"
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # shellcheck is preinstalled on GitHub's ubuntu runners.
+      - name: Run shellcheck
+        run: shellcheck site/public/install.sh
+
+  install-linux:
+    name: Install on Node-less Linux
+    runs-on: ubuntu-latest
+    # A bare image (not the runner VM, which has Node preinstalled) proves the
+    # installer's only prerequisites are curl, tar, and a sha-256 tool — in
+    # particular that it vendors its own Node runtime.
+    container:
+      image: ubuntu:24.04
+    steps:
+      - name: Install curl and CA certificates
+        run: apt-get update && apt-get install -y --no-install-recommends curl ca-certificates
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assert no Node on PATH
+        run: if command -v node; then echo "node unexpectedly present in the test image" && exit 1; fi
+
+      - name: Run installer
+        run: sh site/public/install.sh
+
+      - name: Verify installed CLI
+        run: '"$HOME/.local/bin/stigmer" version'
+
+  install-macos:
+    name: Install on macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run installer
+        run: sh site/public/install.sh
+
+      - name: Verify installed CLI
+        run: '"$HOME/.local/bin/stigmer" version'

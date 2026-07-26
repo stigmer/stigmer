@@ -23,10 +23,14 @@ SQLite and connects to your own LLM provider.
 
 ## Install Stigmer
 
-<Tabs items={["Homebrew", "Shell script"]}>
+<Tabs items={["Homebrew", "Shell script", "npm"]}>
   <Tab value="Homebrew">```bash brew install stigmer/tap/stigmer ```</Tab>
   <Tab value="Shell script">
-    ```bash curl -fsSL https://stigmer.ai/install.sh | bash ```
+    ```bash curl -fsSL https://stigmer.ai/install.sh | sh ``` No prerequisites —
+    the installer bundles its own Node.js runtime under `~/.stigmer`.
+  </Tab>
+  <Tab value="npm">
+    ```bash npm install -g @stigmer/cli ``` Requires Node.js 22.13 or newer.
   </Tab>
 </Tabs>
 
