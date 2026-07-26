@@ -1,0 +1,518 @@
+---
+title: SDK Overview
+description:
+  Install, configure, and use the Stigmer SDK to call the Stigmer API from
+  TypeScript, Go, Python, or Java.
+---
+
+The Stigmer SDK provides official client libraries for the Stigmer API in four
+languages. Each library offers typed resource clients, structured error
+handling, and server-streaming support.
+
+If you are new to Stigmer, start with the
+[Quickstart](/docs/getting-started/quickstart) to build a working integration
+in 5 minutes, then return here for the full reference.
+
+## Installation
+
+<SDKTabs>
+<Tab value="TypeScript">
+```bash
+npm install @stigmer/sdk
+```
+</Tab>
+<Tab value="Go">
+```bash
+go get github.com/stigmer/stigmer/sdk/go/v3
+```
+</Tab>
+<Tab value="Python">
+```bash
+pip install stigmer
+```
+</Tab>
+<Tab value="Java">
+
+Add the dependency to your `pom.xml`:
+
+```xml
+<dependency>
+  <groupId>ai.stigmer</groupId>
+  <artifactId>stigmer-java</artifactId>
+</dependency>
+```
+
+</Tab>
+</SDKTabs>
+
+## Authentication
+
+The SDK supports three authentication methods:
+
+- **API key** (`apiKey`) — A static secret credential for server-side use
+  (backends, CLI tools, SSR, CI/CD). Create one in the Stigmer Console under
+  **Settings > API Keys**.
+- **Identity federation** (`getAccessToken`) — Your users authenticate through
+  their existing OIDC provider (Auth0, Okta, Cognito, Entra ID). The SDK sends
+  their JWT directly.
+  [Set up identity federation](/docs/guides/authentication/federation/overview)
+  to enable this.
+- **PlatformClient** (`getAccessToken`) — Your backend mints Stigmer tokens per
+  user using PlatformClient credentials. Use this to embed Stigmer in your
+  product without OIDC setup.
+  [Set up PlatformClient](/docs/guides/authentication/platform-client/overview)
+  to enable this.
+
+Both `getAccessToken` paths produce the same result: a JWT that the SDK sends as
+`Authorization: Bearer`. The difference is where the token comes from. See the
+[Authentication guide](/docs/guides/authentication/overview) for help choosing.
+
+<Callout type="warn">
+  API keys start with `sk_`. Store them in environment variables. Never commit
+  them to source control.
+</Callout>
+
+<Callout type="error">
+  **Never expose API keys in client-side code.** API keys are secret
+  credentials that grant full access to your Organization. In browser apps,
+  use `getAccessToken` with
+  [identity federation](/docs/guides/authentication/federation/overview) or
+  [PlatformClient](/docs/guides/authentication/platform-client/overview) instead.
+</Callout>
+
+Set the `STIGMER_API_KEY` environment variable, then pass it to the client
+constructor:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+import { Stigmer } from "@stigmer/sdk";
+
+const stigmer = new Stigmer({
+  baseUrl: "https://api.stigmer.ai",
+  apiKey: process.env.STIGMER_API_KEY!,
+});
+```
+
+Use `getAccessToken` for browser applications. Each user authenticates through
+your platform's auth provider, and the callback returns their JWT. With
+[JIT provisioning](/docs/guides/authentication/federation/register-identity-provider#enable-jit-provisioning)
+enabled, Stigmer creates accounts automatically on first authentication:
+
+```typescript
+const stigmer = new Stigmer({
+  baseUrl: "https://api.stigmer.ai",
+  getAccessToken: () => fetchTokenFromAuthProvider(),
+});
+```
+
+Provide exactly one of `apiKey` or `getAccessToken`, not both.
+</Tab>
+<Tab value="Go">
+```go
+import stigmer "github.com/stigmer/stigmer/sdk/go/v3"
+
+client, err := stigmer.NewClient(os.Getenv("STIGMER_API_KEY"))
+if err != nil {
+    log.Fatal(err)
+}
+defer client.Close()
+```
+</Tab>
+<Tab value="Python">
+```python
+from stigmer import StigmerClient
+
+client = StigmerClient(os.environ["STIGMER_API_KEY"])
+```
+
+The Python client also supports the context manager protocol:
+
+```python
+with StigmerClient(os.environ["STIGMER_API_KEY"]) as client:
+    agent = client.agents.get("agent-id")
+```
+</Tab>
+<Tab value="Java">
+```java
+import ai.stigmer.sdk.StigmerClient;
+
+try (var client = StigmerClient.builder(
+        System.getenv("STIGMER_API_KEY")
+    ).build()) {
+    // use client
+}
+```
+</Tab>
+</SDKTabs>
+
+## Configuration
+
+All SDKs connect to `api.stigmer.ai` by default. Override the endpoint when
+connecting to a different server:
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const stigmer = new Stigmer({
+  baseUrl: "https://custom-api.example.com",
+  apiKey: process.env.STIGMER_API_KEY!,
+  transport: "connect", // default: "grpc-web"
+});
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `baseUrl` | `string` | — | HTTPS URL of the Stigmer API server. Required. |
+| `apiKey` | `string` | — | Static API key. |
+| `getAccessToken` | `() => string \| null` | — | Dynamic token provider. |
+| `transport` | `"grpc-web" \| "connect"` | `"grpc-web"` | Wire protocol. `connect` uses HTTP/JSON for easier debugging. |
+| `onUnauthenticated` | `() => void` | — | Called once when the server returns UNAUTHENTICATED. |
+</Tab>
+<Tab value="Go">
+```go
+client, err := stigmer.NewClient(
+    os.Getenv("STIGMER_API_KEY"),
+    stigmer.WithBaseURL("custom-api.example.com:443"),
+)
+```
+
+| Option | Description |
+|--------|-------------|
+| `WithBaseURL(target)` | gRPC target address (`host:port`). Default: `api.stigmer.ai:443`. |
+| `WithInsecure()` | Disable TLS. Use only for local development. |
+| `WithDialOptions(opts...)` | Append additional gRPC dial options. |
+
+Always call `defer client.Close()` to release the underlying gRPC connection.
+</Tab>
+<Tab value="Python">
+```python
+client = StigmerClient(
+    os.environ["STIGMER_API_KEY"],
+    base_url="custom-api.example.com:443",
+)
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `api_key` | `str` | — | API key. Required. |
+| `base_url` | `str` | `api.stigmer.ai:443` | gRPC target address (`host:port`). |
+| `insecure` | `bool` | `False` | Disable TLS. Use only for local development. |
+</Tab>
+<Tab value="Java">
+```java
+var client = StigmerClient.builder(System.getenv("STIGMER_API_KEY"))
+    .baseUrl("custom-api.example.com:443")
+    .build();
+```
+
+| Method | Description |
+|--------|-------------|
+| `.baseUrl(target)` | gRPC target address (`host:port`). Default: `api.stigmer.ai:443`. |
+| `.insecure()` | Disable TLS. Use only for local development. |
+
+`StigmerClient` implements `AutoCloseable`. Use try-with-resources to ensure
+the gRPC channel shuts down cleanly.
+</Tab>
+</SDKTabs>
+
+## Resource clients
+
+Every SDK organizes the API around **resource clients**. Each resource has its
+own client with methods like `get`, `create`, `list`, `apply`, `update`, and
+`delete`.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+stigmer.agent.get(id)
+stigmer.session.create(input)
+stigmer.agentExecution.subscribe(id)
+```
+
+TypeScript uses singular camelCase accessors on the `Stigmer` instance.
+</Tab>
+<Tab value="Go">
+```go
+client.Agent.Get(ctx, id)
+client.Session.Create(ctx, &stigmer.SessionInput{...})
+client.AgentExecution.Subscribe(ctx, id)
+```
+
+Go uses singular PascalCase fields. Every method takes a `context.Context` as
+its first argument.
+</Tab>
+<Tab value="Python">
+```python
+client.agents.get(id)
+client.sessions.create(SessionInput(...))
+client.agent_executions.subscribe(id)
+```
+
+Python uses plural snake_case attributes.
+</Tab>
+<Tab value="Java">
+```java
+client.agents().get(id);
+client.sessions().create(SessionInput.builder()...build());
+client.agentExecutions().subscribe(id);
+```
+
+Java uses plural camelCase methods that return typed sub-clients.
+</Tab>
+</SDKTabs>
+
+Browse the sidebar for the full list of resources. Each resource page documents
+every method, its parameters, and its return types.
+
+## Error handling
+
+All SDK methods throw a structured error type that wraps the underlying gRPC
+status code into a portable error code. Each SDK provides classification
+helpers to check common error conditions without inspecting codes directly.
+
+| Language | Error type | Import |
+|----------|-----------|--------|
+| TypeScript | `StigmerError` | `@stigmer/sdk` |
+| Go | `*stigmer.Error` | `github.com/stigmer/stigmer/sdk/go/v3` |
+| Python | `StigmerError` | `stigmer` |
+| Java | `StigmerException` | `ai.stigmer.sdk.gen` |
+
+### Classification helpers
+
+| Helper | Returns `true` when |
+|--------|-------------------|
+| `isNotFound` | The requested resource does not exist. |
+| `isUnauthenticated` | The API key is missing or not accepted. |
+| `isPermissionDenied` | The API key lacks the required permission. |
+| `isRetryable` | The error is transient (server error or temporarily unavailable). |
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+import { StigmerError, isNotFound, isRetryable } from "@stigmer/sdk";
+
+try {
+  const agent = await stigmer.agent.get(id);
+} catch (err) {
+  if (isNotFound(err)) {
+    console.log("Agent does not exist");
+    return;
+  }
+  if (isRetryable(err)) {
+    // wait and retry
+  }
+  throw err;
+}
+```
+
+The TypeScript SDK also exports `classifyError(err)` which returns an
+`ErrorCategory` string (`"auth"`, `"permission"`, `"not-found"`,
+`"validation"`, `"server"`, `"unavailable"`, `"cancelled"`, `"unknown"`) and
+`getUserMessage(err)` which returns a clean, user-appropriate error message.
+</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.Get(ctx, id)
+if err != nil {
+    if stigmer.IsNotFound(err) {
+        log.Println("Agent does not exist")
+        return
+    }
+    log.Fatal(err)
+}
+```
+</Tab>
+<Tab value="Python">
+```python
+from stigmer import StigmerError, is_not_found, is_retryable
+
+try:
+    agent = client.agents.get(id)
+except StigmerError as err:
+    if is_not_found(err):
+        print("Agent does not exist")
+        return
+    if is_retryable(err):
+        pass  # wait and retry
+    raise
+```
+</Tab>
+<Tab value="Java">
+```java
+import ai.stigmer.sdk.gen.StigmerException;
+
+try {
+    var agent = client.agents().get(id);
+} catch (StigmerException e) {
+    if (e.isNotFound()) {
+        System.out.println("Agent does not exist");
+        return;
+    }
+    if (e.isRetryable()) {
+        // wait and retry
+    }
+    throw e;
+}
+```
+</Tab>
+</SDKTabs>
+
+## Pagination
+
+List methods accept `pageSize` and `pageToken` parameters and return a
+paginated result with `totalPages` and an `entries` array.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.session.list({
+  pageSize: 25,
+  pageToken: "",
+});
+
+console.log(`Total pages: ${result.totalPages}`);
+for (const session of result.entries) {
+  console.log(session.metadata?.name);
+}
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.Session.List(ctx, &stigmer.ListSessionsRequest{
+    PageSize: 25,
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Printf("Total pages: %d\n", result.GetTotalPages())
+for _, s := range result.GetEntries() {
+    fmt.Println(s.GetName())
+}
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.sessions.list(ListSessionsRequest(
+    page_size=25,
+))
+
+print(f"Total pages: {result.total_pages}")
+for session in result.entries:
+    print(session.name)
+```
+</Tab>
+<Tab value="Java">
+```java
+var result = client.sessions().list(ListSessionsRequest.builder()
+    .pageSize(25)
+    .build());
+
+System.out.println("Total pages: " + result.getTotalPages());
+for (var session : result.getEntries()) {
+    System.out.println(session.getName());
+}
+```
+</Tab>
+</SDKTabs>
+
+## Streaming
+
+Agent Executions and Workflow Executions support server-streaming via a
+`subscribe` method. You receive snapshots of the execution state as it
+progresses — messages arriving, tool calls executing, and phases changing.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+for await (const snapshot of stigmer.agentExecution.subscribe(executionId)) {
+  const messages = snapshot.status?.messages ?? [];
+  const last = messages[messages.length - 1];
+  if (last?.content) {
+    console.log(last.content);
+    break;
+  }
+}
+```
+</Tab>
+<Tab value="Go">
+```go
+stream, err := client.AgentExecution.Subscribe(ctx, executionId)
+if err != nil {
+    log.Fatal(err)
+}
+for {
+    snapshot, err := stream.Recv()
+    if err == io.EOF {
+        break
+    }
+    if err != nil {
+        log.Fatal(err)
+    }
+    msgs := snapshot.GetStatus().GetMessages()
+    if len(msgs) > 0 {
+        last := msgs[len(msgs)-1]
+        if last.GetContent() != "" {
+            fmt.Println(last.GetContent())
+            break
+        }
+    }
+}
+```
+</Tab>
+<Tab value="Python">
+```python
+for snapshot in client.agent_executions.subscribe(execution_id):
+    messages = snapshot.status.messages
+    if messages and messages[-1].content:
+        print(messages[-1].content)
+        break
+```
+</Tab>
+<Tab value="Java">
+```java
+var stream = client.agentExecutions().subscribe(executionId);
+while (stream.hasNext()) {
+    var snapshot = stream.next();
+    var messages = snapshot.getStatus().getMessagesList();
+    if (!messages.isEmpty()) {
+        var last = messages.get(messages.size() - 1);
+        if (!last.getContent().isEmpty()) {
+            System.out.println(last.getContent());
+            break;
+        }
+    }
+}
+```
+</Tab>
+</SDKTabs>
+
+For a detailed guide on reading execution snapshots, handling stream completion,
+and subscribing to Workflow Executions, see the
+[Streaming guide](/docs/sdk/streaming).
+
+## What's next
+
+<Cards>
+  <Card
+    title="Streaming"
+    description="Consume real-time execution responses as they arrive."
+    href="/docs/sdk/streaming"
+  />
+  <Card
+    title="React SDK"
+    description="Build UIs with @stigmer/react providers and hooks."
+    href="/docs/sdk/react"
+  />
+  <Card
+    title="Ink SDK"
+    description="Build terminal UIs with @stigmer/ink components for agent sessions."
+    href="/docs/sdk/ink"
+  />
+  <Card
+    title="Agent"
+    description="Create and manage agent definitions."
+    href="/docs/sdk/resources/agent"
+  />
+</Cards>

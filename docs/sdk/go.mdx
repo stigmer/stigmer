@@ -1,0 +1,80 @@
+---
+title: Go SDK
+description:
+  Install the Stigmer Go SDK and call the Stigmer API from Go services.
+---
+
+The Stigmer Go SDK is the official Go client for the Stigmer API. It provides
+typed resource clients, structured error handling, and server-streaming
+support over gRPC.
+
+## Installation
+
+```bash
+go get github.com/stigmer/stigmer/sdk/go/v3
+```
+
+## Create a client
+
+Authenticate with an API key from an environment variable. Always call
+`defer client.Close()` to release the underlying gRPC connection:
+
+```go
+import stigmer "github.com/stigmer/stigmer/sdk/go/v3"
+
+client, err := stigmer.NewClient(os.Getenv("STIGMER_API_KEY"))
+if err != nil {
+    log.Fatal(err)
+}
+defer client.Close()
+```
+
+The client connects to `api.stigmer.ai:443` by default; override with
+`stigmer.WithBaseURL(target)`. See
+[SDK Overview > Authentication](/docs/sdk/overview#authentication) for
+authentication methods and
+[SDK Overview > Configuration](/docs/sdk/overview#configuration) for all
+options.
+
+## Make your first call
+
+Every resource has its own client with methods like `Get`, `Create`, `List`,
+`Apply`, and `Delete`. Go uses singular PascalCase fields, and every method
+takes a `context.Context` as its first argument:
+
+```go
+agent, err := client.Agent.Get(ctx, id)
+if err != nil {
+    if stigmer.IsNotFound(err) {
+        log.Println("Agent does not exist")
+        return
+    }
+    log.Fatal(err)
+}
+fmt.Println(agent.GetMetadata().GetName())
+```
+
+## What's next
+
+<Cards>
+  <Card
+    title="SDK Overview"
+    description="Configuration options, error handling, pagination, and resource clients — with Go examples throughout."
+    href="/docs/sdk/overview"
+  />
+  <Card
+    title="Streaming"
+    description="Consume real-time execution responses as they arrive."
+    href="/docs/sdk/streaming"
+  />
+  <Card
+    title="Agent"
+    description="Create and manage agent definitions."
+    href="/docs/sdk/resources/agent"
+  />
+  <Card
+    title="Authentication guide"
+    description="Choose between API keys, identity federation, and PlatformClient."
+    href="/docs/guides/authentication/overview"
+  />
+</Cards>

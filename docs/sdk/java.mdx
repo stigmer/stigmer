@@ -1,0 +1,89 @@
+---
+title: Java SDK
+description:
+  Install stigmer-java and call the Stigmer API from Java services.
+---
+
+`stigmer-java` is the official Java client for the Stigmer API. It provides
+typed resource clients, structured error handling, and server-streaming
+support over gRPC.
+
+## Installation
+
+Add the dependency to your `pom.xml`:
+
+```xml
+<dependency>
+  <groupId>ai.stigmer</groupId>
+  <artifactId>stigmer-java</artifactId>
+</dependency>
+```
+
+## Create a client
+
+Authenticate with an API key from an environment variable. `StigmerClient`
+implements `AutoCloseable` — use try-with-resources so the gRPC channel shuts
+down cleanly:
+
+```java
+import ai.stigmer.sdk.StigmerClient;
+
+try (var client = StigmerClient.builder(
+        System.getenv("STIGMER_API_KEY")
+    ).build()) {
+    // use client
+}
+```
+
+The client connects to `api.stigmer.ai:443` by default; override with
+`.baseUrl(target)`. See
+[SDK Overview > Authentication](/docs/sdk/overview#authentication) for
+authentication methods and
+[SDK Overview > Configuration](/docs/sdk/overview#configuration) for all
+options.
+
+## Make your first call
+
+Every resource has its own client with methods like `get`, `create`, `list`,
+`apply`, and `delete`. Java uses plural camelCase methods that return typed
+sub-clients:
+
+```java
+import ai.stigmer.sdk.gen.StigmerException;
+
+try {
+    var agent = client.agents().get(id);
+    System.out.println(agent.getMetadata().getName());
+} catch (StigmerException e) {
+    if (e.isNotFound()) {
+        System.out.println("Agent does not exist");
+    } else {
+        throw e;
+    }
+}
+```
+
+## What's next
+
+<Cards>
+  <Card
+    title="SDK Overview"
+    description="Configuration options, error handling, pagination, and resource clients — with Java examples throughout."
+    href="/docs/sdk/overview"
+  />
+  <Card
+    title="Streaming"
+    description="Consume real-time execution responses as they arrive."
+    href="/docs/sdk/streaming"
+  />
+  <Card
+    title="Agent"
+    description="Create and manage agent definitions."
+    href="/docs/sdk/resources/agent"
+  />
+  <Card
+    title="Authentication guide"
+    description="Choose between API keys, identity federation, and PlatformClient."
+    href="/docs/guides/authentication/overview"
+  />
+</Cards>

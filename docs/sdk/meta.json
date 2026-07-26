@@ -3,5 +3,20 @@
   "description": "Integrate Stigmer from your application",
   "icon": "SquareCode",
   "root": true,
-  "pages": ["index", "react", "ink", "theme", "streaming", "resources"]
+  "pages": [
+    "index",
+    "overview",
+    "streaming",
+    "---API Clients---",
+    "typescript",
+    "go",
+    "python",
+    "java",
+    "---UI Toolkits---",
+    "react",
+    "ink",
+    "theme",
+    "---Reference---",
+    "resources"
+  ]
 }

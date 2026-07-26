@@ -1,0 +1,90 @@
+---
+title: TypeScript SDK
+description:
+  Install @stigmer/sdk and call the Stigmer API from TypeScript or
+  JavaScript.
+---
+
+`@stigmer/sdk` is the official TypeScript client for the Stigmer API. It
+provides typed resource clients, structured error handling, and
+server-streaming support, and runs in Node.js and the browser.
+
+## Installation
+
+```bash
+npm install @stigmer/sdk
+```
+
+## Create a client
+
+On the server, authenticate with an API key from an environment variable:
+
+```typescript
+import { Stigmer } from "@stigmer/sdk";
+
+const stigmer = new Stigmer({
+  baseUrl: "https://api.stigmer.ai",
+  apiKey: process.env.STIGMER_API_KEY!,
+});
+```
+
+In the browser, never use an API key. Pass `getAccessToken` instead — a
+callback that returns each user's JWT:
+
+```typescript
+const stigmer = new Stigmer({
+  baseUrl: "https://api.stigmer.ai",
+  getAccessToken: () => fetchTokenFromAuthProvider(),
+});
+```
+
+Provide exactly one of `apiKey` or `getAccessToken`. See
+[SDK Overview > Authentication](/docs/sdk/overview#authentication) for the
+full comparison of authentication methods, and the
+[Authentication guide](/docs/guides/authentication/overview) for setting up
+identity federation or PlatformClient.
+
+## Make your first call
+
+Every resource has its own client with methods like `get`, `create`, `list`,
+`apply`, and `delete`. TypeScript uses singular camelCase accessors:
+
+```typescript
+import { isNotFound } from "@stigmer/sdk";
+
+try {
+  const agent = await stigmer.agent.get(id);
+  console.log(agent.metadata?.name);
+} catch (err) {
+  if (isNotFound(err)) {
+    console.log("Agent does not exist");
+  } else {
+    throw err;
+  }
+}
+```
+
+## What's next
+
+<Cards>
+  <Card
+    title="SDK Overview"
+    description="Configuration options, error handling, pagination, and resource clients — with TypeScript examples throughout."
+    href="/docs/sdk/overview"
+  />
+  <Card
+    title="Streaming"
+    description="Consume real-time execution responses as they arrive."
+    href="/docs/sdk/streaming"
+  />
+  <Card
+    title="Agent"
+    description="Create and manage agent definitions."
+    href="/docs/sdk/resources/agent"
+  />
+  <Card
+    title="React SDK"
+    description="Build UIs with @stigmer/react providers and hooks on top of this client."
+    href="/docs/sdk/react"
+  />
+</Cards>

@@ -82,7 +82,7 @@ function renderExportSection(exp: InkExport): string {
   let s = `### ${exp.name}\n\n`;
 
   if (exp.isReExport) {
-    s += `Re-exported from \`@stigmer/sdk/node\`. See [SDK Overview](/docs/sdk) for full documentation.\n\n`;
+    s += `Re-exported from \`@stigmer/sdk/node\`. See [SDK Overview](/docs/sdk/overview) for full documentation.\n\n`;
   }
 
   if (exp.description.length > 0) {
