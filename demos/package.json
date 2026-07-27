@@ -14,8 +14,8 @@
   "dependencies": {
     "@bufbuild/protobuf": "^2.12.0",
     "@connectrpc/connect": "^2.1.2",
-    "@scenar/core": "^0.6.0",
-    "@scenar/react": "^0.6.0",
+    "@scenar/core": "^0.7.0",
+    "@scenar/react": "^0.7.0",
     "@stigmer/protos": "*",
     "@stigmer/react": "*",
     "@stigmer/sdk": "*",
@@ -26,7 +26,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@scenar/cli": "^0.6.0",
+    "@scenar/cli": "^0.7.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
