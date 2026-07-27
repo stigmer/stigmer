@@ -1,0 +1,65 @@
+/*
+ * SessionView layout — plain CSS only (scenar-cloud DD-003). The heavy
+ * lifting is real SDK chrome now: SessionViewerLayout owns the split and
+ * chip corner, MessageThread's `contentColumn="center"` owns the reading
+ * column (`max-w-3xl`, centered, item gutter), and WorkspaceSurface owns
+ * the panel. This file only frames them.
+ *
+ * The launcher state keeps the real new-session pane's own geometry
+ * (sdk/react NewSessionViewer: `px-4 py-6` scroll pane, `max-w-2xl`
+ * column, `space-y-6`, centered `text-lg font-medium` heading). No zoom
+ * anywhere — the shell lays out at real size and the viewport boundary
+ * owns the one scale factor.
+ */
+.sx-session {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  background: var(--stgm-background);
+}
+
+/* Conversation state: a scrollable thread pane; the reading column inside
+ * is the real component's (`contentColumn="center"`). */
+.sx-session__thread {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 24px 0;
+}
+
+/* The open panel fills the split's flexible region. */
+.sx-session__panel {
+  height: 100%;
+  min-width: 0;
+}
+
+/* Cursor anchor around the chip: inline so it adds no geometry. */
+.sx-session__chip-anchor {
+  display: inline-flex;
+}
+
+/* Launcher state: heading + composer centered, real pane metrics. */
+.sx-session__center {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 24px 16px;
+}
+.sx-session__center-inner {
+  display: flex;
+  width: 100%;
+  max-width: 42rem;
+  flex-direction: column;
+  gap: 24px;
+}
+.sx-session__heading {
+  margin: 0;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--stgm-foreground);
+}

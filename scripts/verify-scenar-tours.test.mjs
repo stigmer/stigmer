@@ -447,7 +447,12 @@ test("replica metric pairs name real, existing facts on both sides", () => {
   for (const pair of REPLICA_METRIC_PAIRS) {
     assert.ok(pair.fact && pair.replica && pair.replicaNeedle && pair.real && pair.realNeedle);
     assert.ok(pair.replica.startsWith("demos/tours/_shared/"));
-    assert.ok(pair.real.startsWith("client-apps/web/"));
+    // The real side is the product: the console app or the SDK organisms it
+    // renders (SessionView's residual geometry pins against sdk/react since
+    // scenar-cloud DD-010 moved the session frame into the SDK itself).
+    assert.ok(
+      pair.real.startsWith("client-apps/web/") || pair.real.startsWith("sdk/react/"),
+    );
   }
 });
 

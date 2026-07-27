@@ -449,6 +449,23 @@ export const REPLICA_METRIC_PAIRS = [
     real: "client-apps/web/src/domain/_shared/layout/ManagementSidebar.tsx",
     realNeedle: "text-sm font-medium",
   },
+  // SessionView renders the SDK's own SessionViewerLayout (scenar-cloud
+  // DD-010), so the split and chip geometry need no pairs — there is no
+  // replica. These two pin the geometry the demo still owns around it.
+  {
+    fact: "launcher column width (NewSessionViewer `max-w-2xl` = 42rem)",
+    replica: "demos/tours/_shared/SessionView.css",
+    replicaNeedle: "max-width: 42rem",
+    real: "sdk/react/src/session/NewSessionViewer.tsx",
+    realNeedle: "max-w-2xl",
+  },
+  {
+    fact: "thread reading column (SessionViewer passes contentColumn=center)",
+    replica: "demos/tours/_shared/SessionView.tsx",
+    replicaNeedle: 'contentColumn="center"',
+    real: "sdk/react/src/session/SessionViewer.tsx",
+    realNeedle: 'contentColumn="center"',
+  },
 ];
 
 export function findCrossTourImports(sourceText, tourRelativePath) {

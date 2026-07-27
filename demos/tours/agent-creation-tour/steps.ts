@@ -1,12 +1,18 @@
 /**
  * Agent creation tour — the web-app walkthrough for "Create your Agent":
  * navigate Library → Agents, open the Agent Creator, converse until the
- * Agent definition artifact appears, preview it, apply, and land back in
- * the Library with the new agent.
+ * Agent definition artifact appears, open it from the session panel,
+ * apply, and land back in the Library with the new agent.
+ *
+ * The artifact beats depict the shipped panel flow (scenar-cloud DD-010):
+ * the collapsed panel chip picks up the artifact's badge, the panel opens
+ * on the Artifacts facet, and the artifact opens as a document tab
+ * (`ArtifactDocument`, Apply CTA included) — not the retired widget rail
+ * or the panel-less preview modal.
  *
  * Ported from the docs inline demo to a hosted Scenar tour. `index.tsx`
  * renders these steps; `.scenar/providers.tsx` supplies the artifact YAML
- * the real `ArtifactPreviewContent` fetches. The cursor is driven by each
+ * the real `ArtifactDocument` fetches. The cursor is driven by each
  * step's declarative `interactions` (the packed embed wires it — there is
  * no per-view hook), replacing the inline demo's `cursorTargetFor`.
  */
@@ -29,8 +35,8 @@ export type AgentCreationTourStep =
   | { view: "create-agent-click" }
   | { view: "composer-ready" }
   | { view: "conversation"; execution: AgentExecution }
-  | { view: "artifact-click"; execution: AgentExecution }
-  | { view: "artifact-preview"; execution: AgentExecution }
+  | { view: "panel-click"; execution: AgentExecution }
+  | { view: "panel-open"; execution: AgentExecution }
   | { view: "apply-agent"; execution: AgentExecution }
   | { view: "library-complete" };
 
@@ -210,21 +216,23 @@ export const agentCreationTourSteps: ScenarioStep<AgentCreationTourStep>[] = [
   },
   {
     delayMs: 2000,
-    data: { view: "artifact-click", execution: finalExecution },
+    data: { view: "panel-click", execution: finalExecution },
     interactions: [
-      { atPercent: 0.3, type: "set_cursor", target: "artifact-widget" },
+      // The artifact's arrival shows as the chip's badge; the cursor finds
+      // the chip exactly as a console user would to see what arrived.
+      { atPercent: 0.3, type: "set_cursor", target: "panel-chip" },
       { atPercent: 0.92, type: "clear_cursor" },
     ],
   },
   {
     delayMs: 1500,
-    data: { view: "artifact-preview", execution: finalExecution },
+    data: { view: "panel-open", execution: finalExecution },
   },
   {
     delayMs: 3000,
     data: { view: "apply-agent", execution: finalExecution },
     interactions: [
-      // The real ArtifactPreviewContent emits this target on its Apply CTA.
+      // The real ArtifactDocument emits this target on its Apply CTA.
       { atPercent: 0.35, type: "set_cursor", target: "apply-resource-button" },
       { atPercent: 0.92, type: "clear_cursor" },
     ],

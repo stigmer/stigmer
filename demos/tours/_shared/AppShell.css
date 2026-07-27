@@ -236,14 +236,6 @@
   background: var(--stgm-background);
 }
 
-/* --- Widget rail (optional right sidebar; real session-page panel width) --- */
-.demo-shell__aside {
-  width: 320px;
-  flex-shrink: 0;
-  overflow-y: auto;
-  border-left: 1px solid var(--stgm-border);
-}
-
 /*
  * Engine-driven hover feedback: `hover` interactions set `data-hover` on
  * the target (see the scenar skill) — style it like the console's own

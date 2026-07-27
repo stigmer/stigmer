@@ -42,8 +42,7 @@ import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agente
 import { ToolCallSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { BrowserView, CodeEditorView, TerminalView } from "@scenar/react";
 import { AppShell } from "../_shared/AppShell";
-import { ComposerView } from "../_shared/ComposerView";
-import { renderWidgetsSidebar } from "../_shared/WidgetsSidebar";
+import { SessionView } from "../_shared/SessionView";
 import { DEMO_ORG, snapshot } from "../_shared/fixtures";
 import {
   ORDER_MGMT_CONNECTED,
@@ -168,8 +167,6 @@ const DETAIL_CONTENT: CSSProperties = {
   maxWidth: "56rem",
 };
 
-const FULL_HEIGHT: CSSProperties = { height: "100%" };
-
 /**
  * Console beats render inside a browser window whose address bar tracks the
  * depicted route — a screen recording shows an app in its container.
@@ -233,20 +230,17 @@ export function renderStep(data: ConnectToolsTourStep): ReactNode {
 
     case "thread": {
       const execution = data.phase === "awaiting-approval" ? WAITING : APPROVED;
+      // The panel stays collapsed to its chip — the console's default, and
+      // this story lives in the thread (the approval gate). SessionView's
+      // root is inert, so the depicted page is non-interactive.
       return consoleWindow(
         data.phase,
         "/",
-        <AppShell
-          activeNav="new-session"
-          contentKey={data.phase}
-          aside={renderWidgetsSidebar(execution)}
-        >
-          <div style={FULL_HEIGHT} inert>
-            <ComposerView
-              execution={execution}
-              showApprovals={data.phase === "awaiting-approval"}
-            />
-          </div>
+        <AppShell activeNav="new-session" contentKey={data.phase}>
+          <SessionView
+            execution={execution}
+            showApprovals={data.phase === "awaiting-approval"}
+          />
         </AppShell>,
       );
     }

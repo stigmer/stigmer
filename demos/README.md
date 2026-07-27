@@ -36,11 +36,17 @@ A tour is the directory shape Scenar's `pack` / `narrate` / `serve` consume:
 `steps.ts` + an `index.tsx` that exports `renderStep`. Nothing else is required.
 
 `_shared/` holds three kinds of module. **Chrome** (`AppShell`,
-`ManagementShell`, `ComposerView`, `ResourceListPage`, `WidgetsSidebar`,
+`ManagementShell`, `SessionView`, `ResourceListPage`, `ApiKeysPage`,
 `api-exchange/`) frames real components inside a schematic app — the two
 shells are the console's two zones: `AppShell` is the workspace (primary
 nav, recents), `ManagementShell` the org-settings area (grouped
-Organization / Configuration / Billing navigation). **Product glue**
+Organization / Configuration / Billing navigation). `SessionView` is the
+session surface itself, and it is barely chrome at all: it renders the
+SDK's own `SessionViewerLayout` — the same frame `SessionViewer` and
+`NewSessionViewer` ship — with the panel chip, `WorkspaceSurface`, and the
+`useSessionRailViews` facet rail, so the depicted session cannot drift
+from the console's (scenar-cloud DD-010; the bespoke widget rail this
+replaced is gone). **Product glue**
 (`stigmer-preview.tsx`) wires styles, theme, and the mock transport once.
 **Depicted resources** (`order-management-mcp.ts`,
 `quickstart-workspace.ts`) are the domain objects several embeds tell one
@@ -139,8 +145,19 @@ the viewport boundary owns it.
   `scripts/pack-all.mjs` — never the CLI default. It is derived, not chosen:
   the console needs 280px (sidebar) + 48px (main padding) + 896px
   (`max-w-4xl` content cap) = 1224px to render its content column at full
-  design width, and 1280×800 is the smallest common real window above that
-  and above the console's `lg` breakpoint (1024).
+  design width, and 1280×800 is the smallest common real window above that.
+- **The canonical width is layout width, not viewport width.** The embed is
+  an iframe, so CSS **media queries resolve against the docs column**
+  (~896px — below the console's `lg` breakpoint of 1024), not against the
+  1280px canvas: `DemoViewport` scales with CSS `zoom`, which changes no
+  viewport. Every `lg:`-conditional style in a real component therefore
+  renders its *narrow* variant inside an embed (measured 2026-07-27:
+  `max-lg:hidden` computes to `display:none` at an iframe width of 715px).
+  Where a component exposes a seam, use it — `SessionView` passes
+  `SessionViewerLayout` `responsive={false}` so the conversation pane
+  survives open-panel beats. The general class (e.g. `ResourceCards`
+  rendering 2 columns instead of 3) is registered debt; M2
+  (iframe-as-screen, scenar-cloud DD-009) is its exit condition.
 - **Author at the console's real metrics.** The `_shared` shells transcribe
   the real sidebar (280px, 14px/500 labels, 16px icons — gate invariant 7
   pins the facts on both sides); page content uses the real zone geometry

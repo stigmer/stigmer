@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { AgentDetailView } from "@stigmer/react";
 import { BrowserView, CodeEditorView, TerminalView } from "@scenar/react";
 import { AppShell } from "../_shared/AppShell";
-import { ComposerView } from "../_shared/ComposerView";
+import { SessionView } from "../_shared/SessionView";
 import { DEMO_ORG } from "../_shared/fixtures";
 import {
   ORDER_LOOKUP_OUTPUT,
@@ -60,7 +60,7 @@ export function renderStep(data: CreateAgentTourStep): ReactNode {
         "creator",
         "/?draft=agent",
         <AppShell activeNav="new-session" contentKey="creator">
-          <ComposerView heading="Add an Agent" typingMessage={TYPING_MESSAGE} />
+          <SessionView heading="Add an Agent" typingMessage={TYPING_MESSAGE} />
         </AppShell>,
       );
 
@@ -71,7 +71,7 @@ export function renderStep(data: CreateAgentTourStep): ReactNode {
         <AppShell activeNav="new-session" contentKey="created">
           {/* Cursor/camera anchor for steps that zoom into the reply. */}
           <div data-cursor-target="thread" style={{ height: "100%" }}>
-            <ComposerView execution={data.execution} />
+            <SessionView execution={data.execution} />
           </div>
         </AppShell>,
       );

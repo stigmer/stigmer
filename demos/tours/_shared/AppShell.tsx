@@ -57,8 +57,6 @@ interface AppShellProps {
    * `"backward"` from the left (going back), unset fades in place.
    */
   readonly slideDirection?: "forward" | "backward";
-  /** Optional right rail (e.g. a `WidgetsSidebar` of execution widgets). */
-  readonly aside?: ReactNode;
   readonly children: ReactNode;
 }
 
@@ -86,7 +84,6 @@ export function AppShell({
   highlightNav,
   contentKey,
   slideDirection,
-  aside,
   children,
 }: AppShellProps) {
   const slideX =
@@ -171,12 +168,6 @@ export function AppShell({
       >
         {children}
       </motion.div>
-
-      {aside && (
-        <aside className="demo-shell__aside" aria-label="Execution details">
-          {aside}
-        </aside>
-      )}
     </div>
   );
 }
