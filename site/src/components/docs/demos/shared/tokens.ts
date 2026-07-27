@@ -59,7 +59,7 @@ export const DEMO_SHELL_HEIGHT = 560;
  * fallback that shells apply when `--scenar-shell-height` is unset.
  *
  * That fallback path is live only in the Scenar preview authoring
- * host (views registered in `site/.scenar/views.custom.tsx`): on the
+ * host (views registered in `site/.scenar/views.generated.ts`): on the
  * docs site `StigmerDemoViewport` always sets the CSS variable, so
  * demos render at the fixed DEMO_SHELL_HEIGHT and responsiveness
  * comes from `DemoViewport`'s width-based CSS zoom instead.
@@ -100,13 +100,3 @@ export const DEMO_MIN_VIEWPORT_ZOOM = 0.5;
  * and relative positioning for cursor overlays.
  */
 export const DEMO_PLAYER_CLASSES = "not-prose relative mx-auto max-w-4xl";
-
-/**
- * Container classes for standalone SDK component demos (detail views).
- * Includes stgm scope for theme token resolution. Consumed by
- * `DemoDetailShell`, which pairs the scope with the docs reader's
- * color mode (`data-stgm-color-mode`) — use that component rather
- * than these classes directly.
- */
-export const DEMO_DETAIL_CLASSES =
-  "stgm not-prose overflow-hidden rounded-lg border border-border";

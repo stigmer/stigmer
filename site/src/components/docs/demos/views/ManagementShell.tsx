@@ -19,7 +19,7 @@ import {
   DEMO_SHELL_HEIGHT,
   DEMO_SHELL_HEIGHT_MIN,
 } from "../shared/tokens";
-import { useDocsColorMode } from "../shared/useDocsColorMode";
+import { useDocsColorMode } from "../../useDocsColorMode";
 
 export type ManagementNavId =
   | "org-profile"

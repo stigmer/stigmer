@@ -171,11 +171,13 @@ const VIEWS_DIR = path.join(
   "src/components/docs/demos/views",
 );
 
+// Only files that exist under views/ belong here — checkShellHeightTokens
+// silently no-ops on missing files, so a stale entry is a check that can
+// never fire (TerminalView/CodeEditorView were removed 2026-07-27; those
+// shells live in @scenar/react now).
 const SHELL_HEIGHT_VIEW_FILES = [
   "AppShell.tsx",
-  "TerminalView.tsx",
   "ManagementShell.tsx",
-  "CodeEditorView.tsx",
   "APIExchangeView.tsx",
 ];
 

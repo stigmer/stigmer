@@ -12,7 +12,7 @@ import {
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { DEMO_SHELL_HEIGHT } from "../../shared/tokens";
-import { useDocsColorMode, type StigmerColorMode } from "../../shared/useDocsColorMode";
+import { useDocsColorMode, type StigmerColorMode } from "../../../useDocsColorMode";
 
 import "@stigmer/theme/presets/corporate.css";
 import "@stigmer/theme/presets/startup.css";

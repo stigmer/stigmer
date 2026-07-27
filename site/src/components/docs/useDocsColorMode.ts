@@ -9,12 +9,12 @@ import { useTheme } from "next-themes";
 export type StigmerColorMode = "light" | "dark";
 
 /**
- * Resolves the docs reader's current color mode for SDK demo scopes.
+ * Resolves the docs reader's current color mode for `.stgm` theme scopes.
  *
- * Demo shells pass this value as `data-stgm-color-mode` on their `.stgm`
- * scoping element — the same "pass your theme state straight through"
- * pattern the theming docs prescribe for host applications embedding
- * the SDK.
+ * Consumers (demo shells, the Ask AI panel) pass this value as
+ * `data-stgm-color-mode` on their `.stgm` scoping element — the same
+ * "pass your theme state straight through" pattern the theming docs
+ * prescribe for host applications embedding the SDK.
  *
  * `resolvedTheme` is `undefined` during SSR and the first client render
  * (next-themes resolves it after mount); defaulting to `"dark"` keeps

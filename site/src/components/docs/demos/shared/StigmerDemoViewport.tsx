@@ -8,7 +8,7 @@ import {
   DEMO_PLAYER_CLASSES,
   DEMO_SHELL_HEIGHT,
 } from "./tokens";
-import { useDocsColorMode } from "./useDocsColorMode";
+import { useDocsColorMode } from "../../useDocsColorMode";
 
 interface StigmerDemoViewportProps {
   containerRef?: RefObject<HTMLDivElement | null>;

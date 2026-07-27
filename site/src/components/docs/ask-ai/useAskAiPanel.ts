@@ -4,7 +4,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import {
   useDocsColorMode,
   type StigmerColorMode,
-} from "@/components/docs/demos/shared/useDocsColorMode";
+} from "@/components/docs/useDocsColorMode";
 import { ASK_AI_READY_TIMEOUT_MS } from "./config";
 
 /**

@@ -50,14 +50,12 @@ import { ResourceListPage } from "../src/components/docs/demos/views/ResourceLis
 import { WidgetsSidebar } from "../src/components/docs/demos/views/WidgetsSidebar";
 import { ApprovalFlowPlayback } from "../src/components/docs/demos/scenarios/approval-flow-playback/index";
 import { ByoaSetup } from "../src/components/docs/demos/scenarios/byoa-setup/index";
-import { DragReorderValidation } from "../src/components/docs/demos/scenarios/drag-reorder-validation/index";
 import { FederationOverviewTour } from "../src/components/docs/demos/scenarios/federation-overview-tour/index";
 import { MarketplaceConnectTour } from "../src/components/docs/demos/scenarios/marketplace-connect-tour/index";
 import { OAuthConnectFlow } from "../src/components/docs/demos/scenarios/oauth-connect-flow/index";
 import { PlatformClientSetupTour } from "../src/components/docs/demos/scenarios/platform-client-setup-tour/index";
 import { RegisterIdpPlayback } from "../src/components/docs/demos/scenarios/register-idp-playback/index";
 import { ToolCallsPlayback } from "../src/components/docs/demos/scenarios/tool-calls-playback/index";
-import { ViewportZoomValidation } from "../src/components/docs/demos/scenarios/viewport-zoom-validation/index";
 
 export const generatedViews = {
   RootLayout,
@@ -108,12 +106,10 @@ export const generatedViews = {
   WidgetsSidebar,
   ApprovalFlowPlayback,
   ByoaSetup,
-  DragReorderValidation,
   FederationOverviewTour,
   MarketplaceConnectTour,
   OAuthConnectFlow,
   PlatformClientSetupTour,
   RegisterIdpPlayback,
   ToolCallsPlayback,
-  ViewportZoomValidation,
 } as const;
