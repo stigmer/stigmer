@@ -268,6 +268,20 @@ bundles alongside the site, so a tour goes live at
 `https://stigmer.ai/demos/<slug>/` when its PR merges — atomically with the docs
 page that embeds it.
 
+To see an **unreleased** tour on its real docs page before it deploys, serve
+the packed bundles locally and point the docs dev server at that origin — the
+embeds default to the production bundles otherwise. (`scenar serve` hosts one
+bundle at `/`, so for the docs' `<base>/<slug>/` URL shape use any static file
+server over `.bundles/` — the same layout production deploys.)
+
+```bash
+# Terminal 1: serve every packed bundle at http://localhost:4173/<slug>/
+npx -y serve demos/.bundles -l 4173
+
+# Terminal 2: run the docs against it
+NEXT_PUBLIC_SCENAR_EMBED_BASE=http://localhost:4173 npm run dev -w site
+```
+
 ---
 
 ## Toolchain version

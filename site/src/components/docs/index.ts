@@ -1,8 +1,4 @@
-export { AgentDetail as DemoAgentDetail } from "./demos/scenarios/agent-detail";
-export { DatastoreRecordsBrowser as DemoDatastoreRecordsBrowser } from "./demos/scenarios/datastore-records-browser";
-export { McpServerDetail as DemoMcpServerDetail } from "./demos/scenarios/mcp-server-detail";
 export { ApprovalFlowPlayback as DemoApprovalFlowPlayback } from "./demos/scenarios/approval-flow-playback";
-export { SkillDetail as DemoSkillDetail } from "./demos/scenarios/skill-detail";
 export { ToolCallsPlayback as DemoToolCallsPlayback } from "./demos/scenarios/tool-calls-playback";
 export { FederationOverviewTour as DemoFederationOverviewTour } from "./demos/scenarios/federation-overview-tour";
 export { RegisterIdpPlayback as DemoRegisterIdpPlayback } from "./demos/scenarios/register-idp-playback";
@@ -11,11 +7,8 @@ export { OAuthConnectFlow as DemoOAuthConnectFlow } from "./demos/scenarios/oaut
 export { ByoaSetup as DemoByoaSetup } from "./demos/scenarios/byoa-setup";
 export { PlatformClientSetupTour as DemoPlatformClientSetupTour } from "./demos/scenarios/platform-client-setup-tour";
 export { ThemingPlayground as DemoThemingPlayground } from "./demos/scenarios/theming-playground";
-export { ShareAgentDialogDemo as DemoShareAgentDialog } from "./demos/scenarios/share-agent-dialog";
 export { ConnectSlackChannel as DemoConnectSlackChannel } from "./demos/scenarios/connect-slack-channel";
 export { ConnectWhatsAppChannel as DemoConnectWhatsAppChannel } from "./demos/scenarios/connect-whatsapp-channel";
-export { ReviewPayloadRenderer as DemoReviewPayloadRenderer } from "./demos/scenarios/review-payload-gate";
-export { ReviewPayloadFallback as DemoReviewPayloadFallback } from "./demos/scenarios/review-payload-gate";
 export { glossary } from "./glossary";
 export { HarnessCostComparison } from "./harness-cost-comparison";
 export { Hero } from "./welcome-hero";

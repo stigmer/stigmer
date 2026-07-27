@@ -91,11 +91,13 @@ Every surface that shows pending gates — `WorkflowExecutionViewer`'s inspector
 and its timeline — picks the renderer up from context. No other wiring is
 required.
 
-Here is the result, live. This gate carries the revision above as its payload
-with `ui_hint: article-diff`, and a registered renderer presents it as a diff —
-try a decision:
+Here is the result. This gate carries the revision above as its payload with
+`ui_hint: article-diff`, and a registered renderer presents it as a diff:
 
-<DemoReviewPayloadRenderer />
+<ScenarEmbed
+  id="review-renderer-tour"
+  title="Review gate with a registered article-diff renderer"
+/>
 
 ## The renderer contract
 
@@ -126,7 +128,10 @@ renderer exists.
 This is the same gate — same payload, same `ui_hint` — on a surface with no
 registered renderers:
 
-<DemoReviewPayloadFallback />
+<ScenarEmbed
+  id="review-fallback-tour"
+  title="The same review gate on a surface with no registered renderers"
+/>
 
 This also means you can add `ui_hint` to production workflows before your
 renderer ships: reviewers see structured data today, your custom UI tomorrow,

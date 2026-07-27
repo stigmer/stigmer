@@ -1,0 +1,17 @@
+{
+  "voice": "",
+  "steps": [
+    {
+      "hash": "961828a63597d15d014a3aa0744667e9c3e3a1edc1ee4becfbceb3931901047f",
+      "durationMs": 10250
+    },
+    {
+      "hash": "afba82b95175d261f7aab2b9c25b0539bdc3c51247515255390c042fb9c40a45",
+      "durationMs": 10063
+    },
+    {
+      "hash": "44ba605122f026f21aae87e2454c5297b3545ec0f3185cfa09c00d3bcb0a1913",
+      "durationMs": 13100
+    }
+  ]
+}

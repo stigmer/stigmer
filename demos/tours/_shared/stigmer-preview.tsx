@@ -34,7 +34,7 @@ import type { ReactNode } from "react";
 import { createRouterTransport, type ConnectRouter } from "@connectrpc/connect";
 import { getEmbedColorMode } from "@scenar/react";
 import { Stigmer } from "@stigmer/sdk";
-import { StigmerProvider } from "@stigmer/react";
+import { StigmerProvider, type ReviewRenderers } from "@stigmer/react";
 
 /**
  * Benign `fetch` for the two registry endpoints `StigmerProvider` requests on
@@ -54,6 +54,19 @@ const emptyRegistryFetch: typeof globalThis.fetch = async () =>
 /** Props for the `PreviewProviders` component a tour exports from `.scenar/`. */
 interface PreviewProvidersProps {
   readonly children: ReactNode;
+}
+
+/** Per-tour provider configuration beyond RPC fixtures. */
+interface StigmerPreviewOptions {
+  /**
+   * Review renderers handed to `StigmerProvider` — the per-surface
+   * registration the review-payloads guide teaches. Renderer registration is
+   * a property of the depicted *surface*, so it is configured per tour (a
+   * tour has exactly one provider tree): a tour depicting a surface with a
+   * custom renderer passes its map here; a tour depicting a surface without
+   * one omits it and the SDK's built-in approval card renders.
+   */
+  readonly reviewRenderers?: ReviewRenderers;
 }
 
 /**
@@ -78,6 +91,7 @@ interface PreviewProvidersProps {
  */
 export function createStigmerPreview(
   register: (router: ConnectRouter) => void,
+  options?: StigmerPreviewOptions,
 ): (props: PreviewProvidersProps) => ReactNode {
   // Built once when the tour's providers module loads: the fixtures are static,
   // so there is nothing to rebuild per render.
@@ -97,7 +111,11 @@ export function createStigmerPreview(
     // that themes both the real components and the tour's chrome; the mode is
     // read from the embed's own `?theme` by getEmbedColorMode().
     return (
-      <StigmerProvider client={client} colorMode={getEmbedColorMode()}>
+      <StigmerProvider
+        client={client}
+        colorMode={getEmbedColorMode()}
+        reviewRenderers={options?.reviewRenderers}
+      >
         {children}
       </StigmerProvider>
     );

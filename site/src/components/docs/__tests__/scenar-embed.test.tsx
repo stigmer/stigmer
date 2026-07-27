@@ -1,13 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, act, waitFor, cleanup } from "@testing-library/react";
 import { ScenarEmbed } from "../scenar-embed";
 
 /**
  * The docs `ScenarEmbed` is now a thin slug → URL adapter over `@scenar/embed`'s
  * official React component, so these tests cover only what this wrapper owns: the
- * id → published-URL mapping, the a11y title, host-theme sync, and the responsive
- * box. The strict postMessage validation, resize-to-fit, and multi-instance
- * isolation are covered by `@scenar/embed`'s own suite.
+ * id → published-URL mapping (production default + the authoring-loop env
+ * override), the a11y title, host-theme sync, and the responsive box. The strict
+ * postMessage validation, resize-to-fit, and multi-instance isolation are covered
+ * by `@scenar/embed`'s own suite.
  */
 function getIframe(): HTMLIFrameElement {
   return screen.getByTitle("Authentication flow walkthrough") as HTMLIFrameElement;
@@ -18,6 +19,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   cleanup();
 });
 
@@ -33,6 +35,20 @@ describe("ScenarEmbed", () => {
 
     expect(getIframe().getAttribute("src")).toBe(
       "https://stigmer.ai/demos/authentication-flow-playback/?theme=dark",
+    );
+  });
+
+  it("frames the tour from NEXT_PUBLIC_SCENAR_EMBED_BASE when set (authoring loop)", () => {
+    vi.stubEnv("NEXT_PUBLIC_SCENAR_EMBED_BASE", "http://localhost:4173");
+    render(
+      <ScenarEmbed
+        id="authentication-flow-playback"
+        title="Authentication flow walkthrough"
+      />,
+    );
+
+    expect(getIframe().getAttribute("src")).toBe(
+      "http://localhost:4173/authentication-flow-playback/?theme=light",
     );
   });
 
