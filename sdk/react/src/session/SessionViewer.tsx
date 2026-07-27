@@ -19,7 +19,7 @@ import {
 } from "../workspace/WorkspaceSurface.js";
 import type { InteractionModeOption, SessionComposerHandle, SessionComposerSubmitContext } from "../composer/index.js";
 import type { ApplyResourceResult } from "../library/useApplyResource.js";
-import { ResizableSplit } from "../internal/ResizableSplit.js";
+import { SessionViewerLayout } from "./SessionViewerLayout.js";
 import { useWorkspaceEditors, isVirtualEntryId } from "../internal/store/index.js";
 import { isTerminalPhase } from "../execution/execution-phases.js";
 import { MessageThread, type MessageThreadSlots } from "../execution/MessageThread.js";
@@ -267,7 +267,8 @@ export interface SessionViewerProps {
  *   to a top-right chip; opening a file (tree, search, or a transcript path)
  *   expands it.
  *
- * Connected via `ResizableSplit` with persisted chat width.
+ * Both regions render inside {@link SessionViewerLayout} — the frame shared
+ * with {@link NewSessionViewer} — with the chat width persisted per viewer.
  *
  * Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
  * apps inject platform-specific values via props (DD-004/DD-016).
@@ -552,101 +553,85 @@ export function SessionViewer({
   }
 
   return (
-    <div className={cn("relative flex h-full w-full flex-col", className)}>
-      {/* Top-right controls: host actions + the panel chip. The chip is the
-          panel's always-mounted toggle; while collapsed it carries only the
-          pending-item count. Execution status is never surfaced as header
-          chrome — the thread itself communicates run state. Guests get no
-          chip: the panel exposes session configuration a visitor has no
-          business with, so its only toggle is simply absent. */}
-      <div className="absolute top-2 right-6 z-10 flex items-center gap-2">
-        {headerActions}
-        {!isGuest && (
+    <SessionViewerLayout
+      className={className}
+      // Top-right controls: host actions + the panel chip. The chip is the
+      // panel's always-mounted toggle; while collapsed it carries only the
+      // pending-item count. Execution status is never surfaced as header
+      // chrome — the thread itself communicates run state. Guests get no
+      // chip: the panel exposes session configuration a visitor has no
+      // business with, so its only toggle is simply absent.
+      headerActions={headerActions}
+      chip={
+        !isGuest ? (
           <SessionPanelChip
             isOpen={panel.isOpen}
             onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
             badgeCount={writeBackCount + artifactCount}
           />
-        )}
-      </div>
-
-      {/* One layout, collapsed by default: chat fills the row until the panel
-          opens, then becomes the fixed narrow pane on the left while the
-          panel takes the flexible region. Collapsing goes through the
-          split's `collapsedPane` (CSS, not conditional structure), so the
-          conversation is always the same first child and an open/close never
-          remounts it (invariant 1). */}
-      <ResizableSplit
-        resizablePane="primary"
-        collapsedPane={panel.isOpen ? "none" : "secondary"}
-        defaultSize={420}
-        minSize={320}
-        maxSize={640}
-        storageKey="stgm-session-chat-width"
-        responsiveCollapse={panel.isOpen ? "primary" : "none"}
-        ariaLabel="Resize chat panel"
-        className="min-h-0 flex-1"
-        primary={
-          <ConversationColumn
+        ) : undefined
+      }
+      splitStorageKey="stgm-session-chat-width"
+      conversation={
+        <ConversationColumn
+          flow={flow}
+          modelId={modelId}
+          setModelId={setModelId}
+          interactionMode={interactionMode}
+          setInteractionMode={setInteractionMode}
+          composerRef={composerRef}
+          org={org}
+          gitHubConnection={gitHubConnection}
+          enableGitHub={enableGitHub}
+          enableLocal={enableLocal}
+          onBrowseLocalFolder={onBrowseLocalFolder}
+          onBuildFromPlan={handleBuildFromPlan}
+          onOpenPlan={handleOpenPlan}
+          isBuildingFromPlan={isBuildingFromPlan}
+          planAttachFailed={planAttachFailed}
+          onDismissPlanAttachFailed={() => setPlanAttachFailed(false)}
+          onFilePathClick={handleTranscriptFilePathClick}
+          isCurated={isCurated}
+          isGuest={isGuest}
+          isObserver={isObserver}
+          threadSlots={threadSlots}
+        />
+      }
+      panel={
+        panel.isOpen && !isGuest ? (
+          <SessionPanelRegion
             flow={flow}
-            modelId={modelId}
-            setModelId={setModelId}
-            interactionMode={interactionMode}
-            setInteractionMode={setInteractionMode}
-            composerRef={composerRef}
             org={org}
-            gitHubConnection={gitHubConnection}
-            enableGitHub={enableGitHub}
+            panel={panel}
+            // Observers cannot manage access (no can_grant_access /
+            // can_view_access on a channel session) — the control is
+            // withheld rather than left to fail server-side.
+            accessSlot={isObserver ? undefined : accessSlot}
+            onApplied={onApplied}
+            // Implementing a plan submits an execution — a write an
+            // observer cannot make (can_create_execution_in is
+            // owner/viewer-only).
+            onImplementPlan={isObserver ? undefined : handleBuildFromPlan}
+            implementPlanDisabled={
+              isObserver || !conv.canSendFollowUp || isBuildingFromPlan
+            }
+            sessionPlan={sessionPlan}
+            streamingPlan={streamingPlan}
+            planDraft={planDraft}
+            openPlanExecutionId={openPlanExecutionId}
+            onOpenPlan={handleOpenPlan}
+            onOpenArtifact={handleOpenArtifact}
+            onActivateArtifact={handleActivateArtifact}
             enableLocal={enableLocal}
             onBrowseLocalFolder={onBrowseLocalFolder}
-            onBuildFromPlan={handleBuildFromPlan}
-            onOpenPlan={handleOpenPlan}
-            isBuildingFromPlan={isBuildingFromPlan}
-            planAttachFailed={planAttachFailed}
-            onDismissPlanAttachFailed={() => setPlanAttachFailed(false)}
-            onFilePathClick={handleTranscriptFilePathClick}
+            workspaceFileLister={workspaceFileLister}
+            workspaceFileReader={workspaceFileReader}
+            workspaceContentSearcher={workspaceContentSearcher}
             isCurated={isCurated}
-            isGuest={isGuest}
-            isObserver={isObserver}
-            threadSlots={threadSlots}
           />
-        }
-        secondary={
-          panel.isOpen && !isGuest ? (
-            <SessionPanelRegion
-              flow={flow}
-              org={org}
-              panel={panel}
-              // Observers cannot manage access (no can_grant_access /
-              // can_view_access on a channel session) — the control is
-              // withheld rather than left to fail server-side.
-              accessSlot={isObserver ? undefined : accessSlot}
-              onApplied={onApplied}
-              // Implementing a plan submits an execution — a write an
-              // observer cannot make (can_create_execution_in is
-              // owner/viewer-only).
-              onImplementPlan={isObserver ? undefined : handleBuildFromPlan}
-              implementPlanDisabled={
-                isObserver || !conv.canSendFollowUp || isBuildingFromPlan
-              }
-              sessionPlan={sessionPlan}
-              streamingPlan={streamingPlan}
-              planDraft={planDraft}
-              openPlanExecutionId={openPlanExecutionId}
-              onOpenPlan={handleOpenPlan}
-              onOpenArtifact={handleOpenArtifact}
-              onActivateArtifact={handleActivateArtifact}
-              enableLocal={enableLocal}
-              onBrowseLocalFolder={onBrowseLocalFolder}
-              workspaceFileLister={workspaceFileLister}
-              workspaceFileReader={workspaceFileReader}
-              workspaceContentSearcher={workspaceContentSearcher}
-              isCurated={isCurated}
-            />
-          ) : null
-        }
-      />
-    </div>
+        ) : null
+      }
+    />
   );
 }
 

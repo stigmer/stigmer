@@ -761,6 +761,30 @@ function useSessionPanel(options: UseSessionPanelOptions): SessionPanelControlle
 />
 
 
+### useSessionRailViews
+
+Composes the session facets (Config / Changes / Artifacts / Usage)
+as [`SurfaceRailView`](/docs/sdk/react/workspace#surfacerailview)s for the workspace surface's activity rail.
+
+This is the session-domain half of the unified panel: the surface stays a
+domain-pure workspace organism and these views are injected into its rail
+(DD-004 composition). Contextual visibility mirrors the retired inspector's
+tab rules — Changes/Artifacts surface only when data exists (with count
+badges).
+
+**Signature**
+
+```tsx
+function useSessionRailViews(options: UseSessionRailViewsOptions): readonly SurfaceRailView[]
+```
+
+<TypeTable
+  type={{
+    options: { type: "UseSessionRailViewsOptions", description: "", required: true },
+  }}
+/>
+
+
 ### useSessionSearch
 
 Data hook that fetches sessions via the SearchService for lightweight,
@@ -1185,7 +1209,8 @@ Owns `useSessionPageFlow` internally and composes:
   to a top-right chip; opening a file (tree, search, or a transcript path)
   expands it.
 
-Connected via `ResizableSplit` with persisted chat width.
+Both regions render inside [`SessionViewerLayout`](#sessionviewerlayout) — the frame shared
+with [`NewSessionViewer`](#newsessionviewer) — with the chat width persisted per viewer.
 
 Framework-agnostic — no Next.js, no Tauri, no routing deps. Host
 apps inject platform-specific values via props (DD-004/DD-016).
@@ -1232,6 +1257,46 @@ apps inject platform-specific values via props (DD-004/DD-016).
   headerActions={<ShareButton sessionId={id} />}
 />
 ```
+
+
+### SessionViewerLayout
+
+The one conversation-plus-panel frame every session viewer shares —
+[`SessionViewer`](#sessionviewer) and [`NewSessionViewer`](#newsessionviewer) both render it, so the
+two surfaces cannot drift apart (their behave-identically contract), and
+platform builders composing a custom session surface from
+[`WorkspaceSurface`](/docs/sdk/react/workspace#workspacesurface), [`PanelChip`](/docs/sdk/react/workspace#panelchip), and the session facets get
+the same geometry the shipped console uses.
+
+The layout owns exactly three things:
+
+- **The top-right control corner** — the host's `headerActions` beside
+  the panel toggle `chip`, absolutely positioned over the conversation.
+- **The split geometry** — chat fills the row while the panel is
+  collapsed; opening makes the chat the fixed, drag-resizable pane
+  (420px default, 320–640px) and hands the flexible region to the panel.
+- **The collapse mechanics** — collapse goes through the split's
+  `collapsedPane` (CSS, not conditional structure), so the conversation
+  is always the same first child and an open/close toggle never
+  remounts it.
+
+Everything rendered inside the panes belongs to the host: the layout
+takes opaque `ReactNode`s and never inspects them.
+
+**Props** — `SessionViewerLayoutProps`
+
+<TypeTable
+  type={{
+    chip: { type: "ReactNode", description: "The panel's toggle chip, rendered in the layout's top-right corner (typically the session panel chip, PanelChip). Omit it to render no toggle — how hosts express audiences that must never open the panel (the guest case in SessionViewer and NewSessionViewer)." },
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    conversation: { type: "ReactNode", description: "The conversation column — the layout's primary (left) pane. Stays mounted at a stable tree position across every panel open/close, so streaming and scroll state survive the toggle.", required: true },
+    headerActions: { type: "ReactNode", description: "Host-injected header actions, rendered beside the chip in the top-right corner (slot injection, as SessionViewerProps.headerActions)." },
+    panel: { type: "ReactNode", description: "The session panel content, or `null` while the panel is collapsed. This is the single source of truth for the collapsed state: passing `null` collapses the split (the conversation fills the row) and hides the drag separator; passing content expands the panel into the flexible region. Hosts derive it from their panel controller, e.g. `panel.isOpen ? <WorkspaceSurface … /> : null`.", required: true },
+    resizeAriaLabel: { type: "string", description: "Accessible label for the split's drag separator. Name the pane being resized in the host's vocabulary (the session viewer's chat pane vs the launcher's composer pane)." },
+    responsive: { type: "boolean", description: "Whether the conversation pane collapses below the `lg` breakpoint while the panel is open, leaving the panel full-width — the shipped console behavior on narrow windows.  Pass `false` in fixed-canvas hosts, where the media query is meaningless or actively wrong: a documentation embed renders in an iframe whose viewport is the docs column (below `lg` on most pages), so the default would hide the conversation on exactly the beats that open the panel." },
+    splitStorageKey: { type: "string", description: "`localStorage` key persisting the chat pane's drag-resized width across sessions. Each host passes its own key so the two shipped viewers keep distinct widths. **Omit it in deterministic hosts** (documentation embeds, video export): with no key the width always starts at the default, so every render of the same input is pixel-identical instead of depending on previously persisted state." },
+  }}
+/>
 
 
 ### SetupTab
@@ -1843,6 +1908,27 @@ Options for [`useSessionPanel`](#usesessionpanel).
     hasChanges: { type: "boolean", description: "Whether the session has git write-backs. The first arrival auto-surfaces the Changes view — but only while the panel is open; a collapsed panel signals through badges instead of pulling the user out of the chat.", required: true },
     phase: { type: "ExecutionPhase | null", description: "The display execution's phase, or `null` before any execution exists. A transition between running and terminal resets the user's sticky view pick (mirroring the retired inspector-tab FSM).", required: true },
     planKey: { type: "string | null", description: "Identity of the session's current plan, or `null` when none exists. Two identity families, supplied by the viewer: `<executionId>:streaming` while the active turn is WRITING a plan (see `findStreamingPlan`), then the published identity (`planDraftKey`) once the artifact exists. A NEW identity — a plan starting to stream, the first published plan, or a refined plan superseding it — auto-opens the plan document tab (see SessionPanelController.openPlanDocument), expanding a collapsed panel. This deliberately breaks the Changes/Inspect \"never open a collapsed panel\" convention: a plan is not ambient state, it is the deliverable of the turn the user just requested, and with the thread showing only a compact card there is no other review surface — live or settled. The streaming→published transition is itself a new identity, harmlessly re-firing the (idempotent) open as the tab's content settles. Keyed on plan IDENTITY, not presence, so a refined plan re-surfaces too; the identity present at mount is swallowed (loading a session with an old plan — or mid-stream — never hijacks the layout)." },
+  }}
+/>
+
+
+### UseSessionRailViewsOptions
+
+Options for [`useSessionRailViews`](#usesessionrailviews).
+
+<TypeTable
+  type={{
+    allExecutions: { type: "readonly AgentExecution[]", description: "All executions in the session — drives Changes/Artifacts/Usage.", required: true },
+    changesSettled: { type: "boolean", description: "Whether the session's latest execution is settled (terminal) — forwarded to the Changes facet's pre-push states (its `isSettled` prop)." },
+    expectsWriteBack: { type: "boolean", description: "Whether the session is expected to push approved changes to a git remote (a cloud session with git workspace entries). When `true` the Changes facet is offered from the start — with an honest pre-push state — instead of only materializing once a write-back exists, so \"where does my work go?\" always has an answer (the facet's `expectsWriteBack` prop)." },
+    includeExecutionFacets: { type: "boolean", description: "Whether to offer the execution-derived facets (Changes / Artifacts / Usage). The launcher passes `false` — before a session exists there are no executions to aggregate, so only Config applies." },
+    onActivateArtifact: { type: "(entry: SessionArtifactEntry) => void", description: "Pin a (non-plan) artifact's document tab — the double-click half of the Artifacts facet's open/activate split. Routed through to the facet's rows." },
+    onApplied: { type: "(result: ApplyResourceResult) => void", description: "Called after a resource is applied from the Artifacts facet." },
+    onImplementPlan: { type: "() => void", description: "Implement a plan — the Artifacts facet's preview action for `plan.md`." },
+    onOpenArtifact: { type: "(entry: SessionArtifactEntry) => void", description: "Open a (non-plan) artifact as an editor-pane document tab. Routed to the Artifacts facet so clicking an artifact opens it in the editor area (VS Code \"each file is a tab\") instead of the preview modal." },
+    onOpenPlan: { type: "(executionId: string) => void", description: "Open a plan in the panel's plan document tab. Routed to the Artifacts facet so clicking `plan.md` there opens the editor-area document instead of the preview modal." },
+    org: { type: "string", description: "Organization slug for artifact Apply CTA.", required: true },
+    sessionConfig: { type: "SetupTabProps | undefined", description: "Session configuration for the Config facet.", required: true },
   }}
 />
 

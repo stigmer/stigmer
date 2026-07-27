@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { cn } from "@stigmer/theme";
 import type { ResourceRef } from "@stigmer/sdk";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection.js";
 import type { WorkspaceFileLister } from "../workspace/WorkspaceFileLister.js";
@@ -10,7 +9,7 @@ import type { WorkspaceContentSearcher } from "../workspace/WorkspaceContentSear
 import type { InteractionModeOption } from "../composer/index.js";
 import { SessionComposer } from "../composer/index.js";
 import type { HarnessOption } from "../models/harness.js";
-import { ResizableSplit } from "../internal/ResizableSplit.js";
+import { SessionViewerLayout } from "./SessionViewerLayout.js";
 import { useWorkspaceEditors } from "../internal/store/index.js";
 import { WorkspaceSurface } from "../workspace/WorkspaceSurface.js";
 import type { SetupTabProps } from "./facets/SetupTab.js";
@@ -383,68 +382,56 @@ export function NewSessionViewer({
   );
 
   return (
-    <div className={cn("relative flex h-full w-full flex-col", className)}>
-      {/* Persistent chrome: the chip is always mounted, matching SessionViewer
-          (DD-016) rather than the launcher's earlier progressively-revealed
-          inspector. A toggle that appears/disappears with attached context
-          reads as instability and, worse, unmounts the open panel's only
-          collapse control when the last context item is removed. Always-on is
-          the predictable, discoverable shape; opening homes on the Config
-          facet, which carries useful defaults (harness/model) pre-session.
-          Guests are the exception: the panel exposes configuration a visitor
-          has no business with, so the chip (the panel's only toggle) is
-          simply absent and the panel can never open. */}
-      {!isGuest && (
-        <div className="absolute top-2 right-6 z-10">
+    // The launcher renders the same SessionViewerLayout as SessionViewer
+    // (DD-016) — the shared frame is what makes "the two viewers behave
+    // identically" structural rather than hand-synchronized.
+    <SessionViewerLayout
+      className={className}
+      resizeAriaLabel="Resize composer panel"
+      splitStorageKey="stgm-new-session-chat-width"
+      // Persistent chrome: the chip is always mounted, matching SessionViewer
+      // (DD-016) rather than the launcher's earlier progressively-revealed
+      // inspector. A toggle that appears/disappears with attached context
+      // reads as instability and, worse, unmounts the open panel's only
+      // collapse control when the last context item is removed. Always-on is
+      // the predictable, discoverable shape; opening homes on the Config
+      // facet, which carries useful defaults (harness/model) pre-session.
+      // Guests are the exception: the panel exposes configuration a visitor
+      // has no business with, so the chip (the panel's only toggle) is
+      // simply absent and the panel can never open.
+      chip={
+        !isGuest ? (
           <SessionPanelChip
             isOpen={panel.isOpen}
             onToggle={panel.isOpen ? panel.closePanel : panel.openPanel}
           />
-        </div>
-      )}
-
-      {/* Same unified-panel layout as SessionViewer (DD-016): collapsed by
-          default (composer fills the row); opening makes the composer the
-          fixed narrow pane and hands the flexible region to the surface.
-          Collapse goes through the split's `collapsedPane` (CSS, not
-          conditional structure), so the composer never remounts across an
-          open/close toggle. */}
-      <ResizableSplit
-        resizablePane="primary"
-        collapsedPane={panel.isOpen ? "none" : "secondary"}
-        defaultSize={420}
-        minSize={320}
-        maxSize={640}
-        storageKey="stgm-new-session-chat-width"
-        responsiveCollapse={panel.isOpen ? "primary" : "none"}
-        ariaLabel="Resize composer panel"
-        className="min-h-0 flex-1"
-        primary={composerNode}
-        secondary={
-          panel.isOpen ? (
-            <WorkspaceSurface
-              entries={flow.workspace.entries}
-              lister={workspaceFileLister}
-              reader={workspaceFileReader}
-              searcher={workspaceContentSearcher}
-              view={panel.view}
-              onViewChange={panel.setView}
-              extraViews={railViews}
-              onRemoveEntry={flow.workspace.remove}
-              onAddLocalFolder={canAddLocalFolder ? handleAddLocalFolder : undefined}
-              editors={editors}
-              selectedFile={activeFile}
-              onOpenFile={panel.openFile}
-              onActivateEditor={panel.activateEditor}
-              onPinEditor={panel.pinEditor}
-              onCloseEditor={panel.closeEditor}
-              onCollapse={panel.closePanel}
-              reveal={activeReveal}
-              className="h-full"
-            />
-          ) : null
-        }
-      />
-    </div>
+        ) : undefined
+      }
+      conversation={composerNode}
+      panel={
+        panel.isOpen ? (
+          <WorkspaceSurface
+            entries={flow.workspace.entries}
+            lister={workspaceFileLister}
+            reader={workspaceFileReader}
+            searcher={workspaceContentSearcher}
+            view={panel.view}
+            onViewChange={panel.setView}
+            extraViews={railViews}
+            onRemoveEntry={flow.workspace.remove}
+            onAddLocalFolder={canAddLocalFolder ? handleAddLocalFolder : undefined}
+            editors={editors}
+            selectedFile={activeFile}
+            onOpenFile={panel.openFile}
+            onActivateEditor={panel.activateEditor}
+            onPinEditor={panel.pinEditor}
+            onCloseEditor={panel.closeEditor}
+            onCollapse={panel.closePanel}
+            reveal={activeReveal}
+            className="h-full"
+          />
+        ) : null
+      }
+    />
   );
 }

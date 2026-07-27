@@ -55,13 +55,13 @@ export interface UseSessionRailViewsOptions {
    * (a cloud session with git workspace entries). When `true` the Changes
    * facet is offered from the start — with an honest pre-push state — instead
    * of only materializing once a write-back exists, so "where does my work
-   * go?" always has an answer. See {@link ChangesTabProps.expectsWriteBack}.
+   * go?" always has an answer (the facet's `expectsWriteBack` prop).
    * @default false
    */
   readonly expectsWriteBack?: boolean;
   /**
    * Whether the session's latest execution is settled (terminal) — forwarded
-   * to the Changes facet's pre-push states. See {@link ChangesTabProps.isSettled}.
+   * to the Changes facet's pre-push states (its `isSettled` prop).
    * @default false
    */
   readonly changesSettled?: boolean;

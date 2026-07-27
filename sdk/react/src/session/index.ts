@@ -109,6 +109,12 @@ export type { SessionViewerProps } from "./SessionViewer.js";
 export { NewSessionViewer } from "./NewSessionViewer.js";
 export type { NewSessionViewerProps } from "./NewSessionViewer.js";
 
+// SessionViewerLayout — the conversation-plus-panel frame both viewers
+// share, exported for platform builders composing a custom session surface
+// at the shipped console's geometry.
+export { SessionViewerLayout } from "./SessionViewerLayout.js";
+export type { SessionViewerLayoutProps } from "./SessionViewerLayout.js";
+
 // Unified session-panel controller — drives the WorkspaceSurface open-editor
 // group, the collapsed/open state, and the rail-view FSM (for platform
 // builders embedding the surface directly).
@@ -117,6 +123,14 @@ export type {
   SessionPanelController,
   UseSessionPanelOptions,
 } from "./useSessionPanel.js";
+
+// Session rail views — composes the session facets (Config / Changes /
+// Artifacts / Usage) as the panel's rail, with the console's own labels,
+// icons, badges, and contextual-visibility rules. Exported so custom
+// session surfaces inherit the rail by construction instead of
+// re-declaring it.
+export { useSessionRailViews } from "./useSessionRailViews.js";
+export type { UseSessionRailViewsOptions } from "./useSessionRailViews.js";
 
 // Plan draft — viewer-owned in-place edit of the session's current plan
 // (edit-as-input; the published plan.md artifact is never mutated).

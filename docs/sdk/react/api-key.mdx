@@ -213,6 +213,7 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    initialName: { type: "string", description: "Seeds the name field on mount (e.g. a suggested key name, or a demo scenario depicting the form mid-fill). One-time: consumed on mount; subsequent changes are ignored. The field stays fully editable." },
     onCancel: { type: "() => void", description: "Fired when the user cancels creation." },
     onCreated: { type: "(apiKey: ApiKey) => void", description: "Fired with the newly created API key after successful creation. The `spec.keyHash` field of the returned key contains the raw key value — available only at this moment." },
     org: { type: "string", description: "Organization slug used as the `org` field when creating the key.", required: true },
