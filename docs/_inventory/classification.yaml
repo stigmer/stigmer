@@ -1,0 +1,768 @@
+# The docs inventory classification — the docs revamp's source of truth.
+#
+# One entry per hand-authored page, keyed by extension-less docs-relative
+# path (the docs root is "index"). Generated pages are covered by the
+# `cohorts` rules at the bottom; their classification belongs to the
+# generator, never the page.
+#
+# Fields per page:
+#   fate      keep | split | archive | delete | move:<path> | merge:<path>
+#             The PLAN for the page. Executing a fate removes or re-keys
+#             the entry in the same commit; git history is the record.
+#   diataxis  tutorial | how-to | explanation | reference | landing
+#   teaches   One sentence: what the reader walks away knowing or having done.
+#   medium    none | diagram | still | screenshot-journey | animated-tour |
+#             interactive — the page's TARGET demonstration centerpiece
+#             (DD-01 in the 20260727.01.docs-revamp project). Prose and code
+#             are the substrate of every page, not a medium. `still` and
+#             `screenshot-journey` await engine support (stigmer/scenar #11)
+#             — classifying a page as either does NOT authorize hand-captured
+#             screenshots in the interim.
+#   why       Rationale for a non-"none" medium (required by the gate).
+#   embeds    Per-embed fate map for embeds the page renders TODAY, keyed by
+#             ScenarEmbed id or legacy <Demo*> component name:
+#               keep    — survives as-is
+#               replace — superseded by the page's target medium
+#               drop    — removed without replacement
+#
+# Enforced by `make check-docs-inventory` (ci.docs): every hand-authored
+# page on disk needs an entry, every entry needs a live page, and each
+# page's rendered embeds must match its declared map.
+
+pages:
+  # ── Docs root ──────────────────────────────────────────────────────────
+  index:
+    fate: keep
+    diataxis: landing
+    teaches:
+      Stigmer's one-line pitch and which of nine entry points matches the
+      reader's goal.
+    medium: animated-tour
+    why:
+      The hero exists to show the product working; motion is the pitch. The
+      current tour depicts a stale single-entry-point flow and gets re-authored.
+    embeds:
+      create-agent-tour: replace
+
+  # ── Get Started ────────────────────────────────────────────────────────
+  concepts/what-is-stigmer:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      What problem Stigmer solves and how it differs from direct LLM calls, RAG,
+      and agent frameworks.
+    medium: diagram
+    why:
+      The platform's position between your app and the LLM provider is
+      structure; the existing architecture diagram carries it.
+
+  getting-started/quickstart:
+    fate: keep
+    diataxis: tutorial
+    teaches:
+      Install an SDK, authenticate with an API key, and stream a first response
+      from the built-in assistant.
+    medium: screenshot-journey
+    why:
+      The reader compares their console to ours at each step and needs to stop
+      on the frame that matters; playback pace fights that.
+    embeds:
+      quickstart-tour: replace
+      api-key-setup: replace
+
+  getting-started/local:
+    fate: keep
+    diataxis: tutorial
+    teaches:
+      Run the local SQLite-backed server with your own Anthropic key and apply
+      and run a YAML Agent from the terminal.
+    medium: none
+
+  getting-started/first-skill:
+    fate: keep
+    diataxis: tutorial
+    teaches:
+      Package domain knowledge as a SKILL.md zip, upload it in the console, and
+      attach it to a Session so answers become grounded.
+    medium: screenshot-journey
+    why:
+      A console upload procedure the reader performs alongside the page, one
+      screen at a time.
+    embeds:
+      first-skill-tour: replace
+      skill-creation-tour: replace
+
+  getting-started/connect-tools:
+    fate: keep
+    diataxis: tutorial
+    teaches:
+      Register and connect an MCP server in the console, then wire its tools and
+      an approval loop into SDK code.
+    medium: screenshot-journey
+    why:
+      A three-step console wizard plus a connect flow the reader replays on
+      their own screen; reference journeys read at the reader's pace.
+    embeds:
+      connect-tools-tour: replace
+      mcp-server-creation-tour: replace
+      mcp-server-connect-tour: replace
+
+  getting-started/create-agent:
+    fate: keep
+    diataxis: tutorial
+    teaches:
+      Bundle instructions, Skills, and MCP servers into a named Agent and
+      replace per-Session ref lists with one agent lookup.
+    medium: screenshot-journey
+    why:
+      The console now offers three creation entry points (YAML upload, template,
+      form); a still sequence can cover all three where the stale tours depict
+      only the conversational one (DD-011's trigger).
+    embeds:
+      create-agent-tour: replace
+      agent-creation-tour: replace
+
+  getting-started/first-workflow:
+    fate: keep
+    diataxis: tutorial
+    teaches:
+      Define a two-task Workflow in YAML, apply it, and run it from the CLI with
+      a runtime env var.
+    medium: none
+
+  # ── Agents ─────────────────────────────────────────────────────────────
+  concepts/agents:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      An Agent is a secret-free YAML blueprint that expands at runtime into
+      Instance, Session, and Execution.
+    medium: still
+    why:
+      The prose says "here's how this Agent looks in the console" — one frame
+      answers that; nothing needs to move.
+    embeds:
+      agent-detail-tour: replace
+
+  concepts/skills:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      A Skill is a SKILL.md directory whose frontmatter description is the
+      trigger condition, attachable to Agents and Sessions.
+    medium: still
+    why:
+      The embed exists to show the Skill detail page next to its source; a
+      single frame is the honest medium for a static screen.
+    embeds:
+      skill-detail-tour: replace
+
+  concepts/sessions:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      A Session is the durable conversation context that carries history, locks
+      a Harness, and can override Skills and tools.
+    medium: diagram
+    why:
+      The lifecycle (Instance to Session to Executions) is structure; the
+      existing mermaid carries it.
+
+  concepts/approval-flows:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      How to make specific tool calls pause for a human, at which of four layers
+      to configure it, and what each decision does.
+    medium: animated-tour
+    why:
+      The pause-then-resume beat IS the concept — the agent stops mid-run and a
+      human decision resumes it; motion carries the cause-and-effect.
+    embeds:
+      DemoApprovalFlowPlayback: replace
+
+  concepts/tools:
+    fate: split
+    diataxis: explanation
+    teaches:
+      How MCP Servers are declared, connected, authenticated, sandboxed, and
+      referenced from Agents and Sessions.
+    medium: animated-tour
+    why:
+      A tool call firing, streaming results, and returning to the conversation
+      is a sequence that must be seen once. Split because the page mixes
+      concept, marketplace pitch, connect procedure, and auth patterns that
+      guides/integrations already owns.
+    embeds:
+      DemoToolCallsPlayback: replace
+
+  guides/sharing/share-an-agent:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Create and manage hosted chat links for an Agent — audience, credits,
+      visitor messages, embedding, and credentials.
+    medium: screenshot-journey
+    why:
+      A console procedure across the share dialog's tabs; the current tour also
+      depicts an existing share where the prose teaches creating one (inherited
+      drift a re-authored journey fixes).
+    embeds:
+      share-agent-tour: replace
+
+  guides/sharing/embed-an-agent:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Drop the stigmer-agent web component onto a site, size and theme it,
+      restrict origins, and pass per-user session context.
+    medium: still
+    why:
+      The page documents a rendered widget the reader currently never sees; one
+      frame of the widget on a host page shows the outcome.
+
+  guides/channels/connect-slack:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Install an Agent into a Slack workspace through the platform app, bind
+      credentials, and operate the channel afterward.
+    medium: screenshot-journey
+    why:
+      A multi-screen console procedure (channel wizard, consent, channel card)
+      the reader performs step by step.
+    embeds:
+      DemoConnectSlackChannel: replace
+
+  guides/channels/connect-whatsapp:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Bind an Agent to a WhatsApp Business number through your own Meta app and
+      operate the channel afterward.
+    medium: screenshot-journey
+    why:
+      Same procedural shape as the Slack twin — console screens the reader
+      follows at their own pace.
+    embeds:
+      DemoConnectWhatsAppChannel: replace
+
+  guides/channels/bring-your-own-slack-app:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Register your own Slack app as a Channel App so the bot carries your
+      branding and multiple Agents can serve one workspace.
+    medium: screenshot-journey
+    why:
+      The Stigmer-side screens (Settings, Channel Apps, register form) are
+      depictable stills; Slack's own screens stay prose — we depict only our
+      product.
+
+  guides/channels/set-up-your-meta-app:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      The full Meta prerequisite chain — WABA, app, permanent token, Channel App
+      registration, webhook verification.
+    medium: none
+
+  # ── Tools & MCP ────────────────────────────────────────────────────────
+  guides/integrations/overview:
+    fate: keep
+    diataxis: landing
+    teaches:
+      Which of the four integration sub-guides to read and what to know first.
+    medium: none
+
+  guides/integrations/connect-from-marketplace:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      What the Library catalog holds and what the single Connect action does —
+      discovery, approval classification, storage.
+    medium: animated-tour
+    why:
+      One click triggers discovery and approval classification —
+      cause-and-effect the reader must see firing to trust.
+    embeds:
+      DemoMarketplaceConnectTour: replace
+
+  guides/integrations/oauth-for-tools:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      How an MCP server's auth block replaces the credential form with a sign-in
+      button, and what the connection health states mean.
+    medium: animated-tour
+    why:
+      The popup authorize round-trip and the health state flipping to Connected
+      is a sequence; the timing is the lesson.
+    embeds:
+      DemoOAuthConnectFlow: replace
+
+  guides/integrations/oauth-architecture:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      The internals behind OAuth tool connections — DCR vs vendor mode,
+      credential storage split, refresh mechanics.
+    medium: diagram
+    why:
+      Backend resolution chains and credential flows are structure; the page's
+      three diagrams already carry it.
+
+  guides/integrations/bring-your-own-oauth:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      When and how to override the platform OAuth app with your Organization's
+      own registration.
+    medium: screenshot-journey
+    why:
+      The most console-centric integrations page — a form procedure quoted by
+      exact UI labels, read at the reader's pace.
+    embeds:
+      DemoByoaSetup: replace
+
+  guides/editors/connect-mcp:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Register the hosted Stigmer MCP endpoint in Claude Desktop, Claude Code,
+      or Cursor and verify the connection.
+    medium: none
+
+  guides/editors/skills:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      How editors discover domain and creator Skills, where to get Stigmer's
+      creator Skills, and how to author your own.
+    medium: none
+
+  # ── Workflows ──────────────────────────────────────────────────────────
+  concepts/workflows:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      When to reach for a Workflow instead of an Agent, and how tasks,
+      expressions, budgets, and human gates fit together.
+    medium: diagram
+    why:
+      Blueprint-to-runtime expansion and branch fan-out are structure; the two
+      existing mermaids carry it.
+
+  guides/workflows:
+    fate: keep
+    diataxis: landing
+    teaches:
+      That Workflows are YAML pipelines on a durable runner, and which sub-guide
+      to read in what order.
+    medium: none
+
+  guides/workflows/authoring:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      The complete Workflow YAML surface — envelope, tasks, expressions, flow
+      control, error handling, gates, budgets, validation.
+    medium: diagram
+    why:
+      Flow control (jumps, switch, fork, loops) is structure; diagrams of the
+      shapes teach faster than prose about them.
+
+  guides/workflows/patterns:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Five copy-pasteable production Workflow shapes and three anti-patterns to
+      avoid.
+    medium: diagram
+    why:
+      Each pattern is a flow shape; the per-pattern mermaid is the fastest way
+      to recognize which one you need.
+
+  guides/workflows/execution:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      The runtime side — creating executions, phase vocabulary, subscribing,
+      answering gates and signals, cancel and recover.
+    medium: diagram
+    why:
+      The phase model is a state machine currently conveyed by two tables; a
+      state diagram is its native form.
+
+  guides/workflows/review-payloads:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Attach a payload and ui_hint to a human_input gate and register a React
+      renderer so reviewers see domain-native UI.
+    medium: still
+    why:
+      The page's argument is a before/after pair — the same gate with and
+      without a renderer; two frames the reader compares side by side, nothing
+      moves in either.
+    embeds:
+      review-renderer-tour: replace
+      review-fallback-tour: replace
+
+  # ── Platform ───────────────────────────────────────────────────────────
+  concepts/datastores:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      A Datastore is declarative typed storage whose constraints and grants the
+      platform enforces, giving Agents record tools.
+    medium: screenshot-journey
+    why:
+      The prose asks the reader to compare the declared constraint on one tab
+      with records on another — a compare-two-screens read, not a timed
+      playback.
+    embeds:
+      datastore-records-tour: replace
+
+  concepts/environments:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      How config and secrets live outside definitions, how Environments layer
+      with later-wins ordering, and what is_secret changes.
+    medium: diagram
+    why:
+      Layered merging into an Instance is structure; the existing mermaid
+      carries it.
+
+  concepts/runners:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      A Runner is the self-registering compute process that executes work —
+      three modes, five lifecycle phases, three selection paths.
+    medium: diagram
+    why:
+      The lifecycle is literally a state machine and the page already renders it
+      as one.
+
+  guides/runners/overview:
+    fate: keep
+    diataxis: landing
+    teaches:
+      Whether the reader needs the runner-embedding guides at all, and which
+      sub-guide to open.
+    medium: none
+
+  guides/runners/cursor-harness:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Make the Cursor engine available to a runner in direct or proxy mode and
+      pin a Session to it.
+    medium: none
+
+  guides/runners/ipc-protocol:
+    fate: keep
+    diataxis: reference
+    teaches:
+      The complete line-delimited JSON contract for driving the runner as a
+      subprocess.
+    medium: none
+
+  guides/runners/embedding:
+    fate: split
+    diataxis: how-to
+    teaches:
+      Which runner-embedding path fits your deployment and how to wire a
+      RunnerAdapter in-process or as a subprocess.
+    medium: diagram
+    why:
+      Deployment archetypes and the in-process/subprocess split are structure.
+      Split because 540 lines mix a decision matrix, an infra explainer, an SDK
+      tutorial, an interface contract, and a Tauri worked example.
+
+  concepts/harnesses:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      Choose between the Native and Cursor execution engines on models, tooling,
+      checkpointing, and cost; the choice locks per Session.
+    medium: diagram
+    why:
+      The engine-selection fork is structure; the existing mermaid carries it.
+
+  concepts/organizations:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      Organizations are the tenant boundary; self-managed vs platform-managed
+      modes map one org per customer behind a shared IdP.
+    medium: diagram
+    why: Tenancy fan-out is structure; the two existing mermaids carry it.
+
+  concepts/identity:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      The four Identity Account types and the two trust models — external OIDC
+      federation vs Stigmer-signed PlatformClient tokens.
+    medium: diagram
+    why:
+      Both trust models are eight-step sequences already rendered as sequence
+      diagrams — their native form.
+
+  guides/authentication/overview:
+    fate: keep
+    diataxis: landing
+    teaches:
+      Choose among API key, identity federation, and PlatformClient based on
+      where the request originates and who makes it.
+    medium: none
+
+  guides/authentication/federation/overview:
+    fate: keep
+    diataxis: landing
+    teaches:
+      The three provisioning modes (JIT, manual, SSO) and which numbered
+      sub-guide applies to each.
+    medium: diagram
+    why:
+      A mode-selection hub; the architecture diagram plus cards carry it, and
+      the animated overview tour adds nothing a hub needs.
+    embeds:
+      DemoFederationOverviewTour: drop
+
+  guides/authentication/federation/authentication-flow:
+    fate: keep
+    diataxis: explanation
+    teaches:
+      The runtime path a federated JWT takes — JWKS fetch, validation, sub
+      resolution, IAM check — and how to diagnose 401 vs 403.
+    medium: diagram
+    why:
+      A machine-to-machine flow is structure; the page's two sequence diagrams
+      are its native form. The narrated playback stays as a supplement — it is
+      shipped, accurate, and costs nothing to keep.
+    embeds:
+      authentication-flow-playback: keep
+
+  guides/authentication/federation/register-identity-provider:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Gather JWKS URI, issuer, and audience from your OIDC vendor and create the
+      Identity Provider, optionally with JIT.
+    medium: none
+    embeds:
+      # An API cookbook; the playback is unreferenced by prose and shows
+      # nothing the code blocks don't already say.
+      DemoRegisterIdpPlayback: drop
+
+  guides/authentication/federation/sso-login:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Enable console SSO for a self-managed Organization and understand
+      automatic viewer-role provisioning on first login.
+    medium: diagram
+    why:
+      The login round-trip is an auth sequence — structure. The shipped playback
+      stays as a supplement for readers who want it paced.
+    embeds:
+      sso-login-playback: keep
+
+  guides/authentication/federation/grant-access:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Authentication without an IAM Policy yields 403; bind principal, resource,
+      and relation, or revoke access again.
+    medium: none
+    embeds:
+      provision-grant-playback: keep
+
+  guides/authentication/federation/provision-federated-accounts:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      The check-then-create provisioning pattern, plus update and deprovision,
+      and why externalSub must be the OIDC sub.
+    medium: none
+    embeds:
+      provision-grant-playback: keep
+
+  guides/authentication/federation/multi-tenant-setup:
+    fate: split
+    diataxis: how-to
+    teaches:
+      Give each customer an isolated platform-managed Organization behind one
+      shared IdP, with tenantOrgClaim JIT routing.
+    medium: diagram
+    why:
+      Tenant fan-out is structure. Split because 826 lines duplicate sibling
+      pages' snippets and close with a 230-line concatenation of everything
+      above — the known bloat case.
+    embeds:
+      multi-tenant-setup-playback: keep
+      multi-tenant-jit-playback: keep
+
+  guides/authentication/platform-client/overview:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Mint per-user Stigmer JWTs from your backend with PlatformClient
+      credentials and hand them to StigmerProvider.
+    medium: diagram
+    why:
+      Token minting is a backend sequence; the existing diagram plus the
+      token-flow playback carry it. The legacy setup tour 13 lines below the
+      playback is a second embed on the same topic and goes.
+    embeds:
+      platform-client-token-flow: keep
+      DemoPlatformClientSetupTour: drop
+
+  concepts/billing:
+    fate: split
+    diataxis: explanation
+    teaches:
+      Stigmer Cloud's prepaid credit model — how a call is priced, how
+      executions reserve and release credits, and what reduces spend.
+    medium: none
+
+  # ── CLI ────────────────────────────────────────────────────────────────
+  cli:
+    fate: keep
+    diataxis: landing
+    teaches:
+      Install the CLI, point it at a local or cloud backend, and run first
+      commands.
+    medium: none
+
+  # ── SDK ────────────────────────────────────────────────────────────────
+  sdk:
+    fate: keep
+    diataxis: landing
+    teaches:
+      Which of the seven SDK packages exists and where each one's entry page
+      lives.
+    medium: none
+
+  sdk/overview:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Install, authenticate, configure, and call the Stigmer API in all four
+      languages, including errors and pagination.
+    medium: none
+
+  sdk/streaming:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Consume subscribe snapshot streams in production — terminal phases,
+      transport vs execution failures, cancellation.
+    medium: none
+
+  sdk/typescript:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Install @stigmer/sdk, construct a client, and make one call with not-found
+      handling.
+    medium: none
+
+  sdk/go:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Install the v3 Go module, build a client with deferred close, and make one
+      call with not-found handling.
+    medium: none
+
+  sdk/python:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Install the Python package, construct the client including the
+      context-manager form, and make one call.
+    medium: none
+
+  sdk/java:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Add the Maven dependency, build a client in try-with-resources, and make
+      one call.
+    medium: none
+
+  sdk/react:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Install @stigmer/react, wrap an app in StigmerProvider with the right
+      credential per environment, and find the hooks.
+    medium: none
+
+  sdk/ink:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Render a session in a terminal with SessionApp, or compose
+      InkStigmerProvider with individual components.
+    medium: still
+    why:
+      A terminal UI documented with no visual at all; one frame of SessionApp
+      rendering a session shows the outcome.
+
+  sdk/ink/cli-integration:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Spawn the @stigmer/ink binary from a non-JavaScript CLI, pass through
+      terminal streams, and read final state.
+    medium: none
+
+  sdk/theme/theming:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Restyle Stigmer components by overriding --stgm-* tokens — scope
+      mechanics, color mode, presets, slot overrides.
+    medium: interactive
+    why:
+      Theming is learned by flipping presets and modes and watching token values
+      change — the reader must drive it; the legacy playground is replaced by a
+      maintained interactive surface.
+    embeds:
+      DemoThemingPlayground: replace
+
+# ── Generated cohorts ─────────────────────────────────────────────────────
+# One rule per generator-owned directory. A page counts as generated when it
+# carries the generator marker comment; hand-authored pages inside these
+# directories (e.g. sdk/react/index) still need their own entry above.
+cohorts:
+  cli/commands/:
+    generator: gen-cli-docs
+    diataxis: reference
+    medium: none
+  guides/workflows/task-types/:
+    generator: gen-task-docs
+    diataxis: reference
+    medium: none
+  sdk/react/:
+    generator: gen-react-sdk-docs
+    diataxis: reference
+    medium: none
+  sdk/resources/:
+    generator: gen-proto-sdk-docs
+    diataxis: reference
+    medium: none
+  sdk/ink/:
+    generator: gen-ink-sdk-docs
+    diataxis: reference
+    medium: none
+  sdk/theme/:
+    generator: gen-theme-docs
+    diataxis: reference
+    medium: none

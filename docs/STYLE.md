@@ -80,6 +80,41 @@ internal DSL form (`- task_name: { call: ... }`) — always the authoring form.
 Content that is markdown-with-frontmatter (like a `SKILL.md` listing) belongs in
 a ` ```md ` fence, not ` ```yaml `.
 
+## Classify every page
+
+Every hand-authored page has an entry in `docs/_inventory/classification.yaml`,
+checked in CI by `make check-docs-inventory`. The entry records three decisions:
+**fate** (does the page survive the docs revamp, and how), **diataxis**
+(tutorial, how-to, explanation, reference, or landing — one type per page, never
+mixed), and **medium**.
+
+Prose and code are the substrate of every page, not a medium. `medium` names the
+page's demonstration centerpiece, if it has one. Pick it with this rule, first
+"yes" wins:
+
+1. Is it structure rather than a screen? → `diagram`
+2. Must the reader manipulate it to learn? → `interactive`
+3. Does nothing change across frames? → `still`
+4. Does the reader act in sequence at their own pace? → `screenshot-journey`
+5. Is the timing or sequence itself the lesson? → `animated-tour`
+6. Otherwise → `none`
+
+Reserve `animated-tour` for genuine demonstrations — a capability that must be
+seen working. Getting-started journeys and console procedures are
+`screenshot-journey`: the reader compares their own screen against the depicted
+one and sets the pace. `still` and `screenshot-journey` are rendered from real
+components by Scenar, never hand-captured — a screenshot taken by hand goes
+stale with no signal, so do not add one as a placeholder.
+
+Generated pages (the `cli/commands/`, `guides/workflows/task-types/`,
+`sdk/react/`, `sdk/resources/`, `sdk/ink/`, and `sdk/theme/` reference sets) are
+covered by cohort rules in the same file and need no per-page entry.
+
+When you add a page, add its entry. When you delete or move a page, update its
+entry (remove it, or re-key it) in the same commit. When you add or remove an
+embed, update the page's `embeds` map. CI fails on any mismatch and names the
+page.
+
 ## MDX components
 
 Custom components are available in all `.mdx` files without imports. Use them to
@@ -205,6 +240,29 @@ Click-to-zoom for screenshots and diagrams.
 ```mdx
 <ImageZoom src="/docs/screenshot.png" alt="Dashboard overview" />
 ```
+
+### Scenario embeds
+
+`<ScenarEmbed>` renders a hosted product walkthrough from
+`stigmer.ai/demos/<id>/`. The `id` must match a tour directory under
+`demos/tours/` — CI rejects a typo (`scripts/verify-scenar-tours.mjs`).
+
+```mdx
+<ScenarEmbed id="quickstart-tour" title="Quickstart walkthrough" />
+```
+
+Two rules when adding or removing an embed:
+
+1. Declare it in the page's entry in `docs/_inventory/classification.yaml` (see
+   "Classify every page" below). CI fails when a page's embeds and its
+   declaration disagree.
+2. Give it a prose lead-in that says what the reader is about to watch. An embed
+   contributes nothing to the markdown exports (`llms.txt`, the Copy-as-Markdown
+   button), so the surrounding prose must carry the information on its own.
+
+The legacy `<Demo* />` components (for example `<DemoToolCallsPlayback />`) are
+the pre-Scenar embed system and are being retired page by page during the docs
+revamp. Do not add new ones.
 
 ## Prose
 

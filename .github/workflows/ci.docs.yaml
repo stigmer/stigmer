@@ -98,6 +98,14 @@ jobs:
       - name: Verify Scenar tours
         run: node scripts/verify-scenar-tours.mjs
 
+      # Every docs page must be classified in docs/_inventory/
+      # classification.yaml (fate, diataxis, teaches, medium; generated
+      # pages via cohort rules) and each page's embeds must match its
+      # declared per-embed fates. This is the docs-revamp inventory gate —
+      # see docs/STYLE.md, "Classify every page".
+      - name: Verify docs inventory
+        run: make check-docs-inventory
+
       - name: Build documentation site
         run: make build-site
 

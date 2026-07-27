@@ -502,6 +502,7 @@ tidy: ## Run go mod tidy on all Go modules
 .PHONY: fix lint lint-web typecheck-web verify-web run-web build-web clean-web clean-build-web \
        lint-desktop typecheck-desktop verify-desktop kill-desktop launch-desktop build-desktop clean-build-desktop release-desktop-local \
        lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build validate-demos tsdoc-check test-demos \
+       check-docs-inventory \
        test-web test-desktop test-runner-host test-e2e test-e2e-approval test-a11y check check-all \
        check-prep check-go check-node check-site check-rust check-java
 fix: ## Auto-fix linting and formatting issues
@@ -748,6 +749,7 @@ check-site: ## check bucket: docs lint/format/links + site lint/typecheck/test/b
 	@vale $(DOCS_SOURCES)
 	@npx prettier --check --prose-wrap always $(DOCS_SOURCES)
 	$(MAKE) check-docs-yaml
+	$(MAKE) check-docs-inventory
 	$(MAKE) -C site lint
 	$(MAKE) -C site typecheck
 	$(MAKE) -C site test-unit
@@ -796,6 +798,9 @@ format-docs-check: ## Check documentation formatting (CI, no writes)
 
 check-docs-yaml: ## Validate every docs YAML block against the proto contracts (CI)
 	@go run ./tools/codegen/generator --comprehensive --target=docs-yaml-check --docs-dir docs
+
+check-docs-inventory: ## Verify every docs page is classified in docs/_inventory/classification.yaml (CI)
+	$(MAKE) -C site check-docs-inventory
 
 check-links: ## Check for broken links in documentation
 	@command -v lychee >/dev/null 2>&1 || { \

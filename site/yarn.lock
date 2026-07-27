@@ -2598,8 +2598,8 @@ __metadata:
 
 "@stigmer/embed@file:../sdk/embed::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/embed@file:../sdk/embed#../sdk/embed::hash=17d6a0&locator=stigmer-site%40workspace%3A."
-  checksum: 10c0/eb4f9894839d19f30af0230101789184aa1ffbf3c62d6582bfc7f4fd2c903d5119703e601daaa32e8e4abcd9843792cc1cf1045b33b409b2756c173683247adc
+  resolution: "@stigmer/embed@file:../sdk/embed#../sdk/embed::hash=c09415&locator=stigmer-site%40workspace%3A."
+  checksum: 10c0/7c7ac1100d5c14d80d010c6355257cbbcc88070ff4d47fc88d963ebdac0dfae59d10494c0e703ad0a272a273ddf8f59eebb0311ac7b33c68197e85a906d55467
   languageName: node
   linkType: hard
 
@@ -2614,7 +2614,7 @@ __metadata:
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=b708a1&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=03c972&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protovalidate": "npm:^1.1.1"
     "@dagrejs/dagre": "npm:^1.1.4"
@@ -2682,13 +2682,13 @@ __metadata:
       optional: true
     recharts:
       optional: true
-  checksum: 10c0/434a029c934213b55c78a6f6c7b728e2b7eb49da5a1289efae54eab69b07422d38a3fffaaf87974f141b6580f61f95266c2fb5a18f95a022079adcc5b6671ed9
+  checksum: 10c0/b9f0f168412a59e0eb2f2ef80ab7364ad7285b0950ed063647703dcf6c53f2f5b55dce3e98c6d58184a8579b7dd5ce6822ffa94b52b8dea055e92743a1a639e3
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=c72fcf&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=a6769a&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2700,17 +2700,17 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/6220a971d6eb97f57fc8752136ad58f5869344d678f06bac6c56b4bbcd235ba2758893ce0d763a94f7cdda994ad7ad1aedbc190148d51eb551ca8e24cd4ffc28
+  checksum: 10c0/d1ebfa0974ca2498cd12b371c4a8a24f3c01ba69d48d8a558b1284f0995e51b4fae7b14491f84b5e79c1437a605802bb0f539eca6e0b77ccabaf52a919ba9283
   languageName: node
   linkType: hard
 
 "@stigmer/theme@file:../sdk/theme::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/theme@file:../sdk/theme#../sdk/theme::hash=fab3d1&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/theme@file:../sdk/theme#../sdk/theme::hash=211d84&locator=stigmer-site%40workspace%3A."
   peerDependencies:
     clsx: ^2.0.0
     tailwind-merge: ^3.0.0
-  checksum: 10c0/fd4625c43231da529422a9aed78796048470637c4008ab5c0431f35bb9b8cc4de9f99269af873d368ee5798bfc61273e0f88320c5e64b5e230b16c4dc4e78ff7
+  checksum: 10c0/1d748d13bb6a5de1960acf00a2c1cbd41f446928f95ee46963f1823e7a44f2ea349a2bdedb52bef7c6c2816bcc9928facf7195ecb2ce6057c068ad22d15adf0f
   languageName: node
   linkType: hard
 
@@ -3310,6 +3310,13 @@ __metadata:
   dependencies:
     "@types/unist": "npm:*"
   checksum: 10c0/3249781a511b38f1d330fd1e3344eed3c4e7ea8eff82e835d35da78e637480d36fad37a78be5a7aed8465d237ad0446abc1150859d0fde395354ea634decf9f7
+  languageName: node
+  linkType: hard
+
+"@types/js-yaml@npm:^4.0.9":
+  version: 4.0.9
+  resolution: "@types/js-yaml@npm:4.0.9"
+  checksum: 10c0/24de857aa8d61526bbfbbaa383aa538283ad17363fcd5bb5148e2c7f604547db36646440e739d78241ed008702a8920665d1add5618687b6743858fae00da211
   languageName: node
   linkType: hard
 
@@ -7453,6 +7460,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"js-yaml@npm:^5.2.2":
+  version: 5.2.2
+  resolution: "js-yaml@npm:5.2.2"
+  dependencies:
+    argparse: "npm:^2.0.1"
+  bin:
+    js-yaml: bin/js-yaml.mjs
+  checksum: 10c0/e8ded203b235b3d562818c67bf362122abbcee89e507b62bddcdd3085b2f2dd866071e5e78f8e617d41d1a0c0baa1cec12a8fdec5859c571bf862adf585e2684
+  languageName: node
+  linkType: hard
+
 "json-buffer@npm:3.0.1":
   version: 3.0.1
   resolution: "json-buffer@npm:3.0.1"
@@ -10406,6 +10424,7 @@ __metadata:
     "@tanstack/react-table": "npm:^8.21.3"
     "@testing-library/dom": "npm:^10.4.0"
     "@testing-library/react": "npm:^16.3.2"
+    "@types/js-yaml": "npm:^4.0.9"
     "@types/mdx": "npm:^2.0.13"
     "@types/node": "npm:^22.10.5"
     "@types/react": "npm:^19.2.14"
@@ -10423,6 +10442,7 @@ __metadata:
     fumadocs-ui: "npm:15.8.5"
     gray-matter: "npm:^4.0.3"
     happy-dom: "npm:^20.8.4"
+    js-yaml: "npm:^5.2.2"
     lowlight: "npm:^3.3.0"
     lucide-react: "npm:^0.469.0"
     mermaid: "npm:^11.13.0"

@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: deps dev build start lint typecheck test-unit clean preview generate-narration copy-narration validate-demos test-demos
+.PHONY: deps dev build start lint typecheck test-unit clean preview generate-narration copy-narration validate-demos test-demos check-docs-inventory docs-inventory
 
 PORT ?= 3000
 
@@ -58,6 +58,15 @@ copy-narration: deps
 # Validate demo scenarios for token compliance, interaction coverage, and manifest alignment
 validate-demos: deps
 	yarn validate-demos
+
+# Verify every docs page is classified in docs/_inventory/classification.yaml
+# (fate, diataxis, teaches, medium; generated pages via cohort rules)
+check-docs-inventory: deps
+	yarn generate-docs-inventory --check
+
+# Render the human-readable docs inventory report to stdout
+docs-inventory: deps
+	yarn generate-docs-inventory
 
 # Run Playwright demo e2e tests (starts dev server automatically via playwright.config.ts)
 # Requires Playwright browsers: npx playwright install
