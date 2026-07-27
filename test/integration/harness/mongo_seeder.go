@@ -29,10 +29,14 @@ const identityAccountCollection = "identity_account"
 // be seeded here for exactly that reason and were removed when stigmer-cloud's
 // B1 slice ported billing_policy: the Java service now seeds its own active
 // policy set at startup (BillingPolicySeeder), storage-neutrally, on every
-// lane. EnsureBillingIndexes stays: it creates a Mongo INDEX (not data), which
-// the Mongo lane still needs while llm_call_usage_record writes go to Mongo
-// there, and which is a harmless no-op collection on the app-postgres lane
-// (Postgres enforces the same uniqueness via its Flyway DDL).
+// lane. The machine account went the same way in T06: the security suite used
+// to hand-seed it pre-boot, and the service's BootstrapIdentitySeeder now
+// creates it (fixed id "machine") plus its platform-operator grants at startup
+// on every lane and both engines. EnsureBillingIndexes stays: it creates a
+// Mongo INDEX (not data), which the Mongo lane still needs while
+// llm_call_usage_record writes go to Mongo there, and which is a harmless
+// no-op collection on the app-postgres lane (Postgres enforces the same
+// uniqueness via its Flyway DDL).
 type MongoSeeder struct {
 	client *mongo.Client
 	dbName string
@@ -117,46 +121,6 @@ func (s *MongoSeeder) SeedIdentityAccount(ctx context.Context, input SeedIdentit
 	_, err := coll.ReplaceOne(ctx, filter, doc, opts)
 	if err != nil {
 		return fmt.Errorf("upsert identity_account %s: %w", input.ID, err)
-	}
-	return nil
-}
-
-// SeedOrgMembership upserts an iam_policy document granting an identity
-// account an assignable relation (owner/admin/member/viewer) on an
-// organization — the Mongo policy mirror every production policy write
-// persists alongside the OpenFGA tuple. The datastore binding-principal
-// validation reads membership from exactly this mirror
-// (IamPolicyRepo.findByPrincipalAndResource), so tests binding platform
-// principals must seed it for the bound account.
-func (s *MongoSeeder) SeedOrgMembership(ctx context.Context, identityAccountID, org, relation string) error {
-	coll := s.client.Database(s.dbName).Collection("iam_policy")
-
-	policyID := fmt.Sprintf("iampol-test-%s-%s-%s", identityAccountID, org, relation)
-	doc := bson.D{
-		{Key: "apiVersion", Value: "iam.stigmer.ai/v1"},
-		{Key: "kind", Value: "IamPolicy"},
-		{Key: "metadata", Value: bson.D{
-			{Key: "id", Value: policyID},
-			{Key: "org", Value: org},
-		}},
-		{Key: "spec", Value: bson.D{
-			{Key: "principal", Value: bson.D{
-				{Key: "kind", Value: "identity_account"},
-				{Key: "id", Value: identityAccountID},
-			}},
-			{Key: "resource", Value: bson.D{
-				{Key: "kind", Value: "organization"},
-				{Key: "id", Value: org},
-			}},
-			{Key: "relation", Value: relation},
-		}},
-	}
-
-	filter := bson.D{{Key: "metadata.id", Value: policyID}}
-	opts := options.Replace().SetUpsert(true)
-
-	if _, err := coll.ReplaceOne(ctx, filter, doc, opts); err != nil {
-		return fmt.Errorf("upsert iam_policy %s: %w", policyID, err)
 	}
 	return nil
 }

@@ -172,8 +172,8 @@ func (m *MockJWKSServer) handleOIDCDiscovery(w http.ResponseWriter, _ *http.Requ
 //
 // The handler reads client_id from the JSON POST body (matching the real Auth0
 // client_credentials flow) and constructs the JWT subject as "{client_id}@clients".
-// This ensures the mock JWT subject aligns with what the Mongock bootstrap
-// migration seeds in MongoDB (spec.idpId = "{AUTH0_CLIENT_ID}@clients").
+// This ensures the mock JWT subject aligns with the machine account the service's
+// BootstrapIdentitySeeder creates at startup (spec.idpId = "{AUTH0_CLIENT_ID}@clients").
 func (m *MockJWKSServer) handleOAuthToken(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

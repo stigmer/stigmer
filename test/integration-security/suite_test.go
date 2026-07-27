@@ -132,26 +132,11 @@ func TestMain(m *testing.M) {
 		"idp_id", bootstrapIdpID,
 	)
 
-	// Seed the machine account identity that the Java service uses for internal
-	// gRPC calls. In production, the Mongock migration U20250102_InsertBootstrapIdentityAccounts
-	// creates this record. The IdP ID must be "{AUTH0_CLIENT_ID}@clients" to match
-	// the subject of the machine account JWT minted via the mock OAuth token endpoint.
-	err = mongoSeeder.SeedIdentityAccount(ctx, harness.SeedIdentityAccountInput{
-		ID:               "security-test-machine-account",
-		IdpID:            "test-client-id@clients",
-		Email:            "machine-account-stigmer@backend.stigmer.ai",
-		Name:             "Stigmer Backend Service Machine Account",
-		IsMachineAccount: true,
-	})
-	if err != nil {
-		suiteLogger.Error("failed to seed machine account identity", "error", err)
-		mongoSeeder.Close(ctx)
-		testHarness.Stop(ctx)
-		os.Exit(1)
-	}
-	suiteLogger.Info("seeded machine account identity",
-		"idp_id", "test-client-id@clients",
-	)
+	// The machine account identity (idpId "{AUTH0_CLIENT_ID}@clients" = the subject of
+	// the JWT minted via the mock OAuth token endpoint) is NOT seeded here: the service's
+	// own BootstrapIdentitySeeder creates it at startup with the well-known id "machine"
+	// (T06 — the same code path production and fresh installs run). Only the human
+	// bootstrap account above remains a genuine pre-boot chicken-and-egg.
 
 	// --- Start Java service in PRODUCTION security mode ---
 	logDir := testHarness.LogDir()
@@ -208,18 +193,13 @@ func TestMain(m *testing.M) {
 		"auth0_issuer", mockAuth0.Issuer,
 	)
 
-	// --- Seed FGA tuples for machine account and bootstrap user ---
-	// In production, the Mongock migration grants the machine account the
-	// "operator" role on platform:stigmer, which provides
-	// can_manage_identity_accounts. The bootstrap user also needs operator
-	// permissions to create IdentityProviders and PlatformClients.
+	// --- Seed FGA tuples for the bootstrap user ---
+	// The machine account's operator grant is NOT seeded here:
+	// BootstrapIdentitySeeder writes it at startup, and OpenFGA's raw Write API
+	// rejects duplicate tuples with a 400. The human bootstrap user still needs
+	// operator permissions to create IdentityProviders and PlatformClients.
 	if testHarness.OpenFGA != nil {
 		tuples := []harness.RelationshipTuple{
-			{
-				User:     "identity_account:security-test-machine-account",
-				Relation: "operator",
-				Object:   "platform:stigmer",
-			},
 			{
 				User:     "identity_account:" + bootstrapIdentityAccountID,
 				Relation: "operator",
@@ -237,7 +217,7 @@ func TestMain(m *testing.M) {
 			testHarness.Stop(ctx)
 			os.Exit(1)
 		}
-		suiteLogger.Info("seeded FGA tuples for machine account and bootstrap user")
+		suiteLogger.Info("seeded FGA tuples for bootstrap user")
 	}
 
 	// --- Create bootstrap authenticated connection ---

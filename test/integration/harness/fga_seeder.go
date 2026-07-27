@@ -9,8 +9,9 @@ const (
 	// Must match IntegrationTestSecurityConfig.TEST_IDENTITY_ACCOUNT_ID
 	testIdentityAccountID = "test-identity-account-id"
 
-	// Must match IntegrationTestDataSeeder.MACHINE_ACCOUNT_ID
-	testMachineAccountID = "test-machine-account-id"
+	// Must match BootstrapIdentitySeeder.MACHINE_ACCOUNT_ID — the service seeds the
+	// real machine account (T06); test mode mints its JWTs with this same subject.
+	testMachineAccountID = "machine"
 
 	// Singleton platform resource used for operator permissions
 	platformStigmer = "platform:stigmer"
@@ -40,20 +41,18 @@ func SeedBaseFGATuples(ctx context.Context, fga *OpenFGAContainer) error {
 			Object:   "organization:" + TestOrg,
 		},
 
-		// Machine account — platform operator for inProcessChannelAsSystem calls.
-		// In production, the machine account is seeded by Mongock migration and
-		// its JWT is fetched from Auth0. In test mode, TestMachineAccountJwtProviderConfig
-		// mints Stigmer-signed JWTs with this identity as the subject.
-		{
-			User:     "identity_account:" + testMachineAccountID,
-			Relation: "operator",
-			Object:   platformStigmer,
-		},
+		// The machine account's PLATFORM grants (operator on platform:stigmer,
+		// owner of itself) are NOT seeded here: BootstrapIdentitySeeder writes
+		// them at startup, before the service reports ready — and OpenFGA's raw
+		// Write API rejects duplicate tuples with a 400, so re-asserting them
+		// would crash this seeder. Only grants the service does NOT own on day 0
+		// belong below.
 
 		// Machine account — org admin for auto-grant operations.
 		// JIT provisioning with auto_grant_on_org calls createPolicy, which
 		// requires can_grant_access on the target org (derived from admin).
-		// In production, the machine account receives org admin during org creation.
+		// In production, the machine account receives org admin during org
+		// creation — org-scoped, so deliberately not the bootstrap seeder's job.
 		{
 			User:     "identity_account:" + testMachineAccountID,
 			Relation: "admin",
