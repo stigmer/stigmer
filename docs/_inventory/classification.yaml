@@ -141,8 +141,6 @@ pages:
     why:
       The prose says "here's how this Agent looks in the console" — one frame
       answers that; nothing needs to move.
-    embeds:
-      agent-detail-tour: replace
 
   concepts/skills:
     fate: keep

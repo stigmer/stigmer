@@ -116,6 +116,11 @@ export const agentDetailTourSteps: ScenarioStep<AgentDetailTourStep>[] = [
     // steady establishing frame of the whole page.
     delayMs: 6000,
     data: { view: "agent-detail" },
+    // The steady frame doubles as the still on docs/concepts/agents (its
+    // <Still id="agent-detail-tour/agent-detail">). That reference is why
+    // this tour must stay in the repo even with no <ScenarEmbed> left —
+    // verify-scenar-tours invariant 8 holds the two sides together.
+    shot: "agent-detail",
     narration:
       "The console shows the whole definition in one place — the instructions, " +
       "both Skills, the MCP server with its enabled tools, and the environment " +
