@@ -118,8 +118,12 @@ export function unwrapStills(text: string): string {
       const alt = /\balt="([^"]+)"/.exec(tag)?.[1];
       const ref = id === undefined ? null : parseStillId(id);
       if (!ref || alt === undefined) return tag;
-      // Escape the characters that would end the alt run early in markdown.
-      const safeAlt = alt.replace(/([[\]])/g, "\\$1");
+      const safeAlt = alt
+        // Prettier wraps a long attribute value across source lines in
+        // prose-wrapped MDX; that is formatting, not content — collapse it.
+        .replace(/\s+/g, " ")
+        // Escape the characters that would end the alt run early in markdown.
+        .replace(/([[\]])/g, "\\$1");
       return `![${safeAlt}](${stillImageUrl(ref, "light")})`;
     });
 

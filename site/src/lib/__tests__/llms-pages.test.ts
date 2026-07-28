@@ -126,6 +126,15 @@ describe("unwrapStills", () => {
     expect(out).toBe(`![The \\[Save\\] button](${URL_BASE}/t/stills/s.light.png)`);
   });
 
+  it("collapses source-line wrapping inside a long alt value", () => {
+    // Prettier wraps long attribute values across lines in prose-wrapped
+    // MDX; the newlines are formatting, not content.
+    const tag = '<Still\n  id="t/s"\n  alt="A long description\nthat Prettier wrapped\nacross lines."\n/>';
+    expect(unwrapStills(tag)).toBe(
+      `![A long description that Prettier wrapped across lines.](${URL_BASE}/t/stills/s.light.png)`,
+    );
+  });
+
   it("leaves a <Still> inside a fenced code block untouched", () => {
     const page = [
       "Use it like this:",
