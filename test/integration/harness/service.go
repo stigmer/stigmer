@@ -341,8 +341,9 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	// always-on cloud profile that gates required beans must be added here
 	// too, or the Spring context fails to boot with a missing-bean error.
 	//
-	// app-postgres: the application's system of record. The harness always
-	// starts the container (StartAppPostgres) and suites pass it via
+	// The app-postgres system of record needs no profile (its config is
+	// unconditional in application.yaml): the harness always starts the
+	// container (StartAppPostgres) and suites pass it via
 	// ServiceConfig.AppPG*; Flyway migrates it during service startup.
 	//
 	// records-postgres: required for the Datastore record-substrate beans to
@@ -352,7 +353,7 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	// live. When a suite leaves RecordsPGHost empty, the lazy pool
 	// (initializationFailTimeout = -1) still lets the service boot against
 	// the localhost:5432 defaults; record RPCs then fail loudly on first use.
-	profiles := "app-postgres,temporal,iam,logging,auth0,skill-r2,agent-execution-r2,claimcheck-r2,records-postgres"
+	profiles := "temporal,iam,logging,auth0,skill-r2,agent-execution-r2,claimcheck-r2,records-postgres"
 	if cfg.SandboxType != "" {
 		profiles += ",sandbox"
 	}
