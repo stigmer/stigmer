@@ -1,0 +1,77 @@
+import { ImageZoom } from "fumadocs-ui/components/image-zoom";
+import { parseStillId, stillImageUrl, type StillTheme } from "@/lib/demos-base";
+
+/**
+ * Rendered pixel size of every still: the tours' canonical 1280x800 viewport
+ * (pinned for all tours in demos/scripts/pack-all.mjs) captured at DPR 2 by
+ * `scenar shoot`. The stage backdrop consumes — never adds to — the shell
+ * height, so this holds at any camera position. Explicit dimensions give the
+ * browser the aspect ratio up front: no layout shift while the image loads
+ * (`output: "export"` means there is no Next image optimizer to do it for us).
+ */
+const STILL_WIDTH = 2560;
+const STILL_HEIGHT = 1600;
+
+interface StillProps {
+  /**
+   * `"<scenario>/<shot>"` — the tour directory under `demos/tours/` and a
+   * `shot` name declared on one of its steps. CI resolves both halves
+   * (`scripts/verify-scenar-tours.mjs` invariant 8), so a typo fails the
+   * build instead of shipping a broken image.
+   */
+  id: string;
+  /**
+   * Screen description for readers who get text instead of pixels — it lands
+   * verbatim in llms-full.txt, the per-page .md export, and Copy-as-Markdown.
+   * Describe the screen, don't repeat the narration (DD-02: two texts).
+   * Required here and enforced in CI, since MDX is never typechecked.
+   */
+  alt: string;
+}
+
+/**
+ * A Scenar-rendered screenshot in the docs prose — the `still` and
+ * `screenshot-journey` medium (docs/STYLE.md).
+ *
+ * Renders both theme variants and lets CSS pick via the site's `dark`
+ * class, so the correct image shows at first paint with no JavaScript —
+ * a JS swap on the resolved theme would flash the dark variant at every
+ * light-mode reader (the theme hook resolves only after mount). Both
+ * variants are lazy: the hidden one has no layout box, never intersects
+ * the viewport, and so is not fetched until the reader actually switches
+ * theme.
+ *
+ * Each variant composes the registered `<ImageZoom>` (click-to-zoom at the
+ * full 2560x1600 capture). Only the visible variant can be clicked, so the
+ * zoom always matches the page theme.
+ */
+export function Still({ id, alt }: StillProps) {
+  const ref = parseStillId(id);
+  if (!ref) {
+    throw new Error(
+      `<Still id="${id}">: id must be "<scenario>/<shot>" — the tour directory ` +
+        `under demos/tours/ and a shot name declared in its steps.ts ` +
+        `(e.g. "agent-detail-tour/agent-detail").`,
+    );
+  }
+
+  const variant = (theme: StillTheme) => (
+    <ImageZoom
+      src={stillImageUrl(ref, theme)}
+      alt={alt}
+      width={STILL_WIDTH}
+      height={STILL_HEIGHT}
+      loading="lazy"
+      className={
+        theme === "light" ? "rounded-lg dark:hidden" : "hidden rounded-lg dark:block"
+      }
+    />
+  );
+
+  return (
+    <div className="not-prose mx-auto my-4 w-full max-w-4xl">
+      {variant("light")}
+      {variant("dark")}
+    </div>
+  );
+}
