@@ -121,7 +121,7 @@ jobs:
   # Job 2: Run the offline integration test suites — one parallel job per suite.
   #
   # Each suite is fully self-contained: it spins up its own infrastructure
-  # (Testcontainers Mongo 7 + Redis 7, a Java service with a suite-specific
+  # (Testcontainers Postgres 16 + Redis 7, a Java service with a suite-specific
   # configuration, and where needed the unified Node runner), runs, and tears
   # everything down. Nothing is shared between suites at runtime, so they fan
   # out across a matrix of independent runners instead of running back-to-back
@@ -154,18 +154,6 @@ jobs:
             output: test/integration/.test-output
             artifact: integration-test-results
             report: Integration Test Report
-          # The mongo→postgres migration's hybrid lane: the same core suite,
-          # but the service boots with the app-postgres profile — ApiResource
-          # kinds on a dedicated Postgres container (Flyway-migrated at
-          # startup), Tier-2 operational stores still on Mongo. Runs alongside
-          # the Mongo lane until the T09 cutover retires the Mongo default;
-          # divergence between the two lanes is a storage-parity bug.
-          - suite: integration-app-postgres
-            label: Core (App Postgres)
-            make: test-integration-app-postgres
-            output: test/integration/.test-output-app-postgres
-            artifact: integration-app-postgres-test-results
-            report: Integration Test Report (App Postgres)
           - suite: security
             label: Security
             make: test-integration-security
@@ -256,7 +244,7 @@ jobs:
       # ── Core-suite-only guards / reports ─────────────────────────────────
 
       - name: Guard against silent test skip
-        if: success() && (matrix.suite == 'integration' || matrix.suite == 'integration-app-postgres')
+        if: success() && matrix.suite == 'integration'
         run: |
           JUNIT="${{ matrix.output }}/junit.xml"
           if [ ! -f "$JUNIT" ]; then

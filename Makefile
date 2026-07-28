@@ -344,10 +344,6 @@ test-runner: $(RUNNER_DIR)/node_modules ## Run the unified runner vitest suite (
 test-integration: ## Run integration tests (offline, no API keys needed)
 	$(MAKE) -C test/integration test
 
-.PHONY: test-integration-app-postgres
-test-integration-app-postgres: ## Run integration tests with the service in hybrid storage mode (app-postgres profile: ApiResource kinds on Postgres, Tier-2 stores on Mongo)
-	$(MAKE) -C test/integration test-app-postgres
-
 .PHONY: test-integration-providers
 test-integration-providers: ## Run provider-backed integration tests (auto-fetches API keys from Planton)
 	$(MAKE) -C test/integration test-providers

@@ -8,7 +8,7 @@
 // conditions and order_by on hidden fields — the existence-oracle
 // guard. The unit layers prove the algorithm per edition
 // (authz/records in OSS, RecordGrants/Records in cloud); this suite
-// proves the composed chain against the real control plane, Mongo
+// proves the composed chain against the real control plane, the
 // session graph, and records Postgres, with byte-exact contract
 // assertions. Closes dont-dos/002 (scope-all reads carry PII).
 package integration

@@ -1,5 +1,5 @@
 // Command conformance-cloudenv boots the hermetic cloud environment for the
-// conformance suite's cloud target: Testcontainers infrastructure (MongoDB,
+// conformance suite's cloud target: Testcontainers infrastructure (Postgres,
 // Redis, MinIO, OpenFGA), a Temporal dev server, and the stigmer-service fat
 // JAR in test security mode with real OpenFGA authorization.
 //
@@ -88,8 +88,11 @@ func run(logger *slog.Logger) error {
 
 	svc, err := harness.StartJavaService(bootCtx, harness.ServiceConfig{
 		JarPath:         jarPath,
-		MongoHost:       h.Mongo.Host,
-		MongoPort:       h.Mongo.Port,
+		AppPGHost:       h.AppPostgres.Host,
+		AppPGPort:       h.AppPostgres.Port,
+		AppPGDatabase:   h.AppPostgres.Database,
+		AppPGUser:       h.AppPostgres.User,
+		AppPGPassword:   h.AppPostgres.Password,
 		RedisHost:       h.Redis.Host,
 		RedisPort:       h.Redis.Port,
 		TemporalAddress: h.Temporal.Address(),

@@ -23,10 +23,9 @@ type PostgresContainer struct {
 }
 
 // AppPostgresContainer holds a running PostgreSQL instance backing the
-// application's system of record (the `app-postgres` Spring profile — the
-// mongo→postgres migration's Tier-1 ApiResource store). The Java service
-// connects via the APP_PG_* env vars and runs its Flyway baseline against it
-// at startup.
+// application's system of record (the `app-postgres` Spring profile). The
+// Java service connects via the APP_PG_* env vars and runs its Flyway
+// baseline against it at startup.
 //
 // The instance carries TWO databases, mirroring production's layout (T08):
 // stigmer_app (the system of record) and stigmer_checkpoints (the LangGraph

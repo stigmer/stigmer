@@ -181,7 +181,7 @@ func TestCursorNativeResume_FailsWithoutState(t *testing.T) {
 	require.NoError(t, err, "turn 1 should complete")
 
 	// Delete the SDK's SQLite store, then restart — the workspace (and the
-	// session's harness_state_id in Mongo) remain, but the local agent record
+	// session's harness_state_id in the store) remain, but the local agent record
 	// is gone, so Agent.resume() cannot rehydrate.
 	stateDir := cursorStateDir(t, sessionID)
 	require.DirExists(t, stateDir, "expected SDK state at %s after turn 1", stateDir)

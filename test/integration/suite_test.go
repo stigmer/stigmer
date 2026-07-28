@@ -65,8 +65,6 @@ func TestMain(m *testing.M) {
 
 	svcCfg := harness.ServiceConfig{
 		JarPath:         jarPath,
-		MongoHost:       testHarness.Mongo.Host,
-		MongoPort:       testHarness.Mongo.Port,
 		RedisHost:       testHarness.Redis.Host,
 		RedisPort:       testHarness.Redis.Port,
 		TemporalAddress: testHarness.Temporal.Address(),
@@ -106,19 +104,15 @@ func TestMain(m *testing.M) {
 			"host", svcCfg.RecordsPGHost, "port", svcCfg.RecordsPGPort)
 	}
 
-	// Hybrid storage mode (INTEGRATION_TEST_APP_POSTGRES=true): the service
-	// boots with the app-postgres profile — ApiResource kinds on Postgres,
-	// Tier-2 operational stores still on Mongo — and Flyway migrates this
-	// database during startup.
-	if testHarness.AppPostgres != nil {
-		svcCfg.AppPGHost = testHarness.AppPostgres.Host
-		svcCfg.AppPGPort = testHarness.AppPostgres.Port
-		svcCfg.AppPGDatabase = testHarness.AppPostgres.Database
-		svcCfg.AppPGUser = testHarness.AppPostgres.User
-		svcCfg.AppPGPassword = testHarness.AppPostgres.Password
-		suiteLogger.Info("app Postgres enabled for Java service (hybrid storage mode)",
-			"host", svcCfg.AppPGHost, "port", svcCfg.AppPGPort)
-	}
+	// The application's system of record: Flyway migrates this database
+	// during service startup (fail-fast — a broken migration fails the boot).
+	svcCfg.AppPGHost = testHarness.AppPostgres.Host
+	svcCfg.AppPGPort = testHarness.AppPostgres.Port
+	svcCfg.AppPGDatabase = testHarness.AppPostgres.Database
+	svcCfg.AppPGUser = testHarness.AppPostgres.User
+	svcCfg.AppPGPassword = testHarness.AppPostgres.Password
+	suiteLogger.Info("app Postgres wired for Java service",
+		"host", svcCfg.AppPGHost, "port", svcCfg.AppPGPort)
 
 	svc, err := harness.StartJavaService(ctx, svcCfg, suiteLogger)
 	if err != nil {
@@ -194,13 +188,8 @@ func TestMain(m *testing.M) {
 	}
 
 	// Billing policies are seeded by the Java service itself at startup
-	// (BillingPolicySeeder) on whichever store is active; only the Mongo
-	// usage-record index still needs manual creation while Mongock is disabled.
-	mongoURI := fmt.Sprintf("mongodb://%s:%s", testHarness.Mongo.Host, testHarness.Mongo.Port)
-	if err := harness.EnsureBillingIndexes(ctx, mongoURI, "stigmer_test"); err != nil {
-		suiteLogger.Warn("failed to create billing indexes — duplicate usage records possible", "error", err)
-	}
-
+	// (BillingPolicySeeder); usage-record uniqueness is enforced by the
+	// Flyway DDL, so no manual index creation remains.
 	if err := harness.SeedDefaultAgent(ctx, grpcConn); err != nil {
 		suiteLogger.Warn("failed to seed default agent — tests requiring a default agent may fail", "error", err)
 	} else {
@@ -225,7 +214,7 @@ func TestMain(m *testing.M) {
 
 	suiteLogger.Info("suite infrastructure ready",
 		"grpc_address", svc.GRPCAddress(),
-		"mongo", fmt.Sprintf("%s:%s", testHarness.Mongo.Host, testHarness.Mongo.Port),
+		"app_postgres", fmt.Sprintf("%s:%s", testHarness.AppPostgres.Host, testHarness.AppPostgres.Port),
 		"temporal", testHarness.Temporal.Address(),
 		"unified_runner", testHarness.UnifiedRunner != nil,
 		"log_dir", logDir,

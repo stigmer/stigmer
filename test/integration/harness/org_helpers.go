@@ -39,7 +39,7 @@ type StandaloneOrg struct {
 // synchronously, so an unfunded org would fail closed for the wrong
 // reason), and JIT-provisioned admin + member actors whose roles are scoped
 // to this org alone. Everything goes through production RPCs — no direct
-// FGA or Mongo writes.
+// FGA or database writes.
 func CreateStandaloneOrg(t *testing.T, ctx context.Context, ownerConn grpc.ClientConnInterface, grpcAddr string) *StandaloneOrg {
 	t.Helper()
 	owner := NewClients(ownerConn)

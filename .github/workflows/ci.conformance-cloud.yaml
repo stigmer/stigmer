@@ -8,7 +8,7 @@
 # Architecture (mirrors ci.integration-offline):
 #   Job 1 (build-service-jar)   — checks out stigmer-cloud, builds the fat JAR
 #   Job 2 (conformance-cloud)   — the suite's cloud global setup boots the
-#                                 hermetic environment (Testcontainers Mongo/
+#                                 hermetic environment (Testcontainers Postgres/
 #                                 Redis/MinIO/OpenFGA + Temporal dev + the JAR
 #                                 in test security mode with real FGA) via the
 #                                 Go launcher, then runs `npm run test:cloud`.

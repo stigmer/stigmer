@@ -34,7 +34,7 @@ func TestFederatedJWT_ValidToken_Accepted(t *testing.T) {
 
 	federatedSub := "fed-user-" + uuid.New().String()[:8]
 
-	err := mongoSeeder.SeedFederatedIdentityAccount(ctx, harness.SeedIdentityAccountInput{
+	err := identitySeeder.SeedFederatedIdentityAccount(ctx, harness.SeedIdentityAccountInput{
 		ID:        "fed-acct-" + uuid.New().String()[:8],
 		IdpID:     federatedSub,
 		Email:     federatedSub + "@federation-test.example.com",
@@ -47,7 +47,7 @@ func TestFederatedJWT_ValidToken_Accepted(t *testing.T) {
 	t.Cleanup(func() {
 		cleanCtx, c := context.WithTimeout(context.Background(), 5*time.Second)
 		defer c()
-		_ = mongoSeeder.DeleteIdentityAccount(cleanCtx, "fed-acct-"+federatedSub)
+		_ = identitySeeder.DeleteIdentityAccount(cleanCtx, "fed-acct-"+federatedSub)
 	})
 
 	token, err := mockIdP.SignJWT(federatedSub, testAudience, nil)

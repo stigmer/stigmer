@@ -67,8 +67,6 @@ const (
 // service needs to connect to.
 type ServiceConfig struct {
 	JarPath         string
-	MongoHost       string
-	MongoPort       string
 	RedisHost       string
 	RedisPort       string
 	TemporalAddress string
@@ -111,13 +109,11 @@ type ServiceConfig struct {
 	RecordsPGPassword string
 
 	// App Postgres — the application's system of record behind the
-	// app-postgres Spring profile (mongo→postgres migration). When AppPGHost
-	// is set, the profile is ACTIVATED (hybrid storage mode: ApiResource
-	// kinds on Postgres, Tier-2 operational stores still on Mongo), APP_PG_*
-	// env vars point at this database, and the service runs its Flyway
-	// baseline against it during startup — a failed migration fails the
-	// boot. When empty, the profile stays off and the service runs the
-	// production-shaped Mongo-only stack; nothing else changes.
+	// app-postgres Spring profile. APP_PG_* env vars point at this database,
+	// and the service runs its Flyway baseline against it during startup — a
+	// failed migration fails the boot. The harness always provisions this
+	// container (StartAppPostgres); leaving these empty makes the service
+	// fall back to localhost defaults and fail its fail-fast boot loudly.
 	AppPGHost     string
 	AppPGPort     string
 	AppPGDatabase string
@@ -258,7 +254,7 @@ func StartJavaService(ctx context.Context, cfg ServiceConfig, logger *slog.Logge
 		"grpc_port", cfg.GRPCPort,
 		"http_port", cfg.HTTPPort,
 		"bidi_proxy_port", bidiPortStr,
-		"mongo", fmt.Sprintf("%s:%s", cfg.MongoHost, cfg.MongoPort),
+		"app_postgres", fmt.Sprintf("%s:%s", cfg.AppPGHost, cfg.AppPGPort),
 		"temporal", cfg.TemporalAddress,
 	)
 
@@ -341,9 +337,13 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	productionSecurity := cfg.Security == SecurityModeProduction
 
 	// This list deliberately reproduces the cloud service's required profile
-	// set (application.yaml) minus what tests stub out (mongock, vault); a new
+	// set (application.yaml) minus what tests stub out (vault); a new
 	// always-on cloud profile that gates required beans must be added here
 	// too, or the Spring context fails to boot with a missing-bean error.
+	//
+	// app-postgres: the application's system of record. The harness always
+	// starts the container (StartAppPostgres) and suites pass it via
+	// ServiceConfig.AppPG*; Flyway migrates it during service startup.
 	//
 	// records-postgres: required for the Datastore record-substrate beans to
 	// exist (an unconditional pipeline step injects DatastoreRecordStore).
@@ -352,7 +352,7 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	// live. When a suite leaves RecordsPGHost empty, the lazy pool
 	// (initializationFailTimeout = -1) still lets the service boot against
 	// the localhost:5432 defaults; record RPCs then fail loudly on first use.
-	profiles := "mongo,temporal,iam,logging,auth0,skill-r2,agent-execution-r2,claimcheck-r2,records-postgres"
+	profiles := "app-postgres,temporal,iam,logging,auth0,skill-r2,agent-execution-r2,claimcheck-r2,records-postgres"
 	if cfg.SandboxType != "" {
 		profiles += ",sandbox"
 	}
@@ -362,14 +362,6 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	if cfg.OTLPEndpoint != "" {
 		profiles += ",observability"
 	}
-	// Hybrid storage mode (mongo→postgres migration): app-postgres is ADDED
-	// to — never substituted for — the list above. The mongo profile must stay
-	// active alongside it: Tier-2 operational stores (billing, channels,
-	// webhooks, sandboxes, audit sidecars) are still Mongo-backed until
-	// T04/T05b port them.
-	if cfg.AppPGHost != "" {
-		profiles += ",app-postgres"
-	}
 
 	env := os.Environ()
 	env = append(env,
@@ -378,16 +370,6 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		// Server ports
 		fmt.Sprintf("SERVER_PORT=%s", cfg.HTTPPort),
 		fmt.Sprintf("GRPC_SERVER_PORT=%s", cfg.GRPCPort),
-
-		// MongoDB (Testcontainers — no auth)
-		fmt.Sprintf("SPRING_DATA_MONGODB_URI=mongodb://%s:%s/stigmer_test", cfg.MongoHost, cfg.MongoPort),
-		"MONGO_DB_HOST=unused",
-		"MONGO_DB_PORT=27017",
-		"MONGO_DB_USERNAME=unused",
-		"MONGO_DB_PASSWORD=unused",
-		"MONGO_DB_NAME=stigmer_test",
-		"MONGO_DB_AUTH_DATABASE=admin",
-		"MONGO_TRANSACTIONS_ENABLED=false",
 
 		// Redis (Testcontainers — no auth)
 		fmt.Sprintf("REDIS_HOST=%s", cfg.RedisHost),
@@ -468,11 +450,9 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		)
 	}
 
-	// App Postgres — the ApiResource system of record when the app-postgres
-	// profile is active (see the profile block above for the hybrid-mode
-	// contract). Deliberately a different database than records: the two
-	// datasources are separate clusters in production (DD-011) and must
-	// never share configuration.
+	// App Postgres — the ApiResource system of record. Deliberately a
+	// different database than records: the two datasources are separate
+	// clusters in production (DD-011) and must never share configuration.
 	if cfg.AppPGHost != "" {
 		env = append(env,
 			fmt.Sprintf("APP_PG_HOST=%s", cfg.AppPGHost),

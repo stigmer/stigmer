@@ -14,7 +14,7 @@
 //   - referential integrity (account existence, org membership, the
 //     membership-gated did-you-mean) — the cloud-only
 //     ValidateBindingPrincipalsStep against the real persistence
-//     adapter (Mongo lane or app-postgres lane): FAILED_PRECONDITION.
+//     adapter: FAILED_PRECONDITION.
 //
 // Every rejection asserts the exact message bytes: they are the
 // operator-facing contract the CLI and console render verbatim.
@@ -44,8 +44,8 @@ import (
 //
 // Front-door seeding is storage-neutral by construction: the account and the
 // policy mirror land in whichever store the active persistence adapter
-// writes, so this fixture works identically on the Mongo lane and the
-// app-postgres hybrid lane. The server assigns the account id and slug —
+// writes, so this fixture never depends on the persistence engine. The server
+// assigns the account id and slug —
 // callers consume them from the returned account.
 func seedBindingPrincipal(t *testing.T, ctx context.Context, name, email, membershipRelation string) *identityaccountv1.IdentityAccount {
 	t.Helper()

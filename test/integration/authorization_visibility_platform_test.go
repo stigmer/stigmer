@@ -70,7 +70,7 @@ func TestVisibilityPlatformCrossTenant(t *testing.T) {
 
 			// Listing: the child-org catalog (scoped to the child org) surfaces the
 			// platform blueprint even though it lives in TestOrg — the deliberate
-			// org-filter carve-out for visibility_platform in MongoSearchQueryStore.
+			// org-filter carve-out for visibility_platform in the search query store.
 			childIDs := searchKindIDs(t, ctx, childMember.Clients, bk.searchKind, pmo.OrgID)
 			require.Contains(t, childIDs, id, "child-org listing should surface the platform blueprint")
 

@@ -57,8 +57,11 @@ func TestMain(m *testing.M) {
 
 	svcCfg := harness.ServiceConfig{
 		JarPath:         jarPath,
-		MongoHost:       testHarness.Mongo.Host,
-		MongoPort:       testHarness.Mongo.Port,
+		AppPGHost:       testHarness.AppPostgres.Host,
+		AppPGPort:       testHarness.AppPostgres.Port,
+		AppPGDatabase:   testHarness.AppPostgres.Database,
+		AppPGUser:       testHarness.AppPostgres.User,
+		AppPGPassword:   testHarness.AppPostgres.Password,
 		RedisHost:       testHarness.Redis.Host,
 		RedisPort:       testHarness.Redis.Port,
 		TemporalAddress: testHarness.Temporal.Address(),

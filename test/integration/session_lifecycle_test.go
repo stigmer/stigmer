@@ -315,7 +315,7 @@ func TestSession_ListByAgentInstance_FiltersByInstanceId(t *testing.T) {
 
 	// listByAgentInstance filters sessions by spec.agent_instance_id. The Java
 	// handler uses the request's agent_instance_id as spec.agentInstanceId in the
-	// Mongo query (SessionListByAgentInstanceHandler.java).
+	// store query (SessionListByAgentInstanceHandler.java).
 	list1, err := clients.SessionQuery.ListByAgentInstance(ctx, &sessionv1.ListSessionsByAgentInstanceRequest{
 		AgentInstanceId: instanceID1,
 	})

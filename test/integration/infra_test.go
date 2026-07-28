@@ -12,9 +12,9 @@ import (
 func TestInfrastructureStarts(t *testing.T) {
 	require.NotNil(t, testHarness, "suite harness must be initialized via TestMain")
 
-	t.Run("mongodb is reachable", func(t *testing.T) {
-		assert.NotEmpty(t, testHarness.Mongo.URI, "mongodb URI should not be empty")
-		assert.NotEmpty(t, testHarness.Mongo.Port, "mongodb port should not be empty")
+	t.Run("app postgres is reachable", func(t *testing.T) {
+		assert.NotEmpty(t, testHarness.AppPostgres.Host, "app postgres host should not be empty")
+		assert.NotEmpty(t, testHarness.AppPostgres.Port, "app postgres port should not be empty")
 	})
 
 	t.Run("redis is reachable", func(t *testing.T) {

@@ -3,7 +3,7 @@
 // Records reach chain, end to end: a real session-scoped sandbox token
 // presented to the record RPCs must resolve the full Path-1 chain —
 // token -> session -> agent instance -> agent -> datastore_usages ->
-// org — against real Mongo documents, derive the partition from the
+// org — against real stored documents, derive the partition from the
 // instance and the record-layer subject from the session's
 // channel-sender metadata, and then run the grant layer against real
 // Postgres. The cloud RecordReachTest proves the chain logic over

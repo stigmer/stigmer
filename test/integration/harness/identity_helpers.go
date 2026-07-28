@@ -12,13 +12,10 @@ import (
 )
 
 // CreateIdentityAccount provisions an identity account through the real create
-// RPC — the storage-neutral front door. The account lands in whichever store
-// the active persistence adapter writes (Mongo on the default lane, Postgres
-// under INTEGRATION_TEST_APP_POSTGRES), so tests seeded this way never care
-// which lane they run on. This replaces the old direct-Mongo document seeding
-// for Tier-1 kinds; MongoSeeder remains only for the integration-security
-// suite, whose production security mode cannot make authenticated RPCs before
-// an account exists.
+// RPC — the storage-neutral front door. Tests seeded this way never depend on
+// the persistence engine. IdentitySeeder remains only for the
+// integration-security suite, whose production security mode cannot make
+// authenticated RPCs before an account exists.
 //
 // The server assigns metadata.id and derives metadata.slug from the name —
 // callers consume both from the returned account instead of choosing them.

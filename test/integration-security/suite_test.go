@@ -4,7 +4,6 @@ package security
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"testing"
@@ -49,9 +48,13 @@ var (
 	// JWT. Used for setup operations (creating IdentityProviders, etc.).
 	bootstrapConn *grpc.ClientConn
 
-	// mongoSeeder provides direct MongoDB access for pre-seeding identity
-	// documents before the Java service resolves them.
-	mongoSeeder *harness.MongoSeeder
+	// identitySeeder writes identity rows directly into the app-postgres
+	// store for the pre-auth chicken-and-egg accounts the production
+	// security chain must resolve. Seeding happens AFTER service boot
+	// (Flyway creates s_iam.identity_account during startup) and before the
+	// first authenticated call — subjects are resolved per-request, so that
+	// window is exactly right.
+	identitySeeder *harness.IdentitySeeder
 )
 
 func TestMain(m *testing.M) {
@@ -104,47 +107,16 @@ func TestMain(m *testing.M) {
 		"jwks", mockIdP.JWKSURL,
 	)
 
-	// --- Seed bootstrap identity in MongoDB ---
-	mongoURI := fmt.Sprintf("mongodb://%s:%s", testHarness.Mongo.Host, testHarness.Mongo.Port)
-	mongoSeeder, err = harness.NewMongoSeeder(ctx, mongoURI, "stigmer_test")
-	if err != nil {
-		suiteLogger.Error("failed to create mongo seeder", "error", err)
-		testHarness.Stop(ctx)
-		os.Exit(1)
-	}
-
-	err = mongoSeeder.SeedIdentityAccount(ctx, harness.SeedIdentityAccountInput{
-		ID:        bootstrapIdentityAccountID,
-		IdpID:     bootstrapIdpID,
-		Email:     bootstrapEmail,
-		Name:      "Security Test Bootstrap",
-		FirstName: "Security",
-		LastName:  "Bootstrap",
-	})
-	if err != nil {
-		suiteLogger.Error("failed to seed bootstrap identity", "error", err)
-		mongoSeeder.Close(ctx)
-		testHarness.Stop(ctx)
-		os.Exit(1)
-	}
-	suiteLogger.Info("seeded bootstrap identity account",
-		"id", bootstrapIdentityAccountID,
-		"idp_id", bootstrapIdpID,
-	)
-
-	// The machine account identity (idpId "{AUTH0_CLIENT_ID}@clients" = the subject of
-	// the JWT minted via the mock OAuth token endpoint) is NOT seeded here: the service's
-	// own BootstrapIdentitySeeder creates it at startup with the well-known id "machine"
-	// (T06 — the same code path production and fresh installs run). Only the human
-	// bootstrap account above remains a genuine pre-boot chicken-and-egg.
-
 	// --- Start Java service in PRODUCTION security mode ---
 	logDir := testHarness.LogDir()
 
 	svcCfg := harness.ServiceConfig{
 		JarPath:          jarPath,
-		MongoHost:        testHarness.Mongo.Host,
-		MongoPort:        testHarness.Mongo.Port,
+		AppPGHost:        testHarness.AppPostgres.Host,
+		AppPGPort:        testHarness.AppPostgres.Port,
+		AppPGDatabase:    testHarness.AppPostgres.Database,
+		AppPGUser:        testHarness.AppPostgres.User,
+		AppPGPassword:    testHarness.AppPostgres.Password,
 		RedisHost:        testHarness.Redis.Host,
 		RedisPort:        testHarness.Redis.Port,
 		TemporalAddress:  testHarness.Temporal.Address(),
@@ -182,7 +154,6 @@ func TestMain(m *testing.M) {
 	svc, err := harness.StartJavaService(ctx, svcCfg, suiteLogger)
 	if err != nil {
 		suiteLogger.Error("failed to start java service in production security mode", "error", err)
-		mongoSeeder.Close(ctx)
 		testHarness.Stop(ctx)
 		os.Exit(1)
 	}
@@ -191,6 +162,35 @@ func TestMain(m *testing.M) {
 	suiteLogger.Info("java service started in production security mode",
 		"grpc", svc.GRPCAddress(),
 		"auth0_issuer", mockAuth0.Issuer,
+	)
+
+	// --- Seed the bootstrap identity in the app-postgres store ---
+	// This must run after service boot (Flyway creates the table during
+	// startup) and before the first authenticated call (the interceptor
+	// chain resolves JWT subjects per-request). The machine account identity
+	// (idpId "{AUTH0_CLIENT_ID}@clients" = the subject of the JWT minted via
+	// the mock OAuth token endpoint) is NOT seeded here: the service's own
+	// BootstrapIdentitySeeder creates it at startup with the well-known id
+	// "machine" (T06 — the same code path production and fresh installs
+	// run). Only the human bootstrap account remains a genuine pre-auth
+	// chicken-and-egg.
+	identitySeeder = harness.NewIdentitySeeder(testHarness.AppPostgres)
+	err = identitySeeder.SeedIdentityAccount(ctx, harness.SeedIdentityAccountInput{
+		ID:        bootstrapIdentityAccountID,
+		IdpID:     bootstrapIdpID,
+		Email:     bootstrapEmail,
+		Name:      "Security Test Bootstrap",
+		FirstName: "Security",
+		LastName:  "Bootstrap",
+	})
+	if err != nil {
+		suiteLogger.Error("failed to seed bootstrap identity", "error", err)
+		testHarness.Stop(ctx)
+		os.Exit(1)
+	}
+	suiteLogger.Info("seeded bootstrap identity account",
+		"id", bootstrapIdentityAccountID,
+		"idp_id", bootstrapIdpID,
 	)
 
 	// --- Seed FGA tuples for the bootstrap user ---
@@ -213,7 +213,6 @@ func TestMain(m *testing.M) {
 		}
 		if fgaErr := testHarness.OpenFGA.WriteTuples(ctx, tuples); fgaErr != nil {
 			suiteLogger.Error("failed to seed FGA tuples", "error", fgaErr)
-			mongoSeeder.Close(ctx)
 			testHarness.Stop(ctx)
 			os.Exit(1)
 		}
@@ -224,7 +223,6 @@ func TestMain(m *testing.M) {
 	bootstrapToken, err := mockAuth0.SignJWT(bootstrapIdpID, testAudience, nil)
 	if err != nil {
 		suiteLogger.Error("failed to sign bootstrap JWT", "error", err)
-		mongoSeeder.Close(ctx)
 		testHarness.Stop(ctx)
 		os.Exit(1)
 	}
@@ -237,7 +235,6 @@ func TestMain(m *testing.M) {
 	)
 	if err != nil {
 		suiteLogger.Error("failed to create bootstrap gRPC connection", "error", err)
-		mongoSeeder.Close(ctx)
 		testHarness.Stop(ctx)
 		os.Exit(1)
 	}
@@ -253,7 +250,6 @@ func TestMain(m *testing.M) {
 	bootstrapConn.Close()
 	mockIdP.Close()
 	mockAuth0.Close()
-	mongoSeeder.Close(context.Background())
 	testHarness.Stop(context.Background())
 	os.Exit(code)
 }

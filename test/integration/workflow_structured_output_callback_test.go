@@ -28,7 +28,7 @@ import (
 //
 // This test was created to reproduce a production failure where:
 // - Runner logs hasStructuredOutput=true
-// - MongoDB has structuredOutput populated
+// - the session store has structuredOutput populated
 // - But workflow fails with "Agent did not return structured output"
 //
 // Root cause: Java's buildCallbackResultJson reads from the deserialized

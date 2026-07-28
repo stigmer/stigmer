@@ -153,7 +153,7 @@ func TestAgentExecution_Subscribe_DeliversPhaseProgression(t *testing.T) {
 }
 
 // Verifies: subscribing to an already-completed execution returns the
-// initial MongoDB snapshot with terminal phase and populated messages.
+// initial store snapshot with terminal phase and populated messages.
 //
 // The Java SubscribeHandler always sends an initial DB snapshot, then
 // blocks in Redis XREADGROUP waiting for new messages. For a terminal

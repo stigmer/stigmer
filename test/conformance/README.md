@@ -139,7 +139,7 @@ npm run test:cloud -w @stigmer/conformance   # or: make test-conformance-cloud
 
 Its `globalSetup` (`global-setup-cloud.ts`) boots the environment **once per
 run** — a Go launcher (`test/integration/cmd/conformance-cloudenv`, reusing the
-integration harness) starts Testcontainers MongoDB/Redis/MinIO/OpenFGA, a
+integration harness) starts Testcontainers Postgres/Redis/MinIO/OpenFGA, a
 Temporal dev server, and the service fat JAR in test security mode with **real
 OpenFGA authorization** — then bootstraps a real identity (PlatformClient ->
 `mintUserToken`) and publishes endpoint + token to workers via env vars

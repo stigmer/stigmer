@@ -291,17 +291,3 @@ func ProvisionTestBillingAccount(ctx context.Context, conn grpc.ClientConnInterf
 
 	return nil
 }
-
-// EnsureBillingIndexes creates the billing indexes that Mongock migrations
-// normally create in production (Mongock is disabled in the test environment).
-// Billing POLICIES are no longer seeded here: the Java service seeds its own
-// active policy set at startup (BillingPolicySeeder), storage-neutrally, so
-// this helper is index-only and lane-safe — see the MongoSeeder type comment.
-func EnsureBillingIndexes(ctx context.Context, mongoURI, dbName string) error {
-	seeder, err := NewMongoSeeder(ctx, mongoURI, dbName)
-	if err != nil {
-		return fmt.Errorf("create mongo seeder for billing indexes: %w", err)
-	}
-	defer seeder.Close(ctx)
-	return seeder.EnsureBillingIndexes(ctx)
-}
