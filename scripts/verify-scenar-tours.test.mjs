@@ -7,11 +7,9 @@ import {
   findCrossTourImports,
   findScaleFactors,
   findCssScaleFactors,
-  findStepsArray,
   validateTimeline,
   extractScenarEmbedIds,
   extractStills,
-  collectShotNames,
   KNOWN_STEP0_OFFENDERS,
   READER_OFFSET_WINDOW,
   REPLICA_METRIC_PAIRS,
@@ -277,21 +275,6 @@ test("findCrossTourImports flags _shared depending on a tour", () => {
 });
 
 // ---------------------------------------------------------------------------
-// findStepsArray
-// ---------------------------------------------------------------------------
-
-test("findStepsArray mirrors pack's duck-typed discovery", () => {
-  const steps = [{ delayMs: 0, data: {} }];
-  const mod = {
-    OTHER_LINES: ["a", "b"], // string array — no collision
-    TERMINAL: [{ type: "prompt", text: "x" }], // objects without delayMs
-    tourSteps: steps,
-  };
-  assert.equal(findStepsArray(mod), steps);
-  assert.equal(findStepsArray({ empty: [] }), null);
-});
-
-// ---------------------------------------------------------------------------
 // validateTimeline
 // ---------------------------------------------------------------------------
 
@@ -440,16 +423,6 @@ test("extractStills reports missing attributes as null and non-self-closing form
 test("extractStills does not match other components or prose", () => {
   const mdx = '<ScenarEmbed id="a-tour" />\nThe still shows the console.\n<StillLife id="x/y" alt="z" />';
   assert.deepEqual(extractStills(mdx), []);
-});
-
-test("collectShotNames reads declared shots in step order, skipping empty and absent", () => {
-  const steps = [
-    { delayMs: 1000 },
-    { delayMs: 2000, shot: "opening" },
-    { delayMs: 3000, shot: "" },
-    { delayMs: 4000, shot: "finale" },
-  ];
-  assert.deepEqual(collectShotNames(steps), ["opening", "finale"]);
 });
 
 // ---------------------------------------------------------------------------

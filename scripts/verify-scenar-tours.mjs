@@ -94,6 +94,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, posix, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
+import { collectShotNames, findStepsArray } from "./tour-shots.mjs";
 
 const require = createRequire(import.meta.url);
 const ts = require("typescript");
@@ -542,26 +543,6 @@ export function findCrossTourImports(sourceText, tourRelativePath) {
 }
 
 /**
- * Find the timeline in a `steps.ts` module the same way `scenar pack` and
- * `scenar narrate` do: the first exported array whose first element carries
- * a `delayMs` key. Returns null when no export matches.
- */
-export function findStepsArray(mod) {
-  for (const val of Object.values(mod)) {
-    if (
-      Array.isArray(val) &&
-      val.length > 0 &&
-      typeof val[0] === "object" &&
-      val[0] !== null &&
-      "delayMs" in val[0]
-    ) {
-      return val;
-    }
-  }
-  return null;
-}
-
-/**
  * Validate a tour timeline's shape. Narration is deliberately NOT required:
  * silent steps are a design tool (sparse narration is common — a step can
  * ride the previous step's audio or its own delayMs).
@@ -616,20 +597,6 @@ export function extractScenarEmbedIds(mdxText) {
     if (idMatch) ids.push(idMatch[1]);
   }
   return ids;
-}
-
-/**
- * The shot names a tour's timeline declares, in step order. Reads the same
- * dynamically-imported steps array the timeline check validates, so the
- * names are the runtime truth `scenar shoot` will see — not a source-text
- * approximation. Name validity (kebab-case, uniqueness) is the engine's
- * contract, enforced when the bundle is packed and shot; this gate only
- * needs membership.
- */
-export function collectShotNames(steps) {
-  return steps
-    .filter((step) => typeof step?.shot === "string" && step.shot.length > 0)
-    .map((step) => step.shot);
 }
 
 /**

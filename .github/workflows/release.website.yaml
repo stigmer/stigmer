@@ -47,11 +47,21 @@ jobs:
       - name: Build SDK libraries
         run: npm run build:libs
 
+      # scenar shoot renders docs stills from the packed bundles in a real
+      # Chromium (pack-all shoots only the tours that declare a `shot`).
+      # --with-deps pulls the system libraries headless Chromium needs on
+      # the runner. The npm package itself arrived with `npm ci` above — it
+      # is a demos devDependency.
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
       # Scenar product tours ship with the site: pack every tour in demos/
-      # into a static embed bundle, served below at stigmer.ai/demos/<tour>/.
+      # into a static embed bundle, served below at stigmer.ai/demos/<tour>/,
+      # then shoot stills for shot-declaring tours (served from
+      # stigmer.ai/demos/<tour>/stills/, referenced by docs <Still> tags).
       # Tours consume the in-repo @stigmer/* source, so the embeds always
       # depict the components this deploy ships.
-      - name: Pack demo tours
+      - name: Pack demo tours and shoot stills
         run: npm run pack-all -w @stigmer/demos
 
       - name: Install Vale
