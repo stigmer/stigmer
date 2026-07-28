@@ -29,6 +29,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import matter from "gray-matter";
+import { parseStillId, stillImageUrl } from "./demos-base";
 
 export interface SectionMeta {
   title?: string;
@@ -81,20 +82,74 @@ async function readJson<T>(p: string): Promise<T> {
 // ---------------------------------------------------------------------------
 
 /**
+ * A `<Still>` tag in page source. `[^>]*` spans newlines (a character class
+ * matches them), so Prettier splitting the props across lines is covered.
+ * Attributes are extracted order-independently below — never positionally.
+ */
+const STILL_TAG_RE = /<Still\b[^>]*\/>/g;
+
+/** Fenced code block, matched exactly as the tour verifier matches them. */
+const CODE_FENCE_RE = /```[\s\S]*?```/g;
+
+/**
+ * Rewrite each `<Still id alt />` into a plain markdown image so the still
+ * survives into every text channel — llms-full.txt, the per-page .md export,
+ * and the Copy-as-Markdown button (which fetches that .md). Without this,
+ * stills would be the dangling-tag defect DD-01 names: a JSX tag that means
+ * nothing to a markdown consumer.
+ *
+ * Fence-aware, for the same reason `extractScenarEmbedIds` in
+ * scripts/verify-scenar-tours.mjs strips fences before matching: a page
+ * *documenting* `<Still>` must not have its fenced example rewritten.
+ * Fenced spans pass through byte-for-byte; only the text between them is
+ * transformed.
+ *
+ * The image links the light variant: copied markdown overwhelmingly lands on
+ * light surfaces (issue trackers, wikis, docs tools), where a dark screenshot
+ * reads as broken. Malformed tags — an id that is not `<scenario>/<shot>`,
+ * or a missing/empty alt — are left untouched: invariant 8 of the tour
+ * verifier fails the build for those, and an unmodified tag is more
+ * diagnosable in the meantime than a silently wrong image URL.
+ */
+export function unwrapStills(text: string): string {
+  const unwrapSegment = (segment: string): string =>
+    segment.replace(STILL_TAG_RE, (tag) => {
+      const id = /\bid="([^"]+)"/.exec(tag)?.[1];
+      const alt = /\balt="([^"]+)"/.exec(tag)?.[1];
+      const ref = id === undefined ? null : parseStillId(id);
+      if (!ref || alt === undefined) return tag;
+      // Escape the characters that would end the alt run early in markdown.
+      const safeAlt = alt.replace(/([[\]])/g, "\\$1");
+      return `![${safeAlt}](${stillImageUrl(ref, "light")})`;
+    });
+
+  let result = "";
+  let last = 0;
+  for (const fence of text.matchAll(CODE_FENCE_RE)) {
+    result += unwrapSegment(text.slice(last, fence.index));
+    result += fence[0];
+    last = fence.index + fence[0].length;
+  }
+  return result + unwrapSegment(text.slice(last));
+}
+
+/**
  * Strips MDX/JSX authoring noise while preserving semantically useful
  * component tags that LLMs can interpret (Callout, Tabs, Term, etc.).
+ * `<Still>` tags are not preserved but *translated* — see unwrapStills.
  */
 export function cleanContent(raw: string): string {
-  return (
+  return unwrapStills(
     raw
       // Lines starting with import or export are build-time directives, not content.
       .replace(/^import\s+.*$/gm, "")
       .replace(/^export\s+.*$/gm, "")
-      // MDX comments add no value for readers.
+      // MDX comments add no value for readers. Stripped before the still
+      // unwrap so a commented-out <Still> never becomes an image.
       .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
       // Collapse runs of blank lines left by the above removals.
       .replace(/\n{3,}/g, "\n\n")
-      .trim()
+      .trim(),
   );
 }
 

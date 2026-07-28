@@ -3,6 +3,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import {
+  cleanContent,
   collectDocsPages,
   findUncollectedPages,
   isLinkEntry,
@@ -10,6 +11,7 @@ import {
   linkTargetRelativePath,
   markdownExportUrl,
   separatorLabel,
+  unwrapStills,
 } from "../llms-pages";
 
 const SITE_URL = "https://example.test";
@@ -79,6 +81,91 @@ describe("entry classification", () => {
     // The docs root is the one exception: the writer lands it at
     // docs/index.md, so /docs.md must never be linked.
     expect(markdownExportUrl("/docs")).toBe("/docs/index.md");
+  });
+});
+
+describe("unwrapStills", () => {
+  const URL_BASE = "https://stigmer.ai/demos";
+
+  it("rewrites a <Still> into a markdown image linking the light variant", () => {
+    expect(
+      unwrapStills('<Still id="agent-detail-tour/agent-detail" alt="The Agent detail page." />'),
+    ).toBe(
+      `![The Agent detail page.](${URL_BASE}/agent-detail-tour/stills/agent-detail.light.png)`,
+    );
+  });
+
+  it("rewrites every still on a page, independent of attribute order", () => {
+    const page = [
+      "Intro prose.",
+      '<Still alt="First screen." id="tour/one" />',
+      "Middle prose.",
+      '<Still id="tour/two" alt="Second screen." />',
+    ].join("\n\n");
+    const out = unwrapStills(page);
+    expect(out).toContain(`![First screen.](${URL_BASE}/tour/stills/one.light.png)`);
+    expect(out).toContain(`![Second screen.](${URL_BASE}/tour/stills/two.light.png)`);
+    expect(out).not.toContain("<Still");
+  });
+
+  it("handles a Prettier-split multi-line tag", () => {
+    const tag = [
+      "<Still",
+      '  id="agent-detail-tour/agent-detail"',
+      '  alt="The Agent detail page with both Skills and the MCP server visible."',
+      "/>",
+    ].join("\n");
+    expect(unwrapStills(tag)).toBe(
+      "![The Agent detail page with both Skills and the MCP server visible.]" +
+        `(${URL_BASE}/agent-detail-tour/stills/agent-detail.light.png)`,
+    );
+  });
+
+  it("escapes square brackets in alt text so the markdown image stays intact", () => {
+    const out = unwrapStills('<Still id="t/s" alt="The [Save] button" />');
+    expect(out).toBe(`![The \\[Save\\] button](${URL_BASE}/t/stills/s.light.png)`);
+  });
+
+  it("leaves a <Still> inside a fenced code block untouched", () => {
+    const page = [
+      "Use it like this:",
+      "```mdx",
+      '<Still id="tour/shot" alt="Example usage." />',
+      "```",
+      '<Still id="tour/shot" alt="A real one." />',
+    ].join("\n");
+    const out = unwrapStills(page);
+    // The fenced example survives byte-for-byte; the real tag is rewritten.
+    expect(out).toContain('```mdx\n<Still id="tour/shot" alt="Example usage." />\n```');
+    expect(out).toContain(`![A real one.](${URL_BASE}/tour/stills/shot.light.png)`);
+  });
+
+  it("leaves malformed tags alone for invariant 8 to reject", () => {
+    const missingAlt = '<Still id="tour/shot" />';
+    const emptyAlt = '<Still id="tour/shot" alt="" />';
+    const badId = '<Still id="no-slash" alt="Broken." />';
+    for (const tag of [missingAlt, emptyAlt, badId]) {
+      expect(unwrapStills(tag)).toBe(tag);
+    }
+  });
+
+  it("never touches other components", () => {
+    const embed = '<ScenarEmbed id="quickstart-tour" title="Quickstart walkthrough" />';
+    expect(unwrapStills(embed)).toBe(embed);
+  });
+});
+
+describe("cleanContent still handling", () => {
+  it("does not unwrap a commented-out <Still> (comments strip first)", () => {
+    const body = '{/* <Still id="tour/retired" alt="Old." /> */}\nProse stays.';
+    expect(cleanContent(body)).toBe("Prose stays.");
+  });
+
+  it("unwraps live stills as part of cleaning", () => {
+    const body = 'Lead-in.\n\n<Still id="tour/shot" alt="A screen." />';
+    expect(cleanContent(body)).toBe(
+      "Lead-in.\n\n![A screen.](https://stigmer.ai/demos/tour/stills/shot.light.png)",
+    );
   });
 });
 
