@@ -86,6 +86,7 @@ export default function McpServerNewPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         org={org}
+        onApplied={() => navigate("/library/mcp-servers")}
       />
     </>
   );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bot, Database, FileCode2, Sparkles, Server, Workflow } from "lucide-react";
 import { cn } from "@stigmer/theme";
@@ -16,11 +16,13 @@ import {
 export default function LibraryLanding() {
   const org = useActiveOrgSlug();
   const navigate = useNavigate();
-  const agents = useAgentCount(org);
-  const workflows = useWorkflowCount(org);
-  const skills = useSkillCount(org);
-  const mcpServers = useMcpServerCount(org);
-  const datastores = useDatastoreCount(org);
+  // Apply YAML here can create any kind, so a bump recounts every card.
+  const [refetchToken, refreshCounts] = useReducer((n: number) => n + 1, 0);
+  const agents = useAgentCount(org, { refetchToken });
+  const workflows = useWorkflowCount(org, { refetchToken });
+  const skills = useSkillCount(org, { refetchToken });
+  const mcpServers = useMcpServerCount(org, { refetchToken });
+  const datastores = useDatastoreCount(org, { refetchToken });
   const [applyYamlOpen, setApplyYamlOpen] = useState(false);
 
   return (
@@ -84,6 +86,7 @@ export default function LibraryLanding() {
         open={applyYamlOpen}
         onOpenChange={setApplyYamlOpen}
         org={org ?? ""}
+        onApplied={refreshCounts}
       />
     </div>
   );

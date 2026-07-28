@@ -99,7 +99,8 @@ export function buildDemoDatastore() {
             subject: {
               kind: {
                 case: "channelSender",
-                value: { senderKind: "whatsapp", value: "+15550100" },
+                // wa_id wire shape: digits only, no "+" (apply-time enforced).
+                value: { senderKind: "whatsapp_phone", value: "15550100" },
               },
             },
             role: "admin",
@@ -207,7 +208,8 @@ function envelope(id: string, fields: JsonObject) {
     createdBy: {
       kind: {
         case: "channelSender",
-        value: { senderKind: "whatsapp", value: "+15550142" },
+        // Attribution mirrors what the broker stamps: wa_id, digits only.
+        value: { senderKind: "whatsapp_phone", value: "15550142" },
       },
     },
     fields,

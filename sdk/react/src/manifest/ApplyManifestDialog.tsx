@@ -23,10 +23,15 @@ export interface ApplyManifestDialogProps {
   /** Target organization slug for documents that omit `metadata.org`. */
   readonly org: string;
   /**
-   * Called after every document applied successfully, with the per-document
-   * results in apply order. Use for navigation or list refresh.
+   * Called when the dialog closes after at least one document applied,
+   * with the applied entries in apply order — on full success, and also
+   * when the operator dismisses the dialog after a partial apply (some
+   * documents applied, a later one failed). Use it to refresh a list so
+   * the newly applied resources appear without a reload. It never fires
+   * when nothing applied, and fires once per close. Mirrors
+   * {@link EditResourceYamlDialog}'s `onApplied`.
    */
-  readonly onSuccess?: (entries: readonly ManifestPreviewEntry[]) => void;
+  readonly onApplied?: (applied: readonly ManifestPreviewEntry[]) => void;
 }
 
 /**
@@ -56,7 +61,7 @@ export interface ApplyManifestDialogProps {
  *   open={open}
  *   onOpenChange={setOpen}
  *   org={activeOrg}
- *   onSuccess={() => refetchList()}
+ *   onApplied={() => refetchList()}
  * />
  * ```
  */
@@ -64,7 +69,7 @@ export function ApplyManifestDialog({
   open,
   onOpenChange,
   org,
-  onSuccess,
+  onApplied,
 }: ApplyManifestDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -90,12 +95,26 @@ export function ApplyManifestDialog({
     }
   }, [open, reset]);
 
+  // Close the dialog and, if any document applied this session, refresh
+  // the caller's list. This is the dismiss-after-partial path: some
+  // documents applied before a later one failed, and the operator closes
+  // the dialog rather than retrying — those applied resources must still
+  // appear. The full-success path in `handleApply` fires `onApplied`
+  // itself (it holds the fresh applied list), so it never routes here.
+  const closeAndMaybeRefresh = useCallback(() => {
+    onOpenChange(false);
+    const applied = (manifest.entries ?? []).filter(
+      (e) => e.status === "applied",
+    );
+    if (applied.length > 0) onApplied?.(applied);
+  }, [onOpenChange, manifest.entries, onApplied]);
+
   const handleCancel = useCallback(
     (e: React.SyntheticEvent) => {
       e.preventDefault();
-      onOpenChange(false);
+      closeAndMaybeRefresh();
     },
-    [onOpenChange],
+    [closeAndMaybeRefresh],
   );
 
   const handleFileChange = useCallback(
@@ -107,18 +126,23 @@ export function ApplyManifestDialog({
   );
 
   const handleApply = useCallback(async () => {
-    const allApplied = await manifest.applyAll();
-    if (allApplied && manifest.entries) {
-      const count = manifest.entries.length;
+    const results = await manifest.applyAll();
+    const applied = results.filter((e) => e.status === "applied");
+    const allApplied = results.length > 0 && applied.length === results.length;
+    if (allApplied) {
       toast.success(
-        count === 1 ? "Resource applied" : `${count} resources applied`,
+        applied.length === 1
+          ? "Resource applied"
+          : `${applied.length} resources applied`,
       );
       onOpenChange(false);
-      onSuccess?.(manifest.entries);
+      onApplied?.(applied);
     }
-    // On failure the dialog stays open — per-entry status shows what
-    // applied and what failed.
-  }, [manifest, onOpenChange, onSuccess]);
+    // On partial/total failure the dialog stays open — per-entry status
+    // shows what applied and what failed. Any entries that DID apply
+    // still refresh the caller's list when the dialog is dismissed
+    // (closeAndMaybeRefresh), so successful writes are never hidden.
+  }, [manifest, onOpenChange, onApplied]);
 
   const canApply =
     manifest.entries !== null &&
@@ -198,7 +222,7 @@ export function ApplyManifestDialog({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => onOpenChange(false)}
+              onClick={closeAndMaybeRefresh}
               disabled={manifest.isApplying}
               className={cn(
                 "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",

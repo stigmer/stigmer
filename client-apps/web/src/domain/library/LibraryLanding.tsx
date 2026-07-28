@@ -1,6 +1,6 @@
 "use client";
 
-import { type MouseEvent, useCallback, useState } from "react";
+import { type MouseEvent, useCallback, useReducer, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bot, Database, FileCode2, Plus, Sparkles, Server, Workflow } from "lucide-react";
@@ -85,18 +85,18 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
   },
 ];
 
-function useResourceCounts(org: string | null) {
+function useResourceCounts(org: string | null, refetchToken?: unknown) {
   const agentScope = readPersistedScope("agents");
   const workflowScope = readPersistedScope("workflows");
   const skillScope = readPersistedScope("skills");
   const mcpScope = readPersistedScope("mcp-servers");
   const datastoreScope = readPersistedScope("datastores");
 
-  const agents = useAgentCount(org, { scope: agentScope });
-  const workflows = useWorkflowCount(org, { scope: workflowScope });
-  const skills = useSkillCount(org, { scope: skillScope });
-  const mcpServers = useMcpServerCount(org, { scope: mcpScope });
-  const datastores = useDatastoreCount(org, { scope: datastoreScope });
+  const agents = useAgentCount(org, { scope: agentScope, refetchToken });
+  const workflows = useWorkflowCount(org, { scope: workflowScope, refetchToken });
+  const skills = useSkillCount(org, { scope: skillScope, refetchToken });
+  const mcpServers = useMcpServerCount(org, { scope: mcpScope, refetchToken });
+  const datastores = useDatastoreCount(org, { scope: datastoreScope, refetchToken });
 
   return {
     agents,
@@ -110,7 +110,9 @@ function useResourceCounts(org: string | null) {
 export function LibraryLanding() {
   const org = useActiveOrgSlug();
   const router = useRouter();
-  const counts = useResourceCounts(org || null);
+  // Apply YAML here can create any kind, so a bump recounts every card.
+  const [refetchToken, refreshCounts] = useReducer((n: number) => n + 1, 0);
+  const counts = useResourceCounts(org || null, refetchToken);
   const [applyYamlOpen, setApplyYamlOpen] = useState(false);
 
   const handleCardClick = useCallback(
@@ -169,6 +171,7 @@ export function LibraryLanding() {
         open={applyYamlOpen}
         onOpenChange={setApplyYamlOpen}
         org={org ?? ""}
+        onApplied={refreshCounts}
       />
     </>
   );

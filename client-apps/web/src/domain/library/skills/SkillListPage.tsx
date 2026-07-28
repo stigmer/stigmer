@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useReducer, useState } from "react";
 import Link from "next/link";
 import { Plus, Sparkles, MoreHorizontal, Copy, ExternalLink, Trash2 } from "lucide-react";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
@@ -61,7 +61,9 @@ export function SkillListPage() {
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirmAction();
 
   const [scope, setScope] = useState<"org" | "all">(() => readPersistedScope("skills"));
-  const [listVersion, setListVersion] = useState(0);
+  // Bumped after a delete to refetch the list in place — no remount
+  // flash, pagination and sort preserved.
+  const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
 
   const handleDeleteItem = useCallback(
     async (item: SearchResult) => {
@@ -76,7 +78,7 @@ export function SkillListPage() {
       try {
         await stigmer.skill.delete(item.id);
         toast.success(`${item.name || item.slug} deleted`);
-        setListVersion((v) => v + 1);
+        refreshList();
       } catch {
         toast.error("Failed to delete skill");
       }
@@ -105,7 +107,7 @@ export function SkillListPage() {
       </div>
 
       <ResourceWorkbench
-        key={listVersion}
+        refetchToken={refetchToken}
         listFn={listFn}
         org={org}
         columns={SKILL_COLUMNS}

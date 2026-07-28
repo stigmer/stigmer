@@ -57,6 +57,15 @@ export interface UseResourceCollectionOptions<TData = SearchResult> {
   readonly columns?: readonly WorkbenchColumnDef<TData>[];
   /** Enable row selection state tracking. @default false */
   readonly enableSelection?: boolean;
+  /**
+   * Opaque token that forces a background refetch whenever its value
+   * changes. Use it to re-read the list after an out-of-band mutation
+   * (e.g. applying a manifest or deleting a row) without remounting:
+   * bump a counter and pass it here. The current page stays rendered
+   * with an `isRefetching` shimmer — no full-list flash. A change to
+   * this token alone never resets pagination or sort.
+   */
+  readonly refetchToken?: unknown;
 }
 
 // ---------------------------------------------------------------------------
@@ -148,6 +157,7 @@ export function useResourceCollection<TData = SearchResult>(
     onSortChange,
     columns = [],
     enableSelection = false,
+    refetchToken,
   } = options;
 
   // --- Data fetching via useFetch -----------------------------------------
@@ -169,7 +179,7 @@ export function useResourceCollection<TData = SearchResult>(
           };
         }
       : null,
-    [listFn, org, query, scope, page, pageSize],
+    [listFn, org, query, scope, page, pageSize, refetchToken],
     INITIAL_DATA,
   );
 

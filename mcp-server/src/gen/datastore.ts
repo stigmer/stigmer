@@ -35,8 +35,8 @@ const DatastoreRoleInputSchema = z.object({
 type DatastoreRoleInput = z.infer<typeof DatastoreRoleInputSchema>;
 
 const ChannelSenderSubjectInputSchema = z.object({
-  sender_kind: z.string().describe("Sender identity namespace (e.g. 'whatsapp_phone', 'slack_user_id')."),
-  value: z.string().describe("Sender identity value within the namespace (e.g. the E.164 number). @internal Bearer-adjacent: never logged raw, never filterable, and only ever compared against broker-stamped session metadata."),
+  sender_kind: z.string().describe("Sender identity namespace. Must be a namespace the platform's channel brokers can stamp — today 'whatsapp_phone'; unrecognized namespaces are refused at apply time (they could never match)."),
+  value: z.string().describe("Sender identity value within the namespace, in the exact wire shape the channel broker stamps. For 'whatsapp_phone' this is Meta's wa_id: DIGITS ONLY, no '+', no separators (e.g. '919800000001' — NOT the '+'-prefixed E.164 form). Apply-time validation refuses any other shape, because subject matching is exact string equality and a mis-shaped value would bind and silently never match. @internal Bearer-adjacent: never logged raw, never filterable, never echoed into validation error strings, and only ever compared against broker-stamped session metadata."),
 });
 type ChannelSenderSubjectInput = z.infer<typeof ChannelSenderSubjectInputSchema>;
 

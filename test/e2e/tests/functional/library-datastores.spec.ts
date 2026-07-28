@@ -57,6 +57,75 @@ test.describe("Datastores list page", () => {
     ).toBeVisible();
   });
 
+  test("applies a datastore via YAML and it appears without a reload", async ({
+    page,
+    stigmerClient,
+  }) => {
+    await ensureSystemOrg(stigmerClient);
+    const slug = `e2e-apply-refresh-${Date.now()}`;
+    const manifest = [
+      "apiVersion: agentic.stigmer.ai/v1",
+      "kind: Datastore",
+      "metadata:",
+      `  name: ${slug}`,
+      `  org: ${SYSTEM_ORG}`,
+      "spec:",
+      "  description: Apply-refresh e2e check.",
+      "  collections:",
+      "    - name: notes",
+      "      fields:",
+      "        - name: text",
+      "          type: string",
+      "          required: true",
+      "      grants:",
+      "        - role: reader",
+      "          verbs: [read]",
+      "  authorization:",
+      "    roles:",
+      "      - name: reader",
+      "    default_role: reader",
+      "",
+    ].join("\n");
+
+    try {
+      await page.goto("/library/datastores");
+      await expect(page.getByLabel("Datastore workbench")).toBeVisible({
+        timeout: 15_000,
+      });
+      // The new datastore is not present before applying.
+      await expect(page.getByText(slug)).not.toBeVisible();
+
+      await page.getByRole("button", { name: "Apply YAML" }).first().click();
+      // Upload path avoids CodeMirror keystroke plumbing; the dialog
+      // validates the same way as a paste.
+      await page
+        .getByLabel("Select manifest file")
+        .setInputFiles({
+          name: `${slug}.yaml`,
+          mimeType: "application/x-yaml",
+          buffer: Buffer.from(manifest, "utf8"),
+        });
+
+      // Preview resolves, then Apply.
+      const applyButton = page.getByRole("button", { name: /^Apply$/ });
+      await expect(applyButton).toBeEnabled({ timeout: 15_000 });
+      await applyButton.click();
+
+      // The refresh signal (onApplied) re-reads the list in place — no
+      // page.reload() — so the newly applied datastore appears on its own.
+      await expect(page.getByText(slug).first()).toBeVisible({ timeout: 15_000 });
+    } finally {
+      const existing = await stigmerClient.datastore
+        .getByReference({ org: SYSTEM_ORG, slug })
+        .catch(() => null);
+      if (existing?.metadata?.id) {
+        await stigmerClient.datastore
+          .delete({ resourceId: existing.metadata.id, force: true })
+          .catch(() => {});
+      }
+    }
+  });
+
   test("lists a seeded datastore and navigates to its detail", async ({
     page,
     stigmerClient,

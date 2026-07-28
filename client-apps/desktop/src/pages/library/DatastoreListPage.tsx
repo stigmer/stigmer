@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Database, Upload } from "lucide-react";
 import {
@@ -55,6 +55,9 @@ export default function DatastoreListPage() {
     readPersistedScope("datastores"),
   );
   const [importOpen, setImportOpen] = useState(false);
+  // Bumped after Apply YAML so the newly applied datastore appears
+  // without a reload — the list refetches in place.
+  const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
 
   const handleScopeChange = useCallback((newScope: "org" | "all") => {
     setScope(newScope);
@@ -90,6 +93,7 @@ export default function DatastoreListPage() {
       </div>
 
       <ResourceWorkbench
+        refetchToken={refetchToken}
         listFn={listFn}
         org={org}
         columns={DATASTORE_COLUMNS}
@@ -112,6 +116,7 @@ export default function DatastoreListPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         org={org ?? ""}
+        onApplied={refreshList}
       />
     </>
   );

@@ -38,8 +38,9 @@ spec:
     bindings:
       - subject:
           channel_sender:
-            sender_kind: whatsapp
-            value: "+15550100" # the doctor's number
+            sender_kind: whatsapp_phone
+            # The doctor's number as Meta's wa_id: digits only, no "+".
+            value: "15550100"
         role: admin
     default_role: patient
   collections:

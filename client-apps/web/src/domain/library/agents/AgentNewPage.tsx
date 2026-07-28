@@ -96,6 +96,7 @@ export function AgentNewPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         org={org}
+        onApplied={() => router.push("/library/agents")}
       />
     </>
   );

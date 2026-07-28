@@ -96,6 +96,7 @@ export function McpServerNewPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         org={org}
+        onApplied={() => router.push("/library/mcp-servers")}
       />
     </>
   );

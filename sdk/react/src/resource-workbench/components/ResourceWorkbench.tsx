@@ -112,6 +112,17 @@ export interface ResourceWorkbenchProps<TData = SearchResult> {
   /** Extracts a unique ID from an item (for selection tracking). */
   readonly getItemId?: (item: TData) => string;
 
+  // --- Refresh -----------------------------------------------------------
+
+  /**
+   * Opaque token that forces a background refetch of the list whenever
+   * its value changes — the current view stays rendered with a refetch
+   * shimmer (no remount flash), and pagination and sort are preserved.
+   * Bump it after an out-of-band mutation (applying a manifest, deleting
+   * a row) so the change appears without a reload.
+   */
+  readonly refetchToken?: unknown;
+
   // --- Empty & error states ----------------------------------------------
 
   /** Icon for the empty state. */
@@ -210,6 +221,7 @@ export function ResourceWorkbench<TData = SearchResult>({
   onStateChange,
   enableSelection = false,
   getItemId = defaultGetId as (item: TData) => string,
+  refetchToken,
   emptyIcon,
   emptyTitle = "No resources found",
   emptyDescription = "Try adjusting your search or filters.",
@@ -255,6 +267,7 @@ export function ResourceWorkbench<TData = SearchResult>({
     onSortChange: filtersHook.setSort,
     columns: columns as WorkbenchColumnDef<TData>[],
     enableSelection,
+    refetchToken,
   });
 
   // --- Selection ---------------------------------------------------------

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useReducer, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { GitBranch, MoreHorizontal, Copy, ExternalLink, Trash2, Plus } from "lucide-react";
@@ -62,7 +62,9 @@ export default function WorkflowListPage() {
   const [scope, setScope] = useState<"org" | "all">(() =>
     readPersistedScope(),
   );
-  const [listVersion, setListVersion] = useState(0);
+  // Bumped after a delete to refetch the list in place — no remount
+  // flash, pagination and sort preserved.
+  const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
 
   const handleDeleteItem = useCallback(
     async (item: SearchResult) => {
@@ -77,7 +79,7 @@ export default function WorkflowListPage() {
       try {
         await stigmer.workflow.delete(item.id);
         toast.success(`${item.name || item.slug} deleted`);
-        setListVersion((v) => v + 1);
+        refreshList();
       } catch {
         toast.error("Failed to delete workflow");
       }
@@ -115,7 +117,7 @@ export default function WorkflowListPage() {
       </div>
 
       <ResourceWorkbench
-        key={listVersion}
+        refetchToken={refetchToken}
         listFn={listFn}
         org={org}
         columns={WORKFLOW_COLUMNS}

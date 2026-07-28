@@ -163,6 +163,30 @@ func TestValidateSpec_Violations(t *testing.T) {
 			wantErr: `default_role references undeclared role "visitor"`,
 		},
 		{
+			name: "binding channel_sender kind other than whatsapp_phone",
+			mutate: func(s *datastorev1.DatastoreSpec) {
+				s.Authorization.Bindings[0].GetSubject().GetChannelSender().SenderKind = "slack_user_id"
+			},
+			wantErr: `binding channel_sender kind "slack_user_id" is not supported (only whatsapp_phone senders can be bound)`,
+		},
+		{
+			// The footgun that shipped: a "+"-prefixed E.164 number
+			// instead of Meta's digits-only wa_id would bind and
+			// silently never match. The message never echoes the value.
+			name: "binding whatsapp_phone value with a plus prefix",
+			mutate: func(s *datastorev1.DatastoreSpec) {
+				s.Authorization.Bindings[0].GetSubject().GetChannelSender().Value = "+919800000001"
+			},
+			wantErr: `bindings[0] whatsapp_phone value must be digits only (Meta wa_id, no '+' or separators)`,
+		},
+		{
+			name: "binding whatsapp_phone value with separators",
+			mutate: func(s *datastorev1.DatastoreSpec) {
+				s.Authorization.Bindings[0].GetSubject().GetChannelSender().Value = "91 98000-00001"
+			},
+			wantErr: `bindings[0] whatsapp_phone value must be digits only (Meta wa_id, no '+' or separators)`,
+		},
+		{
 			name: "binding principal kind other than identity_account",
 			mutate: func(s *datastorev1.DatastoreSpec) {
 				s.Authorization.Bindings = append(s.Authorization.Bindings,

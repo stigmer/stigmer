@@ -842,8 +842,8 @@ ChannelSenderSubject identifies a sender on a messaging channel.
 
 <TypeTable
   type={{
-    senderKind: { type: "string", description: "Sender identity namespace (e.g. \"whatsapp_phone\", \"slack_user_id\").", required: true },
-    value: { type: "string", description: "Sender identity value within the namespace (e.g. the E.164 number).", required: true },
+    senderKind: { type: "string", description: "Sender identity namespace.", required: true },
+    value: { type: "string", description: "Sender identity value within the namespace, in the exact wire shape the channel broker stamps.", required: true },
   }}
 />
 

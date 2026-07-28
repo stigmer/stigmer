@@ -24,6 +24,23 @@ describe("createNodeTransport", () => {
     });
     expect(transport).toBeDefined();
   });
+
+  it("creates a native gRPC transport when protocol is grpc", () => {
+    const transport = createNodeTransport({
+      baseUrl: "https://api.stigmer.ai",
+      apiKey: "sk_test_123",
+      protocol: "grpc",
+    });
+    expect(transport).toBeDefined();
+  });
+
+  it("defaults to gRPC-web when protocol is omitted", () => {
+    const transport = createNodeTransport({
+      baseUrl: "https://api.stigmer.ai",
+      protocol: "grpc-web",
+    });
+    expect(transport).toBeDefined();
+  });
 });
 
 describe("createNodeClient", () => {

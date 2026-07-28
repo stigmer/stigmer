@@ -53,11 +53,20 @@ export function resolveToken(extra: RequestAuth | undefined, fallback: string): 
  * Build an authenticated transport to stigmer-server for a single credential.
  * The address is normalized (scheme/TLS rules) before the transport is built;
  * an empty token attaches no Authorization header.
+ *
+ * Speaks NATIVE gRPC, not gRPC-web. The bridge is a server-side, in-cluster
+ * caller dialing stigmer-server directly: the cloud Java server accepts only
+ * `application/grpc` (it answers gRPC-web with HTTP 415 `Content-Type ... is
+ * not supported`, which the tool layer would relay to the model as an opaque
+ * "Content-Type error"), and the OSS Go server serves native gRPC on the same
+ * listener. This matches the runner's own backend client — the other
+ * in-cluster Node caller — which likewise uses native gRPC over HTTP/2.
  */
 export function transportForToken(serverAddress: string, token: string): Transport {
   return createNodeTransport({
     baseUrl: normalizeEndpoint(serverAddress),
     apiKey: token === "" ? undefined : token,
+    protocol: "grpc",
   });
 }
 

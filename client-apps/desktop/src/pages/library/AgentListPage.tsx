@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useReducer, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Bot,
@@ -69,7 +69,9 @@ export default function AgentListPage() {
 
   const [scope, setScope] = useState<"org" | "all">(() => readPersistedScope("agents"));
   const [importOpen, setImportOpen] = useState(false);
-  const [listVersion, setListVersion] = useState(0);
+  // Bumped after an out-of-band mutation (apply YAML, delete) to refetch
+  // the list in place — no remount flash, pagination and sort preserved.
+  const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
 
   const handleScopeChange = useCallback((newScope: "org" | "all") => {
     setScope(newScope);
@@ -95,7 +97,7 @@ export default function AgentListPage() {
       try {
         await stigmer.agent.delete(item.id);
         toast.success(`${item.name || item.slug} deleted`);
-        setListVersion((v) => v + 1);
+        refreshList();
       } catch {
         toast.error("Failed to delete agent");
       }
@@ -115,7 +117,7 @@ export default function AgentListPage() {
       </div>
 
       <ResourceWorkbench
-        key={listVersion}
+        refetchToken={refetchToken}
         listFn={listFn}
         org={org}
         columns={AGENT_COLUMNS}
@@ -204,6 +206,7 @@ export default function AgentListPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         org={org ?? ""}
+        onApplied={refreshList}
       />
 
       <ConfirmDialog

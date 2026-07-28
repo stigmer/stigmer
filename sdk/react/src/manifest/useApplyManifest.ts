@@ -55,9 +55,13 @@ export interface UseApplyManifestReturn {
   /**
    * Apply all documents sequentially in dependency order. Entries update
    * live. Stops at the first failure (later entries become `"skipped"`).
-   * Resolves `true` when every document applied.
+   * Resolves to the final per-document entries with terminal statuses —
+   * the caller derives full success (`every applied`) and the applied
+   * subset (for a list refresh) without re-reading React state, which is
+   * still stale in the calling closure. Empty when there was nothing to
+   * apply.
    */
-  readonly applyAll: () => Promise<boolean>;
+  readonly applyAll: () => Promise<readonly ManifestPreviewEntry[]>;
   /** `true` while applies are in flight. */
   readonly isApplying: boolean;
   /** Clear all state (content, preview, errors). */
@@ -194,8 +198,8 @@ export function useApplyManifest(org: string): UseApplyManifestReturn {
     return () => clearTimeout(timer);
   }, [content, stigmer, isApplying]);
 
-  const applyAll = useCallback(async (): Promise<boolean> => {
-    if (!entries || entries.length === 0) return false;
+  const applyAll = useCallback(async (): Promise<readonly ManifestPreviewEntry[]> => {
+    if (!entries || entries.length === 0) return [];
 
     // Invalidate any in-flight validation so it cannot clobber apply statuses.
     validateSeq.current++;
@@ -206,10 +210,10 @@ export function useApplyManifest(org: string): UseApplyManifestReturn {
     const working = entries.map((entry): ManifestPreviewEntry => ({ ...entry, status: "pending" }));
     const commit = () => setEntries([...working]);
 
-    let allApplied = true;
+    let stopped = false;
 
     for (let i = 0; i < working.length; i++) {
-      if (!allApplied) {
+      if (stopped) {
         working[i] = { ...working[i], status: "skipped" };
         continue;
       }
@@ -226,14 +230,14 @@ export function useApplyManifest(org: string): UseApplyManifestReturn {
           status: "failed",
           errorMessage: toError(err).message,
         };
-        allApplied = false;
+        stopped = true;
       }
       commit();
     }
 
     commit();
     setIsApplying(false);
-    return allApplied;
+    return working;
   }, [entries, stigmer]);
 
   const hasRedactedSecrets = useMemo(

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useReducer, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -66,7 +66,9 @@ export default function SkillListPage() {
     useConfirmAction();
 
   const [scope, setScope] = useState<"org" | "all">(() => readPersistedScope("skills"));
-  const [listVersion, setListVersion] = useState(0);
+  // Bumped after a delete to refetch the list in place — no remount
+  // flash, pagination and sort preserved.
+  const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
 
   const handleScopeChange = useCallback((newScope: "org" | "all") => {
     setScope(newScope);
@@ -92,7 +94,7 @@ export default function SkillListPage() {
       try {
         await stigmer.skill.delete(item.id);
         toast.success(`${item.name || item.slug} deleted`);
-        setListVersion((v) => v + 1);
+        refreshList();
       } catch {
         toast.error("Failed to delete skill");
       }
@@ -110,7 +112,7 @@ export default function SkillListPage() {
       </div>
 
       <ResourceWorkbench
-        key={listVersion}
+        refetchToken={refetchToken}
         listFn={listFn}
         org={org}
         columns={SKILL_COLUMNS}

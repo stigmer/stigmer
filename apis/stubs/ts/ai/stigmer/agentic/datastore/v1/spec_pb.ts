@@ -598,18 +598,26 @@ export const DatastoreSubjectSchema: GenMessage<DatastoreSubject> = /*@__PURE__*
  */
 export type ChannelSenderSubject = Message<"ai.stigmer.agentic.datastore.v1.ChannelSenderSubject"> & {
   /**
-   * Sender identity namespace (e.g. "whatsapp_phone", "slack_user_id").
+   * Sender identity namespace. Must be a namespace the platform's
+   * channel brokers can stamp — today "whatsapp_phone"; unrecognized
+   * namespaces are refused at apply time (they could never match).
    *
    * @generated from field: string sender_kind = 1;
    */
   senderKind: string;
 
   /**
-   * Sender identity value within the namespace (e.g. the E.164 number).
+   * Sender identity value within the namespace, in the exact wire shape
+   * the channel broker stamps. For "whatsapp_phone" this is Meta's
+   * wa_id: DIGITS ONLY, no "+", no separators (e.g. "919800000001" —
+   * NOT the "+"-prefixed E.164 form). Apply-time validation refuses any
+   * other shape, because subject matching is exact string equality and
+   * a mis-shaped value would bind and silently never match.
    *
    * @internal
-   * Bearer-adjacent: never logged raw, never filterable, and only ever
-   * compared against broker-stamped session metadata.
+   * Bearer-adjacent: never logged raw, never filterable, never echoed
+   * into validation error strings, and only ever compared against
+   * broker-stamped session metadata.
    *
    * @generated from field: string value = 2;
    */

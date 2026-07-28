@@ -11,11 +11,14 @@
 //   - field/constraint-name uniqueness within a collection
 //   - role-reference integrity: bindings, grants, and default_role name
 //     declared roles
-//   - binding-subject integrity: principal kind is identity_account
-//     (the only kind subject matching can resolve today), no relation
-//     qualifier (subject equality deliberately ignores it), and no two
-//     bindings share a subject (role resolution is first-match-wins,
-//     so a duplicate is silently shadowed dead configuration)
+//   - binding-subject integrity: channel-sender kind is a supported
+//     namespace and a whatsapp_phone value is digits-only (the wa_id
+//     wire shape the broker stamps — anything else silently never
+//     matches), principal kind is identity_account (the only kind
+//     subject matching can resolve today), no relation qualifier
+//     (subject equality deliberately ignores it), and no two bindings
+//     share a subject (role resolution is first-match-wins, so a
+//     duplicate is silently shadowed dead configuration)
 //   - grant integrity: a (role, verb) pair appears in at most one grant
 //     per collection (read_fields composition must have no merge
 //     rules); read_fields requires the read verb, and its entries
@@ -50,6 +53,30 @@ import (
 // R1). It is the one structural limit the proto cannot carry, enforced
 // as a domain validation in the create pipeline of both editions.
 const MaxDatastoresPerOrg = 25
+
+// supportedChannelSenderKinds is the set of channel-sender namespaces
+// the channel broker can stamp into session metadata today. A binding
+// whose sender_kind is outside this set would apply cleanly and
+// silently never match — the same footgun as an unsupported principal
+// kind — so it is refused at apply time. Relaxes additively as new
+// channels ship (mirrored in the Java SpecValidator).
+var supportedChannelSenderKinds = map[string]bool{
+	"whatsapp_phone": true,
+}
+
+// isDigitsOnly reports whether s is non-empty ASCII digits — the wa_id
+// wire shape the WhatsApp broker stamps as the sender identity.
+func isDigitsOnly(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
 
 // ValidateSpec validates a datastore spec against the rules above.
 // It returns the first violation as an error whose message is the
@@ -100,14 +127,33 @@ func validateAuthorization(spec *datastorev1.DatastoreSpec) error {
 		declared[role.GetName()] = true
 	}
 
-	// Per-binding check order (role → principal kind → relation →
-	// duplicate subject) is part of the cross-edition error contract:
-	// a spec with several defects must surface the same first violation
-	// in both editions.
+	// Per-binding check order (role → channel-sender kind → channel-sender
+	// value → principal kind → relation → duplicate subject) is part of
+	// the cross-edition error contract: a spec with several defects must
+	// surface the same first violation in both editions.
 	seenSubjects := map[string]int{}
 	for i, binding := range authz.GetBindings() {
 		if !declared[binding.GetRole()] {
 			return fmt.Errorf("binding references undeclared role %q", binding.GetRole())
+		}
+
+		// Channel-sender subjects are matched by exact string equality
+		// against the broker-stamped session metadata: WhatsApp stamps
+		// Meta's wa_id, which is digits only (no "+", no separators).
+		// A value in any other shape — like an unrecognized sender
+		// kind — would apply cleanly and silently never match, and the
+		// bound sender would be served under default_role instead
+		// (dont-dos/001; this shipped as a "+"-prefixed doctor binding
+		// once). The value message identifies the binding by index and
+		// never echoes the value: channel-sender values are
+		// bearer-adjacent and must not be reflected into error strings.
+		if cs := binding.GetSubject().GetChannelSender(); cs != nil {
+			if !supportedChannelSenderKinds[cs.GetSenderKind()] {
+				return fmt.Errorf("binding channel_sender kind %q is not supported (only whatsapp_phone senders can be bound)", cs.GetSenderKind())
+			}
+			if !isDigitsOnly(cs.GetValue()) {
+				return fmt.Errorf("bindings[%d] whatsapp_phone value must be digits only (Meta wa_id, no '+' or separators)", i)
+			}
 		}
 
 		// Subject matching resolves principals by exact kind+id

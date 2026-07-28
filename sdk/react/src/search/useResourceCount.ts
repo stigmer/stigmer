@@ -16,6 +16,13 @@ export interface UseResourceCountOptions {
    * @default "org"
    */
   readonly scope?: ResourceListScope;
+  /**
+   * Opaque token that forces a recount whenever its value changes. Use
+   * it to refresh the count after an out-of-band mutation (e.g. applying
+   * a manifest) without remounting. Mirrors the `refetchToken` on
+   * {@link useResourceCollection}.
+   */
+  readonly refetchToken?: unknown;
 }
 
 export interface UseResourceCountReturn {
@@ -52,6 +59,7 @@ export function useResourceCount(
 ): UseResourceCountReturn {
   const query = options?.query;
   const scope = options?.scope ?? "org";
+  const refetchToken = options?.refetchToken;
 
   const { data: count, isLoading, isRefetching, error, refetch } = useFetch<number | undefined>(
     org
@@ -66,7 +74,7 @@ export function useResourceCount(
           return result.totalCount;
         }
       : null,
-    [listFn, org, query, scope],
+    [listFn, org, query, scope, refetchToken],
     undefined,
   );
 

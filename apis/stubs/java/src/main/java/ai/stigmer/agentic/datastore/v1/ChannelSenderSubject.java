@@ -59,7 +59,9 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object senderKind_ = "";
   /**
    * <pre>
-   * Sender identity namespace (e.g. "whatsapp_phone", "slack_user_id").
+   * Sender identity namespace. Must be a namespace the platform's
+   * channel brokers can stamp — today "whatsapp_phone"; unrecognized
+   * namespaces are refused at apply time (they could never match).
    * </pre>
    *
    * <code>string sender_kind = 1 [json_name = "senderKind", (.buf.validate.field) = { ... }</code>
@@ -80,7 +82,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Sender identity namespace (e.g. "whatsapp_phone", "slack_user_id").
+   * Sender identity namespace. Must be a namespace the platform's
+   * channel brokers can stamp — today "whatsapp_phone"; unrecognized
+   * namespaces are refused at apply time (they could never match).
    * </pre>
    *
    * <code>string sender_kind = 1 [json_name = "senderKind", (.buf.validate.field) = { ... }</code>
@@ -106,11 +110,17 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object value_ = "";
   /**
    * <pre>
-   * Sender identity value within the namespace (e.g. the E.164 number).
+   * Sender identity value within the namespace, in the exact wire shape
+   * the channel broker stamps. For "whatsapp_phone" this is Meta's
+   * wa_id: DIGITS ONLY, no "+", no separators (e.g. "919800000001" —
+   * NOT the "+"-prefixed E.164 form). Apply-time validation refuses any
+   * other shape, because subject matching is exact string equality and
+   * a mis-shaped value would bind and silently never match.
    *
    * &#64;internal
-   * Bearer-adjacent: never logged raw, never filterable, and only ever
-   * compared against broker-stamped session metadata.
+   * Bearer-adjacent: never logged raw, never filterable, never echoed
+   * into validation error strings, and only ever compared against
+   * broker-stamped session metadata.
    * </pre>
    *
    * <code>string value = 2 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -131,11 +141,17 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Sender identity value within the namespace (e.g. the E.164 number).
+   * Sender identity value within the namespace, in the exact wire shape
+   * the channel broker stamps. For "whatsapp_phone" this is Meta's
+   * wa_id: DIGITS ONLY, no "+", no separators (e.g. "919800000001" —
+   * NOT the "+"-prefixed E.164 form). Apply-time validation refuses any
+   * other shape, because subject matching is exact string equality and
+   * a mis-shaped value would bind and silently never match.
    *
    * &#64;internal
-   * Bearer-adjacent: never logged raw, never filterable, and only ever
-   * compared against broker-stamped session metadata.
+   * Bearer-adjacent: never logged raw, never filterable, never echoed
+   * into validation error strings, and only ever compared against
+   * broker-stamped session metadata.
    * </pre>
    *
    * <code>string value = 2 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -481,7 +497,9 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object senderKind_ = "";
     /**
      * <pre>
-     * Sender identity namespace (e.g. "whatsapp_phone", "slack_user_id").
+     * Sender identity namespace. Must be a namespace the platform's
+     * channel brokers can stamp — today "whatsapp_phone"; unrecognized
+     * namespaces are refused at apply time (they could never match).
      * </pre>
      *
      * <code>string sender_kind = 1 [json_name = "senderKind", (.buf.validate.field) = { ... }</code>
@@ -501,7 +519,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Sender identity namespace (e.g. "whatsapp_phone", "slack_user_id").
+     * Sender identity namespace. Must be a namespace the platform's
+     * channel brokers can stamp — today "whatsapp_phone"; unrecognized
+     * namespaces are refused at apply time (they could never match).
      * </pre>
      *
      * <code>string sender_kind = 1 [json_name = "senderKind", (.buf.validate.field) = { ... }</code>
@@ -522,7 +542,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Sender identity namespace (e.g. "whatsapp_phone", "slack_user_id").
+     * Sender identity namespace. Must be a namespace the platform's
+     * channel brokers can stamp — today "whatsapp_phone"; unrecognized
+     * namespaces are refused at apply time (they could never match).
      * </pre>
      *
      * <code>string sender_kind = 1 [json_name = "senderKind", (.buf.validate.field) = { ... }</code>
@@ -539,7 +561,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Sender identity namespace (e.g. "whatsapp_phone", "slack_user_id").
+     * Sender identity namespace. Must be a namespace the platform's
+     * channel brokers can stamp — today "whatsapp_phone"; unrecognized
+     * namespaces are refused at apply time (they could never match).
      * </pre>
      *
      * <code>string sender_kind = 1 [json_name = "senderKind", (.buf.validate.field) = { ... }</code>
@@ -553,7 +577,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Sender identity namespace (e.g. "whatsapp_phone", "slack_user_id").
+     * Sender identity namespace. Must be a namespace the platform's
+     * channel brokers can stamp — today "whatsapp_phone"; unrecognized
+     * namespaces are refused at apply time (they could never match).
      * </pre>
      *
      * <code>string sender_kind = 1 [json_name = "senderKind", (.buf.validate.field) = { ... }</code>
@@ -573,11 +599,17 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object value_ = "";
     /**
      * <pre>
-     * Sender identity value within the namespace (e.g. the E.164 number).
+     * Sender identity value within the namespace, in the exact wire shape
+     * the channel broker stamps. For "whatsapp_phone" this is Meta's
+     * wa_id: DIGITS ONLY, no "+", no separators (e.g. "919800000001" —
+     * NOT the "+"-prefixed E.164 form). Apply-time validation refuses any
+     * other shape, because subject matching is exact string equality and
+     * a mis-shaped value would bind and silently never match.
      *
      * &#64;internal
-     * Bearer-adjacent: never logged raw, never filterable, and only ever
-     * compared against broker-stamped session metadata.
+     * Bearer-adjacent: never logged raw, never filterable, never echoed
+     * into validation error strings, and only ever compared against
+     * broker-stamped session metadata.
      * </pre>
      *
      * <code>string value = 2 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -597,11 +629,17 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Sender identity value within the namespace (e.g. the E.164 number).
+     * Sender identity value within the namespace, in the exact wire shape
+     * the channel broker stamps. For "whatsapp_phone" this is Meta's
+     * wa_id: DIGITS ONLY, no "+", no separators (e.g. "919800000001" —
+     * NOT the "+"-prefixed E.164 form). Apply-time validation refuses any
+     * other shape, because subject matching is exact string equality and
+     * a mis-shaped value would bind and silently never match.
      *
      * &#64;internal
-     * Bearer-adjacent: never logged raw, never filterable, and only ever
-     * compared against broker-stamped session metadata.
+     * Bearer-adjacent: never logged raw, never filterable, never echoed
+     * into validation error strings, and only ever compared against
+     * broker-stamped session metadata.
      * </pre>
      *
      * <code>string value = 2 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -622,11 +660,17 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Sender identity value within the namespace (e.g. the E.164 number).
+     * Sender identity value within the namespace, in the exact wire shape
+     * the channel broker stamps. For "whatsapp_phone" this is Meta's
+     * wa_id: DIGITS ONLY, no "+", no separators (e.g. "919800000001" —
+     * NOT the "+"-prefixed E.164 form). Apply-time validation refuses any
+     * other shape, because subject matching is exact string equality and
+     * a mis-shaped value would bind and silently never match.
      *
      * &#64;internal
-     * Bearer-adjacent: never logged raw, never filterable, and only ever
-     * compared against broker-stamped session metadata.
+     * Bearer-adjacent: never logged raw, never filterable, never echoed
+     * into validation error strings, and only ever compared against
+     * broker-stamped session metadata.
      * </pre>
      *
      * <code>string value = 2 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -643,11 +687,17 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Sender identity value within the namespace (e.g. the E.164 number).
+     * Sender identity value within the namespace, in the exact wire shape
+     * the channel broker stamps. For "whatsapp_phone" this is Meta's
+     * wa_id: DIGITS ONLY, no "+", no separators (e.g. "919800000001" —
+     * NOT the "+"-prefixed E.164 form). Apply-time validation refuses any
+     * other shape, because subject matching is exact string equality and
+     * a mis-shaped value would bind and silently never match.
      *
      * &#64;internal
-     * Bearer-adjacent: never logged raw, never filterable, and only ever
-     * compared against broker-stamped session metadata.
+     * Bearer-adjacent: never logged raw, never filterable, never echoed
+     * into validation error strings, and only ever compared against
+     * broker-stamped session metadata.
      * </pre>
      *
      * <code>string value = 2 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -661,11 +711,17 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Sender identity value within the namespace (e.g. the E.164 number).
+     * Sender identity value within the namespace, in the exact wire shape
+     * the channel broker stamps. For "whatsapp_phone" this is Meta's
+     * wa_id: DIGITS ONLY, no "+", no separators (e.g. "919800000001" —
+     * NOT the "+"-prefixed E.164 form). Apply-time validation refuses any
+     * other shape, because subject matching is exact string equality and
+     * a mis-shaped value would bind and silently never match.
      *
      * &#64;internal
-     * Bearer-adjacent: never logged raw, never filterable, and only ever
-     * compared against broker-stamped session metadata.
+     * Bearer-adjacent: never logged raw, never filterable, never echoed
+     * into validation error strings, and only ever compared against
+     * broker-stamped session metadata.
      * </pre>
      *
      * <code>string value = 2 [json_name = "value", (.buf.validate.field) = { ... }</code>

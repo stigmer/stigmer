@@ -174,12 +174,12 @@ describe("useApplyManifest", () => {
     });
     await act(settleValidation);
 
-    let allApplied = false;
+    let applied: readonly { status: string }[] = [];
     await act(async () => {
-      allApplied = await result.current.applyAll();
+      applied = await result.current.applyAll();
     });
 
-    expect(allApplied).toBe(true);
+    expect(applied.map((e) => e.status)).toEqual(["applied", "applied"]);
     expect(apply).toHaveBeenCalledTimes(2);
     expect(result.current.entries!.map((e) => e.status)).toEqual([
       "applied",
@@ -201,12 +201,12 @@ describe("useApplyManifest", () => {
     });
     await act(settleValidation);
 
-    let allApplied = true;
+    let applied: readonly { status: string }[] = [];
     await act(async () => {
-      allApplied = await result.current.applyAll();
+      applied = await result.current.applyAll();
     });
 
-    expect(allApplied).toBe(false);
+    expect(applied.map((e) => e.status)).toEqual(["failed", "skipped"]);
     expect(apply).toHaveBeenCalledTimes(1);
     expect(result.current.entries!.map((e) => e.status)).toEqual([
       "failed",

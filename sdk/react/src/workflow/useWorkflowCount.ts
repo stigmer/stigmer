@@ -17,6 +17,8 @@ export interface UseWorkflowCountOptions {
    * @default "org"
    */
   readonly scope?: ResourceListScope;
+  /** Opaque token that forces a recount when its value changes. */
+  readonly refetchToken?: unknown;
 }
 
 /** Return value of {@link useWorkflowCount}. */

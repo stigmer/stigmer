@@ -86,6 +86,7 @@ export default function AgentNewPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         org={org}
+        onApplied={() => navigate("/library/agents")}
       />
     </>
   );

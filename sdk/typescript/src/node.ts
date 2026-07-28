@@ -1,4 +1,4 @@
-import { createGrpcWebTransport } from "@connectrpc/connect-node";
+import { createGrpcTransport, createGrpcWebTransport } from "@connectrpc/connect-node";
 import type { Transport, Interceptor } from "@connectrpc/connect";
 import { Stigmer, type TokenProvider } from "./index.js";
 import {
@@ -31,10 +31,30 @@ export interface NodeClientConfig {
 
   /** Dynamic token provider for authentication. */
   readonly getAccessToken?: TokenProvider;
+
+  /**
+   * gRPC wire protocol to speak to the backend. Defaults to `"grpc-web"`.
+   *
+   * - `"grpc-web"` (default) traverses HTTP/1.1 proxies and browser-grade
+   *   edges, so it is the safe choice for the CLI and Ink apps that may
+   *   sit behind arbitrary corporate proxies or an ingress that only
+   *   understands gRPC-Web.
+   * - `"grpc"` is native gRPC over HTTP/2. Use it for in-cluster,
+   *   server-to-server callers that dial a gRPC endpoint directly — a
+   *   Java gRPC server (like stigmer-service on its internal address)
+   *   rejects gRPC-Web content types with HTTP 415, and the OSS Go server
+   *   serves native gRPC on the same listener, so `"grpc"` is correct
+   *   against both. This mirrors the runner's own backend client
+   *   (`backend/services/runner/src/client/stigmer-client.ts`), the other
+   *   in-cluster Node caller.
+   *
+   * @default "grpc-web"
+   */
+  readonly protocol?: "grpc" | "grpc-web";
 }
 
 /**
- * Create a gRPC-web transport for Node.js using native HTTP/2.
+ * Create a Node.js transport (gRPC-web by default, native gRPC opt-in).
  *
  * The interceptor chain matches the browser transport for consistent
  * behavior across runtimes:
@@ -45,6 +65,10 @@ export interface NodeClientConfig {
  * The browser-specific auth-redirect interceptor (`onUnauthenticated`)
  * is intentionally omitted — Node.js consumers handle auth failures
  * through error handling, not UI redirects.
+ *
+ * The wire protocol is chosen by {@link NodeClientConfig.protocol}
+ * (default `"grpc-web"` over HTTP/2); pass `"grpc"` for native gRPC when
+ * dialing a gRPC endpoint directly.
  */
 export function createNodeTransport(config: NodeClientConfig): Transport {
   const tokenProvider: TokenProvider = config.apiKey
@@ -56,6 +80,15 @@ export function createNodeTransport(config: NodeClientConfig): Transport {
     rpcMetadataInterceptor,
     errorStripInterceptor,
   ];
+
+  if (config.protocol === "grpc") {
+    // Native gRPC is HTTP/2-only; the transport does not take an
+    // httpVersion knob (unlike gRPC-web).
+    return createGrpcTransport({
+      baseUrl: config.baseUrl,
+      interceptors,
+    });
+  }
 
   return createGrpcWebTransport({
     baseUrl: config.baseUrl,

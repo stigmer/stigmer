@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useReducer, useState } from "react";
 import Link from "next/link";
 import { Plus, Upload, Server } from "lucide-react";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
@@ -65,6 +65,9 @@ export function McpServerListPage() {
   const [scope, setScope] = useState<"org" | "all">(() => readPersistedScope("mcp-servers"));
   const [connectTarget, setConnectTarget] = useState<ConnectTarget | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  // Bumped after Apply YAML so the newly applied server appears without
+  // a reload — the list refetches in place.
+  const [refetchToken, refreshList] = useReducer((n: number) => n + 1, 0);
 
   const handleScopeChange = useCallback((newScope: "org" | "all") => {
     setScope(newScope);
@@ -89,6 +92,7 @@ export function McpServerListPage() {
       </div>
 
       <ResourceWorkbench
+        refetchToken={refetchToken}
         listFn={listFn}
         org={org}
         columns={MCP_COLUMNS}
@@ -160,6 +164,7 @@ export function McpServerListPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         org={org ?? ""}
+        onApplied={refreshList}
       />
     </>
   );
