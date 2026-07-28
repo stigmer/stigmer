@@ -399,11 +399,9 @@ pages:
     medium: still
     why:
       The page's argument is a before/after pair — the same gate with and
-      without a renderer; two frames the reader compares side by side, nothing
-      moves in either.
-    embeds:
-      review-renderer-tour: replace
-      review-fallback-tour: replace
+      without a renderer, one frame in each of the two sections that make the
+      claim; nothing moves in either, and the reader compares them by
+      scrolling back.
 
   # ── Platform ───────────────────────────────────────────────────────────
   concepts/datastores:

@@ -33,6 +33,12 @@ export const reviewRendererTourSteps: ScenarioStep<ReviewRendererTourStep>[] = [
     // steady frame of the rendered diff.
     delayMs: 6000,
     data: { view: "renderer-gate" },
+    // The steady frame doubles as the still on
+    // docs/guides/workflows/review-payloads (its
+    // <Still id="review-renderer-tour/renderer-gate">). That reference is why
+    // this tour must stay in the repo even with no <ScenarEmbed> left —
+    // verify-scenar-tours invariant 8 holds the two sides together.
+    shot: "renderer-gate",
     narration:
       "The gate carries the revision as its payload, tagged article diff — " +
       "and because this surface registered a renderer for that hint, the " +

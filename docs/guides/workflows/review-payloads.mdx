@@ -94,9 +94,12 @@ required.
 Here is the result. This gate carries the revision above as its payload with
 `ui_hint: article-diff`, and a registered renderer presents it as a diff:
 
-<ScenarEmbed
-  id="review-renderer-tour"
-  title="Review gate with a registered article-diff renderer"
+<Still
+  id="review-renderer-tour/renderer-gate"
+  alt="A review gate in an embedding app: the article revision presented as a
+diff by the app's registered article-diff renderer — each section's before
+line struck through above its replacement — with Approve and Request changes
+buttons."
 />
 
 ## The renderer contract
@@ -128,9 +131,12 @@ renderer exists.
 This is the same gate — same payload, same `ui_hint` — on a surface with no
 registered renderers:
 
-<ScenarEmbed
-  id="review-fallback-tour"
-  title="The same review gate on a surface with no registered renderers"
+<Still
+  id="review-fallback-tour/fallback-gate"
+  alt="The same review gate rendered by the built-in approval card: the prompt,
+the payload shown as structured data — article title, change summary, and each
+change's section, before, and after — above an optional comment field and the
+Approve and Request changes buttons."
 />
 
 This also means you can add `ui_hint` to production workflows before your

@@ -12,7 +12,7 @@ import type { ReviewFallbackTourStep } from "./steps";
 
 /**
  * The same app framing as `review-renderer-tour`, deliberately: the two
- * embeds sit thirty lines apart on one docs page, and identical framing
+ * stills sit thirty lines apart on one docs page, and identical framing
  * makes the one difference — the presentation of the same payload — the
  * only thing that changes between them.
  */

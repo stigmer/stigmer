@@ -32,6 +32,12 @@ export const reviewFallbackTourSteps: ScenarioStep<ReviewFallbackTourStep>[] = [
     // steady frame of the built-in card.
     delayMs: 6000,
     data: { view: "fallback-gate" },
+    // The steady frame doubles as the still on
+    // docs/guides/workflows/review-payloads (its
+    // <Still id="review-fallback-tour/fallback-gate">). That reference is why
+    // this tour must stay in the repo even with no <ScenarEmbed> left —
+    // verify-scenar-tours invariant 8 holds the two sides together.
+    shot: "fallback-gate",
     narration:
       "The same gate, same payload, same hint — on a surface with no " +
       "registered renderers. The built-in card presents the payload as " +

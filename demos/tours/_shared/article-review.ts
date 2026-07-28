@@ -1,7 +1,7 @@
 /**
  * The depicted review gate: one editorial revision, reviewed on two surfaces.
  *
- * `docs/guides/workflows/review-payloads.mdx` embeds two tours thirty lines
+ * `docs/guides/workflows/review-payloads.mdx` places two stills thirty lines
  * apart — `review-renderer-tour` (a surface that registered an `article-diff`
  * renderer) and `review-fallback-tour` (a surface with none) — and its prose
  * promises they show "the same gate — same payload, same `ui_hint`". This
