@@ -10,6 +10,8 @@ import {
   findStepsArray,
   validateTimeline,
   extractScenarEmbedIds,
+  extractStills,
+  collectShotNames,
   KNOWN_STEP0_OFFENDERS,
   READER_OFFSET_WINDOW,
   REPLICA_METRIC_PAIRS,
@@ -388,6 +390,66 @@ test("extractScenarEmbedIds ignores usage examples in fenced code blocks", () =>
 test("extractScenarEmbedIds ignores id attributes on other components", () => {
   const mdx = '<Tabs id="sdk-language">x</Tabs>\n<Step id="payment_confirmed" />';
   assert.deepEqual(extractScenarEmbedIds(mdx), []);
+});
+
+// ---------------------------------------------------------------------------
+// extractStills / collectShotNames (invariant 8)
+// ---------------------------------------------------------------------------
+
+test("extractStills finds single-line and Prettier-split tags, attributes in any order", () => {
+  const mdx = [
+    '<Still id="agent-detail-tour/agent-detail" alt="The Agent detail page." />',
+    "",
+    "<Still",
+    '  alt="The workflow run detail."',
+    '  id="workflow-tour/run-detail"',
+    "/>",
+  ].join("\n");
+  assert.deepEqual(extractStills(mdx), [
+    { id: "agent-detail-tour/agent-detail", alt: "The Agent detail page.", selfClosing: true },
+    { id: "workflow-tour/run-detail", alt: "The workflow run detail.", selfClosing: true },
+  ]);
+});
+
+test("extractStills ignores usage examples in fenced code blocks", () => {
+  const mdx = [
+    "Place a still like this:",
+    "",
+    "```mdx",
+    '<Still id="your-tour/your-shot" alt="Example" />',
+    "```",
+    "",
+    '<Still id="real-tour/real-shot" alt="A real one." />',
+  ].join("\n");
+  assert.deepEqual(extractStills(mdx), [
+    { id: "real-tour/real-shot", alt: "A real one.", selfClosing: true },
+  ]);
+});
+
+test("extractStills reports missing attributes as null and non-self-closing form", () => {
+  const mdx = ['<Still id="tour/shot" />', '<Still alt="No id." />', '<Still id="tour/shot" alt="Paired form."></Still>'].join(
+    "\n",
+  );
+  assert.deepEqual(extractStills(mdx), [
+    { id: "tour/shot", alt: null, selfClosing: true },
+    { id: null, alt: "No id.", selfClosing: true },
+    { id: "tour/shot", alt: "Paired form.", selfClosing: false },
+  ]);
+});
+
+test("extractStills does not match other components or prose", () => {
+  const mdx = '<ScenarEmbed id="a-tour" />\nThe still shows the console.\n<StillLife id="x/y" alt="z" />';
+  assert.deepEqual(extractStills(mdx), []);
+});
+
+test("collectShotNames reads declared shots in step order, skipping empty and absent", () => {
+  const steps = [
+    { delayMs: 1000 },
+    { delayMs: 2000, shot: "opening" },
+    { delayMs: 3000, shot: "" },
+    { delayMs: 4000, shot: "finale" },
+  ];
+  assert.deepEqual(collectShotNames(steps), ["opening", "finale"]);
 });
 
 // ---------------------------------------------------------------------------

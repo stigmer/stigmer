@@ -4,7 +4,7 @@
  * Static verification gate for the Scenar tours in `demos/tours/` and the
  * docs pages that embed them.
  *
- * Seven invariants, each of which has already produced (or nearly produced)
+ * Eight invariants, each of which has already produced (or nearly produced)
  * a shipped defect:
  *
  * 1. DETERMINISM (scenar-cloud DD-006). A packed tour must render identical
@@ -67,6 +67,18 @@
  *    both sides so drift in either direction fails here instead of
  *    shipping (the drift class that produced the 112px/10px sidebar whose
  *    "New Session" wrapped onto two lines).
+ *
+ * 8. STILL REFERENCES (docs-revamp DD-02). Every `<Still id="<scenario>/
+ *    <shot>">` in `docs/**` must name a real `demos/tours/<scenario>/`
+ *    whose steps.ts declares that `shot`, and must carry non-empty alt
+ *    text (DD-01's text-fallback bar — MDX is never typechecked, so the
+ *    component's required prop cannot enforce it). This check runs from
+ *    both sides: ci.docs covers docs-only changes, ci.frontend covers
+ *    demos-only changes — so removing a shot a page references fails CI
+ *    exactly like referencing a shot that never existed. It is also what
+ *    keeps a replaced tour alive: once a page's embed becomes a still,
+ *    the `<Still>` id may be the tour's only reference in the repo, and
+ *    deleting the "unused" tour would silently 404 the shipped image.
  *
  * Like scripts/verify-esm-node.mjs, checks are AST-based (TypeScript parser
  * via createRequire, no new dependency) rather than regex, so string
@@ -606,6 +618,45 @@ export function extractScenarEmbedIds(mdxText) {
   return ids;
 }
 
+/**
+ * The shot names a tour's timeline declares, in step order. Reads the same
+ * dynamically-imported steps array the timeline check validates, so the
+ * names are the runtime truth `scenar shoot` will see — not a source-text
+ * approximation. Name validity (kebab-case, uniqueness) is the engine's
+ * contract, enforced when the bundle is packed and shot; this gate only
+ * needs membership.
+ */
+export function collectShotNames(steps) {
+  return steps
+    .filter((step) => typeof step?.shot === "string" && step.shot.length > 0)
+    .map((step) => step.shot);
+}
+
+/**
+ * Extract every `<Still>` tag from MDX source, fence-stripped like
+ * `extractScenarEmbedIds` (a documented usage example must never count).
+ * Attributes come back raw — null when absent — so the caller owns the
+ * failure policy and its messages. `selfClosing` is reported because the
+ * markdown-export unwrap (site/src/lib/llms-pages.ts) only rewrites the
+ * self-closing form: a `<Still …></Still>` would render on the site but
+ * ship a dangling tag in every text export, which is exactly the drift
+ * this gate exists to prevent.
+ */
+export function extractStills(mdxText) {
+  const withoutCodeFences = mdxText.replace(/```[\s\S]*?```/g, "");
+  const stills = [];
+  const tagRe = /<Still\b([^>]*)>/g;
+  for (const match of withoutCodeFences.matchAll(tagRe)) {
+    const attrs = match[1];
+    stills.push({
+      id: attrs.match(/\bid="([^"]*)"/)?.[1] ?? null,
+      alt: attrs.match(/\balt="([^"]*)"/)?.[1] ?? null,
+      selfClosing: attrs.trimEnd().endsWith("/"),
+    });
+  }
+  return stills;
+}
+
 function listFiles(dir, predicate) {
   if (!existsSync(dir)) return [];
   const out = [];
@@ -663,6 +714,12 @@ async function main() {
 
   const tours = listTourDirs();
   const timelineViolations = [];
+  // Shot names per successfully-imported tour, harvested from the same
+  // dynamic imports this check performs — check 8 resolves <Still> ids
+  // against it. A tour that fails to import is absent, not empty: check 8
+  // skips those instead of stacking a misleading "no such shot" on top of
+  // the import failure reported here.
+  const shotsByTour = new Map();
   for (const tour of tours) {
     const stepsPath = join(TOURS_DIR, tour, "steps.ts");
     if (!existsSync(stepsPath)) {
@@ -690,6 +747,7 @@ async function main() {
       );
       continue;
     }
+    shotsByTour.set(tour, new Set(collectShotNames(steps)));
     for (const v of validateTimeline(steps, {
       allowStep0Interactions: KNOWN_STEP0_OFFENDERS.has(tour),
     })) {
@@ -796,6 +854,66 @@ async function main() {
     console.log(`  ok  replica metrics (${REPLICA_METRIC_PAIRS.length} facts)`);
   } else {
     fail("replica metrics", replicaViolations);
+  }
+
+  // --- 8. Still references: every <Still> resolves to a declared shot -------
+  const stillViolations = [];
+  let stillCount = 0;
+  for (const file of mdxFiles) {
+    const rel = relative(root, file);
+    for (const still of extractStills(readFileSync(file, "utf8"))) {
+      stillCount += 1;
+      const label = still.id === null ? "<Still>" : `<Still id="${still.id}">`;
+      if (!still.selfClosing) {
+        stillViolations.push(
+          `${rel}: ${label} must be self-closing (<Still id="…" alt="…" />) — ` +
+            `the markdown-export unwrap rewrites only that form, so this one ` +
+            `would ship a dangling tag in llms-full.txt and the .md exports`,
+        );
+      }
+      if (still.alt === null || still.alt.trim() === "") {
+        stillViolations.push(
+          `${rel}: ${label} has no alt text — a still must describe its screen ` +
+            `for readers of the markdown exports (docs/STYLE.md; DD-01's ` +
+            `text-fallback requirement)`,
+        );
+      }
+      const idMatch = still.id === null ? null : /^([^/]+)\/([^/]+)$/.exec(still.id);
+      if (!idMatch) {
+        stillViolations.push(
+          `${rel}: ${label} — id must be "<scenario>/<shot>": the tour directory ` +
+            `under demos/tours/ and a shot name declared in its steps.ts`,
+        );
+        continue;
+      }
+      const [, scenario, shot] = idMatch;
+      if (!shotsByTour.has(scenario)) {
+        // An import failure in check 2 already reports the broken tour;
+        // only a genuinely absent directory is this check's finding.
+        if (!tourSet.has(scenario)) {
+          stillViolations.push(
+            `${rel}: ${label} — no demos/tours/${scenario}/. If that tour was ` +
+              `"replaced" by this still, it must stay in the repo: the tour is ` +
+              `the still's source scenario (docs/STYLE.md)`,
+          );
+        }
+        continue;
+      }
+      const declared = shotsByTour.get(scenario);
+      if (!declared.has(shot)) {
+        stillViolations.push(
+          `${rel}: ${label} — ${scenario} declares no shot "${shot}" ` +
+            `(declared: ${[...declared].join(", ") || "none"}). Set ` +
+            `shot: "${shot}" on the step to capture in ` +
+            `demos/tours/${scenario}/steps.ts`,
+        );
+      }
+    }
+  }
+  if (stillViolations.length === 0) {
+    console.log(`  ok  still references (${stillCount} stills across docs/)`);
+  } else {
+    fail("still references", stillViolations);
   }
 
   if (total > 0) {
