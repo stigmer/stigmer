@@ -1,13 +1,13 @@
 /**
  * Drift-locks between a docs listing and the tour fixture that depicts it.
  *
- * Some tour embeds sit directly under a docs code fence with the promise
- * "here's how this looks in the console" — the depiction is only honest while
- * the fixture and the listing are the same bytes. This suite pins each such
- * pair, the same class of lock as `verify-scenar-tours.mjs` invariant 7
- * (replica CSS ↔ real console layout): edit one side and the root test suite
- * (`npm test` → `node --test scripts/*.test.mjs`) fails until the other side
- * moves with it.
+ * Some tour depictions — stills and embeds — sit directly under a docs code
+ * fence with the promise "here's how this looks in the console"; the
+ * depiction is only honest while the fixture and the listing are the same
+ * bytes. This suite pins each such pair, the same class of lock as
+ * `verify-scenar-tours.mjs` invariant 7 (replica CSS ↔ real console layout):
+ * edit one side and the root test suite (`npm test` → `node --test
+ * scripts/*.test.mjs`) fails until the other side moves with it.
  *
  * Pairs are keyed on fence *content* (a marker string), never fence position,
  * so docs restructuring cannot silently re-point a lock at the wrong listing.
@@ -54,7 +54,7 @@ test("skills.mdx SKILL.md listing matches skill-detail-tour's SKILL_MD byte for 
     steps.SKILL_MD,
     listing,
     "docs/concepts/skills.mdx's SKILL.md fence and skill-detail-tour's SKILL_MD " +
-      "have drifted — the embed sits directly under the listing, so they must " +
-      "stay byte-identical. Update both together.",
+      "have drifted — the tour's still sits directly under the listing, so they " +
+      "must stay byte-identical. Update both together.",
   );
 });

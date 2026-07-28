@@ -32,7 +32,7 @@ export const SKILL_SLUG = "return-policy";
 
 /**
  * Byte-identical to the ```md fence on `docs/concepts/skills.mdx` (the
- * listing this tour's embed sits under). Drift-locked by
+ * listing this tour's still sits under). Drift-locked by
  * `scripts/verify-docs-tour-parity.test.mjs`.
  */
 export const SKILL_MD = `---
@@ -96,6 +96,11 @@ export const skillDetailTourSteps: ScenarioStep<SkillDetailTourStep>[] = [
     // steady establishing frame of the rendered SKILL.md.
     delayMs: 6000,
     data: { view: "skill-detail" },
+    // The steady frame doubles as the still on docs/concepts/skills (its
+    // <Still id="skill-detail-tour/skill-detail">). That reference is why
+    // this tour must stay in the repo even with no <ScenarEmbed> left —
+    // verify-scenar-tours invariant 8 holds the two sides together.
+    shot: "skill-detail",
     narration:
       "This is the same SKILL dot MD, rendered in the console — the " +
       "description the Agent always sees, and the policy it loads when a " +

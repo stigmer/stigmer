@@ -152,8 +152,6 @@ pages:
     why:
       The embed exists to show the Skill detail page next to its source; a
       single frame is the honest medium for a static screen.
-    embeds:
-      skill-detail-tour: replace
 
   concepts/sessions:
     fate: keep
