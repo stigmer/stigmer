@@ -52,8 +52,15 @@ jobs:
       # --with-deps pulls the system libraries headless Chromium needs on
       # the runner. The npm package itself arrived with `npm ci` above — it
       # is a demos devDependency.
+      #
+      # Resolved through the demos workspace, never bare npx: the repo
+      # carries two playwright versions (the root's, for e2e, and demos'),
+      # each pinning a different browser build. A root-resolved install
+      # provisions the wrong build for the one `scenar shoot` imports —
+      # which is exactly how this step failed on its first run. Same trap
+      # class as the stale-global scenar CLI (see demos/scripts/pack-all.mjs).
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: npm exec --workspace @stigmer/demos -- playwright install --with-deps chromium
 
       # Scenar product tours ship with the site: pack every tour in demos/
       # into a static embed bundle, served below at stigmer.ai/demos/<tour>/,
