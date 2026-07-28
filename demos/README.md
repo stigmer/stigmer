@@ -8,7 +8,7 @@ the bundles at `https://stigmer.ai/demos/<tour>/`, where the docs embed them via
 
 Tours live in this repo — not a separate one — because they are
 **product-versioned documentation**: a tour that renders real `@stigmer/react`
-components must depict the components this repo ships _at the same commit_. The
+components must depict the components this repo ships *at the same commit*. The
 tours consume the in-repo SDK source through the npm workspace, so a component
 change, the tour that depicts it, and the docs prose around it can land in one
 reviewable PR. Scenar owns the playback engine (`@scenar/*` from npm); Stigmer
@@ -37,31 +37,32 @@ A tour is the directory shape Scenar's `pack` / `narrate` / `serve` consume:
 
 `_shared/` holds three kinds of module. **Chrome** (`AppShell`,
 `ManagementShell`, `SessionView`, `ResourceListPage`, `ApiKeysPage`,
-`api-exchange/`) frames real components inside a schematic app — the two shells
-are the console's two zones: `AppShell` is the workspace (primary nav, recents),
-`ManagementShell` the org-settings area (grouped Organization / Configuration /
-Billing navigation). `SessionView` is the session surface itself, and it is
-barely chrome at all: it renders the SDK's own `SessionViewerLayout` — the same
-frame `SessionViewer` and `NewSessionViewer` ship — with the panel chip,
-`WorkspaceSurface`, and the `useSessionRailViews` facet rail, so the depicted
-session cannot drift from the console's (scenar-cloud DD-010; the bespoke widget
-rail this replaced is gone). **Product glue** (`stigmer-preview.tsx`) wires
-styles, theme, and the mock transport once. **Depicted resources**
-(`order-management-mcp.ts`, `quickstart-workspace.ts`) are the domain objects
-several embeds tell one story about — the fixture server the Getting Started
-tours create, connect, and use; the reader's project they keep editing. A
-depicted resource owns its identity _and_ its built states in one module so
-embeds on the same docs page cannot drift apart. Everything else stays
-tour-local — views defined inline in the tour's own `index.tsx` — and hoists
-only when a second tour genuinely depicts the same thing (`ManagementShell` sat
-inside `sso-login-playback/` until the quickstart tour became its second
-consumer).
+`api-exchange/`) frames real components inside a schematic app — the two
+shells are the console's two zones: `AppShell` is the workspace (primary
+nav, recents), `ManagementShell` the org-settings area (grouped
+Organization / Configuration / Billing navigation). `SessionView` is the
+session surface itself, and it is barely chrome at all: it renders the
+SDK's own `SessionViewerLayout` — the same frame `SessionViewer` and
+`NewSessionViewer` ship — with the panel chip, `WorkspaceSurface`, and the
+`useSessionRailViews` facet rail, so the depicted session cannot drift
+from the console's (scenar-cloud DD-010; the bespoke widget rail this
+replaced is gone). **Product glue**
+(`stigmer-preview.tsx`) wires styles, theme, and the mock transport once.
+**Depicted resources** (`order-management-mcp.ts`,
+`quickstart-workspace.ts`) are the domain objects several embeds tell one
+story about — the fixture server the Getting Started tours create, connect,
+and use; the reader's project they keep editing. A depicted resource owns its
+identity *and* its built states in one module so embeds on the same docs page
+cannot drift apart. Everything else stays tour-local — views defined inline
+in the tour's own `index.tsx` — and hoists only when a second tour genuinely
+depicts the same thing (`ManagementShell` sat inside `sso-login-playback/`
+until the quickstart tour became its second consumer).
 
-The boundary is enforced, not aspirational: a tour may import from itself and
-from `_shared/`, never from another tour, and `_shared/` may never import from a
-tour. `scripts/verify-scenar-tours.mjs` (run by `make check-node` and CI) fails
-on any import that crosses it — reaching into a sibling tour is never the
-shortcut; hoist instead.
+The boundary is enforced, not aspirational: a tour may import from itself
+and from `_shared/`, never from another tour, and `_shared/` may never
+import from a tour. `scripts/verify-scenar-tours.mjs` (run by
+`make check-node` and CI) fails on any import that crosses it — reaching
+into a sibling tour is never the shortcut; hoist instead.
 
 ---
 
@@ -78,30 +79,30 @@ Export an array of `ScenarioStep<T>` (type from `@scenar/react`). Each step has:
   drag, scroll, viewport). Each has `atPercent` (0..1 of the step's duration)
   and a `type`. Targets reference `data-cursor-target="..."` attributes in your
   views.
-- `shot?` — names this step's settled end-of-step frame as a still capture point
-  (kebab-case, unique within the tour, named-never-indexed so inserting a beat
-  cannot renumber docs references). `scenar shoot` renders every declared shot
-  to `stills/<shot>.<theme>.png` inside the packed bundle — light and dark,
-  cursor suppressed — and docs pages place it with
-  `<Still id="<tour>/<shot>" …>` (see `docs/STYLE.md`). Three rules come with a
-  shot:
+- `shot?` — names this step's settled end-of-step frame as a still capture
+  point (kebab-case, unique within the tour, named-never-indexed so inserting
+  a beat cannot renumber docs references). `scenar shoot` renders every
+  declared shot to `stills/<shot>.<theme>.png` inside the packed bundle —
+  light and dark, cursor suppressed — and docs pages place it with
+  `<Still id="<tour>/<shot>" …>` (see `docs/STYLE.md`). Three rules come
+  with a shot:
   - **Interaction tails must fit inside the step**: a click needs ~450ms to
-    dispatch, typing ~50ms/char, a camera move 600ms — the end-of-step frame is
-    only settled if the step's duration leaves room after its last interaction
-    fires.
-  - **Narration must be committed** before declaring a shot on a narrated tour:
-    shot times are narration-driven, and a bundle packed without
+    dispatch, typing ~50ms/char, a camera move 600ms — the end-of-step frame
+    is only settled if the step's duration leaves room after its last
+    interaction fires.
+  - **Narration must be committed** before declaring a shot on a narrated
+    tour: shot times are narration-driven, and a bundle packed without
     `narration/manifest.json` would capture at bare `delayMs` pace instead.
   - **A tour referenced by a `<Still>` must stay in the repo** even after its
     last `<ScenarEmbed>` is gone — the tour is the still's source scenario.
-    `scripts/verify-scenar-tours.mjs` (invariant 8) fails CI if either side of
-    the reference breaks.
+    `scripts/verify-scenar-tours.mjs` (invariant 8) fails CI if either side
+    of the reference breaks.
 
 ```ts
 interactions: [
   { atPercent: 0.15, type: "set_cursor", target: "check-0" },
-  { atPercent: 0.9, type: "clear_cursor" },
-];
+  { atPercent: 0.9,  type: "clear_cursor" },
+]
 ```
 
 The packed embed runs these automatically — the cursor and all interaction
@@ -109,14 +110,14 @@ effects are wired by `scenar pack`'s embed entry (you do **not** wire `<Cursor>`
 or `useStepInteractions` yourself; that's the difference from in-app Scenar
 usage).
 
-**Import discipline:** `scenar narrate` loads `steps.ts` in a plain Node process
-(tsx loader, no bundler), so it may only pull pure modules — protos,
-`@stigmer/react/test` samples, `@scenar/react` _types_, and the `_shared` data
-modules. Anything that imports a component, CSS, or a browser API belongs in
-`index.tsx` (a rendering concern, compiled by Vite); step data carries only
-semantic tags for which snapshot to show. `scripts/verify-scenar-tours.mjs` (run
-by `make check-node` and CI) imports every `steps.ts` exactly the way narrate
-does, so a violation fails fast.
+**Import discipline:** `scenar narrate` loads `steps.ts` in a plain Node
+process (tsx loader, no bundler), so it may only pull pure modules — protos,
+`@stigmer/react/test` samples, `@scenar/react` *types*, and the `_shared`
+data modules. Anything that imports a component, CSS, or a browser API
+belongs in `index.tsx` (a rendering concern, compiled by Vite); step data
+carries only semantic tags for which snapshot to show.
+`scripts/verify-scenar-tours.mjs` (run by `make check-node` and CI) imports
+every `steps.ts` exactly the way narrate does, so a violation fails fast.
 
 ### 2. `index.tsx` — `renderStep`
 
@@ -144,7 +145,7 @@ synthetic events (that breaks scrubbing and video export).
   (green = pass, red = fail) may be hex.
 - **Real `@stigmer/react` components** get their styles from the package's
   **compiled** stylesheet. In this workspace the `@stigmer/react/styles.css`
-  export points at the _uncompiled_ Tailwind source, so
+  export points at the *uncompiled* Tailwind source, so
   `tours/_shared/stigmer-preview.tsx` imports the built artifact
   (`sdk/react/dist/styles.css`) instead — produced by
   `npm run build:css -w @stigmer/react`, which `pack-all` runs automatically.
@@ -153,47 +154,48 @@ synthetic events (that breaks scrubbing and video export).
 
 ## Sizing contract: one scale factor per frame (important)
 
-A tour must read as a **screen recording**: a real app laid out at real size,
-captured once, displayed smaller. That property is geometric — it holds only
-when exactly **one** scale factor exists per rendered frame, and the viewport
-boundary owns it.
+A tour must read as a **screen recording**: a real app laid out at real
+size, captured once, displayed smaller. That property is geometric — it
+holds only when exactly **one** scale factor exists per rendered frame, and
+the viewport boundary owns it.
 
 - **Canonical viewport is 1280×800** (16:10), set explicitly by
-  `scripts/pack-all.mjs` — never the CLI default. It is derived, not chosen: the
-  console needs 280px (sidebar) + 48px (main padding) + 896px (`max-w-4xl`
-  content cap) = 1224px to render its content column at full design width, and
-  1280×800 is the smallest common real window above that.
-- **The canonical width is layout width, not viewport width.** The embed is an
-  iframe, so CSS **media queries resolve against the docs column** (~896px —
-  below the console's `lg` breakpoint of 1024), not against the 1280px canvas:
-  `DemoViewport` scales with CSS `zoom`, which changes no viewport. Every
-  `lg:`-conditional style in a real component therefore renders its _narrow_
-  variant inside an embed (measured 2026-07-27: `max-lg:hidden` computes to
-  `display:none` at an iframe width of 715px). Where a component exposes a seam,
-  use it — `SessionView` passes `SessionViewerLayout` `responsive={false}` so
-  the conversation pane survives open-panel beats. The general class (e.g.
-  `ResourceCards` rendering 2 columns instead of 3) is registered debt; M2
+  `scripts/pack-all.mjs` — never the CLI default. It is derived, not chosen:
+  the console needs 280px (sidebar) + 48px (main padding) + 896px
+  (`max-w-4xl` content cap) = 1224px to render its content column at full
+  design width, and 1280×800 is the smallest common real window above that.
+- **The canonical width is layout width, not viewport width.** The embed is
+  an iframe, so CSS **media queries resolve against the docs column**
+  (~896px — below the console's `lg` breakpoint of 1024), not against the
+  1280px canvas: `DemoViewport` scales with CSS `zoom`, which changes no
+  viewport. Every `lg:`-conditional style in a real component therefore
+  renders its *narrow* variant inside an embed (measured 2026-07-27:
+  `max-lg:hidden` computes to `display:none` at an iframe width of 715px).
+  Where a component exposes a seam, use it — `SessionView` passes
+  `SessionViewerLayout` `responsive={false}` so the conversation pane
+  survives open-panel beats. The general class (e.g. `ResourceCards`
+  rendering 2 columns instead of 3) is registered debt; M2
   (iframe-as-screen, scenar-cloud DD-009) is its exit condition.
-- **Author at the console's real metrics.** The `_shared` shells transcribe the
-  real sidebar (280px, 14px/500 labels, 16px icons — gate invariant 7 pins the
-  facts on both sides); page content uses the real zone geometry (library
-  `mx-auto max-w-4xl px-6 py-8`, settings `max-w-3xl`).
-- **Never author `zoom` or `transform: scale()` in a tour** — not as a prop, a
-  style object, or CSS. If content "doesn't fit", the viewport or the depicted
-  content is wrong, not the scale. Gate invariant 6 rejects every authored scale
-  factor under `tours/**`.
-- **Legibility comes from the camera, not from shrinking.** At 1280 canonical in
-  a ~896px docs column everything renders at ~0.7×; a `viewport_transition`
-  interaction (zoom toward the region the narration discusses, reset before the
-  beat ends) is how small text becomes readable — see
-  `create-agent-tour/steps.ts` for the pattern.
-- **Console beats live in a browser window.** Wrap them in `BrowserView` with
-  the depicted `app.stigmer.ai` route in the address bar; editor and terminal
-  beats keep their own window shells. `pack-all` passes `--stage`, which floats
-  each beat's window on the backdrop with a real shadow.
+- **Author at the console's real metrics.** The `_shared` shells transcribe
+  the real sidebar (280px, 14px/500 labels, 16px icons — gate invariant 7
+  pins the facts on both sides); page content uses the real zone geometry
+  (library `mx-auto max-w-4xl px-6 py-8`, settings `max-w-3xl`).
+- **Never author `zoom` or `transform: scale()` in a tour** — not as a
+  prop, a style object, or CSS. If content "doesn't fit", the viewport or
+  the depicted content is wrong, not the scale. Gate invariant 6 rejects
+  every authored scale factor under `tours/**`.
+- **Legibility comes from the camera, not from shrinking.** At 1280
+  canonical in a ~896px docs column everything renders at ~0.7×; a
+  `viewport_transition` interaction (zoom toward the region the narration
+  discusses, reset before the beat ends) is how small text becomes readable
+  — see `create-agent-tour/steps.ts` for the pattern.
+- **Console beats live in a browser window.** Wrap them in `BrowserView`
+  with the depicted `app.stigmer.ai` route in the address bar; editor and
+  terminal beats keep their own window shells. `pack-all` passes `--stage`,
+  which floats each beat's window on the backdrop with a real shadow.
 
-Decisions of record: scenar-cloud DD-008 (one scale factor) and DD-009 (stage
-framing + rendering mechanism).
+Decisions of record: scenar-cloud DD-008 (one scale factor) and DD-009
+(stage framing + rendering mechanism).
 
 ---
 
@@ -227,9 +229,7 @@ import { createStigmerPreview } from "../../_shared/stigmer-preview";
 import { buildDemoAgent } from "../steps";
 
 export const PreviewProviders = createStigmerPreview((router) => {
-  router.service(AgentQueryController, {
-    getByReference: () => buildDemoAgent(),
-  });
+  router.service(AgentQueryController, { getByReference: () => buildDemoAgent() });
 });
 ```
 
@@ -249,14 +249,14 @@ construction: every timestamp they stamp is frozen at their exported
 `SAMPLE_INSTANT`, and their own SDK test suite locks it in. Call any of them
 freely.
 
-The tour world also has exactly **one clock**. `SAMPLE_INSTANT` is the demo day
-(`2026-07-20`) at 11:00 UTC — chosen so the calendar date it renders is the same
-for every reader across the _reader offset window_, UTC−11:00 through UTC+12:45.
-No instant can cover every zone (real offsets span 25 hours against a 24-hour
-day); the anchor's docs in `sdk/react/src/test/samples.ts` carry the full
-reasoning, and its test suite locks the window property. Everything downstream —
-`_shared/` depicted resources, tour-local fixtures — derives from that one
-instant.
+The tour world also has exactly **one clock**. `SAMPLE_INSTANT` is the demo
+day (`2026-07-20`) at 11:00 UTC — chosen so the calendar date it renders is
+the same for every reader across the *reader offset window*, UTC−11:00
+through UTC+12:45. No instant can cover every zone (real offsets span 25
+hours against a 24-hour day); the anchor's docs in
+`sdk/react/src/test/samples.ts` carry the full reasoning, and its test suite
+locks the window property. Everything downstream — `_shared/` depicted
+resources, tour-local fixtures — derives from that one instant.
 
 When you need a value the factory's overrides do not cover — a message a few
 seconds later, a specific tool-call duration — **derive it from the anchor**
@@ -270,13 +270,14 @@ later.timestamp = sampleInstant(5_000); // 5s after the anchor
 ```
 
 `scripts/verify-scenar-tours.mjs` enforces both halves under `tours/**`. A
-smuggled clock read — `Date.now()`, non-literal `new Date(...)`, including one
-passed as a factory argument — fails the determinism check. A hand-written
-instant — an ISO-literal string, `new Date("...")`, local-time
-`new Date(y, m, d)`, an epoch `new Date(0)` — fails the authored-instants check,
-because it forks the tour world's clock and re-takes the window decision ad hoc.
-Instants inside _displayed text_ (terminal output, rendered JSON payloads) are
-exempt: they paint as literal text, identically for every reader.
+smuggled clock read — `Date.now()`, non-literal `new Date(...)`, including
+one passed as a factory argument — fails the determinism check. A
+hand-written instant — an ISO-literal string, `new Date("...")`, local-time
+`new Date(y, m, d)`, an epoch `new Date(0)` — fails the authored-instants
+check, because it forks the tour world's clock and re-takes the window
+decision ad hoc. Instants inside *displayed text* (terminal output, rendered
+JSON payloads) are exempt: they paint as literal text, identically for every
+reader.
 
 ---
 
@@ -301,24 +302,24 @@ npx scenar serve .bundles/<slug>
 npx scenar shoot .bundles/<slug> --verify
 ```
 
-Run `--verify` here, in the authoring loop — it double-captures in fresh browser
-sessions and fails unless every still is byte-identical, which is how a
-nondeterministically-rendering component gets caught before it ships. The deploy
-deliberately shoots without it: the determinism gate is within-machine by
-design.
+Run `--verify` here, in the authoring loop — it double-captures in fresh
+browser sessions and fails unless every still is byte-identical, which is how
+a nondeterministically-rendering component gets caught before it ships. The
+deploy deliberately shoots without it: the determinism gate is within-machine
+by design.
 
 There is **no manual publish step**. Bundles are derived artifacts: the website
 release workflow (`release.website.yaml`) runs `pack-all` and deploys the
 bundles alongside the site — packing every tour and shooting stills for the
 tours that declare a `shot` — so a tour goes live at
-`https://stigmer.ai/demos/<slug>/` (stills under `…/<slug>/stills/`) when its PR
-merges — atomically with the docs page that embeds it.
+`https://stigmer.ai/demos/<slug>/` (stills under `…/<slug>/stills/`) when its
+PR merges — atomically with the docs page that embeds it.
 
-To see an **unreleased** tour on its real docs page before it deploys, serve the
-packed bundles locally and point the docs dev server at that origin — the embeds
-default to the production bundles otherwise. (`scenar serve` hosts one bundle at
-`/`, so for the docs' `<base>/<slug>/` URL shape use any static file server over
-`.bundles/` — the same layout production deploys.)
+To see an **unreleased** tour on its real docs page before it deploys, serve
+the packed bundles locally and point the docs dev server at that origin — the
+embeds default to the production bundles otherwise. (`scenar serve` hosts one
+bundle at `/`, so for the docs' `<base>/<slug>/` URL shape use any static file
+server over `.bundles/` — the same layout production deploys.)
 
 ```bash
 # Terminal 1: serve every packed bundle at http://localhost:4173/<slug>/
@@ -339,6 +340,6 @@ etc. in the packed embed) require `@scenar/*@0.4.0` or later (pinned in
 One known engine quirk: the packed embed arms a step's interactions when the
 step mounts, so **interactions on the first step fire under the poster, before
 Play**. Keep step 0 cursor-less (an establishing beat) until this is fixed in
-`@scenar/react`. `scripts/verify-scenar-tours.mjs` enforces this for new tours;
-the five Path-B playbacks that predate the rule are grandfathered in its
-`KNOWN_STEP0_OFFENDERS` set.
+`@scenar/react`. `scripts/verify-scenar-tours.mjs` enforces this for new
+tours; the five Path-B playbacks that predate the rule are grandfathered in
+its `KNOWN_STEP0_OFFENDERS` set.
