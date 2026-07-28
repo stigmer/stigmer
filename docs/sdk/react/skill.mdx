@@ -708,6 +708,7 @@ Options for [`useSkillCount`](#useskillcount).
 <TypeTable
   type={{
     query: { type: "string", description: "Text query to filter skills before counting." },
+    refetchToken: { type: "unknown", description: "Opaque token that forces a recount when its value changes." },
     scope: { type: "ResourceListScope", description: "Controls which skills are counted.  - `\"org\"` — only skills owned by the given organization. - `\"all\"` — includes public/platform skills." },
   }}
 />

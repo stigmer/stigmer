@@ -38,7 +38,7 @@ function useApplyManifest(org: string): UseApplyManifestReturn
 
 <TypeTable
   type={{
-    applyAll: { type: "() => Promise<boolean>", description: "Apply all documents sequentially in dependency order. Entries update live. Stops at the first failure (later entries become `\"skipped\"`). Resolves `true` when every document applied." },
+    applyAll: { type: "() => Promise<readonly ManifestPreviewEntry[]>", description: "Apply all documents sequentially in dependency order. Entries update live. Stops at the first failure (later entries become `\"skipped\"`). Resolves to the final per-document entries with terminal statuses — the caller derives full success (`every applied`) and the applied subset (for a list refresh) without re-reading React state, which is still stale in the calling closure. Empty when there was nothing to apply." },
     content: { type: "string", description: "Current manifest text (paste target)." },
     entries: { type: "readonly ManifestPreviewEntry[] | null", description: "Validated per-document preview in dependency apply order, or `null` while the content is empty or invalid." },
     hasRedactedSecrets: { type: "boolean", description: "`true` when the content contains `***REDACTED***` secret markers." },
@@ -149,8 +149,8 @@ Zero Console dependencies — safe for platform builder embedding.
 
 <TypeTable
   type={{
+    onApplied: { type: "(applied: readonly ManifestPreviewEntry[]) => void", description: "Called when the dialog closes after at least one document applied, with the applied entries in apply order — on full success, and also when the operator dismisses the dialog after a partial apply (some documents applied, a later one failed). Use it to refresh a list so the newly applied resources appear without a reload. It never fires when nothing applied, and fires once per close. Mirrors EditResourceYamlDialog's `onApplied`." },
     onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog should open or close.", required: true },
-    onSuccess: { type: "(entries: readonly ManifestPreviewEntry[]) => void", description: "Called after every document applied successfully, with the per-document results in apply order. Use for navigation or list refresh." },
     open: { type: "boolean", description: "Whether the dialog is open.", required: true },
     org: { type: "string", description: "Target organization slug for documents that omit `metadata.org`.", required: true },
   }}
@@ -161,7 +161,7 @@ Zero Console dependencies — safe for platform builder embedding.
   open={open}
   onOpenChange={setOpen}
   org={activeOrg}
-  onSuccess={() => refetchList()}
+  onApplied={() => refetchList()}
 />
 ```
 

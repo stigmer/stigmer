@@ -466,6 +466,7 @@ individual hooks and view components directly.
     onScopeChange: { type: "(scope: \"org\" | \"all\") => void", description: "Called when scope changes (for Console to persist)." },
     onStateChange: { type: "(state: { filters: readonly FilterValue[]; query: string; sort: SortValue | null }) => void", description: "Called when any filter/sort/query state changes (for URL sync)." },
     org: { type: "string | null", description: "Organization slug. Pass `null` to disable fetching.", required: true },
+    refetchToken: { type: "unknown", description: "Opaque token that forces a background refetch of the list whenever its value changes — the current view stays rendered with a refetch shimmer (no remount flash), and pagination and sort are preserved. Bump it after an out-of-band mutation (applying a manifest, deleting a row) so the change appears without a reload." },
     renderCard: { type: "(item: TData, index: number) => ReactNode", description: "Custom card renderer for card view. Receives the item and its index. When omitted, the workbench falls back to a default card layout." },
     renderInspector: { type: "(item: TData) => ReactNode", description: "Inspector content renderer. When provided, clicking an item opens the split-panel inspector with this content. When omitted, the inspector is disabled." },
     renderItemAction: { type: "(item: TData) => ReactNode", description: "Per-item action renderer (shown in table rows, card corners, list ends)." },
@@ -708,6 +709,7 @@ Options for [`useResourceCollection`](#useresourcecollection).
     page: { type: "number", description: "Current page number (1-indexed)." },
     pageSize: { type: "number", description: "Page size." },
     query: { type: "string", description: "Text search query. No debouncing is applied — the consumer controls timing." },
+    refetchToken: { type: "unknown", description: "Opaque token that forces a background refetch whenever its value changes. Use it to re-read the list after an out-of-band mutation (e.g. applying a manifest or deleting a row) without remounting: bump a counter and pass it here. The current page stays rendered with an `isRefetching` shimmer — no full-list flash. A change to this token alone never resets pagination or sort." },
     scope: { type: "\"org\" | \"all\"", description: "Scope for resource visibility. - `\"org\"` — resources owned by the active organization. - `\"all\"` — includes public resources from other organizations." },
     sort: { type: "SortValue | null", description: "Active sort. When provided, the column header shows the sort indicator." },
   }}

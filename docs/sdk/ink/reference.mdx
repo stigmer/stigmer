@@ -62,6 +62,7 @@ Suitable for CLI tools, server-side scripts, and Ink terminal apps.
     apiKey: { type: "string", description: "Static API key for authentication." },
     baseUrl: { type: "string", description: "Stigmer API server URL (e.g., \"https://api.stigmer.ai\").", required: true },
     getAccessToken: { type: "TokenProvider", description: "Dynamic token provider for authentication." },
+    protocol: { type: "\"grpc\" | \"grpc-web\"", description: "gRPC wire protocol to speak to the backend. Defaults to `\"grpc-web\"`.  - `\"grpc-web\"` (default) traverses HTTP/1.1 proxies and browser-grade   edges, so it is the safe choice for the CLI and Ink apps that may   sit behind arbitrary corporate proxies or an ingress that only   understands gRPC-Web. - `\"grpc\"` is native gRPC over HTTP/2. Use it for in-cluster,   server-to-server callers that dial a gRPC endpoint directly — a   Java gRPC server (like stigmer-service on its internal address)   rejects gRPC-Web content types with HTTP 415, and the OSS Go server   serves native gRPC on the same listener, so `\"grpc\"` is correct   against both. This mirrors the runner's own backend client   (`backend/services/runner/src/client/stigmer-client.ts`), the other   in-cluster Node caller." },
   }}
 />
 
@@ -81,7 +82,7 @@ const agent = await stigmer.agent.get("my-agent");
 
 Re-exported from `@stigmer/sdk/node`. See [SDK Overview](/docs/sdk/overview) for full documentation.
 
-Create a gRPC-web transport for Node.js using native HTTP/2.
+Create a Node.js transport (gRPC-web by default, native gRPC opt-in).
 
 The interceptor chain matches the browser transport for consistent
 behavior across runtimes:
@@ -92,6 +93,10 @@ behavior across runtimes:
 The browser-specific auth-redirect interceptor (`onUnauthenticated`)
 is intentionally omitted — Node.js consumers handle auth failures
 through error handling, not UI redirects.
+
+The wire protocol is chosen by `NodeClientConfig.protocol`
+(default `"grpc-web"` over HTTP/2); pass `"grpc"` for native gRPC when
+dialing a gRPC endpoint directly.
 
 
 ## Components

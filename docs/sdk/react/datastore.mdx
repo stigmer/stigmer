@@ -1044,6 +1044,7 @@ Options for [`useDatastoreCount`](#usedatastorecount).
 <TypeTable
   type={{
     query: { type: "string", description: "Text query to filter datastores before counting." },
+    refetchToken: { type: "unknown", description: "Opaque token that forces a recount when its value changes." },
     scope: { type: "ResourceListScope", description: "Controls which datastores are counted.  - `\"org\"` — only datastores owned by the given organization. - `\"all\"` — includes public/platform datastores." },
   }}
 />

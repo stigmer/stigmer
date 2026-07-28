@@ -3563,6 +3563,7 @@ Options for [`useWorkflowCount`](#useworkflowcount).
 <TypeTable
   type={{
     query: { type: "string", description: "Text query to filter workflows before counting." },
+    refetchToken: { type: "unknown", description: "Opaque token that forces a recount when its value changes." },
     scope: { type: "ResourceListScope", description: "Controls which workflows are counted.  - `\"org\"` — only workflows owned by the given organization. - `\"all\"` — includes public/platform workflows." },
   }}
 />
