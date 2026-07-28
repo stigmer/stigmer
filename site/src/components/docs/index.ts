@@ -1,11 +1,8 @@
 export { ApprovalFlowPlayback as DemoApprovalFlowPlayback } from "./demos/scenarios/approval-flow-playback";
 export { ToolCallsPlayback as DemoToolCallsPlayback } from "./demos/scenarios/tool-calls-playback";
-export { FederationOverviewTour as DemoFederationOverviewTour } from "./demos/scenarios/federation-overview-tour";
-export { RegisterIdpPlayback as DemoRegisterIdpPlayback } from "./demos/scenarios/register-idp-playback";
 export { MarketplaceConnectTour as DemoMarketplaceConnectTour } from "./demos/scenarios/marketplace-connect-tour";
 export { OAuthConnectFlow as DemoOAuthConnectFlow } from "./demos/scenarios/oauth-connect-flow";
 export { ByoaSetup as DemoByoaSetup } from "./demos/scenarios/byoa-setup";
-export { PlatformClientSetupTour as DemoPlatformClientSetupTour } from "./demos/scenarios/platform-client-setup-tour";
 export { ThemingPlayground as DemoThemingPlayground } from "./demos/scenarios/theming-playground";
 export { ConnectSlackChannel as DemoConnectSlackChannel } from "./demos/scenarios/connect-slack-channel";
 export { ConnectWhatsAppChannel as DemoConnectWhatsAppChannel } from "./demos/scenarios/connect-whatsapp-channel";

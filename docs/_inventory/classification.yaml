@@ -529,9 +529,8 @@ pages:
     medium: diagram
     why:
       A mode-selection hub; the architecture diagram plus cards carry it, and
-      the animated overview tour adds nothing a hub needs.
-    embeds:
-      DemoFederationOverviewTour: drop
+      the animated overview tour added nothing a hub needs (dropped
+      2026-07-28).
 
   guides/authentication/federation/authentication-flow:
     fate: keep
@@ -554,10 +553,6 @@ pages:
       Gather JWKS URI, issuer, and audience from your OIDC vendor and create the
       Identity Provider, optionally with JIT.
     medium: none
-    embeds:
-      # An API cookbook; the playback is unreferenced by prose and shows
-      # nothing the code blocks don't already say.
-      DemoRegisterIdpPlayback: drop
 
   guides/authentication/federation/sso-login:
     fate: keep
@@ -616,11 +611,10 @@ pages:
     medium: diagram
     why:
       Token minting is a backend sequence; the existing diagram plus the
-      token-flow playback carry it. The legacy setup tour 13 lines below the
-      playback is a second embed on the same topic and goes.
+      token-flow playback carry it. The legacy setup tour that followed the
+      playback was a second embed on the same topic (dropped 2026-07-28).
     embeds:
       platform-client-token-flow: keep
-      DemoPlatformClientSetupTour: drop
 
   concepts/billing:
     fate: split
