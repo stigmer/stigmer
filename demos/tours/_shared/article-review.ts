@@ -11,9 +11,10 @@
  * `order-management-mcp.ts` — a depicted resource with more than one
  * consumer lives in `_shared/`.)
  *
- * The identity trio (`TASK_NAME`, `UI_HINT`, the two outcomes) also matches
- * the workflow YAML printed on that docs page — change one side only with
- * the other in hand.
+ * The gate identity here (`TASK_NAME`, `REVIEW_PROMPT`, `UI_HINT`, the two
+ * outcome names) also matches the workflow YAML printed on that docs page —
+ * drift-locked by `scripts/verify-docs-tour-parity.test.mjs`, so editing
+ * either side alone fails the root test suite.
  *
  * Pure data, importable from `steps.ts` under plain Node (the narrate/gate
  * import discipline): no React, no component packages.
