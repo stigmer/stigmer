@@ -13,6 +13,11 @@ on:
         required: false
         type: boolean
         default: false
+      version:
+        description: 'Existing tag to build and release (e.g. v3.4.1). Leave empty for a dev build.'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -32,6 +37,11 @@ jobs:
         run: |
           if [ "${{ github.ref_type }}" = "tag" ]; then
             VERSION="${{ github.ref_name }}"
+            SHOULD_RELEASE="true"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            # Recovery path: re-release an existing tag when its tag-push run
+            # failed (the tag itself can't be re-pushed).
+            VERSION="${{ github.event.inputs.version }}"
             SHOULD_RELEASE="true"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # Numeric-only pre-release id; Windows MSI rejects non-numeric identifiers.
@@ -115,11 +125,15 @@ jobs:
         with:
           script: |
             const tag = process.env.VERSION;
+            // No target_commitish: the Actions token 403s ("Resource not
+            // accessible by integration") when it names a SHA that is not a
+            // branch tip, and that gate fires even when the tag already
+            // exists. On tag-push runs the tag exists, so GitHub resolves the
+            // commit from the tag itself.
             const params = {
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: tag,
-              target_commitish: context.sha,
               name: `Stigmer Desktop ${tag}`,
               body: 'Download the desktop installer for your platform below.',
               draft: true,
