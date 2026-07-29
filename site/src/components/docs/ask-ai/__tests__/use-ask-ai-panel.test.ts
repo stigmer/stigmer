@@ -2,15 +2,9 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { renderHook, cleanup, act } from "@testing-library/react";
 import { useAskAiPanel } from "../useAskAiPanel";
 
-let mockResolvedTheme: string | undefined = "dark";
-vi.mock("next-themes", () => ({
-  useTheme: () => ({ resolvedTheme: mockResolvedTheme }),
-}));
-
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
-  mockResolvedTheme = "dark";
 });
 
 describe("useAskAiPanel", () => {
@@ -27,34 +21,14 @@ describe("useAskAiPanel", () => {
     expect(result.current.everOpened).toBe(true);
   });
 
-  it("pins the theme first-write-wins across close, theme flip, and reopen", () => {
-    const { result, rerender } = renderHook(() => useAskAiPanel());
-    expect(result.current.pinnedTheme).toBe(null);
-
-    act(() => result.current.setOpen(true));
-    expect(result.current.pinnedTheme).toBe("dark");
-
-    act(() => result.current.setOpen(false));
-    mockResolvedTheme = "light";
-    rerender();
-    act(() => result.current.setOpen(true));
-
-    // Reopening after a theme toggle must NOT re-pin: the mounted element's
-    // theme attribute changing would rebuild the iframe mid-conversation.
-    expect(result.current.pinnedTheme).toBe("dark");
-  });
-
-  it("retry re-pins the theme and bumps the embed epoch", () => {
-    const { result, rerender } = renderHook(() => useAskAiPanel());
+  it("retry bumps the embed epoch and re-enters connecting", () => {
+    const { result } = renderHook(() => useAskAiPanel());
     act(() => result.current.setOpen(true));
     const epochBefore = result.current.embedEpoch;
 
-    mockResolvedTheme = "light";
-    rerender();
     act(() => result.current.retry());
 
     expect(result.current.embedEpoch).toBe(epochBefore + 1);
-    expect(result.current.pinnedTheme).toBe("light");
     expect(result.current.status).toBe("connecting");
   });
 

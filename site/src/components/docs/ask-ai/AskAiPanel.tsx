@@ -9,6 +9,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { CircleAlert, LoaderCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
+import { useDocsColorMode } from "@/components/docs/useDocsColorMode";
 import { useAskAi } from "./AskAiProvider";
 import { ASK_AI_AGENT, ASK_AI_APP_ORIGIN, ASK_AI_ORG } from "./config";
 
@@ -27,8 +28,12 @@ import { ASK_AI_AGENT, ASK_AI_APP_ORIGIN, ASK_AI_ORG } from "./config";
  * button is the guaranteed affordance, not decoration.
  */
 export function AskAiPanel() {
-  const { open, setOpen, everOpened, pinnedTheme, status, retry, embedEpoch, elementRef } =
+  const { open, setOpen, everOpened, status, retry, embedEpoch, elementRef } =
     useAskAi();
+  // The site is dark-only, so this is a constant — which is exactly what the
+  // embed element needs: it rebuilds its iframe (wiping the conversation) on
+  // ANY attribute change, so the theme attribute must never vary mid-session.
+  const colorMode = useDocsColorMode();
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen} modal={false} disablePointerDismissal>
@@ -79,7 +84,7 @@ export function AskAiPanel() {
                     org={ASK_AI_ORG}
                     agent={ASK_AI_AGENT}
                     app-origin={ASK_AI_APP_ORIGIN}
-                    theme={pinnedTheme ?? undefined}
+                    theme={colorMode}
                     width="100%"
                     height="100%"
                   />

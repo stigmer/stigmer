@@ -84,8 +84,8 @@ Export an array of `ScenarioStep<T>` (type from `@scenar/react`). Each step has:
   a beat cannot renumber docs references). `scenar shoot` renders every
   declared shot to `stills/<shot>.<theme>.png` inside the packed bundle —
   light and dark, cursor suppressed — and docs pages place it with
-  `<Still id="<tour>/<shot>" …>` (see `docs/STYLE.md`). Three rules come
-  with a shot:
+  `<Still id="<tour>/<shot>" …>` (see `docs/STYLE.md`; the docs render only
+  the light capture). Three rules come with a shot:
   - **Interaction tails must fit inside the step**: a click needs ~450ms to
     dispatch, typing ~50ms/char, a camera move 600ms — the end-of-step frame
     is only settled if the step's duration leaves room after its last
@@ -202,9 +202,11 @@ Decisions of record: scenar-cloud DD-008 (one scale factor) and DD-009
 ## Theme
 
 Packed embeds are light by default and switch to dark when framed with
-`?theme=dark`. The docs `<ScenarEmbed>` wrapper passes the current page theme,
-so an embed always matches the surrounding docs. Author against `--scenar-*`
-tokens and both themes work for free — always verify both during review.
+`?theme=dark`. The docs site is dark-only and pins every embed to
+`?theme=light` — media is deliberately light-on-dark, a bright frame against
+the dark page — so **the light theme is what readers see; verify it during
+review**. Author against `--scenar-*` tokens anyway: the dark theme remains a
+one-query-param capability for other hosts, just not a docs review gate.
 
 ---
 
@@ -293,7 +295,7 @@ cd demos && npx scenar narrate tours/<slug> --tts edge-tts
 npm run build:css -w @stigmer/react   # from the repo root, or rely on pack-all
 npx scenar pack tours/<slug> --out .bundles/<slug>
 
-# 3. Preview locally — verify parity + BOTH themes (?theme=dark / ?theme=light)
+# 3. Preview locally — verify parity in the light theme (what the docs render)
 npx scenar serve .bundles/<slug>
 
 # 4. If the tour declares shots: render + determinism-check the stills.

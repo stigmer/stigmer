@@ -30,10 +30,16 @@ export default function Layout({ children }: { children: ReactNode }) {
   ];
 
   return (
-    <RootProvider search={{ options: { type: "static" } }}>
-      {/* Inside RootProvider on purpose: the Ask AI panel pins its theme
-          from next-themes, which RootProvider mounts. One provider, one
-          panel, two CSS-gated triggers — both now rendered by DocsHeader. */}
+    // The site is dark-only: the root layout hardcodes `<html class="dark">`
+    // and `theme.enabled: false` keeps RootProvider from mounting next-themes
+    // (which would otherwise follow the OS preference and toggle that class).
+    // Dark is a build-time fact here, exactly as on the marketing pages.
+    <RootProvider
+      search={{ options: { type: "static" } }}
+      theme={{ enabled: false }}
+    >
+      {/* One provider, one panel, two CSS-gated triggers — both rendered
+          by DocsHeader. */}
       <AskAiProvider>
         {/* Chrome ownership (DD-02): DocsHeader replaces the stock navbar on
             BOTH breakpoints and renders the tabs on desktop; DocsSidebar is

@@ -102,6 +102,11 @@ line struck through above its replacement — with Approve and Request changes
 buttons."
 />
 
+Notice the boundary on the frame: the diff presentation — each section's before
+line struck through above its replacement — is your component, while the
+**Approve** and **Request changes** buttons below it are the standard approval
+path, untouched. That boundary is exactly the renderer contract.
+
 ## The renderer contract
 
 Your component receives `ReviewRendererProps`:
@@ -138,6 +143,11 @@ the payload shown as structured data — article title, change summary, and each
 change's section, before, and after — above an optional comment field and the
 Approve and Request changes buttons."
 />
+
+Compare it with the diff above: the same article title, the same changes with
+their before and after values — nothing was lost, only presented as structured
+data fields instead of a rendered diff. The decision buttons are identical on
+both frames, because the approval path never depended on the renderer.
 
 This also means you can add `ui_hint` to production workflows before your
 renderer ships: reviewers see structured data today, your custom UI tomorrow,

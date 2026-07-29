@@ -10,13 +10,6 @@ import {
   ASK_AI_READY_TIMEOUT_MS,
 } from "../config";
 
-// The panel pins its theme through useDocsColorMode -> next-themes. The
-// mutable holder lets tests flip the site theme mid-run.
-let mockResolvedTheme: string | undefined = "dark";
-vi.mock("next-themes", () => ({
-  useTheme: () => ({ resolvedTheme: mockResolvedTheme }),
-}));
-
 /**
  * The docs layout shape: one provider, two triggers, one panel. Both
  * triggers live in DocsHeader (DD-02) — `header` on desktop, `nav` on the
@@ -44,7 +37,6 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.useRealTimers();
-  mockResolvedTheme = "dark";
 });
 
 describe("AskAiPanel", () => {
@@ -95,14 +87,16 @@ describe("AskAiPanel", () => {
     expect(embedElement()).toBe(first);
   });
 
-  it("pins the theme at first open: a site theme flip must not rebuild the iframe", () => {
+  it("keeps every embed attribute stable across re-renders", () => {
     const { rerender } = render(<Harness />);
     openPanel();
     const element = embedElement();
+    // The theme attribute is the site-wide dark constant — which satisfies
+    // the element's contract that no attribute ever changes mid-conversation
+    // (any change rebuilds the iframe and wipes the chat).
     expect(element!.getAttribute("theme")).toBe("dark");
     const iframe = element!.querySelector("iframe");
 
-    mockResolvedTheme = "light";
     rerender(<Harness />);
 
     // Attribute unchanged, element instance unchanged, iframe instance
@@ -156,8 +150,8 @@ describe("AskAiPanel", () => {
     expect(screen.getByText(/isn't available right now/)).toBeTruthy();
   });
 
-  it("retry rebuilds a fresh embed pinned to the current theme", () => {
-    const { rerender } = render(<Harness />);
+  it("retry rebuilds a fresh embed", () => {
+    render(<Harness />);
     openPanel();
     const first = embedElement();
 
@@ -165,18 +159,11 @@ describe("AskAiPanel", () => {
       first!.dispatchEvent(new CustomEvent("stigmer:refused"));
     });
 
-    // A fresh mount has no conversation to lose, so retry is the one moment
-    // re-reading the (possibly toggled) theme is free. The rerender stands in
-    // for next-themes' subscription: a real theme change re-renders the tree,
-    // but this test's mock is a plain variable.
-    mockResolvedTheme = "light";
-    rerender(<Harness />);
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
 
     const second = embedElement();
     expect(second).toBeTruthy();
     expect(second).not.toBe(first);
-    expect(second!.getAttribute("theme")).toBe("light");
     expect(screen.getByText("Connecting to Ask AI…")).toBeTruthy();
   });
 

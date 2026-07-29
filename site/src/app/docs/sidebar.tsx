@@ -17,7 +17,6 @@ import {
   type Option,
 } from "fumadocs-ui/components/layout/root-toggle";
 import { SearchToggle } from "fumadocs-ui/components/layout/search-toggle";
-import { ThemeToggle } from "fumadocs-ui/components/layout/theme-toggle";
 import { useSidebar } from "fumadocs-ui/contexts/sidebar";
 import { cn } from "@/lib/utils";
 import { DocsSidebarFolder } from "./sidebar-folder";
@@ -61,8 +60,9 @@ export function DocsSidebar({ tabs }: { tabs: Option[] }) {
     </SidebarViewport>
   );
 
-  // Collapse control and theme toggle sit in the footer on both
-  // breakpoints — one place to look, and the menu above stays pure.
+  // The collapse control sits in the footer on both breakpoints — one
+  // place to look, and the menu above stays pure. (The site is dark-only;
+  // there is deliberately no theme toggle anywhere.)
   const footer = (
     <SidebarFooter className="flex-row items-center">
       <SidebarCollapseTrigger
@@ -70,7 +70,6 @@ export function DocsSidebar({ tabs }: { tabs: Option[] }) {
       >
         <PanelLeft className="size-4" />
       </SidebarCollapseTrigger>
-      <ThemeToggle className="ms-auto" />
     </SidebarFooter>
   );
 

@@ -58,8 +58,9 @@ spec:
       description: API key for the order management service
 ```
 
-Here's how this Agent looks in the Stigmer web console — every part of the YAML
-above appears as a section of the Agent's detail page:
+Here's the same Agent in the Stigmer web console. The console adds nothing of
+its own — each section of the detail page is one of the YAML fields above,
+rendered for reading:
 
 <Still
   id="agent-detail-tour/agent-detail"
@@ -68,7 +69,11 @@ definition with its description, its full instructions, the
 order-management-api MCP server with three enabled tools, and its two Skills."
 />
 
-Each section of the Agent definition serves a purpose:
+Check the frame against the YAML: the description at the top is
+`spec.description`, the instructions section carries the system prompt verbatim,
+the MCP servers section lists `order-management-api` with its three
+`enabled_tools`, and the two `skill_refs` appear under Skills. Each of those
+fields serves a purpose:
 
 | Field               | What it does                                                                           |
 | ------------------- | -------------------------------------------------------------------------------------- |

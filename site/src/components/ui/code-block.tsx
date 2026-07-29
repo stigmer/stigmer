@@ -3,7 +3,6 @@
 import * as React from "react";
 import { PrismAsyncLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import go from "react-syntax-highlighter/dist/esm/languages/prism/go";
 import yaml from "react-syntax-highlighter/dist/esm/languages/prism/yaml";
 import bash from "react-syntax-highlighter/dist/esm/languages/prism/bash";
@@ -11,7 +10,6 @@ import typescript from "react-syntax-highlighter/dist/esm/languages/prism/typesc
 import javascript from "react-syntax-highlighter/dist/esm/languages/prism/javascript";
 import python from "react-syntax-highlighter/dist/esm/languages/prism/python";
 import json from "react-syntax-highlighter/dist/esm/languages/prism/json";
-import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -74,8 +72,8 @@ export function CodeBlock({
   className,
 }: CodeBlockProps) {
   const [copied, setCopied] = React.useState(false);
-  const { resolvedTheme } = useTheme();
-  const syntaxTheme = resolvedTheme === "dark" ? oneDark : oneLight;
+  // Dark-only site: the syntax theme is a constant, not a theme resolution.
+  const syntaxTheme = oneDark;
 
   const handleCopy = async () => {
     try {
@@ -212,8 +210,8 @@ export function CodeSnippet({
   size = "sm",
   className,
 }: CodeSnippetProps) {
-  const { resolvedTheme } = useTheme();
-  const syntaxTheme = resolvedTheme === "dark" ? oneDark : oneLight;
+  // Dark-only site: the syntax theme is a constant, not a theme resolution.
+  const syntaxTheme = oneDark;
 
   const languageMap: Record<string, string> = {
     bash: "bash",

@@ -7,7 +7,8 @@ interface MermaidProps {
 }
 
 /**
- * Client-side Mermaid diagram renderer with automatic dark/light theme.
+ * Client-side Mermaid diagram renderer, pinned to Mermaid's dark theme
+ * (the site is dark-only, so there is no theme to react to).
  *
  * Used transparently via standard fenced code blocks in MDX:
  *
@@ -37,10 +38,9 @@ export function Mermaid({ chart }: MermaidProps) {
       try {
         const mermaid = (await import("mermaid")).default;
 
-        const isDark = document.documentElement.classList.contains("dark");
         mermaid.initialize({
           startOnLoad: false,
-          theme: isDark ? "dark" : "default",
+          theme: "dark",
           fontFamily: "inherit",
           securityLevel: "loose",
         });
@@ -63,39 +63,6 @@ export function Mermaid({ chart }: MermaidProps) {
     return () => {
       cancelled = true;
     };
-  }, [chart, id]);
-
-  useEffect(() => {
-    const html = document.documentElement;
-    const observer = new MutationObserver((mutations) => {
-      for (const m of mutations) {
-        if (m.attributeName === "class") {
-          renderWithCurrentTheme();
-          break;
-        }
-      }
-    });
-    observer.observe(html, { attributes: true });
-    return () => observer.disconnect();
-
-    async function renderWithCurrentTheme() {
-      try {
-        const mermaid = (await import("mermaid")).default;
-        const isDark = html.classList.contains("dark");
-        mermaid.initialize({
-          startOnLoad: false,
-          theme: isDark ? "dark" : "default",
-          fontFamily: "inherit",
-          securityLevel: "loose",
-        });
-        const stableId = `mermaid-${id.replace(/:/g, "")}-rerender`;
-        const { svg: rendered } = await mermaid.render(stableId, chart);
-        setSvg(rendered);
-        setError("");
-      } catch {
-        // keep the last successful render on theme switch errors
-      }
-    }
   }, [chart, id]);
 
   if (error) {

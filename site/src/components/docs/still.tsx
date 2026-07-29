@@ -1,5 +1,5 @@
 import { ImageZoom } from "fumadocs-ui/components/image-zoom";
-import { parseStillId, stillImageUrl, type StillTheme } from "@/lib/demos-base";
+import { parseStillId, stillImageUrl } from "@/lib/demos-base";
 
 /**
  * Rendered pixel size of every still: the tours' canonical 1280x800 viewport
@@ -33,17 +33,15 @@ interface StillProps {
  * A Scenar-rendered screenshot in the docs prose — the `still` and
  * `screenshot-journey` medium (docs/STYLE.md).
  *
- * Renders both theme variants and lets CSS pick via the site's `dark`
- * class, so the correct image shows at first paint with no JavaScript —
- * a JS swap on the resolved theme would flash the dark variant at every
- * light-mode reader (the theme hook resolves only after mount). Both
- * variants are lazy: the hidden one has no layout box, never intersects
- * the viewport, and so is not fetched until the reader actually switches
- * theme.
+ * Renders the light capture only: the docs site is dark-only, and media is
+ * deliberately light-on-dark — a bright frame that reads as content against
+ * the dark page (the Cursor-docs convention). This also matches the markdown
+ * exports, where `llms-pages.ts` has always linked the light variant.
+ * (`scenar shoot` still produces a dark capture per shot; it is unused here —
+ * tracked in the docs-revamp debt register.)
  *
- * Each variant composes the registered `<ImageZoom>` (click-to-zoom at the
- * full 2560x1600 capture). Only the visible variant can be clicked, so the
- * zoom always matches the page theme.
+ * Composes the registered `<ImageZoom>` (click-to-zoom at the full
+ * 2560x1600 capture).
  */
 export function Still({ id, alt }: StillProps) {
   const ref = parseStillId(id);
@@ -55,23 +53,16 @@ export function Still({ id, alt }: StillProps) {
     );
   }
 
-  const variant = (theme: StillTheme) => (
-    <ImageZoom
-      src={stillImageUrl(ref, theme)}
-      alt={alt}
-      width={STILL_WIDTH}
-      height={STILL_HEIGHT}
-      loading="lazy"
-      className={
-        theme === "light" ? "rounded-lg dark:hidden" : "hidden rounded-lg dark:block"
-      }
-    />
-  );
-
   return (
     <div className="not-prose mx-auto my-4 w-full max-w-4xl">
-      {variant("light")}
-      {variant("dark")}
+      <ImageZoom
+        src={stillImageUrl(ref, "light")}
+        alt={alt}
+        width={STILL_WIDTH}
+        height={STILL_HEIGHT}
+        loading="lazy"
+        className="rounded-lg"
+      />
     </div>
   );
 }

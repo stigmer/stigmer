@@ -27,10 +27,8 @@ const dmMono = DM_Mono({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
-  ],
+  // Dark-only site: one theme color regardless of the OS preference.
+  themeColor: "#0a0a0a",
 };
 
 export const metadata: Metadata = {
@@ -162,7 +160,11 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    // Dark-only site: the class is a build-time fact. No theme provider
+    // mounts anywhere (docs RootProvider passes `theme.enabled: false`), so
+    // nothing ever mutates <html> on the client — no hydration suppression
+    // needed. Vendor stylesheets key their dark tokens off this class.
+    <html lang="en" className="dark">
       <head>
         <script
           type="application/ld+json"

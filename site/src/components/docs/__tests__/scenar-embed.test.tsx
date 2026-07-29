@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, screen, act, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
 import { ScenarEmbed } from "../scenar-embed";
 
 /**
  * The docs `ScenarEmbed` is now a thin slug → URL adapter over `@scenar/embed`'s
  * official React component, so these tests cover only what this wrapper owns: the
  * id → published-URL mapping (production default + the authoring-loop env
- * override), the a11y title, host-theme sync, and the responsive box. The strict
- * postMessage validation, resize-to-fit, and multi-instance isolation are covered
- * by `@scenar/embed`'s own suite.
+ * override), the a11y title, the light theme pin, and the responsive box. The
+ * strict postMessage validation, resize-to-fit, and multi-instance isolation are
+ * covered by `@scenar/embed`'s own suite.
  */
 function getIframe(): HTMLIFrameElement {
   return screen.getByTitle("Authentication flow walkthrough") as HTMLIFrameElement;
@@ -24,7 +24,9 @@ afterEach(() => {
 });
 
 describe("ScenarEmbed", () => {
-  it("frames the published tour by id with a themed src (dark)", () => {
+  it("pins tours to the light theme even though the site itself is dark", () => {
+    // The docs page always carries the `dark` class; media is deliberately
+    // light-on-dark, so the pin must win over the host state.
     document.documentElement.classList.add("dark");
     render(
       <ScenarEmbed
@@ -34,7 +36,7 @@ describe("ScenarEmbed", () => {
     );
 
     expect(getIframe().getAttribute("src")).toBe(
-      "https://stigmer.ai/demos/authentication-flow-playback/?theme=dark",
+      "https://stigmer.ai/demos/authentication-flow-playback/?theme=light",
     );
   });
 
@@ -49,43 +51,6 @@ describe("ScenarEmbed", () => {
 
     expect(getIframe().getAttribute("src")).toBe(
       "http://localhost:4173/authentication-flow-playback/?theme=light",
-    );
-  });
-
-  it("syncs the theme to the light docs theme", () => {
-    render(
-      <ScenarEmbed
-        id="authentication-flow-playback"
-        title="Authentication flow walkthrough"
-      />,
-    );
-
-    expect(getIframe().getAttribute("src")).toBe(
-      "https://stigmer.ai/demos/authentication-flow-playback/?theme=light",
-    );
-  });
-
-  it("reacts to a live theme toggle on <html>", async () => {
-    render(
-      <ScenarEmbed
-        id="authentication-flow-playback"
-        title="Authentication flow walkthrough"
-      />,
-    );
-    expect(getIframe().getAttribute("src")).toContain("?theme=light");
-
-    act(() => {
-      document.documentElement.classList.add("dark");
-    });
-    await waitFor(() =>
-      expect(getIframe().getAttribute("src")).toContain("?theme=dark"),
-    );
-
-    act(() => {
-      document.documentElement.classList.remove("dark");
-    });
-    await waitFor(() =>
-      expect(getIframe().getAttribute("src")).toContain("?theme=light"),
     );
   });
 

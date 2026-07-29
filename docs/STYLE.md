@@ -259,7 +259,8 @@ Two rules when adding or removing an embed:
 2. Give it a prose lead-in that says what the reader is about to watch. An
    animated-tour embed contributes nothing to the markdown exports (`llms.txt`,
    the Copy-as-Markdown button), so the surrounding prose must carry the
-   information on its own. (Stills are different — see below.)
+   information on its own. (Stills carry a stronger rule of their own — see "A
+   still completes a story" below.)
 
 The legacy `<Demo* />` components (for example `<DemoToolCallsPlayback />`) are
 the pre-Scenar embed system and are being retired page by page during the docs
@@ -282,6 +283,19 @@ definition with its description and instructions."
 />
 ```
 
+- **A still completes a story.** Never drop a screenshot in "for visual
+  interest" — a reader who senses a screenshot is decorative learns to skip all
+  of them. Every still is the middle of a three-beat sequence the prose builds
+  around it:
+  1. **Setup** — the sentence before the still names the reader's action or the
+     claim being demonstrated ("Run `stigmer agent deploy`", "the gate renders
+     the payload as a diff").
+  2. **Payoff** — the still shows the outcome of exactly that action or claim,
+     nothing else. If the frame doesn't answer "and here is what you see", it is
+     the wrong frame (or the wrong shot — re-declare it).
+  3. **Anchor** — the prose after the still (or the next step in a journey)
+     points at something concrete on the frame the reader should find or verify
+     before moving on. A still nothing refers back to is decoration.
 - **`id` is `<scenario>/<shot>`** — a tour directory under `demos/tours/` and a
   `shot` name declared on one of its steps (`demos/README.md` covers declaring
   shots). CI resolves both halves and fails on a typo, a missing shot, or a
@@ -292,9 +306,12 @@ definition with its description and instructions."
   gets. Describe the screen ("The Agent detail page showing…"), don't repeat the
   narration: narration is written for audio, alt text for a reader who cannot
   see the image. Write the tag self-closing; CI rejects a paired form.
-- **Both themes ship automatically.** The reader's color mode picks the matching
-  variant with no flash and no double download; click-to-zoom shows the full
-  2560x1600 capture.
+- **Stills render light-on-dark.** The docs site is dark-only and media is
+  deliberately light: a bright frame reads as content against the dark page, and
+  the markdown exports have always linked the light variant, so the two channels
+  stay consistent. `scenar shoot` still captures both themes; only the light
+  capture is rendered, so eyeball the light variant when reviewing.
+  Click-to-zoom shows the full 2560x1600 capture.
 - **A still keeps its source tour alive.** When a still replaces a page's last
   `<ScenarEmbed>`, the tour under `demos/tours/` must stay — it is what the
   still is rendered from. The classification `embeds` map tracks iframe embeds
@@ -344,8 +361,8 @@ description: Step-by-step guide to defining and running your first Agent.
 ## Diagrams
 
 Fenced ` ```mermaid ` code blocks render as interactive diagrams (client-side
-via Mermaid.js). They automatically switch between light and dark themes. Prefer
-diagrams over lengthy textual descriptions of architecture or data flow.
+via Mermaid.js) in the site's dark theme. Prefer diagrams over lengthy textual
+descriptions of architecture or data flow.
 
 ````mdx
 ```mermaid

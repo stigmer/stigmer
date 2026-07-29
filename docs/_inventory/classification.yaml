@@ -15,9 +15,8 @@
 #             interactive — the page's TARGET demonstration centerpiece
 #             (DD-01 in the 20260727.01.docs-revamp project). Prose and code
 #             are the substrate of every page, not a medium. `still` and
-#             `screenshot-journey` await engine support (stigmer/scenar #11)
-#             — classifying a page as either does NOT authorize hand-captured
-#             screenshots in the interim.
+#             `screenshot-journey` are Scenar-rendered `<Still>`s (see
+#             docs/STYLE.md "Stills") — never hand-captured screenshots.
 #   why       Rationale for a non-"none" medium (required by the gate).
 #   embeds    Per-embed fate map for embeds the page renders TODAY, keyed by
 #             ScenarEmbed id or legacy <Demo*> component name:

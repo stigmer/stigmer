@@ -1,10 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import {
-  useDocsColorMode,
-  type StigmerColorMode,
-} from "@/components/docs/useDocsColorMode";
 import { ASK_AI_READY_TIMEOUT_MS } from "./config";
 
 /**
@@ -32,18 +28,10 @@ export interface AskAiPanelState {
    * close/reopen so the conversation survives.
    */
   everOpened: boolean;
-  /**
-   * Color mode captured when the embed (re)mounts, then held stable: the
-   * element rebuilds its iframe — wiping the conversation — if any attribute
-   * changes, and the embed protocol has no live theme channel. A stale theme
-   * is the deliberate trade against a wiped chat. `null` until first open.
-   */
-  pinnedTheme: StigmerColorMode | null;
   status: AskAiStatus;
   /**
    * Rebuilds the embed after `unavailable` (key the element with
-   * `embedEpoch`). Re-pins the theme too — a fresh mount has no
-   * conversation, so it is the one moment re-reading the theme is free.
+   * `embedEpoch`).
    */
   retry: () => void;
   /**
@@ -68,32 +56,21 @@ export interface AskAiPanelState {
  * extraction into `@stigmer/react` is a file move, not a rewrite.
  */
 export function useAskAiPanel(): AskAiPanelState {
-  const colorMode = useDocsColorMode();
   const [open, setOpenState] = useState(false);
   const [everOpened, setEverOpened] = useState(false);
-  const [pinnedTheme, setPinnedTheme] = useState<StigmerColorMode | null>(null);
   const [status, setStatus] = useState<AskAiStatus>("connecting");
   const [embedEpoch, setEmbedEpoch] = useState(0);
   const readyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const setOpen = useCallback(
-    (next: boolean) => {
-      setOpenState(next);
-      if (next) {
-        setEverOpened(true);
-        // Functional update keeps the pin first-write-wins: reopening after
-        // a site theme toggle must NOT change the attribute mid-conversation.
-        setPinnedTheme((pinned) => pinned ?? colorMode);
-      }
-    },
-    [colorMode],
-  );
+  const setOpen = useCallback((next: boolean) => {
+    setOpenState(next);
+    if (next) setEverOpened(true);
+  }, []);
 
   const retry = useCallback(() => {
     setStatus("connecting");
-    setPinnedTheme(colorMode);
     setEmbedEpoch((epoch) => epoch + 1);
-  }, [colorMode]);
+  }, []);
 
   const elementRef = useCallback((element: HTMLElement | null) => {
     if (!element) return undefined;
@@ -132,21 +109,11 @@ export function useAskAiPanel(): AskAiPanelState {
       open,
       setOpen,
       everOpened,
-      pinnedTheme,
       status,
       retry,
       embedEpoch,
       elementRef,
     }),
-    [
-      open,
-      setOpen,
-      everOpened,
-      pinnedTheme,
-      status,
-      retry,
-      embedEpoch,
-      elementRef,
-    ],
+    [open, setOpen, everOpened, status, retry, embedEpoch, elementRef],
   );
 }

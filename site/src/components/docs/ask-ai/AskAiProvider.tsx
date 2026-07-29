@@ -10,9 +10,6 @@ const AskAiContext = createContext<AskAiPanelState | null>(null);
  * trigger twice (sidebar header on desktop, navbar on mobile — the two
  * breakpoints have disjoint chrome), but there must be exactly one panel and
  * one embedded chat, so the state lives here rather than in either trigger.
- *
- * Must sit inside Fumadocs' `RootProvider`: the panel pins its theme from
- * `next-themes`, which `RootProvider` mounts.
  */
 export function AskAiProvider({ children }: { children: ReactNode }) {
   const panel = useAskAiPanel();

@@ -68,9 +68,9 @@ The following items cannot be returned:
 - Returns past the 30-day window need case-by-case review
 ```
 
-Here's how this Skill looks in the Stigmer web console — the frontmatter
-`description` and the rendered body appear as separate sections of the Skill's
-detail page:
+That two-part split isn't just a file convention — the platform keeps the parts
+separate everywhere. Here's the same Skill in the Stigmer web console, which
+renders them as two distinct sections:
 
 <Still
   id="skill-detail-tour/skill-detail"
@@ -79,6 +79,12 @@ with its description — the trigger condition the Agent always sees — and the
 rendered SKILL.md body showing the Standard Returns, Exceptions, and Refund
 Processing sections."
 />
+
+Find the split on the frame: the description sits at the top as its own section
+— the trigger condition the Agent always sees — while the rendered body below it
+(Standard Returns, Exceptions, Refund Processing) is the knowledge the Agent
+loads only when that trigger matches. The next two sections cover how to write
+each part.
 
 ### YAML header
 
