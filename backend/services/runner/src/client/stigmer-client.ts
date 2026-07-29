@@ -10,6 +10,7 @@
 
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { createGrpcTransport } from "@connectrpc/connect-node";
+import { context as otelContext, propagation } from "@opentelemetry/api";
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
@@ -145,6 +146,19 @@ export class StigmerClient {
     this.transport = createGrpcTransport({
       baseUrl: options.endpoint,
       interceptors: [
+        // W3C trace-context propagation: stamps `traceparent` (and baggage)
+        // from the active OTel context onto every outgoing RPC, so a runner
+        // span and the server-side request span join into one distributed
+        // trace (the server's GrpcRequestTraceIdInterceptor already parses
+        // traceparent). When OTel is not initialized — the OSS default, no
+        // OTEL_EXPORTER_OTLP_ENDPOINT — the global propagator is a no-op and
+        // this adds nothing to the request.
+        (next) => async (req) => {
+          propagation.inject(otelContext.active(), req.header, {
+            set: (carrier, key, value) => carrier.set(key, value),
+          });
+          return next(req);
+        },
         // Credential selection lives here — one tested decision point — rather
         // than at call sites. Precedence:
         //
