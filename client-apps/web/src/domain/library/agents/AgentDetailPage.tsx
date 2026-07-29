@@ -243,6 +243,9 @@ export function AgentDetailPageInner({ org, slug }: AgentDetailPageInnerProps) {
         onSkillClick={({ org: o, slug: s }) =>
           navigateToDetail("skills", o, s)
         }
+        onDatastoreClick={({ org: o, slug: s }) =>
+          navigateToDetail("datastores", o, s)
+        }
         editable
         primaryAction={primaryAction}
         actions={actions}

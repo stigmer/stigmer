@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type {
+  DatastoreUsage,
   McpServerUsage,
   SubAgent,
 } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
@@ -14,7 +15,9 @@ import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/
 import { useAgent } from "./useAgent.js";
 import { useUpdateAgent } from "./useUpdateAgent.js";
 import { agentToInput } from "./internal/agentToInput.js";
+import { toError } from "../internal/toError.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { DatastoreIcon } from "../datastore/DatastoreDetailView.js";
 import { VisibilityBadge } from "../library/VisibilitySelector.js";
 import { useManageAccess } from "../access/useManageAccess.js";
 import { AgentShareList } from "../sharing/AgentShareList.js";
@@ -58,6 +61,13 @@ export interface AgentDetailViewProps {
    * Provides `org` and `slug` of the referenced skill.
    */
   readonly onSkillClick?: (ref: { org: string; slug: string }) => void;
+  /**
+   * Called when a datastore reference is clicked.
+   * Provides `org` and `slug` of the referenced datastore so the
+   * consumer can wire navigation. When the reference has no explicit
+   * org, the agent's own org is used as fallback.
+   */
+  readonly onDatastoreClick?: (ref: { org: string; slug: string }) => void;
   /**
    * Called once when the agent resource has been fetched successfully.
    * Provides the resource display name for use cases like breadcrumbs,
@@ -176,9 +186,9 @@ export interface AgentDetailViewProps {
  * Fetches the agent via {@link useAgent} internally and renders its
  * full configuration inside a {@link ResourceDetailShell}: a
  * standardized header with action bar, followed by structured content
- * sections (instructions, MCP server usages, skills, sub-agents, and
- * environment variables). Sections with no data are omitted entirely
- * — reducing visual noise per Nielsen heuristic #8.
+ * sections (instructions, MCP server usages, skills, datastores,
+ * sub-agents, and environment variables). Sections with no data are
+ * omitted entirely — reducing visual noise per Nielsen heuristic #8.
  *
  * The action bar transforms this from a read-only view into an
  * operational hub. Actions are provided by the consumer via
@@ -215,6 +225,7 @@ export function AgentDetailView({
   slug,
   onMcpServerClick,
   onSkillClick,
+  onDatastoreClick,
   onResourceLoad,
   primaryAction,
   actions,
@@ -236,12 +247,22 @@ export function AgentDetailView({
   const { agent, isLoading, error, refetch } = useAgent(org, slug);
   const { update, isUpdating } = useUpdateAgent();
 
+  // Last failed inline save, attributed to the field that was edited so
+  // only that section shows the message. The backend's message is the
+  // UX (DD-006): e.g. the datastore exposure guard refuses public +
+  // datastore_usages with an actionable FAILED_PRECONDITION message.
+  const [saveError, setSaveError] = useState<{
+    field: string;
+    message: string;
+  } | null>(null);
+
   const saveField = useCallback(
     async <K extends keyof import("@stigmer/sdk").AgentInput>(
       field: K,
       value: import("@stigmer/sdk").AgentInput[K],
     ): Promise<boolean> => {
       if (!agent) return false;
+      setSaveError(null);
       const input = agentToInput(agent);
       (input as unknown as Record<string, unknown>)[field] = value;
       try {
@@ -249,12 +270,15 @@ export function AgentDetailView({
         onResourceUpdated?.(updated);
         refetch();
         return true;
-      } catch {
+      } catch (err) {
+        setSaveError({ field, message: toError(err).message });
         return false;
       }
     },
     [agent, update, onResourceUpdated, refetch],
   );
+
+  const clearSaveError = useCallback(() => setSaveError(null), []);
 
   const { tree, isEmpty: noDeps } = useDependencyGraph({
     agentName: agent?.metadata?.name || agent?.metadata?.slug || slug,
@@ -290,9 +314,11 @@ export function AgentDetailView({
         onMcpServerClick?.(node.ref);
       } else if (node.kind === "skill") {
         onSkillClick?.(node.ref);
+      } else if (node.kind === "datastore") {
+        onDatastoreClick?.(node.ref);
       }
     },
-    [onMcpServerClick, onSkillClick],
+    [onMcpServerClick, onSkillClick, onDatastoreClick],
   );
 
   const onResourceLoadRef = useRef(onResourceLoad);
@@ -430,9 +456,12 @@ export function AgentDetailView({
         description={spec?.description}
         onMcpServerClick={onMcpServerClick}
         onSkillClick={onSkillClick}
+        onDatastoreClick={onDatastoreClick}
         editable={editable}
         isSaving={isUpdating}
         saveField={saveField}
+        saveError={saveError}
+        clearSaveError={clearSaveError}
       />
     );
   }
@@ -467,22 +496,33 @@ function AgentOverview({
   description,
   onMcpServerClick,
   onSkillClick,
+  onDatastoreClick,
   editable,
   isSaving,
   saveField,
+  saveError,
+  clearSaveError,
 }: {
   readonly spec: NonNullable<ReturnType<typeof useAgent>["agent"]>["spec"];
   readonly agentOrg: string;
   readonly description?: string;
   readonly onMcpServerClick?: (ref: { org: string; slug: string }) => void;
   readonly onSkillClick?: (ref: { org: string; slug: string }) => void;
+  readonly onDatastoreClick?: (ref: { org: string; slug: string }) => void;
   readonly editable?: boolean;
   readonly isSaving?: boolean;
   readonly saveField?: <K extends keyof import("@stigmer/sdk").AgentInput>(
     field: K,
     value: import("@stigmer/sdk").AgentInput[K],
   ) => Promise<boolean>;
+  readonly saveError?: { field: string; message: string } | null;
+  readonly clearSaveError?: () => void;
 }) {
+  // The failed save's message, shown only under the section that owns
+  // the field — a rejection of a datastore edit must not appear under
+  // the skills editor.
+  const errorFor = (field: keyof import("@stigmer/sdk").AgentInput) =>
+    saveError?.field === field ? saveError.message : undefined;
   const handleInstructionsSave = useCallback(
     async (v: string) => saveField?.("instructions", v || undefined) ?? false,
     [saveField],
@@ -504,6 +544,15 @@ function AgentOverview({
       saveField?.(
         "skillRefs",
         refs.map((r) => ({ org: r.org, slug: r.slug })),
+      ) ?? false,
+    [saveField],
+  );
+
+  const handleDatastoresSave = useCallback(
+    async (refs: ResourceRefRow[]) =>
+      saveField?.(
+        "datastoreUsages",
+        refs.map((r) => ({ datastoreRef: { org: r.org, slug: r.slug } })),
       ) ?? false,
     [saveField],
   );
@@ -551,6 +600,19 @@ function AgentOverview({
     [spec?.skillRefs, agentOrg],
   );
 
+  const datastoreRefRows: ResourceRefRow[] = useMemo(
+    () =>
+      (spec?.datastoreUsages ?? []).map((usage) => ({
+        org: usage.datastoreRef?.org || agentOrg,
+        slug: usage.datastoreRef?.slug ?? "",
+        label:
+          usage.datastoreRef?.org && usage.datastoreRef.org !== agentOrg
+            ? `${usage.datastoreRef.org}/${usage.datastoreRef.slug}`
+            : usage.datastoreRef?.slug ?? "",
+      })),
+    [spec?.datastoreUsages, agentOrg],
+  );
+
   const envRows: KeyValueRow[] = useMemo(
     () =>
       Object.entries(spec?.env ?? {})
@@ -569,12 +631,45 @@ function AgentOverview({
   const showInstructions = editable || !!spec?.instructions;
   const showMcpServers = editable || (spec && spec.mcpServerUsages.length > 0);
   const showSkills = editable || (spec && spec.skillRefs.length > 0);
+  const showDatastores = editable || (spec && spec.datastoreUsages.length > 0);
   const showSubAgents = editable || (spec && spec.subAgents.length > 0);
   const showEnv = editable || (spec?.env && Object.keys(spec.env).length > 0);
 
   const [mcpEditing, setMcpEditing] = useState(false);
   const [skillsEditing, setSkillsEditing] = useState(false);
+  const [datastoresEditing, setDatastoresEditing] = useState(false);
   const [envEditing, setEnvEditing] = useState(false);
+
+  // Entering edit mode discards the previous attempt's error — the
+  // message describes a stale draft, not the one being composed.
+  const handleMcpEditingChange = useCallback(
+    (editing: boolean) => {
+      if (editing) clearSaveError?.();
+      setMcpEditing(editing);
+    },
+    [clearSaveError],
+  );
+  const handleSkillsEditingChange = useCallback(
+    (editing: boolean) => {
+      if (editing) clearSaveError?.();
+      setSkillsEditing(editing);
+    },
+    [clearSaveError],
+  );
+  const handleDatastoresEditingChange = useCallback(
+    (editing: boolean) => {
+      if (editing) clearSaveError?.();
+      setDatastoresEditing(editing);
+    },
+    [clearSaveError],
+  );
+  const handleEnvEditingChange = useCallback(
+    (editing: boolean) => {
+      if (editing) clearSaveError?.();
+      setEnvEditing(editing);
+    },
+    [clearSaveError],
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -586,6 +681,7 @@ function AgentOverview({
                 value={spec?.description || ""}
                 onSave={(v) => saveField?.("description", v || undefined) ?? Promise.resolve(false)}
                 isSaving={isSaving}
+                error={errorFor("description")}
                 placeholder="Add a description"
                 minRows={2}
               />
@@ -608,6 +704,7 @@ function AgentOverview({
                 value={spec?.instructions ?? ""}
                 onSave={handleInstructionsSave}
                 isSaving={isSaving}
+                error={errorFor("instructions")}
                 placeholder="Add instructions for the agent"
                 minRows={4}
               />
@@ -619,14 +716,15 @@ function AgentOverview({
       )}
 
       {showMcpServers && (
-        <Section title="MCP Servers" count={spec?.mcpServerUsages.length} onEdit={editable ? () => setMcpEditing((v) => !v) : undefined}>
+        <Section title="MCP Servers" count={spec?.mcpServerUsages.length} onEdit={editable ? () => handleMcpEditingChange(!mcpEditing) : undefined}>
           {editable ? (
             <InlineEditResourceList
               value={mcpRefRows}
               onSave={handleMcpServersSave}
               isSaving={isSaving}
+              error={errorFor("mcpServerUsages")}
               editing={mcpEditing}
-              onEditingChange={setMcpEditing}
+              onEditingChange={handleMcpEditingChange}
               onItemClick={onMcpServerClick ? (ref) => onMcpServerClick({ org: ref.org, slug: ref.slug }) : undefined}
               itemIcon={<McpServerIcon className="size-4" />}
               resourceLabel="MCP server"
@@ -643,14 +741,15 @@ function AgentOverview({
       )}
 
       {showSkills && (
-        <Section title="Skills" count={spec?.skillRefs.length} onEdit={editable ? () => setSkillsEditing((v) => !v) : undefined}>
+        <Section title="Skills" count={spec?.skillRefs.length} onEdit={editable ? () => handleSkillsEditingChange(!skillsEditing) : undefined}>
           {editable ? (
             <InlineEditResourceList
               value={skillRefRows}
               onSave={handleSkillsSave}
               isSaving={isSaving}
+              error={errorFor("skillRefs")}
               editing={skillsEditing}
-              onEditingChange={setSkillsEditing}
+              onEditingChange={handleSkillsEditingChange}
               onItemClick={onSkillClick ? (ref) => onSkillClick({ org: ref.org, slug: ref.slug }) : undefined}
               itemIcon={<SkillIcon className="size-4" />}
               resourceLabel="skill"
@@ -666,24 +765,51 @@ function AgentOverview({
         </Section>
       )}
 
+      {showDatastores && (
+        <Section title="Datastores" count={spec?.datastoreUsages.length} onEdit={editable ? () => handleDatastoresEditingChange(!datastoresEditing) : undefined}>
+          {editable ? (
+            <InlineEditResourceList
+              value={datastoreRefRows}
+              onSave={handleDatastoresSave}
+              isSaving={isSaving}
+              error={errorFor("datastoreUsages")}
+              editing={datastoresEditing}
+              onEditingChange={handleDatastoresEditingChange}
+              onItemClick={onDatastoreClick ? (ref) => onDatastoreClick({ org: ref.org, slug: ref.slug }) : undefined}
+              itemIcon={<DatastoreIcon className="size-4" />}
+              resourceLabel="datastore"
+              defaultOrg={agentOrg}
+            />
+          ) : (
+            <DatastoresContent
+              usages={spec?.datastoreUsages ?? []}
+              defaultOrg={agentOrg}
+              onDatastoreClick={onDatastoreClick}
+            />
+          )}
+        </Section>
+      )}
+
       {showSubAgents && (
         <SubAgentsSection
           subAgents={spec?.subAgents ?? []}
           editable={editable}
           isSaving={isSaving}
+          error={errorFor("subAgents")}
           onSave={(subs) => saveField?.("subAgents", subs.length > 0 ? subs : undefined) ?? Promise.resolve(false)}
         />
       )}
 
       {showEnv && (
-        <Section title="Environment Variables" count={Object.keys(spec?.env ?? {}).length} onEdit={editable ? () => setEnvEditing((v) => !v) : undefined}>
+        <Section title="Environment Variables" count={Object.keys(spec?.env ?? {}).length} onEdit={editable ? () => handleEnvEditingChange(!envEditing) : undefined}>
           {editable ? (
             <InlineEditKeyValue
               value={envRows}
               onSave={handleEnvSave}
               isSaving={isSaving}
+              error={errorFor("env")}
               editing={envEditing}
-              onEditingChange={setEnvEditing}
+              onEditingChange={handleEnvEditingChange}
               showSecretToggle
               showOptionalToggle
               showDescription
@@ -860,6 +986,59 @@ function SkillsContent({
   );
 }
 
+function DatastoresContent({
+  usages,
+  defaultOrg,
+  onDatastoreClick,
+}: {
+  readonly usages: readonly DatastoreUsage[];
+  readonly defaultOrg: string;
+  readonly onDatastoreClick?: (ref: { org: string; slug: string }) => void;
+}) {
+  return (
+    <div className="flex flex-col">
+      {usages.map((usage, index) => {
+        const ref = usage.datastoreRef;
+        if (!ref) return null;
+
+        const refOrg = ref.org || defaultOrg;
+        const label =
+          ref.org && ref.org !== defaultOrg
+            ? `${ref.org}/${ref.slug}`
+            : ref.slug;
+
+        const row = (
+          <div className="flex items-center gap-3">
+            <DatastoreIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">
+              {label}
+            </span>
+          </div>
+        );
+
+        return onDatastoreClick ? (
+          <button
+            key={ref.slug || index}
+            type="button"
+            onClick={() => onDatastoreClick({ org: refOrg, slug: ref.slug })}
+            className={cn(
+              "w-full rounded-md px-3 py-2 text-left transition-colors",
+              "hover:bg-accent-hover",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            )}
+          >
+            {row}
+          </button>
+        ) : (
+          <div key={ref.slug || index} className="px-3 py-2">
+            {row}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 interface SubAgentDraft {
   name: string;
   description: string;
@@ -870,11 +1049,13 @@ function SubAgentsSection({
   subAgents,
   editable,
   isSaving,
+  error,
   onSave,
 }: {
   readonly subAgents: readonly SubAgent[];
   readonly editable?: boolean;
   readonly isSaving?: boolean;
+  readonly error?: string | null;
   readonly onSave?: (subs: import("@stigmer/sdk").SubAgentInput[]) => Promise<boolean>;
 }) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
@@ -1023,6 +1204,12 @@ function SubAgentsSection({
               Add sub-agent
             </button>
           </div>
+        )}
+
+        {error && (
+          <p className="border-t border-border px-3 py-2 text-xs text-destructive" role="alert">
+            {error}
+          </p>
         )}
 
         {editable && showAddForm && (

@@ -2,6 +2,7 @@
 
 import { useCallback, useState, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
+import { DatastoreIcon } from "../datastore/DatastoreDetailView.js";
 import type { DependencyNode, NodeKind } from "./types.js";
 
 interface DependencyTreeNodeProps {
@@ -15,6 +16,7 @@ const KIND_LABELS: Record<NodeKind, string> = {
   agent: "Agent",
   "mcp-server": "MCP",
   skill: "Skill",
+  datastore: "Datastore",
   "sub-agent": "Sub-Agent",
 };
 
@@ -179,6 +181,10 @@ function kindBadgeClasses(kind: NodeKind): string {
       return "bg-[var(--stgm-status-running-subtle)] text-[var(--stgm-status-running)]";
     case "skill":
       return "bg-[var(--stgm-status-pending-subtle)] text-[var(--stgm-status-pending)]";
+    // Badges borrow status hues as category colors (skill=pending,
+    // sub-agent=ready); datastore takes the remaining distinct hue.
+    case "datastore":
+      return "bg-[var(--stgm-status-degraded-subtle)] text-[var(--stgm-status-degraded)]";
     case "sub-agent":
       return "bg-[var(--stgm-status-ready-subtle)] text-[var(--stgm-status-ready)]";
     case "agent":
@@ -205,6 +211,8 @@ function NodeIcon({
       return <McpServerIcon className={className} />;
     case "skill":
       return <SkillIcon className={className} />;
+    case "datastore":
+      return <DatastoreIcon className={className} />;
   }
 }
 

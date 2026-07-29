@@ -1,15 +1,11 @@
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type {
   AgentInput,
+  DatastoreUsageInput,
+  EnvVarDeclarationInput,
   McpServerUsageInput,
   SubAgentInput,
 } from "@stigmer/sdk";
-
-interface EnvVarDeclarationInput {
-  isSecret?: boolean;
-  description?: string;
-  optional?: boolean;
-}
 
 /**
  * Converts a fetched Agent proto to the AgentInput shape expected by
@@ -18,16 +14,23 @@ interface EnvVarDeclarationInput {
  *
  * Must be kept exhaustive — any spec field not mapped here will be
  * cleared on the next update (the backend does full spec replacement).
+ * Enforced by `__tests__/agentToInput.test.ts`: a schema tripwire fails
+ * when `AgentSpec` gains a field this converter does not round-trip
+ * (stigmer/stigmer#319 was exactly such a drop).
  */
 export function agentToInput(agent: Agent): AgentInput {
   const meta = agent.metadata;
   const spec = agent.spec;
 
+  // Resource refs preserve `version` (the tag/hash pin on versioned
+  // resources like Skills) — dropping it would silently reset a pinned
+  // reference to "latest" on the next inline edit.
   const mcpServerUsages: McpServerUsageInput[] | undefined =
     spec?.mcpServerUsages?.map((usage) => ({
       mcpServerRef: {
         org: usage.mcpServerRef?.org ?? "",
         slug: usage.mcpServerRef?.slug ?? "",
+        version: usage.mcpServerRef?.version || undefined,
       },
       enabledTools: usage.enabledTools.length > 0 ? [...usage.enabledTools] : undefined,
       toolApprovalOverrides:
@@ -44,6 +47,7 @@ export function agentToInput(agent: Agent): AgentInput {
     spec?.skillRefs?.map((ref) => ({
       org: ref.org || "",
       slug: ref.slug,
+      version: ref.version || undefined,
     }));
 
   const subAgents: SubAgentInput[] | undefined =
@@ -60,9 +64,22 @@ export function agentToInput(agent: Agent): AgentInput {
           : undefined,
       skillRefs:
         sa.skillRefs.length > 0
-          ? sa.skillRefs.map((r) => ({ org: r.org || "", slug: r.slug }))
+          ? sa.skillRefs.map((r) => ({
+              org: r.org || "",
+              slug: r.slug,
+              version: r.version || undefined,
+            }))
           : undefined,
       modelOverride: sa.modelOverride || undefined,
+    }));
+
+  const datastoreUsages: DatastoreUsageInput[] | undefined =
+    spec?.datastoreUsages?.map((usage) => ({
+      datastoreRef: {
+        org: usage.datastoreRef?.org ?? "",
+        slug: usage.datastoreRef?.slug ?? "",
+        version: usage.datastoreRef?.version || undefined,
+      },
     }));
 
   let env: Record<string, EnvVarDeclarationInput> | undefined;
@@ -91,5 +108,6 @@ export function agentToInput(agent: Agent): AgentInput {
     skillRefs: skillRefs?.length ? skillRefs : undefined,
     subAgents: subAgents?.length ? subAgents : undefined,
     env,
+    datastoreUsages: datastoreUsages?.length ? datastoreUsages : undefined,
   };
 }

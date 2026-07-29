@@ -164,6 +164,8 @@ export {
   type ToolApprovalOverrideInput,
   type SubAgentInput,
   type McpAccessInput,
+  type EnvVarDeclarationInput,
+  type DatastoreUsageInput,
 } from "./gen/agent.js";
 export {
   AgentChannelClient,
