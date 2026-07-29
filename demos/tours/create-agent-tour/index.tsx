@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { AgentDetailView } from "@stigmer/react";
 import { BrowserView, CodeEditorView, TerminalView } from "@scenar/react";
 import { AppShell } from "../_shared/AppShell";
-import { SessionView } from "../_shared/SessionView";
+import { AGENT_DRAFT_PLACEHOLDER, SessionView } from "../_shared/SessionView";
 import { DEMO_ORG } from "../_shared/fixtures";
 import {
   ORDER_LOOKUP_OUTPUT,
@@ -60,7 +60,11 @@ export function renderStep(data: CreateAgentTourStep): ReactNode {
         "creator",
         "/?draft=agent",
         <AppShell activeNav="new-session" contentKey="creator">
-          <SessionView heading="Add an Agent" typingMessage={TYPING_MESSAGE} />
+          <SessionView
+            heading="Add an Agent"
+            placeholder={AGENT_DRAFT_PLACEHOLDER}
+            typingMessage={TYPING_MESSAGE}
+          />
         </AppShell>,
       );
 

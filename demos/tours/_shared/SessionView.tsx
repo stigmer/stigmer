@@ -13,6 +13,7 @@ import {
   useSessionWriteBacks,
   WorkspaceSurface,
   type SessionComposerHandle,
+  type SessionComposerProps,
   type SetupTabProps,
   type SurfaceVirtualDocument,
 } from "@stigmer/react";
@@ -22,6 +23,30 @@ import { DEMO_ORG, MOCK_WORKSPACE } from "./fixtures";
 import "./SessionView.css";
 
 const noop = () => {};
+
+/**
+ * The console home's launcher strings, transcribed from the real
+ * `NewSessionViewer` prop defaults (sdk/react/src/session/
+ * NewSessionViewer.tsx) — the same transcription convention this file's
+ * CSS header uses for the pane metrics. With these as `SessionView`'s own
+ * defaults, the zero-prop `<SessionView />` IS the console home at `/`,
+ * exactly as the zero-prop `NewSessionViewer` is in the product
+ * (stigmer/stigmer#321).
+ */
+const HOME_HEADING = "What would you like to work on?";
+const HOME_PLACEHOLDER = "Describe what you need help with\u2026";
+
+/**
+ * The console's agent-draft launcher placeholder (the `/?draft=agent`
+ * surface), transcribed from `DRAFT_PLACEHOLDERS.agent` in
+ * client-apps/web/src/domain/session/SessionLauncher.tsx. Hoisted here
+ * because two tours depict that surface (agent-creation-tour,
+ * create-agent-tour) — demos/README.md's hoisting rule.
+ */
+export const AGENT_DRAFT_PLACEHOLDER =
+  "Describe the agent you\u2019d like to build \u2014 its purpose, the skills " +
+  "and MCP servers it should use, and any system instructions to " +
+  "guide its behavior.";
 
 /**
  * The session panel facets a tour can open. Mirrors the ids
@@ -59,12 +84,18 @@ interface SessionViewProps {
    * demo — selection callbacks are inert.
    */
   readonly agentRef?: ResourceRef | null;
-  /** Placeholder for the `SessionComposer` textarea. */
+  /**
+   * Placeholder for the `SessionComposer` textarea. Defaults to the
+   * console home's own placeholder; a beat depicting a draft surface
+   * passes that surface's real placeholder (e.g.
+   * {@link AGENT_DRAFT_PLACEHOLDER} for `/?draft=agent`).
+   */
   readonly placeholder?: string;
   /**
    * Heading rendered above the composer in the empty/typing state, as the
-   * real `NewSessionViewer` does (e.g. "Add an Agent" in a draft session,
-   * "What would you like to work on?" on the home screen).
+   * real `NewSessionViewer` does. Defaults to the console home's
+   * "What would you like to work on?"; a draft beat passes its own (e.g.
+   * "Add an Agent").
    */
   readonly heading?: string;
   /**
@@ -105,8 +136,8 @@ export function SessionView({
   showApprovals = false,
   typingMessage,
   agentRef,
-  placeholder = "Describe your agent...",
-  heading,
+  placeholder = HOME_PLACEHOLDER,
+  heading = HOME_HEADING,
   panelView,
   openArtifactName,
 }: SessionViewProps) {
@@ -294,8 +325,35 @@ function LauncherState({
   readonly typingMessage?: string;
   readonly agentRef?: ResourceRef | null;
   readonly placeholder: string;
-  readonly heading?: string;
+  readonly heading: string;
 }) {
+  // One composer wiring for both branches (static and typing), at the
+  // values NewSessionViewer passes on the console home: 3 visible rows,
+  // the harness selector and interaction-mode picker shown with the
+  // default harness and "agent" mode selected, and the launcher's own
+  // aria label — the composer chrome must not differ by whether a beat
+  // types into it (stigmer/stigmer#321). Display-only as ever: every
+  // callback is noop and the root is inert.
+  const composerProps: SessionComposerProps = {
+    onSubmit: noop,
+    placeholder,
+    initialRows: 3,
+    autoFocus: false,
+    workspace: MOCK_WORKSPACE,
+    org: DEMO_ORG,
+    agentRef,
+    onAgentRefChange: noop,
+    onMcpServerUsagesChange: noop,
+    onSkillRefsChange: noop,
+    showHarnessSelector: true,
+    harness: DEFAULT_HARNESS,
+    onHarnessChange: noop,
+    showInteractionModePicker: true,
+    interactionMode: "agent",
+    onInteractionModeChange: noop,
+    ariaLabel: "Start a new session",
+  };
+
   return (
     <div className="sx-session" inert>
       <SessionViewerLayout
@@ -306,22 +364,18 @@ function LauncherState({
         conversation={
           <div className="sx-session__center">
             <div className="sx-session__center-inner">
-              {heading && <h1 className="sx-session__heading">{heading}</h1>}
+              <h1 className="sx-session__heading">{heading}</h1>
               {typingMessage ? (
-                <TypingComposer message={typingMessage} placeholder={placeholder} />
-              ) : (
-                <SessionComposer
-                  onSubmit={noop}
-                  placeholder={placeholder}
-                  autoFocus={false}
-                  workspace={MOCK_WORKSPACE}
-                  org={DEMO_ORG}
-                  agentRef={agentRef}
-                  onAgentRefChange={noop}
-                  onMcpServerUsagesChange={noop}
-                  onSkillRefsChange={noop}
+                <TypingComposer
+                  message={typingMessage}
+                  composerProps={composerProps}
                 />
+              ) : (
+                <SessionComposer {...composerProps} />
               )}
+              <p className="sx-session__enter-hint">
+                Press Enter to send, Shift+Enter for a new line
+              </p>
             </div>
           </div>
         }
@@ -338,13 +392,17 @@ function LauncherState({
  * composer's text from outside. State enters upstream through a supported
  * API (the DD-006 rule-7 shape, like `CreateApiKeyForm.initialName`), never
  * by dispatching synthetic DOM events at the textarea.
+ *
+ * The composer wiring arrives whole from `LauncherState` so the two
+ * branches can never diverge — this branch once dropped `agentRef` by
+ * re-listing the props by hand.
  */
 function TypingComposer({
   message,
-  placeholder,
+  composerProps,
 }: {
   readonly message: string;
-  readonly placeholder: string;
+  readonly composerProps: SessionComposerProps;
 }) {
   const composerRef = useRef<SessionComposerHandle>(null);
 
@@ -352,17 +410,5 @@ function TypingComposer({
     composerRef.current?.setMessage(message);
   }, [message]);
 
-  return (
-    <SessionComposer
-      ref={composerRef}
-      onSubmit={noop}
-      placeholder={placeholder}
-      autoFocus={false}
-      workspace={MOCK_WORKSPACE}
-      org={DEMO_ORG}
-      onAgentRefChange={noop}
-      onMcpServerUsagesChange={noop}
-      onSkillRefsChange={noop}
-    />
-  );
+  return <SessionComposer ref={composerRef} {...composerProps} />;
 }

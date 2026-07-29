@@ -3,6 +3,7 @@ import { SkillDetailView, SkillUploader } from "@stigmer/react";
 import { BrowserView, CodeEditorView, type FileTreeEntry } from "@scenar/react";
 import { AppShell } from "../_shared/AppShell";
 import { ResourceListPage } from "../_shared/ResourceListPage";
+import { SessionView } from "../_shared/SessionView";
 import { DEMO_ORG } from "../_shared/fixtures";
 import {
   type SkillCreationTourStep,
@@ -16,17 +17,6 @@ const SKILL_MD_LINES = SKILL_MD.split("\n");
 
 /** Single-file skill workspace shown in the editor prologue. */
 const FILE_TREE: FileTreeEntry[] = [{ name: "SKILL.md", type: "file", depth: 0 }];
-
-/** Placeholder content area before the tour navigates anywhere. */
-const HOME_HINT: CSSProperties = {
-  display: "flex",
-  height: "100%",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: 16,
-  fontSize: 12,
-  color: "var(--stgm-muted-foreground)",
-};
 
 /** Centers the uploader drop zone in the content area. */
 const UPLOADER_WRAP: CSSProperties = {
@@ -96,11 +86,13 @@ export function renderStep(data: SkillCreationTourStep): ReactNode {
       );
 
     case "library-click":
+      // The console home is the zero-prop SessionView — the real launcher
+      // at its production defaults (stigmer/stigmer#321).
       return consoleWindow(
         "home",
         "/",
         <AppShell highlightNav="library" contentKey="home">
-          <div style={HOME_HINT}>Start a new session</div>
+          <SessionView />
         </AppShell>,
       );
 

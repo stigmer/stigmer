@@ -21,7 +21,7 @@
  * over the player controls). The replica renders the same visual inside the
  * canonical container instead.
  */
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { ConnectError, Code } from "@connectrpc/connect";
 import {
   createInitialMcpServerWizardData,
@@ -37,6 +37,7 @@ import { BrowserView } from "@scenar/react";
 import { AppShell } from "../_shared/AppShell";
 import { ORDER_MGMT_MCP } from "../_shared/order-management-mcp";
 import { ResourceListPage } from "../_shared/ResourceListPage";
+import { SessionView } from "../_shared/SessionView";
 import {
   type IdentityFormPhase,
   type McpServerCreationTourStep,
@@ -140,17 +141,6 @@ const WIZARD_STEPS: WizardStepDef<McpServerWizardData>[] = [
   { id: "review", label: "Review & Create" },
 ];
 
-/** Placeholder content area before the tour navigates anywhere. */
-const HOME_HINT: CSSProperties = {
-  display: "flex",
-  height: "100%",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: 16,
-  fontSize: 12,
-  color: "var(--stgm-muted-foreground)",
-};
-
 /**
  * Renders one wizard beat: the real `WizardShell` chrome around the active
  * real step component, pinned to the content area's height so the footer
@@ -234,12 +224,15 @@ function ImportManifestOverlay() {
 
 export function renderStep(data: McpServerCreationTourStep): ReactNode {
   switch (data.view) {
+    // The console home is the zero-prop SessionView — the real launcher
+    // at its production defaults (stigmer/stigmer#321). Both beats share
+    // contentKey "home", so only the sidebar pulse changes between them.
     case "home":
       return consoleWindow(
         "home",
         "/",
         <AppShell contentKey="home">
-          <div style={HOME_HINT}>Start a new session</div>
+          <SessionView />
         </AppShell>,
       );
 
@@ -248,7 +241,7 @@ export function renderStep(data: McpServerCreationTourStep): ReactNode {
         "home",
         "/",
         <AppShell highlightNav="library" contentKey="home">
-          <div style={HOME_HINT}>Start a new session</div>
+          <SessionView />
         </AppShell>,
       );
 

@@ -1,8 +1,8 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { BrowserView } from "@scenar/react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { AppShell } from "../_shared/AppShell";
-import { SessionView } from "../_shared/SessionView";
+import { AGENT_DRAFT_PLACEHOLDER, SessionView } from "../_shared/SessionView";
 import { ResourceListPage } from "../_shared/ResourceListPage";
 import {
   type AgentCreationTourStep,
@@ -33,17 +33,6 @@ function firstArtifactName(execution: AgentExecution) {
   return execution.status!.artifacts[0]!.name;
 }
 
-/** Placeholder content area before the tour navigates anywhere. */
-const HOME_HINT: CSSProperties = {
-  display: "flex",
-  height: "100%",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: 16,
-  fontSize: 12,
-  color: "var(--stgm-muted-foreground)",
-};
-
 /**
  * Pure `renderStep`: maps a step's data to the view it renders. The player,
  * cursor, narration, and viewport are supplied by `scenar pack` (embed) and
@@ -55,11 +44,13 @@ const HOME_HINT: CSSProperties = {
 export function renderStep(data: AgentCreationTourStep): ReactNode {
   switch (data.view) {
     case "library-click":
+      // The console home is the zero-prop SessionView — the real launcher
+      // at its production defaults (stigmer/stigmer#321).
       return consoleWindow(
         "home",
         "/",
         <AppShell highlightNav="library" contentKey="home">
-          <div style={HOME_HINT}>Start a new session</div>
+          <SessionView />
         </AppShell>,
       );
 
@@ -101,7 +92,11 @@ export function renderStep(data: AgentCreationTourStep): ReactNode {
         "composer",
         "/?draft=agent",
         <AppShell activeNav="library" contentKey="composer" slideDirection="forward">
-          <SessionView agentRef={AGENT_CREATOR_REF} heading="Add an Agent" />
+          <SessionView
+            agentRef={AGENT_CREATOR_REF}
+            heading="Add an Agent"
+            placeholder={AGENT_DRAFT_PLACEHOLDER}
+          />
         </AppShell>,
       );
 
