@@ -1,21 +1,36 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Plus } from "lucide-react";
-import { ResourceCards, ResourceList } from "@stigmer/react";
+import { Plus, Upload } from "lucide-react";
+import { ResourceWorkbench } from "@stigmer/react";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
+import type { ListResult } from "@stigmer/sdk";
 import { PulseHighlight } from "@scenar/react";
+import { DEMO_ORG } from "./fixtures";
 import "./ResourceListPage.css";
+
+const noop = () => {};
 
 interface ResourceListPageProps {
   /** Page heading (e.g. "Agents", "Skills", "MCP Servers"). */
   readonly title: string;
-  /** Label for the create button (e.g. "Add Agent", "Add Skill"). */
+  /**
+   * The resource noun as the console's copy inflects it (`"agents"`,
+   * `"skills"`, `"MCP servers"`). Derives the subtitle ("Browse and manage
+   * {noun} in your organization.") and the search placeholder ("Search
+   * {noun}…") — both follow this exact pattern on every real list page.
+   */
+  readonly nounPlural: string;
+  /** The console's exact create-button label (e.g. "Create agent"). */
   readonly createLabel: string;
   /** `data-cursor-target` value for the create button. */
   readonly cursorTarget: string;
   /** Resource items to display, fed by fixture data — no backend lookup. */
   readonly items: readonly SearchResult[];
-  /** Layout mode for the resource list. @default "list" */
-  readonly layout?: "list" | "grid";
+  /**
+   * Render the Apply-YAML icon button beside the create button, as the
+   * console's agents and MCP-servers pages do (the skills page doesn't).
+   */
+  readonly showApplyYaml?: boolean;
   /** When true, the create button pulses to draw attention. */
   readonly highlightCreate?: boolean;
   /** When true, a brief flash highlights the last item (the one just added). */
@@ -23,76 +38,91 @@ interface ResourceListPageProps {
 }
 
 /**
- * Generic Library resource page for tours: a page header with a create
- * button framing the real `ResourceCards`/`ResourceList` components.
- * Shared by the agent-, skill-, and MCP-server-creation tours — only the
- * title, labels, and fixture items differ per tour.
+ * Generic Library resource page for tours, at the console's own
+ * composition: the real `ResourceWorkbench` (toolbar with search, view
+ * switcher, and header action; card grid; the console's default card
+ * layout) fed by a fixture `listFn` — the SessionView mechanism applied to
+ * the Library zone (stigmer/stigmer#317). Shared by the agent-, skill-,
+ * and MCP-server-creation tours.
  *
- * Chrome is plain CSS colored with `--stgm-*` tokens (DD-003); the real
- * components inside keep their own compiled styles.
+ * What stays demo-owned: the page framing the console's `LibraryLayout`
+ * and per-resource list pages hand out (breadcrumb, `h1` + subtitle —
+ * ~15 lines of client-app markup transcribed in plain CSS), the create
+ * button (the real one is the host's routing `Link`; the demo's is an
+ * inert twin carrying the cursor target and pulse), and the new-item
+ * flash. Two deliberate determinism departures from the console's wiring,
+ * both seams the workbench exposes for exactly this host class: no
+ * `viewModeStorageKey` (persisted view mode would make replays
+ * reader-dependent) and a resolved-fixture `listFn` (no backend).
  */
 export function ResourceListPage({
   title,
+  nounPlural,
   createLabel,
   cursorTarget,
   items,
-  layout,
+  showApplyYaml,
   highlightCreate,
   showNewItem,
 }: ResourceListPageProps) {
+  const listFn = useMemo(
+    () =>
+      async (): Promise<ListResult> => ({
+        entries: [...items],
+        totalCount: items.length,
+        totalPages: 1,
+      }),
+    [items],
+  );
+
   return (
     <div className="resource-page">
-      <div className="resource-page__header">
-        <h3 className="resource-page__title">{title}</h3>
-        <div className="resource-page__create-wrap" data-cursor-target={cursorTarget}>
-          <div className="resource-page__create">
-            <Plus size={14} className="resource-page__create-icon" />
-            {createLabel}
-          </div>
+      {/* The library zone's breadcrumb (`LibraryBreadcrumb`): Library / {page}. */}
+      <nav className="resource-page__breadcrumb" aria-label="Breadcrumb">
+        <span>Library</span>
+        <span className="resource-page__breadcrumb-sep" aria-hidden>
+          /
+        </span>
+        <span className="resource-page__breadcrumb-current">{title}</span>
+      </nav>
 
-          {highlightCreate && <PulseHighlight />}
-        </div>
+      {/* The list page's header ramp: `text-xl font-semibold` + `mt-1 text-sm`. */}
+      <div className="resource-page__header">
+        <h1 className="resource-page__title">{title}</h1>
+        <p className="resource-page__subtitle">
+          Browse and manage {nounPlural} in your organization.
+        </p>
       </div>
 
       <div className="resource-page__items">
-        {layout === "grid" ? (
-          <ResourceCards
-            items={items as SearchResult[]}
-            renderCard={(item) => (
-              <div className="resource-page__card">
-                <span className="resource-page__card-name">
-                  {item.name || item.slug}
+        <ResourceWorkbench
+          listFn={listFn}
+          org={DEMO_ORG}
+          scope="org"
+          onScopeChange={noop}
+          defaultViewMode="cards"
+          viewModes={["table", "cards"]}
+          searchPlaceholder={`Search ${nounPlural}\u2026`}
+          headerAction={
+            <div className="resource-page__actions">
+              {showApplyYaml && (
+                <span className="resource-page__apply-yaml" aria-label="Apply YAML">
+                  <Upload size={14} />
                 </span>
-                {item.description && (
-                  <p className="resource-page__card-desc">{item.description}</p>
-                )}
-              </div>
-            )}
-            getItemId={(item) => item.slug}
-          />
-        ) : (
-          <ResourceList
-            items={items as SearchResult[]}
-            renderRow={(item) => (
-              <div className="resource-page__row">
-                <span className="resource-page__row-name">
-                  {item.name || item.slug}
+              )}
+              <span
+                className="resource-page__create-wrap"
+                data-cursor-target={cursorTarget}
+              >
+                <span className="resource-page__create">
+                  <Plus size={14} className="resource-page__create-icon" />
+                  {createLabel}
                 </span>
-                {item.description && (
-                  <>
-                    <span className="resource-page__row-sep" aria-hidden>
-                      ·
-                    </span>
-                    <span className="resource-page__row-desc">
-                      {item.description}
-                    </span>
-                  </>
-                )}
-              </div>
-            )}
-            getItemId={(item) => item.slug}
-          />
-        )}
+                {highlightCreate && <PulseHighlight />}
+              </span>
+            </div>
+          }
+        />
         {showNewItem && <NewItemHighlight />}
       </div>
     </div>

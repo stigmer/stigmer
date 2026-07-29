@@ -70,10 +70,11 @@ export function renderStep(data: AgentCreationTourStep): ReactNode {
         <AppShell activeNav="library" contentKey="agents" slideDirection="forward">
           <ResourceListPage
             title="Agents"
-            createLabel="Add Agent"
+            nounPlural="agents"
+            createLabel="Create agent"
             cursorTarget="create-agent"
+            showApplyYaml
             items={EXISTING_AGENTS}
-            layout="grid"
           />
         </AppShell>,
       );
@@ -85,10 +86,11 @@ export function renderStep(data: AgentCreationTourStep): ReactNode {
         <AppShell activeNav="library" contentKey="agents">
           <ResourceListPage
             title="Agents"
-            createLabel="Add Agent"
+            nounPlural="agents"
+            createLabel="Create agent"
             cursorTarget="create-agent"
+            showApplyYaml
             items={EXISTING_AGENTS}
-            layout="grid"
             highlightCreate
           />
         </AppShell>,
@@ -112,7 +114,7 @@ export function renderStep(data: AgentCreationTourStep): ReactNode {
         "composer",
         "/?draft=agent",
         <AppShell activeNav="library" contentKey="composer">
-          <SessionView execution={data.execution} />
+          <SessionView execution={data.execution} agentRef={AGENT_CREATOR_REF} />
         </AppShell>,
       );
 
@@ -123,7 +125,11 @@ export function renderStep(data: AgentCreationTourStep): ReactNode {
         "composer",
         "/?draft=agent",
         <AppShell activeNav="library" contentKey="composer">
-          <SessionView execution={data.execution} panelView="artifacts" />
+          <SessionView
+            execution={data.execution}
+            agentRef={AGENT_CREATOR_REF}
+            panelView="artifacts"
+          />
         </AppShell>,
       );
 
@@ -136,6 +142,7 @@ export function renderStep(data: AgentCreationTourStep): ReactNode {
         <AppShell activeNav="library" contentKey="composer">
           <SessionView
             execution={data.execution}
+            agentRef={AGENT_CREATOR_REF}
             panelView="artifacts"
             openArtifactName={firstArtifactName(data.execution)}
           />
@@ -149,10 +156,11 @@ export function renderStep(data: AgentCreationTourStep): ReactNode {
         <AppShell activeNav="library" contentKey="agents" slideDirection="backward">
           <ResourceListPage
             title="Agents"
-            createLabel="Add Agent"
+            nounPlural="agents"
+            createLabel="Create agent"
             cursorTarget="create-agent"
+            showApplyYaml
             items={ALL_AGENTS}
-            layout="grid"
             showNewItem
           />
         </AppShell>,

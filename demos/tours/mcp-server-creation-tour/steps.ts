@@ -88,6 +88,7 @@ spec:
 export const EXISTING_SERVERS = [
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000001",
+    org: DEMO_ORG,
     kind: ApiResourceKind.mcp_server,
     name: "GitHub",
     slug: "github",
@@ -95,6 +96,7 @@ export const EXISTING_SERVERS = [
   }),
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000002",
+    org: DEMO_ORG,
     kind: ApiResourceKind.mcp_server,
     name: "Slack Notifications",
     slug: "slack-notifications",
@@ -107,6 +109,7 @@ export const ALL_SERVERS = [
   ...EXISTING_SERVERS,
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000003",
+    org: DEMO_ORG,
     kind: ApiResourceKind.mcp_server,
     name: ORDER_MGMT_MCP.name,
     slug: ORDER_MGMT_MCP.slug,

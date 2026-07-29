@@ -1,198 +1,35 @@
 /*
- * ManagementShell chrome — the console's management zone at the console's
- * own metrics, mirroring the real ManagementSidebar (which shares the
- * workspace sidebar's geometry): 280px width, 14px/500 rows (`px-2 py-1.5
- * text-sm font-medium`), 16px icons, 11px uppercase group headings, 16px
- * between groups (`gap-4`). One scale factor per frame — no zoom; the
- * viewport boundary owns the scaling. Layout is plain CSS (Tailwind no-ops
- * under `scenar pack`, DD-003); colors are the real sidebar's
- * `--stgm-sidebar-*` tokens so the chrome and the real components it wraps
- * read as one product surface and flip light/dark together.
+ * ManagementShell frame — only what the console's app shell (not its
+ * sidebar) owns: the 280px sidebar column (`w-70` + right border), the
+ * content pane, and the Scenar seams (engine-driven hover). The sidebar's
+ * own chrome is the real `SettingsSidebar` from `@stigmer/react`, styled
+ * by the compiled SDK stylesheet — there is no replica CSS left to drift
+ * (stigmer/stigmer#317).
  *
- * The shell is the page, not a card: no border, no radius, fills its
- * container. Window chrome (browser frame / shadow / backdrop) is supplied
- * by whatever frames the shell.
+ * Layout is plain CSS — Tailwind utilities no-op under `scenar pack`
+ * (scenar-cloud DD-003). Colors come from the same `--stgm-*` tokens the
+ * console consumes.
  */
 .sx-mgmt {
   display: flex;
   overflow: hidden;
   height: 100%;
   background: var(--stgm-background);
-  font-family: var(--stgm-font-sans, "Geist", system-ui, sans-serif);
+  font-family: var(--stgm-font-sans);
 }
 
-/* --- Nav sidebar (280px, real `w-70`) --- */
+/* The sidebar column the console's AppShell owns: 280px (`w-70`), right
+   border, no shrink. The real sidebar fills it. */
 .sx-mgmt__nav {
-  display: flex;
   width: 280px;
   flex-shrink: 0;
-  flex-direction: column;
+  overflow: hidden;
   border-right: 1px solid var(--stgm-sidebar-border);
-  background: var(--stgm-sidebar);
-  color: var(--stgm-sidebar-foreground);
 }
 
-/* Top row: collapse toggle + org switcher (`gap-1 px-2 py-2`). */
-.sx-mgmt__top {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px;
-}
-.sx-mgmt__collapse {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-}
-.sx-mgmt__org {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  align-items: center;
-  gap: 8px;
-  border-radius: 8px;
-  padding: 6px 8px;
-}
-.sx-mgmt__org-icon {
-  flex-shrink: 0;
-}
-.sx-mgmt__org-label {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-.sx-mgmt__org-name {
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.sx-mgmt__org-slug {
-  overflow: hidden;
-  font-size: 12px;
-  line-height: 1.25;
-  color: var(--stgm-sidebar-muted-foreground);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Rows (`px-3 py-1` wrappers, `px-2 py-1.5 text-sm font-medium` rows). */
-.sx-mgmt__nav-item {
-  flex: none;
-  padding: 4px 12px;
-}
-.sx-mgmt__back {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--stgm-sidebar-muted-foreground);
-}
-
-.sx-mgmt__divider {
-  margin: 4px 12px;
-  border-top: 1px solid var(--stgm-sidebar-border);
-}
-
-/* Grouped navigation (`gap-4 px-3 py-1`; headings `text-[11px]`). */
-.sx-mgmt__groups {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 4px 12px;
-}
-.sx-mgmt__group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.sx-mgmt__group-heading {
-  padding: 0 8px 4px;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--stgm-sidebar-muted-foreground);
-}
-.sx-mgmt__item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--stgm-sidebar-foreground);
-}
-.sx-mgmt__item--active {
-  background: var(--stgm-sidebar-accent);
-  color: var(--stgm-sidebar-accent-foreground);
-}
-.sx-mgmt__item svg,
-.sx-mgmt__back svg {
-  flex-shrink: 0;
-}
-/* Real `size-4` icons; the SDK nav model types icons on className only. */
-.sx-mgmt__item-icon {
-  width: 16px;
-  height: 16px;
-}
-
-.sx-mgmt__spacer {
-  flex: 1;
-}
-
-/* User footer (`border-t px-3 py-2`). */
-.sx-mgmt__user {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-top: 1px solid var(--stgm-sidebar-border);
-}
-.sx-mgmt__avatar {
-  display: flex;
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-  background: color-mix(
-    in oklab,
-    var(--stgm-sidebar-muted-foreground) 20%,
-    transparent
-  );
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--stgm-sidebar-foreground);
-}
-.sx-mgmt__user-label {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-.sx-mgmt__user-name {
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.25;
-}
-.sx-mgmt__user-email {
-  overflow: hidden;
-  font-size: 11px;
-  line-height: 1.25;
-  color: var(--stgm-sidebar-muted-foreground);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Rows rendered through the sidebar's renderLink. */
+.sx-mgmt__row {
+  position: relative;
 }
 
 /* --- Content area --- */
@@ -205,8 +42,7 @@
 }
 
 /* Engine-driven hover feedback (`data-hover`), matching the console's own. */
-.sx-mgmt__item[data-hover],
-.sx-mgmt__back[data-hover] {
+.sx-mgmt__row[data-hover] {
   background: var(--stgm-sidebar-accent);
   color: var(--stgm-sidebar-accent-foreground);
 }

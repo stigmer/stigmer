@@ -98,6 +98,7 @@ export function buildDemoSkill() {
 export const EXISTING_SKILLS = [
   samples.searchResult({
     id: "skl-00000000-0000-0000-0000-000000000001",
+    org: DEMO_ORG,
     kind: ApiResourceKind.skill,
     name: "Product Catalog",
     slug: "product-catalog",
@@ -105,6 +106,7 @@ export const EXISTING_SKILLS = [
   }),
   samples.searchResult({
     id: "skl-00000000-0000-0000-0000-000000000002",
+    org: DEMO_ORG,
     kind: ApiResourceKind.skill,
     name: "Escalation Runbook",
     slug: "escalation-runbook",
@@ -117,6 +119,7 @@ export const ALL_SKILLS = [
   ...EXISTING_SKILLS,
   samples.searchResult({
     id: "skl-00000000-0000-0000-0000-000000000003",
+    org: DEMO_ORG,
     kind: ApiResourceKind.skill,
     name: "Return Policy",
     slug: SKILL_SLUG,

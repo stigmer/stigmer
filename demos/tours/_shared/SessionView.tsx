@@ -3,6 +3,7 @@ import {
   ARTIFACT_DOCUMENT_ENTRY_ID,
   ArtifactDocument,
   artifactKey,
+  DEFAULT_HARNESS,
   MessageThread,
   PanelChip,
   SessionComposer,
@@ -12,6 +13,7 @@ import {
   useSessionWriteBacks,
   WorkspaceSurface,
   type SessionComposerHandle,
+  type SetupTabProps,
   type SurfaceVirtualDocument,
 } from "@stigmer/react";
 import type { ResourceRef } from "@stigmer/sdk";
@@ -27,7 +29,7 @@ const noop = () => {};
  * offer (e.g. `"artifacts"` with no artifacts) degrades to the first
  * offered view — the surface's own stale-id rule.
  */
-export type SessionPanelFacetId = "artifacts" | "usage" | "changes";
+export type SessionPanelFacetId = "configure" | "artifacts" | "usage" | "changes";
 
 interface SessionViewProps {
   /** When set, renders the conversation via `MessageThread`. */
@@ -50,9 +52,11 @@ interface SessionViewProps {
    */
   readonly typingMessage?: string;
   /**
-   * Pre-selected agent shown in the composer's toolbar trigger (e.g. the
-   * Agent Creator a "new agent" flow opens with). Display-only in a demo —
-   * selection callbacks are inert.
+   * The depicted session's agent: shown in the composer's toolbar trigger
+   * in the launcher state (e.g. the Agent Creator a "new agent" flow opens
+   * with) and listed in the panel's Config facet in the session state.
+   * Omitted, the session depicts the default agent. Display-only in a
+   * demo — selection callbacks are inert.
    */
   readonly agentRef?: ResourceRef | null;
   /** Placeholder for the `SessionComposer` textarea. */
@@ -111,6 +115,7 @@ export function SessionView({
       <ThreadState
         execution={execution}
         showApprovals={showApprovals}
+        agentRef={agentRef}
         panelView={panelView}
         openArtifactName={openArtifactName}
       />
@@ -143,15 +148,39 @@ function panelChip(isOpen: boolean, badgeCount: number) {
 function ThreadState({
   execution,
   showApprovals,
+  agentRef,
   panelView,
   openArtifactName,
 }: {
   readonly execution: AgentExecution;
   readonly showApprovals: boolean;
+  readonly agentRef?: ResourceRef | null;
   readonly panelView?: SessionPanelFacetId;
   readonly openArtifactName?: string;
 }) {
   const executions = useMemo(() => [execution], [execution]);
+
+  // The Config facet the console's rail always carries, at the shape
+  // SessionViewer builds from its flow state: the depicted agent (default
+  // agent when none is named), no attached MCP servers/skills/variables,
+  // and the default harness — a fresh session's honest configuration.
+  // Read-only by construction: no `mutations`, so SetupTab renders without
+  // remove affordances (DD-011) — a paused frame depicts a session being
+  // inspected, not reconfigured. Model/Target pills are omitted exactly as
+  // the console omits them before an explicit selection.
+  const sessionConfig = useMemo<SetupTabProps>(
+    () => ({
+      agentRef: agentRef ?? null,
+      isDefaultAgent: agentRef == null,
+      mcpServerUsages: [],
+      skillRefs: [],
+      sessionVariables: null,
+      harness: DEFAULT_HARNESS,
+      executionTarget: undefined,
+      modelId: undefined,
+    }),
+    [agentRef],
+  );
 
   // The console's own derivations (pure aggregations over the execution):
   // the chip badge is writeBackCount + artifactCount, exactly as
@@ -163,12 +192,7 @@ function ThreadState({
   const railViews = useSessionRailViews({
     allExecutions: executions,
     org: DEMO_ORG,
-    // Conscious simplification: no Config facet. An honest SetupTab needs
-    // agent/harness/model/session-variable fixtures on every session beat,
-    // and the beats that open the panel are about its execution facets. The
-    // console's rail always carries Config, so this is a depicted-fidelity
-    // gap — revisit if a tour ever narrates session configuration.
-    sessionConfig: undefined,
+    sessionConfig,
     // Supplying the open-artifact callbacks (inert here) selects the
     // shipped document-tab flow inside ArtifactsTab — and keeps its modal
     // fallback, a top-layer <dialog>, out of the tree entirely (DD-006

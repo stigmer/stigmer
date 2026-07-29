@@ -18,6 +18,13 @@ export interface ApiKeyListPanelProps {
   readonly onRefetchRef?: (refetch: () => void) => void;
   /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /**
+   * Reference instant for the "last used" relative stamp. Defaults to
+   * the live clock. **Deterministic hosts (documentation embeds, video
+   * export) must pass a frozen instant** — otherwise a depicted key's
+   * "2h ago" drifts with every replay.
+   */
+  readonly now?: Date;
 }
 
 /**
@@ -46,6 +53,7 @@ export interface ApiKeyListPanelProps {
 export function ApiKeyListPanel({
   onRefetchRef,
   className,
+  now,
 }: ApiKeyListPanelProps) {
   const { apiKeys, isLoading, error, refetch } = useApiKeyList();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -104,6 +112,7 @@ export function ApiKeyListPanel({
           <ApiKeyRow
             key={id}
             apiKey={key}
+            now={now}
             isConfirming={confirmingId === id}
             onConfirmDelete={() => setConfirmingId(id)}
             onCancelDelete={() => setConfirmingId(null)}
@@ -124,12 +133,14 @@ export function ApiKeyListPanel({
 
 function ApiKeyRow({
   apiKey,
+  now,
   isConfirming,
   onConfirmDelete,
   onCancelDelete,
   onDeleted,
 }: {
   apiKey: ApiKey;
+  now?: Date;
   isConfirming: boolean;
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
@@ -243,7 +254,9 @@ function ApiKeyRow({
               : "No expiry"}
         </span>
         <span>
-          {lastUsedAt ? formatRelativeTime(timestampDate(lastUsedAt)) : "Never used"}
+          {lastUsedAt
+            ? formatRelativeTime(timestampDate(lastUsedAt), now)
+            : "Never used"}
         </span>
       </div>
 
@@ -276,9 +289,9 @@ function formatShortDate(date: Date): string {
   });
 }
 
-function formatRelativeTime(date: Date): string {
-  const now = Date.now();
-  const diffMs = now - date.getTime();
+function formatRelativeTime(date: Date, now?: Date): string {
+  const ref = now?.getTime() ?? Date.now();
+  const diffMs = ref - date.getTime();
 
   if (diffMs < 0) return "Just now";
 

@@ -1,14 +1,15 @@
 /*
- * ResourceListPage chrome — layout in plain CSS, colors from the Stigmer
- * `--stgm-*` design tokens (scenar-cloud DD-003). The real ResourceCards /
- * ResourceList components inside carry their own compiled styles; only this
- * page frame (header, create button, highlight flash) is ours.
- */
-/*
- * The library zone's page geometry (`LibraryLayout`: `mx-auto max-w-4xl
- * px-6 py-8`) and the real list-page header ramp (`SkillListPage`:
- * `text-xl font-semibold` title, `text-xs` primary create button). One
- * scale factor per frame — no zoom.
+ * ResourceListPage frame — only what the console's library zone (not its
+ * workbench) owns: the page container (`LibraryLayout`: `mx-auto max-w-4xl
+ * px-6 py-8`), the breadcrumb, the header ramp, the inert create-button
+ * twin, and the Scenar seams (pulse anchoring, engine-driven hover, the
+ * new-item flash). The collection itself is the real `ResourceWorkbench`
+ * from `@stigmer/react`, styled by the compiled SDK stylesheet — there is
+ * no replica CSS left to drift (stigmer/stigmer#317).
+ *
+ * Layout is plain CSS — Tailwind utilities no-op under `scenar pack`
+ * (scenar-cloud DD-003). Colors come from the same `--stgm-*` tokens the
+ * console consumes. One scale factor per frame — no zoom.
  */
 .resource-page {
   display: flex;
@@ -17,6 +18,7 @@
   overflow-y: auto;
   padding: 32px 24px;
 }
+.resource-page__breadcrumb,
 .resource-page__header,
 .resource-page__items {
   width: 100%;
@@ -25,18 +27,56 @@
   margin-right: auto;
 }
 
-.resource-page__header {
+/* Breadcrumb (`LibraryBreadcrumb`: `mb-6`, `text-sm`, `gap-1.5`). */
+.resource-page__breadcrumb {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px;
   margin-bottom: 24px;
+  font-size: 14px;
+  color: var(--stgm-muted-foreground);
+}
+.resource-page__breadcrumb-sep {
+  color: var(--stgm-muted-foreground-subtle);
+}
+.resource-page__breadcrumb-current {
+  font-weight: 500;
+  color: var(--stgm-foreground);
 }
 
+/* Header ramp (`text-xl font-semibold` + `mt-1 text-sm`, block `mb-6`). */
+.resource-page__header {
+  margin-bottom: 24px;
+}
 .resource-page__title {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
   color: var(--stgm-foreground);
+}
+.resource-page__subtitle {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--stgm-muted-foreground);
+}
+
+/* Toolbar actions (`flex items-center gap-1.5`). */
+.resource-page__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Apply-YAML icon button (`rounded-md border-input bg-background p-1.5`). */
+.resource-page__apply-yaml {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--stgm-input);
+  border-radius: 6px;
+  background: var(--stgm-background);
+  padding: 6px;
+  color: var(--stgm-muted-foreground);
 }
 
 /* Anchors PulseHighlight and carries the create button's cursor target. */
@@ -44,6 +84,8 @@
   position: relative;
 }
 
+/* The console's primary create button (`bg-primary px-3 py-1.5 text-sm
+   font-medium gap-1.5 rounded-md`, `size-3.5` icon). */
 .resource-page__create {
   display: flex;
   align-items: center;
@@ -51,7 +93,7 @@
   border-radius: 6px;
   background: var(--stgm-primary);
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--stgm-primary-foreground);
 }
@@ -65,65 +107,7 @@
   position: relative;
 }
 
-/* --- Card content (grid layout) --- */
-.resource-page__card {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.resource-page__card-name {
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--stgm-foreground);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.resource-page__card-desc {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  margin: 0;
-  overflow: hidden;
-  font-size: 12px;
-  color: var(--stgm-muted-foreground);
-}
-
-/* --- Row content (list layout) --- */
-.resource-page__row {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 8px;
-}
-
-.resource-page__row-name {
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--stgm-foreground);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.resource-page__row-sep {
-  flex-shrink: 0;
-  color: var(--stgm-muted-foreground);
-}
-
-.resource-page__row-desc {
-  overflow: hidden;
-  font-size: 12px;
-  color: var(--stgm-muted-foreground);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Flash over the last list item to spotlight the newly added resource. */
+/* Flash over the last cards row to spotlight the newly added resource. */
 .resource-page__new-flash {
   pointer-events: none;
   position: absolute;

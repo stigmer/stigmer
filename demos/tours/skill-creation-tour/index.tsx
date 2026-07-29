@@ -111,7 +111,8 @@ export function renderStep(data: SkillCreationTourStep): ReactNode {
         <AppShell activeNav="library" contentKey="skills" slideDirection="forward">
           <ResourceListPage
             title="Skills"
-            createLabel="Add Skill"
+            nounPlural="skills"
+            createLabel="Upload skill"
             cursorTarget="create-skill"
             items={EXISTING_SKILLS}
           />
@@ -125,7 +126,8 @@ export function renderStep(data: SkillCreationTourStep): ReactNode {
         <AppShell activeNav="library" contentKey="skills">
           <ResourceListPage
             title="Skills"
-            createLabel="Add Skill"
+            nounPlural="skills"
+            createLabel="Upload skill"
             cursorTarget="create-skill"
             items={EXISTING_SKILLS}
             highlightCreate
@@ -166,7 +168,8 @@ export function renderStep(data: SkillCreationTourStep): ReactNode {
         <AppShell activeNav="library" contentKey="skills" slideDirection="backward">
           <ResourceListPage
             title="Skills"
-            createLabel="Add Skill"
+            nounPlural="skills"
+            createLabel="Upload skill"
             cursorTarget="create-skill"
             items={ALL_SKILLS}
             showNewItem

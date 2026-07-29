@@ -1050,6 +1050,19 @@ export { UsageSection } from "./settings/index.js";
 export { UserMenu } from "./user/index.js";
 export type { UserMenuProps } from "./user/index.js";
 
+// Sidebar — the console's navigation chrome (workspace + settings zones).
+// The web console, desktop app, and documentation tours all render these;
+// hosts inject routing via `renderLink` and identity via the footer slot.
+export { WorkspaceSidebar, SettingsSidebar } from "./sidebar/index.js";
+export type {
+  WorkspaceSidebarProps,
+  WorkspaceSidebarActivity,
+  WorkspaceNavId,
+  SettingsSidebarProps,
+  SidebarLinkRenderProps,
+  RenderSidebarLink,
+} from "./sidebar/index.js";
+
 // API Key — data hooks, behavior hooks, and styled components for API key lifecycle
 export {
   useApiKeyList,

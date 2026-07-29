@@ -37,16 +37,23 @@ A tour is the directory shape Scenar's `pack` / `narrate` / `serve` consume:
 
 `_shared/` holds three kinds of module. **Chrome** (`AppShell`,
 `ManagementShell`, `SessionView`, `ResourceListPage`, `ApiKeysPage`,
-`api-exchange/`) frames real components inside a schematic app — the two
-shells are the console's two zones: `AppShell` is the workspace (primary
-nav, recents), `ManagementShell` the org-settings area (grouped
-Organization / Configuration / Billing navigation). `SessionView` is the
-session surface itself, and it is barely chrome at all: it renders the
-SDK's own `SessionViewerLayout` — the same frame `SessionViewer` and
-`NewSessionViewer` ship — with the panel chip, `WorkspaceSurface`, and the
-`useSessionRailViews` facet rail, so the depicted session cannot drift
-from the console's (scenar-cloud DD-010; the bespoke widget rail this
-replaced is gone). **Product glue**
+`api-exchange/`) frames real components inside the console's own surfaces —
+and "own" is literal, not aspirational: the two shells render the SDK's
+`WorkspaceSidebar` and `SettingsSidebar` — the same components the web
+console and desktop app ship (sdk-console DD-020; stigmer/stigmer#317) —
+so the depicted sidebar cannot drift from the product. What a shell adds
+is only the Scenar seams: the 280px column the console's app shell owns,
+`data-cursor-target` markers and `PulseHighlight` attached through the
+sidebar's `renderLink`, fixture recents/user/org on the frozen clock, and
+the content transition; the sidebar subtree is `inert`. `SessionView` and
+`ResourceListPage` apply the same mechanism to their zones: the session
+surface renders the SDK's own `SessionViewerLayout` — the same frame
+`SessionViewer` and `NewSessionViewer` ship — with the panel chip,
+`WorkspaceSurface`, and the `useSessionRailViews` facet rail (scenar-cloud
+DD-010), and the library page renders the real `ResourceWorkbench` over a
+fixture `listFn`, hand-drawing only the page framing the console's library
+zone hands out (breadcrumb, header ramp) and an inert create-button twin
+that carries the cursor target. **Product glue**
 (`stigmer-preview.tsx`) wires styles, theme, and the mock transport once.
 **Depicted resources** (`order-management-mcp.ts`,
 `quickstart-workspace.ts`) are the domain objects several embeds tell one
@@ -176,10 +183,13 @@ the viewport boundary owns it.
   survives open-panel beats. The general class (e.g. `ResourceCards`
   rendering 2 columns instead of 3) is registered debt; M2
   (iframe-as-screen, scenar-cloud DD-009) is its exit condition.
-- **Author at the console's real metrics.** The `_shared` shells transcribe
-  the real sidebar (280px, 14px/500 labels, 16px icons — gate invariant 7
-  pins the facts on both sides); page content uses the real zone geometry
-  (library `mx-auto max-w-4xl px-6 py-8`, settings `max-w-3xl`).
+- **Author at the console's real metrics.** The sidebar needs no
+  transcription — the shells render the SDK's own sidebar components
+  (DD-020), so its metrics are the console's by construction. What the
+  demos still re-state is pinned by gate invariant 7: the 280px sidebar
+  column (`w-70`, owned by the console's app shell, not its sidebar) and
+  `SessionView`'s frame. Page content uses the real zone geometry (library
+  `mx-auto max-w-4xl px-6 py-8`, settings `max-w-3xl`).
 - **Never author `zoom` or `transform: scale()` in a tour** — not as a
   prop, a style object, or CSS. If content "doesn't fit", the viewport or
   the depicted content is wrong, not the scale. Gate invariant 6 rejects

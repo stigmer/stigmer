@@ -67,6 +67,15 @@ import {
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { SkillSchema, type Skill } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { SkillSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/spec_pb";
+import {
+  OrganizationSchema,
+  type Organization,
+} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import {
+  OrganizationsSchema,
+  type Organizations,
+} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/io_pb";
+import { OrganizationSpecSchema } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import {
@@ -219,6 +228,14 @@ export interface ApiKeyOverrides {
   readonly keyHash?: string;
   /** Frozen ISO-8601 instant for the key's `createdAt`. Defaults to {@link SAMPLE_INSTANT}. */
   readonly createdAt?: string;
+}
+
+export interface OrganizationOverrides {
+  readonly id?: string;
+  readonly name?: string;
+  readonly slug?: string;
+  /** Personal orgs render a person icon in the switcher; teams a building. */
+  readonly isPersonal?: boolean;
 }
 
 export interface SearchResultOverrides {
@@ -454,6 +471,37 @@ export const samples = {
           }),
         }),
       }),
+    });
+  },
+
+  /**
+   * An organization resource with metadata and spec.
+   * Default: team org `Acme Corp` (slug `acme`) — the tour world's
+   * depicted organization, matching `DEMO_ORG` in the demos workspace.
+   */
+  organization(o?: OrganizationOverrides): Organization {
+    return create(OrganizationSchema, {
+      apiVersion: "tenancy.stigmer.ai/v1",
+      kind: "Organization",
+      metadata: create(ApiResourceMetadataSchema, {
+        id: o?.id ?? "org-00000000-0000-0000-0000-000000000001",
+        name: o?.name ?? "Acme Corp",
+        slug: o?.slug ?? "acme",
+      }),
+      spec: create(OrganizationSpecSchema, {
+        isPersonal: o?.isPersonal ?? false,
+      }),
+    });
+  },
+
+  /**
+   * An `Organizations` response for `findMyOrganizations` — what
+   * `OrgProvider` fetches to drive the org switcher.
+   * Default: a single {@link samples.organization}.
+   */
+  organizationList(entries?: Organization[]): Organizations {
+    return create(OrganizationsSchema, {
+      entries: entries ?? [samples.organization()],
     });
   },
 

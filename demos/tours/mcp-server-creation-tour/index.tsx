@@ -193,10 +193,11 @@ function ImportManifestOverlay() {
       <div className="mcp-import__underlay" inert>
         <ResourceListPage
           title="MCP Servers"
-          createLabel="Add MCP Server"
+          nounPlural="MCP servers"
+          createLabel="Add MCP server"
           cursorTarget="create-mcp-server"
+          showApplyYaml
           items={EXISTING_SERVERS}
-          layout="grid"
         />
       </div>
 
@@ -258,10 +259,11 @@ export function renderStep(data: McpServerCreationTourStep): ReactNode {
         <AppShell activeNav="library" contentKey="servers" slideDirection="forward">
           <ResourceListPage
             title="MCP Servers"
-            createLabel="Add MCP Server"
+            nounPlural="MCP servers"
+            createLabel="Add MCP server"
             cursorTarget="create-mcp-server"
+            showApplyYaml
             items={EXISTING_SERVERS}
-            layout="grid"
             highlightCreate
           />
         </AppShell>,
@@ -342,10 +344,11 @@ export function renderStep(data: McpServerCreationTourStep): ReactNode {
         <AppShell activeNav="library" contentKey="servers" slideDirection="backward">
           <ResourceListPage
             title="MCP Servers"
-            createLabel="Add MCP Server"
+            nounPlural="MCP servers"
+            createLabel="Add MCP server"
             cursorTarget="create-mcp-server"
+            showApplyYaml
             items={ALL_SERVERS}
-            layout="grid"
             showNewItem
           />
         </AppShell>,

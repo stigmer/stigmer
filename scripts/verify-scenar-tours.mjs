@@ -62,11 +62,13 @@
  *    made the pre-2026-07 tours read as shrunken mockups instead of screen
  *    recordings — a single live frame composited four of them.
  *
- * 7. REPLICA METRICS. The `_shared` shells transcribe the real console
- *    sidebar's metrics; each REPLICA_METRIC_PAIRS entry pins one fact on
- *    both sides so drift in either direction fails here instead of
- *    shipping (the drift class that produced the 112px/10px sidebar whose
- *    "New Session" wrapped onto two lines).
+ * 7. REPLICA METRICS. Each REPLICA_METRIC_PAIRS entry pins one geometry
+ *    fact the demos re-state (the shells' 280px column, SessionView's
+ *    frame) on both sides so drift in either direction fails here instead
+ *    of shipping (the drift class that produced the 112px/10px sidebar
+ *    whose "New Session" wrapped onto two lines). The sidebar chrome
+ *    itself is exempt by construction: the shells render the SDK's own
+ *    sidebar components (stigmer/stigmer#317).
  *
  * 8. STILL REFERENCES (docs-revamp DD-02). Every `<Still id="<scenario>/
  *    <shot>">` in `docs/**` must name a real `demos/tours/<scenario>/`
@@ -426,41 +428,34 @@ export function findCssScaleFactors(cssText) {
 /**
  * Replica-metrics tripwire — invariant 7.
  *
- * The tour shells transcribe the real console sidebar's metrics (280px
- * `w-70`, 14px `text-sm` rows). Each pair names one fact on both sides;
- * if either side stops containing its needle, the replica and the console
- * have drifted and the shells must be re-derived (then these needles
- * updated) — the drift this guards produced the shipped 112px/10px
- * caricature this rule replaced.
+ * Each pair pins one geometry fact the demos still own on both sides; if
+ * either side stops containing its needle, the depiction and the console
+ * have drifted and the demo must be re-derived (then these needles
+ * updated) — the drift class this guards produced the shipped 112px/10px
+ * sidebar caricature the rule originally replaced.
+ *
+ * The sidebar chrome itself no longer appears here: since the shells
+ * render the SDK's own `WorkspaceSidebar`/`SettingsSidebar`
+ * (stigmer/stigmer#317), the console, desktop app, and tours share one
+ * markup source and that whole drift class is structural, not policed.
+ * What remains pinned is the one sidebar fact the demo re-states (the
+ * 280px `w-70` column the console's AppShell owns) and the SessionView
+ * geometry the demo owns around the real `SessionViewerLayout`.
  */
 export const REPLICA_METRIC_PAIRS = [
   {
-    fact: "sidebar width (console `w-70` = 280px)",
+    fact: "sidebar column width (console `w-70` = 280px)",
     replica: "demos/tours/_shared/AppShell.css",
     replicaNeedle: "width: 280px",
     real: "client-apps/web/src/domain/_shared/layout/AppShell.tsx",
     realNeedle: '"w-70"',
   },
   {
-    fact: "nav label size (console `text-sm` = 14px)",
-    replica: "demos/tours/_shared/AppShell.css",
-    replicaNeedle: "font-size: 14px",
-    real: "client-apps/web/src/domain/_shared/layout/Sidebar.tsx",
-    realNeedle: "text-sm font-medium",
-  },
-  {
-    fact: "management sidebar width (console `w-70` = 280px)",
+    fact: "management sidebar column width (console `w-70` = 280px)",
     replica: "demos/tours/_shared/ManagementShell.css",
     replicaNeedle: "width: 280px",
     real: "client-apps/web/src/domain/_shared/layout/AppShell.tsx",
     realNeedle: '"w-70"',
-  },
-  {
-    fact: "management nav label size (console `text-sm` = 14px)",
-    replica: "demos/tours/_shared/ManagementShell.css",
-    replicaNeedle: "font-size: 14px",
-    real: "client-apps/web/src/domain/_shared/layout/ManagementSidebar.tsx",
-    realNeedle: "text-sm font-medium",
   },
   // SessionView renders the SDK's own SessionViewerLayout (scenar-cloud
   // DD-010), so the split and chip geometry need no pairs — there is no

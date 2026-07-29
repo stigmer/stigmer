@@ -1,27 +1,22 @@
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { NavLink, useNavigate, useParams, useLocation } from "react-router-dom";
-import {
-  Plus,
-  LayoutDashboard,
-  Library,
-  MessageSquare,
-  Workflow,
-  PanelLeft,
-} from "lucide-react";
 import { cn } from "@stigmer/theme";
-import {
-  OrgSwitcher,
-  useRecentActivity,
-  groupRecentActivityByTime,
-  formatRelativeTime,
-  recentActivityStatusBadge,
+import { useRecentActivity, WorkspaceSidebar } from "@stigmer/react";
+import type {
+  RecentActivityEntry,
+  SidebarLinkRenderProps,
+  WorkspaceNavId,
 } from "@stigmer/react";
-import type { RecentActivityGroup, RecentActivityEntry } from "@stigmer/react";
-import { ScrollArea } from "../ui/scroll-area";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
 import { useRunner } from "../hooks/EmbeddedRunnerContext";
 
+/**
+ * Workspace-zone sidebar — a thin wrapper over the SDK's
+ * {@link WorkspaceSidebar} (DD-002): this file only bridges React Router
+ * and the embedded runner's background-run indicator into the shared
+ * chrome.
+ */
 export function Sidebar() {
   const sidebar = useSidebarOpen();
   const navigate = useNavigate();
@@ -39,7 +34,8 @@ export function Sidebar() {
   const isSessionZone =
     location.pathname === "/" || location.pathname.startsWith("/sessions/");
 
-  const { entries, isLoading, error, refetch, prependOptimistic } = useRecentActivity();
+  const recentActivity = useRecentActivity();
+  const { refetch, prependOptimistic } = recentActivity;
 
   // Sessions whose runner worker is still alive but which are NOT the one being
   // viewed: with the deferred-teardown invariant in the runner, a worker stays
@@ -51,8 +47,8 @@ export function Sidebar() {
     [activeSessions, activeSessionId],
   );
 
-  const entriesRef = useRef(entries);
-  entriesRef.current = entries;
+  const entriesRef = useRef(recentActivity.entries);
+  entriesRef.current = recentActivity.entries;
 
   useEffect(() => {
     if (activeExecutionId && !entriesRef.current.some((e) => e.id === activeExecutionId)) {
@@ -75,226 +71,77 @@ export function Sidebar() {
     };
   }, [activeSessionId, activeExecutionId, refetch, prependOptimistic]);
 
-  const groups = useMemo(
-    () => groupRecentActivityByTime(entries),
-    [entries],
+  const isDashboardActive =
+    !isSessionZone && location.pathname.startsWith("/dashboard");
+  const isLibraryActive =
+    !isSessionZone && location.pathname.startsWith("/library");
+  const activeNav: WorkspaceNavId | null =
+    location.pathname === "/"
+      ? "new-session"
+      : isDashboardActive
+        ? "dashboard"
+        : isLibraryActive
+          ? "library"
+          : null;
+
+  const renderLink = useCallback(
+    ({
+      id,
+      href,
+      className,
+      children,
+      entry,
+      "aria-current": ariaCurrent,
+    }: SidebarLinkRenderProps) => {
+      // Recents rows and New Session navigate imperatively (buttons):
+      // the desktop shell has no meaning for "open in a new tab".
+      if (entry || id === "new-session") {
+        return (
+          <button
+            onClick={() => navigate(entry ? href : "/")}
+            aria-current={ariaCurrent}
+            className={cn("w-full text-left", className)}
+          >
+            {children}
+          </button>
+        );
+      }
+
+      return (
+        <NavLink to={href} aria-current={ariaCurrent} className={className}>
+          {children}
+        </NavLink>
+      );
+    },
+    [navigate],
   );
 
-  const handleOrgChanged = useCallback(() => {
-    navigate("/");
-  }, [navigate]);
+  // Stable callbacks so the sidebar's memoized recents rows only re-render
+  // when the background set actually changes (DD-010).
+  const renderEntryAccessory = useCallback(
+    (entry: RecentActivityEntry) =>
+      entry.type === "session" && backgroundSessionIds.has(entry.id) ? (
+        <BackgroundRunDot />
+      ) : null,
+    [backgroundSessionIds],
+  );
+  const handleOrgChanged = useCallback(() => navigate("/"), [navigate]);
 
-  const isDashboardActive = !isSessionZone && location.pathname.startsWith("/dashboard");
-  const isLibraryActive = !isSessionZone && location.pathname.startsWith("/library");
   return (
-    <nav
-      id="sidebar"
-      aria-label="Main navigation"
-      className="flex h-full flex-col bg-sidebar text-sidebar-foreground"
-    >
-      {/* Top row: collapse toggle + org context */}
-      <div className="flex flex-none items-center gap-1 px-2 py-2">
-        <button
-          onClick={sidebar.close}
-          aria-expanded={sidebar.isOpen}
-          aria-controls="sidebar"
-          aria-label="Collapse sidebar"
-          className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-        >
-          <PanelLeft className="size-4" />
-        </button>
-        <div className="min-w-0 flex-1">
-          <OrgSwitcher onOrgChanged={handleOrgChanged} />
-        </div>
-      </div>
-
-      {/* New Session */}
-      <div className="flex-none px-3 py-1">
-        <button
-          onClick={() => navigate("/")}
-          className={cn(
-            "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
-            location.pathname === "/"
-              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          )}
-        >
-          <Plus className="size-4 shrink-0" />
-          New Session
-        </button>
-      </div>
-
-      {/* Dashboard */}
-      <div className="flex-none px-3 py-1">
-        <NavLink
-          to="/dashboard"
-          className={cn(
-            "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
-            isDashboardActive
-              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          )}
-        >
-          <LayoutDashboard className="size-4 shrink-0" />
-          Dashboard
-        </NavLink>
-      </div>
-
-      {/* Library */}
-      <div className="flex-none px-3 py-1">
-        <NavLink
-          to="/library"
-          className={cn(
-            "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
-            isLibraryActive
-              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          )}
-        >
-          <Library className="size-4 shrink-0" />
-          Library
-        </NavLink>
-      </div>
-
-      <div className="px-3 py-1">
-        <div className="h-px bg-sidebar-border" />
-      </div>
-
-      {/* Scrollable recents */}
-      <ScrollArea className="flex-1 px-3 py-1">
-        <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-muted-foreground">
-          Recents
-        </p>
-        {isLoading ? (
-          <RecentsSkeletons />
-        ) : error ? (
-          <RecentsError message={error.message} />
-        ) : groups.length === 0 ? (
-          <RecentsEmptyState />
-        ) : (
-          <ActivityGroupList
-            groups={groups}
-            activeSessionId={activeSessionId}
-            activePath={location.pathname}
-            backgroundSessionIds={backgroundSessionIds}
-            onNavigate={navigate}
-          />
-        )}
-      </ScrollArea>
-
-      {/* Bottom: user menu */}
-      <div className="flex-none border-t border-sidebar-border px-3 py-2">
-        <UserMenu />
-      </div>
-    </nav>
+    <WorkspaceSidebar
+      activeNav={activeNav}
+      renderLink={renderLink}
+      recentActivity={recentActivity}
+      activeSessionId={activeSessionId}
+      activeExecutionId={activeExecutionId}
+      renderEntryAccessory={renderEntryAccessory}
+      footer={<UserMenu />}
+      isOpen={sidebar.isOpen}
+      onCollapse={sidebar.close}
+      onOrgChanged={handleOrgChanged}
+    />
   );
 }
-
-// ---------------------------------------------------------------------------
-// Session recents
-// ---------------------------------------------------------------------------
-
-function ActivityGroupList({
-  groups,
-  activeSessionId,
-  activePath,
-  backgroundSessionIds,
-  onNavigate,
-}: {
-  groups: readonly RecentActivityGroup[];
-  activeSessionId: string | null;
-  activePath: string;
-  backgroundSessionIds: ReadonlySet<string>;
-  onNavigate: (path: string) => void;
-}) {
-  return (
-    <div className="space-y-4">
-      {groups.map((group) => (
-        <div key={group.label}>
-          <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-wider text-sidebar-muted-foreground">
-            {group.label}
-          </p>
-          <ul className="space-y-0.5" role="list">
-            {group.entries.map((entry) => (
-              <ActivityEntry
-                key={entry.id}
-                entry={entry}
-                activeSessionId={activeSessionId}
-                activePath={activePath}
-                runningInBackground={
-                  entry.type === "session" && backgroundSessionIds.has(entry.id)
-                }
-                onNavigate={onNavigate}
-              />
-            ))}
-          </ul>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const ActivityEntry = memo(function ActivityEntry({
-  entry,
-  activeSessionId,
-  activePath,
-  runningInBackground,
-  onNavigate,
-}: {
-  entry: RecentActivityEntry;
-  activeSessionId: string | null;
-  activePath: string;
-  runningInBackground: boolean;
-  onNavigate: (path: string) => void;
-}) {
-  const isSession = entry.type === "session";
-  const isActive = isSession
-    ? entry.id === activeSessionId
-    : activePath === `/executions/${entry.id}`;
-  const targetPath = isSession
-    ? `/sessions/${entry.id}`
-    : `/executions/${entry.id}`;
-  const TypeIcon = isSession ? MessageSquare : Workflow;
-  const statusBadge = recentActivityStatusBadge(entry);
-
-  return (
-    <li>
-      <button
-        onClick={() => onNavigate(targetPath)}
-        aria-current={isActive ? "page" : undefined}
-        className={cn(
-          "flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors",
-          isActive
-            ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-        )}
-      >
-        <TypeIcon className="mt-0.5 size-3 shrink-0 opacity-50" aria-hidden="true" />
-        <span className="line-clamp-2 flex-1">{entry.subject}</span>
-        {/* Last-activity stamp + noteworthy status: the list sorts by
-            activity while execution names embed creation time, so the row
-            must say WHY it is here ("failed · 2h"). */}
-        <span className="flex shrink-0 flex-col items-end gap-0.5 text-[10px] leading-tight">
-          <span className="tabular-nums text-sidebar-muted-foreground">
-            {formatRelativeTime(entry.updatedAt)}
-          </span>
-          {statusBadge && (
-            <span
-              className={
-                statusBadge.tone === "destructive"
-                  ? "text-destructive"
-                  : "text-sidebar-muted-foreground"
-              }
-            >
-              {statusBadge.label}
-            </span>
-          )}
-        </span>
-        {runningInBackground ? <BackgroundRunDot /> : null}
-      </button>
-    </li>
-  );
-});
 
 /**
  * Pulsing dot shown on a recents row whose execution is still running in the
@@ -314,38 +161,3 @@ function BackgroundRunDot() {
     </span>
   );
 }
-
-function RecentsSkeletons() {
-  return (
-    <div className="space-y-2 px-2" aria-busy="true" aria-label="Loading sessions">
-      {Array.from({ length: 5 }, (_, i) => (
-        <div
-          key={i}
-          className="h-5 animate-pulse rounded bg-sidebar-muted"
-          style={{ width: `${70 + Math.sin(i * 1.5) * 20}%` }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function RecentsError({ message }: { message: string }) {
-  return (
-    <>
-      <p className="mb-4 px-2 text-xs text-destructive" role="alert">
-        {message}
-      </p>
-      <RecentsEmptyState />
-    </>
-  );
-}
-
-function RecentsEmptyState() {
-  return (
-    <div className="flex flex-col items-center gap-2 py-8 text-center">
-      <MessageSquare className="size-8 text-sidebar-muted-foreground" />
-      <p className="text-xs text-sidebar-muted-foreground">No recent activity</p>
-    </div>
-  );
-}
-

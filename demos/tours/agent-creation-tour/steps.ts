@@ -138,6 +138,7 @@ const finalExecution = snapshot(
 export const EXISTING_AGENTS = [
   samples.searchResult({
     id: "agt-00000000-0000-0000-0000-000000000001",
+    org: DEMO_ORG,
     kind: ApiResourceKind.agent,
     name: "assistant",
     slug: "assistant",
@@ -150,6 +151,7 @@ export const ALL_AGENTS = [
   ...EXISTING_AGENTS,
   samples.searchResult({
     id: "agt-00000000-0000-0000-0000-000000000002",
+    org: DEMO_ORG,
     kind: ApiResourceKind.agent,
     name: "Support Agent",
     slug: "support-agent",

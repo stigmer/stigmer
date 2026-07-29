@@ -34,7 +34,9 @@ import type { ReactNode } from "react";
 import { createRouterTransport, type ConnectRouter } from "@connectrpc/connect";
 import { getEmbedColorMode } from "@scenar/react";
 import { Stigmer } from "@stigmer/sdk";
-import { StigmerProvider, type ReviewRenderers } from "@stigmer/react";
+import { OrgProvider, StigmerProvider, type ReviewRenderers } from "@stigmer/react";
+import { samples } from "@stigmer/react/test";
+import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
 
 /**
  * Benign `fetch` for the two registry endpoints `StigmerProvider` requests on
@@ -102,7 +104,18 @@ export function createStigmerPreview(
     // The value is never sent anywhere: the router transport ignores auth and
     // the registry fetch is stubbed above.
     getAccessToken: () => "scenar-preview",
-    customTransport: createRouterTransport(register),
+    customTransport: createRouterTransport((router) => {
+      // Pre-registered for every tour: the depicted organization. The shells
+      // render the real `OrgSwitcher`, which loads through `OrgProvider` →
+      // `findMyOrganizations`; one platform-wide fixture keeps every tour's
+      // org chrome identical ("Acme Corp" / `acme`). Tours register only
+      // their own RPCs — never this service again (Connect rejects duplicate
+      // registrations).
+      router.service(OrganizationQueryController, {
+        findMyOrganizations: () => samples.organizationList(),
+      });
+      register(router);
+    }),
     fetch: emptyRegistryFetch,
   });
 
@@ -110,13 +123,18 @@ export function createStigmerPreview(
     // StigmerProvider renders the single `.stgm` scope + `data-stgm-color-mode`
     // that themes both the real components and the tour's chrome; the mode is
     // read from the embed's own `?theme` by getEmbedColorMode().
+    //
+    // OrgProvider feeds the real `OrgSwitcher` in the shells from the
+    // pre-registered organization fixture. Its localStorage persistence is
+    // replay-safe here: with exactly one org, selection always resolves to
+    // that org regardless of any previously persisted slug.
     return (
       <StigmerProvider
         client={client}
         colorMode={getEmbedColorMode()}
         reviewRenderers={options?.reviewRenderers}
       >
-        {children}
+        <OrgProvider>{children}</OrgProvider>
       </StigmerProvider>
     );
   };

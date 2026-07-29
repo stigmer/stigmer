@@ -1,11 +1,12 @@
-import type { ReactNode } from "react";
+import { useCallback, type ReactNode } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Building2, PanelLeft } from "lucide-react";
-import { SETTINGS_NAV_GROUPS } from "@stigmer/react";
+import { SETTINGS_NAV_GROUPS, SettingsSidebar, UserMenu } from "@stigmer/react";
+import type { RenderSidebarLink } from "@stigmer/react";
 // The console's typeface (see fonts/fonts.css). Kept here as well as in
 // stigmer-preview so the shell never renders in a fallback face even if a
 // consumer wires providers differently.
 import "./fonts/fonts.css";
+import { DEMO_USER } from "./fixtures";
 import "./ManagementShell.css";
 
 /**
@@ -43,28 +44,21 @@ interface ManagementShellProps {
   readonly children: ReactNode;
 }
 
-/** Route basename, used as the nav id and cursor target. */
-function navId(href: string): string {
-  return href.split("/").pop() ?? href;
-}
-
 /**
- * Schematic management-zone layout — the org-settings counterpart to
- * `AppShell`'s workspace zone, at the console's own metrics (280px sidebar,
- * 14px/500 rows, 16px icons — transcribed from the real
- * `ManagementSidebar`, which shares the workspace sidebar's geometry). The
- * grouped navigation comes straight from the SDK's `SETTINGS_NAV_GROUPS`,
- * the same constant the real sidebar renders, so the depicted nav can never
- * drift from the shipped one.
+ * Management-zone layout — the org-settings counterpart to `AppShell`'s
+ * workspace zone, rendered by the console's own `SettingsSidebar` from
+ * `@stigmer/react` with the same `SETTINGS_NAV_GROUPS` nav model the real
+ * sidebar consumes, so the depicted chrome cannot drift from the shipped
+ * one (stigmer/stigmer#317).
  *
- * One scale factor per frame: no zoom anywhere — the shell lays out at real
- * size and the viewport boundary owns the scaling. Colored with the
- * `--stgm-sidebar-*` tokens (the real sidebar's palette); consumers must
- * have the compiled `@stigmer/react` stylesheet in their graph — every
- * console-depicting tour wires `createStigmerPreview`, which provides it.
+ * Demo-owned seams only: the 280px column, `data-cursor-target` markers on
+ * every row (ids are the route basenames plus `back-to-sessions`), fixture
+ * identity, and the content transition. The sidebar subtree is `inert` so
+ * a paused embed's real menus never open under a reader's stray click.
  *
- * The shell is the browser page, not a card: it fills its container
- * edge-to-edge. Window chrome belongs to whatever frames it.
+ * One scale factor per frame: no zoom anywhere — the shell lays out at
+ * real size and the viewport boundary owns the scaling. The shell is the
+ * browser page, not a card: it fills its container edge-to-edge.
  */
 export function ManagementShell({
   activeNav,
@@ -75,72 +69,29 @@ export function ManagementShell({
   const slideX =
     slideDirection === "forward" ? 24 : slideDirection === "backward" ? -24 : 0;
 
+  const renderLink: RenderSidebarLink = useCallback(
+    ({ id, className, children: rowContent, "aria-current": ariaCurrent }) => (
+      <div
+        data-cursor-target={id}
+        aria-current={ariaCurrent}
+        className={`${className} sx-mgmt__row`}
+      >
+        {rowContent}
+      </div>
+    ),
+    [],
+  );
+
   return (
     <div className="sx-mgmt">
-      <nav className="sx-mgmt__nav" aria-label="Demo management navigation">
-        {/* Top row: collapse affordance + org switcher, as in the console. */}
-        <div className="sx-mgmt__top">
-          <span className="sx-mgmt__collapse" aria-hidden>
-            <PanelLeft size={16} />
-          </span>
-          <div className="sx-mgmt__org">
-            <Building2 size={16} className="sx-mgmt__org-icon" />
-            <span className="sx-mgmt__org-label">
-              <span className="sx-mgmt__org-name">Acme Corp</span>
-              <span className="sx-mgmt__org-slug">acme</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Back to Sessions */}
-        <div className="sx-mgmt__nav-item">
-          <div className="sx-mgmt__back" data-cursor-target="back-to-sessions">
-            <ArrowLeft size={16} aria-hidden />
-            <span>Back to Sessions</span>
-          </div>
-        </div>
-
-        <div className="sx-mgmt__divider" />
-
-        {/* Grouped navigation — the SDK's own settings nav model. */}
-        <div className="sx-mgmt__groups">
-          {SETTINGS_NAV_GROUPS.map((group) => (
-            <div key={group.label} className="sx-mgmt__group">
-              <span className="sx-mgmt__group-heading">{group.label}</span>
-              {group.items.map((item) => {
-                const id = navId(item.href);
-                return (
-                  <div
-                    key={item.href}
-                    data-cursor-target={id}
-                    className={
-                      activeNav === id
-                        ? "sx-mgmt__item sx-mgmt__item--active"
-                        : "sx-mgmt__item"
-                    }
-                  >
-                    {/* The nav model types icons on className only; the
-                        16px real size comes from the stylesheet. */}
-                    <item.icon className="sx-mgmt__item-icon" />
-                    <span>{item.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-
-        <div className="sx-mgmt__spacer" />
-
-        {/* User footer */}
-        <div className="sx-mgmt__user">
-          <span className="sx-mgmt__avatar">Y</span>
-          <span className="sx-mgmt__user-label">
-            <span className="sx-mgmt__user-name">You</span>
-            <span className="sx-mgmt__user-email">you@acme.com</span>
-          </span>
-        </div>
-      </nav>
+      <div className="sx-mgmt__nav" inert>
+        <SettingsSidebar
+          groups={SETTINGS_NAV_GROUPS}
+          activePath={activeNav ? `/settings/${activeNav}` : null}
+          renderLink={renderLink}
+          footer={<UserMenu user={DEMO_USER} />}
+        />
+      </div>
 
       {/* Content area */}
       <motion.div

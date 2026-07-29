@@ -3,7 +3,7 @@ import {
   ApiKeyListPanel,
   CreateApiKeyForm,
 } from "@stigmer/react";
-import { DEMO_ORG } from "./fixtures";
+import { DEMO_NOW, DEMO_ORG } from "./fixtures";
 import "./ApiKeysPage.css";
 
 const noop = () => {};
@@ -49,8 +49,9 @@ interface ApiKeysPageProps {
  * - **reveal**: heading + description + the real `ApiKeyCreatedAlert`, and
  *   — one deliberate departure from the component's literal render — **no
  *   key list**. The shipped page would list the just-created key, but that
- *   row renders `formatShortDate(createdAt)` with no pinned locale/zone
- *   (the formatting-seam debt, scenar-cloud next-task), and the alert-only
+ *   row renders `formatShortDate(createdAt)` with no pinned locale (the
+ *   rendered *format* varies per reader even though the frozen clock now
+ *   pins the *instant* — the panel's `now` seam), and the alert-only
  *   depiction is the phase-2 content decision of record. Both consumers
  *   depend on this staying alert-only.
  *
@@ -104,7 +105,9 @@ export function ApiKeysPage({ state }: ApiKeysPageProps) {
                 />
               </div>
             )}
-            <ApiKeyListPanel />
+            {/* Frozen clock so a depicted key's "last used" stamp can never
+                drift between replays (the panel's deterministic-clock seam). */}
+            <ApiKeyListPanel now={DEMO_NOW} />
           </div>
         )}
       </section>
