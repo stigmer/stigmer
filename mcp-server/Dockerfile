@@ -18,9 +18,23 @@ LABEL org.opencontainers.image.source="https://github.com/stigmer/stigmer"
 LABEL org.opencontainers.image.vendor="Stigmer"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
-# The npm version (e.g. 1.2.3) or dist-tag (e.g. dev) to install. Also reported
-# by the server itself via STIGMER_MCP_VERSION (server.ts).
-ARG MCP_SERVER_VERSION=latest
+# The npm version to install. Also reported by the server itself via
+# STIGMER_MCP_VERSION (server.ts). Release workflows pass this explicitly
+# (release.mcp-server, release.dev); the default below serves builds that
+# don't — notably the prod deploy pipeline, which builds on every
+# mcp-server-touching push to main.
+#
+# The default is a PINNED version, deliberately NOT `latest`, and is bumped
+# as part of releasing. Two production incidents taught why (2026-07-28/29):
+#   - `latest` resolves at build time, so an image tagged with a commit SHA
+#     can contain bits that commit never saw — the prod bridge shipped a
+#     pre-fix package under the fix's own SHA.
+#   - the RUN line's text never changes with `latest`, so Docker's layer
+#     cache reuses the stale install forever — rebuilding after an npm
+#     publish shipped the identical old package and could never do otherwise.
+# Bumping the pin changes the ARG (and therefore the cache key), so the
+# install genuinely re-runs, and the recipe states exactly what prod runs.
+ARG MCP_SERVER_VERSION=3.4.1
 ENV STIGMER_MCP_VERSION=$MCP_SERVER_VERSION
 ENV NODE_ENV=production
 
