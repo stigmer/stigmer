@@ -104,10 +104,11 @@ jobs:
           retention-days: 1
 
 
-  # Pre-create a single draft release up front so every parallel build leg can
-  # upload its bundles to the same release via releaseId. The updater manifest
-  # is assembled once in the publish job (see below), which is what lets the
-  # builds run concurrently without racing on latest.json.
+  # Resolve a single release up front (reusing the canonical one for the tag
+  # when it exists) so every parallel build leg can upload its bundles to the
+  # same release via releaseId. The updater manifest is assembled once in the
+  # publish job (see below), which is what lets the builds run concurrently
+  # without racing on latest.json.
   create-release:
     needs: determine-version
     if: needs.determine-version.outputs.should_release == 'true'
@@ -125,33 +126,56 @@ jobs:
         with:
           script: |
             const tag = process.env.VERSION;
-            // No target_commitish: the Actions token 403s ("Resource not
-            // accessible by integration") when it names a SHA that is not a
-            // branch tip, and that gate fires even when the tag already
-            // exists. On tag-push runs the tag exists, so GitHub resolves the
-            // commit from the tag itself.
-            const params = {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: tag,
-              name: `Stigmer Desktop ${tag}`,
-              body: 'Download the desktop installer for your platform below.',
-              draft: true,
-              prerelease: false,
+
+            // Desktop assets must land on the canonical release for the tag
+            // (the "Release vX.Y.Z" that release.cli publishes). Creating our
+            // own draft instead strands the installers forever: drafts do not
+            // collide on tag_name (no 422), and the publish job's
+            // `gh release edit <tag>` resolves to the published release, so a
+            // parallel draft is never flipped public (this is how the
+            // v3.3.0/v3.4.0 desktop drafts got stranded). On a tag push the
+            // CLI release appears a couple of minutes in, so poll briefly.
+            const findByTag = async () => {
+              try {
+                const { data } = await github.rest.repos.getReleaseByTag({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  tag,
+                });
+                return data;
+              } catch (err) {
+                if (err.status !== 404) throw err;
+                return null;
+              }
             };
-            try {
-              const { data } = await github.rest.repos.createRelease(params);
-              core.setOutput('release_id', data.id);
-            } catch (err) {
-              // A re-run may hit an existing release for this tag; reuse it.
-              if (err.status !== 422) throw err;
-              const { data } = await github.rest.repos.getReleaseByTag({
+
+            // Dev dispatch builds use 0.0.0-N versions that never have a
+            // canonical release; skip the poll and go straight to a draft.
+            const isVersionTag = /^v/.test(tag);
+            const deadline = Date.now() + 5 * 60 * 1000;
+            let release = isVersionTag ? await findByTag() : null;
+            while (isVersionTag && !release && Date.now() < deadline) {
+              await new Promise((resolve) => setTimeout(resolve, 15000));
+              release = await findByTag();
+            }
+
+            if (!release) {
+              // No target_commitish: the Actions token 403s ("Resource not
+              // accessible by integration") when it names a SHA that is not a
+              // branch tip, and that gate fires even when the tag already
+              // exists. GitHub resolves the commit from the tag itself.
+              const { data } = await github.rest.repos.createRelease({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                tag,
+                tag_name: tag,
+                name: `Stigmer Desktop ${tag}`,
+                body: 'Download the desktop installer for your platform below.',
+                draft: true,
+                prerelease: false,
               });
-              core.setOutput('release_id', data.id);
+              release = data;
             }
+            core.setOutput('release_id', release.id);
 
   build:
     needs: [determine-version, generate-protos, create-release]

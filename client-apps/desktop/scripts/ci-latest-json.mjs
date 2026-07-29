@@ -87,7 +87,17 @@ function buildFragment({ targetDir, tag, repo }) {
 
   const platforms = {};
   for (const sigPath of sigFiles) {
-    const bundleName = basename(sigPath).replace(/\.sig$/, '');
+    let bundleName = basename(sigPath).replace(/\.sig$/, '');
+    // tauri-action uploads the universal macOS bundle renamed with an arch
+    // suffix (Stigmer.app.tar.gz -> Stigmer_universal.app.tar.gz), so the
+    // manifest URL must use the uploaded name, not the on-disk one.
+    if (
+      bundleName.endsWith('.app.tar.gz') &&
+      sigPath.includes('universal-apple-darwin') &&
+      !bundleName.includes('_universal')
+    ) {
+      bundleName = bundleName.replace(/\.app\.tar\.gz$/, '_universal.app.tar.gz');
+    }
     const keys = platformKeysFor(bundleName);
     if (!keys) continue;
 
