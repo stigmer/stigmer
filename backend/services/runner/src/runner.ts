@@ -232,7 +232,11 @@ export async function createStigmerRunner(
     async start() {
       console.log("Worker ready, polling for tasks...");
       // The boot timeline ends here: the worker is about to poll, so the
-      // sandbox can now receive its first activity.
+      // sandbox can now receive its first activity. The final mark closes the
+      // worker_created → about-to-poll span — without it, total_ms would stop
+      // at worker_created and understate the boot time the warm-pool go/no-go
+      // decision reads.
+      markBoot("worker_polling");
       emitRunnerBootTiming({ task_queue: config.taskQueue, mode: config.mode });
       await worker.run();
       console.log("Worker stopped");
