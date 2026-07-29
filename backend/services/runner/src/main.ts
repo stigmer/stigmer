@@ -23,6 +23,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import { createInterface } from "node:readline";
 import { preflightNodeRuntime } from "./preflight.js";
+import { markBoot } from "./shared/cold-start-timing.js";
 import { loadConfig } from "./config.js";
 import { initTracing, initMetrics } from "./otel.js";
 import { createStigmerRunner } from "./runner.js";
@@ -299,10 +300,14 @@ async function main(): Promise<void> {
     }
     process.exit(1);
   }
+  // Cold-start timeline: this first mark's span covers Node startup +
+  // entrypoint module loading + preflight (origin = process start).
+  markBoot("node_start_and_preflight");
 
   checkBuildFreshness();
 
   const config = loadConfig();
+  markBoot("config_loaded");
 
   // Route ALL Cursor SDK traffic through the Stigmer proxy in proxy mode.
   //

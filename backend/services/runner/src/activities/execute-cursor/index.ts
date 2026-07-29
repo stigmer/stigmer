@@ -45,6 +45,7 @@ import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_p
 import { determineCursorMode, isCloudMode } from "./cursor-mode.js";
 import { MessageAccumulator, cancelInProgressSubAgentProtos, collapseRedundantToolCallTwins } from "./message-translator.js";
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
+import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";
 import { readContextBridge } from "../../shared/context-bridge.js";
 import { readSenderIdentity } from "../../shared/sender-identity.js";
 import { readSessionContext } from "../../shared/session-context.js";
@@ -189,6 +190,12 @@ async function executeCursorInner(
     startedAt: utcTimestamp(),
   });
 
+  // Cold-start timeline of this turn's setup (warm-agent-surfaces Phase 0):
+  // one mark after each phase, emitted as a single structured log line once
+  // the Cursor agent is resolved (early returns skip it — partial setups are
+  // not comparable cold-start samples).
+  const setupTiming = new TimingRecorder();
+
   // Artifact storage for offloading oversized tool outputs (screenshots, giant
   // dumps) out of the persisted status, and for publishing the plan artifact.
   // Resolved once here so it is available to EVERY persist below. Best-effort via
@@ -198,6 +205,7 @@ async function executeCursorInner(
   // the aggregate size cap) and flips capture mode off (deny-gate fallback).
   const artifactStorage: ArtifactStorage | undefined =
     await resolveUsableArtifactStorage(loadArtifactStorageConfig(config), { executionId });
+  setupTiming.mark("resolve_artifact_storage");
   const statusOffload = artifactStorage
     ? { artifactStorage, executionId }
     : undefined;
@@ -289,17 +297,20 @@ async function executeCursorInner(
     const execution = await client.getExecution(executionId);
     const spec = execution.spec!;
     sessionId = spec.sessionId;
+    setupTiming.mark("fetch_execution");
 
     // Phase 2: Load session and resolve full agent blueprint
     await reportSetupProgress(client, executionId, "Resolving agent blueprint");
     session = await client.getSession(sessionId);
     const blueprint = await resolveBlueprint(client, session, config.workspaceRootDir);
+    setupTiming.mark("resolve_blueprint");
 
     // Phase 2b: Resolve execution environment (MCP server credentials)
     heartbeatPhase = "resolving_environment";
     await reportSetupProgress(client, executionId, "Resolving environment");
     const { envVars, secretKeys } = await resolveExecutionEnv(client, executionId);
     heartbeat();
+    setupTiming.mark("resolve_environment");
 
     // Phase 2c: Provision the workspace (clone git repos / mount local paths)
     // so the LOCAL Cursor agent operates on the actual repo. Cursor previously
@@ -314,6 +325,7 @@ async function executeCursorInner(
     );
     blueprint.workspaceDirs = workspaceProvision.workspaceDirs;
     heartbeat();
+    setupTiming.mark("provision_workspace");
 
     // Git write-back: pushes the session's APPROVED tree to the session
     // branch (stigmer/<session-id>) and keeps one PR open — the same
@@ -404,6 +416,7 @@ async function executeCursorInner(
       }
     }
     heartbeat();
+    setupTiming.mark("acquire_workspace_lock");
 
     // Set OTel baggage so downstream calls carry execution context.
     try {
@@ -580,6 +593,7 @@ async function executeCursorInner(
     let mcpResolution = await resolveMcpServers(
       client, blueprint.mergedMcpServerUsages, envVars,
     );
+    setupTiming.mark("resolve_mcp_servers");
 
     // Phase 4a: Connect backfill for undiscovered MCP servers
     heartbeatPhase = "resolving_mcp_servers";
@@ -588,6 +602,7 @@ async function executeCursorInner(
       client, mcpResolution, blueprint.mergedMcpServerUsages, envVars, sessionOrg,
       heartbeat, secretKeys,
     );
+    setupTiming.mark("backfill_mcp");
 
     // Phase 4a2: Synthesize the datastore records attachment (T05).
     // Deliberately AFTER resolve + backfill: the attachment has no
@@ -657,6 +672,7 @@ async function executeCursorInner(
       primaryWorkspaceDir,
     });
     heartbeat();
+    setupTiming.mark("resolve_skills");
 
     // Phase 5b: Resolve attachments (fail-hard — explicit user inputs; see
     // attachment-resolver.ts). Downloads by storage key through the same
@@ -668,6 +684,7 @@ async function executeCursorInner(
       storage: artifactStorage,
     });
     const attachmentPaths = attachmentResults.map((a) => a.relativePath);
+    setupTiming.mark("resolve_attachments");
 
     // Phase 5b3: Exact-apply approved whole-file writes (HITL "what you approve
     // is what gets applied"). The Cursor deny-only harness reinvokes the model,
@@ -797,6 +814,7 @@ async function executeCursorInner(
     stopDenialWatcher = watchDenialLedger(hitlDir, () => {
       turnState.denialLedgerDirty = true;
     });
+    setupTiming.mark("install_hitl_gate");
 
     // Mid-run live capture (DD-32 / DD-33): choose the progress substrate for this
     // turn's workspace shape ONCE (git / non-git CAS / hybrid). It owns its own
@@ -815,6 +833,7 @@ async function executeCursorInner(
 
     // Phase 5d: Ensure model pricing registry is populated before validation
     await ensurePricingLoaded();
+    setupTiming.mark("load_pricing");
 
     // Phase 6: Validate model selection
     const requestedModel = spec.executionConfig?.modelName || "default";
@@ -909,6 +928,17 @@ async function executeCursorInner(
       `agentId=${resolution.agentId}, resumed=${resolution.resumed}` +
       (resolution.resumeFailureDetail ? `, failureDetail=${resolution.resumeFailureDetail}` : ""),
     );
+    setupTiming.mark("resolve_agent");
+    emitTimingLog("execution_setup", {
+      execution_id: executionId,
+      session_id: sessionId,
+      harness: "cursor",
+      agent_resumed: resolution.resumed,
+      cursor_mode: agentMode,
+      mcp_server_count: blueprint.mergedMcpServerUsages.length,
+      skill_count: blueprint.mergedSkillRefs.length,
+      workspace_entry_count: session.spec?.workspaceEntries?.length ?? 0,
+    }, setupTiming);
 
     errorContext = { model: validatedModel, mode: agentMode, agentId: resolution.agentId };
 

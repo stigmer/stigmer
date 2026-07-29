@@ -10,9 +10,12 @@
 #   2. MCP server runtimes: npx (Node.js 22 LTS), uvx (Python), go run (Go)
 #   3. Core utilities: git, curl, jq, yq, yamllint
 #
-# MCP server packages (npm, pip, go modules) are NOT baked into the image.
-# They are installed on-demand by the runner during execution setup,
-# derived from the merged (agent + session) MCP server specs.
+# MCP server PACKAGES are not baked in, but the npx/uvx/go CACHES for every
+# seedpack (marketplace) stdio server ARE pre-warmed at build time (see
+# scripts/warm-seedpack-mcp-caches.sh), so the runner's on-demand install at
+# execution setup is a cache hit for marketplace servers and a normal install
+# only for custom ones. The trade is image size, mitigated by registry-side
+# image streaming; the win is removing the largest per-execution setup cost.
 #
 # The runner process is started by stigmer-service via
 # sandbox.process.executeCommand() after sandbox creation — CMD stays
@@ -90,6 +93,16 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
 RUN curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
         -o /usr/local/bin/yq && \
     chmod +x /usr/local/bin/yq
+
+# --- Pre-warm seedpack MCP server caches (warm-agent-surfaces Phase 1) ---
+# Placed BEFORE the runner COPY so runner-code-only rebuilds reuse this layer;
+# it re-runs only when the seedpack catalog or the warm script changes. The
+# caches land in /root/.npm, /root/.cache/uv, and /root/go on the image
+# filesystem (not /workspace), so they survive regardless of volume policy.
+COPY seedpack/mcp-servers/ /tmp/seedpack/mcp-servers/
+COPY backend/services/runner/scripts/warm-seedpack-mcp-caches.sh /tmp/warm-seedpack-mcp-caches.sh
+RUN bash /tmp/warm-seedpack-mcp-caches.sh /tmp/seedpack/mcp-servers && \
+    rm -rf /tmp/seedpack /tmp/warm-seedpack-mcp-caches.sh
 
 # --- Unified runner ---
 COPY --from=builder /build/backend/services/runner/dist/ /runner/dist/

@@ -20,6 +20,7 @@ import type { Config } from "./config.js";
 import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
 import type { WorkerActivities } from "./worker.js";
 import { resolveRunnerBootstrap } from "./bootstrap.js";
+import { markBoot, emitRunnerBootTiming } from "./shared/cold-start-timing.js";
 
 /**
  * Configuration for creating a Stigmer runner.
@@ -179,6 +180,7 @@ export async function createStigmerRunner(
   // facade unpatched (otherwise BiDi streams would silently 401). No-op when
   // the interceptor is unconfigured (no proxy/token).
   await assertHttp2ConnectPatched();
+  markBoot("interceptors_installed");
 
   // Resolve Temporal coordinates after the http2 patch is in place (discovery
   // dials the control plane through connect-node). Explicit address wins;
@@ -201,6 +203,7 @@ export async function createStigmerRunner(
     temporalAddress: coordinates.temporalAddress,
     temporalNamespace: coordinates.temporalNamespace,
   };
+  markBoot("bootstrap_resolved");
 
   const { setExecutionContextRef } = await import(
     "./activities/execute-cursor/rejection-capture.js"
@@ -208,6 +211,7 @@ export async function createStigmerRunner(
   setExecutionContextRef(getExecutionContext());
 
   const activities = await createAllActivities(config);
+  markBoot("activities_imported");
 
   console.log(
     `[runner] Registered activities: ${Object.keys(activities).join(", ")}`,
@@ -222,10 +226,14 @@ export async function createStigmerRunner(
 
   const { startWorker } = await import("./worker.js");
   const worker = await startWorker({ config, activities, payloadCodec });
+  markBoot("worker_created");
 
   return {
     async start() {
       console.log("Worker ready, polling for tasks...");
+      // The boot timeline ends here: the worker is about to poll, so the
+      // sandbox can now receive its first activity.
+      emitRunnerBootTiming({ task_queue: config.taskQueue, mode: config.mode });
       await worker.run();
       console.log("Worker stopped");
     },

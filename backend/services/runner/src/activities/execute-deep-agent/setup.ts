@@ -22,6 +22,7 @@ import type { DynamicStructuredTool } from "@langchain/core/tools";
 
 import type { Config } from "../../config.js";
 import type { StigmerClient } from "../../client/stigmer-client.js";
+import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";
 import { createCheckpointer } from "../../shared/checkpointer/factory.js";
 import { readContextBridge } from "../../shared/context-bridge.js";
 import { readSenderIdentity } from "../../shared/sender-identity.js";
@@ -194,12 +195,16 @@ export interface SetupDependencies {
 export async function performSetup(deps: SetupDependencies): Promise<SetupResult> {
   const { config, client, executionId, threadId } = deps;
   let mcpConnection: McpConnectionResult | null = null;
+  // Cold-start timeline of this setup (warm-agent-surfaces Phase 0): one mark
+  // after each phase, emitted as a single structured log line before return.
+  const timing = new TimingRecorder();
 
   try {
     // Step 1: Hydrate execution
     await reportSetupProgress(client, executionId, "Fetching execution…");
     const execution = await client.getExecution(executionId);
     console.log(`[setup] Execution fetched: agent_id=${execution.spec?.agentId}`);
+    timing.mark("fetch_execution");
 
     // Step 2: Resolve chain — execution → session → agentInstance → agent
     await reportSetupProgress(client, executionId, "Resolving agent…");
@@ -220,6 +225,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       `[setup] Chain resolved: session=${sessionId}, ` +
       `agent=${agent.metadata!.name}`,
     );
+    timing.mark("resolve_chain");
 
     // Step 3: Resolve model
     const modelName = execution.spec!.executionConfig?.modelName
@@ -237,10 +243,12 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         ? await ensureCheckpointDbPath(sessionId)
         : undefined,
     });
+    timing.mark("create_checkpointer");
 
     // Step 5: Resolve environment
     await reportSetupProgress(client, executionId, "Resolving environment…");
     const envResult: EnvironmentResult = await resolveEnvironment(client, executionId);
+    timing.mark("resolve_environment");
 
     // Step 6: Resolve a usable artifact store (shared with the Cursor harness so
     // both degrade identically). Returns `undefined` — never throws — when there
@@ -250,6 +258,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     // disables offload, instead of flowing writes then crashing at the boundary.
     const artifactStorage: ArtifactStorage | undefined =
       await resolveUsableArtifactStorage(loadArtifactStorageConfig(config), { executionId });
+    timing.mark("resolve_artifact_storage");
 
     // Step 7: Provision workspace
     await reportSetupProgress(client, executionId, "Initializing workspace…");
@@ -259,6 +268,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       envResult.mergedEnvVars,
       sessionId,
     );
+    timing.mark("provision_workspace");
 
     // Apply-then-review is the file-review model whenever there is a capture
     // SUBSTRATE (DD-21 D2, Slice 2b): file edits flow during the turn and are
@@ -328,6 +338,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       resolvedMcpServers = await resolveMcpServers(
         client, mcpServerUsages, envResult.mergedEnvVars,
       );
+      timing.mark("resolve_mcp_servers");
 
       const sessionOrg = session.metadata?.org ?? "";
       let backfilledServers = await backfillMcpServersIfNeeded(
@@ -359,11 +370,15 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         }
       }
       resolvedMcpServers = { resolvedServers: backfilledServers };
+      timing.mark("backfill_mcp");
 
+      // connect_mcp covers the whole fan-out: stdio servers spawn npx/uvx
+      // subprocesses here, so on-demand package installs land in this span.
       mcpConnection = await connectMcpServers(
         resolvedMcpServers.resolvedServers,
         { isCloudMode: config.cloudModeEnabled },
       );
+      timing.mark("connect_mcp");
     }
 
     // Step 7b: Resolve and write skills
@@ -407,6 +422,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
           `[setup] Skills loaded: ${skills.length} total, prompt section ${skillsPromptSection.length} chars`,
         );
       }
+      timing.mark("resolve_skills");
     }
 
     // Step 7c: Inject attachments
@@ -417,6 +433,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       storage: artifactStorage,
       isLocalMode: config.mode === "local",
     });
+    timing.mark("inject_attachments");
 
     // Step 8: Build enhanced system prompt
     const systemPrompt = buildEnhancedSystemPrompt({
@@ -449,6 +466,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       headerScope: { executionId },
       timeoutMs: requestTimeoutMs,
     });
+    timing.mark("build_model");
 
     // Step 10: Build middleware stack
     await ensurePricingLoaded();
@@ -563,6 +581,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       otelSpans: { toolServerMap },
       approvalGate: approvalGateConfig,
     });
+    timing.mark("build_middleware");
 
     // Step 11: Build tools list (MCP tools + think tool)
     const tools = [
@@ -611,6 +630,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         // backends too (undefined in plan mode; see buildShellEnv above).
         shellEnv,
       });
+      timing.mark("compile_subagents");
     }
 
     // Step 12: Create the agent graph with middleware
@@ -682,6 +702,15 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       `tools=${tools.length}, middleware=${middleware.length}, ` +
       `thread_id=${threadId}, streamVersion=${streamVersion}`,
     );
+    timing.mark("create_agent_graph");
+    emitTimingLog("execution_setup", {
+      execution_id: executionId,
+      session_id: sessionId,
+      harness: "native",
+      mcp_server_count: mcpServerUsages.length,
+      skill_count: skillRefs.length,
+      workspace_entry_count: session.spec!.workspaceEntries?.length ?? 0,
+    }, timing);
 
     return {
       agentGraph,
