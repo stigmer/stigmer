@@ -51,10 +51,19 @@ function fakeTokenOfType(tokenType: string): string {
   return `${b64({ alg: "RS256" })}.${b64({ token_type: tokenType })}.sig`;
 }
 
+/**
+ * Run the request through the full interceptor chain, composed the same way
+ * the transport composes it (first interceptor outermost). The client
+ * registers more than just the auth interceptor (e.g. OTel trace
+ * propagation), so invoking a single one by index would silently test the
+ * wrong thing.
+ */
 async function runInterceptor(req: ReturnType<typeof makeRequest>) {
-  const interceptor = capturedInterceptors[0]!;
   const next = vi.fn().mockResolvedValue({ ok: true });
-  const handler = interceptor(next);
+  const handler = capturedInterceptors.reduceRight(
+    (inner, interceptor) => interceptor(inner),
+    next as (req: any) => Promise<any>,
+  );
   await handler(req as any);
   return { next, req };
 }
