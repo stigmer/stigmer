@@ -13,8 +13,37 @@
  * module fresh via `vi.resetModules()` to get an unlatched instance.
  */
 
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { TimingRecorder, emitTimingLog } from "../cold-start-timing.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { TimingRecorder, emitTimingLog, recordTimingMetric } from "../cold-start-timing.js";
+
+/**
+ * Captures histogram records made through the instrument registry, so the
+ * metric-mirror tests can assert on instrument choice and attribute
+ * whitelisting. `failGetInstruments` simulates a broken registry to pin the
+ * "telemetry never breaks the runner" posture.
+ */
+const metricsMock = vi.hoisted(() => ({
+  recorded: [] as Array<{ instrument: string; value: number; attrs?: Record<string, string> }>,
+  failGetInstruments: false,
+}));
+
+vi.mock("../../otel-metrics.js", () => ({
+  getInstruments: async () => {
+    if (metricsMock.failGetInstruments) {
+      throw new Error("registry unavailable");
+    }
+    const capture = (instrument: string) => ({
+      record: (value: number, attrs?: Record<string, string>) => {
+        metricsMock.recorded.push({ instrument, value, attrs });
+      },
+    });
+    return {
+      runnerBootDuration: capture("runner_boot"),
+      executionSetupDuration: capture("execution_setup"),
+      poolAttachDuration: capture("pool_attach"),
+    };
+  },
+}));
 
 /** Parse the single JSON line the mocked console.log captured. */
 function loggedJson(spy: ReturnType<typeof vi.spyOn>): Record<string, unknown> {
@@ -113,6 +142,74 @@ describe("emitTimingLog", () => {
       emitTimingLog("evt", cyclic as never, new TimingRecorder()),
     ).not.toThrow();
     expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+describe("timing metrics mirror", () => {
+  beforeEach(() => {
+    metricsMock.recorded.length = 0;
+    metricsMock.failGetInstruments = false;
+  });
+
+  it("mirrors each mapped timeline onto its histogram with whitelisted attrs only", async () => {
+    recordTimingMetric("runner_boot", {
+      mode: "cloud",
+      pool_member_id: "pm_secret",
+      task_queue: "sandbox:pm_secret",
+    }, 6200);
+    recordTimingMetric("execution_setup", {
+      harness: "cursor",
+      execution_id: "exe_123",
+      session_id: "ses_456",
+    }, 3000);
+    recordTimingMetric("pool_attach", {
+      pool_member_id: "pm_secret",
+      session_id: "ses_456",
+    }, 400);
+
+    await vi.waitFor(() => expect(metricsMock.recorded).toHaveLength(3));
+
+    const byInstrument = Object.fromEntries(
+      metricsMock.recorded.map((r) => [r.instrument, r]),
+    );
+    expect(byInstrument.runner_boot!.value).toBe(6200);
+    // The whitelist is the cardinality guard: ids must never become attrs.
+    expect(byInstrument.runner_boot!.attrs).toEqual({ mode: "cloud" });
+    expect(byInstrument.execution_setup!.value).toBe(3000);
+    expect(byInstrument.execution_setup!.attrs).toEqual({ harness: "cursor" });
+    expect(byInstrument.pool_attach!.value).toBe(400);
+    expect(byInstrument.pool_attach!.attrs).toBeUndefined();
+  });
+
+  it("emitTimingLog drives the mirror, so call sites need no metric code", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const recorder = new TimingRecorder();
+    recorder.mark("only_segment");
+
+    emitTimingLog("execution_setup", { harness: "native", execution_id: "exe_1" }, recorder);
+
+    await vi.waitFor(() => expect(metricsMock.recorded).toHaveLength(1));
+    expect(metricsMock.recorded[0]!.instrument).toBe("execution_setup");
+    expect(metricsMock.recorded[0]!.attrs).toEqual({ harness: "native" });
+  });
+
+  it("records nothing for unmapped events (control-plane timelines)", async () => {
+    recordTimingMetric("execution_create", { org: "acme" }, 500);
+    recordTimingMetric("pool_attach", {}, 1);
+
+    // The mapped event landing proves the unmapped one was skipped, without
+    // relying on an arbitrary sleep.
+    await vi.waitFor(() => expect(metricsMock.recorded).toHaveLength(1));
+    expect(metricsMock.recorded[0]!.instrument).toBe("pool_attach");
+  });
+
+  it("survives a broken instrument registry without throwing or logging", async () => {
+    metricsMock.failGetInstruments = true;
+
+    expect(() => recordTimingMetric("runner_boot", { mode: "cloud" }, 100)).not.toThrow();
+    // Give the floating promise a tick to reject and be swallowed.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(metricsMock.recorded).toHaveLength(0);
   });
 });
 

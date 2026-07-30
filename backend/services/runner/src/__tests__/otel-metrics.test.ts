@@ -13,6 +13,9 @@ describe("OTel Metrics Registry", () => {
     expect(instruments.activityDuration).toBeDefined();
     expect(instruments.workflowTaskDuration).toBeDefined();
     expect(instruments.workflowTaskCount).toBeDefined();
+    expect(instruments.runnerBootDuration).toBeDefined();
+    expect(instruments.executionSetupDuration).toBeDefined();
+    expect(instruments.poolAttachDuration).toBeDefined();
   });
 
   it("returns the same singleton on repeated calls", async () => {
@@ -29,6 +32,9 @@ describe("OTel Metrics Registry", () => {
     expect(() => instruments.activityDuration.record(150)).not.toThrow();
     expect(() => instruments.workflowTaskDuration.record(42)).not.toThrow();
     expect(() => instruments.workflowTaskCount.add(1, { "task.kind": "set" })).not.toThrow();
+    expect(() => instruments.runnerBootDuration.record(6200, { mode: "cloud" })).not.toThrow();
+    expect(() => instruments.executionSetupDuration.record(3000, { harness: "cursor" })).not.toThrow();
+    expect(() => instruments.poolAttachDuration.record(400)).not.toThrow();
   });
 
   it("reset allows re-creation", async () => {

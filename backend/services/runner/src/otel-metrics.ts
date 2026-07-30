@@ -1,7 +1,13 @@
 /**
  * OTel metric instrument registry for the unified runner.
  *
- * Matches Go workflow-runner's `pkg/otel/metrics.go` instrument names.
+ * Instrument names follow the platform-wide `stigmer.*` convention shared
+ * with stigmer-service (SigNoz renders the dots as underscores). The
+ * cold-start instruments (runner boot / execution setup / pool attach) are
+ * sandbox-runner-specific — they mirror the `stigmer_timing` stdout
+ * timelines (see `shared/cold-start-timing.ts`) as dashboard aggregates and
+ * have no counterpart in other runners.
+ *
  * All instruments are created lazily on first access. When no
  * MeterProvider is configured, they are no-ops (OTel global fallback).
  */
@@ -20,6 +26,9 @@ export interface RunnerInstruments {
   readonly llmCallCount: Counter;
   readonly llmTokensInput: Counter;
   readonly llmTokensOutput: Counter;
+  readonly runnerBootDuration: Histogram;
+  readonly executionSetupDuration: Histogram;
+  readonly poolAttachDuration: Histogram;
 }
 
 let instruments: RunnerInstruments | null = null;
@@ -62,6 +71,21 @@ export async function getInstruments(): Promise<RunnerInstruments> {
     llmTokensOutput: meter.createCounter("stigmer.llm.tokens.output", {
       unit: "{token}",
       description: "Total output tokens produced across LLM calls",
+    }),
+    // Cold-start timelines as dashboard aggregates (warm-agent-surfaces).
+    // Attribute cardinality is bounded by the emitter's whitelist in
+    // cold-start-timing.ts: `mode` / `harness` only, never per-pod values.
+    runnerBootDuration: meter.createHistogram("stigmer.runner.boot.duration", {
+      unit: "ms",
+      description: "Runner process boot: Node start to Temporal worker polling",
+    }),
+    executionSetupDuration: meter.createHistogram("stigmer.execution.setup.duration", {
+      unit: "ms",
+      description: "Per-execution setup: activity start to agent ready to stream",
+    }),
+    poolAttachDuration: meter.createHistogram("stigmer.sandbox.pool.attach.duration", {
+      unit: "ms",
+      description: "Warm-pool attach hand-off on the member: token exchange to session worker polling",
     }),
   };
 

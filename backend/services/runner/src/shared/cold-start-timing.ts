@@ -17,6 +17,11 @@
  * practice, but callers still treat every function here as best-effort.
  */
 
+// Static on purpose: the registry module is itself lazy (it dynamic-imports
+// @opentelemetry/api inside getInstruments), so this adds nothing to boot,
+// while per-call dynamic imports raced under concurrent emissions.
+import { getInstruments } from "../otel-metrics.js";
+
 /** One closed segment on a timeline: [startMs, startMs + durationMs). */
 export interface TimingSegment {
   readonly name: string;
@@ -80,6 +85,12 @@ export class TimingRecorder {
  *
  * Shape (stable — the baseline report and log-based metrics query it):
  * `{"stigmer_timing":"<event>", ...context, "total_ms":N, "segments":[{"name","start_ms","duration_ms"}]}`
+ *
+ * Each timeline's total is additionally mirrored onto its OTel histogram
+ * (see {@link recordTimingMetric}): the stdout line stays the source of
+ * truth for per-segment forensics (it is the only place segments exist —
+ * cluster workload logs are not ingested anywhere queryable), while the
+ * histogram gives dashboards the aggregate without scraping pods.
  */
 export function emitTimingLog(
   event: string,
@@ -100,6 +111,59 @@ export function emitTimingLog(
   } catch {
     // Telemetry must never break the runner.
   }
+  recordTimingMetric(event, context, recorder.totalMs());
+}
+
+/**
+ * Mirror a timeline's total onto its OTel histogram, fire-and-forget.
+ *
+ * Attributes are a per-event WHITELIST (`mode`, `harness`) — never ids or
+ * per-pod values. Unbounded attribute values multiply time series without
+ * limit (the JVM JFR thread_name incident, 2026-07-29: 5k+ series in
+ * 15 minutes), so new attributes here require the same closed-set argument
+ * these two carry. Events without a mapped instrument are control-plane
+ * timelines or future additions and are deliberately not recorded.
+ *
+ * Exported for tests; production callers go through {@link emitTimingLog}.
+ */
+export function recordTimingMetric(
+  event: string,
+  context: Record<string, string | number | boolean | null | undefined>,
+  totalMs: number,
+): void {
+  void (async () => {
+    const instruments = await getInstruments();
+    switch (event) {
+      case "runner_boot":
+        instruments.runnerBootDuration.record(totalMs, pickAttrs(context, "mode"));
+        break;
+      case "execution_setup":
+        instruments.executionSetupDuration.record(totalMs, pickAttrs(context, "harness"));
+        break;
+      case "pool_attach":
+        instruments.poolAttachDuration.record(totalMs);
+        break;
+      default:
+        break;
+    }
+  })().catch(() => {
+    // Telemetry must never break the runner.
+  });
+}
+
+/** Copy only the whitelisted string-valued keys into metric attributes. */
+function pickAttrs(
+  context: Record<string, string | number | boolean | null | undefined>,
+  ...keys: string[]
+): Record<string, string> {
+  const attrs: Record<string, string> = {};
+  for (const key of keys) {
+    const value = context[key];
+    if (typeof value === "string" && value.length > 0) {
+      attrs[key] = value;
+    }
+  }
+  return attrs;
 }
 
 // ─── Process boot timeline ───────────────────────────────────────────────────
