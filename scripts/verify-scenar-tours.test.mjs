@@ -13,7 +13,15 @@ import {
   KNOWN_STEP0_OFFENDERS,
   READER_OFFSET_WINDOW,
   REPLICA_METRIC_PAIRS,
+  CANONICAL_VIEWPORT_SOURCES,
+  extractPackViewport,
+  extractEmbedPinViewport,
 } from "./verify-scenar-tours.mjs";
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 // ---------------------------------------------------------------------------
 // findClockReads
@@ -503,4 +511,45 @@ test("the step-0 grandfather set only shrinks", () => {
   // interaction is a tour whose choreography is wrong, because step-0
   // timers arm under the poster and fire before Play.
   assert.deepEqual([...KNOWN_STEP0_OFFENDERS], []);
+});
+
+// ---------------------------------------------------------------------------
+// Canonical viewport (invariant 9)
+// ---------------------------------------------------------------------------
+
+test("extractPackViewport reads --width/--shell-height from PACK_FLAGS", () => {
+  const source =
+    'const PACK_FLAGS = ["--width", "1440", "--shell-height", "900", "--stage"];';
+  assert.deepEqual(extractPackViewport(source), { width: 1440, height: 900 });
+});
+
+test("extractPackViewport returns null when the flags shape changes", () => {
+  // A restructured PACK_FLAGS the gate cannot read is a gate failure, not a
+  // silent pass — extractors must be taught the new shape in the same commit.
+  assert.equal(extractPackViewport('const PACK_FLAGS = ["--stage"];'), null);
+  assert.equal(extractPackViewport("const width = 1440;"), null);
+});
+
+test("extractEmbedPinViewport reads the CANONICAL_VIEWPORT constant", () => {
+  const source = "const CANONICAL_VIEWPORT = { width: 1440, height: 900 } as const;";
+  assert.deepEqual(extractEmbedPinViewport(source), { width: 1440, height: 900 });
+});
+
+test("extractEmbedPinViewport returns null when the constant shape changes", () => {
+  assert.equal(extractEmbedPinViewport('const pin = "1440 / 900";'), null);
+});
+
+test("both canonical-viewport sources exist and agree today", () => {
+  // The gate run asserts the same against the live files; this locks the
+  // source paths and extractor compatibility against refactors, exactly
+  // like the replica-metric pair-shape test above.
+  const pack = extractPackViewport(
+    readFileSync(join(repoRoot, CANONICAL_VIEWPORT_SOURCES.pack), "utf8"),
+  );
+  const pin = extractEmbedPinViewport(
+    readFileSync(join(repoRoot, CANONICAL_VIEWPORT_SOURCES.embedPin), "utf8"),
+  );
+  assert.ok(pack, "pack-all.mjs PACK_FLAGS must be readable by the extractor");
+  assert.ok(pin, "scenar-embed.tsx CANONICAL_VIEWPORT must be readable by the extractor");
+  assert.deepEqual(pack, pin);
 });

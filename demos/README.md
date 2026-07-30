@@ -166,23 +166,28 @@ size, captured once, displayed smaller. That property is geometric — it
 holds only when exactly **one** scale factor exists per rendered frame, and
 the viewport boundary owns it.
 
-- **Canonical viewport is 1280×800** (16:10), set explicitly by
+- **Canonical viewport is 1440×900** (16:10), set explicitly by
   `scripts/pack-all.mjs` — never the CLI default. It is derived, not chosen:
-  the console needs 280px (sidebar) + 48px (main padding) + 896px
-  (`max-w-4xl` content cap) = 1224px to render its content column at full
-  design width, and 1280×800 is the smallest common real window above that.
-- **The canonical width is layout width, not viewport width.** The embed is
-  an iframe, so CSS **media queries resolve against the docs column**
-  (~896px — below the console's `lg` breakpoint of 1024), not against the
-  1280px canvas: `DemoViewport` scales with CSS `zoom`, which changes no
-  viewport. Every `lg:`-conditional style in a real component therefore
-  renders its *narrow* variant inside an embed (measured 2026-07-27:
-  `max-lg:hidden` computes to `display:none` at an iframe width of 715px).
-  Where a component exposes a seam, use it — `SessionView` passes
-  `SessionViewerLayout` `responsive={false}` so the conversation pane
-  survives open-panel beats. The general class (e.g. `ResourceCards`
-  rendering 2 columns instead of 3) is registered debt; M2
-  (iframe-as-screen, scenar-cloud DD-009) is its exit condition.
+  the `--stage` framing insets 48px per side, so the depicted browser
+  window is 1344px — comfortably above the console's layout minimum (280px
+  sidebar + 48px main padding + 896px `max-w-4xl` content cap = 1224px)
+  and in the range of a typical laptop window, so the depicted density
+  matches what a real user sees. (The original 1280×800 left the app only
+  1184px after stage insets — below that minimum — which made every
+  component read oversized.) The docs embed re-states this viewport as its
+  pre-handshake aspect pin (`site/src/components/docs/scenar-embed.tsx`);
+  gate invariant 9 holds the two in lockstep.
+- **The iframe is the canonical viewport** (M2, iframe-as-screen — landed
+  with `@scenar/embed`'s scale-at-the-boundary mode). The embed host lays
+  the iframe out at the canonical size the bundle reports over the `ready`
+  handshake and scales it as one unit, so CSS media queries resolve against
+  the 1440px canvas and every `lg:`-conditional style renders the same
+  variant a real console window shows. The pre-M2 debt class (embeds
+  rendering narrow variants — `ResourceCards` at 2 columns instead of 3,
+  `max-lg:hidden` computing to `display:none`) is retired. `SessionView`
+  still passes `SessionViewerLayout` `responsive={false}`: the authoring
+  preview (`scenar serve`) is not an embed, and the conversation pane must
+  survive open-panel beats there too.
 - **Author at the console's real metrics.** The sidebar needs no
   transcription — the shells render the SDK's own sidebar components
   (DD-020), so its metrics are the console's by construction. What the
@@ -194,8 +199,8 @@ the viewport boundary owns it.
   prop, a style object, or CSS. If content "doesn't fit", the viewport or
   the depicted content is wrong, not the scale. Gate invariant 6 rejects
   every authored scale factor under `tours/**`.
-- **Legibility comes from the camera, not from shrinking.** At 1280
-  canonical in a ~896px docs column everything renders at ~0.7×; a
+- **Legibility comes from the camera, not from shrinking.** At 1440
+  canonical in a ~896px docs column everything renders at ~0.62×; a
   `viewport_transition` interaction (zoom toward the region the narration
   discusses, reset before the beat ends) is how small text becomes readable
   — see `create-agent-tour/steps.ts` for the pattern.

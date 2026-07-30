@@ -122,7 +122,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@bufbuild/protobuf@npm:2.12.0, @bufbuild/protobuf@npm:^2.11.0":
+"@bufbuild/protobuf@npm:2.12.0":
   version: 2.12.0
   resolution: "@bufbuild/protobuf@npm:2.12.0"
   checksum: 10c0/28959e371fd2e7c8d67d52af9e3c8f8e6770e2e116dcc5508f469ca736afa6905e216bc76183835898a5f3deb8aa2e7db47d4a0e706fba76115e9a1996893191
@@ -2427,10 +2427,34 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@scenar/core@npm:0.10.0":
+  version: 0.10.0
+  resolution: "@scenar/core@npm:0.10.0"
+  checksum: 10c0/8123780e435b22567e45e31ec9d30eeac587bdfa913e7ffd7cb575e5cc009251583600adcfb71a061f310960b7e7a9cd6e6d625f13c8cc520b147f0ad7de52f4
+  languageName: node
+  linkType: hard
+
 "@scenar/core@npm:0.5.0":
   version: 0.5.0
   resolution: "@scenar/core@npm:0.5.0"
   checksum: 10c0/702aafd017e165e1eb198e9f203ea7d30baff81637f3d670d9835190b9625ae2b9498b976a59304c13e0e6b7147ec83f5a87b72b64e4310a493929e754d97cb5
+  languageName: node
+  linkType: hard
+
+"@scenar/embed@npm:0.10.0":
+  version: 0.10.0
+  resolution: "@scenar/embed@npm:0.10.0"
+  dependencies:
+    "@scenar/core": "npm:0.10.0"
+  peerDependencies:
+    react: ">=18.0.0"
+    react-dom: ">=18.0.0"
+  peerDependenciesMeta:
+    react:
+      optional: true
+    react-dom:
+      optional: true
+  checksum: 10c0/950444fab5f03e32cf9ad433ae54738e3512f5e03be714951abee959cb76256153cb26d43f37c059369b6af1ff8683fcac089add7f7e23881aead7181d91f80b
   languageName: node
   linkType: hard
 
@@ -2605,16 +2629,16 @@ __metadata:
 
 "@stigmer/protos@file:../apis/stubs/ts::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=ec3607&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/protos@file:../apis/stubs/ts#../apis/stubs/ts::hash=f8d370&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protobuf": "npm:2.12.0"
-  checksum: 10c0/7d803f3791339f16146f70cfa219aee8c8f9c2886dca01bc665c88024632297ed3c98366d6dd91b8fb835d3b615690f48267ec07af3013e50eefc4b58245e10b
+  checksum: 10c0/0f0e7bbc8880d84022662a399b5dac0d8000eda10822f17505fa21657e4d8d9b8f6a84f5a3821f5e5f7428d60aa4cdbc97c7a36cd071591de7e8a5c7c476bbb2
   languageName: node
   linkType: hard
 
 "@stigmer/react@file:../sdk/react::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=8ffab1&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/react@file:../sdk/react#../sdk/react::hash=93d69e&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@bufbuild/protovalidate": "npm:^1.1.1"
     "@dagrejs/dagre": "npm:^1.1.4"
@@ -2682,13 +2706,13 @@ __metadata:
       optional: true
     recharts:
       optional: true
-  checksum: 10c0/ba720b8f91dab4658791d9f471a5f0115e9164905d7fa511f95123a8f1ed3b8f14e5d4f6d787029104e4cdfc1bb5bbc45ae2de9fee6048132b573d6fc1ce1b12
+  checksum: 10c0/77e2d7affb9c3f074528c972b34ae90180c50bf522e4b6d710195e9d801f4ed4e57cb5f058c46247793b0213d20428f1661ade082cbb3f37f1ebfa829b10d0e2
   languageName: node
   linkType: hard
 
 "@stigmer/sdk@file:../sdk/typescript::locator=stigmer-site%40workspace%3A.":
   version: 0.0.0-dev
-  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=fafdc4&locator=stigmer-site%40workspace%3A."
+  resolution: "@stigmer/sdk@file:../sdk/typescript#../sdk/typescript::hash=ebe67b&locator=stigmer-site%40workspace%3A."
   dependencies:
     "@connectrpc/connect": "npm:^2.0.0"
     "@connectrpc/connect-web": "npm:^2.0.0"
@@ -2700,7 +2724,7 @@ __metadata:
   peerDependenciesMeta:
     "@connectrpc/connect-node":
       optional: true
-  checksum: 10c0/233b29f80896fb08c6ef27f072ac8f75f3f922666c8d5be84a12240769ed53060429c40e826088d83ca631244c85b3fb1149540aebc69a4f4427480a8785faf3
+  checksum: 10c0/3828579e639f7d4c50e19e35a436754b664ef2f4092b67e8c0e1c778d1715acf4c970c874c82bb16fc4ca6a3c0b96cc0198641c2dd328092a29fcdbf5735d28c
   languageName: node
   linkType: hard
 
@@ -10395,7 +10419,7 @@ __metadata:
   resolution: "stigmer-site@workspace:."
   dependencies:
     "@base-ui/react": "npm:^1.0.0"
-    "@bufbuild/protobuf": "npm:^2.11.0"
+    "@bufbuild/protobuf": "npm:2.12.0"
     "@codemirror/autocomplete": "npm:^6.18.6"
     "@codemirror/commands": "npm:^6.8.0"
     "@codemirror/lang-yaml": "npm:^6.1.2"
@@ -10411,8 +10435,8 @@ __metadata:
     "@playwright/test": "npm:^1.59.1"
     "@radix-ui/react-slot": "npm:^1.2.3"
     "@scenar/cli": "npm:0.5.0"
-    "@scenar/core": "npm:0.5.0"
-    "@scenar/embed": "npm:0.5.0"
+    "@scenar/core": "npm:0.10.0"
+    "@scenar/embed": "npm:0.10.0"
     "@scenar/preview": "npm:0.3.0"
     "@scenar/react": "npm:0.5.0"
     "@stigmer/embed": "file:../sdk/embed"

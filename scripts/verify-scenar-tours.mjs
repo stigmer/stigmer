@@ -4,7 +4,7 @@
  * Static verification gate for the Scenar tours in `demos/tours/` and the
  * docs pages that embed them.
  *
- * Eight invariants, each of which has already produced (or nearly produced)
+ * Nine invariants, each of which has already produced (or nearly produced)
  * a shipped defect:
  *
  * 1. DETERMINISM (scenar-cloud DD-006). A packed tour must render identical
@@ -81,6 +81,16 @@
  *    keeps a replaced tour alive: once a page's embed becomes a still,
  *    the `<Still>` id may be the tour's only reference in the repo, and
  *    deleting the "unused" tour would silently 404 the shipped image.
+ *
+ * 9. CANONICAL VIEWPORT. The tours' canonical viewport is stated in two
+ *    places that cannot import each other: `demos/scripts/pack-all.mjs`
+ *    (PACK_FLAGS — what every bundle is actually packed at) and the docs
+ *    embed's pre-handshake aspect-ratio pin
+ *    (`site/src/components/docs/scenar-embed.tsx`, CANONICAL_VIEWPORT).
+ *    A drifted pin permanently letterboxes or reflows every embed on the
+ *    page — exactly the failure mode the 1280→1440 migration would have
+ *    shipped had only one side been updated. Same mechanism as invariant
+ *    7: both sides re-state one fact, and the gate pins them equal.
  *
  * Like scripts/verify-esm-node.mjs, checks are AST-based (TypeScript parser
  * via createRequire, no new dependency) rather than regex, so string
@@ -475,6 +485,39 @@ export const REPLICA_METRIC_PAIRS = [
     realNeedle: 'contentColumn="center"',
   },
 ];
+
+/**
+ * Canonical-viewport lockstep — invariant 9.
+ *
+ * The two extractors below parse each side's statement of the canonical
+ * viewport. They return `{ width, height }` or null when the statement is
+ * no longer recognizable — and an unrecognizable statement is itself a
+ * failure: the gate can only pin what it can read, so whoever restructures
+ * either constant must teach these extractors the new shape in the same
+ * commit.
+ */
+export const CANONICAL_VIEWPORT_SOURCES = {
+  pack: "demos/scripts/pack-all.mjs",
+  embedPin: "site/src/components/docs/scenar-embed.tsx",
+};
+
+/** Read `--width`/`--shell-height` out of pack-all.mjs's PACK_FLAGS array. */
+export function extractPackViewport(packAllText) {
+  const match = packAllText.match(
+    /PACK_FLAGS\s*=\s*\[[^\]]*"--width",\s*"(\d+)",\s*"--shell-height",\s*"(\d+)"/,
+  );
+  if (!match) return null;
+  return { width: Number(match[1]), height: Number(match[2]) };
+}
+
+/** Read the CANONICAL_VIEWPORT constant out of the docs embed component. */
+export function extractEmbedPinViewport(embedText) {
+  const match = embedText.match(
+    /CANONICAL_VIEWPORT\s*=\s*\{\s*width:\s*(\d+),\s*height:\s*(\d+)\s*\}/,
+  );
+  if (!match) return null;
+  return { width: Number(match[1]), height: Number(match[2]) };
+}
 
 export function findCrossTourImports(sourceText, tourRelativePath) {
   const sourceFile = ts.createSourceFile(
@@ -876,6 +919,48 @@ async function main() {
     console.log(`  ok  still references (${stillCount} stills across docs/)`);
   } else {
     fail("still references", stillViolations);
+  }
+
+  // --- 9. Canonical viewport: pack flags and the docs embed pin agree -------
+  const viewportViolations = [];
+  const packViewport = extractPackViewport(
+    readFileSync(join(root, CANONICAL_VIEWPORT_SOURCES.pack), "utf8"),
+  );
+  const pinViewport = extractEmbedPinViewport(
+    readFileSync(join(root, CANONICAL_VIEWPORT_SOURCES.embedPin), "utf8"),
+  );
+  if (!packViewport) {
+    viewportViolations.push(
+      `${CANONICAL_VIEWPORT_SOURCES.pack}: PACK_FLAGS no longer states ` +
+        `"--width"/"--shell-height" in the shape this gate reads — update ` +
+        `extractPackViewport alongside the restructure`,
+    );
+  }
+  if (!pinViewport) {
+    viewportViolations.push(
+      `${CANONICAL_VIEWPORT_SOURCES.embedPin}: CANONICAL_VIEWPORT no longer ` +
+        `states { width, height } in the shape this gate reads — update ` +
+        `extractEmbedPinViewport alongside the restructure`,
+    );
+  }
+  if (
+    packViewport &&
+    pinViewport &&
+    (packViewport.width !== pinViewport.width || packViewport.height !== pinViewport.height)
+  ) {
+    viewportViolations.push(
+      `canonical viewport drift: pack-all packs at ` +
+        `${packViewport.width}x${packViewport.height} but the docs embed pins ` +
+        `${pinViewport.width}x${pinViewport.height} — a mismatched pin ` +
+        `letterboxes every embed; update both sides in the same commit`,
+    );
+  }
+  if (viewportViolations.length === 0) {
+    console.log(
+      `  ok  canonical viewport (${packViewport.width}x${packViewport.height}, both sides)`,
+    );
+  } else {
+    fail("canonical viewport", viewportViolations);
   }
 
   if (total > 0) {

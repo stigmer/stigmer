@@ -102,17 +102,25 @@ rmSync(bundlesDir, { recursive: true, force: true });
 /**
  * The tours' canonical viewport — an explicit choice, never the CLI default.
  *
- * 1280x800: a real 16:10 desktop browser-window size, above the console's
- * own `lg` breakpoint (1024) and its layout minimum (280px sidebar + 48px
- * main padding + 896px `max-w-4xl` content cap = 1224px — the narrowest
- * window at which the console renders its content column at full design
- * width). Tours author at the console's real metrics and this single scale
- * factor at the viewport boundary does all the fitting (DD-008).
+ * 1440x900: a real 16:10 desktop browser-window size, chosen so the depicted
+ * console lays out at the density a real user sees. The `--stage` framing
+ * insets 48px per side, leaving the depicted window 1344px wide —
+ * comfortably above the console's layout minimum (280px sidebar + 48px main
+ * padding + 896px `max-w-4xl` content cap = 1224px, the narrowest window at
+ * which the content column renders at full design width) and in the range
+ * of a typical laptop browser window. The previous 1280x800 left the app
+ * only 1184px after stage insets — below that minimum — so every component
+ * occupied an oversized share of the frame and tours read less compact than
+ * the product. Tours author at the console's real metrics and this single
+ * scale factor at the viewport boundary does all the fitting (DD-008).
+ *
+ * The docs embed pins this ratio pre-handshake (site scenar-embed.tsx); the
+ * verify gate holds the two in lockstep (invariant: canonical viewport).
  *
  * `--stage` floats each beat on the backdrop with a window shadow — the
  * screen-recording framing (DD-009).
  */
-const PACK_FLAGS = ["--width", "1280", "--shell-height", "800", "--stage"];
+const PACK_FLAGS = ["--width", "1440", "--shell-height", "900", "--stage"];
 
 for (const tour of tours) {
   console.log(`\nPacking ${tour}...`);

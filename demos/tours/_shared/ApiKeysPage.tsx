@@ -86,7 +86,12 @@ export function ApiKeysPage({ state }: ApiKeysPageProps) {
           your organizations.
         </p>
         {state.phase === "reveal" ? (
-          <div inert>
+          /* `key-reveal` is a camera target (viewport_transition), not a
+             cursor stop: the revealed key is the beat's payoff and renders
+             at `text-sm`, so api-key-setup zooms toward it for legibility
+             in the docs column. Inert for quickstart-tour's step-0 reveal
+             (step 0 may carry no interactions). */
+          <div inert data-cursor-target="key-reveal">
             <ApiKeyCreatedAlert
               rawKey={state.rawKey}
               keyName={state.keyName}

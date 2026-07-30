@@ -1,7 +1,16 @@
 "use client";
 
+import { useCallback, useState } from "react";
+import type { ScenarEmbedEvent } from "@scenar/core";
 import { ScenarEmbed as ScenarEmbedBase } from "@scenar/embed/react";
 import { resolveDemosBase } from "@/lib/demos-base";
+
+/**
+ * The tours' canonical viewport, mirrored from `demos/scripts/pack-all.mjs`
+ * (PACK_FLAGS) and held in lockstep by the verify gate's canonical-viewport
+ * invariant — a drifted pin letterboxes every embed on the page.
+ */
+const CANONICAL_VIEWPORT = { width: 1440, height: 900 } as const;
 
 interface ScenarEmbedProps {
   /**
@@ -34,18 +43,31 @@ interface ScenarEmbedProps {
  * whose re-theme path reloads the iframe.
  */
 export function ScenarEmbed({ id, title }: ScenarEmbedProps) {
+  // The aspect-ratio pin is strictly a pre-handshake baseline. The base
+  // component's wrapper spreads host `style` last, so a pin passed for the
+  // embed's whole lifetime would permanently override the resize handshake —
+  // and letterbox the tour whenever the pin and the packed viewport disagree.
+  // Dropping the pin on the first `resize` event hands sizing back to the
+  // embed's own reported ratio, making the pin's only job removing the layout
+  // jump between first paint and the handshake.
+  const [handshaken, setHandshaken] = useState(false);
+  const handleEvent = useCallback((event: ScenarEmbedEvent) => {
+    if (event.type === "resize") setHandshaken(true);
+  }, []);
+
   return (
     <ScenarEmbedBase
       id={id}
       base={resolveDemosBase()}
       title={title}
       theme="light"
+      onEvent={handleEvent}
       className="not-prose relative mx-auto my-4 w-full max-w-4xl rounded-lg"
-      // The tours' recorded viewport is 1280x800 (16:10 — demos'
-      // pack-all.mjs), but @scenar/embed's pre-handshake baseline is its own
-      // 896x480 default; pinning the real ratio here removes the layout jump
-      // between first paint and the embed's resize handshake.
-      style={{ aspectRatio: "1280 / 800" }}
+      style={
+        handshaken
+          ? undefined
+          : { aspectRatio: `${CANONICAL_VIEWPORT.width} / ${CANONICAL_VIEWPORT.height}` }
+      }
     />
   );
 }

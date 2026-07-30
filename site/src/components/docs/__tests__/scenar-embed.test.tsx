@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, act } from "@testing-library/react";
 import { ScenarEmbed } from "../scenar-embed";
 
 /**
@@ -87,8 +87,45 @@ describe("ScenarEmbed", () => {
     expect(wrapper.className).toContain("mx-auto");
     expect(wrapper.className).toContain("max-w-4xl");
     // The tours' recorded viewport (demos/scripts/pack-all.mjs packs at
-    // 1280x800, 16:10 — DD-008), pinned here so first paint matches the
-    // embed's post-handshake size with no layout jump.
-    expect(wrapper.style.aspectRatio).toBe("1280 / 800");
+    // 1440x900, 16:10), pinned here so first paint matches the embed's
+    // post-handshake size with no layout jump. Gate invariant 9
+    // (verify-scenar-tours) holds this pin and the pack flags in lockstep;
+    // this assertion is the unit-level half of that pairing.
+    expect(wrapper.style.aspectRatio).toBe("1440 / 900");
+  });
+
+  it("drops the pin once the embed reports its own size", () => {
+    // The pin is a pre-handshake baseline only. `@scenar/embed`'s wrapper
+    // spreads host `style` last, so a permanent pin would override the
+    // resize handshake for the embed's whole life — and letterbox every
+    // tour the moment the pin and the packed viewport disagree.
+    render(
+      <ScenarEmbed
+        id="authentication-flow-playback"
+        title="Authentication flow walkthrough"
+      />,
+    );
+
+    const wrapper = getIframe().parentElement as HTMLElement;
+    expect(wrapper.style.aspectRatio).toBe("1440 / 900");
+
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: {
+            source: "scenar-embed",
+            v: 1,
+            type: "resize",
+            widthPx: 1440,
+            heightPx: 812,
+          },
+          origin: "https://stigmer.ai",
+          source: getIframe().contentWindow,
+        } as MessageEventInit),
+      );
+    });
+
+    // The reported size now governs, exactly — not merely "something else".
+    expect(wrapper.style.aspectRatio).toBe("1440 / 812");
   });
 });
