@@ -330,6 +330,72 @@ describe("StigmerClient", () => {
     });
   });
 
+  describe("getRunnerScopedToken scope mapping", () => {
+    function clientWithPlatformQuery(response: Record<string, unknown>) {
+      const client = new StigmerClient({ endpoint: "http://localhost", token: null });
+      const getRunnerScopedToken = vi.fn().mockResolvedValue(response);
+      // Reach into the private generated client: the mocked createClient()
+      // returned {}, so install the method it would have provided.
+      (client as any).platformQuery = { getRunnerScopedToken };
+      return { client, rpc: getRunnerScopedToken };
+    }
+
+    it("maps agentExecutionId onto its oneof arm", async () => {
+      const { client, rpc } = clientWithPlatformQuery({ runnerScopedToken: "tok" });
+
+      await client.getRunnerScopedToken({ agentExecutionId: "aex_1" });
+
+      const input = rpc.mock.calls[0]![0];
+      expect(input.scope).toEqual({ case: "agentExecutionId", value: "aex_1" });
+    });
+
+    it("maps workflowExecutionId onto its oneof arm", async () => {
+      const { client, rpc } = clientWithPlatformQuery({ runnerScopedToken: "tok" });
+
+      await client.getRunnerScopedToken({ workflowExecutionId: "wfx_1" });
+
+      const input = rpc.mock.calls[0]![0];
+      expect(input.scope).toEqual({ case: "workflowExecutionId", value: "wfx_1" });
+    });
+
+    it("maps poolClaimSessionId onto the pool_claim message arm", async () => {
+      const { client, rpc } = clientWithPlatformQuery({ runnerScopedToken: "tok" });
+
+      await client.getRunnerScopedToken({ poolClaimSessionId: "ses_1" });
+
+      const input = rpc.mock.calls[0]![0];
+      expect(input.scope.case).toBe("poolClaim");
+      expect(input.scope.value.sessionId).toBe("ses_1");
+    });
+
+    it("authenticates with the caller token per-call when one is supplied (pool attach)", async () => {
+      const { client, rpc } = clientWithPlatformQuery({ runnerScopedToken: "tok" });
+
+      await client.getRunnerScopedToken({ poolClaimSessionId: "ses_1" }, "pool-tok");
+
+      expect(rpc).toHaveBeenCalledWith(
+        expect.anything(),
+        { headers: { authorization: "Bearer pool-tok" } },
+      );
+    });
+
+    it("passes no call options without a caller token", async () => {
+      const { client, rpc } = clientWithPlatformQuery({ runnerScopedToken: "tok" });
+
+      await client.getRunnerScopedToken({ agentExecutionId: "aex_1" });
+
+      expect(rpc).toHaveBeenCalledWith(expect.anything(), undefined);
+    });
+
+    it("returns undefined when the server mints nothing (presence-based contract)", async () => {
+      const { client } = clientWithPlatformQuery({ runnerScopedToken: "" });
+
+      const scoped = await client.getRunnerScopedToken({ poolClaimSessionId: "ses_1" });
+
+      expect(scoped).toBeUndefined();
+    });
+  });
+
   describe("getExecutionContextByExecutionId per-call credential", () => {
     it("passes the scoped token as a per-call authorization header", async () => {
       const client = new StigmerClient({ endpoint: "http://localhost", token: null });

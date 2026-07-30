@@ -3,6 +3,7 @@ from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
+from collections.abc import Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
@@ -47,12 +48,20 @@ class GetRunnerBootstrapConfigOutput(_message.Message):
     def __init__(self, temporal_address: _Optional[str] = ..., temporal_namespace: _Optional[str] = ..., runner_access_token: _Optional[str] = ..., token_type: _Optional[str] = ..., runner_access_token_expires_in_seconds: _Optional[int] = ...) -> None: ...
 
 class GetRunnerScopedTokenInput(_message.Message):
-    __slots__ = ("agent_execution_id", "workflow_execution_id")
+    __slots__ = ("agent_execution_id", "workflow_execution_id", "pool_claim")
     AGENT_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
     WORKFLOW_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    POOL_CLAIM_FIELD_NUMBER: _ClassVar[int]
     agent_execution_id: str
     workflow_execution_id: str
-    def __init__(self, agent_execution_id: _Optional[str] = ..., workflow_execution_id: _Optional[str] = ...) -> None: ...
+    pool_claim: PoolClaim
+    def __init__(self, agent_execution_id: _Optional[str] = ..., workflow_execution_id: _Optional[str] = ..., pool_claim: _Optional[_Union[PoolClaim, _Mapping]] = ...) -> None: ...
+
+class PoolClaim(_message.Message):
+    __slots__ = ("session_id",)
+    SESSION_ID_FIELD_NUMBER: _ClassVar[int]
+    session_id: str
+    def __init__(self, session_id: _Optional[str] = ...) -> None: ...
 
 class GetRunnerScopedTokenOutput(_message.Message):
     __slots__ = ("runner_scoped_token", "token_type", "expires_in_seconds")

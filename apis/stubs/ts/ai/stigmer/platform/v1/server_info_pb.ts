@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/v1/server_info.proto.
  */
 export const file_ai_stigmer_platform_v1_server_info: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCLJAQoeR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0EiEKEHRlbXBvcmFsX2FkZHJlc3MYASABKAlCB7pIBHICEAESIwoSdGVtcG9yYWxfbmFtZXNwYWNlGAIgASgJQge6SARyAhABEhsKE3J1bm5lcl9hY2Nlc3NfdG9rZW4YAyABKAkSEgoKdG9rZW5fdHlwZRgEIAEoCRIuCiZydW5uZXJfYWNjZXNzX3Rva2VuX2V4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBSJqChlHZXRSdW5uZXJTY29wZWRUb2tlbklucHV0EhwKEmFnZW50X2V4ZWN1dGlvbl9pZBgBIAEoCUgAEh8KFXdvcmtmbG93X2V4ZWN1dGlvbl9pZBgCIAEoCUgAQg4KBXNjb3BlEgW6SAIIASJpChpHZXRSdW5uZXJTY29wZWRUb2tlbk91dHB1dBIbChNydW5uZXJfc2NvcGVkX3Rva2VuGAEgASgJEhIKCnRva2VuX3R5cGUYAiABKAkSGgoSZXhwaXJlc19pbl9zZWNvbmRzGAMgASgFKkMKDVNlcnZlckVkaXRpb24SHgoac2VydmVyX2VkaXRpb25fdW5zcGVjaWZpZWQQABIHCgNvc3MQARIJCgVjbG91ZBACMqEDChdQbGF0Zm9ybVF1ZXJ5Q29udHJvbGxlchJuCg1nZXRTZXJ2ZXJJbmZvEiouYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRTZXJ2ZXJJbmZvSW5wdXQaKy5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFNlcnZlckluZm9PdXRwdXQiBMi4GAESjwEKGGdldFJ1bm5lckJvb3RzdHJhcENvbmZpZxI1LmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnSW5wdXQaNi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ091dHB1dCIE0LgYARKDAQoUZ2V0UnVubmVyU2NvcGVkVG9rZW4SMS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lclNjb3BlZFRva2VuSW5wdXQaMi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lclNjb3BlZFRva2VuT3V0cHV0IgTQuBgBQhFCD1NlcnZlckluZm9Qcm90b2IGcHJvdG8z", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCLJAQoeR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0EiEKEHRlbXBvcmFsX2FkZHJlc3MYASABKAlCB7pIBHICEAESIwoSdGVtcG9yYWxfbmFtZXNwYWNlGAIgASgJQge6SARyAhABEhsKE3J1bm5lcl9hY2Nlc3NfdG9rZW4YAyABKAkSEgoKdG9rZW5fdHlwZRgEIAEoCRIuCiZydW5uZXJfYWNjZXNzX3Rva2VuX2V4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBSKjAQoZR2V0UnVubmVyU2NvcGVkVG9rZW5JbnB1dBIcChJhZ2VudF9leGVjdXRpb25faWQYASABKAlIABIfChV3b3JrZmxvd19leGVjdXRpb25faWQYAiABKAlIABI3Cgpwb29sX2NsYWltGAMgASgLMiEuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5Qb29sQ2xhaW1IAEIOCgVzY29wZRIFukgCCAEiKAoJUG9vbENsYWltEhsKCnNlc3Npb25faWQYASABKAlCB7pIBHICEAEiaQoaR2V0UnVubmVyU2NvcGVkVG9rZW5PdXRwdXQSGwoTcnVubmVyX3Njb3BlZF90b2tlbhgBIAEoCRISCgp0b2tlbl90eXBlGAIgASgJEhoKEmV4cGlyZXNfaW5fc2Vjb25kcxgDIAEoBSpDCg1TZXJ2ZXJFZGl0aW9uEh4KGnNlcnZlcl9lZGl0aW9uX3Vuc3BlY2lmaWVkEAASBwoDb3NzEAESCQoFY2xvdWQQAjKhAwoXUGxhdGZvcm1RdWVyeUNvbnRyb2xsZXISbgoNZ2V0U2VydmVySW5mbxIqLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0U2VydmVySW5mb0lucHV0GisuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRTZXJ2ZXJJbmZvT3V0cHV0IgTIuBgBEo8BChhnZXRSdW5uZXJCb290c3RyYXBDb25maWcSNS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ0lucHV0GjYuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJCb290c3RyYXBDb25maWdPdXRwdXQiBNC4GAESgwEKFGdldFJ1bm5lclNjb3BlZFRva2VuEjEuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJTY29wZWRUb2tlbklucHV0GjIuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJTY29wZWRUb2tlbk91dHB1dCIE0LgYAUIRQg9TZXJ2ZXJJbmZvUHJvdG9iBnByb3RvMw", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * Empty request — no parameters needed.
@@ -171,6 +171,16 @@ export type GetRunnerScopedTokenInput = Message<"ai.stigmer.platform.v1.GetRunne
      */
     value: string;
     case: "workflowExecutionId";
+  } | {
+    /**
+     * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+     * session token of the session it has just been claimed for. Presented
+     * with a token_type=pool_sandbox credential (not embedded_runner).
+     *
+     * @generated from field: ai.stigmer.platform.v1.PoolClaim pool_claim = 3;
+     */
+    value: PoolClaim;
+    case: "poolClaim";
   } | { case: undefined; value?: undefined };
 };
 
@@ -180,6 +190,40 @@ export type GetRunnerScopedTokenInput = Message<"ai.stigmer.platform.v1.GetRunne
  */
 export const GetRunnerScopedTokenInputSchema: GenMessage<GetRunnerScopedTokenInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_platform_v1_server_info, 4);
+
+/**
+ * Claim exchange for a warm-pool sandbox member.
+ *
+ * A pool member is a blank, pre-booted sandbox holding only an org-agnostic
+ * token_type=pool_sandbox credential (carrying its pool_member_id claim). When
+ * the control plane claims it for a session, the member presents this arm to
+ * exchange that credential for the session's sandbox token.
+ *
+ * @internal
+ * Cloud authorizes against the pool claim record, not FGA: the pool_sandboxes
+ * row for the caller token's pool_member_id must be CLAIMED for exactly this
+ * session_id (the DB is the authorization source), and the minted session
+ * token's TTL is the window-covering value recorded on that row at claim time.
+ * OSS has no pool and mints nothing (empty output, presence-based contract).
+ *
+ * @generated from message ai.stigmer.platform.v1.PoolClaim
+ */
+export type PoolClaim = Message<"ai.stigmer.platform.v1.PoolClaim"> & {
+  /**
+   * Session the pool member was claimed for — the scope of the token it
+   * receives. Must match the claim recorded by the control plane.
+   *
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.platform.v1.PoolClaim.
+ * Use `create(PoolClaimSchema)` to create a new message.
+ */
+export const PoolClaimSchema: GenMessage<PoolClaim> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 5);
 
 /**
  * A runner token scoped to one unit of work, or empty when the server cannot
@@ -227,7 +271,7 @@ export type GetRunnerScopedTokenOutput = Message<"ai.stigmer.platform.v1.GetRunn
  * Use `create(GetRunnerScopedTokenOutputSchema)` to create a new message.
  */
 export const GetRunnerScopedTokenOutputSchema: GenMessage<GetRunnerScopedTokenOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_platform_v1_server_info, 5);
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 6);
 
 /**
  * Edition of the Stigmer server binary.
@@ -360,6 +404,11 @@ export const PlatformQueryController: GenService<{
    * the caller must present a runner-class token_type=embedded_runner
    * credential AND pass the same can_view check getByExecutionId performs on
    * the named execution.
+   *
+   * The pool_claim arm is the one exception to the embedded_runner rule: it is
+   * presented by a warm-pool sandbox holding a token_type=pool_sandbox
+   * credential, and is authorized against the pool claim record instead of an
+   * execution (see the arm's own doc).
    *
    * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken
    */

@@ -60,6 +60,7 @@ private static final long serialVersionUID = 0L;
           com.google.protobuf.AbstractMessage.InternalOneOfEnum {
     AGENT_EXECUTION_ID(1),
     WORKFLOW_EXECUTION_ID(2),
+    POOL_CLAIM(3),
     SCOPE_NOT_SET(0);
     private final int value;
     private ScopeCase(int value) {
@@ -79,6 +80,7 @@ private static final long serialVersionUID = 0L;
       switch (value) {
         case 1: return AGENT_EXECUTION_ID;
         case 2: return WORKFLOW_EXECUTION_ID;
+        case 3: return POOL_CLAIM;
         case 0: return SCOPE_NOT_SET;
         default: return null;
       }
@@ -220,6 +222,55 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int POOL_CLAIM_FIELD_NUMBER = 3;
+  /**
+   * <pre>
+   * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+   * session token of the session it has just been claimed for. Presented
+   * with a token_type=pool_sandbox credential (not embedded_runner).
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.PoolClaim pool_claim = 3 [json_name = "poolClaim"];</code>
+   * @return Whether the poolClaim field is set.
+   */
+  @java.lang.Override
+  public boolean hasPoolClaim() {
+    return scopeCase_ == 3;
+  }
+  /**
+   * <pre>
+   * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+   * session token of the session it has just been claimed for. Presented
+   * with a token_type=pool_sandbox credential (not embedded_runner).
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.PoolClaim pool_claim = 3 [json_name = "poolClaim"];</code>
+   * @return The poolClaim.
+   */
+  @java.lang.Override
+  public ai.stigmer.platform.v1.PoolClaim getPoolClaim() {
+    if (scopeCase_ == 3) {
+       return (ai.stigmer.platform.v1.PoolClaim) scope_;
+    }
+    return ai.stigmer.platform.v1.PoolClaim.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+   * session token of the session it has just been claimed for. Presented
+   * with a token_type=pool_sandbox credential (not embedded_runner).
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.PoolClaim pool_claim = 3 [json_name = "poolClaim"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.platform.v1.PoolClaimOrBuilder getPoolClaimOrBuilder() {
+    if (scopeCase_ == 3) {
+       return (ai.stigmer.platform.v1.PoolClaim) scope_;
+    }
+    return ai.stigmer.platform.v1.PoolClaim.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -240,6 +291,9 @@ private static final long serialVersionUID = 0L;
     if (scopeCase_ == 2) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, scope_);
     }
+    if (scopeCase_ == 3) {
+      output.writeMessage(3, (ai.stigmer.platform.v1.PoolClaim) scope_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -254,6 +308,10 @@ private static final long serialVersionUID = 0L;
     }
     if (scopeCase_ == 2) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, scope_);
+    }
+    if (scopeCase_ == 3) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(3, (ai.stigmer.platform.v1.PoolClaim) scope_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -280,6 +338,10 @@ private static final long serialVersionUID = 0L;
         if (!getWorkflowExecutionId()
             .equals(other.getWorkflowExecutionId())) return false;
         break;
+      case 3:
+        if (!getPoolClaim()
+            .equals(other.getPoolClaim())) return false;
+        break;
       case 0:
       default:
     }
@@ -302,6 +364,10 @@ private static final long serialVersionUID = 0L;
       case 2:
         hash = (37 * hash) + WORKFLOW_EXECUTION_ID_FIELD_NUMBER;
         hash = (53 * hash) + getWorkflowExecutionId().hashCode();
+        break;
+      case 3:
+        hash = (37 * hash) + POOL_CLAIM_FIELD_NUMBER;
+        hash = (53 * hash) + getPoolClaim().hashCode();
         break;
       case 0:
       default:
@@ -441,6 +507,9 @@ private static final long serialVersionUID = 0L;
     public Builder clear() {
       super.clear();
       bitField0_ = 0;
+      if (poolClaimBuilder_ != null) {
+        poolClaimBuilder_.clear();
+      }
       scopeCase_ = 0;
       scope_ = null;
       return this;
@@ -482,6 +551,10 @@ private static final long serialVersionUID = 0L;
     private void buildPartialOneofs(ai.stigmer.platform.v1.GetRunnerScopedTokenInput result) {
       result.scopeCase_ = scopeCase_;
       result.scope_ = this.scope_;
+      if (scopeCase_ == 3 &&
+          poolClaimBuilder_ != null) {
+        result.scope_ = poolClaimBuilder_.build();
+      }
     }
 
     @java.lang.Override
@@ -507,6 +580,10 @@ private static final long serialVersionUID = 0L;
           scopeCase_ = 2;
           scope_ = other.scope_;
           onChanged();
+          break;
+        }
+        case POOL_CLAIM: {
+          mergePoolClaim(other.getPoolClaim());
           break;
         }
         case SCOPE_NOT_SET: {
@@ -549,6 +626,13 @@ private static final long serialVersionUID = 0L;
               scope_ = input.readStringRequireUtf8();
               break;
             } // case 18
+            case 26: {
+              input.readMessage(
+                  internalGetPoolClaimFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              scopeCase_ = 3;
+              break;
+            } // case 26
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -817,6 +901,202 @@ private static final long serialVersionUID = 0L;
       scope_ = value;
       onChanged();
       return this;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.platform.v1.PoolClaim, ai.stigmer.platform.v1.PoolClaim.Builder, ai.stigmer.platform.v1.PoolClaimOrBuilder> poolClaimBuilder_;
+    /**
+     * <pre>
+     * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+     * session token of the session it has just been claimed for. Presented
+     * with a token_type=pool_sandbox credential (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.PoolClaim pool_claim = 3 [json_name = "poolClaim"];</code>
+     * @return Whether the poolClaim field is set.
+     */
+    @java.lang.Override
+    public boolean hasPoolClaim() {
+      return scopeCase_ == 3;
+    }
+    /**
+     * <pre>
+     * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+     * session token of the session it has just been claimed for. Presented
+     * with a token_type=pool_sandbox credential (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.PoolClaim pool_claim = 3 [json_name = "poolClaim"];</code>
+     * @return The poolClaim.
+     */
+    @java.lang.Override
+    public ai.stigmer.platform.v1.PoolClaim getPoolClaim() {
+      if (poolClaimBuilder_ == null) {
+        if (scopeCase_ == 3) {
+          return (ai.stigmer.platform.v1.PoolClaim) scope_;
+        }
+        return ai.stigmer.platform.v1.PoolClaim.getDefaultInstance();
+      } else {
+        if (scopeCase_ == 3) {
+          return poolClaimBuilder_.getMessage();
+        }
+        return ai.stigmer.platform.v1.PoolClaim.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+     * session token of the session it has just been claimed for. Presented
+     * with a token_type=pool_sandbox credential (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.PoolClaim pool_claim = 3 [json_name = "poolClaim"];</code>
+     */
+    public Builder setPoolClaim(ai.stigmer.platform.v1.PoolClaim value) {
+      if (poolClaimBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        scope_ = value;
+        onChanged();
+      } else {
+        poolClaimBuilder_.setMessage(value);
+      }
+      scopeCase_ = 3;
+      return this;
+    }
+    /**
+     * <pre>
+     * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+     * session token of the session it has just been claimed for. Presented
+     * with a token_type=pool_sandbox credential (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.PoolClaim pool_claim = 3 [json_name = "poolClaim"];</code>
+     */
+    public Builder setPoolClaim(
+        ai.stigmer.platform.v1.PoolClaim.Builder builderForValue) {
+      if (poolClaimBuilder_ == null) {
+        scope_ = builderForValue.build();
+        onChanged();
+      } else {
+        poolClaimBuilder_.setMessage(builderForValue.build());
+      }
+      scopeCase_ = 3;
+      return this;
+    }
+    /**
+     * <pre>
+     * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+     * session token of the session it has just been claimed for. Presented
+     * with a token_type=pool_sandbox credential (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.PoolClaim pool_claim = 3 [json_name = "poolClaim"];</code>
+     */
+    public Builder mergePoolClaim(ai.stigmer.platform.v1.PoolClaim value) {
+      if (poolClaimBuilder_ == null) {
+        if (scopeCase_ == 3 &&
+            scope_ != ai.stigmer.platform.v1.PoolClaim.getDefaultInstance()) {
+          scope_ = ai.stigmer.platform.v1.PoolClaim.newBuilder((ai.stigmer.platform.v1.PoolClaim) scope_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          scope_ = value;
+        }
+        onChanged();
+      } else {
+        if (scopeCase_ == 3) {
+          poolClaimBuilder_.mergeFrom(value);
+        } else {
+          poolClaimBuilder_.setMessage(value);
+        }
+      }
+      scopeCase_ = 3;
+      return this;
+    }
+    /**
+     * <pre>
+     * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+     * session token of the session it has just been claimed for. Presented
+     * with a token_type=pool_sandbox credential (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.PoolClaim pool_claim = 3 [json_name = "poolClaim"];</code>
+     */
+    public Builder clearPoolClaim() {
+      if (poolClaimBuilder_ == null) {
+        if (scopeCase_ == 3) {
+          scopeCase_ = 0;
+          scope_ = null;
+          onChanged();
+        }
+      } else {
+        if (scopeCase_ == 3) {
+          scopeCase_ = 0;
+          scope_ = null;
+        }
+        poolClaimBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+     * session token of the session it has just been claimed for. Presented
+     * with a token_type=pool_sandbox credential (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.PoolClaim pool_claim = 3 [json_name = "poolClaim"];</code>
+     */
+    public ai.stigmer.platform.v1.PoolClaim.Builder getPoolClaimBuilder() {
+      return internalGetPoolClaimFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+     * session token of the session it has just been claimed for. Presented
+     * with a token_type=pool_sandbox credential (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.PoolClaim pool_claim = 3 [json_name = "poolClaim"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.platform.v1.PoolClaimOrBuilder getPoolClaimOrBuilder() {
+      if ((scopeCase_ == 3) && (poolClaimBuilder_ != null)) {
+        return poolClaimBuilder_.getMessageOrBuilder();
+      } else {
+        if (scopeCase_ == 3) {
+          return (ai.stigmer.platform.v1.PoolClaim) scope_;
+        }
+        return ai.stigmer.platform.v1.PoolClaim.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+     * session token of the session it has just been claimed for. Presented
+     * with a token_type=pool_sandbox credential (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.PoolClaim pool_claim = 3 [json_name = "poolClaim"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.platform.v1.PoolClaim, ai.stigmer.platform.v1.PoolClaim.Builder, ai.stigmer.platform.v1.PoolClaimOrBuilder> 
+        internalGetPoolClaimFieldBuilder() {
+      if (poolClaimBuilder_ == null) {
+        if (!(scopeCase_ == 3)) {
+          scope_ = ai.stigmer.platform.v1.PoolClaim.getDefaultInstance();
+        }
+        poolClaimBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.platform.v1.PoolClaim, ai.stigmer.platform.v1.PoolClaim.Builder, ai.stigmer.platform.v1.PoolClaimOrBuilder>(
+                (ai.stigmer.platform.v1.PoolClaim) scope_,
+                getParentForChildren(),
+                isClean());
+        scope_ = null;
+      }
+      scopeCase_ = 3;
+      onChanged();
+      return poolClaimBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.platform.v1.GetRunnerScopedTokenInput)

@@ -25,6 +25,10 @@ import {
 import type { PayloadCodec } from "@temporalio/common";
 import type { Config } from "./config.js";
 import { DEFAULT_CURSOR_AGENT_RESOLVE_TIMEOUT_MS, DEFAULT_CURSOR_STREAM_STALL_TIMEOUT_MS, DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS } from "./config.js";
+// Boot marks mirror the static runner's segment names where the work is the
+// same. Inert unless a mode emits the boot timeline (pool mode does; the
+// desktop manager never calls emitRunnerBootTiming, so marks cost nothing).
+import { markBoot } from "./shared/cold-start-timing.js";
 import type { WorkerActivities } from "./worker.js";
 import { resolveWorkflowSource, OTEL_WORKFLOW_INTERCEPTOR_MODULE } from "./workflow-source.js";
 import { resolveRunnerBootstrap, refreshRunnerAccessToken } from "./bootstrap.js";
@@ -43,6 +47,10 @@ import {
 
 const SESSION_QUEUE_PREFIX = "session:";
 const WFEXEC_QUEUE_PREFIX = "wfexec:";
+// Warm-pool control queue — polled by exactly one pool member, carrying only
+// the ProbePoolMember/AttachSession claim activities (never session work).
+// Mirrors SessionDispatchService's convention: lowercase kind, colon, id.
+const POOL_CONTROL_QUEUE_PREFIX = "sandbox:";
 
 /**
  * Module-level registry of shutdown signals per task queue.
@@ -141,6 +149,14 @@ export interface StigmerRunnerManager {
 
   /** List currently active workflow execution IDs. */
   activeWorkflowExecutions(): string[];
+
+  /**
+   * Start the warm-pool control worker — a Worker polling sandbox:{memberId}
+   * for the claim activities (ProbePoolMember, AttachSession). Called once by
+   * the pool boot path; the attach flow then adds the claimed session via
+   * {@link addSession} like any other host.
+   */
+  addPoolControl(memberId: string): Promise<void>;
 
   /**
    * Push a refreshed *control-plane* auth token (the host's durable credential,
@@ -250,6 +266,7 @@ export async function createStigmerRunnerManager(
   // facade unpatched (otherwise BiDi streams would silently 401). No-op when
   // the interceptor is unconfigured (no proxy/token).
   await assertHttp2ConnectPatched();
+  markBoot("interceptors_installed");
 
   // The token coordinator owns the proxy credential (x-stigmer-auth) and its
   // refresh lifecycle. It writes ONLY its sinks (the interceptors plus the gRPC
@@ -287,6 +304,7 @@ export async function createStigmerRunnerManager(
     temporalAddress: bootstrap.temporalAddress,
     temporalNamespace: bootstrap.temporalNamespace,
   };
+  markBoot("bootstrap_resolved");
 
   // Adopt the minted proxy token (cloud): it diverges from the control-plane
   // token from here on, and the coordinator refreshes it before expiry.
@@ -313,11 +331,13 @@ export async function createStigmerRunnerManager(
   setExecutionContextRef(getExecutionContext());
 
   const activities = await createAllActivities(config);
+  markBoot("activities_imported");
   const payloadCodec = await createPayloadCodec(config);
 
   const connection = await NativeConnection.connect({
     address: config.temporalAddress,
   });
+  markBoot("connection_opened");
 
   const interceptorConfig = await buildInterceptorConfig();
 
@@ -336,10 +356,13 @@ export async function createStigmerRunnerManager(
     });
     console.log("[runner-manager] Workflow code bundled successfully");
   }
+  markBoot("workflow_bundle_ready");
 
   const sessions = new Map<string, ManagedSession>();
   const workflowExecutions = new Map<string, ManagedSession>();
   const shutdownSignals = new Map<string, AbortController>();
+  // At most one per process: a pool member IS its control worker's identity.
+  let poolControl: { taskQueue: string; managed: ManagedSession } | null = null;
   let shuttingDown = false;
 
   async function createWorkerOnQueue(taskQueue: string): Promise<ManagedSession> {
@@ -502,6 +525,23 @@ export async function createStigmerRunnerManager(
       return Array.from(workflowExecutions.keys());
     },
 
+    async addPoolControl(memberId: string): Promise<void> {
+      if (shuttingDown) {
+        throw new Error("RunnerManager is shutting down");
+      }
+      if (poolControl) {
+        throw new Error(
+          `Pool control worker already polling ${poolControl.taskQueue} — ` +
+          "a process is exactly one pool member",
+        );
+      }
+      const taskQueue = POOL_CONTROL_QUEUE_PREFIX + memberId;
+      poolControl = { taskQueue, managed: await createWorkerOnQueue(taskQueue) };
+      console.log(
+        `[runner-manager] Added pool control worker (queue=${taskQueue})`,
+      );
+    },
+
     updateToken(token: string | null): void {
       // Writes the control-plane credential. The coordinator decides whether the
       // proxy credential follows it: only when no token has been minted (so the
@@ -541,10 +581,19 @@ export async function createStigmerRunnerManager(
           },
         ),
       ];
+      if (poolControl) {
+        const control = poolControl;
+        shutdownPromises.push((async () => {
+          control.managed.worker.shutdown();
+          await control.managed.runPromise;
+          console.log(`[runner-manager] Pool control worker (${control.taskQueue}) stopped`);
+        })());
+      }
 
       await Promise.all(shutdownPromises);
       sessions.clear();
       workflowExecutions.clear();
+      poolControl = null;
       connection.close();
       console.log("[runner-manager] All workers stopped, connection closed");
     },
@@ -629,6 +678,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     { createHydrateWorkflowActivities },
     { createWorkflowEventActivities },
     { createPromoteTaskOutputActivities },
+    { createAttachSessionActivities },
   ] = await Promise.all([
     import("./activities/execute-cursor/index.js"),
     import("./activities/execute-deep-agent/index.js"),
@@ -646,6 +696,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     import("./activities/hydrate-workflow-execution.js"),
     import("./activities/workflow-event-activities.js"),
     import("./activities/promote-task-output.js"),
+    import("./activities/attach-session.js"),
   ]);
 
   return {
@@ -665,6 +716,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     ...createHydrateWorkflowActivities(config),
     ...createWorkflowEventActivities(),
     ...createPromoteTaskOutputActivities(),
+    ...createAttachSessionActivities(config),
   };
 }
 

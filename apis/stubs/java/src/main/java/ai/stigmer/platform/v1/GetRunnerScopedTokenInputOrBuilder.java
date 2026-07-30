@@ -74,5 +74,38 @@ public interface GetRunnerScopedTokenInputOrBuilder extends
   com.google.protobuf.ByteString
       getWorkflowExecutionIdBytes();
 
+  /**
+   * <pre>
+   * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+   * session token of the session it has just been claimed for. Presented
+   * with a token_type=pool_sandbox credential (not embedded_runner).
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.PoolClaim pool_claim = 3 [json_name = "poolClaim"];</code>
+   * @return Whether the poolClaim field is set.
+   */
+  boolean hasPoolClaim();
+  /**
+   * <pre>
+   * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+   * session token of the session it has just been claimed for. Presented
+   * with a token_type=pool_sandbox credential (not embedded_runner).
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.PoolClaim pool_claim = 3 [json_name = "poolClaim"];</code>
+   * @return The poolClaim.
+   */
+  ai.stigmer.platform.v1.PoolClaim getPoolClaim();
+  /**
+   * <pre>
+   * Warm-pool claim — a pool sandbox exchanging its pool credential for the
+   * session token of the session it has just been claimed for. Presented
+   * with a token_type=pool_sandbox credential (not embedded_runner).
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.PoolClaim pool_claim = 3 [json_name = "poolClaim"];</code>
+   */
+  ai.stigmer.platform.v1.PoolClaimOrBuilder getPoolClaimOrBuilder();
+
   ai.stigmer.platform.v1.GetRunnerScopedTokenInput.ScopeCase getScopeCase();
 }

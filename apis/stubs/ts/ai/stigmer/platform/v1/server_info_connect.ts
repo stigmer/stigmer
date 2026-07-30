@@ -103,6 +103,11 @@ export const PlatformQueryController = {
      * credential AND pass the same can_view check getByExecutionId performs on
      * the named execution.
      *
+     * The pool_claim arm is the one exception to the embedded_runner rule: it is
+     * presented by a warm-pool sandbox holding a token_type=pool_sandbox
+     * credential, and is authorized against the pool claim record instead of an
+     * execution (see the arm's own doc).
+     *
      * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken
      */
     getRunnerScopedToken: {

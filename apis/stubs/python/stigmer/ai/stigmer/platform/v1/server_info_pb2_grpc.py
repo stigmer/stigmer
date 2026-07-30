@@ -124,6 +124,11 @@ class PlatformQueryControllerServicer(object):
         the caller must present a runner-class token_type=embedded_runner
         credential AND pass the same can_view check getByExecutionId performs on
         the named execution.
+
+        The pool_claim arm is the one exception to the embedded_runner rule: it is
+        presented by a warm-pool sandbox holding a token_type=pool_sandbox
+        credential, and is authorized against the pool claim record instead of an
+        execution (see the arm's own doc).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

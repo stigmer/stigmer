@@ -102,6 +102,11 @@ service PlatformQueryController {
   // the caller must present a runner-class token_type=embedded_runner
   // credential AND pass the same can_view check getByExecutionId performs on
   // the named execution.
+  //
+  // The pool_claim arm is the one exception to the embedded_runner rule: it is
+  // presented by a warm-pool sandbox holding a token_type=pool_sandbox
+  // credential, and is authorized against the pool claim record instead of an
+  // execution (see the arm's own doc).
   rpc getRunnerScopedToken(GetRunnerScopedTokenInput) returns (GetRunnerScopedTokenOutput) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
@@ -174,7 +179,31 @@ message GetRunnerScopedTokenInput {
     // WorkflowExecution id — yields a token scoped to exactly that workflow
     // execution's ExecutionContext.
     string workflow_execution_id = 2;
+
+    // Warm-pool claim — a pool sandbox exchanging its pool credential for the
+    // session token of the session it has just been claimed for. Presented
+    // with a token_type=pool_sandbox credential (not embedded_runner).
+    PoolClaim pool_claim = 3;
   }
+}
+
+// Claim exchange for a warm-pool sandbox member.
+//
+// A pool member is a blank, pre-booted sandbox holding only an org-agnostic
+// token_type=pool_sandbox credential (carrying its pool_member_id claim). When
+// the control plane claims it for a session, the member presents this arm to
+// exchange that credential for the session's sandbox token.
+//
+// @internal
+// Cloud authorizes against the pool claim record, not FGA: the pool_sandboxes
+// row for the caller token's pool_member_id must be CLAIMED for exactly this
+// session_id (the DB is the authorization source), and the minted session
+// token's TTL is the window-covering value recorded on that row at claim time.
+// OSS has no pool and mints nothing (empty output, presence-based contract).
+message PoolClaim {
+  // Session the pool member was claimed for — the scope of the token it
+  // receives. Must match the claim recorded by the control plane.
+  string session_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // A runner token scoped to one unit of work, or empty when the server cannot

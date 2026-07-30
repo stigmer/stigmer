@@ -12,16 +12,26 @@
 /** The `token_type` claim value of a bootstrap-minted embedded runner token. */
 export const TOKEN_TYPE_EMBEDDED_RUNNER = "embedded_runner";
 
+/** The `token_type` claim value of a session sandbox token. */
+export const TOKEN_TYPE_SANDBOX = "sandbox";
+
+/** The `token_type` claim value of a warm-pool member's pre-claim credential. */
+export const TOKEN_TYPE_POOL_SANDBOX = "pool_sandbox";
+
 const CLAIM_TOKEN_TYPE = "token_type";
+const CLAIM_SESSION_ID = "session_id";
 
 /**
- * Extract the `token_type` claim from a JWT without verifying it.
+ * Extract one string claim from a JWT without verifying it.
  *
  * Returns undefined for null/malformed tokens and for tokens without the
- * claim (e.g. a user's Auth0 token) — callers branch on the specific value,
- * so "unknown" and "absent" collapse to the same answer.
+ * claim — callers branch on the specific value, so "unknown" and "absent"
+ * collapse to the same answer.
  */
-export function tokenTypeOf(token: string | null | undefined): string | undefined {
+function claimOf(
+  token: string | null | undefined,
+  claim: string,
+): string | undefined {
   if (!token) return undefined;
   const parts = token.split(".");
   if (parts.length !== 3) return undefined;
@@ -29,11 +39,24 @@ export function tokenTypeOf(token: string | null | undefined): string | undefine
     const payload = JSON.parse(
       Buffer.from(parts[1]!, "base64url").toString("utf8"),
     ) as Record<string, unknown>;
-    const tokenType = payload[CLAIM_TOKEN_TYPE];
-    return typeof tokenType === "string" ? tokenType : undefined;
+    const value = payload[claim];
+    return typeof value === "string" ? value : undefined;
   } catch {
     return undefined;
   }
+}
+
+/** Extract the `token_type` claim (e.g. a user's Auth0 token has none). */
+export function tokenTypeOf(token: string | null | undefined): string | undefined {
+  return claimOf(token, CLAIM_TOKEN_TYPE);
+}
+
+/**
+ * Extract the `session_id` claim of a session-scoped token. A claimed pool
+ * member reads its post-claim identity from this on restart.
+ */
+export function sessionIdClaimOf(token: string | null | undefined): string | undefined {
+  return claimOf(token, CLAIM_SESSION_ID);
 }
 
 /** Whether the token is a bootstrap-minted `embedded_runner` credential. */

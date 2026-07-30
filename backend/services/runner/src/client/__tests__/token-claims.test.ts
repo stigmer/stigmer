@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { tokenTypeOf, isEmbeddedRunnerToken } from "../token-claims.js";
+import { tokenTypeOf, isEmbeddedRunnerToken, sessionIdClaimOf } from "../token-claims.js";
 
 /** Build an unsigned JWT-shaped token with the given payload. */
 function fakeJwt(payload: Record<string, unknown>): string {
@@ -29,6 +29,20 @@ describe("tokenTypeOf", () => {
     expect(tokenTypeOf("not-a-jwt")).toBeUndefined();
     expect(tokenTypeOf("only.two")).toBeUndefined();
     expect(tokenTypeOf("a.%%%not-base64%%%.c")).toBeUndefined();
+  });
+});
+
+describe("sessionIdClaimOf", () => {
+  it("extracts the session_id claim of a session sandbox token", () => {
+    expect(sessionIdClaimOf(fakeJwt({ token_type: "sandbox", session_id: "ses_1" })))
+      .toBe("ses_1");
+  });
+
+  it("returns undefined when the claim is absent or non-string", () => {
+    expect(sessionIdClaimOf(fakeJwt({ token_type: "pool_sandbox" }))).toBeUndefined();
+    expect(sessionIdClaimOf(fakeJwt({ session_id: 7 }))).toBeUndefined();
+    expect(sessionIdClaimOf(null)).toBeUndefined();
+    expect(sessionIdClaimOf("garbage")).toBeUndefined();
   });
 });
 

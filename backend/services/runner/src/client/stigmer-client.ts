@@ -88,10 +88,31 @@ export interface RunnerScopedToken {
 /**
  * Names the unit of dispatched work a scoped runner token should serve.
  * Exactly one id must be set — mirrors the proto oneof.
+ *
+ * `poolClaimSessionId` is the warm-pool attach exchange: a pool sandbox
+ * presenting its pool_sandbox credential for the session it was claimed for
+ * (the server authorizes against the claim record, not the caller's FGA
+ * relations). The execution arms remain embedded_runner-only.
  */
 export type RunnerScopedTokenScope =
   | { agentExecutionId: string }
-  | { workflowExecutionId: string };
+  | { workflowExecutionId: string }
+  | { poolClaimSessionId: string };
+
+/**
+ * Map the scope union onto the proto oneof init shape. The narrowing chain is
+ * exhaustive: adding a variant to {@link RunnerScopedTokenScope} breaks the
+ * final branch's type until it is mapped here.
+ */
+function toRunnerScopedTokenOneof(scope: RunnerScopedTokenScope) {
+  if ("agentExecutionId" in scope) {
+    return { case: "agentExecutionId", value: scope.agentExecutionId } as const;
+  }
+  if ("workflowExecutionId" in scope) {
+    return { case: "workflowExecutionId", value: scope.workflowExecutionId } as const;
+  }
+  return { case: "poolClaim", value: { sessionId: scope.poolClaimSessionId } } as const;
+}
 
 /**
  * A shared mutable token reference. When provided, the interceptor
@@ -290,15 +311,25 @@ export class StigmerClient {
    * sandbox token a cloud sandbox runner receives at provisioning. Returns
    * undefined when the server does not mint (OSS, or no signing key) —
    * presence-based, like the bootstrap token fields.
+   *
+   * `callerToken` authenticates the exchange per-call instead of the
+   * process-wide runner credential. The warm-pool attach uses it: a pool
+   * member exchanges with its pool_sandbox token, which is not the runner
+   * credential the interceptor would pick for this method.
    */
   async getRunnerScopedToken(
     scope: RunnerScopedTokenScope,
+    callerToken?: string,
   ): Promise<RunnerScopedToken | undefined> {
-    const input = create(GetRunnerScopedTokenInputSchema,
-      "agentExecutionId" in scope
-        ? { scope: { case: "agentExecutionId", value: scope.agentExecutionId } }
-        : { scope: { case: "workflowExecutionId", value: scope.workflowExecutionId } });
-    const res = await this.platformQuery.getRunnerScopedToken(input);
+    const input = create(GetRunnerScopedTokenInputSchema, {
+      scope: toRunnerScopedTokenOneof(scope),
+    });
+    const res = await this.platformQuery.getRunnerScopedToken(
+      input,
+      callerToken
+        ? { headers: { authorization: `Bearer ${callerToken}` } }
+        : undefined,
+    );
     if (!res.runnerScopedToken) {
       return undefined;
     }

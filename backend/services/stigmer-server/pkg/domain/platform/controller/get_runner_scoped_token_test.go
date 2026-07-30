@@ -24,3 +24,22 @@ func TestGetRunnerScopedToken_ReturnsEmptyToken(t *testing.T) {
 	require.Empty(t, out.GetTokenType())
 	require.Zero(t, out.GetExpiresInSeconds())
 }
+
+func TestGetRunnerScopedToken_PoolClaimAlsoReturnsEmptyToken(t *testing.T) {
+	// The pool_claim arm serves the cloud warm-pool attach: a pool sandbox
+	// exchanges its pool credential for a session token. OSS has no pool, so
+	// the arm follows the same presence-based "not minted" contract as the
+	// execution arms.
+	c := NewPlatformController("localhost:7233", "default")
+
+	out, err := c.GetRunnerScopedToken(context.Background(), &platformv1.GetRunnerScopedTokenInput{
+		Scope: &platformv1.GetRunnerScopedTokenInput_PoolClaim{
+			PoolClaim: &platformv1.PoolClaim{SessionId: "ses_123"},
+		},
+	})
+
+	require.NoError(t, err)
+	require.Empty(t, out.GetRunnerScopedToken(), "OSS must not mint pool-claim tokens")
+	require.Empty(t, out.GetTokenType())
+	require.Zero(t, out.GetExpiresInSeconds())
+}

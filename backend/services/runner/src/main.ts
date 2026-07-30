@@ -3,7 +3,7 @@
 /**
  * CLI entry point for the unified runner service.
  *
- * Two modes of operation:
+ * Three modes of operation:
  *
  * 1. Static mode (default): Reads configuration from environment variables,
  *    initializes OTel, creates a single-queue runner. Used by CLI daemon and
@@ -12,6 +12,13 @@
  * 2. Manager mode (STIGMER_RUNNER_MODE=manager): Reads JSON commands from
  *    stdin, manages per-session Workers dynamically. Used by the desktop app
  *    via the IPC protocol. Responses go to stdout; logs go to stderr.
+ *
+ * 3. Pool mode (STIGMER_POOL_MEMBER_ID set): A warm-pool cloud sandbox. Boots
+ *    the runner manager, then serves whatever its Secret-injected credential
+ *    says it is: a pool_sandbox token means "blank member" (poll the
+ *    sandbox:{memberId} control queue for a claim), a session token means
+ *    "claimed member that restarted" (go straight to that session's queue).
+ *    See pool-member.ts for the identity model.
  *
  * OTel is initialized here (not in the factory) because it mutates
  * global state that the consumer should control when embedding the
@@ -23,12 +30,13 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import { createInterface } from "node:readline";
 import { preflightNodeRuntime } from "./preflight.js";
-import { markBoot } from "./shared/cold-start-timing.js";
+import { markBoot, emitRunnerBootTiming } from "./shared/cold-start-timing.js";
 import { loadConfig } from "./config.js";
 import { initTracing, initMetrics } from "./otel.js";
 import { createStigmerRunner } from "./runner.js";
 import { createStigmerRunnerManager } from "./runner-manager.js";
 import type { StigmerRunnerManager } from "./runner-manager.js";
+import { decidePoolBoot, registerPoolMemberContext } from "./pool-member.js";
 import { buildReadyMessage } from "./ipc-protocol.js";
 import type { IpcCommand, IpcResponse } from "./ipc-protocol.js";
 
@@ -169,6 +177,102 @@ async function runManagerMode(config: import("./config.js").Config): Promise<voi
 
   // stdin closed (parent process died) — shut down gracefully
   await manager.shutdown();
+}
+
+// ─── Pool Mode ───────────────────────────────────────────────────────────────
+
+async function runPoolMode(
+  config: import("./config.js").Config,
+  memberId: string,
+): Promise<void> {
+  const otelShutdown = await initTracing("stigmer-runner");
+  const metricsShutdown = await initMetrics("stigmer-runner");
+
+  // The Secret-injected credential is the single source of truth for what this
+  // process serves (the control plane rewrites the Secret at claim time, and
+  // secretKeyRef env is read only at pod start — so a restart lands here with
+  // the post-claim identity). Decide before any expensive boot work.
+  const intent = decidePoolBoot(config.stigmerToken);
+  if (intent.kind === "invalid") {
+    throw new Error(`Pool member ${memberId} cannot boot: ${intent.reason}`);
+  }
+
+  const manager = await createStigmerRunnerManager({
+    temporalAddress: config.temporalAddress,
+    temporalNamespace: config.temporalNamespace,
+    stigmerEndpoint: config.stigmerBackendEndpoint,
+    stigmerToken: config.stigmerToken ?? undefined,
+    cursorApiKey: config.cursorApiKey || undefined,
+    workspaceRootDir: config.workspaceRootDir,
+    maxConcurrentActivitiesPerSession: config.maxConcurrentActivities,
+    proxyEndpoint: config.proxyEndpoint ?? undefined,
+    primaryModel: config.primaryModel,
+    checkpointerType: config.checkpointerType,
+    checkpointerProxyEndpoint: config.checkpointerProxyEndpoint ?? undefined,
+    cloudModeEnabled: config.cloudModeEnabled,
+    executionMode: config.mode,
+  });
+
+  let taskQueue: string;
+  if (intent.kind === "pool-control") {
+    registerPoolMemberContext({
+      memberId,
+      poolToken: config.stigmerToken!,
+      manager,
+    });
+    await manager.addPoolControl(memberId);
+    taskQueue = `sandbox:${memberId}`;
+  } else {
+    // Claimed member after a restart: the pool row is gone and nothing will
+    // dispatch on the control queue again, so no pool context, no control
+    // worker — just serve the session this pod already belongs to.
+    console.warn(
+      `[pool-member] ${memberId} restarted post-claim; ` +
+      `resuming session ${intent.sessionId}`,
+    );
+    await manager.addSession(intent.sessionId);
+    taskQueue = `session:${intent.sessionId}`;
+  }
+
+  // The boot window the pool exists to hide from users: emitted with pool
+  // context so the baseline harness can separate member pre-boots (background,
+  // free) from user-facing boots.
+  markBoot("worker_polling");
+  emitRunnerBootTiming({
+    task_queue: taskQueue,
+    mode: config.mode,
+    pool_member_id: memberId,
+    pool_rehydrated: intent.kind === "claimed-session",
+  });
+
+  console.warn(`[pool-member] ${memberId} ready (queue=${taskQueue})`);
+
+  // Park until terminated; the workers poll in the background. Unlike manager
+  // mode there is no stdin driver — Kubernetes signals are the only exit.
+  await new Promise<void>((resolve) => {
+    let shutdownRequested = false;
+    const shutdown = (signal: string) => {
+      if (shutdownRequested) {
+        console.warn("Shutdown already in progress, ignoring duplicate signal");
+        return;
+      }
+      shutdownRequested = true;
+      console.warn(`[pool-member] Received ${signal}, shutting down gracefully...`);
+      void manager.shutdown().then(resolve, (err) => {
+        console.error("[pool-member] Shutdown failed:", err);
+        resolve();
+      });
+    };
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    process.on("SIGINT", () => shutdown("SIGINT"));
+  });
+
+  if (metricsShutdown) {
+    await metricsShutdown();
+  }
+  if (otelShutdown) {
+    await otelShutdown();
+  }
 }
 
 // ─── Static Mode ─────────────────────────────────────────────────────────────
@@ -332,7 +436,11 @@ async function main(): Promise<void> {
     process.env.CURSOR_API_BASE_URL = proxyBase;
   }
 
-  const runnerMode = process.env.STIGMER_RUNNER_MODE === "manager" ? "manager" : "static";
+  const poolMemberId = process.env.STIGMER_POOL_MEMBER_ID?.trim() || undefined;
+  const runnerMode =
+    process.env.STIGMER_RUNNER_MODE === "manager" ? "manager"
+    : poolMemberId ? "pool"
+    : "static";
   console.warn(
     `[runner] mode=${runnerMode}, proxy=${config.proxyEndpoint ?? "none"}, ` +
     `hasToken=${!!config.stigmerToken}, workspace=${config.workspaceRootDir}, ` +
@@ -346,6 +454,11 @@ async function main(): Promise<void> {
     // handle can't keep a shut-down runner alive as an orphan (issue #177). Static mode is left
     // to exit naturally so its OTel flush completes.
     process.exit(0);
+  }
+
+  if (runnerMode === "pool") {
+    await runPoolMode(config, poolMemberId!);
+    return;
   }
 
   await runStaticMode(config);

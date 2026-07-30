@@ -332,6 +332,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     { createHydrateWorkflowActivities },
     { createWorkflowEventActivities },
     { createPromoteTaskOutputActivities },
+    { createAttachSessionActivities },
   ] = await Promise.all([
     import("./activities/execute-cursor/index.js"),
     import("./activities/execute-deep-agent/index.js"),
@@ -349,6 +350,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     import("./activities/hydrate-workflow-execution.js"),
     import("./activities/workflow-event-activities.js"),
     import("./activities/promote-task-output.js"),
+    import("./activities/attach-session.js"),
   ]);
 
   return {
@@ -368,6 +370,7 @@ async function createAllActivities(config: Config): Promise<WorkerActivities> {
     ...createHydrateWorkflowActivities(config),
     ...createWorkflowEventActivities(),
     ...createPromoteTaskOutputActivities(),
+    ...createAttachSessionActivities(config),
   };
 }
 
