@@ -171,6 +171,83 @@ describe("fetch-interceptor", () => {
     });
   });
 
+  describe("cursor_models_fetch timing", () => {
+    beforeEach(() => {
+      installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });
+    });
+
+    /**
+     * Collect emitted `cursor_models_fetch` timing lines from a console.log
+     * spy, ignoring every other log line (install banner, warnings, other
+     * timelines).
+     */
+    function timingLines(spy: ReturnType<typeof vi.spyOn>): Array<Record<string, unknown>> {
+      const lines: Array<Record<string, unknown>> = [];
+      for (const call of spy.mock.calls) {
+        if (typeof call[0] !== "string") continue;
+        try {
+          const parsed = JSON.parse(call[0]) as Record<string, unknown>;
+          if (parsed.stigmer_timing === "cursor_models_fetch") lines.push(parsed);
+        } catch {
+          // Not a JSON log line — ignore.
+        }
+      }
+      return lines;
+    }
+
+    it("emits one timing line for a Cursor-domain /v1/models call, carrying execution_id", async () => {
+      const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+      const executionContext = getExecutionContext();
+
+      await executionContext.run({ executionId: "exec-models-1" }, async () => {
+        await globalThis.fetch("https://api.cursor.com/v1/models", { method: "GET" });
+      });
+
+      const lines = timingLines(spy);
+      expect(lines).toHaveLength(1);
+      expect(lines[0]!.execution_id).toBe("exec-models-1");
+      expect(lines[0]!.http_status).toBe(200);
+      expect(lines[0]!.total_ms).toBeTypeOf("number");
+      const segments = lines[0]!.segments as Array<{ name: string }>;
+      expect(segments.map((s) => s.name)).toEqual(["models_fetch"]);
+    });
+
+    it("emits for the proxy-endpoint-targeted /v1/models form too", async () => {
+      const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+      await globalThis.fetch(`${PROXY_ENDPOINT}/v1/models`, { method: "GET" });
+
+      // The fetch itself was rewritten through the proxy path AND timed.
+      expect(calls[0]!.url).toBe(
+        `${PROXY_ENDPOINT}/v1/proxy/cursor/api.cursor.com/v1/models`,
+      );
+      expect(timingLines(spy)).toHaveLength(1);
+    });
+
+    it("omits execution_id (rather than fabricating one) outside an execution context", async () => {
+      const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+      await globalThis.fetch("https://api.cursor.com/v1/models", { method: "GET" });
+
+      const lines = timingLines(spy);
+      expect(lines).toHaveLength(1);
+      // undefined context values are dropped by JSON.stringify.
+      expect("execution_id" in lines[0]!).toBe(false);
+    });
+
+    it("does NOT emit for other rewritten REST paths", async () => {
+      const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+      await globalThis.fetch(
+        "https://api2.cursor.sh/auth/exchange_user_api_key",
+        { method: "POST" },
+      );
+
+      expect(calls).toHaveLength(1);
+      expect(timingLines(spy)).toHaveLength(0);
+    });
+  });
+
   describe("passthrough (no interception)", () => {
     beforeEach(() => {
       installFetchInterceptor({ proxyEndpoint: PROXY_ENDPOINT, stigmerToken: STIGMER_TOKEN });

@@ -17,6 +17,18 @@
 
 import { AsyncLocalStorage } from "node:async_hooks";
 
+import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";
+
+/**
+ * The one REST path worth timing individually: the Cursor SDK calls
+ * GET /v1/models inside Agent.create/Agent.resume purely to validate the
+ * model id, and in proxy mode that is a runner → Stigmer → Cursor double
+ * hop sitting inside the resolve_agent setup segment (issue #209). The
+ * emitted `cursor_models_fetch` timeline splits that network cost out of
+ * the segment total without touching the SDK.
+ */
+const MODELS_PATH = "/v1/models";
+
 const CURSOR_DOMAINS = [
   "api2.cursor.sh",
   "api.cursor.com",
@@ -246,9 +258,14 @@ async function fetchWithUrlRewrite(
   const rewrittenUrl = rewriteUrl(url, config.proxyEndpoint);
   const rewrittenInit = replaceAuth(init, config);
   const path = extractPath(url);
+  const modelsTiming = path === MODELS_PATH ? new TimingRecorder() : undefined;
 
   try {
     const response = await originalFetch(rewrittenUrl, rewrittenInit);
+
+    if (modelsTiming) {
+      emitModelsFetchTiming(modelsTiming, config, response.status);
+    }
 
     if (!response.ok) {
       if (isNonCriticalPath(path)) {
@@ -270,6 +287,28 @@ async function fetchWithUrlRewrite(
     );
     throw err;
   }
+}
+
+/**
+ * Emit the `cursor_models_fetch` timeline for one proxied GET /v1/models.
+ *
+ * `execution_id` comes from the AsyncLocalStorage execution context — the
+ * whole ExecuteCursor activity runs inside runWithExecutionContext, so the
+ * value is correct even with concurrent activities on one runner process.
+ * `recordTimingMetric` deliberately ignores this event (no mapped OTel
+ * instrument): it is a forensic stdout line only, joined to the
+ * execution_setup timeline by execution_id in cold-start-baseline analysis.
+ */
+function emitModelsFetchTiming(
+  timing: TimingRecorder,
+  config: ProxyConfig,
+  httpStatus: number,
+): void {
+  timing.mark("models_fetch");
+  emitTimingLog("cursor_models_fetch", {
+    execution_id: executionContext.getStore()?.executionId ?? config.executionId,
+    http_status: httpStatus,
+  }, timing);
 }
 
 /**

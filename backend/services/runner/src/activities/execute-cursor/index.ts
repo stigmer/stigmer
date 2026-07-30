@@ -906,6 +906,12 @@ async function executeCursorInner(
     // the activity returns rather than throws, and maximumAttempts is 1).
     heartbeatPhase = "resolving_agent";
     const resolveTimeoutSeconds = Math.round(config.agentResolveTimeoutMs / 1000);
+    // Close the span since load_pricing here so the resolve_agent segment
+    // below measures the SDK Agent.create/resume call alone, not the
+    // progress-report gRPC + options assembly above (issue #209: resolve_agent
+    // is the largest user-visible setup segment; this split keeps its
+    // historical meaning — the SDK call was already 98%+ of it).
+    setupTiming.mark("prepare_agent");
     let resolution: AgentResolution = await resolveAgentWithTransportRecovery({
       harnessStateId: threadId,
       createOptions,
@@ -1098,12 +1104,43 @@ async function executeCursorInner(
       // (e.g. older SDK), the warning is harmless — ignore.
     }
 
+    // Issue #209 forensics: the SDK acquires the local executor — the piece
+    // that actually spawns stdio MCP servers — inside send(), AFTER the
+    // execution_setup timeline above has already been emitted. This one-shot
+    // timeline makes that previously invisible window measurable:
+    // `send_returned` covers the send() call itself, `first_delta` the wait
+    // until the SDK's first delta. Primary send only — the recovery retries
+    // below rebuild the agent and would skew the user-perceived turn start
+    // this measures. No delta (immediate pause/failure) → no line.
+    const turnStartTiming = new TimingRecorder();
+    let turnFirstEventEmitted = false;
+    const primaryOnDelta = makeCursorTurnOnDelta(onDeltaDeps);
+
     // The stall watchdog is armed inside consumeCursorTurnStream (it needs the
     // run to cancel), stored on turnState.stallWatchdog so this shared onDelta can
     // reset it and the activity's finally can stop it as a backstop.
     const run = await resolution.agent.send(effectivePrompt, {
-      onDelta: makeCursorTurnOnDelta(onDeltaDeps),
+      onDelta: (event) => {
+        if (!turnFirstEventEmitted) {
+          turnFirstEventEmitted = true;
+          turnStartTiming.mark("first_delta");
+          emitTimingLog("turn_first_event", {
+            execution_id: executionId,
+            session_id: sessionId,
+            harness: "cursor",
+            agent_resumed: resolution.resumed,
+            mcp_server_count: blueprint.mergedMcpServerUsages.length,
+          }, turnStartTiming);
+        }
+        primaryOnDelta(event);
+      },
     });
+    // Normally send() resolves before any delta arrives, making send_returned
+    // the first segment; if a delta beat it, the line is already emitted and
+    // adding a mark now would be meaningless.
+    if (!turnFirstEventEmitted) {
+      turnStartTiming.mark("send_returned");
+    }
 
     // Everything at an index >= this was produced by THIS turn's stream — the
     // positional turn boundary the approved-command provenance (DD-28) scopes
