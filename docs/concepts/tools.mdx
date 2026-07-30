@@ -35,6 +35,19 @@ The tool call appears in the conversation with its name and result. The Agent
 then uses that data to answer the customer's question with specific, real
 information instead of a generic response.
 
+## Built-in web fetch
+
+Not every capability needs an MCP server. Every Agent can fetch a public URL out
+of the box — the native harness ships a built-in `web_fetch` tool, and the
+[Cursor harness](/docs/concepts/harnesses) has its own `WebFetch`. Fetched HTML
+is converted to Markdown, large pages are paginated, and the tool is read-only
+and never prompts for approval, so it works in unattended contexts like shared
+and embedded Agents. On managed cloud runners, fetches to private and internal
+addresses are refused.
+
+Reach for an MCP server when you need more than retrieval of a public page —
+authenticated APIs, site-specific extraction, or write operations.
+
 ## The tool library
 
 Stigmer includes a curated library of MCP servers for common integrations —

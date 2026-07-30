@@ -50,8 +50,9 @@ import { buildWorkspaceFileTree } from "../../shared/workspace/file-tree.js";
 import { reportSetupProgress } from "../../shared/status.js";
 import { resolveEnvironment, type EnvironmentResult } from "./environment.js";
 import { buildEnhancedSystemPrompt } from "./prompt-builder.js";
-import { buildMiddlewareStack, createThinkTool } from "../../middleware/index.js";
+import { buildMiddlewareStack } from "../../middleware/index.js";
 import type { GracefulStopMiddleware } from "../../middleware/index.js";
+import { createThinkTool, createWebFetchTool, resolveGuardPosture } from "../../tools/index.js";
 import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
 import { deriveExecutionFingerprintKey } from "../../shared/approval-fingerprint.js";
 import { getRunnerHitlMasterSecret } from "../../shared/fingerprint-secret.js";
@@ -583,10 +584,20 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     });
     timing.mark("build_middleware");
 
-    // Step 11: Build tools list (MCP tools + think tool)
+    // Step 11: Build tools list (MCP tools + native built-in tools).
+    //
+    // web_fetch is always-on for every native run — the same posture as the
+    // Cursor harness, whose WebFetch is a CLI built-in that no configuration
+    // removes (issue #214 parity). It is auto-approved by design (see
+    // toolApprovalCategory in shared/tool-kind.ts), so its URL guard posture
+    // — strict on managed cloud runners, relaxed on user-owned machines — is
+    // the entire safety boundary. Derived from config.mode, NOT the
+    // cloudModeEnabled Cursor feature flag.
+    const webFetchPosture = resolveGuardPosture(config.mode);
     const tools = [
       ...(mcpConnection?.tools as DynamicStructuredTool[] ?? []),
       createThinkTool(),
+      createWebFetchTool({ posture: webFetchPosture }),
     ];
 
     // Step 11b: Transform and compile subagents
@@ -618,6 +629,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         casObserver,
         parentModelName: modelName,
         parentHasNativeThinking: _modelHasNativeThinking(modelName),
+        webFetchPosture,
         costCap: costCapMiddleware ?? undefined,
         modelFactory: async (m: string) =>
           (await buildChatModel({

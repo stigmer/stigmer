@@ -33,7 +33,7 @@ import type { ApprovalGateConfig } from "../../middleware/approval-gate.js";
 import { createCasCaptureBackend } from "./cas-capture-backend.js";
 import type { CasCaptureObserver } from "./cas-capture-observer.js";
 import type { CostCapMiddleware, StigmerMiddleware } from "../../middleware/index.js";
-import { createThinkTool } from "../../middleware/index.js";
+import { createThinkTool, createWebFetchTool, type GuardPosture } from "../../tools/index.js";
 import { buildSubAgentMiddleware } from "./subagent-wiring.js";
 import { SubAgentGate } from "../../shared/subagent-gate.js";
 import { isModelRegistered } from "../../shared/model-registry.js";
@@ -158,6 +158,12 @@ export interface SubagentTransformOptions {
   readonly casObserver?: CasCaptureObserver;
   readonly parentModelName: string;
   readonly parentHasNativeThinking: boolean;
+  /**
+   * URL-guard posture for the native `web_fetch` tool, inherited from the
+   * parent (resolveGuardPosture(config.mode) in setup.ts) so a sub-agent
+   * fetch is bounded exactly like a parent fetch.
+   */
+  readonly webFetchPosture: GuardPosture;
   readonly costCap?: CostCapMiddleware;
   /**
    * Builds a configured chat-model instance for a given model name. When
@@ -203,6 +209,7 @@ export interface SubagentTransformOptions {
 export function createBuiltinSubagents(
   hasWorkspace: boolean,
   parentMcpTools: readonly StructuredTool[] = [],
+  webFetchPosture?: GuardPosture,
 ): TransformedSubagent[] {
   if (!hasWorkspace) {
     return [];
@@ -216,7 +223,15 @@ export function createBuiltinSubagents(
         name: "general-purpose",
         description: DEFAULT_GENERAL_PURPOSE_DESCRIPTION,
         systemPrompt: DEFAULT_SUBAGENT_PROMPT + RESPONSE_RULES,
-        tools: [...parentMcpTools],
+        // Parent-parity tool set: MCP tools plus the native web_fetch the
+        // parent always carries. explore/shell stay web-less on purpose —
+        // their prompts scope them to the workspace, not the internet.
+        tools: [
+          ...parentMcpTools,
+          ...(webFetchPosture
+            ? [createWebFetchTool({ posture: webFetchPosture }) as unknown as StructuredTool]
+            : []),
+        ],
       });
       continue;
     }
@@ -257,6 +272,7 @@ export async function transformSingleSubagent(
     readonly parentMcpUsages: readonly McpServerUsage[];
     readonly parentHasNativeThinking: boolean;
     readonly parentModelName: string;
+    readonly webFetchPosture: GuardPosture;
   },
 ): Promise<TransformedSubagent | null> {
   const name = subAgent.name;
@@ -289,6 +305,12 @@ export async function transformSingleSubagent(
   if (!saHasNativeThinking) {
     tools.push(createThinkTool() as unknown as StructuredTool);
   }
+
+  // web_fetch is unconditional — unlike think, it is a capability, not a
+  // reasoning aid, and the parent always has it (setup.ts Step 11). A
+  // sub-agent silently lacking web access the parent has would recreate the
+  // harness-parity gap of issue #214 one level down.
+  tools.push(createWebFetchTool({ posture: opts.webFetchPosture }) as unknown as StructuredTool);
 
   // Append response rules
   systemPrompt += RESPONSE_RULES;
@@ -597,6 +619,7 @@ export async function transformAndCompileSubagents(
     casObserver,
     parentModelName,
     parentHasNativeThinking,
+    webFetchPosture,
     costCap,
     modelFactory,
     shellEnv,
@@ -615,6 +638,7 @@ export async function transformAndCompileSubagents(
   const builtins = createBuiltinSubagents(
     !!workspaceBackend.rootDir,
     parentMcpTools,
+    webFetchPosture,
   );
 
   // Step 1b: Batch fetch all skills referenced by subagents
@@ -665,6 +689,7 @@ export async function transformAndCompileSubagents(
         parentMcpUsages,
         parentHasNativeThinking,
         parentModelName,
+        webFetchPosture,
       });
 
       if (result) {

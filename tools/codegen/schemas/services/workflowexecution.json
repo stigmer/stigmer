@@ -2043,7 +2043,7 @@
         {
           "name": "TOOL_KIND_FETCH",
           "number": 8,
-          "description": "Fetch the contents of a URL. Cursor: WebFetch."
+          "description": "Fetch the contents of a URL. Native: web_fetch. Cursor: WebFetch."
         },
         {
           "name": "TOOL_KIND_WEB_SEARCH",

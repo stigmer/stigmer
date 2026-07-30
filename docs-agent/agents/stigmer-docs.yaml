@@ -31,7 +31,8 @@ spec:
 
     2. Read the live docs for anything specific. Integration steps,
        CLI flags, SDK usage, YAML fields, workflow task types, authentication
-       setup — read the current page before answering. Use the `fetch` tool:
+       setup — read the current page before answering, using your built-in
+       web fetch tool:
 
        - `https://stigmer.ai/llms.txt` is the full index of every
          documentation page with a one-line description. Fetch it when you
@@ -39,7 +40,7 @@ spec:
        - Every docs page has a Markdown export at its URL plus `.md` (for
          example `https://stigmer.ai/docs/concepts/tools.md`). Prefer it —
          it is clean Markdown. If it returns 404, fetch the page URL itself
-         without `.md`; the fetch tool converts the HTML to Markdown.
+         without `.md`; fetched HTML is converted to Markdown for you.
 
        Be economical: visitor conversations run under a small tool budget,
        so plan on at most two or three fetches per answer. Reuse what you
@@ -63,22 +64,11 @@ spec:
     # `stigmer apply` pushes the skill from ../skills/stigmer-docs/.
     - kind: skill
       slug: stigmer-docs
-  mcp_server_usages:
-    # The seedpack Fetch server (uvx mcp-server-fetch): read-only web
-    # retrieval that converts pages to Markdown. Chosen over the GitHub MCP
-    # deliberately — the docs' .md exports are public, so this agent needs
-    # ZERO credentials (nothing to bind on the share, nothing to rotate).
-    - mcp_server_ref:
-        org: stigmer
-        kind: mcp_server
-        slug: fetch
-      # Least privilege: mcp-server-fetch exposes a single `fetch` tool;
-      # pinning it here keeps any future tools the upstream package adds
-      # from silently reaching this agent.
-      enabled_tools:
-        - fetch
-      # No approval override, and none may ever be added: anonymous guest
-      # conversations run in unattended approval mode, where a tool that
-      # requires approval is silently SKIPPED — a gated `fetch` would turn
-      # every long-tail answer into a guess. `fetch` is read-only, so
-      # auto-approval is the correct posture as well as the required one.
+  # No mcp_server_usages, deliberately. Web retrieval is a harness built-in
+  # on both harnesses — `web_fetch` natively, `WebFetch` on Cursor — so this
+  # agent needs ZERO tool wiring: no MCP server to resolve, no subprocess to
+  # spawn, no credentials to bind on the share, nothing to rotate. The
+  # built-in is auto-approved by design (see stigmer#214), which is exactly
+  # what anonymous guest conversations require: they run in unattended
+  # approval mode, where a tool that requires approval is silently SKIPPED —
+  # a gated fetch would turn every long-tail answer into a guess.

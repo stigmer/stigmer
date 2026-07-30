@@ -36,7 +36,8 @@ spec:
     conversation_ended: >-
       This conversation reached its limit. Reload the page to start a fresh
       one, or continue in the docs at stigmer.ai/docs.
-  # No environment_refs, deliberately: the agent's only tool is the seedpack
-  # Fetch server reading public URLs, so guest conversations need zero
-  # credentials. If a credentialed tool is ever added to the agent, bind an
-  # org-shared Environment here — never on the agent's default instance.
+  # No environment_refs, deliberately: the agent's only capability is the
+  # harness's built-in web fetch tool reading public URLs, so guest
+  # conversations need zero credentials. If a credentialed tool is ever
+  # added to the agent, bind an org-shared Environment here — never on the
+  # agent's default instance.

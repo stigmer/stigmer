@@ -121,6 +121,14 @@ describe("createBuiltinSubagents", () => {
     }
   });
 
+  it("gives web_fetch to general-purpose only, when a guard posture is supplied", () => {
+    const result = createBuiltinSubagents(true, [], "strict");
+    for (const sa of result) {
+      const hasWebFetch = sa.tools.some((t) => t.name === "web_fetch");
+      expect(hasWebFetch).toBe(sa.name === "general-purpose");
+    }
+  });
+
   it("built-in subagents have no model override", () => {
     const result = createBuiltinSubagents(true);
     for (const sa of result) {
@@ -140,6 +148,7 @@ describe("transformSingleSubagent", () => {
     parentMcpUsages: [] as McpServerUsage[],
     parentHasNativeThinking: true,
     parentModelName: "claude-sonnet-4-6",
+    webFetchPosture: "strict" as const,
   };
 
   beforeEach(() => {
@@ -200,6 +209,17 @@ describe("transformSingleSubagent", () => {
       (t) => t.name === "think" || (t as { name?: string }).name === "think",
     );
     expect(hasThinkTool).toBe(false);
+  });
+
+  it("always injects web_fetch, regardless of thinking support", async () => {
+    for (const parentHasNativeThinking of [true, false]) {
+      const result = await transformSingleSubagent(mockSubAgentProto(), {
+        ...baseOpts,
+        parentHasNativeThinking,
+      });
+      const hasWebFetch = result!.tools.some((t) => t.name === "web_fetch");
+      expect(hasWebFetch).toBe(true);
+    }
   });
 
   it("injects think tool when parent lacks native thinking", async () => {
@@ -433,6 +453,7 @@ describe("transformAndCompileSubagents", () => {
     approvalGate: null,
     parentModelName: "claude-sonnet-4-6",
     parentHasNativeThinking: true,
+    webFetchPosture: "strict" as const,
     costCap: undefined,
   };
 
@@ -639,6 +660,7 @@ describe("subagent-transformer edge cases", () => {
       parentMcpUsages: [],
       parentHasNativeThinking: true,
       parentModelName: "claude-sonnet-4-6",
+      webFetchPosture: "strict",
     });
 
     expect(result).not.toBeNull();
@@ -664,6 +686,7 @@ describe("subagent-transformer edge cases", () => {
       approvalGate: null,
       parentModelName: "claude-sonnet-4-6",
       parentHasNativeThinking: true,
+      webFetchPosture: "strict",
       costCap: undefined,
     } as Parameters<typeof transformAndCompileSubagents>[0]);
 
@@ -687,6 +710,7 @@ describe("subagent-transformer edge cases", () => {
       approvalGate: null,
       parentModelName: "claude-sonnet-4-6",
       parentHasNativeThinking: true,
+      webFetchPosture: "strict",
       costCap: undefined,
     } as Parameters<typeof transformAndCompileSubagents>[0]);
 

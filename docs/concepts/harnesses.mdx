@@ -38,6 +38,10 @@ specifying a Harness, it uses native.
   Commands run on the host machine attached to the runner, and every command
   goes through the same approval gate as other mutating tools. Plan mode
   (read-only Sessions) does not expose shell execution.
+- Built-in web retrieval through the `web_fetch` tool — every native Session can
+  fetch a public URL and read it as Markdown, with no MCP server to configure.
+  The tool is read-only and never prompts for approval; on managed cloud runners
+  it refuses private and internal addresses.
 
 The native Harness is the right choice for most workloads. It gives you the
 widest model catalog and the deepest platform integration.
@@ -74,7 +78,7 @@ The Harness you choose depends on what your Agent needs to do.
 | ----------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------- |
 | **Default**             | Yes                                                                  | No — must be explicitly selected                           |
 | **Model availability**  | All supported providers                                              | Cursor-served models only                                  |
-| **Tool capabilities**   | MCP servers you configure                                            | MCP servers + Cursor's built-in coding tools               |
+| **Tool capabilities**   | MCP servers you configure + built-in web fetch                       | MCP servers + Cursor's built-in coding tools               |
 | **Checkpoints**         | Full Stigmer pause/resume                                            | Cursor-managed state                                       |
 | **Platform commission** | 10% over provider rates                                              | 10% over provider rates                                    |
 | **Cursor Token Rate**   | None                                                                 | Small per-token fee on non-Auto models                     |

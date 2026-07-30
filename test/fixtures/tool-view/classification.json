@@ -42,6 +42,7 @@
     { "name": "ls", "mcpServerSlug": "", "toolKind": "TOOL_KIND_LIST" },
     { "name": "list_directory", "mcpServerSlug": "", "toolKind": "TOOL_KIND_LIST" },
 
+    { "name": "web_fetch", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FETCH" },
     { "name": "WebFetch", "mcpServerSlug": "", "toolKind": "TOOL_KIND_FETCH" },
     { "name": "WebSearch", "mcpServerSlug": "", "toolKind": "TOOL_KIND_WEB_SEARCH" },
 

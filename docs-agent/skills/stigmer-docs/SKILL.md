@@ -84,8 +84,8 @@ rather than trusting memory:
   every documentation page with a one-line description.
 - **Read a page**: every page has a Markdown export at its URL plus `.md`
   (for example `https://stigmer.ai/docs/concepts/tools.md`). Prefer it. If
-  it returns 404, fetch the page URL without `.md` — the fetch tool converts
-  the HTML to Markdown.
+  it returns 404, fetch the page URL without `.md` — fetched HTML is
+  converted to Markdown for you.
 - **Budget your fetches**: visitor conversations run under a small tool
   budget. Two or three fetches per answer is the ceiling; reuse pages you
   already fetched in this conversation.

@@ -188,6 +188,7 @@ const NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
   ["ls", ToolKind.LIST],
   ["list_directory", ToolKind.LIST],
 
+  ["web_fetch", ToolKind.FETCH],
   ["WebFetch", ToolKind.FETCH],
   ["WebSearch", ToolKind.WEB_SEARCH],
 

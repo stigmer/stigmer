@@ -476,7 +476,7 @@ export enum ToolKind {
   LIST = 7,
 
   /**
-   * Fetch the contents of a URL. Cursor: WebFetch.
+   * Fetch the contents of a URL. Native: web_fetch. Cursor: WebFetch.
    *
    * @generated from enum value: TOOL_KIND_FETCH = 8;
    */

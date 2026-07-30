@@ -98,6 +98,7 @@
     "js-yaml": "^4.1.1",
     "proper-lockfile": "^4.1.2",
     "semver": "^7.8.0",
+    "turndown": "^7.2.4",
     "zod": "^3.25.0",
     "zod-to-json-schema": "^3.24.0"
   },
@@ -106,6 +107,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/proper-lockfile": "^4.1.4",
     "@types/semver": "^7.7.1",
+    "@types/turndown": "^5.0.6",
     "esbuild": "^0.28.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.0",

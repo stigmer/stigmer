@@ -11,9 +11,10 @@ of that experience: the agent, its skill, and its public share.
 The agent answers in two tiers. Common conceptual questions are answered
 directly from the `stigmer-docs` skill, which carries a **stable map of the
 documentation** and the answering methodology — zero tool calls. Everything
-specific is read **live** from the published docs via the seedpack `fetch`
-MCP server: `https://stigmer.ai/llms.txt` to locate the page, then the page's
-`.md` export (or the page itself — fetch converts HTML to Markdown) to answer
+specific is read **live** from the published docs via the harness's built-in
+web fetch tool (`web_fetch` natively, `WebFetch` on Cursor):
+`https://stigmer.ai/llms.txt` to locate the page, then the page's `.md`
+export (or the page itself — fetched HTML is converted to Markdown) to answer
 from what the docs say *today*. There is deliberately no docs snapshot and no
 sync pipeline: the published documentation is the single source of truth, so
 the agent's knowledge cannot drift.
@@ -22,7 +23,7 @@ the agent's knowledge cannot drift.
 
 | File | What it is |
 |------|------------|
-| [`agents/stigmer-docs.yaml`](agents/stigmer-docs.yaml) | The Agent: instructions, the skill, and the least-privilege `fetch` tool |
+| [`agents/stigmer-docs.yaml`](agents/stigmer-docs.yaml) | The Agent: instructions and the skill — web retrieval is a harness built-in, so no tool wiring |
 | [`skills/stigmer-docs/SKILL.md`](skills/stigmer-docs/SKILL.md) | The methodology + documentation map (no content snapshot) |
 | [`shares/stigmer-docs.yaml`](shares/stigmer-docs.yaml) | The public AgentShare that powers the hosted chat + docs-site embed |
 | [`stigmer.yaml`](stigmer.yaml) | Project manifest, pinned to the `stigmer` org |
@@ -34,13 +35,15 @@ Three deliberate postures, chosen once and worth preserving:
   to [`org-knowledge-agent`](https://github.com/stigmer/org-knowledge-agent)).
   The public-audience `AgentShare` grants anonymous chat without exposing the
   blueprint.
-- **Credential-free by construction.** The docs' Markdown exports are public,
-  so the only tool is the no-auth `fetch` server: no PAT to provision, no
-  `environment_refs` to bind, nothing to rotate.
-- **`fetch` must stay auto-approved.** Anonymous guest conversations run in
+- **Credential-free by construction.** The docs' Markdown exports are public
+  and web retrieval is a harness built-in, so the agent declares no MCP
+  servers at all: no PAT to provision, no `environment_refs` to bind, no
+  subprocess to spawn, nothing to rotate.
+- **Web fetch must stay auto-approved.** Anonymous guest conversations run in
   unattended approval mode, where an approval-gated tool is silently *skipped*
-  — a gated `fetch` would break every long-tail answer. Never add a
-  `requires_approval` override to it.
+  — a gated fetch would break every long-tail answer. The built-in web fetch
+  is auto-approved by design (its safety boundary is the runner's URL guard,
+  not the approval gate); never add tooling that reintroduces a gate on it.
 
 ## Deploy
 

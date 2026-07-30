@@ -59,6 +59,7 @@ const TOOL_NAME_TO_KIND: ReadonlyMap<string, ToolKind> = new Map([
   ["ls", ToolKind.LIST],
   ["list_directory", ToolKind.LIST],
 
+  ["web_fetch", ToolKind.FETCH],
   ["WebFetch", ToolKind.FETCH],
   ["WebSearch", ToolKind.WEB_SEARCH],
 
@@ -118,6 +119,11 @@ export function toolApprovalCategory(name: string): ToolApprovalCategory | undef
       return "delete";
     case ToolKind.SHELL:
       return "shell";
+    // FETCH is deliberately uncategorized — i.e. auto-approved. This mirrors
+    // the Cursor harness (WebFetch is never gated) and is what makes the
+    // native web_fetch usable in unattended runs, where a gated tool is
+    // silently skipped. The safety boundary for web_fetch is its URL guard
+    // (tools/url-guard.ts), not the approval gate.
     default:
       return undefined;
   }

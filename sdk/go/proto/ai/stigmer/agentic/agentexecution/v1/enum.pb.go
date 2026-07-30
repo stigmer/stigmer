@@ -459,7 +459,7 @@ const (
 	ToolKind_TOOL_KIND_SEARCH ToolKind = 6
 	// List a directory. Native: ls, list_directory.
 	ToolKind_TOOL_KIND_LIST ToolKind = 7
-	// Fetch the contents of a URL. Cursor: WebFetch.
+	// Fetch the contents of a URL. Native: web_fetch. Cursor: WebFetch.
 	ToolKind_TOOL_KIND_FETCH ToolKind = 8
 	// Search the web. Cursor: WebSearch.
 	ToolKind_TOOL_KIND_WEB_SEARCH ToolKind = 9

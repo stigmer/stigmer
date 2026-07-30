@@ -24,7 +24,6 @@ import { createCostCapMiddleware, type CostCapMiddleware } from "./cost-cap.js";
 import { createErrorHintsMiddleware } from "./error-hints.js";
 import { createOtelSpansMiddleware } from "./otel-spans.js";
 
-export { createThinkTool } from "./think-tool.js";
 export type { GracefulStopMiddleware } from "./graceful-stop.js";
 export type { CostCapMiddleware } from "./cost-cap.js";
 export type { StigmerMiddleware, MiddlewareStackConfig } from "./types.js";

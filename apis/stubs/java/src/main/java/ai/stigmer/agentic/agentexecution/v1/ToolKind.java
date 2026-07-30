@@ -101,7 +101,7 @@ public enum ToolKind
   TOOL_KIND_LIST(7),
   /**
    * <pre>
-   * Fetch the contents of a URL. Cursor: WebFetch.
+   * Fetch the contents of a URL. Native: web_fetch. Cursor: WebFetch.
    * </pre>
    *
    * <code>TOOL_KIND_FETCH = 8;</code>
@@ -232,7 +232,7 @@ public enum ToolKind
   public static final int TOOL_KIND_LIST_VALUE = 7;
   /**
    * <pre>
-   * Fetch the contents of a URL. Cursor: WebFetch.
+   * Fetch the contents of a URL. Native: web_fetch. Cursor: WebFetch.
    * </pre>
    *
    * <code>TOOL_KIND_FETCH = 8;</code>

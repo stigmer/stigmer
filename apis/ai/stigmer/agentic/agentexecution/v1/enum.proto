@@ -308,7 +308,7 @@ enum ToolKind {
   // List a directory. Native: ls, list_directory.
   TOOL_KIND_LIST = 7;
 
-  // Fetch the contents of a URL. Cursor: WebFetch.
+  // Fetch the contents of a URL. Native: web_fetch. Cursor: WebFetch.
   TOOL_KIND_FETCH = 8;
 
   // Search the web. Cursor: WebSearch.
