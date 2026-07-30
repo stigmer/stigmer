@@ -65,6 +65,7 @@ export const DOMAIN_GROUPS: readonly DomainGroup[] = [
   {
     label: "Platform Building Blocks",
     slugs: [
+      "sidebar",
       "resource-workbench",
       "resource-creation",
       "resource-detail",

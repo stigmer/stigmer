@@ -184,6 +184,7 @@ All visual properties flow through `--stgm-*` design tokens.
 <TypeTable
   type={{
     className: { type: "string", description: "Additional CSS class names for the root container." },
+    now: { type: "Date", description: "Reference instant for the \"last used\" relative stamp. Defaults to the live clock. **Deterministic hosts (documentation embeds, video export) must pass a frozen instant** — otherwise a depicted key's \"2h ago\" drifts with every replay." },
     onRefetchRef: { type: "(refetch: () => void) => void", description: "Re-expose refetch so parents can trigger a list refresh." },
   }}
 />

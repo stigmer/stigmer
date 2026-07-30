@@ -253,6 +253,13 @@
       "components": 3
     },
     {
+      "slug": "sidebar",
+      "title": "Sidebar",
+      "description": "The console's navigation chrome — workspace and settings sidebars that hosts wire to their own router and user menu.",
+      "hooks": 0,
+      "components": 2
+    },
+    {
       "slug": "skill",
       "title": "Skill",
       "description": "Hooks and components for knowledge attachments, search, picker, and detail views.",

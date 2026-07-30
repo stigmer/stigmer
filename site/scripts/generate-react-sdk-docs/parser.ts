@@ -153,6 +153,11 @@ const DOMAIN_META: Record<string, { title: string; description: string }> = {
     description:
       "Hooks and components for API key creation, listing, and deletion.",
   },
+  sidebar: {
+    title: "Sidebar",
+    description:
+      "The console's navigation chrome — workspace and settings sidebars that hosts wire to their own router and user menu.",
+  },
   "resource-workbench": {
     title: "Resource Workbench",
     description:
