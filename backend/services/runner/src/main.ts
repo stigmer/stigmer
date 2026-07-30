@@ -247,6 +247,25 @@ async function runPoolMode(
 
   console.warn(`[pool-member] ${memberId} ready (queue=${taskQueue})`);
 
+  // Idle-time warm-up (issue #209): pay the Cursor SDK's per-process SQLite
+  // cost now, while the member waits for a claim, instead of inside the
+  // claimed session's first resolve_agent. Fire-and-forget by design —
+  // pool-control members only (a claimed-session restart serves immediately
+  // and must not compete with its own executions).
+  if (intent.kind === "pool-control") {
+    const { warmCursorSdkStateStores } = await import("./activities/execute-cursor/sdk-warmup.js");
+    void warmCursorSdkStateStores().then((result) => {
+      if (result.warmed) {
+        console.log(`[pool-member] Cursor SDK state stores warmed in ${result.durationMs}ms`);
+      } else {
+        console.warn(
+          `[pool-member] Cursor SDK warm-up skipped (non-fatal): ${result.error} ` +
+          `(${result.durationMs}ms)`,
+        );
+      }
+    });
+  }
+
   // Park until terminated; the workers poll in the background. Unlike manager
   // mode there is no stdin driver — Kubernetes signals are the only exit.
   await new Promise<void>((resolve) => {
