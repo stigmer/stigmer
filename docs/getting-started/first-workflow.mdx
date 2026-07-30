@@ -128,27 +128,43 @@ execution and subscribe to real-time updates:
 
 <SDKTabs>
 <Tab value="TypeScript">
+
 ```typescript
 import { Stigmer } from "@stigmer/sdk";
 
-const stigmer = new Stigmer({ baseUrl: "https://api.stigmer.ai", apiKey:
-process.env.STIGMER_API_KEY!, });
+const stigmer = new Stigmer({
+  baseUrl: "https://api.stigmer.ai",
+  apiKey: process.env.STIGMER_API_KEY!,
+});
 
-const execution = await stigmer.workflowExecution.create({ name:
-`run-${Date.now()}`, org: "my-org", workflowRef: { slug: "summarize" },
-runtimeEnv: { TOPIC: { value: "the history of the internet" }, }, });
+const execution = await stigmer.workflowExecution.create({
+  name: `run-${Date.now()}`,
+  org: "my-org",
+  workflowRef: { slug: "summarize" },
+  runtimeEnv: {
+    TOPIC: { value: "the history of the internet" },
+  },
+});
 
-for await (const snapshot of stigmer.workflowExecution.subscribe({ executionId:
-execution.metadata!.id, })) { const tasks = snapshot.status?.tasks ?? []; for
-(const task of tasks) { console.log(`${task.taskName}: ${task.status}`); }
+for await (const snapshot of stigmer.workflowExecution.subscribe({
+  executionId: execution.metadata!.id,
+})) {
+  const tasks = snapshot.status?.tasks ?? [];
+  for (const task of tasks) {
+    console.log(`${task.taskName}: ${task.status}`);
+  }
 
-const phase = snapshot.status?.phase; if ( phase === "EXECUTION_COMPLETED" ||
-phase === "EXECUTION_FAILED" ) { console.log("Output:",
-snapshot.status?.output); break; } }
+  const phase = snapshot.status?.phase;
+  if (phase === "EXECUTION_COMPLETED" || phase === "EXECUTION_FAILED") {
+    console.log("Output:", snapshot.status?.output);
+    break;
+  }
+}
+```
 
-````
 </Tab>
 <Tab value="Go">
+
 ```go
 exec, err := client.WorkflowExecution.Create(ctx,
     &stigmer.WorkflowExecutionInput{
@@ -190,10 +206,11 @@ for {
         break
     }
 }
-````
+```
 
 </Tab>
 <Tab value="Python">
+
 ```python
 from stigmer import (
     StigmerClient, WorkflowExecutionInput,
@@ -203,21 +220,27 @@ from stigmer import (
 client = StigmerClient(os.environ["STIGMER_API_KEY"])
 
 execution = client.workflow_executions.create(WorkflowExecutionInput(
-name=f"run-{int(time.time() \* 1000)}", org="my-org",
-workflow_ref=ApiResourceReference(slug="summarize"), runtime_env={"TOPIC":
-{"value": "the history of the internet"}}, ))
+    name=f"run-{int(time.time() * 1000)}",
+    org="my-org",
+    workflow_ref=ApiResourceReference(slug="summarize"),
+    runtime_env={"TOPIC": {"value": "the history of the internet"}},
+))
 
 for snapshot in client.workflow_executions.subscribe(
-SubscribeWorkflowExecutionRequest( execution_id=execution.metadata.id, ), ): for
-task in snapshot.status.tasks: print(f"{task.task_name}: {task.status}")
+    SubscribeWorkflowExecutionRequest(
+        execution_id=execution.metadata.id,
+    ),
+):
+    for task in snapshot.status.tasks:
+        print(f"{task.task_name}: {task.status}")
 
     if snapshot.status.phase in (
         "EXECUTION_COMPLETED", "EXECUTION_FAILED"
     ):
         print("Output:", snapshot.status.output)
         break
-
 ```
+
 </Tab>
 </SDKTabs>
 
@@ -234,8 +257,8 @@ transform — and ran it as a durable execution. Behind the scenes:
 
 1. `stigmer apply` registered the Workflow blueprint and created a default
    Workflow Instance
-2. `stigmer run` created a Workflow Execution, passing your `TOPIC` as a
-   runtime environment variable
+2. `stigmer run` created a Workflow Execution, passing your `TOPIC` as a runtime
+   environment variable
 3. The workflow runner picked up the execution and ran each task in sequence
 4. Task outputs flowed through the context — `generate_summary` produced text
    that `format_output` consumed via `${ $context.generate_summary.text }`
@@ -260,4 +283,3 @@ transform — and ran it as a durable execution. Behind the scenes:
     href="/docs/guides/workflows/patterns"
   />
 </Cards>
-```
