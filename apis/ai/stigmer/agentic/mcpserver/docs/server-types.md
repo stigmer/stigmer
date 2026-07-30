@@ -7,13 +7,14 @@ McpServer supports two transport mechanisms for communicating with an MCP server
 | | Stdio | HTTP |
 |---|---|---|
 | **How it runs** | Subprocess on the agent runner's host | Remote service over the network |
+| **Where it runs** | **Local runners only** — sessions with `execution_target: local` (desktop app, `stigmer server`) | Everywhere — local runners and cloud-hosted sessions |
 | **Communication** | stdin/stdout (JSON-RPC) | HTTP POST + Server-Sent Events |
-| **Best for** | Node.js, Python, Go CLI tools; local development; most MCP servers in the ecosystem | Managed/hosted MCP services; servers shared across many concurrent agents; servers behind an API gateway |
+| **Best for** | Tools that need your machine — local files, GUI apps, private-network services; local development | Managed/hosted MCP services; anything running on cloud sessions; servers shared across many concurrent agents |
 | **Credential delivery** | Environment variables passed to the subprocess | Environment variable substitution in headers/params |
 | **Startup cost** | New process per execution | No process startup — connects to existing service |
 | **Examples** | `npx @modelcontextprotocol/server-github`, `python -m mcp_server_sqlite` | `https://mcp.example.com/v1`, internal services behind a reverse proxy |
 
-When in doubt, choose `stdio`. The vast majority of community MCP servers are designed to run as subprocesses.
+Prefer `http` when the vendor offers a hosted MCP endpoint — it works on every execution target. Choose `stdio` when the tool must run on your own machine: stdio means "download a package and run it as a subprocess with your credentials in its environment", which is your trust decision on a local runner but is refused on Stigmer-managed cloud compute. Cloud-targeted sessions that reference a stdio server fail at execution create with a clear remediation.
 
 ---
 
@@ -22,6 +23,8 @@ When in doubt, choose `stdio`. The vast majority of community MCP servers are de
 Defined by `StdioServerConfig` in `ai/stigmer/agentic/mcpserver/v1/spec.proto`.
 
 The agent runner spawns the MCP server as a child process and communicates over its stdin/stdout. Environment variables from the AgentInstance's environment binding are passed directly to the subprocess — this is the standard way credentials are injected.
+
+**Local runners only.** Stdio servers run where the runner runs, so they are supported only on sessions executing on a local runner (`execution_target: local`). Cloud-hosted sessions refuse them at execution create time, and cloud runners refuse to spawn them as defense-in-depth. This includes the hybrid setup — control plane in Stigmer Cloud, runner on your machine — where stdio works normally.
 
 ### Fields
 

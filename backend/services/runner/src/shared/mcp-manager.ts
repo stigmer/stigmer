@@ -4,8 +4,11 @@
  * Wraps @langchain/mcp-adapters MultiServerMCPClient with:
  * - Conversion from ResolvedMcpServer[] to the SDK's Connection config
  * - Proper async cleanup via close()
- * - Cloud compatibility validation (warn on non-installable stdio commands)
  * - Tool filtering based on discovered capabilities
+ *
+ * Transport policy (stdio is local-runner-only) is enforced upstream at
+ * resolution time by shared/mcp-transport-guard.ts — servers reaching
+ * this manager have already passed it.
  *
  * The Cursor execution path does NOT use this manager — it passes MCP
  * configs directly to the Cursor SDK via toCursorMcpConfig(). This
@@ -16,41 +19,6 @@ import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import type { Connection } from "@langchain/mcp-adapters";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
-
-const CLOUD_SAFE_COMMANDS = new Set(["npx", "node", "uvx", "python", "python3"]);
-
-/**
- * Classifies a stdio command's compatibility with cloud execution.
- * Returns true for commands that are installable/available in typical
- * cloud environments (npx, node, uvx, python).
- */
-export function isCloudCompatibleCommand(command: string): boolean {
-  const base = command.split("/").pop() ?? command;
-  return CLOUD_SAFE_COMMANDS.has(base);
-}
-
-/**
- * Log warnings for MCP servers that may not work in cloud mode.
- * Does not filter or reject — just provides operator visibility.
- */
-export function warnCloudIncompatibleServers(
-  servers: ResolvedMcpServer[],
-  isCloudMode: boolean,
-): void {
-  if (!isCloudMode) return;
-
-  for (const server of servers) {
-    if (server.connectionType === "stdio" && server.command) {
-      if (!isCloudCompatibleCommand(server.command)) {
-        console.warn(
-          `[MCP] Server '${server.slug}' uses stdio command '${server.command}' ` +
-          `which may not be available in cloud execution environments. ` +
-          `Consider using an HTTP MCP server or an npx-installable package.`,
-        );
-      }
-    }
-  }
-}
 
 /**
  * Convert harness-agnostic ResolvedMcpServer[] into the
@@ -98,12 +66,7 @@ export interface McpConnectionResult {
  */
 export async function connectMcpServers(
   servers: ResolvedMcpServer[],
-  options?: { isCloudMode?: boolean },
 ): Promise<McpConnectionResult> {
-  if (options?.isCloudMode) {
-    warnCloudIncompatibleServers(servers, true);
-  }
-
   const connectionConfig = toMcpClientConfig(servers);
 
   if (Object.keys(connectionConfig).length === 0) {

@@ -1,9 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
-import {
-  isCloudCompatibleCommand,
-  warnCloudIncompatibleServers,
-  toMcpClientConfig,
-} from "../mcp-manager.js";
+import { describe, it, expect } from "vitest";
+import { toMcpClientConfig } from "../mcp-manager.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 
 function makeServer(overrides: Partial<ResolvedMcpServer>): ResolvedMcpServer {
@@ -16,73 +12,6 @@ function makeServer(overrides: Partial<ResolvedMcpServer>): ResolvedMcpServer {
     ...overrides,
   };
 }
-
-describe("isCloudCompatibleCommand", () => {
-  it.each(["npx", "node", "uvx", "python", "python3"])(
-    "returns true for '%s'",
-    (cmd) => {
-      expect(isCloudCompatibleCommand(cmd)).toBe(true);
-    },
-  );
-
-  it.each(["/usr/local/bin/npx", "/home/user/.local/bin/uvx"])(
-    "returns true for full paths to known commands: '%s'",
-    (cmd) => {
-      expect(isCloudCompatibleCommand(cmd)).toBe(true);
-    },
-  );
-
-  it.each(["go", "my-custom-binary", "/usr/bin/mcp-server", "docker"])(
-    "returns false for '%s'",
-    (cmd) => {
-      expect(isCloudCompatibleCommand(cmd)).toBe(false);
-    },
-  );
-});
-
-describe("warnCloudIncompatibleServers", () => {
-  it("does nothing when not in cloud mode", () => {
-    const spy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    warnCloudIncompatibleServers(
-      [makeServer({ command: "go", connectionType: "stdio" })],
-      false,
-    );
-    expect(spy).not.toHaveBeenCalled();
-    spy.mockRestore();
-  });
-
-  it("warns for non-installable stdio commands in cloud mode", () => {
-    const spy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    warnCloudIncompatibleServers(
-      [makeServer({ slug: "custom", command: "my-binary", connectionType: "stdio" })],
-      true,
-    );
-    expect(spy).toHaveBeenCalledOnce();
-    expect(spy.mock.calls[0][0]).toContain("my-binary");
-    expect(spy.mock.calls[0][0]).toContain("custom");
-    spy.mockRestore();
-  });
-
-  it("does not warn for npx commands in cloud mode", () => {
-    const spy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    warnCloudIncompatibleServers(
-      [makeServer({ command: "npx", connectionType: "stdio" })],
-      true,
-    );
-    expect(spy).not.toHaveBeenCalled();
-    spy.mockRestore();
-  });
-
-  it("does not warn for HTTP servers in cloud mode", () => {
-    const spy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    warnCloudIncompatibleServers(
-      [makeServer({ connectionType: "http", url: "https://mcp.example.com" })],
-      true,
-    );
-    expect(spy).not.toHaveBeenCalled();
-    spy.mockRestore();
-  });
-});
 
 describe("toMcpClientConfig", () => {
   it("maps stdio servers to the client config format", () => {

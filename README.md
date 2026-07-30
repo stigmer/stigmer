@@ -81,9 +81,6 @@ spec:
     - mcp_server_ref:
         kind: mcp_server
         slug: github
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: filesystem
 ```
 
 ```bash
@@ -129,7 +126,7 @@ stigmer draft skill --name my-skill   # scaffold a new skill
 
 ### MCP Servers
 
-Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to give agents tool access. Agents can use any STDIO-based MCP server — npm packages (npx), Python packages (uvx), Go modules (go run), or Docker images.
+Stigmer uses the [Model Context Protocol](https://modelcontextprotocol.io) to give agents tool access. Remote (HTTP) MCP servers work everywhere, including the marketplace catalog and cloud-hosted sessions. STDIO-based servers — npm packages (npx), Python packages (uvx), Go modules (go run) — run on local runners only, where the machine executing the subprocess is your own.
 
 Stigmer also ships its own MCP server that exposes platform resources to AI-powered IDEs:
 

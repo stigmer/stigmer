@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -24,26 +23,18 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type mcpServerEnvVar struct {
-	IsSecret    bool   `yaml:"is_secret"`
-	Description string `yaml:"description"`
-	Optional    bool   `yaml:"optional"`
-}
-
+// The seedpack catalog is HTTP-only (stdio MCP servers are local-runner-only
+// and are not shipped in the marketplace), so the schema models the http
+// transport exclusively.
 type mcpServerYAML struct {
 	Spec struct {
 		HTTP *struct {
 			URL string `yaml:"url"`
 		} `yaml:"http"`
-		Stdio *struct {
-			Command string   `yaml:"command"`
-			Args    []string `yaml:"args"`
-		} `yaml:"stdio"`
 		Auth *struct {
 			OAuthAppRef  *struct{} `yaml:"oauth_app_ref"`
 			TargetEnvVar string    `yaml:"target_env_var"`
 		} `yaml:"auth"`
-		Env map[string]mcpServerEnvVar `yaml:"env"`
 	} `yaml:"spec"`
 }
 
@@ -291,147 +282,6 @@ func TestSeedpackHttp_McpProtocolResponse(t *testing.T) {
 					t.Log("received valid JSON-RPC result (server responded without auth)")
 				}
 			}
-		})
-	}
-}
-
-// expandPlaceholders replaces ${VAR} patterns in args with values from the
-// environment or the provided defaults map. Returns the expanded args and a
-// list of unresolved required variables (non-optional vars with no value).
-func expandPlaceholders(args []string, env map[string]mcpServerEnvVar, defaults map[string]string) ([]string, []string) {
-	expanded := make([]string, len(args))
-	var missing []string
-
-	for i, arg := range args {
-		expanded[i] = os.Expand(arg, func(key string) string {
-			if val := os.Getenv(key); val != "" {
-				return val
-			}
-			if def, ok := defaults[key]; ok {
-				return def
-			}
-			envDef, declared := env[key]
-			if declared && !envDef.Optional {
-				missing = append(missing, key)
-			}
-			return ""
-		})
-	}
-	return expanded, missing
-}
-
-func TestSeedpackStdio_ServerLaunches(t *testing.T) {
-	servers := loadSeedpackMcpServers(t)
-
-	initPayload := []byte("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{},\"clientInfo\":{\"name\":\"stigmer-canary-test\",\"version\":\"1.0.0\"}}}\n")
-
-	tempDir := t.TempDir()
-
-	for name, srv := range servers {
-		if srv.Spec.Stdio == nil {
-			continue
-		}
-		cmd := srv.Spec.Stdio.Command
-		if cmd != "npx" && cmd != "uvx" {
-			continue
-		}
-
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			// Skip servers that declare required env vars not present in environment.
-			for envName, envConfig := range srv.Spec.Env {
-				if envConfig.Optional {
-					continue
-				}
-				if os.Getenv(envName) == "" {
-					t.Skipf("skipping %s: required env var %s not set", name, envName)
-				}
-			}
-
-			binPath, err := exec.LookPath(cmd)
-			if err != nil {
-				t.Skipf("skipping %s: %s not found in PATH: %v", name, cmd, err)
-			}
-			t.Logf("using %s at %s", cmd, binPath)
-
-			// Provide sensible defaults for path-like optional placeholders.
-			defaults := map[string]string{
-				"FILESYSTEM_ALLOWED_DIR": tempDir,
-			}
-			args, missingVars := expandPlaceholders(srv.Spec.Stdio.Args, srv.Spec.Env, defaults)
-			if len(missingVars) > 0 {
-				t.Skipf("skipping %s: required env var(s) not set: %v", name, missingVars)
-			}
-
-			ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
-			defer cancel()
-
-			proc := exec.CommandContext(ctx, cmd, args...)
-			proc.Env = append(os.Environ(), "NODE_NO_WARNINGS=1")
-
-			stdin, err := proc.StdinPipe()
-			if err != nil {
-				t.Fatalf("failed to create stdin pipe: %v", err)
-			}
-
-			var stdout bytes.Buffer
-			var stderr bytes.Buffer
-			proc.Stdout = &stdout
-			proc.Stderr = &stderr
-
-			if err := proc.Start(); err != nil {
-				t.Fatalf("failed to start %s %v: %v", cmd, args, err)
-			}
-
-			done := make(chan error, 1)
-			go func() {
-				done <- proc.Wait()
-			}()
-
-			time.Sleep(2 * time.Second)
-
-			select {
-			case err := <-done:
-				t.Logf("stderr: %s", stderr.String())
-				t.Fatalf("process exited prematurely: %v", err)
-			default:
-			}
-
-			if _, err := stdin.Write(initPayload); err != nil {
-				t.Fatalf("failed to write to stdin: %v", err)
-			}
-
-			deadline := time.After(25 * time.Second)
-			for stdout.Len() == 0 {
-				select {
-				case <-deadline:
-					_ = proc.Process.Kill()
-					t.Logf("stderr: %s", stderr.String())
-					t.Fatal("timed out waiting for JSON-RPC response on stdout")
-				case err := <-done:
-					t.Logf("stderr: %s", stderr.String())
-					t.Fatalf("process exited while waiting for response: %v", err)
-				default:
-					time.Sleep(200 * time.Millisecond)
-				}
-			}
-
-			_ = stdin.Close()
-			_ = proc.Process.Kill()
-
-			output := stdout.Bytes()
-			t.Logf("stdout (%d bytes): %.500s", len(output), string(output))
-			t.Logf("stderr: %.500s", stderr.String())
-
-			firstLine := output
-			if idx := bytes.IndexByte(output, '\n'); idx >= 0 {
-				firstLine = output[:idx]
-			}
-			firstLine = bytes.TrimSpace(firstLine)
-
-			assert.True(t, json.Valid(firstLine),
-				"first line of stdout should be valid JSON-RPC; got: %.300s", string(firstLine))
 		})
 	}
 }

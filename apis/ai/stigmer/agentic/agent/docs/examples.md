@@ -122,6 +122,8 @@ spec:
 
 An agent using all available features — MCP servers with approval overrides, skills, sub-agents, and environment variables.
 
+Note: `kubernetes` below is a user-defined MCP server (the org registered it themselves), not a marketplace entry — the marketplace catalog is HTTP-only, and self-registered stdio servers like this one run only on local runners.
+
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Agent

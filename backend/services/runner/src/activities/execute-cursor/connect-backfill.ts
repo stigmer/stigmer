@@ -12,6 +12,7 @@
 import type { McpResolutionResult } from "./mcp-resolver.js";
 import { toCursorMcpConfig } from "./mcp-resolver.js";
 import type { StigmerClient } from "../../client/stigmer-client.js";
+import type { McpTransportPosture } from "../../shared/mcp-transport-guard.js";
 import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { backfillMcpServersIfNeeded as sharedBackfill } from "../../shared/connect-backfill.js";
 
@@ -25,6 +26,7 @@ export async function backfillMcpServersIfNeeded(
   usages: McpServerUsage[],
   envVars: Record<string, string>,
   org: string,
+  transportPosture: McpTransportPosture,
   onHeartbeat?: () => void,
   secretKeys?: ReadonlySet<string>,
 ): Promise<McpResolutionResult> {
@@ -34,6 +36,7 @@ export async function backfillMcpServersIfNeeded(
     usages,
     envVars,
     org,
+    transportPosture,
     onHeartbeat,
     secretKeys,
   );

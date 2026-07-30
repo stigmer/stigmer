@@ -11,9 +11,10 @@ type McpServerType = McpServerSpec["serverType"];
 /**
  * Whether an MCP server's transport is stdio while connected to Stigmer Cloud.
  *
- * stdio servers run as a subprocess inside an isolated Daytona sandbox in the
- * cloud — not on the user's own computer. This predicate identifies exactly
- * that combination so the connect UI can set accurate expectations. HTTP
+ * stdio is local-runner-only: cloud-hosted sessions refuse stdio servers at
+ * execution create, and the cloud connect flow refuses to spawn them. This
+ * predicate identifies exactly that combination so the UI can explain the
+ * policy and its remediation (run the session on a local runner). HTTP
  * servers and any transport in local mode return `false`.
  *
  * Pure and framework-free so it can be unit-tested without rendering.
@@ -34,15 +35,15 @@ export interface StdioSandboxNoticeProps {
 }
 
 /**
- * Sets accurate expectations for connecting an **stdio** MCP server from
- * **Stigmer Cloud**.
+ * Explains the local-runner-only policy for an **stdio** MCP server viewed
+ * from **Stigmer Cloud**.
  *
- * stdio servers are a supported cloud capability — Stigmer runs them in an
- * isolated Daytona sandbox. But that sandbox is not the user's own machine,
- * so a server that expects access to local files, applications, or a private
- * network (e.g. a filesystem server) won't behave as the user intends. This
- * notice explains that up front; Connect itself stays enabled because
- * self-contained servers work fine.
+ * stdio servers spawn subprocesses on the machine that runs the agent, so
+ * they run only on local runners — Stigmer-managed cloud compute refuses
+ * them (at execution create, and in the connect flow). The server remains
+ * fully usable on sessions that execute on a local runner (desktop app,
+ * `stigmer server`), where tools are discovered automatically at session
+ * start. This notice states that up front so the refusal never surprises.
  *
  * Self-gating: reads the deployment mode from context and renders `null`
  * unless the server is stdio and the backend is cloud. Callers render it
@@ -68,9 +69,10 @@ export function StdioSandboxNotice({
     >
       <SandboxIcon className="mt-0.5 size-4 shrink-0" />
       <p className="text-xs leading-relaxed">
-        This stdio server runs in an isolated cloud sandbox, not on your own
-        computer. Tools that need access to your local files, applications, or
-        private network won&apos;t be available here.
+        This stdio server runs only on local runners — it won&apos;t be
+        available to sessions on Stigmer-managed cloud compute. Run the
+        session on a local runner (desktop app or CLI) to use it, or choose
+        a remote (HTTP) server instead.
       </p>
     </div>
   );

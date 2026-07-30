@@ -44,10 +44,11 @@ function withMode(mode: "cloud" | "local", children: ReactNode) {
 }
 
 describe("StdioSandboxNotice", () => {
-  it("renders the sandbox-isolation caveat for stdio in cloud", () => {
+  it("renders the local-runner-only policy for stdio in cloud", () => {
     render(withMode("cloud", <StdioSandboxNotice serverType={STDIO} />));
     expect(screen.getByRole("status")).toBeTruthy();
-    expect(screen.getByText(/isolated cloud sandbox/i)).toBeTruthy();
+    expect(screen.getByText(/only on local runners/i)).toBeTruthy();
+    expect(screen.getByText(/remote \(HTTP\) server/i)).toBeTruthy();
   });
 
   it("does not suggest the CLI (avoids inaccurate guidance)", () => {

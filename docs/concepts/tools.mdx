@@ -51,14 +51,16 @@ authenticated APIs, site-specific extraction, or write operations.
 ## The tool library
 
 Stigmer includes a curated library of MCP servers for common integrations —
-GitHub, Slack, PostgreSQL, filesystem access, web search, and dozens more. Each
-server in the library includes a description, category tags, and a link to its
-source repository so you can inspect the implementation before connecting it.
+GitHub, Slack, Neon, Notion, web search, and dozens more. Each server in the
+library includes a description, category tags, and a link to its source
+repository so you can inspect the implementation before connecting it.
 
-The library covers both transport types: stdio servers distributed as npm or
-Python packages (launched via `npx` or `uvx`) and HTTP servers accessible over
-the network. You browse the library, pick a server, and connect it — Stigmer
-handles discovery and configuration.
+Every server in the library is a remote (HTTP) server, so it works on any
+session — local or cloud-hosted. You browse the library, pick a server, and
+connect it — Stigmer handles discovery and configuration. Stdio servers (local
+subprocesses launched via `npx` or `uvx`) are not part of the curated library
+because they run only on local runners; you can still register your own for
+local-runner sessions.
 
 You can also define your own MCP servers for internal or proprietary systems.
 The library is a starting point, not a constraint. Any server that speaks the
@@ -99,10 +101,16 @@ spec:
 
 MCP Servers support two transport modes:
 
-| Mode      | When to use                             | Configuration                                                             |
-| --------- | --------------------------------------- | ------------------------------------------------------------------------- |
-| **stdio** | The tool server runs as a local process | `command` and `args` — Stigmer launches and communicates via stdin/stdout |
-| **HTTP**  | The tool server is a remote service     | `url`, optional `headers` and `query_params` with `${VAR}` substitution   |
+| Mode      | When to use                                                                  | Configuration                                                                      |
+| --------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **stdio** | The tool must run on your own machine — **local-runner sessions only**       | `command` and `args` — the local runner launches and communicates via stdin/stdout |
+| **HTTP**  | The tool server is a remote service — works on every session, local or cloud | `url`, optional `headers` and `query_params` with `${VAR}` substitution            |
+
+Stdio servers spawn a subprocess on the machine executing the agent, so they are
+supported only on sessions that run on a local runner (the desktop app or
+`stigmer server`). Sessions on Stigmer-managed cloud compute refuse stdio
+servers at execution create with a clear error naming the server and the
+remediation.
 
 ### Environment declarations
 
@@ -240,11 +248,10 @@ Tool calls run in a controlled sandbox:
 - **Result capture** — Tool outputs are captured and returned to the Agent as
   structured data
 
-For stdio-based MCP servers, Stigmer runs the tool server process inside a
-Daytona sandbox container — not on the Agent Runner pod. A misbehaving tool
-server cannot affect the Agent runtime, other tool servers, or the host system.
 HTTP-based MCP servers are isolated by design — Stigmer connects to them as a
-network client, so the tool server runs in its own infrastructure.
+network client, so the tool server runs in its own infrastructure. Stdio-based
+MCP servers run only on local runners, as subprocesses of the runner on your own
+machine — Stigmer-managed cloud compute never launches them.
 
 This sandboxing means the Agent can't bypass the tool server's logic or directly
 access the underlying system. It can only use the tools as the MCP Server

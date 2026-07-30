@@ -19,6 +19,11 @@ import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/
 import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import type { StigmerClient } from "../../client/stigmer-client.js";
 import {
+  assertTransportAllowed,
+  McpTransportError,
+  type McpTransportPosture,
+} from "../../shared/mcp-transport-guard.js";
+import {
   resolveHeaders,
   resolvePlaceholders,
   filterEnvToDeclaredKeys,
@@ -85,11 +90,17 @@ export interface McpResolutionResult {
  * 2. Extract connection config (stdio or http) from McpServerSpec
  * 3. Extract approval policies from McpServerStatus + McpServerSpec
  * 4. Transform into Cursor SDK's mcpServers config
+ *
+ * @param transportPosture Whether stdio servers may run here (derive via
+ *        resolveMcpTransportPosture(config.mode)). A stdio server under a
+ *        forbidding posture throws {@link McpTransportError} and fails the
+ *        whole resolution — never degraded to a skipped server.
  */
 export async function resolveMcpServers(
   client: StigmerClient,
   usages: McpServerUsage[],
-  envVars: Record<string, string> = {},
+  envVars: Record<string, string>,
+  transportPosture: McpTransportPosture,
 ): Promise<McpResolutionResult> {
   const resolved: ResolvedMcpServer[] = [];
 
@@ -105,8 +116,16 @@ export async function resolveMcpServers(
         ref.slug,
       );
       const server = mcpServerToResolved(mcpServer, ref.slug, serverEnv);
-      if (server) resolved.push(server);
+      if (server) {
+        assertTransportAllowed(server.slug, server.connectionType, transportPosture);
+        resolved.push(server);
+      }
     } catch (err) {
+      if (err instanceof McpTransportError) {
+        // Policy rejection, not a resolution hiccup: swallowing it here
+        // would mean the agent silently loses tools. Fail the execution.
+        throw err;
+      }
       if (err instanceof PlaceholderResolutionError) {
         console.error(
           `MCP server ${ref.org}/${ref.slug}: ${err.message}`,

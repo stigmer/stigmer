@@ -27,10 +27,12 @@ spec:
     Open with the key finding in one or two sentences, then provide
     supporting evidence and methodology. Close with specific, actionable
     recommendations when the analysis supports them.
+  # Neon's remote MCP provides hosted Postgres access. (Replaced the stdio
+  # postgres server when the seedpack went HTTP-only.)
   mcp_server_usages:
     - mcp_server_ref:
         kind: mcp_server
-        slug: postgres
+        slug: neon
   skill_refs:
     - kind: skill
       slug: data-analyst

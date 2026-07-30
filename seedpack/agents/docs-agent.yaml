@@ -30,9 +30,6 @@ spec:
     - mcp_server_ref:
         kind: mcp_server
         slug: github
-    - mcp_server_ref:
-        kind: mcp_server
-        slug: filesystem
   skill_refs:
     - kind: skill
       slug: technical-writer

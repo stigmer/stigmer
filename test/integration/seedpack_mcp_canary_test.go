@@ -25,6 +25,11 @@ func runtimeEnvFromString(key, value string) map[string]*executionctxv1.Executio
 // Canary tests validate real-world MCP server connections using actual credentials.
 // Gated behind STIGMER_MCP_CANARY=true to avoid running in offline CI.
 // Credentials are read from environment variables (injected by CI from Planton secrets).
+//
+// Transport note: the stdio canary below exercises the LOCAL-runner stdio
+// connect path — a supported capability for user-defined servers. The
+// seedpack catalog itself is HTTP-only (stdio is local-runner-only and
+// refused on cloud-hosted runners).
 
 func canaryEnabled() bool {
 	return os.Getenv("STIGMER_MCP_CANARY") == "true"

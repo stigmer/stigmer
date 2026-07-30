@@ -29,6 +29,7 @@ import { readSenderIdentity } from "../../shared/sender-identity.js";
 import { readSessionContext } from "../../shared/session-context.js";
 import { connectMcpServers, type McpConnectionResult } from "../../shared/mcp-manager.js";
 import { resolveMcpServers } from "../../shared/mcp-resolver.js";
+import { resolveMcpTransportPosture } from "../../shared/mcp-transport-guard.js";
 import { backfillMcpServersIfNeeded } from "../../shared/connect-backfill.js";
 import {
   formatDatastoresSection,
@@ -336,8 +337,9 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     let resolvedMcpServers: Awaited<ReturnType<typeof resolveMcpServers>> | null = null;
     if (mcpServerUsages.length > 0 || datastoreUsages.length > 0) {
       await reportSetupProgress(client, executionId, "Connecting tools…");
+      const transportPosture = resolveMcpTransportPosture(config.mode);
       resolvedMcpServers = await resolveMcpServers(
-        client, mcpServerUsages, envResult.mergedEnvVars,
+        client, mcpServerUsages, envResult.mergedEnvVars, transportPosture,
       );
       timing.mark("resolve_mcp_servers");
 
@@ -348,6 +350,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         mcpServerUsages,
         envResult.mergedEnvVars,
         sessionOrg,
+        transportPosture,
         undefined,
         envResult.secretKeys,
       );
@@ -375,10 +378,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
 
       // connect_mcp covers the whole fan-out: stdio servers spawn npx/uvx
       // subprocesses here, so on-demand package installs land in this span.
-      mcpConnection = await connectMcpServers(
-        resolvedMcpServers.resolvedServers,
-        { isCloudMode: config.cloudModeEnabled },
-      );
+      mcpConnection = await connectMcpServers(resolvedMcpServers.resolvedServers);
       timing.mark("connect_mcp");
     }
 

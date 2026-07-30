@@ -124,7 +124,7 @@ describe("backfillMcpServersIfNeeded", () => {
     const client = makeMockClient();
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, [], {}, "org",
+      client, servers, [], {}, "org", "stdio-allowed",
     );
 
     expect(result).toBe(servers);
@@ -137,7 +137,7 @@ describe("backfillMcpServersIfNeeded", () => {
     const client = makeMockClient();
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, [], {}, "org",
+      client, servers, [], {}, "org", "stdio-allowed",
     );
 
     expect(result).toBe(servers);
@@ -155,7 +155,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org",
+      client, servers, usages, {}, "org", "stdio-allowed",
     );
 
     expect(client.getMcpServerByReference).toHaveBeenCalledOnce();
@@ -181,7 +181,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org",
+      client, servers, usages, {}, "org", "stdio-allowed",
     );
 
     expect(client.connectMcpServer).toHaveBeenCalledOnce();
@@ -206,7 +206,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     await backfillMcpServersIfNeeded(
-      client, servers, usages, mergedEnv, "org",
+      client, servers, usages, mergedEnv, "org", "stdio-allowed",
     );
 
     expect(client.connectMcpServer).toHaveBeenCalledWith(
@@ -224,7 +224,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org",
+      client, servers, usages, {}, "org", "stdio-allowed",
     );
 
     expect(result).toBe(servers);
@@ -242,7 +242,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org",
+      client, servers, usages, {}, "org", "stdio-allowed",
     );
 
     expect(result).toBe(servers);
@@ -261,7 +261,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org", onHeartbeat,
+      client, servers, usages, {}, "org", "stdio-allowed", onHeartbeat,
     );
 
     expect(onHeartbeat).toHaveBeenCalledTimes(2);
@@ -274,7 +274,7 @@ describe("backfillMcpServersIfNeeded", () => {
     const client = makeMockClient();
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, [], {}, "org",
+      client, servers, [], {}, "org", "stdio-allowed",
     );
 
     expect(client.getMcpServerByReference).not.toHaveBeenCalled();
@@ -294,7 +294,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org",
+      client, servers, usages, {}, "org", "stdio-allowed",
     );
 
     expect(client.connectMcpServer).not.toHaveBeenCalled();
@@ -337,7 +337,7 @@ describe("backfillMcpServersIfNeeded", () => {
     });
 
     const result = await backfillMcpServersIfNeeded(
-      client, servers, usages, {}, "org",
+      client, servers, usages, {}, "org", "stdio-allowed",
     );
 
     expect(callCount).toBe(2);

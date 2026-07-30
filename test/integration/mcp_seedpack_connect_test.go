@@ -224,7 +224,10 @@ func TestMcpConnect_MissingEnvVar_ClearError(t *testing.T) {
 }
 
 // TestMcpConnect_StdioServer_ToolsDiscovered applies a stdio MCP test
-// server, connects it, and verifies that tools appear in status.
+// server, connects it, and verifies that tools appear in status. This
+// covers the local-runner stdio path, which stays supported for
+// user-defined servers (the seedpack catalog itself is HTTP-only and
+// cloud runners refuse stdio).
 func TestMcpConnect_StdioServer_ToolsDiscovered(t *testing.T) {
 	require.NotNil(t, grpcConn, "shared gRPC connection must be available")
 	harness.RequireNativePrereqs(t, testHarness)

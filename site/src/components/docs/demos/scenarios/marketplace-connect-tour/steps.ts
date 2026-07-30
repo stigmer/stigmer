@@ -2,17 +2,19 @@
  * Marketplace connect tour for "Connect from the marketplace".
  *
  * 6-step sequence: Library grid of MCP servers → cursor selects
- * PostgreSQL → detail view → cursor clicks Connect → tools
+ * Neon → detail view → cursor clicks Connect → tools
  * discovered → policies tab showing approval classifications.
  *
  * Fixture data drawn from real seedpack entries to give the
- * demo an authentic marketplace feel.
+ * demo an authentic marketplace feel. The catalog is HTTP-only
+ * (stdio MCP servers are local-runner-only and not shipped in
+ * the marketplace), so every fixture uses the http transport.
  */
 
 import { create } from "@bufbuild/protobuf";
 import {
   McpServerSpecSchema,
-  StdioServerConfigSchema,
+  HttpServerConfigSchema,
   ToolApprovalPolicySchema,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import {
@@ -33,7 +35,7 @@ import type { ScenarioStep } from "@scenar/react";
 // ---------------------------------------------------------------------------
 
 export const DEMO_ORG = "acme";
-export const DEMO_SLUG = "mcp-server-postgres";
+export const DEMO_SLUG = "mcp-server-neon";
 
 // ---------------------------------------------------------------------------
 // Grid fixtures — drawn from real seedpack entries
@@ -64,29 +66,29 @@ export const MARKETPLACE_SERVERS: readonly SearchResult[] = [
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000003",
     kind: ApiResourceKind.mcp_server,
-    name: "PostgreSQL",
-    slug: "mcp-server-postgres",
+    name: "Neon",
+    slug: "mcp-server-neon",
     description:
-      "Database exploration, schema inspection, query execution, index tuning, and performance analysis.",
-    iconUrl: `${SEEDPACK_ICON_BASE}/postgresql.svg`,
+      "Serverless PostgreSQL management — branch creation, database provisioning, schema inspection, and SQL execution.",
+    iconUrl: `${SEEDPACK_ICON_BASE}/neon.svg`,
   }),
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000004",
     kind: ApiResourceKind.mcp_server,
-    name: "Playwright",
-    slug: "mcp-server-playwright",
+    name: "Linear",
+    slug: "mcp-server-linear",
     description:
-      "Browser automation, web testing, page navigation, element interaction, and screenshot capture.",
-    iconUrl: `${SEEDPACK_ICON_BASE}/playwright.svg`,
+      "Issue tracking, project management, sprint planning, and team workflow automation.",
+    iconUrl: `${SEEDPACK_ICON_BASE}/linear.svg`,
   }),
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000005",
     kind: ApiResourceKind.mcp_server,
-    name: "Fetch",
-    slug: "mcp-server-fetch",
+    name: "Tavily",
+    slug: "mcp-server-tavily",
     description:
-      "Retrieve web content and convert it to formats optimized for LLM consumption.",
-    iconUrl: `${SEEDPACK_ICON_BASE}/curl.svg`,
+      "Web search and content extraction optimized for AI agents and research workflows.",
+    iconUrl: `${SEEDPACK_ICON_BASE}/tavily.svg`,
   }),
   samples.searchResult({
     id: "mcp-00000000-0000-0000-0000-000000000006",
@@ -127,32 +129,34 @@ export const MARKETPLACE_SERVERS: readonly SearchResult[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// McpServer detail fixture — PostgreSQL (from seedpack)
+// McpServer detail fixture — Neon (from seedpack)
 // ---------------------------------------------------------------------------
 
-function buildPostgresBase(): McpServer {
+function buildNeonBase(): McpServer {
   const server = samples.mcpServer({
-    name: "mcp-server-postgres",
+    name: "mcp-server-neon",
     org: DEMO_ORG,
     description:
-      "PostgreSQL MCP server for database exploration, schema inspection, query execution, index tuning, and performance analysis.",
+      "Neon MCP server for serverless PostgreSQL management including branch creation, database provisioning, schema inspection, and SQL execution.",
   });
 
   server.spec = create(McpServerSpecSchema, {
     description: server.spec!.description,
-    iconUrl: `${SEEDPACK_ICON_BASE}/postgresql.svg`,
+    iconUrl: `${SEEDPACK_ICON_BASE}/neon.svg`,
     serverType: {
-      case: "stdio",
-      value: create(StdioServerConfigSchema, {
-        command: "uvx",
-        args: ["postgres-mcp", "--url", "${POSTGRES_CONNECTION_URL}"],
+      case: "http",
+      value: create(HttpServerConfigSchema, {
+        url: "https://mcp.neon.tech/mcp",
+        headers: {
+          Authorization: "Bearer ${NEON_API_KEY}",
+        },
       }),
     },
     env: {
-      POSTGRES_CONNECTION_URL: create(EnvVarDeclarationSchema, {
+      NEON_API_KEY: create(EnvVarDeclarationSchema, {
         isSecret: true,
         description:
-          "PostgreSQL connection URL (e.g., postgresql://user:password@localhost:5432/dbname)",
+          "Neon API key (generate at console.neon.tech/app/settings/api-keys)",
       }),
     },
   });
@@ -160,45 +164,45 @@ function buildPostgresBase(): McpServer {
   return server;
 }
 
-function buildPostgresConnected(): McpServer {
-  const server = buildPostgresBase();
+function buildNeonConnected(): McpServer {
+  const server = buildNeonBase();
 
   server.status = create(McpServerStatusSchema, {
     validationState: ValidationState.valid,
     discoveredCapabilities: create(DiscoveredCapabilitiesSchema, {
       tools: [
         create(DiscoveredToolSchema, {
-          name: "query",
+          name: "list_projects",
           description:
-            "Execute a read-only SQL query against the connected PostgreSQL database and return results.",
+            "List all Neon projects in your account with their branches and databases.",
         }),
         create(DiscoveredToolSchema, {
-          name: "list_tables",
+          name: "get_database_tables",
           description:
-            "List all tables in the database with their schemas, row counts, and sizes.",
+            "List all tables in a database with their schemas and row counts.",
         }),
         create(DiscoveredToolSchema, {
-          name: "describe_table",
+          name: "describe_table_schema",
           description:
             "Show column definitions, types, constraints, and indexes for a specific table.",
         }),
         create(DiscoveredToolSchema, {
-          name: "explain_query",
+          name: "explain_sql_statement",
           description:
             "Run EXPLAIN ANALYZE on a query and return the execution plan with timing data.",
         }),
         create(DiscoveredToolSchema, {
-          name: "execute_sql",
+          name: "run_sql",
           description:
-            "Execute a read-write SQL statement (INSERT, UPDATE, DELETE, DDL) against the database.",
+            "Execute a SQL statement (including INSERT, UPDATE, DELETE, DDL) against a database.",
         }),
       ],
     }),
     toolApprovals: [
       create(ToolApprovalPolicySchema, {
-        toolName: "execute_sql",
+        toolName: "run_sql",
         message:
-          "Execute SQL: {{args.sql}}",
+          "Run SQL: {{args.sql}}",
       }),
     ],
   });
@@ -222,8 +226,8 @@ export type MarketplaceConnectStep =
   | { view: "connected-tools"; server: McpServer }
   | { view: "connected-policies"; server: McpServer };
 
-const baseServer = buildPostgresBase();
-const connectedServer = buildPostgresConnected();
+const baseServer = buildNeonBase();
+const connectedServer = buildNeonConnected();
 
 // ---------------------------------------------------------------------------
 // Step sequence
@@ -234,21 +238,21 @@ export const marketplaceConnectSteps: ScenarioStep<MarketplaceConnectStep>[] = [
     delayMs: 0,
     data: { view: "grid-browse", servers: MARKETPLACE_SERVERS },
     narration:
-      "The tool library is a curated catalog of MCP servers — from GitHub and Slack to databases, monitoring, and design tools.",
+      "The tool library is a curated catalog of remote MCP servers — from GitHub and Slack to databases, monitoring, and design tools.",
   },
   {
     delayMs: 3000,
     data: {
       view: "grid-select",
       servers: MARKETPLACE_SERVERS,
-      targetSlug: "mcp-server-postgres",
+      targetSlug: "mcp-server-neon",
     },
   },
   {
     delayMs: 2500,
     data: { view: "detail-view", server: baseServer },
     narration:
-      "PostgreSQL uses stdio transport — Stigmer launches the server locally and communicates over stdin and stdout. It needs a connection URL to reach your database.",
+      "Neon is a remote MCP server — Stigmer talks to Neon's hosted endpoint over HTTP. It needs an API key to authenticate.",
     interactions: [
       { atPercent: 0.4, type: "scroll_to", target: "capabilities-bottom" },
     ],
@@ -261,7 +265,7 @@ export const marketplaceConnectSteps: ScenarioStep<MarketplaceConnectStep>[] = [
     delayMs: 3000,
     data: { view: "connected-tools", server: connectedServer },
     narration:
-      "Stigmer connected to the server, discovered five tools, and classified each one. Read operations like query and list_tables pass through automatically.",
+      "Stigmer connected to the server, discovered five tools, and classified each one. Read operations like list_projects and describe_table_schema pass through automatically.",
     interactions: [
       { atPercent: 0.3, type: "scroll_to", target: "capabilities-bottom" },
     ],

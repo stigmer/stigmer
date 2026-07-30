@@ -75,6 +75,9 @@ type oauthAppRef struct {
 	Slug string `yaml:"slug"`
 }
 
+// Kept in sync with the Categories table in mcp-servers/CONTRIBUTING.md.
+// (Stdio-only categories like web-automation and desktop-automation were
+// retired when the catalog went HTTP-only.)
 var validCategories = map[string]bool{
 	"developer-tools":      true,
 	"databases":            true,
@@ -82,14 +85,9 @@ var validCategories = map[string]bool{
 	"cloud-infrastructure": true,
 	"communication":        true,
 	"productivity":         true,
-	"web-automation":       true,
-	"desktop-automation":   true,
 	"monitoring":           true,
 	"payments":             true,
 	"design":               true,
-	"ai-reasoning":         true,
-	"notifications":        true,
-	"scheduling":           true,
 	"crm-support":          true,
 }
 

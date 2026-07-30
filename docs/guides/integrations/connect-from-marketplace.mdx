@@ -29,22 +29,24 @@ custom servers your team has created.
 
 The catalog organizes servers into categories:
 
-| Category                 | Examples                          |
-| ------------------------ | --------------------------------- |
-| **Developer tools**      | GitHub, GitLab, filesystem        |
-| **Databases**            | PostgreSQL, MongoDB, Redis, MySQL |
-| **Communication**        | Slack, Linear                     |
-| **Search**               | Fetch, Brave Search               |
-| **Cloud infrastructure** | AWS, Cloudflare, Terraform        |
-| **Web automation**       | Playwright                        |
-| **Monitoring**           | Sentry                            |
-| **Payments**             | Stripe                            |
-| **Design**               | Figma                             |
-| **Productivity**         | Notion, Google Maps               |
+| Category                 | Examples                  |
+| ------------------------ | ------------------------- |
+| **Developer tools**      | GitHub, GitLab, Buildkite |
+| **Databases**            | Neon, Supabase            |
+| **Communication**        | Slack, Linear             |
+| **Search**               | Tavily, Context7          |
+| **Cloud infrastructure** | Cloudflare, Netlify       |
+| **Monitoring**           | Sentry, Datadog           |
+| **Payments**             | Stripe, PayPal, Square    |
+| **Design**               | Figma, Canva              |
+| **Productivity**         | Notion, Google Maps       |
 
-Each server definition includes tags for search and filtering, a link to its
-source repository, and the transport type — stdio (local process) or HTTP
-(remote service). You can inspect the implementation before connecting.
+Each server definition includes tags for search and filtering and a link to its
+source repository, so you can inspect the implementation before connecting.
+Every catalog server is a remote (HTTP) server — it works on any session, local
+or cloud-hosted. Stdio servers (local subprocesses) are not curated in the
+catalog because they run only on local runners; you can still register your own
+for local-runner sessions.
 
 ## Connect an MCP server
 
@@ -62,13 +64,12 @@ The whole process takes a few seconds. When it finishes, the detail view updates
 to show the discovered tools and their approval policies.
 
 <Callout type="info">
-  **stdio servers run in an isolated cloud sandbox.** In Stigmer Cloud, stdio
-  servers (launched via `npx`, `uvx`, or a binary) run as a subprocess inside a
-  sandbox — not on your own computer. Self-contained servers work as expected,
-  but a server that needs access to your local files, applications, or private
-  network (for example, a filesystem server pointed at a path on your laptop)
-  won't have it there. If a connect fails, the error message names the likely
-  cause for the server's transport.
+  **stdio servers are local-runner-only.** In Stigmer Cloud, connecting a stdio
+  server (launched via `npx`, `uvx`, or a binary) is refused — cloud compute
+  never spawns stdio subprocesses. The server remains fully usable on sessions
+  that run on a local runner (the desktop app or `stigmer server`), where its
+  tools are discovered automatically when the session starts. If a connect
+  fails, the error message names the likely cause for the server's transport.
 </Callout>
 
 ## What changes after connecting
@@ -77,15 +78,16 @@ to show the discovered tools and their approval policies.
 
 The tools tab lists every tool the server exposes. Each entry shows the tool's
 name and description — the same information the Agent sees when deciding which
-tool to call. In the demo above, PostgreSQL exposes five tools: `query`,
-`list_tables`, `describe_table`, `explain_query`, and `execute_sql`.
+tool to call. In the demo above, Neon exposes five tools: `list_projects`,
+`get_database_tables`, `describe_table_schema`, `explain_sql_statement`, and
+`run_sql`.
 
 ### Policies tab
 
 The policies tab shows the approval classification for each tool. Read-only
-tools like `query` and `list_tables` are classified for automatic approval — the
-Agent can call them without pausing. Tools with side effects, like
-`execute_sql`, are flagged for human approval.
+tools like `list_projects` and `describe_table_schema` are classified for
+automatic approval — the Agent can call them without pausing. Tools with side
+effects, like `run_sql`, are flagged for human approval.
 
 These classifications come in two tiers:
 
@@ -103,12 +105,12 @@ Agent.
 Some servers need credentials to reach the systems behind them. Three patterns
 cover the range:
 
-| Pattern                   | When it applies                                                      | What happens on Connect                                        |
-| ------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------- |
-| **No credentials**        | The server works without authentication (Fetch, Playwright)          | Connects immediately — no extra steps                          |
-| **Environment variables** | The server uses API keys or connection strings (PostgreSQL, MongoDB) | You enter the value in the credential form before connecting   |
-| **OAuth**                 | The server uses OAuth with a vendor like GitHub, Slack, or Figma     | Stigmer redirects you through the OAuth flow to obtain a token |
-| **OAuth-only (hosted)**   | The hosted endpoint accepts only OAuth tokens (Notion, Monday)       | Only "Sign in" is offered — manual token entry is hidden       |
+| Pattern                   | When it applies                                                  | What happens on Connect                                        |
+| ------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------- |
+| **No credentials**        | The server works without authentication (Context7 without a key) | Connects immediately — no extra steps                          |
+| **Environment variables** | The server uses API keys or connection strings (Tavily, Neon)    | You enter the value in the credential form before connecting   |
+| **OAuth**                 | The server uses OAuth with a vendor like GitHub, Slack, or Figma | Stigmer redirects you through the OAuth flow to obtain a token |
+| **OAuth-only (hosted)**   | The hosted endpoint accepts only OAuth tokens (Notion, Monday)   | Only "Sign in" is offered — manual token entry is hidden       |
 
 <Callout type="info">
   Some hosted endpoints — such as Notion (`mcp.notion.com`) and Monday

@@ -62,41 +62,44 @@ export const MCP_SERVER_TEMPLATES: readonly ResourceTemplate<McpServerWizardData
       },
     },
     {
-      id: "postgresql",
-      name: "PostgreSQL",
+      id: "neon",
+      name: "Neon",
       description:
-        "Connect to a PostgreSQL database for querying, schema inspection, and data management.",
+        "Connect to Neon's hosted MCP endpoint for serverless PostgreSQL — querying, schema inspection, and branch management.",
       category: "integration",
-      tags: ["postgres", "postgresql", "database", "sql", "data"],
+      tags: ["neon", "postgres", "postgresql", "database", "sql", "data"],
       data: {
-        name: "PostgreSQL",
+        name: "Neon",
         description:
-          "PostgreSQL database connection for querying, schema inspection, and data management.",
-        transportType: "stdio",
-        stdioCommand: "npx",
-        stdioArgs: "-y @modelcontextprotocol/server-postgres",
+          "Neon serverless PostgreSQL — querying, schema inspection, database provisioning, and branch management.",
+        transportType: "http",
+        httpUrl: "https://mcp.neon.tech/mcp",
         env: [
           {
-            key: "DATABASE_URL",
+            key: "NEON_API_KEY",
             description:
-              "PostgreSQL connection string (e.g. postgresql://user:pass@host:5432/db).",
+              "Neon API key (generate at console.neon.tech/app/settings/api-keys).",
             isSecret: true,
             optional: false,
           },
         ],
       },
     },
+    // Deliberately stdio: the canonical example of a tool that must run on
+    // the user's own machine. Stdio servers are local-runner-only — the
+    // wizard's transport step states this, and cloud-targeted sessions
+    // refuse them at execution create.
     {
       id: "filesystem",
-      name: "Filesystem",
+      name: "Filesystem (local runners)",
       description:
-        "Provide read and write access to a local directory for file management and content operations.",
+        "Provide read and write access to a local directory for file management and content operations. Runs on local runners only.",
       category: "general",
       tags: ["filesystem", "files", "local", "directory"],
       data: {
         name: "Filesystem",
         description:
-          "Local filesystem access for reading, writing, and managing files within a directory.",
+          "Local filesystem access for reading, writing, and managing files within a directory. Stdio transport — runs on local runners only.",
         transportType: "stdio",
         stdioCommand: "npx",
         stdioArgs:

@@ -223,6 +223,13 @@ export function IdentityTransportStep({
             onChange={() => updateData({ transportType: "stdio" })}
           />
         </div>
+        {data.transportType === "stdio" && (
+          <p className="text-xs text-muted-foreground">
+            Stdio servers run only on local runners (desktop app or CLI).
+            Sessions on Stigmer-managed cloud compute require a remote (HTTP)
+            server.
+          </p>
+        )}
 
         {/* HTTP fields */}
         {data.transportType === "http" && (

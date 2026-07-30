@@ -283,7 +283,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-123" },
-        { stigmerClient: mockClient as any },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
       );
 
       expect(result.tools).toHaveLength(2);
@@ -293,6 +293,29 @@ describe("DiscoverMcpServer activity", () => {
       expect(result.previousToolsFingerprint).toBe("");
       expect(result.previousToolApprovals).toEqual([]);
       expect(result.newToolsFingerprint).toHaveLength(64);
+    });
+
+    it("refuses to spawn a stdio server under a forbidding transport posture", async () => {
+      // Discovery spawns the same subprocess an execution would, so a cloud
+      // runner enforces the local-runner-only rule here too — nothing is
+      // spawned before the guard fires.
+      const { discoverMcpServer } = await import("../discover-mcp-server.js");
+      const { McpTransportError } = await import("../../shared/mcp-transport-guard.js");
+
+      const mockClient = makeMockStigmerClient({
+        mcpServer: makeMcpServer({
+          metadata: { slug: "filesystem" },
+          spec: makeStdioSpec("npx", ["-y", "@modelcontextprotocol/server-filesystem"]),
+        }),
+      });
+
+      await expect(
+        discoverMcpServer(
+          { mcpServerId: "mcp-123" },
+          { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden" },
+        ),
+      ).rejects.toThrow(McpTransportError);
+      expect(mockInitializeConnections).not.toHaveBeenCalled();
     });
 
     it("discovers tools and resource templates from an HTTP server", async () => {
@@ -317,7 +340,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-456" },
-        { stigmerClient: mockClient as any },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
       );
 
       expect(result.tools).toHaveLength(1);
@@ -338,7 +361,7 @@ describe("DiscoverMcpServer activity", () => {
       });
 
       await expect(
-        discoverMcpServer({ mcpServerId: "mcp-bad" }, { stigmerClient: mockClient as any }),
+        discoverMcpServer({ mcpServerId: "mcp-bad" }, { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" }),
       ).rejects.toThrow("not found or has no spec");
     });
 
@@ -353,7 +376,7 @@ describe("DiscoverMcpServer activity", () => {
       });
 
       await expect(
-        discoverMcpServer({ mcpServerId: "mcp-noconfig" }, { stigmerClient: mockClient as any }),
+        discoverMcpServer({ mcpServerId: "mcp-noconfig" }, { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" }),
       ).rejects.toThrow("no valid server type configured");
     });
 
@@ -381,7 +404,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-env", executionContextId: "ctx-abc" },
-        { stigmerClient: mockClient as any },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
       );
 
       expect(result.tools).toEqual([]);
@@ -404,7 +427,7 @@ describe("DiscoverMcpServer activity", () => {
 
       await discoverMcpServer(
         { mcpServerId: "mcp-no-env" },
-        { stigmerClient: mockClient as any },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
       );
 
       expect(mockClient.getExecutionContextByExecutionId).not.toHaveBeenCalled();
@@ -430,7 +453,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-no-res" },
-        { stigmerClient: mockClient as any },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
       );
 
       expect(result.tools).toHaveLength(1);
@@ -464,7 +487,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-existing" },
-        { stigmerClient: mockClient as any },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
       );
 
       expect(result.previousToolsFingerprint).not.toBe("");
@@ -499,7 +522,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-fp" },
-        { stigmerClient: mockClient as any },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
       );
 
       const expected = toolsFingerprint(result.tools);
@@ -522,7 +545,7 @@ describe("DiscoverMcpServer activity", () => {
 
       const result = await discoverMcpServer(
         { mcpServerId: "mcp-empty" },
-        { stigmerClient: mockClient as any },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" },
       );
 
       expect(result.newToolsFingerprint).toBe("");
@@ -541,7 +564,7 @@ describe("DiscoverMcpServer activity", () => {
       mockInitializeConnections.mockRejectedValue(new Error("Connection refused"));
 
       await expect(
-        discoverMcpServer({ mcpServerId: "mcp-fail" }, { stigmerClient: mockClient as any }),
+        discoverMcpServer({ mcpServerId: "mcp-fail" }, { stigmerClient: mockClient as any, transportPosture: "stdio-allowed" }),
       ).rejects.toThrow("Connection refused");
 
       expect(mockClose).toHaveBeenCalled();

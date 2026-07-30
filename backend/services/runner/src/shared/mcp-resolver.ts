@@ -1,16 +1,25 @@
 /**
  * Resolves Stigmer McpServerUsage references into an intermediate
- * ResolvedMcpServer format that is harness-agnostic.
+ * ResolvedMcpServer format.
  *
- * Both ExecuteCursor and ExecuteDeepAgent need MCP server connection info
- * and tool approval policies. This module provides the common resolution
- * logic; each harness maps ResolvedMcpServer into its SDK-specific format.
+ * Consumers: the deep-agent harness (execute-deep-agent/setup.ts), the
+ * connect backfill (shared/connect-backfill.ts), and the discovery
+ * activity (activities/discover-mcp-server.ts, via mcpServerToResolved).
+ * NOTE: the Cursor harness does NOT use this module — it has its own
+ * near-duplicate resolver at activities/execute-cursor/mcp-resolver.ts.
+ * A behavioral change here (like the transport guard) must be mirrored
+ * there until the two are consolidated.
  */
 
 import type { McpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { ToolApprovalPolicy } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/spec_pb";
 import type { StigmerClient } from "../client/stigmer-client.js";
+import {
+  assertTransportAllowed,
+  McpTransportError,
+  type McpTransportPosture,
+} from "./mcp-transport-guard.js";
 import {
   resolveHeaders,
   resolvePlaceholders,
@@ -44,11 +53,17 @@ export interface McpResolutionResult {
 
 /**
  * Fetch McpServer resources and resolve into intermediate format.
+ *
+ * @param transportPosture Whether stdio servers may run here (derive via
+ *        resolveMcpTransportPosture(config.mode)). A stdio server under a
+ *        forbidding posture throws {@link McpTransportError} and fails the
+ *        whole resolution — never degraded to a skipped server.
  */
 export async function resolveMcpServers(
   client: StigmerClient,
   usages: McpServerUsage[],
-  envVars: Record<string, string> = {},
+  envVars: Record<string, string>,
+  transportPosture: McpTransportPosture,
 ): Promise<McpResolutionResult> {
   const resolved: ResolvedMcpServer[] = [];
 
@@ -64,8 +79,16 @@ export async function resolveMcpServers(
         ref.slug,
       );
       const server = mcpServerToResolved(mcpServer, ref.slug, serverEnv);
-      if (server) resolved.push(server);
+      if (server) {
+        assertTransportAllowed(server.slug, server.connectionType, transportPosture);
+        resolved.push(server);
+      }
     } catch (err) {
+      if (err instanceof McpTransportError) {
+        // Policy rejection, not a resolution hiccup: swallowing it here
+        // would mean the agent silently loses tools. Fail the execution.
+        throw err;
+      }
       if (err instanceof PlaceholderResolutionError) {
         console.error(
           `MCP server ${ref.org}/${ref.slug}: ${err.message}`,

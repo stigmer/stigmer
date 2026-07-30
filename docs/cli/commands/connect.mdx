@@ -39,7 +39,11 @@ stigmer connect mcp-server <slug-or-id> [flags]
 
 For **stdio-based servers**, the CLI spawns the server process locally.
 Environment variables from your shell are passed through, so credentials (e.g.,
-`GITHUB_TOKEN`) never leave your machine.
+`GITHUB_TOKEN`) never leave your machine. Note that stdio servers are
+local-runner-only: connecting one while authenticated to Stigmer Cloud is
+refused, because cloud compute never spawns stdio subprocesses. Use `--dry-run`
+(which runs entirely on your machine) or connect against a local
+`stigmer server`.
 
 For **HTTP-based servers**, the CLI connects to the configured URL directly.
 

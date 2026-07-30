@@ -58,6 +58,7 @@ import { TodoTracker } from "./todo-tracker.js";
 import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/streaming-scheduler.js";
 import { createCursorEventRecorder } from "./cursor-event-recorder.js";
 import { resolveMcpServers, toCursorMcpConfig, validateMcpServerEnv } from "./mcp-resolver.js";
+import { resolveMcpTransportPosture } from "../../shared/mcp-transport-guard.js";
 import {
   injectDatastoreAttachment,
   synthesizeDatastoreAttachment,
@@ -590,8 +591,9 @@ async function executeCursorInner(
 
     // Phase 4: Resolve MCP servers with approval policies
     await reportSetupProgress(client, executionId, "Resolving MCP servers");
+    const transportPosture = resolveMcpTransportPosture(config.mode);
     let mcpResolution = await resolveMcpServers(
-      client, blueprint.mergedMcpServerUsages, envVars,
+      client, blueprint.mergedMcpServerUsages, envVars, transportPosture,
     );
     setupTiming.mark("resolve_mcp_servers");
 
@@ -600,7 +602,7 @@ async function executeCursorInner(
     const sessionOrg = session.metadata?.org ?? "";
     mcpResolution = await backfillMcpServersIfNeeded(
       client, mcpResolution, blueprint.mergedMcpServerUsages, envVars, sessionOrg,
-      heartbeat, secretKeys,
+      transportPosture, heartbeat, secretKeys,
     );
     setupTiming.mark("backfill_mcp");
 

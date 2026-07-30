@@ -24,6 +24,11 @@ import { activityStarted, activityFinished } from "../idle-watchdog.js";
 import { StigmerClient } from "../client/stigmer-client.js";
 import { mcpServerToResolved } from "../shared/mcp-resolver.js";
 import { toMcpClientConfig } from "../shared/mcp-manager.js";
+import {
+  assertTransportAllowed,
+  resolveMcpTransportPosture,
+  type McpTransportPosture,
+} from "../shared/mcp-transport-guard.js";
 import { detectOAuthChallenge } from "../shared/mcp-oauth-detect.js";
 import { withTimeout } from "../shared/with-timeout.js";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -205,6 +210,14 @@ export function injectPlatformEnv(
 
 export interface DiscoverDeps {
   stigmerClient: StigmerClient;
+  /**
+   * Whether stdio servers may be spawned here (derive via
+   * resolveMcpTransportPosture(config.mode)). Discovery spawns the same
+   * subprocess an execution would, so it enforces the same
+   * local-runner-only rule — a cloud runner refuses stdio even for
+   * tool enumeration.
+   */
+  transportPosture: McpTransportPosture;
 }
 
 export async function discoverMcpServer(
@@ -245,6 +258,8 @@ export async function discoverMcpServer(
       `(must specify either 'stdio' or 'http' in the spec)`,
     );
   }
+
+  assertTransportAllowed(resolved.slug, resolved.connectionType, deps.transportPosture);
 
   const connectionConfig = toMcpClientConfig([resolved]);
   const { tools, resourceTemplates } = await connectAndDiscover(
@@ -435,7 +450,10 @@ export function createDiscoverMcpServerActivities(config: Config) {
     ): Promise<DiscoverMcpServerOutput> => {
       activityStarted();
       try {
-        return await discoverMcpServer(input, { stigmerClient });
+        return await discoverMcpServer(input, {
+          stigmerClient,
+          transportPosture: resolveMcpTransportPosture(config.mode),
+        });
       } finally {
         activityFinished();
       }

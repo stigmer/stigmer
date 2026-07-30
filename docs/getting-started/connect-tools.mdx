@@ -37,9 +37,9 @@ connects to any server that speaks the
 [Model Context Protocol](https://modelcontextprotocol.io/).
 
 <Callout type="info">
-  Stigmer includes a curated library of pre-built MCP servers for GitHub,
-  PostgreSQL, Slack, and dozens more. If you want to connect an existing server
-  rather than create one, see the [marketplace
+  Stigmer includes a curated library of pre-built MCP servers for GitHub, Neon,
+  Slack, and dozens more. If you want to connect an existing server rather than
+  create one, see the [marketplace
   guide](/docs/guides/integrations/connect-from-marketplace). This tutorial
   walks through creating one from scratch so you understand how MCP server
   definitions work.
@@ -79,7 +79,9 @@ Here is what that flow looks like:
 <Callout type="info">
   Stigmer supports both **HTTP** servers (REST APIs, webhooks) and **stdio**
   servers (CLI tools via `npx`, `go run`, or local binaries). The wizard handles
-  either — the transport step adapts to your choice.
+  either — the transport step adapts to your choice. Stdio servers run only on
+  local runners (the desktop app or `stigmer server`); sessions on
+  Stigmer-managed cloud compute require HTTP servers.
 </Callout>
 
 <Callout type="info">

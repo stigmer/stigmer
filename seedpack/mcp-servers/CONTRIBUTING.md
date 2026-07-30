@@ -41,10 +41,15 @@ Three identifiers are in play, and they must line up:
 
 ### YAML Templates
 
-Four transport patterns are supported. Use exactly one of `spec.stdio` or
-`spec.http` per server.
+**The seedpack catalog is HTTP-only.** Stdio MCP servers run only on local
+runners (they spawn subprocesses on the machine executing the agent), so
+they are not shipped in the marketplace — a cloud-targeted session that
+references one is refused at execution create. The `stdio` transport itself
+remains fully supported for **user-defined** servers on local runners; it is
+only the curated catalog that requires a hosted HTTP endpoint. If the vendor
+does not offer one, the server does not belong in the seedpack.
 
-**stdio via npx (Node.js packages)**
+**HTTP (hosted/remote servers)**
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -61,49 +66,14 @@ spec:
   tags:
     - {tag1}
     - {tag2}
-  stdio:
-    command: "npx"
-    args:
-      - "-y"
-      - "{npm-package-name}"
-  env:
-    EXAMPLE_API_KEY:
-      is_secret: true
-      description: "{What this key is for}"
-```
-
-**stdio via uvx (Python packages)**
-
-```yaml
-spec:
-  stdio:
-    command: "uvx"
-    args:
-      - "{pypi-package-name}@latest"
-      - "--url"
-      - "${CONNECTION_URL}"
-```
-
-**stdio via go run (Go packages)**
-
-```yaml
-spec:
-  stdio:
-    command: "go"
-    args:
-      - "run"
-      - "{go-module-path}@latest"
-      - "stdio"
-```
-
-**HTTP (hosted/remote servers)**
-
-```yaml
-spec:
   http:
     url: "https://{mcp-endpoint-url}"
     headers:
       Authorization: "Bearer ${ACCESS_TOKEN}"
+  env:
+    ACCESS_TOKEN:
+      is_secret: true
+      description: "{What this token is for}"
 ```
 
 > **Auth header convention (enforced).** An OAuth-managed HTTP server — one with
@@ -186,8 +156,8 @@ Before adding a server, verify:
 
 1. The GitHub repository is **active** (commits within the last 6 months)
 2. The server has **clear documentation** (README with setup instructions)
-3. The server has a **stable transport** (stdio or HTTP, not experimental)
-4. The npm/pip/binary package **installs and runs** without errors
+3. The server has a **stable hosted HTTP endpoint** (the catalog is HTTP-only; stdio servers are local-runner-only and not curated)
+4. The endpoint **responds to MCP protocol requests** without errors
 
 ### Categories
 
@@ -195,21 +165,16 @@ Use one of these values for `metadata.labels.stigmer.ai/category`:
 
 | Category | Description |
 |----------|-------------|
-| `developer-tools` | Git, GitHub, GitLab, filesystem, code analysis |
-| `databases` | PostgreSQL, MongoDB, Redis, MySQL, SQLite, Neon, Supabase |
+| `developer-tools` | GitHub, GitLab, code analysis |
+| `databases` | Neon, Supabase, MongoDB Atlas, hosted database platforms |
 | `search` | Web search, research APIs, content fetching |
-| `cloud-infrastructure` | AWS, Cloudflare, Kubernetes, Terraform |
+| `cloud-infrastructure` | Cloudflare, Netlify, hosting and infra platforms |
 | `communication` | Slack, Linear, messaging platforms |
 | `productivity` | Notion, Google Maps, note-taking, workspace tools |
-| `web-automation` | Playwright, browser control and testing |
-| `desktop-automation` | Open Computer Use, whole-desktop GUI control via OS accessibility APIs |
-| `monitoring` | Sentry, logging, observability |
-| `payments` | Stripe, e-commerce |
-| `design` | Figma, design tools |
-| `ai-reasoning` | Sequential thinking, memory, AI-augmented tools |
-| `notifications` | Twilio, Resend, SMS, email delivery |
-| `scheduling` | Google Calendar, time management |
-| `crm-support` | Atlassian (Jira/Confluence), customer platforms |
+| `monitoring` | Sentry, Datadog, logging, observability |
+| `payments` | Stripe, PayPal, Square, e-commerce |
+| `design` | Figma, Canva, design tools |
+| `crm-support` | Atlassian (Jira/Confluence), HubSpot, Intercom, customer platforms |
 
 ## Proto Schema Reference
 
