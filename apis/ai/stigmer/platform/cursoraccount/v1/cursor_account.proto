@@ -46,10 +46,12 @@ import "google/protobuf/timestamp.proto";
 // becomes unusable.
 //
 // Secrets at rest: admin_api_key and CursorMemberKey.api_key are encrypted
-// (AES-256-GCM, "enc:v1:" prefix) before persistence and replaced with
-// "***REDACTED***" on every read surface. Sending the redaction marker
-// back on update means "keep the stored value" (the ChannelApp secret
-// round-trip convention).
+// before persistence and replaced with "***REDACTED***" on every read
+// surface. Sending the redaction marker back on update means "keep the
+// stored value" (the ChannelApp secret round-trip convention). Because
+// these fields hold ciphertext whose size depends on the encryption
+// format, they carry no length constraints; plaintext length is validated
+// at the write boundary (the input messages and handlers).
 message CursorAccount {
   // Unique identifier (UUID). Server-assigned on create; required on
   // update.
@@ -68,7 +70,7 @@ message CursorAccount {
   //
   // Write: plaintext on create/rotate, or "***REDACTED***" to keep the
   // stored value. Read: always "***REDACTED***".
-  string admin_api_key = 3 [(buf.validate.field).string.max_len = 256];
+  string admin_api_key = 3;
 
   // Whether this account participates in key selection. Disabled accounts
   // stop receiving NEW sessions immediately; sessions already pinned to
@@ -132,7 +134,7 @@ message CursorAccount {
   //
   // Write: plaintext https:// URL to set/rotate, empty to clear.
   // Read: plaintext.
-  string team_invite_link = 13 [(buf.validate.field).string.max_len = 512];
+  string team_invite_link = 13;
 }
 
 // CursorMemberKey is one execution-capable, user-scoped Cursor API key
@@ -152,7 +154,7 @@ message CursorMemberKey {
   // The user-scoped API key. Write: plaintext on add, "***REDACTED***"
   // never accepted here (rotation = remove + add, so the /v1/me binding
   // can never go stale). Read: always "***REDACTED***".
-  string api_key = 2 [(buf.validate.field).string.max_len = 256];
+  string api_key = 2;
 
   // Optional operator label (e.g. "zane — stigmer-prod").
   string label = 3 [(buf.validate.field).string.max_len = 128];
