@@ -64,56 +64,55 @@ public final class CursorAccountProto extends com.google.protobuf.GeneratedFile 
       "ursor_account.proto\022$ai.stigmer.platform" +
       ".cursoraccount.v1\032\033buf/validate/validate" +
       ".proto\032\037google/protobuf/timestamp.proto\"" +
-      "\373\004\n\rCursorAccount\022\035\n\naccount_id\030\001 \001(\tR\ta" +
+      "\347\004\n\rCursorAccount\022\035\n\naccount_id\030\001 \001(\tR\ta" +
       "ccountId\022.\n\014display_name\030\002 \001(\tB\013\272H\010r\003\030\200\001" +
-      "\310\001\001R\013displayName\022,\n\radmin_api_key\030\003 \001(\tB" +
-      "\010\272H\005r\003\030\200\002R\013adminApiKey\022\030\n\007enabled\030\004 \001(\010R" +
-      "\007enabled\0222\n\023is_platform_default\030\005 \001(\010B\002\030" +
-      "\001R\021isPlatformDefault\022&\n\007org_ids\030\006 \003(\tB\r\272" +
-      "H\n\222\001\007\"\005r\003\030\200\001R\006orgIds\022V\n\013member_keys\030\007 \003(" +
-      "\01325.ai.stigmer.platform.cursoraccount.v1" +
-      ".CursorMemberKeyR\nmemberKeys\022\035\n\ncreated_" +
-      "by\030\010 \001(\tR\tcreatedBy\0229\n\ncreated_at\030\t \001(\0132" +
-      "\032.google.protobuf.TimestampR\tcreatedAt\022\035" +
-      "\n\nupdated_by\030\n \001(\tR\tupdatedBy\0229\n\nupdated" +
-      "_at\030\013 \001(\0132\032.google.protobuf.TimestampR\tu" +
-      "pdatedAt\0227\n\030on_demand_usage_disabled\030\014 \001" +
-      "(\010R\025onDemandUsageDisabled\0222\n\020team_invite" +
-      "_link\030\r \001(\tB\010\272H\005r\003\030\200\004R\016teamInviteLink\"\304\002" +
-      "\n\017CursorMemberKey\022\025\n\006key_id\030\001 \001(\tR\005keyId" +
-      "\022!\n\007api_key\030\002 \001(\tB\010\272H\005r\003\030\200\002R\006apiKey\022\036\n\005l" +
-      "abel\030\003 \001(\tB\010\272H\005r\003\030\200\001R\005label\022\037\n\013bound_ema" +
-      "il\030\004 \001(\tR\nboundEmail\022\"\n\rbound_user_id\030\005 " +
-      "\001(\tR\013boundUserId\022&\n\017cursor_key_name\030\006 \001(" +
-      "\tR\rcursorKeyName\022\030\n\007enabled\030\007 \001(\010R\007enabl" +
-      "ed\022\031\n\010added_by\030\010 \001(\tR\007addedBy\0225\n\010added_a" +
-      "t\030\t \001(\0132\032.google.protobuf.TimestampR\007add" +
-      "edAt\"i\n\020CursorTeamMember\022\027\n\007user_id\030\001 \001(" +
-      "\tR\006userId\022\024\n\005email\030\002 \001(\tR\005email\022\022\n\004name\030" +
-      "\003 \001(\tR\004name\022\022\n\004role\030\004 \001(\tR\004role\"\314\002\n\021Curs" +
-      "orMemberSpend\022\027\n\007user_id\030\001 \001(\tR\006userId\022\024" +
-      "\n\005email\030\002 \001(\tR\005email\022B\n\031included_spend_u" +
-      "sd_micros\030\003 \001(\003B\007\272H\004\"\002(\000R\026includedSpendU" +
-      "sdMicros\022@\n\030overage_spend_usd_micros\030\004 \001" +
-      "(\003B\007\272H\004\"\002(\000R\025overageSpendUsdMicros\022,\n\022to" +
-      "tal_percent_used\030\005 \001(\001R\020totalPercentUsed" +
-      "\022*\n\021auto_percent_used\030\006 \001(\001R\017autoPercent" +
-      "Used\022(\n\020api_percent_used\030\007 \001(\001R\016apiPerce" +
-      "ntUsed\"\360\002\n\031CursorAccountSyncSnapshot\022\035\n\n" +
-      "account_id\030\001 \001(\tR\taccountId\0227\n\tsynced_at" +
-      "\030\002 \001(\0132\032.google.protobuf.TimestampR\010sync" +
-      "edAt\022P\n\007members\030\003 \003(\01326.ai.stigmer.platf" +
-      "orm.cursoraccount.v1.CursorTeamMemberR\007m" +
-      "embers\022M\n\005spend\030\004 \003(\01327.ai.stigmer.platf" +
-      "orm.cursoraccount.v1.CursorMemberSpendR\005" +
-      "spend\022;\n\013cycle_start\030\005 \001(\0132\032.google.prot" +
-      "obuf.TimestampR\ncycleStart\022\035\n\nsync_error" +
-      "\030\006 \001(\tR\tsyncErrorB\311\001B\022CursorAccountProto" +
-      "P\001\242\002\004ASPC\252\002$Ai.Stigmer.Platform.Cursorac" +
-      "count.V1\312\002$Ai\\Stigmer\\Platform\\Cursoracc" +
-      "ount\\V1\342\0020Ai\\Stigmer\\Platform\\Cursoracco" +
-      "unt\\V1\\GPBMetadata\352\002(Ai::Stigmer::Platfo" +
-      "rm::Cursoraccount::V1b\006proto3"
+      "\310\001\001R\013displayName\022\"\n\radmin_api_key\030\003 \001(\tR" +
+      "\013adminApiKey\022\030\n\007enabled\030\004 \001(\010R\007enabled\0222" +
+      "\n\023is_platform_default\030\005 \001(\010B\002\030\001R\021isPlatf" +
+      "ormDefault\022&\n\007org_ids\030\006 \003(\tB\r\272H\n\222\001\007\"\005r\003\030" +
+      "\200\001R\006orgIds\022V\n\013member_keys\030\007 \003(\01325.ai.sti" +
+      "gmer.platform.cursoraccount.v1.CursorMem" +
+      "berKeyR\nmemberKeys\022\035\n\ncreated_by\030\010 \001(\tR\t" +
+      "createdBy\0229\n\ncreated_at\030\t \001(\0132\032.google.p" +
+      "rotobuf.TimestampR\tcreatedAt\022\035\n\nupdated_" +
+      "by\030\n \001(\tR\tupdatedBy\0229\n\nupdated_at\030\013 \001(\0132" +
+      "\032.google.protobuf.TimestampR\tupdatedAt\0227" +
+      "\n\030on_demand_usage_disabled\030\014 \001(\010R\025onDema" +
+      "ndUsageDisabled\022(\n\020team_invite_link\030\r \001(" +
+      "\tR\016teamInviteLink\"\272\002\n\017CursorMemberKey\022\025\n" +
+      "\006key_id\030\001 \001(\tR\005keyId\022\027\n\007api_key\030\002 \001(\tR\006a" +
+      "piKey\022\036\n\005label\030\003 \001(\tB\010\272H\005r\003\030\200\001R\005label\022\037\n" +
+      "\013bound_email\030\004 \001(\tR\nboundEmail\022\"\n\rbound_" +
+      "user_id\030\005 \001(\tR\013boundUserId\022&\n\017cursor_key" +
+      "_name\030\006 \001(\tR\rcursorKeyName\022\030\n\007enabled\030\007 " +
+      "\001(\010R\007enabled\022\031\n\010added_by\030\010 \001(\tR\007addedBy\022" +
+      "5\n\010added_at\030\t \001(\0132\032.google.protobuf.Time" +
+      "stampR\007addedAt\"i\n\020CursorTeamMember\022\027\n\007us" +
+      "er_id\030\001 \001(\tR\006userId\022\024\n\005email\030\002 \001(\tR\005emai" +
+      "l\022\022\n\004name\030\003 \001(\tR\004name\022\022\n\004role\030\004 \001(\tR\004rol" +
+      "e\"\314\002\n\021CursorMemberSpend\022\027\n\007user_id\030\001 \001(\t" +
+      "R\006userId\022\024\n\005email\030\002 \001(\tR\005email\022B\n\031includ" +
+      "ed_spend_usd_micros\030\003 \001(\003B\007\272H\004\"\002(\000R\026incl" +
+      "udedSpendUsdMicros\022@\n\030overage_spend_usd_" +
+      "micros\030\004 \001(\003B\007\272H\004\"\002(\000R\025overageSpendUsdMi" +
+      "cros\022,\n\022total_percent_used\030\005 \001(\001R\020totalP" +
+      "ercentUsed\022*\n\021auto_percent_used\030\006 \001(\001R\017a" +
+      "utoPercentUsed\022(\n\020api_percent_used\030\007 \001(\001" +
+      "R\016apiPercentUsed\"\360\002\n\031CursorAccountSyncSn" +
+      "apshot\022\035\n\naccount_id\030\001 \001(\tR\taccountId\0227\n" +
+      "\tsynced_at\030\002 \001(\0132\032.google.protobuf.Times" +
+      "tampR\010syncedAt\022P\n\007members\030\003 \003(\01326.ai.sti" +
+      "gmer.platform.cursoraccount.v1.CursorTea" +
+      "mMemberR\007members\022M\n\005spend\030\004 \003(\01327.ai.sti" +
+      "gmer.platform.cursoraccount.v1.CursorMem" +
+      "berSpendR\005spend\022;\n\013cycle_start\030\005 \001(\0132\032.g" +
+      "oogle.protobuf.TimestampR\ncycleStart\022\035\n\n" +
+      "sync_error\030\006 \001(\tR\tsyncErrorB\311\001B\022CursorAc" +
+      "countProtoP\001\242\002\004ASPC\252\002$Ai.Stigmer.Platfor" +
+      "m.Cursoraccount.V1\312\002$Ai\\Stigmer\\Platform" +
+      "\\Cursoraccount\\V1\342\0020Ai\\Stigmer\\Platform\\" +
+      "Cursoraccount\\V1\\GPBMetadata\352\002(Ai::Stigm" +
+      "er::Platform::Cursoraccount::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

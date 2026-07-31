@@ -64,10 +64,12 @@ const (
 // becomes unusable.
 //
 // Secrets at rest: admin_api_key and CursorMemberKey.api_key are encrypted
-// (AES-256-GCM, "enc:v1:" prefix) before persistence and replaced with
-// "***REDACTED***" on every read surface. Sending the redaction marker
-// back on update means "keep the stored value" (the ChannelApp secret
-// round-trip convention).
+// before persistence and replaced with "***REDACTED***" on every read
+// surface. Sending the redaction marker back on update means "keep the
+// stored value" (the ChannelApp secret round-trip convention). Because
+// these fields hold ciphertext whose size depends on the encryption
+// format, they carry no length constraints; plaintext length is validated
+// at the write boundary (the input messages and handlers).
 type CursorAccount struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique identifier (UUID). Server-assigned on create; required on
@@ -683,12 +685,12 @@ var File_ai_stigmer_platform_cursoraccount_v1_cursor_account_proto protoreflect.
 
 const file_ai_stigmer_platform_cursoraccount_v1_cursor_account_proto_rawDesc = "" +
 	"\n" +
-	"9ai/stigmer/platform/cursoraccount/v1/cursor_account.proto\x12$ai.stigmer.platform.cursoraccount.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfb\x04\n" +
+	"9ai/stigmer/platform/cursoraccount/v1/cursor_account.proto\x12$ai.stigmer.platform.cursoraccount.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe7\x04\n" +
 	"\rCursorAccount\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12.\n" +
-	"\fdisplay_name\x18\x02 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\vdisplayName\x12,\n" +
-	"\radmin_api_key\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\vadminApiKey\x12\x18\n" +
+	"\fdisplay_name\x18\x02 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\x80\x01R\vdisplayName\x12\"\n" +
+	"\radmin_api_key\x18\x03 \x01(\tR\vadminApiKey\x12\x18\n" +
 	"\aenabled\x18\x04 \x01(\bR\aenabled\x122\n" +
 	"\x13is_platform_default\x18\x05 \x01(\bB\x02\x18\x01R\x11isPlatformDefault\x12&\n" +
 	"\aorg_ids\x18\x06 \x03(\tB\r\xbaH\n" +
@@ -704,11 +706,11 @@ const file_ai_stigmer_platform_cursoraccount_v1_cursor_account_proto_rawDesc = "
 	" \x01(\tR\tupdatedBy\x129\n" +
 	"\n" +
 	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x127\n" +
-	"\x18on_demand_usage_disabled\x18\f \x01(\bR\x15onDemandUsageDisabled\x122\n" +
-	"\x10team_invite_link\x18\r \x01(\tB\b\xbaH\x05r\x03\x18\x80\x04R\x0eteamInviteLink\"\xc4\x02\n" +
+	"\x18on_demand_usage_disabled\x18\f \x01(\bR\x15onDemandUsageDisabled\x12(\n" +
+	"\x10team_invite_link\x18\r \x01(\tR\x0eteamInviteLink\"\xba\x02\n" +
 	"\x0fCursorMemberKey\x12\x15\n" +
-	"\x06key_id\x18\x01 \x01(\tR\x05keyId\x12!\n" +
-	"\aapi_key\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x02R\x06apiKey\x12\x1e\n" +
+	"\x06key_id\x18\x01 \x01(\tR\x05keyId\x12\x17\n" +
+	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\x12\x1e\n" +
 	"\x05label\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\x05label\x12\x1f\n" +
 	"\vbound_email\x18\x04 \x01(\tR\n" +
 	"boundEmail\x12\"\n" +
