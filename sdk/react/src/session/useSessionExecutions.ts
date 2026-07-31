@@ -71,6 +71,32 @@ export interface UseSessionExecutionsReturn {
  * const { executions } = useSessionExecutions(sessionId ?? null);
  * ```
  */
+/**
+ * Returns the executions in chronological (oldest-first) order — the order
+ * the conversation thread renders top-to-bottom.
+ *
+ * Defense-in-depth against an unordered list response: the executions ARE the
+ * transcript, so a scrambled order drops the newest turns out of view (they no
+ * longer sort to the bottom). The server orders this list, but the thread must
+ * never depend on that alone. Resource ids are time-sortable ULIDs
+ * (`aex_01k…`), so an ascending id sort is creation order without parsing
+ * timestamps; entries missing an id sort last but keep a stable relative order.
+ *
+ * @internal Exported for testing — not part of the public API.
+ */
+export function sortChronologically(
+  executions: readonly AgentExecution[],
+): AgentExecution[] {
+  return [...executions].sort((a, b) => {
+    const aId = a.metadata?.id ?? "";
+    const bId = b.metadata?.id ?? "";
+    if (aId === bId) return 0;
+    if (!aId) return 1;
+    if (!bId) return -1;
+    return aId < bId ? -1 : 1;
+  });
+}
+
 export function useSessionExecutions(
   sessionId: string | null,
   options?: UseSessionExecutionsOptions,
@@ -87,7 +113,7 @@ export function useSessionExecutions(
                 pageSize: 100,
               }),
             )
-            .then((result) => result.entries)
+            .then((result) => sortChronologically(result.entries))
       : null,
     [sessionId, stigmer],
     [] as AgentExecution[],
