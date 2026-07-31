@@ -128,7 +128,7 @@ private static final long serialVersionUID = 0L;
    * can never go stale). Read: always "***REDACTED***".
    * </pre>
    *
-   * <code>string api_key = 2 [json_name = "apiKey", (.buf.validate.field) = { ... }</code>
+   * <code>string api_key = 2 [json_name = "apiKey"];</code>
    * @return The apiKey.
    */
   @java.lang.Override
@@ -151,7 +151,7 @@ private static final long serialVersionUID = 0L;
    * can never go stale). Read: always "***REDACTED***".
    * </pre>
    *
-   * <code>string api_key = 2 [json_name = "apiKey", (.buf.validate.field) = { ... }</code>
+   * <code>string api_key = 2 [json_name = "apiKey"];</code>
    * @return The bytes for apiKey.
    */
   @java.lang.Override
@@ -1077,7 +1077,7 @@ private static final long serialVersionUID = 0L;
      * can never go stale). Read: always "***REDACTED***".
      * </pre>
      *
-     * <code>string api_key = 2 [json_name = "apiKey", (.buf.validate.field) = { ... }</code>
+     * <code>string api_key = 2 [json_name = "apiKey"];</code>
      * @return The apiKey.
      */
     public java.lang.String getApiKey() {
@@ -1099,7 +1099,7 @@ private static final long serialVersionUID = 0L;
      * can never go stale). Read: always "***REDACTED***".
      * </pre>
      *
-     * <code>string api_key = 2 [json_name = "apiKey", (.buf.validate.field) = { ... }</code>
+     * <code>string api_key = 2 [json_name = "apiKey"];</code>
      * @return The bytes for apiKey.
      */
     public com.google.protobuf.ByteString
@@ -1122,7 +1122,7 @@ private static final long serialVersionUID = 0L;
      * can never go stale). Read: always "***REDACTED***".
      * </pre>
      *
-     * <code>string api_key = 2 [json_name = "apiKey", (.buf.validate.field) = { ... }</code>
+     * <code>string api_key = 2 [json_name = "apiKey"];</code>
      * @param value The apiKey to set.
      * @return This builder for chaining.
      */
@@ -1141,7 +1141,7 @@ private static final long serialVersionUID = 0L;
      * can never go stale). Read: always "***REDACTED***".
      * </pre>
      *
-     * <code>string api_key = 2 [json_name = "apiKey", (.buf.validate.field) = { ... }</code>
+     * <code>string api_key = 2 [json_name = "apiKey"];</code>
      * @return This builder for chaining.
      */
     public Builder clearApiKey() {
@@ -1157,7 +1157,7 @@ private static final long serialVersionUID = 0L;
      * can never go stale). Read: always "***REDACTED***".
      * </pre>
      *
-     * <code>string api_key = 2 [json_name = "apiKey", (.buf.validate.field) = { ... }</code>
+     * <code>string api_key = 2 [json_name = "apiKey"];</code>
      * @param value The bytes for apiKey to set.
      * @return This builder for chaining.
      */

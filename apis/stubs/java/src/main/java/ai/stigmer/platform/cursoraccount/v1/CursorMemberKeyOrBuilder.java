@@ -41,7 +41,7 @@ public interface CursorMemberKeyOrBuilder extends
    * can never go stale). Read: always "***REDACTED***".
    * </pre>
    *
-   * <code>string api_key = 2 [json_name = "apiKey", (.buf.validate.field) = { ... }</code>
+   * <code>string api_key = 2 [json_name = "apiKey"];</code>
    * @return The apiKey.
    */
   java.lang.String getApiKey();
@@ -52,7 +52,7 @@ public interface CursorMemberKeyOrBuilder extends
    * can never go stale). Read: always "***REDACTED***".
    * </pre>
    *
-   * <code>string api_key = 2 [json_name = "apiKey", (.buf.validate.field) = { ... }</code>
+   * <code>string api_key = 2 [json_name = "apiKey"];</code>
    * @return The bytes for apiKey.
    */
   com.google.protobuf.ByteString

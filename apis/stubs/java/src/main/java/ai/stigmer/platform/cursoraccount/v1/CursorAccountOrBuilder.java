@@ -64,7 +64,7 @@ public interface CursorAccountOrBuilder extends
    * stored value. Read: always "***REDACTED***".
    * </pre>
    *
-   * <code>string admin_api_key = 3 [json_name = "adminApiKey", (.buf.validate.field) = { ... }</code>
+   * <code>string admin_api_key = 3 [json_name = "adminApiKey"];</code>
    * @return The adminApiKey.
    */
   java.lang.String getAdminApiKey();
@@ -78,7 +78,7 @@ public interface CursorAccountOrBuilder extends
    * stored value. Read: always "***REDACTED***".
    * </pre>
    *
-   * <code>string admin_api_key = 3 [json_name = "adminApiKey", (.buf.validate.field) = { ... }</code>
+   * <code>string admin_api_key = 3 [json_name = "adminApiKey"];</code>
    * @return The bytes for adminApiKey.
    */
   com.google.protobuf.ByteString
@@ -108,7 +108,7 @@ public interface CursorAccountOrBuilder extends
    *
    * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
    * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
-   *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=83
+   *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=85
    * @return The isPlatformDefault.
    */
   @java.lang.Deprecated boolean getIsPlatformDefault();
@@ -325,7 +325,7 @@ public interface CursorAccountOrBuilder extends
    * Read: plaintext.
    * </pre>
    *
-   * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+   * <code>string team_invite_link = 13 [json_name = "teamInviteLink"];</code>
    * @return The teamInviteLink.
    */
   java.lang.String getTeamInviteLink();
@@ -344,7 +344,7 @@ public interface CursorAccountOrBuilder extends
    * Read: plaintext.
    * </pre>
    *
-   * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+   * <code>string team_invite_link = 13 [json_name = "teamInviteLink"];</code>
    * @return The bytes for teamInviteLink.
    */
   com.google.protobuf.ByteString

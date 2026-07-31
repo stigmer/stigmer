@@ -48,10 +48,12 @@ package ai.stigmer.platform.cursoraccount.v1;
  * becomes unusable.
  *
  * Secrets at rest: admin_api_key and CursorMemberKey.api_key are encrypted
- * (AES-256-GCM, "enc:v1:" prefix) before persistence and replaced with
- * "***REDACTED***" on every read surface. Sending the redaction marker
- * back on update means "keep the stored value" (the ChannelApp secret
- * round-trip convention).
+ * before persistence and replaced with "***REDACTED***" on every read
+ * surface. Sending the redaction marker back on update means "keep the
+ * stored value" (the ChannelApp secret round-trip convention). Because
+ * these fields hold ciphertext whose size depends on the encryption
+ * format, they carry no length constraints; plaintext length is validated
+ * at the write boundary (the input messages and handlers).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.platform.cursoraccount.v1.CursorAccount}
@@ -217,7 +219,7 @@ private static final long serialVersionUID = 0L;
    * stored value. Read: always "***REDACTED***".
    * </pre>
    *
-   * <code>string admin_api_key = 3 [json_name = "adminApiKey", (.buf.validate.field) = { ... }</code>
+   * <code>string admin_api_key = 3 [json_name = "adminApiKey"];</code>
    * @return The adminApiKey.
    */
   @java.lang.Override
@@ -243,7 +245,7 @@ private static final long serialVersionUID = 0L;
    * stored value. Read: always "***REDACTED***".
    * </pre>
    *
-   * <code>string admin_api_key = 3 [json_name = "adminApiKey", (.buf.validate.field) = { ... }</code>
+   * <code>string admin_api_key = 3 [json_name = "adminApiKey"];</code>
    * @return The bytes for adminApiKey.
    */
   @java.lang.Override
@@ -292,7 +294,7 @@ private static final long serialVersionUID = 0L;
    *
    * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
    * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
-   *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=83
+   *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=85
    * @return The isPlatformDefault.
    */
   @java.lang.Override
@@ -625,7 +627,7 @@ private static final long serialVersionUID = 0L;
    * Read: plaintext.
    * </pre>
    *
-   * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+   * <code>string team_invite_link = 13 [json_name = "teamInviteLink"];</code>
    * @return The teamInviteLink.
    */
   @java.lang.Override
@@ -656,7 +658,7 @@ private static final long serialVersionUID = 0L;
    * Read: plaintext.
    * </pre>
    *
-   * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+   * <code>string team_invite_link = 13 [json_name = "teamInviteLink"];</code>
    * @return The bytes for teamInviteLink.
    */
   @java.lang.Override
@@ -1026,10 +1028,12 @@ private static final long serialVersionUID = 0L;
    * becomes unusable.
    *
    * Secrets at rest: admin_api_key and CursorMemberKey.api_key are encrypted
-   * (AES-256-GCM, "enc:v1:" prefix) before persistence and replaced with
-   * "***REDACTED***" on every read surface. Sending the redaction marker
-   * back on update means "keep the stored value" (the ChannelApp secret
-   * round-trip convention).
+   * before persistence and replaced with "***REDACTED***" on every read
+   * surface. Sending the redaction marker back on update means "keep the
+   * stored value" (the ChannelApp secret round-trip convention). Because
+   * these fields hold ciphertext whose size depends on the encryption
+   * format, they carry no length constraints; plaintext length is validated
+   * at the write boundary (the input messages and handlers).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.platform.cursoraccount.v1.CursorAccount}
@@ -1612,7 +1616,7 @@ private static final long serialVersionUID = 0L;
      * stored value. Read: always "***REDACTED***".
      * </pre>
      *
-     * <code>string admin_api_key = 3 [json_name = "adminApiKey", (.buf.validate.field) = { ... }</code>
+     * <code>string admin_api_key = 3 [json_name = "adminApiKey"];</code>
      * @return The adminApiKey.
      */
     public java.lang.String getAdminApiKey() {
@@ -1637,7 +1641,7 @@ private static final long serialVersionUID = 0L;
      * stored value. Read: always "***REDACTED***".
      * </pre>
      *
-     * <code>string admin_api_key = 3 [json_name = "adminApiKey", (.buf.validate.field) = { ... }</code>
+     * <code>string admin_api_key = 3 [json_name = "adminApiKey"];</code>
      * @return The bytes for adminApiKey.
      */
     public com.google.protobuf.ByteString
@@ -1663,7 +1667,7 @@ private static final long serialVersionUID = 0L;
      * stored value. Read: always "***REDACTED***".
      * </pre>
      *
-     * <code>string admin_api_key = 3 [json_name = "adminApiKey", (.buf.validate.field) = { ... }</code>
+     * <code>string admin_api_key = 3 [json_name = "adminApiKey"];</code>
      * @param value The adminApiKey to set.
      * @return This builder for chaining.
      */
@@ -1685,7 +1689,7 @@ private static final long serialVersionUID = 0L;
      * stored value. Read: always "***REDACTED***".
      * </pre>
      *
-     * <code>string admin_api_key = 3 [json_name = "adminApiKey", (.buf.validate.field) = { ... }</code>
+     * <code>string admin_api_key = 3 [json_name = "adminApiKey"];</code>
      * @return This builder for chaining.
      */
     public Builder clearAdminApiKey() {
@@ -1704,7 +1708,7 @@ private static final long serialVersionUID = 0L;
      * stored value. Read: always "***REDACTED***".
      * </pre>
      *
-     * <code>string admin_api_key = 3 [json_name = "adminApiKey", (.buf.validate.field) = { ... }</code>
+     * <code>string admin_api_key = 3 [json_name = "adminApiKey"];</code>
      * @param value The bytes for adminApiKey to set.
      * @return This builder for chaining.
      */
@@ -1783,7 +1787,7 @@ private static final long serialVersionUID = 0L;
      *
      * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
      * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
-     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=83
+     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=85
      * @return The isPlatformDefault.
      */
     @java.lang.Override
@@ -1801,7 +1805,7 @@ private static final long serialVersionUID = 0L;
      *
      * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
      * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
-     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=83
+     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=85
      * @param value The isPlatformDefault to set.
      * @return This builder for chaining.
      */
@@ -1823,7 +1827,7 @@ private static final long serialVersionUID = 0L;
      *
      * <code>bool is_platform_default = 5 [json_name = "isPlatformDefault", deprecated = true];</code>
      * @deprecated ai.stigmer.platform.cursoraccount.v1.CursorAccount.is_platform_default is deprecated.
-     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=83
+     *     See ai/stigmer/platform/cursoraccount/v1/cursor_account.proto;l=85
      * @return This builder for chaining.
      */
     @java.lang.Deprecated public Builder clearIsPlatformDefault() {
@@ -2868,7 +2872,7 @@ private static final long serialVersionUID = 0L;
      * Read: plaintext.
      * </pre>
      *
-     * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+     * <code>string team_invite_link = 13 [json_name = "teamInviteLink"];</code>
      * @return The teamInviteLink.
      */
     public java.lang.String getTeamInviteLink() {
@@ -2898,7 +2902,7 @@ private static final long serialVersionUID = 0L;
      * Read: plaintext.
      * </pre>
      *
-     * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+     * <code>string team_invite_link = 13 [json_name = "teamInviteLink"];</code>
      * @return The bytes for teamInviteLink.
      */
     public com.google.protobuf.ByteString
@@ -2929,7 +2933,7 @@ private static final long serialVersionUID = 0L;
      * Read: plaintext.
      * </pre>
      *
-     * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+     * <code>string team_invite_link = 13 [json_name = "teamInviteLink"];</code>
      * @param value The teamInviteLink to set.
      * @return This builder for chaining.
      */
@@ -2956,7 +2960,7 @@ private static final long serialVersionUID = 0L;
      * Read: plaintext.
      * </pre>
      *
-     * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+     * <code>string team_invite_link = 13 [json_name = "teamInviteLink"];</code>
      * @return This builder for chaining.
      */
     public Builder clearTeamInviteLink() {
@@ -2980,7 +2984,7 @@ private static final long serialVersionUID = 0L;
      * Read: plaintext.
      * </pre>
      *
-     * <code>string team_invite_link = 13 [json_name = "teamInviteLink", (.buf.validate.field) = { ... }</code>
+     * <code>string team_invite_link = 13 [json_name = "teamInviteLink"];</code>
      * @param value The bytes for teamInviteLink to set.
      * @return This builder for chaining.
      */
