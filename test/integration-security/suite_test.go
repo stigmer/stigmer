@@ -120,6 +120,8 @@ func TestMain(m *testing.M) {
 		RedisHost:        testHarness.Redis.Host,
 		RedisPort:        testHarness.Redis.Port,
 		TemporalAddress:  testHarness.Temporal.Address(),
+		VaultAddr:        testHarness.OpenBao.Addr,
+		VaultToken:       testHarness.OpenBao.RootToken,
 		LogDir:           logDir,
 		Security:         harness.SecurityModeProduction,
 		Auth0IssuerURL:   mockAuth0.Issuer,

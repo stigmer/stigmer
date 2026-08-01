@@ -37,6 +37,7 @@ go_library(
         "mock_jwks_server.go",
         "mock_llm_proxy.go",
         "mock_oauth_server.go",
+        "openbao.go",
         "openfga.go",
         "org_helpers.go",
         "otel.go",

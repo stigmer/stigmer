@@ -102,6 +102,8 @@ func run(logger *slog.Logger) error {
 		MinIOEndpoint:   h.MinIO.Endpoint,
 		MinIOAccessKey:  h.MinIO.AccessKey,
 		MinIOSecretKey:  h.MinIO.SecretKey,
+		VaultAddr:       h.OpenBao.Addr,
+		VaultToken:      h.OpenBao.RootToken,
 		LogDir:          h.LogDir(),
 		Security:        harness.SecurityModeTest,
 	}, logger)

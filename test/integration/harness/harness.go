@@ -30,6 +30,7 @@ type TestHarness struct {
 	Redis         *RedisContainer
 	Temporal      *TemporalDevServer
 	OpenFGA       *OpenFGAContainer
+	OpenBao       *OpenBaoContainer
 	MinIO         *MinIOContainer
 	Postgres      *PostgresContainer
 	AppPostgres   *AppPostgresContainer
@@ -129,10 +130,10 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 
 	otelEnabled := IsOTelRequested()
 
-	var redisErr, temporalErr, minioErr, postgresErr, appPostgresErr, jaegerErr error
+	var redisErr, temporalErr, minioErr, postgresErr, appPostgresErr, openBaoErr, jaegerErr error
 	var wg sync.WaitGroup
 
-	startCount := 5
+	startCount := 6
 	if otelEnabled {
 		startCount++
 	}
@@ -183,6 +184,15 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 		}
 	}()
 
+	go func() {
+		defer wg.Done()
+		logger.Info("starting openbao (secret encryption)")
+		h.OpenBao, openBaoErr = StartOpenBao(ctx)
+		if openBaoErr == nil {
+			logger.Info("openbao ready", "addr", h.OpenBao.Addr)
+		}
+	}()
+
 	if otelEnabled {
 		go func() {
 			defer wg.Done()
@@ -218,6 +228,10 @@ func Start(ctx context.Context, cfg Config) (*TestHarness, error) {
 	if appPostgresErr != nil {
 		h.Stop(ctx)
 		return nil, fmt.Errorf("app postgres: %w", appPostgresErr)
+	}
+	if openBaoErr != nil {
+		h.Stop(ctx)
+		return nil, fmt.Errorf("openbao: %w", openBaoErr)
 	}
 	if jaegerErr != nil {
 		h.Stop(ctx)
@@ -271,6 +285,12 @@ func (h *TestHarness) Stop(ctx context.Context) {
 	if h.OpenFGA != nil {
 		if err := StopContainer(ctx, h.OpenFGA.Container); err != nil {
 			h.logger.Error("failed to stop openfga", "error", err)
+		}
+	}
+
+	if h.OpenBao != nil {
+		if err := StopContainer(ctx, h.OpenBao.Container); err != nil {
+			h.logger.Error("failed to stop openbao", "error", err)
 		}
 	}
 

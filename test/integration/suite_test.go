@@ -114,6 +114,12 @@ func TestMain(m *testing.M) {
 	suiteLogger.Info("app Postgres wired for Java service",
 		"host", svcCfg.AppPGHost, "port", svcCfg.AppPGPort)
 
+	// Secret encryption backend: vault is a boot requirement (the v1
+	// static-key codec is retired; every codec is vault-backed).
+	svcCfg.VaultAddr = testHarness.OpenBao.Addr
+	svcCfg.VaultToken = testHarness.OpenBao.RootToken
+	suiteLogger.Info("openbao wired for Java service", "addr", svcCfg.VaultAddr)
+
 	svc, err := harness.StartJavaService(ctx, svcCfg, suiteLogger)
 	if err != nil {
 		suiteLogger.Error("failed to start java service", "error", err)
