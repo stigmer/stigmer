@@ -33,9 +33,12 @@ export async function fetchAndUnpackArtifact(
     isDirectory: data.length === 0 && path.endsWith("/"),
   }));
 
+  // Every non-directory entry gets a map entry — including zero-byte files,
+  // which map to "". Skipping them would make an empty file unreadable in the
+  // browser and read as *deleted* (rather than emptied) in version diffs.
   const contentMap = new Map<string, string>();
   for (const [path, data] of entries) {
-    if (!path.endsWith("/") && data.length > 0) {
+    if (!path.endsWith("/")) {
       try {
         contentMap.set(path, strFromU8(data));
       } catch {

@@ -30,7 +30,8 @@ export interface SkillFileBrowserProps {
  * - Left panel: file tree with folder grouping
  * - Right panel: content viewer (rendered Markdown for .md, raw code otherwise)
  *
- * SKILL.md is selected by default on load.
+ * SKILL.md is selected by default on load; packages without a root SKILL.md
+ * fall back to the first file in tree order.
  * Responsive: stacked layout on mobile viewports.
  *
  * Zero Console dependencies — safe for platform builder embedding.
@@ -50,17 +51,28 @@ export function SkillFileBrowser({
   className,
 }: SkillFileBrowserProps) {
   const { files, isLoading, error, getFileContent } = useSkillArtifact(artifactStorageKey);
-  const [selectedPath, setSelectedPath] = useState<string>("SKILL.md");
+  // Only the user's explicit click is state; the initial selection is derived
+  // from the loaded file list below, so it exists the moment files do.
+  const [userSelectedPath, setUserSelectedPath] = useState<string | null>(null);
 
-  const treeNodes = useMemo(
-    () => (files ? buildFileTree(files.filter((f) => !f.isDirectory)) : []),
+  const fileEntries = useMemo(
+    () => (files ? files.filter((f) => !f.isDirectory) : []),
     [files],
   );
 
-  const content = useMemo(
-    () => (selectedPath ? getFileContent(selectedPath) : null),
-    [selectedPath, getFileContent],
-  );
+  const treeNodes = useMemo(() => buildFileTree(fileEntries), [fileEntries]);
+
+  // Default to the manifest; fall back to the first file in rendered tree
+  // order (buildFileTree sorts by localeCompare, and depth-first tree order
+  // follows that sort) so the auto-highlighted row is the topmost file.
+  const defaultPath = useMemo(() => {
+    if (fileEntries.some((f) => f.path === "SKILL.md")) return "SKILL.md";
+    const sorted = [...fileEntries].sort((a, b) => a.path.localeCompare(b.path));
+    return sorted[0]?.path ?? null;
+  }, [fileEntries]);
+
+  const selectedPath = userSelectedPath ?? defaultPath;
+  const content = selectedPath !== null ? getFileContent(selectedPath) : null;
 
   if (!artifactStorageKey) return null;
 
@@ -125,8 +137,8 @@ export function SkillFileBrowser({
               <FileTreeNode
                 key={node.path}
                 node={node}
-                selectedPath={selectedPath}
-                onSelect={setSelectedPath}
+                selectedPath={selectedPath ?? ""}
+                onSelect={setUserSelectedPath}
                 depth={0}
               />
             ))}
@@ -135,7 +147,7 @@ export function SkillFileBrowser({
 
         {/* Content viewer */}
         <div className="min-h-[200px] max-h-[400px] overflow-y-auto p-4">
-          {content !== null ? (
+          {selectedPath !== null && content !== null ? (
             <FileContentViewer path={selectedPath} content={content} />
           ) : (
             <p className="text-sm text-muted-foreground-subtle italic">

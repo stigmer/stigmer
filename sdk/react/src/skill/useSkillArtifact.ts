@@ -54,14 +54,21 @@ export function useSkillArtifact(
 ): UseSkillArtifactReturn {
   const stigmer = useStigmer();
   const [files, setFiles] = useState<SkillFileEntry[] | null>(null);
+  // State, not a ref: `getFileContent` derives its identity from this map, so
+  // consumers' memos invalidate exactly when the artifact's contents arrive.
+  // A ref here once made the lookup silently non-reactive — a viewer memoizing
+  // `getFileContent(path)` stayed stuck on the pre-download `null` forever.
+  const [contentMap, setContentMap] = useState<ReadonlyMap<string, string>>(
+    new Map(),
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const contentMapRef = useRef<Map<string, string>>(new Map());
   const fetchIdRef = useRef(0);
 
   const doFetch = useCallback(async () => {
     if (!artifactStorageKey) {
       setFiles(null);
+      setContentMap(new Map());
       setError(null);
       return;
     }
@@ -75,12 +82,13 @@ export function useSkillArtifact(
 
       if (fetchIdRef.current !== fetchId) return;
 
-      contentMapRef.current = new Map(result.contentMap);
+      setContentMap(result.contentMap);
       setFiles(result.files);
     } catch (err) {
       if (fetchIdRef.current !== fetchId) return;
       setError(toError(err));
       setFiles(null);
+      setContentMap(new Map());
     } finally {
       if (fetchIdRef.current === fetchId) {
         setIsLoading(false);
@@ -92,9 +100,10 @@ export function useSkillArtifact(
     doFetch();
   }, [doFetch]);
 
-  const getFileContent = useCallback((path: string): string | null => {
-    return contentMapRef.current.get(path) ?? null;
-  }, []);
+  const getFileContent = useCallback(
+    (path: string): string | null => contentMap.get(path) ?? null,
+    [contentMap],
+  );
 
   const refetch = useCallback(() => {
     doFetch();
