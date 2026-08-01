@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentchannel.v1;
+
+import "ai/stigmer/agentic/agentchannel/v1/delivery.proto";
+import "ai/stigmer/agentic/agentchannel/v1/message_io.proto";
+import "google/protobuf/timestamp.proto";
+
+// ChannelOutboundMessage tracks the delivery of one business-initiated
+// message to one external recipient on an agent channel.
+//
+// @internal
+// Infrastructure-only — no kind, no apiVersion, no CRUD RPCs, no FGA (the
+// ChannelDelivery posture). The proactive sibling of ChannelDelivery
+// (proactive-messaging DD-002 D1, amended by DD-004): its own claim/lease
+// store, sharing the reply lane's idiom but never its table. The row is
+// written by the send handler BEFORE any provider I/O — it is
+// simultaneously the audit trail, the rate-cap ledger, the idempotency
+// anchor for delivery retries, and (via provider_message_id) the future
+// receipt-correlation target. Attempted once inline by the send RPC;
+// attempts 2..N belong to the outbound sweep. Reuses ChannelDeliveryStatus
+// (proto3 enum values are package-scoped; a twin enum would not compile)
+// and carries NO provider-context arm: `recipient` is first-class and the
+// sender re-reads the channel per attempt for provider facts such as the
+// WhatsApp phone_number_id (DD-004 pinned behavior — a stored copy could
+// drift).
+message ChannelOutboundMessage {
+  // Unique outbound message identifier.
+  string outbound_message_id = 1;
+
+  // AgentChannel connection this message sends through.
+  string agent_channel_id = 2;
+
+  // Organization that owns the connection (billing org).
+  // Denormalized from the channel so sweep/cap paths never join.
+  string org = 3;
+
+  // Session of the originating agent run; empty for direct operator
+  // sends, which have no session.
+  //
+  // @internal
+  // DD-004 S-1: the per-run cap keys on session (the sandbox token
+  // carries session_id, never an execution id), so this replaces
+  // DD-002's sketched execution_id.
+  string session_id = 4;
+
+  // How the send was authorized (DD-002 D9's surface-aware policy).
+  ChannelOutboundOrigin origin = 5;
+
+  // External recipient key on the channel's provider (WhatsApp: wa_id).
+  string recipient = 6;
+
+  // Typed message content, verbatim as accepted from the caller.
+  ChannelOutboundPayload payload = 7;
+
+  // Delivery lifecycle status (the ChannelDelivery vocabulary).
+  ChannelDeliveryStatus status = 8;
+
+  // Number of delivery attempts made.
+  int32 attempts = 9;
+
+  // Last delivery error, empty unless a delivery attempt failed.
+  string last_error = 10;
+
+  // Idempotency key for outbound provider calls (stable across retries).
+  string idempotency_key = 11;
+
+  // Provider message id once the provider accepted (WhatsApp: wamid).
+  //
+  // @internal
+  // Uniquely indexed where present — the DD-002 D10 statuses seam
+  // correlates delivery receipts by this value when it lands (slice 2b).
+  string provider_message_id = 12;
+
+  // When the outbound record was created (send-RPC time).
+  google.protobuf.Timestamp created_at = 13;
+
+  // When the record was last transitioned.
+  google.protobuf.Timestamp updated_at = 14;
+
+  // Earliest time of the next delivery attempt (backoff schedule).
+  google.protobuf.Timestamp next_attempt_at = 15;
+}
+
+// ChannelOutboundOrigin records which trust context authorized a
+// business-initiated send.
+//
+// @internal
+// DD-002 D9: the two calling contexts carry different trust levels, so
+// recipient policy is surface-aware — channel-conversation sends are
+// bounded to known senders, operator-authored sends to caps. Stamped by
+// the reach resolver (its single writer) for audit; never caller-supplied.
+enum ChannelOutboundOrigin {
+  // Default value when no origin is set.
+  channel_outbound_origin_unspecified = 0;
+
+  // The send came from an agent run created by an inbound channel
+  // message; the recipient must be a known sender on the channel.
+  channel_conversation = 1;
+
+  // The send was authored by an operator (console, CLI, SDK, scheduled
+  // run); any recipient, bounded by caps.
+  operator = 2;
+}
