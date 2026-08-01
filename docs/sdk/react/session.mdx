@@ -502,16 +502,6 @@ function Chat({ sessionId, org }: { sessionId: string; org: string }) {
 
 ### useSessionExecutions
 
-Data hook that fetches all `AgentExecution` entries for a session.
-
-Pass `null` to skip fetching (stable no-op). Call `refetch()` to
-re-query after a new execution is created within the same session
-(needed by the follow-up conversation loop in SP2).
-
-Returns up to 100 executions per call. Sessions rarely exceed a
-handful of executions; full cursor-based pagination can be added
-later without breaking the return type.
-
 **Signature**
 
 ```tsx
@@ -536,27 +526,6 @@ function useSessionExecutions(sessionId: string | null, options?: UseSessionExec
     refetch: { type: "() => void", description: "Discard cached data and re-fetch the execution list from the server." },
   }}
 />
-
-```tsx
-function ConversationThread({ sessionId }: { sessionId: string }) {
-  const { executions, isLoading } = useSessionExecutions(sessionId);
-  const stream = useExecutionStream(activeExecutionId);
-
-  if (isLoading) return <Skeleton />;
-
-  return (
-    <MessageThread
-      executions={executions}
-      activeStreamExecution={stream.execution}
-    />
-  );
-}
-```
-
-```tsx
-// Skip fetching until a session is selected
-const { executions } = useSessionExecutions(sessionId ?? null);
-```
 
 
 ### useSessionFileChanges
