@@ -10,20 +10,22 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentChannelSpec(_message.Message):
-    __slots__ = ("agent_ref", "enabled", "slack", "whatsapp", "environment_refs", "app_ref")
+    __slots__ = ("agent_ref", "enabled", "slack", "whatsapp", "environment_refs", "app_ref", "proactive_messaging_enabled")
     AGENT_REF_FIELD_NUMBER: _ClassVar[int]
     ENABLED_FIELD_NUMBER: _ClassVar[int]
     SLACK_FIELD_NUMBER: _ClassVar[int]
     WHATSAPP_FIELD_NUMBER: _ClassVar[int]
     ENVIRONMENT_REFS_FIELD_NUMBER: _ClassVar[int]
     APP_REF_FIELD_NUMBER: _ClassVar[int]
+    PROACTIVE_MESSAGING_ENABLED_FIELD_NUMBER: _ClassVar[int]
     agent_ref: _io_pb2.ApiResourceReference
     enabled: bool
     slack: SlackChannelConfig
     whatsapp: WhatsAppChannelConfig
     environment_refs: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
     app_ref: _io_pb2.ApiResourceReference
-    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., enabled: bool = ..., slack: _Optional[_Union[SlackChannelConfig, _Mapping]] = ..., whatsapp: _Optional[_Union[WhatsAppChannelConfig, _Mapping]] = ..., environment_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., app_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ...) -> None: ...
+    proactive_messaging_enabled: bool
+    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., enabled: bool = ..., slack: _Optional[_Union[SlackChannelConfig, _Mapping]] = ..., whatsapp: _Optional[_Union[WhatsAppChannelConfig, _Mapping]] = ..., environment_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., app_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., proactive_messaging_enabled: bool = ...) -> None: ...
 
 class SlackChannelConfig(_message.Message):
     __slots__ = ()

@@ -1,0 +1,219 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentchannel.v1;
+
+import "buf/validate/validate.proto";
+
+// Input for sending a business-initiated message on an agent channel.
+//
+// @internal
+// proactive-messaging DD-002 D4, amended: channel + org are separate
+// fields (the FindRecordsRequest slug/org precedent), never a
+// slug-or-id union. Dispatch mirrors the datastore record surface:
+// session-bound runner credentials leave both empty and the server
+// derives them from the session's serving channel; direct principals
+// (console, CLI, SDK) set them. Ambiguity — the caller's agent has more
+// than one proactive-enabled channel and no channel is named — is an
+// INVALID_ARGUMENT whose detail lists the candidates (D7).
+message SendChannelMessageInput {
+  // AgentChannel slug to send through, resolved within `org`. Optional
+  // when the caller's agent has exactly one proactive-enabled channel.
+  string channel = 1 [(buf.validate.field).string.max_len = 63];
+
+  // Organization the channel belongs to. Direct callers set it; unset
+  // resolves from the caller's context.
+  string org = 2 [(buf.validate.field).string.max_len = 63];
+
+  // External recipient key on the channel's provider (WhatsApp: the
+  // recipient's wa_id).
+  string recipient = 3 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 128
+  ];
+
+  // Typed message content.
+  ChannelOutboundPayload payload = 4 [(buf.validate.field).required = true];
+}
+
+// ChannelOutboundPayload is the typed content of a business-initiated
+// message. Exactly one kind must be set.
+//
+// @internal
+// The payments seam (proactive-messaging DD-001 D4 / DD-002 D3): the
+// payments follow-up adds `OrderDetailsPayload order_details = 3` —
+// the provider_config / delivery_context oneof-extension pattern
+// ("extends this oneof; touches zero kinds"). Deliverers dispatch on
+// the arm and refuse unknown arms cleanly (INVALID_ARGUMENT, never
+// silent text coercion).
+message ChannelOutboundPayload {
+  oneof kind {
+    option (buf.validate.oneof).required = true;
+
+    // Plain text message. Requires an open 24-hour customer-service
+    // window on providers that enforce one (WhatsApp).
+    TextPayload text = 1;
+
+    // Provider-approved message template. Required for
+    // business-initiated messages outside an open 24-hour window.
+    TemplatePayload template = 2;
+  }
+}
+
+// TextPayload is a plain text message body.
+message TextPayload {
+  // Message body. WhatsApp text-message limits apply.
+  string body = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 4096
+  ];
+}
+
+// TemplatePayload sends a provider-approved message template, filled
+// with the supplied parameter values.
+//
+// @internal
+// proactive-messaging DD-003 D4. Registry-dependent validation (name
+// exists, status APPROVED, language resolution, parameter arity, header
+// requirement) is deliberately NOT proto-level: it is the cloud
+// handler's courtesy pre-check plus the provider's send-time verdict
+// (D7), mapped to ChannelSendOutcome — never a local approval state
+// machine.
+message TemplatePayload {
+  // Name of the approved template on the channel's provider registry
+  // (WhatsApp: the WABA's template name).
+  string name = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 512
+  ];
+
+  // Template language code (e.g. "en", "en_US"). Optional when the
+  // template name exists in exactly one language.
+  //
+  // @internal
+  // Omitted-language resolution echoes SendChannelMessageInput.channel:
+  // unambiguous resolves, ambiguous is INVALID_ARGUMENT with the
+  // candidate languages in the detail (DD-003 D4).
+  string language = 2 [(buf.validate.field).string.max_len = 16];
+
+  // Variable values. Named templates key by parameter name
+  // ("member_name"); positional templates key by position ("1", "2").
+  map<string, string> parameters = 3 [(buf.validate.field).map.max_pairs = 50];
+
+  // Public HTTPS URL for the image header. Required iff the template
+  // declares an image header — the asset is needed at send time (the
+  // creation-time handle is review-only and expires).
+  string header_image_link = 4 [(buf.validate.field).string.max_len = 2048];
+}
+
+// Output of the send-message RPC: the truthful outcome of the inline
+// delivery attempt.
+message SendChannelMessageOutput {
+  // Outcome of the inline attempt.
+  ChannelSendOutcome outcome = 1;
+
+  // Platform id of the durable outbound record (audit handle).
+  string outbound_message_id = 2;
+
+  // Provider message id when accepted (WhatsApp: wamid).
+  string provider_message_id = 3;
+
+  // Honest, agent-readable detail for queued/refused outcomes.
+  string detail = 4;
+}
+
+// ChannelSendOutcome reports what happened to a business-initiated
+// message on the inline delivery attempt.
+//
+// @internal
+// proactive-messaging DD-002 D1/D4: policy refusals the agent adapts to
+// are typed outcomes; contract violations and authority failures are
+// gRPC errors. Provider verdicts map into the same vocabulary (DD-003
+// D7).
+enum ChannelSendOutcome {
+  // Default value when no outcome is set.
+  channel_send_outcome_unspecified = 0;
+
+  // Provider accepted the message.
+  accepted = 1;
+
+  // Transient failure; the platform retries in the background.
+  queued = 2;
+
+  // Terminal refusal; detail says why (caps, recipient policy, provider
+  // policy such as an expired 24-hour window). The caller should adapt,
+  // not retry.
+  refused = 3;
+}
+
+// Input for listing the message templates available on an agent channel.
+message ListChannelTemplatesInput {
+  // AgentChannel slug whose provider registry to read, resolved within
+  // `org`. Optional when the caller's agent has exactly one
+  // proactive-enabled channel.
+  string channel = 1 [(buf.validate.field).string.max_len = 63];
+
+  // Organization the channel belongs to. Direct callers set it; unset
+  // resolves from the caller's context.
+  string org = 2 [(buf.validate.field).string.max_len = 63];
+
+  // When true, only templates the provider will accept for sending are
+  // returned (WhatsApp: status APPROVED, filtered server-side).
+  //
+  // @internal
+  // The two callers split on this flag: the runner's discovery fetch
+  // sets it (an agent must never compose against a paused or pending
+  // template, DD-003 D5); the console leaves it unset to render every
+  // status with its badge (DD-003 D10).
+  bool approved_only = 3;
+}
+
+// ChannelTemplates contains the message templates available on an agent
+// channel.
+message ChannelTemplates {
+  // Template entries, one per (name, language) pair.
+  repeated ChannelTemplate entries = 1;
+}
+
+// ChannelTemplate is one message template as the channel's provider
+// registry reports it.
+//
+// @internal
+// proactive-messaging DD-003 D6: provider vocabulary verbatim — status,
+// category, format, and rejection copy are the provider's own strings,
+// never re-encoded into a Stigmer enum. The provider is the registry
+// and the send-time authority; this projection is a read-through view.
+message ChannelTemplate {
+  // Template name on the provider registry.
+  string name = 1;
+
+  // Template language code (e.g. "en_US"). The (name, language) pair is
+  // the template's identity; each language is approved independently.
+  string language = 2;
+
+  // Provider category, verbatim (WhatsApp: UTILITY, MARKETING,
+  // AUTHENTICATION).
+  string category = 3;
+
+  // Provider approval status, verbatim (WhatsApp: APPROVED, PENDING,
+  // REJECTED, PAUSED, DISABLED).
+  string status = 4;
+
+  // Parameter format, verbatim (WhatsApp: POSITIONAL, NAMED).
+  string parameter_format = 5;
+
+  // Parameter names for named templates; positions ("1", "2", ...) for
+  // positional templates.
+  repeated string parameter_names = 6;
+
+  // Full body text including placeholders (e.g. "Hi {{1}}, your fee of
+  // {{2}} is due {{3}}.").
+  string body_text = 7;
+
+  // Header format when the template declares a header, verbatim
+  // (WhatsApp: TEXT, IMAGE, VIDEO, DOCUMENT). Empty for no header.
+  string header_format = 8;
+
+  // Provider's rejection reason, verbatim. Empty unless status is a
+  // rejected state.
+  string rejection_reason = 9;
+}

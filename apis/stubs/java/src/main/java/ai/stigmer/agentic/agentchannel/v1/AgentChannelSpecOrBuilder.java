@@ -360,5 +360,27 @@ public interface AgentChannelSpecOrBuilder extends
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getAppRefOrBuilder();
 
+  /**
+   * <pre>
+   * Whether the serving agent may send business-initiated (proactive)
+   * messages on this channel. Off by default: a channel is reply-only
+   * until its owner grants this.
+   *
+   * &#64;internal
+   * proactive-messaging DD-002 D5, the DD-014 two-consents operator
+   * lever, living where `enabled` lives (the surface owns the grant).
+   * Existing channels keep reply-only behavior on deploy. Tuning knobs
+   * (rate caps) stay platform config (DD-006 posture); what owners
+   * control is this grant. The runner attaches the send_channel_message
+   * tool only when getByAgent finds an installed + enabled channel with
+   * this flag set — an agent with no proactive channel never sees the
+   * tool.
+   * </pre>
+   *
+   * <code>bool proactive_messaging_enabled = 7 [json_name = "proactiveMessagingEnabled"];</code>
+   * @return The proactiveMessagingEnabled.
+   */
+  boolean getProactiveMessagingEnabled();
+
   ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.ProviderConfigCase getProviderConfigCase();
 }

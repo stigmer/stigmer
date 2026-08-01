@@ -1086,3 +1086,99 @@ func TestAgentChannelController_InstallPosture(t *testing.T) {
 		}
 	})
 }
+
+// TestChannelMessageController_CloudOnlyPosture pins the messaging
+// surface's OSS contract (proactive-messaging DD-002/DD-003, decision
+// 001 D-g): both RPCs validate input, then refuse with
+// FAILED_PRECONDITION. Unlike the install posture there is deliberately
+// no NOT_FOUND probe — the cloud send handler fails closed with
+// PERMISSION_DENIED for an unknown channel (DD-002 D4, no existence
+// leak), so the OSS refusal must not depend on channel existence either.
+func TestChannelMessageController_CloudOnlyPosture(t *testing.T) {
+	mc := NewChannelMessageController()
+
+	textPayload := func(body string) *agentchannelv1.ChannelOutboundPayload {
+		return &agentchannelv1.ChannelOutboundPayload{
+			Kind: &agentchannelv1.ChannelOutboundPayload_Text{
+				Text: &agentchannelv1.TextPayload{Body: body},
+			},
+		}
+	}
+
+	t.Run("sendMessage refuses with FAILED_PRECONDITION and the documented copy", func(t *testing.T) {
+		_, err := mc.SendMessage(channelCtx(), &agentchannelv1.SendChannelMessageInput{
+			Recipient: "15551234567",
+			Payload:   textPayload("your fee is due"),
+		})
+		if status.Code(err) != codes.FailedPrecondition {
+			t.Fatalf("expected FAILED_PRECONDITION, got %s (%v)", status.Code(err), err)
+		}
+		if got := status.Convert(err).Message(); got != proactiveMessagingUnavailableMessage {
+			t.Errorf("send refusal must carry the documented copy, got %q", got)
+		}
+	})
+
+	t.Run("sendMessage refusal is independent of channel existence", func(t *testing.T) {
+		_, err := mc.SendMessage(channelCtx(), &agentchannelv1.SendChannelMessageInput{
+			Channel:   "no-such-channel",
+			Org:       "no-such-org",
+			Recipient: "15551234567",
+			Payload:   textPayload("hello"),
+		})
+		if status.Code(err) != codes.FailedPrecondition {
+			t.Errorf("a nonexistent channel must not change the refusal (no existence probe), got %s (%v)", status.Code(err), err)
+		}
+	})
+
+	t.Run("sendMessage contract violations are INVALID_ARGUMENT before the refusal", func(t *testing.T) {
+		cases := []struct {
+			name  string
+			input *agentchannelv1.SendChannelMessageInput
+		}{
+			{"empty recipient", &agentchannelv1.SendChannelMessageInput{
+				Payload: textPayload("hello"),
+			}},
+			{"missing payload", &agentchannelv1.SendChannelMessageInput{
+				Recipient: "15551234567",
+			}},
+			{"unset payload arm", &agentchannelv1.SendChannelMessageInput{
+				Recipient: "15551234567",
+				Payload:   &agentchannelv1.ChannelOutboundPayload{},
+			}},
+			{"empty text body", &agentchannelv1.SendChannelMessageInput{
+				Recipient: "15551234567",
+				Payload:   textPayload(""),
+			}},
+			{"oversized text body", &agentchannelv1.SendChannelMessageInput{
+				Recipient: "15551234567",
+				Payload:   textPayload(strings.Repeat("x", 4097)),
+			}},
+			{"empty template name", &agentchannelv1.SendChannelMessageInput{
+				Recipient: "15551234567",
+				Payload: &agentchannelv1.ChannelOutboundPayload{
+					Kind: &agentchannelv1.ChannelOutboundPayload_Template{
+						Template: &agentchannelv1.TemplatePayload{},
+					},
+				},
+			}},
+		}
+		for _, c := range cases {
+			if _, err := mc.SendMessage(channelCtx(), c.input); status.Code(err) != codes.InvalidArgument {
+				t.Errorf("%s: expected INVALID_ARGUMENT, got %s (%v)", c.name, status.Code(err), err)
+			}
+		}
+	})
+
+	t.Run("listTemplates refuses with FAILED_PRECONDITION and the documented copy", func(t *testing.T) {
+		_, err := mc.ListTemplates(channelCtx(), &agentchannelv1.ListChannelTemplatesInput{
+			Channel:      "some-channel",
+			ApprovedOnly: true,
+		})
+		if status.Code(err) != codes.FailedPrecondition {
+			t.Fatalf("expected FAILED_PRECONDITION, got %s (%v)", status.Code(err), err)
+		}
+		if got := status.Convert(err).Message(); got != proactiveMessagingUnavailableMessage {
+			t.Errorf("listTemplates refusal must carry the documented copy, got %q", got)
+		}
+	})
+}

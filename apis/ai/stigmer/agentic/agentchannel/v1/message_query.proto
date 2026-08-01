@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentchannel.v1;
+
+import "ai/stigmer/agentic/agentchannel/v1/message_io.proto";
+import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
+import "ai/stigmer/commons/rpc/method_options.proto";
+
+// ChannelMessageQueryController serves runtime reads that support
+// business-initiated messaging on agent channels.
+//
+// @internal
+// proactive-messaging DD-003 D6: the query sibling of
+// ChannelMessageCommandController — runtime messaging traffic (the send
+// and its supporting reads) stays off the resource CRUD surface, the
+// datastore-domain split applied consistently.
+service ChannelMessageQueryController {
+  option (ai.stigmer.commons.apiresource.api_resource_kind) = agent_channel;
+
+  // List the message templates available on an agent channel.
+  //
+  // Read live from the channel provider's registry (WhatsApp: the
+  // WABA's templates), lightly cached. The provider is the source of
+  // truth; entries carry its vocabulary verbatim.
+  //
+  // @internal
+  // DD-003 D6. Same in-handler token-class reach as sendMessage (DD-002
+  // D2/D4): sandbox tokens resolve through the serving channel, direct
+  // principals through channel visibility; fail closed. The WABA id is
+  // derived from the channel's phone_number_id on demand and cached —
+  // never stored (DD-003 D3). A token missing the management scope
+  // degrades this read only, never sends (DD-003 D7, Meta error 200 →
+  // FAILED_PRECONDITION pointing at token regeneration). Cloud-first
+  // runtime: the OSS edition returns FAILED_PRECONDITION (decision 001
+  // D-g posture).
+  rpc listTemplates(ListChannelTemplatesInput) returns (ChannelTemplates) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
+}

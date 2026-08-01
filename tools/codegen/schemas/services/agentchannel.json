@@ -59,6 +59,36 @@
       ]
     },
     {
+      "name": "ChannelMessageCommandController",
+      "role": "channelMessageCommand",
+      "protoFile": "ai/stigmer/agentic/agentchannel/v1/message_command.proto",
+      "methods": [
+        {
+          "name": "SendMessage",
+          "inputType": "SendChannelMessageInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput",
+          "outputType": "SendChannelMessageOutput",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.SendChannelMessageOutput",
+          "description": "Send a business-initiated message to a recipient on an agent channel.\n\n The message is durably recorded and attempted once inline; transient\n failures are retried in the background. The outcome reports the\n truth of the inline attempt.\n\n @internal\n Authorization in-handler (DD-002 D2/D6/D9): token-class dispatch,\n fail closed; agent-anchored chain (never session-sender-anchored —\n the recipient is an argument). Error contract (DD-002 D4): unknown\n or foreign token class, no serving channel, proactive messaging not\n enabled, or channel/org mismatch → PERMISSION_DENIED with no policy\n detail leaked; malformed input or ambiguous channel/language →\n INVALID_ARGUMENT with the candidates listed; channel not installed →\n FAILED_PRECONDITION; rate caps, recipient policy, and provider\n refusals → outcome=refused; transient provider failures →\n outcome=queued. Cloud-first runtime: the OSS edition returns\n FAILED_PRECONDITION (decision 001 D-g posture, the initiateInstall\n precedent)."
+        }
+      ]
+    },
+    {
+      "name": "ChannelMessageQueryController",
+      "role": "channelMessageQuery",
+      "protoFile": "ai/stigmer/agentic/agentchannel/v1/message_query.proto",
+      "methods": [
+        {
+          "name": "ListTemplates",
+          "inputType": "ListChannelTemplatesInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput",
+          "outputType": "ChannelTemplates",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelTemplates",
+          "description": "List the message templates available on an agent channel.\n\n Read live from the channel provider's registry (WhatsApp: the\n WABA's templates), lightly cached. The provider is the source of\n truth; entries carry its vocabulary verbatim.\n\n @internal\n DD-003 D6. Same in-handler token-class reach as sendMessage (DD-002\n D2/D4): sandbox tokens resolve through the serving channel, direct\n principals through channel visibility; fail closed. The WABA id is\n derived from the channel's phone_number_id on demand and cached —\n never stored (DD-003 D3). A token missing the management scope\n degrades this read only, never sends (DD-003 D7, Meta error 200 →\n FAILED_PRECONDITION pointing at token regeneration). Cloud-first\n runtime: the OSS edition returns FAILED_PRECONDITION (decision 001\n D-g posture)."
+        }
+      ]
+    },
+    {
       "name": "AgentChannelQueryController",
       "role": "query",
       "protoFile": "ai/stigmer/agentic/agentchannel/v1/query.proto",
@@ -202,6 +232,188 @@
           "validation": {
             "required": true
           }
+        }
+      ]
+    },
+    {
+      "name": "SendChannelMessageInput",
+      "description": "Input for sending a business-initiated message on an agent channel.\n\n @internal\n proactive-messaging DD-002 D4, amended: channel + org are separate\n fields (the FindRecordsRequest slug/org precedent), never a\n slug-or-id union. Dispatch mirrors the datastore record surface:\n session-bound runner credentials leave both empty and the server\n derives them from the session's serving channel; direct principals\n (console, CLI, SDK) set them. Ambiguity — the caller's agent has more\n than one proactive-enabled channel and no channel is named — is an\n INVALID_ARGUMENT whose detail lists the candidates (D7).",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/message_io.proto",
+      "fields": [
+        {
+          "name": "Channel",
+          "jsonName": "channel",
+          "protoField": "channel",
+          "type": {
+            "kind": "string"
+          },
+          "description": "AgentChannel slug to send through, resolved within `org`. Optional\n when the caller's agent has exactly one proactive-enabled channel.",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the channel belongs to. Direct callers set it; unset\n resolves from the caller's context.",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
+        },
+        {
+          "name": "Recipient",
+          "jsonName": "recipient",
+          "protoField": "recipient",
+          "type": {
+            "kind": "string"
+          },
+          "description": "External recipient key on the channel's provider (WhatsApp: the\n recipient's wa_id).",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "Payload",
+          "jsonName": "payload",
+          "protoField": "payload",
+          "type": {
+            "kind": "message",
+            "messageType": "ChannelOutboundPayload"
+          },
+          "description": "Typed message content.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "SendChannelMessageOutput",
+      "description": "Output of the send-message RPC: the truthful outcome of the inline\n delivery attempt.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.SendChannelMessageOutput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/message_io.proto",
+      "fields": [
+        {
+          "name": "Outcome",
+          "jsonName": "outcome",
+          "protoField": "outcome",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentchannel.v1.ChannelSendOutcome",
+            "enumValues": [
+              "accepted",
+              "queued",
+              "refused"
+            ]
+          },
+          "description": "Outcome of the inline attempt.",
+          "required": false
+        },
+        {
+          "name": "OutboundMessageId",
+          "jsonName": "outboundMessageId",
+          "protoField": "outbound_message_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Platform id of the durable outbound record (audit handle).",
+          "required": false
+        },
+        {
+          "name": "ProviderMessageId",
+          "jsonName": "providerMessageId",
+          "protoField": "provider_message_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Provider message id when accepted (WhatsApp: wamid).",
+          "required": false
+        },
+        {
+          "name": "Detail",
+          "jsonName": "detail",
+          "protoField": "detail",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Honest, agent-readable detail for queued/refused outcomes.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListChannelTemplatesInput",
+      "description": "Input for listing the message templates available on an agent channel.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/message_io.proto",
+      "fields": [
+        {
+          "name": "Channel",
+          "jsonName": "channel",
+          "protoField": "channel",
+          "type": {
+            "kind": "string"
+          },
+          "description": "AgentChannel slug whose provider registry to read, resolved within\n `org`. Optional when the caller's agent has exactly one\n proactive-enabled channel.",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the channel belongs to. Direct callers set it; unset\n resolves from the caller's context.",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
+        },
+        {
+          "name": "ApprovedOnly",
+          "jsonName": "approvedOnly",
+          "protoField": "approved_only",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "When true, only templates the provider will accept for sending are\n returned (WhatsApp: status APPROVED, filtered server-side).\n\n @internal\n The two callers split on this flag: the runner's discovery fetch\n sets it (an agent must never compose against a paused or pending\n template, DD-003 D5); the console leaves it unset to render every\n status with its badge (DD-003 D10).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ChannelTemplates",
+      "description": "ChannelTemplates contains the message templates available on an agent\n channel.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelTemplates",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/message_io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ChannelTemplate"
+            }
+          },
+          "description": "Template entries, one per (name, language) pair.",
+          "required": false
         }
       ]
     },
@@ -420,6 +632,28 @@
     }
   ],
   "enumTypes": [
+    {
+      "name": "ChannelSendOutcome",
+      "description": "ChannelSendOutcome reports what happened to a business-initiated\n message on the inline delivery attempt.\n\n @internal\n proactive-messaging DD-002 D1/D4: policy refusals the agent adapts to\n are typed outcomes; contract violations and authority failures are\n gRPC errors. Provider verdicts map into the same vocabulary (DD-003\n D7).",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelSendOutcome",
+      "values": [
+        {
+          "name": "accepted",
+          "number": 1,
+          "description": "Provider accepted the message."
+        },
+        {
+          "name": "queued",
+          "number": 2,
+          "description": "Transient failure; the platform retries in the background."
+        },
+        {
+          "name": "refused",
+          "number": 3,
+          "description": "Terminal refusal; detail says why (caps, recipient policy, provider\n policy such as an expired 24-hour window). The caller should adapt,\n not retry."
+        }
+      ]
+    },
     {
       "name": "ApiResourceKind",
       "description": "API resource kinds for Stigmer.",

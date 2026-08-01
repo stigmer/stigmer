@@ -7,9 +7,12 @@ from dataclasses import dataclass, field
 import grpc
 
 from ai.stigmer.agentic.agentchannel.v1 import api_pb2
+from ai.stigmer.agentic.agentchannel.v1 import message_command_pb2_grpc
+from ai.stigmer.agentic.agentchannel.v1 import message_query_pb2_grpc
 from ai.stigmer.agentic.agentchannel.v1 import command_pb2_grpc
 from ai.stigmer.agentic.agentchannel.v1 import query_pb2_grpc
 from ai.stigmer.agentic.agentchannel.v1 import io_pb2
+from ai.stigmer.agentic.agentchannel.v1 import message_io_pb2
 from ai.stigmer.agentic.agentchannel.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
@@ -24,6 +27,8 @@ class AgentChannelClient:
 
     def __init__(self, channel: grpc.Channel) -> None:
         self._command = command_pb2_grpc.AgentChannelCommandControllerStub(channel)
+        self._channelMessageCommand = message_command_pb2_grpc.ChannelMessageCommandControllerStub(channel)
+        self._channelMessageQuery = message_query_pb2_grpc.ChannelMessageQueryControllerStub(channel)
         self._query = query_pb2_grpc.AgentChannelQueryControllerStub(channel)
 
     def apply(self, input: AgentChannelInput) -> api_pb2.AgentChannel:
@@ -59,6 +64,18 @@ class AgentChannelClient:
     def delete(self, id: str) -> api_pb2.AgentChannel:
         try:
             return self._command.delete(io_pb2.AgentChannelId(value=id))
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def send_message(self, input: message_io_pb2.SendChannelMessageInput) -> message_io_pb2.SendChannelMessageOutput:
+        try:
+            return self._channelMessageCommand.sendMessage(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_templates(self, input: message_io_pb2.ListChannelTemplatesInput) -> message_io_pb2.ChannelTemplates:
+        try:
+            return self._channelMessageQuery.listTemplates(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -104,10 +121,12 @@ class AgentChannelInput:
     whatsapp: WhatsAppChannelConfigInput | None = None
     environment_refs: list[ResourceRef] = field(default_factory=list)
     app_ref: ResourceRef | None = None
+    proactive_messaging_enabled: bool = False
 
     def _to_proto(self) -> api_pb2.AgentChannel:
         spec = spec_pb2.AgentChannelSpec(
             enabled=self.enabled,
+            proactive_messaging_enabled=self.proactive_messaging_enabled,
         )
         if self.agent_ref is not None and (self.agent_ref.org or self.agent_ref.slug):
             _ref = self.agent_ref._to_proto()
