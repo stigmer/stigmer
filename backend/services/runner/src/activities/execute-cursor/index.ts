@@ -39,6 +39,7 @@ import type { Run, ConversationTurn } from "@cursor/sdk";
 
 import type { Config } from "../../config.js";
 import { StigmerClient } from "../../client/stigmer-client.js";
+import { describeExecutionError } from "../../shared/model-error.js";
 import { resolveAgentWithTransportRecovery } from "./session-lifecycle.js";
 import type { AgentResolution, CreateAgentOptions, CreateCloudAgentOptions } from "./session-lifecycle.js";
 import { CursorMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
@@ -1991,8 +1992,13 @@ async function executeCursorInner(
       }      return slimStatus(status);
     }
 
-    const errMsg = err instanceof Error ? err.message : String(err);
-    const errType = err instanceof Error ? err.constructor.name : "Unknown";
+    // Unwrap + classify before formatting: the structured-output extraction
+    // path uses a LangChain model whose errors arrive MiddlewareError-wrapped
+    // with raw provider prose — the same leak the deep-agent harness fixes.
+    // Non-model errors keep the root error's own identity.
+    const { errorType: errType, errorMessage: errMsg } = describeExecutionError(err, {
+      proxyMode: !!config.proxyEndpoint,
+    });
     console.error(`ExecuteCursor failed: execution=${executionId}, [${errType}] ${errMsg}`);
 
     status.phase = ExecutionPhase.EXECUTION_FAILED;

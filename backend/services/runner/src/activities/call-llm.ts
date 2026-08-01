@@ -31,6 +31,7 @@ import {
 import { computeLlmCostMicros, ensureLoaded as ensurePricingLoaded } from "../shared/model-pricing.js";
 import { resolveToApiModelId } from "../shared/model-registry.js";
 import { buildChatModel } from "../shared/model-client.js";
+import { classifyModelCallError } from "../shared/model-error.js";
 
 export interface LlmCallConfig {
   readonly model: string;
@@ -97,31 +98,23 @@ async function streamAndCollect(
  * Classify an LLM call error and re-throw as a Temporal ApplicationFailure
  * with correct retryability semantics and a user-facing message.
  *
- * Both OpenAI and Anthropic SDKs throw typed error subclasses of APIError
- * with a `.status` property. We duck-type on `.status` to avoid importing
- * either SDK's error classes directly.
+ * The classification itself lives in the shared model-error module (also
+ * used by the deep-agent harness); this wrapper translates its verdict into
+ * Temporal failure types: retryable → plain Error (Temporal may retry),
+ * non-retryable → ApplicationFailure with the classified code.
  *
- * Retryability policy:
- *   - 4xx (except 429): nonRetryable — client/config errors won't self-heal
- *   - 429: nonRetryable at Temporal level — the SDK already retries internally
- *          with exponential backoff; Temporal retrying on top causes duplicates
- *   - 5xx: retryable — transient provider outages
- *   - Connection/timeout: retryable — transient network issues
- *   - ZodError: nonRetryable — schema mismatch won't self-heal
+ * ZodError stays here rather than in the shared classifier: schema
+ * validation of structured output is this activity's concern (it built the
+ * schema), not a model transport error.
  */
 function classifyAndThrowLlmError(
   err: unknown,
   modelId: string,
   provider: LlmProvider,
+  proxyMode: boolean,
 ): never {
-  const status = typeof (err as { status?: unknown }).status === "number"
-    ? (err as { status: number }).status
-    : undefined;
-
-  const rawMessage = err instanceof Error ? err.message : String(err);
-  const providerLabel = provider === "anthropic" ? "Anthropic" : "OpenAI";
-
   if (err instanceof z.ZodError) {
+    const providerLabel = provider === "anthropic" ? "Anthropic" : "OpenAI";
     throw ApplicationFailure.nonRetryable(
       `Structured output from model "${modelId}" (${providerLabel}) did not match the expected schema. ` +
       `Validation errors: ${err.errors.map(e => `${e.path.join(".")}: ${e.message}`).join("; ")}`,
@@ -129,66 +122,19 @@ function classifyAndThrowLlmError(
     );
   }
 
-  if (status !== undefined) {
-    const context = `model "${modelId}" (${providerLabel})`;
-
-    switch (status) {
-      case 401:
-        throw ApplicationFailure.nonRetryable(
-          `Authentication failed for ${context}. Check that your API key is valid and not expired.`,
-          "LLM_AUTHENTICATION_ERROR",
-        );
-      case 403:
-        throw ApplicationFailure.nonRetryable(
-          `Access denied for ${context}. Verify that your API key has permission to use this model.`,
-          "LLM_PERMISSION_DENIED",
-        );
-      case 404:
-        throw ApplicationFailure.nonRetryable(
-          `Model not found: ${context}. Verify the model name is correct and available in your account.`,
-          "LLM_MODEL_NOT_FOUND",
-        );
-      case 400:
-        throw ApplicationFailure.nonRetryable(
-          `Invalid request to ${context}: ${rawMessage}`,
-          "LLM_BAD_REQUEST",
-        );
-      case 422:
-        throw ApplicationFailure.nonRetryable(
-          `Unprocessable request to ${context}: ${rawMessage}`,
-          "LLM_UNPROCESSABLE_REQUEST",
-        );
-      case 429:
-        throw ApplicationFailure.nonRetryable(
-          `Rate limit exceeded for ${context}. The provider's built-in retry was exhausted. ` +
-          `Try again later or reduce request frequency.`,
-          "LLM_RATE_LIMIT",
-        );
-      default:
-        if (status >= 500) {
-          throw new Error(
-            `${providerLabel} provider error (HTTP ${status}) for ${context}: ${rawMessage}`,
-          );
-        }
-        throw ApplicationFailure.nonRetryable(
-          `${providerLabel} API error (HTTP ${status}) for ${context}: ${rawMessage}`,
-          "LLM_API_ERROR",
-        );
+  // assumeModelCall: this catch only ever sees model invocation failures, so
+  // the loose connection/timeout heuristics are safe (and preserve the
+  // pre-migration behavior for undici transport errors).
+  const classified = classifyModelCallError(err, { proxyMode, provider, modelId, assumeModelCall: true });
+  if (classified) {
+    if (classified.retryable) {
+      throw new Error(classified.message);
     }
+    throw ApplicationFailure.nonRetryable(classified.message, classified.code);
   }
 
-  const errName = err instanceof Error ? err.constructor.name : "";
-  if (errName.includes("Timeout") || errName.includes("ConnectionTimeout")) {
-    throw new Error(
-      `Connection timed out for model "${modelId}" (${providerLabel}): ${rawMessage}`,
-    );
-  }
-  if (errName.includes("Connection")) {
-    throw new Error(
-      `Connection failed for model "${modelId}" (${providerLabel}): ${rawMessage}`,
-    );
-  }
-
+  const rawMessage = err instanceof Error ? err.message : String(err);
+  const providerLabel = provider === "anthropic" ? "Anthropic" : "OpenAI";
   throw ApplicationFailure.nonRetryable(
     `LLM call failed for model "${modelId}" (${providerLabel}): ${rawMessage}`,
     "LLM_UNKNOWN_ERROR",
@@ -292,7 +238,7 @@ export async function callLlmAction(
       };
     }
   } catch (err) {
-    classifyAndThrowLlmError(err, modelId, provider);
+    classifyAndThrowLlmError(err, modelId, provider, proxyActive);
   }
 
   const costMicros = computeLlmCostMicros(config.model, result.input_tokens, result.output_tokens);
