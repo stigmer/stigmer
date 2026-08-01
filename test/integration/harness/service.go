@@ -120,6 +120,16 @@ type ServiceConfig struct {
 	AppPGUser     string
 	AppPGPassword string
 
+	// OpenBAO — the secret-encryption backend behind the vault Spring
+	// profile. VAULT_* env vars point the service at this instance via token
+	// auth (dev-mode; production uses Kubernetes auth). The harness always
+	// provisions this container (StartOpenBao): vault is a boot requirement —
+	// with the v1 static-key codec retired, every secret codec is
+	// vault-backed and the service refuses to start without one. Leaving
+	// these empty fails the fail-fast boot loudly.
+	VaultAddr  string
+	VaultToken string
+
 	// LogDir is the directory for the service log file.
 	// If empty, a temporary directory is used.
 	LogDir string
@@ -337,9 +347,9 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	productionSecurity := cfg.Security == SecurityModeProduction
 
 	// This list deliberately reproduces the cloud service's required profile
-	// set (application.yaml) minus what tests stub out (vault); a new
-	// always-on cloud profile that gates required beans must be added here
-	// too, or the Spring context fails to boot with a missing-bean error.
+	// set (application.yaml); a new always-on cloud profile that gates
+	// required beans must be added here too, or the Spring context fails to
+	// boot with a missing-bean error.
 	//
 	// The app-postgres system of record needs no profile (its config is
 	// unconditional in application.yaml): the harness always starts the
@@ -353,7 +363,12 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 	// live. When a suite leaves RecordsPGHost empty, the lazy pool
 	// (initializationFailTimeout = -1) still lets the service boot against
 	// the localhost:5432 defaults; record RPCs then fail loudly on first use.
-	profiles := "temporal,iam,logging,auth0,skill-r2,agent-execution-r2,claimcheck-r2,records-postgres"
+	//
+	// vault + encryption: required for the secret codecs to exist. Vault was
+	// once "what tests stub out"; since the v1 static-key retirement every
+	// codec is vault-backed, so the harness always starts an OpenBAO
+	// container (StartOpenBao) and suites pass it via ServiceConfig.Vault*.
+	profiles := "temporal,iam,logging,auth0,skill-r2,agent-execution-r2,claimcheck-r2,records-postgres,vault,encryption"
 	if cfg.SandboxType != "" {
 		profiles += ",sandbox"
 	}
@@ -408,8 +423,16 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		"STIGMER_STRIPE_SECRET_KEY=sk_test_integration_dummy",
 		"STIGMER_STRIPE_WEBHOOK_SECRET=whsec_test_dummy",
 
+		// OpenBAO (secret encryption) — token auth against the harness's
+		// dev-mode container. Production uses Kubernetes auth; the
+		// production-policy access contract is proven by the cloud repo's
+		// `make test-vault`, not here.
+		"VAULT_ENABLED=true",
+		fmt.Sprintf("VAULT_ADDR=%s", cfg.VaultAddr),
+		"VAULT_AUTH_METHOD=token",
+		fmt.Sprintf("VAULT_TOKEN=%s", cfg.VaultToken),
+
 		// Disable optional features
-		"STIGMER_VAULT_ENABLED=false",
 		fmt.Sprintf("OBSERVABILITY_ENABLED=%t", cfg.OTLPEndpoint != ""),
 		"STIGMER_BILLING_RECONCILIATION_ENABLED=false",
 		"STIGMER_BILLING_RESERVATION_EXPIRY_ENABLED=false",
