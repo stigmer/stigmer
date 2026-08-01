@@ -583,7 +583,7 @@ The returned JWT can be used by the React SDK (via StigmerProvider's getAccessTo
 
 Authentication flow: 1. Validate client_id + client_secret against stored hash 2. Resolve or JIT-provision the identity account for user_id 3. If auto_grant_on_org is enabled, grant the configured role 4. Sign a JWT with Stigmer's private key containing the user's identity
 
-Error scenarios: - UNAUTHENTICATED: Invalid client_id or client_secret - NOT_FOUND: user_id does not exist and auto_provision_accounts is false - FAILED_PRECONDITION: PlatformClient secret has expired - PERMISSION_DENIED: Origin not in allowed_origins (when configured)
+Error scenarios: - UNAUTHENTICATED: Invalid client_id or client_secret - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts is false, or the PlatformClient secret has expired - PERMISSION_DENIED: Origin not in allowed_origins (when configured) - INTERNAL: Account provisioning could not be completed (for example, the auto_grant_on_org role grant failed). No partial account is left behind — the account is rolled back — so the request is safe to retry.
 
 <SDKTabs>
 <Tab value="TypeScript">

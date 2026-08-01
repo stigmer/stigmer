@@ -62,7 +62,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Whether to automatically create an identity account when mintUserToken is\n called with a user_id that has no existing account.\n\n When false (default), the platform must explicitly create identity accounts\n before minting tokens. mintUserToken returns NOT_FOUND if the user does\n not exist. This gives platforms full control over which users can access\n Stigmer resources.\n\n When true, Stigmer creates an IdentityAccount automatically on first\n encounter, using the user_email and user_name from the mintUserToken request\n for profile data.",
+      "description": "Whether to automatically create an identity account when mintUserToken is\n called with a user_id that has no existing account.\n\n When false (default), the platform must explicitly create identity accounts\n before minting tokens. mintUserToken returns FAILED_PRECONDITION if the\n user does not exist. This gives platforms full control over which users can\n access Stigmer resources.\n\n When true, Stigmer creates an IdentityAccount automatically on first\n encounter, using the user_email and user_name from the mintUserToken request\n for profile data.",
       "required": false
     },
     {

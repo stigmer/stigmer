@@ -192,9 +192,9 @@ function App() {
 
 ## Automatic account creation
 
-By default, `mintUserToken` fails with `NOT_FOUND` if the user doesn't have a
-Stigmer Identity Account. Enable automatic provisioning on the PlatformClient to
-create accounts on first encounter:
+By default, `mintUserToken` fails with `FAILED_PRECONDITION` if the user doesn't
+have a Stigmer Identity Account. Enable automatic provisioning on the
+PlatformClient to create accounts on first encounter:
 
 - **`auto_provision_accounts: true`** — creates an IdentityAccount on first
   encounter.

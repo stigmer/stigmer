@@ -8,8 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	iampolicyv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1"
 	platformclientv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/platformclient/v1"
+	iamv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -152,6 +156,15 @@ func TestPlatformClient_MintUserToken_JITProvisioning_CreatesAccount(t *testing.
 	assert.NotEmpty(t, token2, "second mint for same user should also succeed")
 }
 
+// TestPlatformClient_MintUserToken_JITAutoGrant_GrantsRole is the regression
+// guard for issue #329: the auto-grant silently never landed because the
+// provisioner used createPolicy (requires org admin, which the machine account
+// does not have) instead of bootstrapPolicy. It mirrors the issue's exact
+// repro: auto_grant_role=member, mint, then create a session with the minted
+// token — the call that failed with PERMISSION_DENIED in the report.
+//
+// The FGA gate is required: with the permit-all bypass every check passes
+// vacuously, so only the FGA lane exercises the grant path for real.
 func TestPlatformClient_MintUserToken_JITAutoGrant_GrantsRole(t *testing.T) {
 	clients := requirePlatformClientClients(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -160,23 +173,58 @@ func TestPlatformClient_MintUserToken_JITAutoGrant_GrantsRole(t *testing.T) {
 	creds := harness.CreatePlatformClient(t, ctx, clients,
 		harness.WithAutoProvision(true),
 		harness.WithAutoGrantOnOrg(true),
+		harness.WithAutoGrantRole(iamv1.IamRole_member),
 	)
 
 	userID := "autogrant-user-" + t.Name()
 	token := harness.MintUserToken(t, ctx, clients, creds, userID)
 	assert.NotEmpty(t, token, "JIT + auto-grant should succeed")
 
-	// The auto-granted user should now have viewer access on the org.
-	// We verify by using the minted token to call a viewer-level RPC.
-	// This test validates the full flow: mint → provision → grant → use.
 	if testHarness.FGAEnabled() {
 		authedConn := harness.GRPCConnWithBearer(t, testHarness.Service.GRPCAddress(), token)
 		authedClients := harness.NewClients(authedConn)
 
-		// A viewer should be able to list platform clients in their org.
-		_, err := authedClients.PlatformClientQuery.ListByOrg(ctx,
+		// The grant itself: the minted identity must hold can_create_session
+		// on the org (member or guest per organization.fga) — the exact FGA
+		// check that session create performs.
+		verdict, err := authedClients.IamPolicyQuery.CheckMyPermission(ctx,
+			&iampolicyv1.CheckMyPermissionInput{
+				Resource: &iampolicyv1.ApiResourceRef{Kind: "organization", Id: harness.TestOrg},
+				Relation: "can_create_session",
+			})
+		require.NoError(t, err, "CheckMyPermission must succeed for the minted identity")
+		require.True(t, verdict.GetIsAuthorized(),
+			"auto-granted member must hold can_create_session on org %s — "+
+				"empty roles here means the JIT auto-grant never landed (issue #329)", harness.TestOrg)
+
+		// The end-to-end proof: create a session with the minted token.
+		// Empty agent_instance_id resolves the baseline default agent seeded
+		// in TestMain.
+		session, err := authedClients.SessionCommand.Create(ctx, &sessionv1.Session{
+			ApiVersion: harness.TestAPIVersion,
+			Kind:       "Session",
+			Metadata: &apiresource.ApiResourceMetadata{
+				Name: "autogrant-session-" + uuid.New().String()[:8],
+				Org:  harness.TestOrg,
+			},
+			Spec: &sessionv1.SessionSpec{
+				Subject: "issue #329 repro",
+			},
+		})
+		require.NoError(t, err,
+			"auto-granted member must be able to create a session (the exact call that failed in issue #329)")
+		t.Cleanup(func() {
+			cleanCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			_, _ = authedClients.SessionCommand.Delete(cleanCtx,
+				&sessionv1.SessionId{Value: session.GetMetadata().GetId()})
+		})
+
+		// Member implies viewer transitively — the pre-existing viewer-level
+		// assertion stays as coverage for read access.
+		_, err = authedClients.PlatformClientQuery.ListByOrg(ctx,
 			&platformclientv1.ListPlatformClientsByOrgInput{Org: harness.TestOrg})
-		assert.NoError(t, err, "auto-granted viewer should be able to list platform clients")
+		assert.NoError(t, err, "auto-granted member should be able to list platform clients")
 	}
 }
 

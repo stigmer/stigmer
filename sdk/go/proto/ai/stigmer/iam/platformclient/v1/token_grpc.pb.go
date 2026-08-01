@@ -61,10 +61,13 @@ type PlatformClientTokenControllerClient interface {
 	// 4. Sign a JWT with Stigmer's private key containing the user's identity
 	//
 	// Error scenarios:
-	// - UNAUTHENTICATED: Invalid client_id or client_secret
-	// - NOT_FOUND: user_id does not exist and auto_provision_accounts is false
-	// - FAILED_PRECONDITION: PlatformClient secret has expired
-	// - PERMISSION_DENIED: Origin not in allowed_origins (when configured)
+	//   - UNAUTHENTICATED: Invalid client_id or client_secret
+	//   - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts
+	//     is false, or the PlatformClient secret has expired
+	//   - PERMISSION_DENIED: Origin not in allowed_origins (when configured)
+	//   - INTERNAL: Account provisioning could not be completed (for example, the
+	//     auto_grant_on_org role grant failed). No partial account is left behind
+	//     — the account is rolled back — so the request is safe to retry.
 	//
 	// @internal
 	// This RPC is public — no Bearer token is required. The caller authenticates
@@ -152,10 +155,13 @@ type PlatformClientTokenControllerServer interface {
 	// 4. Sign a JWT with Stigmer's private key containing the user's identity
 	//
 	// Error scenarios:
-	// - UNAUTHENTICATED: Invalid client_id or client_secret
-	// - NOT_FOUND: user_id does not exist and auto_provision_accounts is false
-	// - FAILED_PRECONDITION: PlatformClient secret has expired
-	// - PERMISSION_DENIED: Origin not in allowed_origins (when configured)
+	//   - UNAUTHENTICATED: Invalid client_id or client_secret
+	//   - FAILED_PRECONDITION: user_id does not exist and auto_provision_accounts
+	//     is false, or the PlatformClient secret has expired
+	//   - PERMISSION_DENIED: Origin not in allowed_origins (when configured)
+	//   - INTERNAL: Account provisioning could not be completed (for example, the
+	//     auto_grant_on_org role grant failed). No partial account is left behind
+	//     — the account is rolled back — so the request is safe to retry.
 	//
 	// @internal
 	// This RPC is public — no Bearer token is required. The caller authenticates

@@ -323,9 +323,9 @@ private static final long serialVersionUID = 0L;
    * called with a user_id that has no existing account.
    *
    * When false (default), the platform must explicitly create identity accounts
-   * before minting tokens. mintUserToken returns NOT_FOUND if the user does
-   * not exist. This gives platforms full control over which users can access
-   * Stigmer resources.
+   * before minting tokens. mintUserToken returns FAILED_PRECONDITION if the
+   * user does not exist. This gives platforms full control over which users can
+   * access Stigmer resources.
    *
    * When true, Stigmer creates an IdentityAccount automatically on first
    * encounter, using the user_email and user_name from the mintUserToken request
@@ -1571,9 +1571,9 @@ private static final long serialVersionUID = 0L;
      * called with a user_id that has no existing account.
      *
      * When false (default), the platform must explicitly create identity accounts
-     * before minting tokens. mintUserToken returns NOT_FOUND if the user does
-     * not exist. This gives platforms full control over which users can access
-     * Stigmer resources.
+     * before minting tokens. mintUserToken returns FAILED_PRECONDITION if the
+     * user does not exist. This gives platforms full control over which users can
+     * access Stigmer resources.
      *
      * When true, Stigmer creates an IdentityAccount automatically on first
      * encounter, using the user_email and user_name from the mintUserToken request
@@ -1593,9 +1593,9 @@ private static final long serialVersionUID = 0L;
      * called with a user_id that has no existing account.
      *
      * When false (default), the platform must explicitly create identity accounts
-     * before minting tokens. mintUserToken returns NOT_FOUND if the user does
-     * not exist. This gives platforms full control over which users can access
-     * Stigmer resources.
+     * before minting tokens. mintUserToken returns FAILED_PRECONDITION if the
+     * user does not exist. This gives platforms full control over which users can
+     * access Stigmer resources.
      *
      * When true, Stigmer creates an IdentityAccount automatically on first
      * encounter, using the user_email and user_name from the mintUserToken request
@@ -1619,9 +1619,9 @@ private static final long serialVersionUID = 0L;
      * called with a user_id that has no existing account.
      *
      * When false (default), the platform must explicitly create identity accounts
-     * before minting tokens. mintUserToken returns NOT_FOUND if the user does
-     * not exist. This gives platforms full control over which users can access
-     * Stigmer resources.
+     * before minting tokens. mintUserToken returns FAILED_PRECONDITION if the
+     * user does not exist. This gives platforms full control over which users can
+     * access Stigmer resources.
      *
      * When true, Stigmer creates an IdentityAccount automatically on first
      * encounter, using the user_email and user_name from the mintUserToken request

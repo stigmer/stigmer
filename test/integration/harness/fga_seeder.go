@@ -9,10 +9,6 @@ const (
 	// Must match IntegrationTestSecurityConfig.TEST_IDENTITY_ACCOUNT_ID
 	testIdentityAccountID = "test-identity-account-id"
 
-	// Must match BootstrapIdentitySeeder.MACHINE_ACCOUNT_ID — the service seeds the
-	// real machine account (T06); test mode mints its JWTs with this same subject.
-	testMachineAccountID = "machine"
-
 	// Singleton platform resource used for operator permissions
 	platformStigmer = "platform:stigmer"
 )
@@ -47,17 +43,12 @@ func SeedBaseFGATuples(ctx context.Context, fga *OpenFGAContainer) error {
 		// Write API rejects duplicate tuples with a 400, so re-asserting them
 		// would crash this seeder. Only grants the service does NOT own on day 0
 		// belong below.
-
-		// Machine account — org admin for auto-grant operations.
-		// JIT provisioning with auto_grant_on_org calls createPolicy, which
-		// requires can_grant_access on the target org (derived from admin).
-		// In production, the machine account receives org admin during org
-		// creation — org-scoped, so deliberately not the bootstrap seeder's job.
-		{
-			User:     "identity_account:" + testMachineAccountID,
-			Relation: "admin",
-			Object:   "organization:" + TestOrg,
-		},
+		//
+		// The machine account deliberately holds NO org-scoped grants: system
+		// operations that grant org roles (JIT auto-grant, invitation redeem)
+		// go through bootstrapPolicy, which checks can_bootstrap_iam on
+		// platform:stigmer. Seeding org admin here would mask production bugs
+		// where a flow wrongly uses createPolicy (issue #329).
 	}
 
 	if err := fga.WriteTuples(ctx, tuples); err != nil {
