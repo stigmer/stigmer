@@ -1309,41 +1309,55 @@ func extractServiceSchemas(protoDir, includeDir string, useBufCache bool) (*Serv
 
 	var schema ServiceSchemaFile
 	var resourceType string
-	usedRoles := make(map[string]bool)
+
+	// Collect every service before assigning roles: assignment must see
+	// the whole package at once so that adding a proto file can never
+	// rename an existing service's role (see assignServiceRoles).
+	type serviceWithFile struct {
+		svc *desc.ServiceDescriptor
+		fd  *desc.FileDescriptor
+	}
+	var packageServices []serviceWithFile
+	var roleInputs []serviceRoleInput
 	for _, fd := range fileDescriptors {
 		if schema.Package == "" {
 			schema.Package = fd.GetPackage()
 			schema.GoImportPath = deriveGoImportAlias(fd.GetPackage())
 		}
 		for _, svc := range fd.GetServices() {
-			role := inferServiceRole(svc.GetName())
-			if usedRoles[role] {
-				role = inferUniqueServiceRole(svc.GetName())
+			packageServices = append(packageServices, serviceWithFile{svc: svc, fd: fd})
+			roleInputs = append(roleInputs, serviceRoleInput{
+				ServiceName: svc.GetName(),
+				ProtoFile:   fd.GetName(),
+			})
+		}
+	}
+	roles := assignServiceRoles(roleInputs)
+
+	for _, entry := range packageServices {
+		svc := entry.svc
+		svcDef := ServiceDefinition{
+			Name:      svc.GetName(),
+			Role:      roles[svc.GetName()],
+			ProtoFile: entry.fd.GetName(),
+		}
+		for _, method := range svc.GetMethods() {
+			ms := MethodSchema{
+				Name:            capitalize(method.GetName()),
+				InputType:       method.GetInputType().GetName(),
+				InputFullType:   method.GetInputType().GetFullyQualifiedName(),
+				OutputType:      method.GetOutputType().GetName(),
+				OutputFullType:  method.GetOutputType().GetFullyQualifiedName(),
+				ServerStreaming: method.IsServerStreaming(),
+				ClientStreaming: method.IsClientStreaming(),
+				Description:     extractServiceMethodComments(method),
 			}
-			usedRoles[role] = true
-			svcDef := ServiceDefinition{
-				Name:      svc.GetName(),
-				Role:      role,
-				ProtoFile: fd.GetName(),
-			}
-			for _, method := range svc.GetMethods() {
-				ms := MethodSchema{
-					Name:            capitalize(method.GetName()),
-					InputType:       method.GetInputType().GetName(),
-					InputFullType:   method.GetInputType().GetFullyQualifiedName(),
-					OutputType:      method.GetOutputType().GetName(),
-					OutputFullType:  method.GetOutputType().GetFullyQualifiedName(),
-					ServerStreaming: method.IsServerStreaming(),
-					ClientStreaming: method.IsClientStreaming(),
-					Description:     extractServiceMethodComments(method),
-				}
-				svcDef.Methods = append(svcDef.Methods, ms)
-			}
-			if len(svcDef.Methods) > 0 {
-				schema.Services = append(schema.Services, svcDef)
-				if svcDef.Role == "command" && len(svcDef.Methods) > 0 {
-					resourceType = inferResourceType(svcDef.Methods)
-				}
+			svcDef.Methods = append(svcDef.Methods, ms)
+		}
+		if len(svcDef.Methods) > 0 {
+			schema.Services = append(schema.Services, svcDef)
+			if svcDef.Role == "command" {
+				resourceType = inferResourceType(svcDef.Methods)
 			}
 		}
 	}
@@ -1814,6 +1828,56 @@ func inferResourceType(methods []MethodSchema) string {
 		}
 	}
 	return methods[0].OutputType
+}
+
+// serviceRoleInput identifies one service for role assignment: its name
+// and the proto file (descriptor path) it is defined in.
+type serviceRoleInput struct {
+	ServiceName string
+	ProtoFile   string
+}
+
+// assignServiceRoles maps every service in a package to its SDK client
+// role, keyed by service name.
+//
+// Roles become field names on the generated SDK clients in every
+// language, so they must be stable: adding a service to a package must
+// never rename an existing service's role. A first-come-first-served
+// assignment over lexically walked proto files does not have that
+// property (a new `message_query.proto` would steal "query" from the
+// service in `query.proto`), so assignment considers the whole package:
+//
+//   - a service whose inferred role no other service claims keeps it;
+//   - when several services claim the same role, the bare role goes to
+//     the service defined in the file named exactly "<role>.proto" (the
+//     house convention for a resource's primary controllers), and every
+//     other claimant gets its unique name-derived role;
+//   - if no claimant is defined in "<role>.proto", every claimant gets
+//     its unique role.
+func assignServiceRoles(services []serviceRoleInput) map[string]string {
+	claimants := make(map[string][]serviceRoleInput)
+	for _, svc := range services {
+		role := inferServiceRole(svc.ServiceName)
+		claimants[role] = append(claimants[role], svc)
+	}
+
+	roles := make(map[string]string, len(services))
+	for role, group := range claimants {
+		if len(group) == 1 {
+			roles[group[0].ServiceName] = role
+			continue
+		}
+		bareAssigned := false
+		for _, svc := range group {
+			if !bareAssigned && filepath.Base(svc.ProtoFile) == role+".proto" {
+				roles[svc.ServiceName] = role
+				bareAssigned = true
+				continue
+			}
+			roles[svc.ServiceName] = inferUniqueServiceRole(svc.ServiceName)
+		}
+	}
+	return roles
 }
 
 func inferServiceRole(name string) string {

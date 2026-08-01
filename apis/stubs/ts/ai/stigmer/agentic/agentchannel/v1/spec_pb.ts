@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEijgYKEEFnZW50Q2hhbm5lbFNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRwoFc2xhY2sYAyABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLlNsYWNrQ2hhbm5lbENvbmZpZ0gAEk0KCHdoYXRzYXBwGAYgASgLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5XaGF0c0FwcENoYW5uZWxDb25maWdIABLIAQoQZW52aXJvbm1lbnRfcmVmcxgEIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ4ukhxkgFuImy6AWkKFWVudmlyb25tZW50X3JlZnMua2luZBI/ZW52aXJvbm1lbnRfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPWVudmlyb25tZW50Gg90aGlzLmtpbmQgPT0gNTPghSw1ErwBCgdhcHBfcmVmGAUgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQnW6SG66AWsKDGFwcF9yZWYua2luZBI3YXBwX3JlZiBtdXN0IHJlZmVyZW5jZSBhIHJlc291cmNlIHdpdGgga2luZD1jaGFubmVsX2FwcBoidGhpcy5zbHVnID09ICcnIHx8IHRoaXMua2luZCA9PSA0OOCFLDBCGAoPcHJvdmlkZXJfY29uZmlnEgW6SAIIASIUChJTbGFja0NoYW5uZWxDb25maWciOQoVV2hhdHNBcHBDaGFubmVsQ29uZmlnEiAKD3Bob25lX251bWJlcl9pZBgBIAEoCUIHukgEcgIQAWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEiswYKEEFnZW50Q2hhbm5lbFNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRwoFc2xhY2sYAyABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLlNsYWNrQ2hhbm5lbENvbmZpZ0gAEk0KCHdoYXRzYXBwGAYgASgLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5XaGF0c0FwcENoYW5uZWxDb25maWdIABLIAQoQZW52aXJvbm1lbnRfcmVmcxgEIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ4ukhxkgFuImy6AWkKFWVudmlyb25tZW50X3JlZnMua2luZBI/ZW52aXJvbm1lbnRfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPWVudmlyb25tZW50Gg90aGlzLmtpbmQgPT0gNTPghSw1ErwBCgdhcHBfcmVmGAUgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQnW6SG66AWsKDGFwcF9yZWYua2luZBI3YXBwX3JlZiBtdXN0IHJlZmVyZW5jZSBhIHJlc291cmNlIHdpdGgga2luZD1jaGFubmVsX2FwcBoidGhpcy5zbHVnID09ICcnIHx8IHRoaXMua2luZCA9PSA0OOCFLDASIwobcHJvYWN0aXZlX21lc3NhZ2luZ19lbmFibGVkGAcgASgIQhgKD3Byb3ZpZGVyX2NvbmZpZxIFukgCCAEiFAoSU2xhY2tDaGFubmVsQ29uZmlnIjkKFVdoYXRzQXBwQ2hhbm5lbENvbmZpZxIgCg9waG9uZV9udW1iZXJfaWQYASABKAlCB7pIBHICEAFiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentChannelSpec defines the configurable properties of an agent channel.
@@ -145,6 +145,25 @@ export type AgentChannelSpec = Message<"ai.stigmer.agentic.agentchannel.v1.Agent
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceReference app_ref = 5;
    */
   appRef?: ApiResourceReference;
+
+  /**
+   * Whether the serving agent may send business-initiated (proactive)
+   * messages on this channel. Off by default: a channel is reply-only
+   * until its owner grants this.
+   *
+   * @internal
+   * proactive-messaging DD-002 D5, the DD-014 two-consents operator
+   * lever, living where `enabled` lives (the surface owns the grant).
+   * Existing channels keep reply-only behavior on deploy. Tuning knobs
+   * (rate caps) stay platform config (DD-006 posture); what owners
+   * control is this grant. The runner attaches the send_channel_message
+   * tool only when getByAgent finds an installed + enabled channel with
+   * this flag set — an agent with no proactive channel never sees the
+   * tool.
+   *
+   * @generated from field: bool proactive_messaging_enabled = 7;
+   */
+  proactiveMessagingEnabled: boolean;
 };
 
 /**

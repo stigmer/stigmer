@@ -261,3 +261,142 @@ func TestExtractStringFromUnknownFields(t *testing.T) {
 		})
 	}
 }
+
+func TestAssignServiceRoles(t *testing.T) {
+	const dir = "ai/stigmer/agentic/example/v1/"
+
+	tests := []struct {
+		name     string
+		services []serviceRoleInput
+		expected map[string]string
+	}{
+		{
+			"primary controllers keep bare roles",
+			[]serviceRoleInput{
+				{"AgentChannelCommandController", dir + "command.proto"},
+				{"AgentChannelQueryController", dir + "query.proto"},
+			},
+			map[string]string{
+				"AgentChannelCommandController": "command",
+				"AgentChannelQueryController":   "query",
+			},
+		},
+		{
+			// The motivating case: message_query.proto sorts before
+			// query.proto, but the bare "query" role must stay with the
+			// service defined in query.proto.
+			"added services never rename existing roles",
+			[]serviceRoleInput{
+				{"AgentChannelCommandController", dir + "command.proto"},
+				{"ChannelMessageCommandController", dir + "message_command.proto"},
+				{"ChannelMessageQueryController", dir + "message_query.proto"},
+				{"AgentChannelQueryController", dir + "query.proto"},
+			},
+			map[string]string{
+				"AgentChannelCommandController":   "command",
+				"AgentChannelQueryController":     "query",
+				"ChannelMessageCommandController": "channelMessageCommand",
+				"ChannelMessageQueryController":   "channelMessageQuery",
+			},
+		},
+		{
+			"datastore record controllers get unique roles",
+			[]serviceRoleInput{
+				{"DatastoreCommandController", dir + "command.proto"},
+				{"DatastoreQueryController", dir + "query.proto"},
+				{"DatastoreRecordCommandController", dir + "record_command.proto"},
+				{"DatastoreRecordQueryController", dir + "record_query.proto"},
+			},
+			map[string]string{
+				"DatastoreCommandController":       "command",
+				"DatastoreQueryController":         "query",
+				"DatastoreRecordCommandController": "datastoreRecordCommand",
+				"DatastoreRecordQueryController":   "datastoreRecordQuery",
+			},
+		},
+		{
+			"token role is uncontested",
+			[]serviceRoleInput{
+				{"PlatformClientCommandController", dir + "command.proto"},
+				{"PlatformClientQueryController", dir + "query.proto"},
+				{"PlatformClientTokenController", dir + "token.proto"},
+			},
+			map[string]string{
+				"PlatformClientCommandController": "command",
+				"PlatformClientQueryController":   "query",
+				"PlatformClientTokenController":   "token",
+			},
+		},
+		{
+			"role-keyword-free name in query.proto keeps the query role",
+			[]serviceRoleInput{
+				{"SearchService", dir + "query.proto"},
+			},
+			map[string]string{
+				"SearchService": "query",
+			},
+		},
+		{
+			"single claimant keeps bare role regardless of file name",
+			[]serviceRoleInput{
+				{"FooQueryController", dir + "foo_query.proto"},
+			},
+			map[string]string{
+				"FooQueryController": "query",
+			},
+		},
+		{
+			"collision with no role-named file yields unique roles for all",
+			[]serviceRoleInput{
+				{"BarQueryController", dir + "bar_query.proto"},
+				{"FooQueryController", dir + "foo_query.proto"},
+			},
+			map[string]string{
+				"BarQueryController": "barQuery",
+				"FooQueryController": "fooQuery",
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Roles are field names on the generated SDK clients, so the
+			// assignment must be identical under every discovery order.
+			permuteServiceRoleInputs(tc.services, func(perm []serviceRoleInput) {
+				got := assignServiceRoles(perm)
+				if len(got) != len(tc.expected) {
+					t.Fatalf("assignServiceRoles(%v) returned %d roles, want %d", perm, len(got), len(tc.expected))
+				}
+				for svc, wantRole := range tc.expected {
+					if got[svc] != wantRole {
+						t.Errorf("assignServiceRoles(order %v): role for %s = %q, want %q", perm, svc, got[svc], wantRole)
+					}
+				}
+			})
+		})
+	}
+}
+
+// permuteServiceRoleInputs invokes fn with every permutation of services
+// (Heap's algorithm; the test inputs are small).
+func permuteServiceRoleInputs(services []serviceRoleInput, fn func([]serviceRoleInput)) {
+	perm := make([]serviceRoleInput, len(services))
+	copy(perm, services)
+
+	var generate func(k int)
+	generate = func(k int) {
+		if k <= 1 {
+			fn(perm)
+			return
+		}
+		for i := 0; i < k; i++ {
+			generate(k - 1)
+			if k%2 == 0 {
+				perm[i], perm[k-1] = perm[k-1], perm[i]
+			} else {
+				perm[0], perm[k-1] = perm[k-1], perm[0]
+			}
+		}
+	}
+	generate(len(perm))
+}

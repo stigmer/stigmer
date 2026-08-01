@@ -23,6 +23,7 @@ public final class AgentChannelInput {
     private final WhatsAppChannelConfigInput whatsapp;
     private final java.util.List<ResourceRef> environmentRefs;
     private final ResourceRef appRef;
+    private final boolean proactiveMessagingEnabled;
 
     private AgentChannelInput(Builder builder) {
         this.name = builder.name;
@@ -36,6 +37,7 @@ public final class AgentChannelInput {
         this.whatsapp = builder.whatsapp;
         this.environmentRefs = builder.environmentRefs;
         this.appRef = builder.appRef;
+        this.proactiveMessagingEnabled = builder.proactiveMessagingEnabled;
     }
 
     AgentChannel toProto() {
@@ -61,6 +63,7 @@ public final class AgentChannelInput {
             spec.setAppRef(this.appRef.toProto().toBuilder()
                 .setKind(ApiResourceKind.channel_app).build());
         }
+        spec.setProactiveMessagingEnabled(this.proactiveMessagingEnabled);
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
@@ -95,6 +98,7 @@ public final class AgentChannelInput {
         private WhatsAppChannelConfigInput whatsapp;
         private java.util.List<ResourceRef> environmentRefs;
         private ResourceRef appRef;
+        private boolean proactiveMessagingEnabled;
 
         private Builder() {}
 
@@ -109,6 +113,7 @@ public final class AgentChannelInput {
         public Builder whatsapp(WhatsAppChannelConfigInput whatsapp) { this.whatsapp = whatsapp; return this; }
         public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
         public Builder appRef(ResourceRef appRef) { this.appRef = appRef; return this; }
+        public Builder proactiveMessagingEnabled(boolean proactiveMessagingEnabled) { this.proactiveMessagingEnabled = proactiveMessagingEnabled; return this; }
 
         public AgentChannelInput build() { return new AgentChannelInput(this); }
     }

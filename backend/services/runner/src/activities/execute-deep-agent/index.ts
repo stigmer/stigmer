@@ -76,9 +76,23 @@ import {
 } from "../../shared/tool-row.js";
 import { stampFlowedFileEditRows, stampFlowedSubAgentFileEditRows } from "./stamp-flowed-rows.js";
 import { deriveTurnCommandProvenance } from "./command-provenance.js";
+import { describeExecutionError } from "../../shared/model-error.js";
+import { inferProvider, type LlmProvider } from "../../shared/llm-proxy.js";
 
 /** The harness id stamped on the deep-agent's file-review ledger events. */
 const DEEP_AGENT_HARNESS_ID = "deep-agent";
+
+/**
+ * Best-effort provider inference for error-message wording. inferProvider
+ * throws on unrecognized names; an error path must never throw over a label.
+ */
+function tryInferProvider(modelName: string): LlmProvider | undefined {
+  try {
+    return inferProvider(modelName);
+  } catch {
+    return undefined;
+  }
+}
 
 export function createDeepAgentActivities(config: Config) {
   const client = new StigmerClient({
@@ -752,8 +766,15 @@ export function createDeepAgentActivities(config: Config) {
           throw new CancelledFailure("Activity paused by orchestrator (error during cancellation)");
         }
 
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        const errorType = err instanceof Error ? err.constructor.name : "UnknownError";
+        // Classify before formatting: model-call failures get stable codes
+        // and platform-vs-user attribution (LangChain's MiddlewareError
+        // wrapper is unwrapped to the root SDK error); non-model failures
+        // keep the root error's own identity. See shared/model-error.ts.
+        const { errorType, errorMessage } = describeExecutionError(err, {
+          proxyMode: !!config.proxyEndpoint,
+          modelId: setup?.modelName,
+          provider: setup ? tryInferProvider(setup.modelName) : undefined,
+        });
 
         console.error(
           `[ExecuteDeepAgent] Failed for execution ${executionId}: ` +

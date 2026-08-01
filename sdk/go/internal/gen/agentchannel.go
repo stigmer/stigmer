@@ -13,14 +13,18 @@ import (
 
 // AgentChannelClient provides operations on agentchannel resources.
 type AgentChannelClient struct {
-	command agentchannelv1.AgentChannelCommandControllerClient
-	query   agentchannelv1.AgentChannelQueryControllerClient
+	command               agentchannelv1.AgentChannelCommandControllerClient
+	channelMessageCommand agentchannelv1.ChannelMessageCommandControllerClient
+	channelMessageQuery   agentchannelv1.ChannelMessageQueryControllerClient
+	query                 agentchannelv1.AgentChannelQueryControllerClient
 }
 
 func NewAgentChannelClient(conn grpc.ClientConnInterface) *AgentChannelClient {
 	return &AgentChannelClient{
-		command: agentchannelv1.NewAgentChannelCommandControllerClient(conn),
-		query:   agentchannelv1.NewAgentChannelQueryControllerClient(conn),
+		command:               agentchannelv1.NewAgentChannelCommandControllerClient(conn),
+		channelMessageCommand: agentchannelv1.NewChannelMessageCommandControllerClient(conn),
+		channelMessageQuery:   agentchannelv1.NewChannelMessageQueryControllerClient(conn),
+		query:                 agentchannelv1.NewAgentChannelQueryControllerClient(conn),
 	}
 }
 
@@ -54,6 +58,16 @@ func (a *AgentChannelClient) Delete(ctx context.Context, id string) (*agentchann
 	return resp, wrapErr(err)
 }
 
+func (a *AgentChannelClient) SendMessage(ctx context.Context, input *agentchannelv1.SendChannelMessageInput) (*agentchannelv1.SendChannelMessageOutput, error) {
+	resp, err := a.channelMessageCommand.SendMessage(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (a *AgentChannelClient) ListTemplates(ctx context.Context, input *agentchannelv1.ListChannelTemplatesInput) (*agentchannelv1.ChannelTemplates, error) {
+	resp, err := a.channelMessageQuery.ListTemplates(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (a *AgentChannelClient) Get(ctx context.Context, id string) (*agentchannelv1.AgentChannel, error) {
 	resp, err := a.query.Get(ctx, &agentchannelv1.AgentChannelId{Value: id})
 	return resp, wrapErr(err)
@@ -77,17 +91,18 @@ func (a *AgentChannelClient) List(ctx context.Context, input *agentchannelv1.Lis
 
 // AgentChannelInput holds the fields for creating/updating a AgentChannel.
 type AgentChannelInput struct {
-	Name            string
-	Slug            string
-	Org             string
-	Labels          map[string]string
-	Visibility      apiresource.ApiResourceVisibility
-	AgentRef        ResourceRef
-	Enabled         bool
-	Slack           *SlackChannelConfigInput
-	Whatsapp        *WhatsAppChannelConfigInput
-	EnvironmentRefs []ResourceRef
-	AppRef          ResourceRef
+	Name                      string
+	Slug                      string
+	Org                       string
+	Labels                    map[string]string
+	Visibility                apiresource.ApiResourceVisibility
+	AgentRef                  ResourceRef
+	Enabled                   bool
+	Slack                     *SlackChannelConfigInput
+	Whatsapp                  *WhatsAppChannelConfigInput
+	EnvironmentRefs           []ResourceRef
+	AppRef                    ResourceRef
+	ProactiveMessagingEnabled bool
 }
 
 // SlackChannelConfigInput is the SDK input type for SlackChannelConfig.
@@ -137,6 +152,7 @@ func (i *AgentChannelInput) toProto() *agentchannelv1.AgentChannel {
 		ref.Kind = apiresourcekind.ApiResourceKind_channel_app
 		resource.Spec.AppRef = ref
 	}
+	resource.Spec.ProactiveMessagingEnabled = i.ProactiveMessagingEnabled
 	return resource
 }
 
@@ -160,6 +176,7 @@ func AgentChannelInputFromProto(p *agentchannelv1.AgentChannel) *AgentChannelInp
 			input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
 		}
 		input.AppRef = resourceRefFromProto(s.GetAppRef())
+		input.ProactiveMessagingEnabled = s.GetProactiveMessagingEnabled()
 		if ov := s.GetSlack(); ov != nil {
 			input.Slack = &SlackChannelConfigInput{}
 		}

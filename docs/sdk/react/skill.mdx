@@ -543,7 +543,8 @@ Fetches the skill's ZIP artifact, unpacks it, and renders:
 - Left panel: file tree with folder grouping
 - Right panel: content viewer (rendered Markdown for .md, raw code otherwise)
 
-SKILL.md is selected by default on load.
+SKILL.md is selected by default on load; packages without a root SKILL.md
+fall back to the first file in tree order.
 Responsive: stacked layout on mobile viewports.
 
 Zero Console dependencies — safe for platform builder embedding.

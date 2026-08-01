@@ -80,6 +80,16 @@
       "description": "Reference to the ChannelApp this channel installs through.\n\n For Slack, absent means the channel uses the platform's shared\n Stigmer app — the zero-setup default. Set it to install through your\n own provider app instead: the bot carries the app's name and icon,\n and each app is its own bot identity, so multiple agents can serve\n one workspace. For WhatsApp the reference is required — every\n WhatsApp channel installs through your own Meta app (DD-WA-2).\n\n @internal\n T04 item 2. Invariants (enforced in handlers of both editions):\n app_ref.org must equal metadata.org (secrets never cross orgs — the\n agent_ref rule), and the ref is immutable while install_state ==\n installed (the workspace granted THAT app; switching apps requires\n re-install, so pending/revoked channels may rebind freely). No\n write-time existence or provider-match check, matching the\n environment_refs posture: the install flow resolves the app and\n fails closed on a missing or wrong-provider reference.",
       "required": false,
       "referenceKind": 48
+    },
+    {
+      "name": "ProactiveMessagingEnabled",
+      "jsonName": "proactiveMessagingEnabled",
+      "protoField": "proactive_messaging_enabled",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether the serving agent may send business-initiated (proactive)\n messages on this channel. Off by default: a channel is reply-only\n until its owner grants this.\n\n @internal\n proactive-messaging DD-002 D5, the DD-014 two-consents operator\n lever, living where `enabled` lives (the surface owns the grant).\n Existing channels keep reply-only behavior on deploy. Tuning knobs\n (rate caps) stay platform config (DD-006 posture); what owners\n control is this grant. The runner attaches the send_channel_message\n tool only when getByAgent finds an installed + enabled channel with\n this flag set — an agent with no proactive channel never sees the\n tool.",
+      "required": false
     }
   ]
 }

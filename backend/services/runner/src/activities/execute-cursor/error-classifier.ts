@@ -23,6 +23,7 @@ import type { CapturedRejection } from "./rejection-capture.js";
 
 export type ErrorCategory =
   | "auth"
+  | "billing"
   | "rate-limit"
   | "network"
   | "agent-stale"
@@ -51,9 +52,19 @@ const AUTH_PATTERNS = [
   "unauthenticated", "unauthorized", "401", "forbidden",
   "permission_denied", "invalid api key", "not logged in",
 ];
+// Billing/quota exhaustion is terminal, unlike a transient rate limit —
+// retrying cannot succeed until someone adds credits. "usage limit" moved
+// here from RATE_LIMIT_PATTERNS (it previously classified as retryable,
+// which burned retries against an exhausted account). Includes the platform
+// sentinel (see shared/model-error.ts) so a platform-attributed rewrite
+// relayed through Cursor infrastructure is also diagnosed as billing.
+const BILLING_PATTERNS = [
+  "credit balance is too low", "insufficient_quota",
+  "no credits remaining", "exceeded your current quota",
+  "usage limit", "stigmer_platform_model_capacity",
+];
 const RATE_LIMIT_PATTERNS = [
   "resource_exhausted", "rate limit", "429", "too many",
-  "usage limit",
 ];
 const NETWORK_PATTERNS = [
   "unavailable", "deadline_exceeded", "503", "504",
@@ -71,6 +82,9 @@ function matchesAny(text: string, patterns: string[]): boolean {
 }
 
 function classifyText(text: string): { category: ErrorCategory; retryable: boolean } {
+  // Billing before auth/rate-limit: billing prose can carry "429" or quota
+  // wording that would otherwise match the transient rate-limit patterns.
+  if (matchesAny(text, BILLING_PATTERNS)) return { category: "billing", retryable: false };
   if (matchesAny(text, AUTH_PATTERNS)) return { category: "auth", retryable: false };
   if (matchesAny(text, RATE_LIMIT_PATTERNS)) return { category: "rate-limit", retryable: true };
   if (matchesAny(text, NETWORK_PATTERNS)) return { category: "network", retryable: true };
@@ -183,7 +197,9 @@ function classifyFromSources(opts: SynthesizeErrorOpts): ClassifiedError {
     return {
       category: category === "unknown" ? "network" : category,
       message: `[${opts.capturedRejection.code}] ${opts.capturedRejection.message}`,
-      retryable: category !== "auth",
+      // Rejections default to retryable (transport flakes), except the two
+      // terminal diagnoses that cannot self-heal on retry.
+      retryable: category !== "auth" && category !== "billing",
       source: "rejection",
     };
   }

@@ -113,9 +113,23 @@ type AgentChannelSpec struct {
 	// write-time existence or provider-match check, matching the
 	// environment_refs posture: the install flow resolves the app and
 	// fails closed on a missing or wrong-provider reference.
-	AppRef        *apiresource.ApiResourceReference `protobuf:"bytes,5,opt,name=app_ref,json=appRef,proto3" json:"app_ref,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	AppRef *apiresource.ApiResourceReference `protobuf:"bytes,5,opt,name=app_ref,json=appRef,proto3" json:"app_ref,omitempty"`
+	// Whether the serving agent may send business-initiated (proactive)
+	// messages on this channel. Off by default: a channel is reply-only
+	// until its owner grants this.
+	//
+	// @internal
+	// proactive-messaging DD-002 D5, the DD-014 two-consents operator
+	// lever, living where `enabled` lives (the surface owns the grant).
+	// Existing channels keep reply-only behavior on deploy. Tuning knobs
+	// (rate caps) stay platform config (DD-006 posture); what owners
+	// control is this grant. The runner attaches the send_channel_message
+	// tool only when getByAgent finds an installed + enabled channel with
+	// this flag set — an agent with no proactive channel never sees the
+	// tool.
+	ProactiveMessagingEnabled bool `protobuf:"varint,7,opt,name=proactive_messaging_enabled,json=proactiveMessagingEnabled,proto3" json:"proactive_messaging_enabled,omitempty"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *AgentChannelSpec) Reset() {
@@ -199,6 +213,13 @@ func (x *AgentChannelSpec) GetAppRef() *apiresource.ApiResourceReference {
 		return x.AppRef
 	}
 	return nil
+}
+
+func (x *AgentChannelSpec) GetProactiveMessagingEnabled() bool {
+	if x != nil {
+		return x.ProactiveMessagingEnabled
+	}
+	return false
 }
 
 type isAgentChannelSpec_ProviderConfig interface {
@@ -336,7 +357,7 @@ var File_ai_stigmer_agentic_agentchannel_v1_spec_proto protoreflect.FileDescript
 
 const file_ai_stigmer_agentic_agentchannel_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xcb\x06\n" +
+	"-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x8b\a\n" +
 	"\x10AgentChannelSpec\x12\xb6\x01\n" +
 	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n" +
 	"\x0eagent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\bagentRef\x12\x18\n" +
@@ -346,7 +367,8 @@ const file_ai_stigmer_agentic_agentchannel_v1_spec_proto_rawDesc = "" +
 	"\x10environment_refs\x18\x04 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
 	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12\xc4\x01\n" +
 	"\aapp_ref\x18\x05 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBu\xbaHn\xba\x01k\n" +
-	"\fapp_ref.kind\x127app_ref must reference a resource with kind=channel_app\x1a\"this.slug == '' || this.kind == 48\xe0\x85,0R\x06appRefB\x18\n" +
+	"\fapp_ref.kind\x127app_ref must reference a resource with kind=channel_app\x1a\"this.slug == '' || this.kind == 48\xe0\x85,0R\x06appRef\x12>\n" +
+	"\x1bproactive_messaging_enabled\x18\a \x01(\bR\x19proactiveMessagingEnabledB\x18\n" +
 	"\x0fprovider_config\x12\x05\xbaH\x02\b\x01\"\x14\n" +
 	"\x12SlackChannelConfig\"H\n" +
 	"\x15WhatsAppChannelConfig\x12/\n" +

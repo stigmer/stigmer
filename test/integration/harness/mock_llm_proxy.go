@@ -168,11 +168,17 @@ func (m *MockLLMProxyServer) handleRequest(w http.ResponseWriter, r *http.Reques
 	isAnthropic := pathContains(path, "/v1/messages") || pathContains(path, "anthropic")
 	isOpenAI := pathContains(path, "/chat/completions") || pathContains(path, "openai")
 
-	if isStreaming && isAnthropic {
+	// Error entries are written as status + JSON regardless of the request's
+	// stream flag — exactly what the real proxy does: provider errors (and
+	// the proxy's own platform-fault rewrites) arrive as JSON bodies on the
+	// error status, never as SSE, even for streaming requests.
+	isErrorEntry := resp.Status >= 400
+
+	if isStreaming && isAnthropic && !isErrorEntry {
 		m.writeAnthropicSSE(w, resp)
 		return
 	}
-	if isStreaming && isOpenAI {
+	if isStreaming && isOpenAI && !isErrorEntry {
 		m.writeOpenAISSE(w, resp)
 		return
 	}
@@ -692,6 +698,66 @@ func BuildLLMEntry(index int, responseBody map[string]any) RecordedLLMEntry {
 			StatusText: "OK",
 			Headers:    map[string]string{"content-type": "application/json"},
 			Body:       responseBody,
+		},
+	}
+}
+
+// BuildLLMErrorEntry creates an error RecordedLLMEntry. The mock writes it
+// as status + JSON regardless of the request's stream flag, mirroring how
+// the real proxy relays provider errors (see handleRequest).
+func BuildLLMErrorEntry(index int, status int, headers map[string]string, body map[string]any) RecordedLLMEntry {
+	merged := map[string]string{"content-type": "application/json"}
+	for k, v := range headers {
+		merged[k] = v
+	}
+	return RecordedLLMEntry{
+		Index: index,
+		Response: RecordedLLMResponse{
+			Status:  status,
+			Headers: merged,
+			Body:    body,
+		},
+	}
+}
+
+// AnthropicBillingErrorBody is the exact error body Anthropic returns when
+// the API account is out of credits — the raw shape from the
+// stigmer/stigmer#330 incident, used to test error attribution.
+func AnthropicBillingErrorBody() map[string]any {
+	return map[string]any{
+		"type": "error",
+		"error": map[string]any{
+			"type": "invalid_request_error",
+			"message": "Your credit balance is too low to access the Anthropic API. " +
+				"Please go to Plans & Billing to upgrade or purchase credits.",
+		},
+	}
+}
+
+// PlatformCapacityErrorBody mirrors the 503 body stigmer-cloud's
+// PlatformProviderErrorClassifier authors when the platform's own provider
+// key is rejected upstream (billing/auth). Keep in lockstep with
+// PlatformProviderErrorClassifier.rewriteBody — this is the runner-facing
+// half of that contract (see the provider-error-attribution DD).
+func PlatformCapacityErrorBody(provider string) map[string]any {
+	message := "The Stigmer platform's model capacity for " + provider +
+		" is temporarily unavailable. This is a platform-side issue — your" +
+		" organization's credits were not charged for this call." +
+		" [code: STIGMER_PLATFORM_MODEL_CAPACITY]"
+	if provider == "anthropic" {
+		return map[string]any{
+			"type": "error",
+			"error": map[string]any{
+				"type":    "api_error",
+				"message": message,
+			},
+		}
+	}
+	return map[string]any{
+		"error": map[string]any{
+			"message": message,
+			"type":    "server_error",
+			"code":    "stigmer_platform_model_capacity",
 		},
 	}
 }

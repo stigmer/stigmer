@@ -12,6 +12,7 @@ go_library(
         "get_by_reference.go",
         "install.go",
         "list.go",
+        "message.go",
         "steps.go",
         "update.go",
     ],

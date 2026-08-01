@@ -8,6 +8,9 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentChannelSchema, type AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
 import { AgentChannelIdSchema, InitiateChannelInstallInputSchema, InitiateChannelInstallOutputSchema, CompleteChannelInstallInputSchema, GetAgentChannelsByAgentRequestSchema, AgentChannelListSchema, ListAgentChannelsRequestSchema, type InitiateChannelInstallInput, type InitiateChannelInstallOutput, type CompleteChannelInstallInput, type GetAgentChannelsByAgentRequest, type AgentChannelList, type ListAgentChannelsRequest } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
+import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
+import { SendChannelMessageInputSchema, SendChannelMessageOutputSchema, ListChannelTemplatesInputSchema, ChannelTemplatesSchema, type SendChannelMessageInput, type SendChannelMessageOutput, type ListChannelTemplatesInput, type ChannelTemplates } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
 import { AgentChannelSpecSchema, SlackChannelConfigSchema, WhatsAppChannelConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
@@ -18,10 +21,14 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 /** Provides operations on agentchannel resources. */
 export class AgentChannelClient {
   private readonly command: Client<typeof AgentChannelCommandController>;
+  private readonly channelMessageCommand: Client<typeof ChannelMessageCommandController>;
+  private readonly channelMessageQuery: Client<typeof ChannelMessageQueryController>;
   private readonly query: Client<typeof AgentChannelQueryController>;
 
   constructor(transport: Transport) {
     this.command = createClient(AgentChannelCommandController, transport);
+    this.channelMessageCommand = createClient(ChannelMessageCommandController, transport);
+    this.channelMessageQuery = createClient(ChannelMessageQueryController, transport);
     this.query = createClient(AgentChannelQueryController, transport);
   }
 
@@ -58,6 +65,18 @@ export class AgentChannelClient {
   async delete(id: string): Promise<AgentChannel> {
     try {
       return await this.command.delete(create(AgentChannelIdSchema, { value: id }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async sendMessage(input: SendChannelMessageInput): Promise<SendChannelMessageOutput> {
+    try {
+      return await this.channelMessageCommand.sendMessage(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async listTemplates(input: ListChannelTemplatesInput): Promise<ChannelTemplates> {
+    try {
+      return await this.channelMessageQuery.listTemplates(input);
     } catch (e) { throw wrapError(e); }
   }
 
@@ -99,6 +118,7 @@ export interface AgentChannelInput {
   whatsapp?: WhatsAppChannelConfigInput;
   environmentRefs?: ResourceRef[];
   appRef?: ResourceRef;
+  proactiveMessagingEnabled?: boolean;
 }
 
 /** SDK input type for SlackChannelConfig. */
@@ -130,6 +150,7 @@ export function buildAgentChannelProto(input: AgentChannelInput): AgentChannel {
     enabled: input.enabled,
     environmentRefs,
     appRef,
+    proactiveMessagingEnabled: input.proactiveMessagingEnabled,
   }));
   if (input.slack) {
     spec.providerConfig = { case: "slack", value: buildSlackChannelConfigProto(input.slack) };

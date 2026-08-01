@@ -536,6 +536,33 @@ private static final long serialVersionUID = 0L;
     return appRef_ == null ? ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance() : appRef_;
   }
 
+  public static final int PROACTIVE_MESSAGING_ENABLED_FIELD_NUMBER = 7;
+  private boolean proactiveMessagingEnabled_ = false;
+  /**
+   * <pre>
+   * Whether the serving agent may send business-initiated (proactive)
+   * messages on this channel. Off by default: a channel is reply-only
+   * until its owner grants this.
+   *
+   * &#64;internal
+   * proactive-messaging DD-002 D5, the DD-014 two-consents operator
+   * lever, living where `enabled` lives (the surface owns the grant).
+   * Existing channels keep reply-only behavior on deploy. Tuning knobs
+   * (rate caps) stay platform config (DD-006 posture); what owners
+   * control is this grant. The runner attaches the send_channel_message
+   * tool only when getByAgent finds an installed + enabled channel with
+   * this flag set — an agent with no proactive channel never sees the
+   * tool.
+   * </pre>
+   *
+   * <code>bool proactive_messaging_enabled = 7 [json_name = "proactiveMessagingEnabled"];</code>
+   * @return The proactiveMessagingEnabled.
+   */
+  @java.lang.Override
+  public boolean getProactiveMessagingEnabled() {
+    return proactiveMessagingEnabled_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -567,6 +594,9 @@ private static final long serialVersionUID = 0L;
     }
     if (providerConfigCase_ == 6) {
       output.writeMessage(6, (ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig) providerConfig_);
+    }
+    if (proactiveMessagingEnabled_ != false) {
+      output.writeBool(7, proactiveMessagingEnabled_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -606,6 +636,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(6, (ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig) providerConfig_);
     }
+    if (proactiveMessagingEnabled_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(7, proactiveMessagingEnabled_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -635,6 +669,8 @@ private static final long serialVersionUID = 0L;
       if (!getAppRef()
           .equals(other.getAppRef())) return false;
     }
+    if (getProactiveMessagingEnabled()
+        != other.getProactiveMessagingEnabled()) return false;
     if (!getProviderConfigCase().equals(other.getProviderConfigCase())) return false;
     switch (providerConfigCase_) {
       case 3:
@@ -674,6 +710,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + APP_REF_FIELD_NUMBER;
       hash = (53 * hash) + getAppRef().hashCode();
     }
+    hash = (37 * hash) + PROACTIVE_MESSAGING_ENABLED_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getProactiveMessagingEnabled());
     switch (providerConfigCase_) {
       case 3:
         hash = (37 * hash) + SLACK_FIELD_NUMBER;
@@ -867,6 +906,7 @@ private static final long serialVersionUID = 0L;
         appRefBuilder_.dispose();
         appRefBuilder_ = null;
       }
+      proactiveMessagingEnabled_ = false;
       providerConfigCase_ = 0;
       providerConfig_ = null;
       return this;
@@ -932,6 +972,9 @@ private static final long serialVersionUID = 0L;
             : appRefBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.proactiveMessagingEnabled_ = proactiveMessagingEnabled_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -994,6 +1037,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasAppRef()) {
         mergeAppRef(other.getAppRef());
+      }
+      if (other.getProactiveMessagingEnabled() != false) {
+        setProactiveMessagingEnabled(other.getProactiveMessagingEnabled());
       }
       switch (other.getProviderConfigCase()) {
         case SLACK: {
@@ -1080,6 +1126,11 @@ private static final long serialVersionUID = 0L;
               providerConfigCase_ = 6;
               break;
             } // case 50
+            case 56: {
+              proactiveMessagingEnabled_ = input.readBool();
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 56
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2766,6 +2817,86 @@ private static final long serialVersionUID = 0L;
         appRef_ = null;
       }
       return appRefBuilder_;
+    }
+
+    private boolean proactiveMessagingEnabled_ ;
+    /**
+     * <pre>
+     * Whether the serving agent may send business-initiated (proactive)
+     * messages on this channel. Off by default: a channel is reply-only
+     * until its owner grants this.
+     *
+     * &#64;internal
+     * proactive-messaging DD-002 D5, the DD-014 two-consents operator
+     * lever, living where `enabled` lives (the surface owns the grant).
+     * Existing channels keep reply-only behavior on deploy. Tuning knobs
+     * (rate caps) stay platform config (DD-006 posture); what owners
+     * control is this grant. The runner attaches the send_channel_message
+     * tool only when getByAgent finds an installed + enabled channel with
+     * this flag set — an agent with no proactive channel never sees the
+     * tool.
+     * </pre>
+     *
+     * <code>bool proactive_messaging_enabled = 7 [json_name = "proactiveMessagingEnabled"];</code>
+     * @return The proactiveMessagingEnabled.
+     */
+    @java.lang.Override
+    public boolean getProactiveMessagingEnabled() {
+      return proactiveMessagingEnabled_;
+    }
+    /**
+     * <pre>
+     * Whether the serving agent may send business-initiated (proactive)
+     * messages on this channel. Off by default: a channel is reply-only
+     * until its owner grants this.
+     *
+     * &#64;internal
+     * proactive-messaging DD-002 D5, the DD-014 two-consents operator
+     * lever, living where `enabled` lives (the surface owns the grant).
+     * Existing channels keep reply-only behavior on deploy. Tuning knobs
+     * (rate caps) stay platform config (DD-006 posture); what owners
+     * control is this grant. The runner attaches the send_channel_message
+     * tool only when getByAgent finds an installed + enabled channel with
+     * this flag set — an agent with no proactive channel never sees the
+     * tool.
+     * </pre>
+     *
+     * <code>bool proactive_messaging_enabled = 7 [json_name = "proactiveMessagingEnabled"];</code>
+     * @param value The proactiveMessagingEnabled to set.
+     * @return This builder for chaining.
+     */
+    public Builder setProactiveMessagingEnabled(boolean value) {
+
+      proactiveMessagingEnabled_ = value;
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether the serving agent may send business-initiated (proactive)
+     * messages on this channel. Off by default: a channel is reply-only
+     * until its owner grants this.
+     *
+     * &#64;internal
+     * proactive-messaging DD-002 D5, the DD-014 two-consents operator
+     * lever, living where `enabled` lives (the surface owns the grant).
+     * Existing channels keep reply-only behavior on deploy. Tuning knobs
+     * (rate caps) stay platform config (DD-006 posture); what owners
+     * control is this grant. The runner attaches the send_channel_message
+     * tool only when getByAgent finds an installed + enabled channel with
+     * this flag set — an agent with no proactive channel never sees the
+     * tool.
+     * </pre>
+     *
+     * <code>bool proactive_messaging_enabled = 7 [json_name = "proactiveMessagingEnabled"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearProactiveMessagingEnabled() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      proactiveMessagingEnabled_ = false;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec)

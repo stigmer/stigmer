@@ -90,12 +90,14 @@ AgentChannel agentChannel = client.agentChannels().get("ach_01j5q3k7m8r2s4tnz2hf
 | [`getByAgent`](#getbyagent) | Get all channels of a specific agent. |
 | [`getByReference`](#getbyreference) | Get an agent channel by its organization-scoped reference (org/slug). |
 | [`list`](#list) | List agent channels with optional label filtering. |
+| [`listTemplates`](#listtemplates) | List the message templates available on an agent channel. |
 | [`apply`](#apply) | Create or update an agent channel. |
 | [`create`](#create) | Create an agent channel. |
 | [`update`](#update) | Update an existing agent channel. |
 | [`delete`](#delete) | Delete an agent channel. |
 | [`completeInstall`](#completeinstall) | Complete the provider install flow for an agent channel. |
 | [`initiateInstall`](#initiateinstall) | Start the provider install flow for an agent channel. |
+| [`sendMessage`](#sendmessage) | Send a business-initiated message to a recipient on an agent channel. |
 
 ### get
 
@@ -279,6 +281,55 @@ AgentChannelList result = client.agentChannels().list(ListAgentChannelsRequest.b
 
 **Returns**: [`AgentChannelList`](#agentchannellist)
 
+### listTemplates
+
+List the message templates available on an agent channel.
+
+Read live from the channel provider's registry (WhatsApp: the WABA's templates), lightly cached. The provider is the source of truth; entries carry its vocabulary verbatim.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const channelTemplates = await stigmer.agentChannel.listTemplates({
+  channel: "...",
+  org: "...",
+  approvedOnly: false,
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+channelTemplates, err := client.AgentChannel.ListTemplates(ctx, &stigmer.ListChannelTemplatesInput{
+  Channel:      "...",
+  Org:          "...",
+  ApprovedOnly: false,
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+channel_templates = client.agent_channels.list_templates(ListChannelTemplatesInput(
+    channel="...",
+    org="...",
+    approved_only=False,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ChannelTemplates channelTemplates = client.agentChannels().listTemplates(ListChannelTemplatesInput.builder()
+    .channel("...")
+    .org("...")
+    .approvedOnly(false)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListChannelTemplatesInput`](#listchanneltemplatesinput)
+
+**Returns**: [`ChannelTemplates`](#channeltemplates)
+
 ### apply
 
 Create or update an agent channel.
@@ -297,22 +348,24 @@ const agentChannel = await stigmer.agentChannel.apply({
   whatsapp: {},
   environmentRefs: [],
   appRef: {},
+  proactiveMessagingEnabled: false,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 agentChannel, err := client.AgentChannel.Apply(ctx, &stigmer.AgentChannelInput{
-  Name:            "my-agent-channel",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  AgentRef:        &stigmer.ResourceRef{},
-  Enabled:         false,
-  Slack:           &stigmer.SlackChannelConfigInput{},
-  Whatsapp:        &stigmer.WhatsAppChannelConfigInput{},
-  EnvironmentRefs: []stigmer.ResourceRef{},
-  AppRef:          &stigmer.ResourceRef{},
+  Name:                      "my-agent-channel",
+  Org:                       "acme",
+  Slug:                      "...",
+  Labels:                    map[string]string{},
+  AgentRef:                  &stigmer.ResourceRef{},
+  Enabled:                   false,
+  Slack:                     &stigmer.SlackChannelConfigInput{},
+  Whatsapp:                  &stigmer.WhatsAppChannelConfigInput{},
+  EnvironmentRefs:           []stigmer.ResourceRef{},
+  AppRef:                    &stigmer.ResourceRef{},
+  ProactiveMessagingEnabled: false,
 })
 ```
 </Tab>
@@ -329,6 +382,7 @@ agent_channel = client.agent_channels.apply(AgentChannelInput(
     whatsapp=None,
     environment_refs=[],
     app_ref=None,
+    proactive_messaging_enabled=False,
 ))
 ```
 </Tab>
@@ -345,6 +399,7 @@ AgentChannel agentChannel = client.agentChannels().apply(AgentChannelInput.build
     .whatsapp(null)
     .environmentRefs(List.of())
     .appRef(null)
+    .proactiveMessagingEnabled(false)
     .build());
 ```
 </Tab>
@@ -374,22 +429,24 @@ const agentChannel = await stigmer.agentChannel.create({
   whatsapp: {},
   environmentRefs: [],
   appRef: {},
+  proactiveMessagingEnabled: false,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 agentChannel, err := client.AgentChannel.Create(ctx, &stigmer.AgentChannelInput{
-  Name:            "my-agent-channel",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  AgentRef:        &stigmer.ResourceRef{},
-  Enabled:         false,
-  Slack:           &stigmer.SlackChannelConfigInput{},
-  Whatsapp:        &stigmer.WhatsAppChannelConfigInput{},
-  EnvironmentRefs: []stigmer.ResourceRef{},
-  AppRef:          &stigmer.ResourceRef{},
+  Name:                      "my-agent-channel",
+  Org:                       "acme",
+  Slug:                      "...",
+  Labels:                    map[string]string{},
+  AgentRef:                  &stigmer.ResourceRef{},
+  Enabled:                   false,
+  Slack:                     &stigmer.SlackChannelConfigInput{},
+  Whatsapp:                  &stigmer.WhatsAppChannelConfigInput{},
+  EnvironmentRefs:           []stigmer.ResourceRef{},
+  AppRef:                    &stigmer.ResourceRef{},
+  ProactiveMessagingEnabled: false,
 })
 ```
 </Tab>
@@ -406,6 +463,7 @@ agent_channel = client.agent_channels.create(AgentChannelInput(
     whatsapp=None,
     environment_refs=[],
     app_ref=None,
+    proactive_messaging_enabled=False,
 ))
 ```
 </Tab>
@@ -422,6 +480,7 @@ AgentChannel agentChannel = client.agentChannels().create(AgentChannelInput.buil
     .whatsapp(null)
     .environmentRefs(List.of())
     .appRef(null)
+    .proactiveMessagingEnabled(false)
     .build());
 ```
 </Tab>
@@ -451,22 +510,24 @@ const agentChannel = await stigmer.agentChannel.update({
   whatsapp: {},
   environmentRefs: [],
   appRef: {},
+  proactiveMessagingEnabled: false,
 });
 ```
 </Tab>
 <Tab value="Go">
 ```go
 agentChannel, err := client.AgentChannel.Update(ctx, &stigmer.AgentChannelInput{
-  Name:            "my-agent-channel",
-  Org:             "acme",
-  Slug:            "...",
-  Labels:          map[string]string{},
-  AgentRef:        &stigmer.ResourceRef{},
-  Enabled:         false,
-  Slack:           &stigmer.SlackChannelConfigInput{},
-  Whatsapp:        &stigmer.WhatsAppChannelConfigInput{},
-  EnvironmentRefs: []stigmer.ResourceRef{},
-  AppRef:          &stigmer.ResourceRef{},
+  Name:                      "my-agent-channel",
+  Org:                       "acme",
+  Slug:                      "...",
+  Labels:                    map[string]string{},
+  AgentRef:                  &stigmer.ResourceRef{},
+  Enabled:                   false,
+  Slack:                     &stigmer.SlackChannelConfigInput{},
+  Whatsapp:                  &stigmer.WhatsAppChannelConfigInput{},
+  EnvironmentRefs:           []stigmer.ResourceRef{},
+  AppRef:                    &stigmer.ResourceRef{},
+  ProactiveMessagingEnabled: false,
 })
 ```
 </Tab>
@@ -483,6 +544,7 @@ agent_channel = client.agent_channels.update(AgentChannelInput(
     whatsapp=None,
     environment_refs=[],
     app_ref=None,
+    proactive_messaging_enabled=False,
 ))
 ```
 </Tab>
@@ -499,6 +561,7 @@ AgentChannel agentChannel = client.agentChannels().update(AgentChannelInput.buil
     .whatsapp(null)
     .environmentRefs(List.of())
     .appRef(null)
+    .proactiveMessagingEnabled(false)
     .build());
 ```
 </Tab>
@@ -645,6 +708,59 @@ InitiateChannelInstallOutput initiateChannelInstallOutput = client.agentChannels
 
 **Returns**: [`InitiateChannelInstallOutput`](#initiatechannelinstalloutput)
 
+### sendMessage
+
+Send a business-initiated message to a recipient on an agent channel.
+
+The message is durably recorded and attempted once inline; transient failures are retried in the background. The outcome reports the truth of the inline attempt.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const sendChannelMessageOutput = await stigmer.agentChannel.sendMessage({
+  channel: "...",
+  org: "...",
+  recipient: "...",
+  payload: {},
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+sendChannelMessageOutput, err := client.AgentChannel.SendMessage(ctx, &stigmer.SendChannelMessageInput{
+  Channel:   "...",
+  Org:       "...",
+  Recipient: "...",
+  Payload:   &stigmer.ChannelOutboundPayloadInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+send_channel_message_output = client.agent_channels.send_message(SendChannelMessageInput(
+    channel="...",
+    org="...",
+    recipient="...",
+    payload=None,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SendChannelMessageOutput sendChannelMessageOutput = client.agentChannels().sendMessage(SendChannelMessageInput.builder()
+    .channel("...")
+    .org("...")
+    .recipient("...")
+    .payload(null)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`SendChannelMessageInput`](#sendchannelmessageinput)
+
+**Returns**: [`SendChannelMessageOutput`](#sendchannelmessageoutput)
+
 ## Types
 
 ### AgentChannelInput
@@ -663,6 +779,7 @@ Input for creating or updating an Agent Channel.
     whatsapp: { type: "WhatsAppChannelConfigInput", description: "WhatsApp Business number connection (Meta Cloud API).", typeDescriptionLink: "#whatsappchannelconfiginput" },
     environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources whose values are provided to conversations on this channel.", typeDescriptionLink: "#resourceref" },
     appRef: { type: "ResourceRef", description: "Reference to the ChannelApp this channel installs through.", typeDescriptionLink: "#resourceref" },
+    proactiveMessagingEnabled: { type: "boolean", description: "Whether the serving agent may send business-initiated (proactive) messages on this channel." },
   }}
 />
 
@@ -724,6 +841,54 @@ Input for completing a provider install flow.
     resourceId: { type: "string", description: "ID of the agent channel being installed.", required: true },
     state: { type: "string", description: "Single-use state parameter issued by initiateInstall.", required: true },
     code: { type: "string", description: "Authorization code returned by the provider's consent screen.", required: true },
+  }}
+/>
+
+### SendChannelMessageInput
+
+Input for sending a business-initiated message on an agent channel.
+
+<TypeTable
+  type={{
+    channel: { type: "string", description: "AgentChannel slug to send through, resolved within `org`." },
+    org: { type: "string", description: "Organization the channel belongs to." },
+    recipient: { type: "string", description: "External recipient key on the channel's provider (WhatsApp: the recipient's wa_id)." },
+    payload: { type: "ChannelOutboundPayloadInput", description: "Typed message content.", required: true },
+  }}
+/>
+
+### SendChannelMessageOutput
+
+Output of the send-message RPC: the truthful outcome of the inline delivery attempt.
+
+<TypeTable
+  type={{
+    outcome: { type: "ChannelSendOutcome", description: "Outcome of the inline attempt.", typeDescriptionLink: "#channelsendoutcome" },
+    outboundMessageId: { type: "string", description: "Platform id of the durable outbound record (audit handle)." },
+    providerMessageId: { type: "string", description: "Provider message id when accepted (WhatsApp: wamid)." },
+    detail: { type: "string", description: "Honest, agent-readable detail for queued/refused outcomes." },
+  }}
+/>
+
+### ListChannelTemplatesInput
+
+Input for listing the message templates available on an agent channel.
+
+<TypeTable
+  type={{
+    channel: { type: "string", description: "AgentChannel slug whose provider registry to read, resolved within `org`." },
+    org: { type: "string", description: "Organization the channel belongs to." },
+    approvedOnly: { type: "boolean", description: "When true, only templates the provider will accept for sending are returned (WhatsApp: status APPROVED, filtered server-side)." },
+  }}
+/>
+
+### ChannelTemplates
+
+ChannelTemplates contains the message templates available on an agent channel.
+
+<TypeTable
+  type={{
+    entries: { type: "ChannelTemplateInput[]", description: "Template entries, one per (name, language) pair." },
   }}
 />
 
@@ -819,6 +984,16 @@ WhatsAppInstallStatus holds the facts observed when a WhatsApp Business number w
     installedAt: { type: "string", description: "When the install completed." },
   }}
 />
+
+### ChannelSendOutcome
+
+ChannelSendOutcome reports what happened to a business-initiated message on the inline delivery attempt.
+
+| Value | Description |
+|-------|-------------|
+| `accepted` | Provider accepted the message. |
+| `queued` | Transient failure; the platform retries in the background. |
+| `refused` | Terminal refusal; detail says why (caps, recipient policy, provider policy such as an expired 24-hour window). |
 
 ### AgentChannelInstallState
 
