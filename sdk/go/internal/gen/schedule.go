@@ -44,6 +44,11 @@ func (s *ScheduleClient) Delete(ctx context.Context, id string) (*schedulev1.Sch
 	return resp, wrapErr(err)
 }
 
+func (s *ScheduleClient) Resume(ctx context.Context, id string) (*schedulev1.Schedule, error) {
+	resp, err := s.command.Resume(ctx, &schedulev1.ScheduleId{Value: id})
+	return resp, wrapErr(err)
+}
+
 func (s *ScheduleClient) Get(ctx context.Context, id string) (*schedulev1.Schedule, error) {
 	resp, err := s.query.Get(ctx, &schedulev1.ScheduleId{Value: id})
 	return resp, wrapErr(err)

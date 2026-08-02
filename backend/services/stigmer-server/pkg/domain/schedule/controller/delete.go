@@ -11,9 +11,10 @@ import (
 
 // Delete deletes a schedule by ID using the pipeline pattern.
 //
-// Delete stops firing permanently; disabling (update with enabled=false)
-// is the config-preserving pause. The referenced agent and the
-// executions created by past fires are untouched.
+// Delete stops firing permanently; to stop firing while keeping the
+// schedule and its history, disable it instead (update with
+// enabled=false). The referenced agent and the executions created by
+// past fires are untouched.
 //
 // Pipeline Steps:
 //  1. ValidateProto - Validate proto field constraints (ID wrapper)

@@ -41,7 +41,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\032\'ai/stigmer/agentic/schedule/v1/io.prot" +
       "o\0328ai/stigmer/commons/apiresource/rpc_se" +
       "rvice_options.proto\032+ai/stigmer/commons/" +
-      "rpc/method_options.proto2\214\004\n\031ScheduleCom" +
+      "rpc/method_options.proto2\237\005\n\031ScheduleCom" +
       "mandController\022[\n\005apply\022(.ai.stigmer.age" +
       "ntic.schedule.v1.Schedule\032(.ai.stigmer.a" +
       "gentic.schedule.v1.Schedule\022b\n\006create\022(." +
@@ -54,12 +54,15 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\001\n\006delete\022*.ai.stigmer.agentic.schedule." +
       "v1.ScheduleId\032(.ai.stigmer.agentic.sched" +
       "ule.v1.Schedule\"0\302\270\030,\010\003\0208\"\005value*\037unauth" +
-      "orized to delete schedule\032\004\240\377+8B\253\001B\014Comm" +
-      "andProtoP\001\242\002\004ASAS\252\002\036Ai.Stigmer.Agentic.S" +
-      "chedule.V1\312\002\036Ai\\Stigmer\\Agentic\\Schedule" +
-      "\\V1\342\002*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPB" +
-      "Metadata\352\002\"Ai::Stigmer::Agentic::Schedul" +
-      "e::V1b\006proto3"
+      "orized to delete schedule\022\220\001\n\006resume\022*.a" +
+      "i.stigmer.agentic.schedule.v1.ScheduleId" +
+      "\032(.ai.stigmer.agentic.schedule.v1.Schedu" +
+      "le\"0\302\270\030,\010\002\0208\"\005value*\037unauthorized to res" +
+      "ume schedule\032\004\240\377+8B\253\001B\014CommandProtoP\001\242\002\004" +
+      "ASAS\252\002\036Ai.Stigmer.Agentic.Schedule.V1\312\002\036" +
+      "Ai\\Stigmer\\Agentic\\Schedule\\V1\342\002*Ai\\Stig" +
+      "mer\\Agentic\\Schedule\\V1\\GPBMetadata\352\002\"Ai" +
+      "::Stigmer::Agentic::Schedule::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

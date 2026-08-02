@@ -139,6 +139,37 @@ public final class ScheduleCommandControllerGrpc {
     return getDeleteMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ScheduleId,
+      ai.stigmer.agentic.schedule.v1.Schedule> getResumeMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "resume",
+      requestType = ai.stigmer.agentic.schedule.v1.ScheduleId.class,
+      responseType = ai.stigmer.agentic.schedule.v1.Schedule.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ScheduleId,
+      ai.stigmer.agentic.schedule.v1.Schedule> getResumeMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ScheduleId, ai.stigmer.agentic.schedule.v1.Schedule> getResumeMethod;
+    if ((getResumeMethod = ScheduleCommandControllerGrpc.getResumeMethod) == null) {
+      synchronized (ScheduleCommandControllerGrpc.class) {
+        if ((getResumeMethod = ScheduleCommandControllerGrpc.getResumeMethod) == null) {
+          ScheduleCommandControllerGrpc.getResumeMethod = getResumeMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.schedule.v1.ScheduleId, ai.stigmer.agentic.schedule.v1.Schedule>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "resume"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.schedule.v1.ScheduleId.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.schedule.v1.Schedule.getDefaultInstance()))
+              .setSchemaDescriptor(new ScheduleCommandControllerMethodDescriptorSupplier("resume"))
+              .build();
+        }
+      }
+    }
+    return getResumeMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -212,10 +243,11 @@ public final class ScheduleCommandControllerGrpc {
      * The authorization and state-operation are determined depending on
      * whether the schedule is going to be created or updated, resolved as
      * part of request execution. Status is preserved verbatim across
-     * apply-as-update (the AgentChannel decision-004 posture): the
-     * scheduling runtime is status's sole writer, and a routine manifest
-     * apply must never reset the failure streak or un-pause an
-     * auto-paused schedule (DD-008 D7 / DD-009 pinned behaviors).
+     * apply-as-update (the AgentChannel decision-004 posture): status is
+     * written only by the scheduling runtime and by the explicit resume
+     * command, and a routine manifest apply must never reset the failure
+     * streak or un-pause a platform-paused schedule (DD-008 D7 / DD-009
+     * pinned behaviors / DD-013 D-D).
      * </pre>
      */
     default void apply(ai.stigmer.agentic.schedule.v1.Schedule request,
@@ -250,8 +282,9 @@ public final class ScheduleCommandControllerGrpc {
      * Update an existing schedule.
      * Replaces the spec wholesale. The slug, the referenced agent, and the
      * target arm are immutable; cron, time zone, enablement, and the
-     * message may all change. Status (firing observations, auto-pause) is
-     * never touched by updates.
+     * message may all change. Status (firing observations, the platform
+     * pause) is never touched by updates — use resume to clear a platform
+     * pause.
      * &#64;internal
      * Authorization: requires can_edit permission on the schedule.
      * agent_ref immutability is a consent-bar guarantee, not convenience
@@ -260,9 +293,12 @@ public final class ScheduleCommandControllerGrpc {
      * may not edit — the AgentChannel rule for the AgentChannel reason.
      * Target-arm immutability (an agent schedule cannot become a workflow
      * schedule once that arm exists) is enforced in-handler: the two
-     * targets enter different execution pipelines. When the clock lands,
-     * an update touching the spec also clears a platform auto-pause
-     * through the ensure-on-mutate path (DD-008 D7/D9).
+     * targets enter different execution pipelines. Update deliberately
+     * does NOT clear a platform auto-pause (DD-013 D-D, superseding the
+     * DD-008 D7 ensure-on-mutate sketch): apply routes through this same
+     * handler, so any update-clears-pause behavior would let a routine
+     * GitOps re-apply silently un-pause a failing schedule. resume is the
+     * one clearing path.
      * </pre>
      */
     default void update(ai.stigmer.agentic.schedule.v1.Schedule request,
@@ -274,8 +310,8 @@ public final class ScheduleCommandControllerGrpc {
      * <pre>
      * Delete a schedule.
      * Firing stops permanently. Executions created by past fires are
-     * untouched. To pause firing while keeping the schedule and its
-     * history, update it with enabled=false instead.
+     * untouched. To stop firing while keeping the schedule and its
+     * history, disable it (enabled=false) instead.
      * &#64;internal
      * Authorization: requires can_delete permission on the schedule. The
      * referenced agent is untouched. The Temporal artifact teardown
@@ -287,6 +323,33 @@ public final class ScheduleCommandControllerGrpc {
     default void delete(ai.stigmer.agentic.schedule.v1.ScheduleId request,
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDeleteMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Resume a schedule the platform paused after repeated run failures.
+     * Clears status.paused_reason, resets status.consecutive_failures,
+     * and re-arms the clock. Resuming a schedule that is not paused
+     * succeeds and changes nothing. A disabled schedule stays disabled:
+     * resume clears the platform's pause, not the owner's switch
+     * (spec.enabled).
+     * &#64;internal
+     * Authorization: requires can_edit permission on the schedule — the
+     * update bar; resuming does not change which agent runs, so it does
+     * not re-open create's consent bar (DD-009 C-6). This command is
+     * deliberately the ONLY path that clears a platform auto-pause
+     * (DD-013 D-D): apply and update preserve status byte-for-byte, so a
+     * routine manifest apply can never silently un-pause a failing
+     * schedule. The cloud handler loads before authorizing (#224: a
+     * missing schedule answers NOT_FOUND, not PERMISSION_DENIED) and
+     * patches status leaves rather than saving the row — the tick is a
+     * concurrent status writer. OSS excludes the authorization step, per
+     * its recorded single-user posture.
+     * </pre>
+     */
+    default void resume(ai.stigmer.agentic.schedule.v1.ScheduleId request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getResumeMethod(), responseObserver);
     }
   }
 
@@ -330,10 +393,11 @@ public final class ScheduleCommandControllerGrpc {
      * The authorization and state-operation are determined depending on
      * whether the schedule is going to be created or updated, resolved as
      * part of request execution. Status is preserved verbatim across
-     * apply-as-update (the AgentChannel decision-004 posture): the
-     * scheduling runtime is status's sole writer, and a routine manifest
-     * apply must never reset the failure streak or un-pause an
-     * auto-paused schedule (DD-008 D7 / DD-009 pinned behaviors).
+     * apply-as-update (the AgentChannel decision-004 posture): status is
+     * written only by the scheduling runtime and by the explicit resume
+     * command, and a routine manifest apply must never reset the failure
+     * streak or un-pause a platform-paused schedule (DD-008 D7 / DD-009
+     * pinned behaviors / DD-013 D-D).
      * </pre>
      */
     public void apply(ai.stigmer.agentic.schedule.v1.Schedule request,
@@ -370,8 +434,9 @@ public final class ScheduleCommandControllerGrpc {
      * Update an existing schedule.
      * Replaces the spec wholesale. The slug, the referenced agent, and the
      * target arm are immutable; cron, time zone, enablement, and the
-     * message may all change. Status (firing observations, auto-pause) is
-     * never touched by updates.
+     * message may all change. Status (firing observations, the platform
+     * pause) is never touched by updates — use resume to clear a platform
+     * pause.
      * &#64;internal
      * Authorization: requires can_edit permission on the schedule.
      * agent_ref immutability is a consent-bar guarantee, not convenience
@@ -380,9 +445,12 @@ public final class ScheduleCommandControllerGrpc {
      * may not edit — the AgentChannel rule for the AgentChannel reason.
      * Target-arm immutability (an agent schedule cannot become a workflow
      * schedule once that arm exists) is enforced in-handler: the two
-     * targets enter different execution pipelines. When the clock lands,
-     * an update touching the spec also clears a platform auto-pause
-     * through the ensure-on-mutate path (DD-008 D7/D9).
+     * targets enter different execution pipelines. Update deliberately
+     * does NOT clear a platform auto-pause (DD-013 D-D, superseding the
+     * DD-008 D7 ensure-on-mutate sketch): apply routes through this same
+     * handler, so any update-clears-pause behavior would let a routine
+     * GitOps re-apply silently un-pause a failing schedule. resume is the
+     * one clearing path.
      * </pre>
      */
     public void update(ai.stigmer.agentic.schedule.v1.Schedule request,
@@ -395,8 +463,8 @@ public final class ScheduleCommandControllerGrpc {
      * <pre>
      * Delete a schedule.
      * Firing stops permanently. Executions created by past fires are
-     * untouched. To pause firing while keeping the schedule and its
-     * history, update it with enabled=false instead.
+     * untouched. To stop firing while keeping the schedule and its
+     * history, disable it (enabled=false) instead.
      * &#64;internal
      * Authorization: requires can_delete permission on the schedule. The
      * referenced agent is untouched. The Temporal artifact teardown
@@ -409,6 +477,34 @@ public final class ScheduleCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Resume a schedule the platform paused after repeated run failures.
+     * Clears status.paused_reason, resets status.consecutive_failures,
+     * and re-arms the clock. Resuming a schedule that is not paused
+     * succeeds and changes nothing. A disabled schedule stays disabled:
+     * resume clears the platform's pause, not the owner's switch
+     * (spec.enabled).
+     * &#64;internal
+     * Authorization: requires can_edit permission on the schedule — the
+     * update bar; resuming does not change which agent runs, so it does
+     * not re-open create's consent bar (DD-009 C-6). This command is
+     * deliberately the ONLY path that clears a platform auto-pause
+     * (DD-013 D-D): apply and update preserve status byte-for-byte, so a
+     * routine manifest apply can never silently un-pause a failing
+     * schedule. The cloud handler loads before authorizing (#224: a
+     * missing schedule answers NOT_FOUND, not PERMISSION_DENIED) and
+     * patches status leaves rather than saving the row — the tick is a
+     * concurrent status writer. OSS excludes the authorization step, per
+     * its recorded single-user posture.
+     * </pre>
+     */
+    public void resume(ai.stigmer.agentic.schedule.v1.ScheduleId request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getResumeMethod(), getCallOptions()), request, responseObserver);
     }
   }
 
@@ -438,10 +534,11 @@ public final class ScheduleCommandControllerGrpc {
      * The authorization and state-operation are determined depending on
      * whether the schedule is going to be created or updated, resolved as
      * part of request execution. Status is preserved verbatim across
-     * apply-as-update (the AgentChannel decision-004 posture): the
-     * scheduling runtime is status's sole writer, and a routine manifest
-     * apply must never reset the failure streak or un-pause an
-     * auto-paused schedule (DD-008 D7 / DD-009 pinned behaviors).
+     * apply-as-update (the AgentChannel decision-004 posture): status is
+     * written only by the scheduling runtime and by the explicit resume
+     * command, and a routine manifest apply must never reset the failure
+     * streak or un-pause a platform-paused schedule (DD-008 D7 / DD-009
+     * pinned behaviors / DD-013 D-D).
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.Schedule apply(ai.stigmer.agentic.schedule.v1.Schedule request) throws io.grpc.StatusException {
@@ -476,8 +573,9 @@ public final class ScheduleCommandControllerGrpc {
      * Update an existing schedule.
      * Replaces the spec wholesale. The slug, the referenced agent, and the
      * target arm are immutable; cron, time zone, enablement, and the
-     * message may all change. Status (firing observations, auto-pause) is
-     * never touched by updates.
+     * message may all change. Status (firing observations, the platform
+     * pause) is never touched by updates — use resume to clear a platform
+     * pause.
      * &#64;internal
      * Authorization: requires can_edit permission on the schedule.
      * agent_ref immutability is a consent-bar guarantee, not convenience
@@ -486,9 +584,12 @@ public final class ScheduleCommandControllerGrpc {
      * may not edit — the AgentChannel rule for the AgentChannel reason.
      * Target-arm immutability (an agent schedule cannot become a workflow
      * schedule once that arm exists) is enforced in-handler: the two
-     * targets enter different execution pipelines. When the clock lands,
-     * an update touching the spec also clears a platform auto-pause
-     * through the ensure-on-mutate path (DD-008 D7/D9).
+     * targets enter different execution pipelines. Update deliberately
+     * does NOT clear a platform auto-pause (DD-013 D-D, superseding the
+     * DD-008 D7 ensure-on-mutate sketch): apply routes through this same
+     * handler, so any update-clears-pause behavior would let a routine
+     * GitOps re-apply silently un-pause a failing schedule. resume is the
+     * one clearing path.
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.Schedule update(ai.stigmer.agentic.schedule.v1.Schedule request) throws io.grpc.StatusException {
@@ -500,8 +601,8 @@ public final class ScheduleCommandControllerGrpc {
      * <pre>
      * Delete a schedule.
      * Firing stops permanently. Executions created by past fires are
-     * untouched. To pause firing while keeping the schedule and its
-     * history, update it with enabled=false instead.
+     * untouched. To stop firing while keeping the schedule and its
+     * history, disable it (enabled=false) instead.
      * &#64;internal
      * Authorization: requires can_delete permission on the schedule. The
      * referenced agent is untouched. The Temporal artifact teardown
@@ -513,6 +614,33 @@ public final class ScheduleCommandControllerGrpc {
     public ai.stigmer.agentic.schedule.v1.Schedule delete(ai.stigmer.agentic.schedule.v1.ScheduleId request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Resume a schedule the platform paused after repeated run failures.
+     * Clears status.paused_reason, resets status.consecutive_failures,
+     * and re-arms the clock. Resuming a schedule that is not paused
+     * succeeds and changes nothing. A disabled schedule stays disabled:
+     * resume clears the platform's pause, not the owner's switch
+     * (spec.enabled).
+     * &#64;internal
+     * Authorization: requires can_edit permission on the schedule — the
+     * update bar; resuming does not change which agent runs, so it does
+     * not re-open create's consent bar (DD-009 C-6). This command is
+     * deliberately the ONLY path that clears a platform auto-pause
+     * (DD-013 D-D): apply and update preserve status byte-for-byte, so a
+     * routine manifest apply can never silently un-pause a failing
+     * schedule. The cloud handler loads before authorizing (#224: a
+     * missing schedule answers NOT_FOUND, not PERMISSION_DENIED) and
+     * patches status leaves rather than saving the row — the tick is a
+     * concurrent status writer. OSS excludes the authorization step, per
+     * its recorded single-user posture.
+     * </pre>
+     */
+    public ai.stigmer.agentic.schedule.v1.Schedule resume(ai.stigmer.agentic.schedule.v1.ScheduleId request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getResumeMethod(), getCallOptions(), request);
     }
   }
 
@@ -542,10 +670,11 @@ public final class ScheduleCommandControllerGrpc {
      * The authorization and state-operation are determined depending on
      * whether the schedule is going to be created or updated, resolved as
      * part of request execution. Status is preserved verbatim across
-     * apply-as-update (the AgentChannel decision-004 posture): the
-     * scheduling runtime is status's sole writer, and a routine manifest
-     * apply must never reset the failure streak or un-pause an
-     * auto-paused schedule (DD-008 D7 / DD-009 pinned behaviors).
+     * apply-as-update (the AgentChannel decision-004 posture): status is
+     * written only by the scheduling runtime and by the explicit resume
+     * command, and a routine manifest apply must never reset the failure
+     * streak or un-pause a platform-paused schedule (DD-008 D7 / DD-009
+     * pinned behaviors / DD-013 D-D).
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.Schedule apply(ai.stigmer.agentic.schedule.v1.Schedule request) {
@@ -580,8 +709,9 @@ public final class ScheduleCommandControllerGrpc {
      * Update an existing schedule.
      * Replaces the spec wholesale. The slug, the referenced agent, and the
      * target arm are immutable; cron, time zone, enablement, and the
-     * message may all change. Status (firing observations, auto-pause) is
-     * never touched by updates.
+     * message may all change. Status (firing observations, the platform
+     * pause) is never touched by updates — use resume to clear a platform
+     * pause.
      * &#64;internal
      * Authorization: requires can_edit permission on the schedule.
      * agent_ref immutability is a consent-bar guarantee, not convenience
@@ -590,9 +720,12 @@ public final class ScheduleCommandControllerGrpc {
      * may not edit — the AgentChannel rule for the AgentChannel reason.
      * Target-arm immutability (an agent schedule cannot become a workflow
      * schedule once that arm exists) is enforced in-handler: the two
-     * targets enter different execution pipelines. When the clock lands,
-     * an update touching the spec also clears a platform auto-pause
-     * through the ensure-on-mutate path (DD-008 D7/D9).
+     * targets enter different execution pipelines. Update deliberately
+     * does NOT clear a platform auto-pause (DD-013 D-D, superseding the
+     * DD-008 D7 ensure-on-mutate sketch): apply routes through this same
+     * handler, so any update-clears-pause behavior would let a routine
+     * GitOps re-apply silently un-pause a failing schedule. resume is the
+     * one clearing path.
      * </pre>
      */
     public ai.stigmer.agentic.schedule.v1.Schedule update(ai.stigmer.agentic.schedule.v1.Schedule request) {
@@ -604,8 +737,8 @@ public final class ScheduleCommandControllerGrpc {
      * <pre>
      * Delete a schedule.
      * Firing stops permanently. Executions created by past fires are
-     * untouched. To pause firing while keeping the schedule and its
-     * history, update it with enabled=false instead.
+     * untouched. To stop firing while keeping the schedule and its
+     * history, disable it (enabled=false) instead.
      * &#64;internal
      * Authorization: requires can_delete permission on the schedule. The
      * referenced agent is untouched. The Temporal artifact teardown
@@ -617,6 +750,33 @@ public final class ScheduleCommandControllerGrpc {
     public ai.stigmer.agentic.schedule.v1.Schedule delete(ai.stigmer.agentic.schedule.v1.ScheduleId request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Resume a schedule the platform paused after repeated run failures.
+     * Clears status.paused_reason, resets status.consecutive_failures,
+     * and re-arms the clock. Resuming a schedule that is not paused
+     * succeeds and changes nothing. A disabled schedule stays disabled:
+     * resume clears the platform's pause, not the owner's switch
+     * (spec.enabled).
+     * &#64;internal
+     * Authorization: requires can_edit permission on the schedule — the
+     * update bar; resuming does not change which agent runs, so it does
+     * not re-open create's consent bar (DD-009 C-6). This command is
+     * deliberately the ONLY path that clears a platform auto-pause
+     * (DD-013 D-D): apply and update preserve status byte-for-byte, so a
+     * routine manifest apply can never silently un-pause a failing
+     * schedule. The cloud handler loads before authorizing (#224: a
+     * missing schedule answers NOT_FOUND, not PERMISSION_DENIED) and
+     * patches status leaves rather than saving the row — the tick is a
+     * concurrent status writer. OSS excludes the authorization step, per
+     * its recorded single-user posture.
+     * </pre>
+     */
+    public ai.stigmer.agentic.schedule.v1.Schedule resume(ai.stigmer.agentic.schedule.v1.ScheduleId request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getResumeMethod(), getCallOptions(), request);
     }
   }
 
@@ -646,10 +806,11 @@ public final class ScheduleCommandControllerGrpc {
      * The authorization and state-operation are determined depending on
      * whether the schedule is going to be created or updated, resolved as
      * part of request execution. Status is preserved verbatim across
-     * apply-as-update (the AgentChannel decision-004 posture): the
-     * scheduling runtime is status's sole writer, and a routine manifest
-     * apply must never reset the failure streak or un-pause an
-     * auto-paused schedule (DD-008 D7 / DD-009 pinned behaviors).
+     * apply-as-update (the AgentChannel decision-004 posture): status is
+     * written only by the scheduling runtime and by the explicit resume
+     * command, and a routine manifest apply must never reset the failure
+     * streak or un-pause a platform-paused schedule (DD-008 D7 / DD-009
+     * pinned behaviors / DD-013 D-D).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.Schedule> apply(
@@ -686,8 +847,9 @@ public final class ScheduleCommandControllerGrpc {
      * Update an existing schedule.
      * Replaces the spec wholesale. The slug, the referenced agent, and the
      * target arm are immutable; cron, time zone, enablement, and the
-     * message may all change. Status (firing observations, auto-pause) is
-     * never touched by updates.
+     * message may all change. Status (firing observations, the platform
+     * pause) is never touched by updates — use resume to clear a platform
+     * pause.
      * &#64;internal
      * Authorization: requires can_edit permission on the schedule.
      * agent_ref immutability is a consent-bar guarantee, not convenience
@@ -696,9 +858,12 @@ public final class ScheduleCommandControllerGrpc {
      * may not edit — the AgentChannel rule for the AgentChannel reason.
      * Target-arm immutability (an agent schedule cannot become a workflow
      * schedule once that arm exists) is enforced in-handler: the two
-     * targets enter different execution pipelines. When the clock lands,
-     * an update touching the spec also clears a platform auto-pause
-     * through the ensure-on-mutate path (DD-008 D7/D9).
+     * targets enter different execution pipelines. Update deliberately
+     * does NOT clear a platform auto-pause (DD-013 D-D, superseding the
+     * DD-008 D7 ensure-on-mutate sketch): apply routes through this same
+     * handler, so any update-clears-pause behavior would let a routine
+     * GitOps re-apply silently un-pause a failing schedule. resume is the
+     * one clearing path.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.Schedule> update(
@@ -711,8 +876,8 @@ public final class ScheduleCommandControllerGrpc {
      * <pre>
      * Delete a schedule.
      * Firing stops permanently. Executions created by past fires are
-     * untouched. To pause firing while keeping the schedule and its
-     * history, update it with enabled=false instead.
+     * untouched. To stop firing while keeping the schedule and its
+     * history, disable it (enabled=false) instead.
      * &#64;internal
      * Authorization: requires can_delete permission on the schedule. The
      * referenced agent is untouched. The Temporal artifact teardown
@@ -726,12 +891,41 @@ public final class ScheduleCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Resume a schedule the platform paused after repeated run failures.
+     * Clears status.paused_reason, resets status.consecutive_failures,
+     * and re-arms the clock. Resuming a schedule that is not paused
+     * succeeds and changes nothing. A disabled schedule stays disabled:
+     * resume clears the platform's pause, not the owner's switch
+     * (spec.enabled).
+     * &#64;internal
+     * Authorization: requires can_edit permission on the schedule — the
+     * update bar; resuming does not change which agent runs, so it does
+     * not re-open create's consent bar (DD-009 C-6). This command is
+     * deliberately the ONLY path that clears a platform auto-pause
+     * (DD-013 D-D): apply and update preserve status byte-for-byte, so a
+     * routine manifest apply can never silently un-pause a failing
+     * schedule. The cloud handler loads before authorizing (#224: a
+     * missing schedule answers NOT_FOUND, not PERMISSION_DENIED) and
+     * patches status leaves rather than saving the row — the tick is a
+     * concurrent status writer. OSS excludes the authorization step, per
+     * its recorded single-user posture.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.Schedule> resume(
+        ai.stigmer.agentic.schedule.v1.ScheduleId request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getResumeMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_DELETE = 3;
+  private static final int METHODID_RESUME = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -764,6 +958,10 @@ public final class ScheduleCommandControllerGrpc {
           break;
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.agentic.schedule.v1.ScheduleId) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule>) responseObserver);
+          break;
+        case METHODID_RESUME:
+          serviceImpl.resume((ai.stigmer.agentic.schedule.v1.ScheduleId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule>) responseObserver);
           break;
         default:
@@ -812,6 +1010,13 @@ public final class ScheduleCommandControllerGrpc {
               ai.stigmer.agentic.schedule.v1.ScheduleId,
               ai.stigmer.agentic.schedule.v1.Schedule>(
                 service, METHODID_DELETE)))
+        .addMethod(
+          getResumeMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.schedule.v1.ScheduleId,
+              ai.stigmer.agentic.schedule.v1.Schedule>(
+                service, METHODID_RESUME)))
         .build();
   }
 
@@ -864,6 +1069,7 @@ public final class ScheduleCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())
+              .addMethod(getResumeMethod())
               .build();
         }
       }

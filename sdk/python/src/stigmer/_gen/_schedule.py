@@ -50,6 +50,12 @@ class ScheduleClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def resume(self, id: str) -> api_pb2.Schedule:
+        try:
+            return self._command.resume(io_pb2.ScheduleId(value=id))
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.Schedule:
         try:
             return self._query.get(io_pb2.ScheduleId(value=id))

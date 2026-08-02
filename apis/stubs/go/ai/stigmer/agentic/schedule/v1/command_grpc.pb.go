@@ -23,6 +23,7 @@ const (
 	ScheduleCommandController_Create_FullMethodName = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/create"
 	ScheduleCommandController_Update_FullMethodName = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/update"
 	ScheduleCommandController_Delete_FullMethodName = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/delete"
+	ScheduleCommandController_Resume_FullMethodName = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/resume"
 )
 
 // ScheduleCommandControllerClient is the client API for ScheduleCommandController service.
@@ -37,10 +38,11 @@ type ScheduleCommandControllerClient interface {
 	// The authorization and state-operation are determined depending on
 	// whether the schedule is going to be created or updated, resolved as
 	// part of request execution. Status is preserved verbatim across
-	// apply-as-update (the AgentChannel decision-004 posture): the
-	// scheduling runtime is status's sole writer, and a routine manifest
-	// apply must never reset the failure streak or un-pause an
-	// auto-paused schedule (DD-008 D7 / DD-009 pinned behaviors).
+	// apply-as-update (the AgentChannel decision-004 posture): status is
+	// written only by the scheduling runtime and by the explicit resume
+	// command, and a routine manifest apply must never reset the failure
+	// streak or un-pause a platform-paused schedule (DD-008 D7 / DD-009
+	// pinned behaviors / DD-013 D-D).
 	Apply(ctx context.Context, in *Schedule, opts ...grpc.CallOption) (*Schedule, error)
 	// Create a schedule.
 	//
@@ -62,8 +64,9 @@ type ScheduleCommandControllerClient interface {
 	//
 	// Replaces the spec wholesale. The slug, the referenced agent, and the
 	// target arm are immutable; cron, time zone, enablement, and the
-	// message may all change. Status (firing observations, auto-pause) is
-	// never touched by updates.
+	// message may all change. Status (firing observations, the platform
+	// pause) is never touched by updates — use resume to clear a platform
+	// pause.
 	//
 	// @internal
 	// Authorization: requires can_edit permission on the schedule.
@@ -73,15 +76,18 @@ type ScheduleCommandControllerClient interface {
 	// may not edit — the AgentChannel rule for the AgentChannel reason.
 	// Target-arm immutability (an agent schedule cannot become a workflow
 	// schedule once that arm exists) is enforced in-handler: the two
-	// targets enter different execution pipelines. When the clock lands,
-	// an update touching the spec also clears a platform auto-pause
-	// through the ensure-on-mutate path (DD-008 D7/D9).
+	// targets enter different execution pipelines. Update deliberately
+	// does NOT clear a platform auto-pause (DD-013 D-D, superseding the
+	// DD-008 D7 ensure-on-mutate sketch): apply routes through this same
+	// handler, so any update-clears-pause behavior would let a routine
+	// GitOps re-apply silently un-pause a failing schedule. resume is the
+	// one clearing path.
 	Update(ctx context.Context, in *Schedule, opts ...grpc.CallOption) (*Schedule, error)
 	// Delete a schedule.
 	//
 	// Firing stops permanently. Executions created by past fires are
-	// untouched. To pause firing while keeping the schedule and its
-	// history, update it with enabled=false instead.
+	// untouched. To stop firing while keeping the schedule and its
+	// history, disable it (enabled=false) instead.
 	//
 	// @internal
 	// Authorization: requires can_delete permission on the schedule. The
@@ -90,6 +96,27 @@ type ScheduleCommandControllerClient interface {
 	// clock; until then delete is the row alone, and an orphaned artifact
 	// is harmless by construction (fire-time revalidation no-ops it).
 	Delete(ctx context.Context, in *ScheduleId, opts ...grpc.CallOption) (*Schedule, error)
+	// Resume a schedule the platform paused after repeated run failures.
+	//
+	// Clears status.paused_reason, resets status.consecutive_failures,
+	// and re-arms the clock. Resuming a schedule that is not paused
+	// succeeds and changes nothing. A disabled schedule stays disabled:
+	// resume clears the platform's pause, not the owner's switch
+	// (spec.enabled).
+	//
+	// @internal
+	// Authorization: requires can_edit permission on the schedule — the
+	// update bar; resuming does not change which agent runs, so it does
+	// not re-open create's consent bar (DD-009 C-6). This command is
+	// deliberately the ONLY path that clears a platform auto-pause
+	// (DD-013 D-D): apply and update preserve status byte-for-byte, so a
+	// routine manifest apply can never silently un-pause a failing
+	// schedule. The cloud handler loads before authorizing (#224: a
+	// missing schedule answers NOT_FOUND, not PERMISSION_DENIED) and
+	// patches status leaves rather than saving the row — the tick is a
+	// concurrent status writer. OSS excludes the authorization step, per
+	// its recorded single-user posture.
+	Resume(ctx context.Context, in *ScheduleId, opts ...grpc.CallOption) (*Schedule, error)
 }
 
 type scheduleCommandControllerClient struct {
@@ -140,6 +167,16 @@ func (c *scheduleCommandControllerClient) Delete(ctx context.Context, in *Schedu
 	return out, nil
 }
 
+func (c *scheduleCommandControllerClient) Resume(ctx context.Context, in *ScheduleId, opts ...grpc.CallOption) (*Schedule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Schedule)
+	err := c.cc.Invoke(ctx, ScheduleCommandController_Resume_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ScheduleCommandControllerServer is the server API for ScheduleCommandController service.
 // All implementations should embed UnimplementedScheduleCommandControllerServer
 // for forward compatibility.
@@ -152,10 +189,11 @@ type ScheduleCommandControllerServer interface {
 	// The authorization and state-operation are determined depending on
 	// whether the schedule is going to be created or updated, resolved as
 	// part of request execution. Status is preserved verbatim across
-	// apply-as-update (the AgentChannel decision-004 posture): the
-	// scheduling runtime is status's sole writer, and a routine manifest
-	// apply must never reset the failure streak or un-pause an
-	// auto-paused schedule (DD-008 D7 / DD-009 pinned behaviors).
+	// apply-as-update (the AgentChannel decision-004 posture): status is
+	// written only by the scheduling runtime and by the explicit resume
+	// command, and a routine manifest apply must never reset the failure
+	// streak or un-pause a platform-paused schedule (DD-008 D7 / DD-009
+	// pinned behaviors / DD-013 D-D).
 	Apply(context.Context, *Schedule) (*Schedule, error)
 	// Create a schedule.
 	//
@@ -177,8 +215,9 @@ type ScheduleCommandControllerServer interface {
 	//
 	// Replaces the spec wholesale. The slug, the referenced agent, and the
 	// target arm are immutable; cron, time zone, enablement, and the
-	// message may all change. Status (firing observations, auto-pause) is
-	// never touched by updates.
+	// message may all change. Status (firing observations, the platform
+	// pause) is never touched by updates — use resume to clear a platform
+	// pause.
 	//
 	// @internal
 	// Authorization: requires can_edit permission on the schedule.
@@ -188,15 +227,18 @@ type ScheduleCommandControllerServer interface {
 	// may not edit — the AgentChannel rule for the AgentChannel reason.
 	// Target-arm immutability (an agent schedule cannot become a workflow
 	// schedule once that arm exists) is enforced in-handler: the two
-	// targets enter different execution pipelines. When the clock lands,
-	// an update touching the spec also clears a platform auto-pause
-	// through the ensure-on-mutate path (DD-008 D7/D9).
+	// targets enter different execution pipelines. Update deliberately
+	// does NOT clear a platform auto-pause (DD-013 D-D, superseding the
+	// DD-008 D7 ensure-on-mutate sketch): apply routes through this same
+	// handler, so any update-clears-pause behavior would let a routine
+	// GitOps re-apply silently un-pause a failing schedule. resume is the
+	// one clearing path.
 	Update(context.Context, *Schedule) (*Schedule, error)
 	// Delete a schedule.
 	//
 	// Firing stops permanently. Executions created by past fires are
-	// untouched. To pause firing while keeping the schedule and its
-	// history, update it with enabled=false instead.
+	// untouched. To stop firing while keeping the schedule and its
+	// history, disable it (enabled=false) instead.
 	//
 	// @internal
 	// Authorization: requires can_delete permission on the schedule. The
@@ -205,6 +247,27 @@ type ScheduleCommandControllerServer interface {
 	// clock; until then delete is the row alone, and an orphaned artifact
 	// is harmless by construction (fire-time revalidation no-ops it).
 	Delete(context.Context, *ScheduleId) (*Schedule, error)
+	// Resume a schedule the platform paused after repeated run failures.
+	//
+	// Clears status.paused_reason, resets status.consecutive_failures,
+	// and re-arms the clock. Resuming a schedule that is not paused
+	// succeeds and changes nothing. A disabled schedule stays disabled:
+	// resume clears the platform's pause, not the owner's switch
+	// (spec.enabled).
+	//
+	// @internal
+	// Authorization: requires can_edit permission on the schedule — the
+	// update bar; resuming does not change which agent runs, so it does
+	// not re-open create's consent bar (DD-009 C-6). This command is
+	// deliberately the ONLY path that clears a platform auto-pause
+	// (DD-013 D-D): apply and update preserve status byte-for-byte, so a
+	// routine manifest apply can never silently un-pause a failing
+	// schedule. The cloud handler loads before authorizing (#224: a
+	// missing schedule answers NOT_FOUND, not PERMISSION_DENIED) and
+	// patches status leaves rather than saving the row — the tick is a
+	// concurrent status writer. OSS excludes the authorization step, per
+	// its recorded single-user posture.
+	Resume(context.Context, *ScheduleId) (*Schedule, error)
 }
 
 // UnimplementedScheduleCommandControllerServer should be embedded to have
@@ -225,6 +288,9 @@ func (UnimplementedScheduleCommandControllerServer) Update(context.Context, *Sch
 }
 func (UnimplementedScheduleCommandControllerServer) Delete(context.Context, *ScheduleId) (*Schedule, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedScheduleCommandControllerServer) Resume(context.Context, *ScheduleId) (*Schedule, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Resume not implemented")
 }
 func (UnimplementedScheduleCommandControllerServer) testEmbeddedByValue() {}
 
@@ -318,6 +384,24 @@ func _ScheduleCommandController_Delete_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ScheduleCommandController_Resume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScheduleId)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScheduleCommandControllerServer).Resume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScheduleCommandController_Resume_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScheduleCommandControllerServer).Resume(ctx, req.(*ScheduleId))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ScheduleCommandController_ServiceDesc is the grpc.ServiceDesc for ScheduleCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -340,6 +424,10 @@ var ScheduleCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _ScheduleCommandController_Delete_Handler,
+		},
+		{
+			MethodName: "resume",
+			Handler:    _ScheduleCommandController_Resume_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

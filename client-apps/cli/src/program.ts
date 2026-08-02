@@ -28,6 +28,7 @@ import { registerPush } from "./commands/push.js";
 import { registerReset } from "./commands/reset.js";
 import { registerResume } from "./commands/resume.js";
 import { registerRun } from "./commands/run.js";
+import { registerSchedule } from "./commands/schedule.js";
 import { registerSearch } from "./commands/search.js";
 import { registerSeedpack } from "./commands/seedpack.js";
 import { registerSetup } from "./commands/setup.js";
@@ -78,6 +79,7 @@ export function buildProgram(): Command {
   registerDelete(program);
   registerTag(program);
   registerShare(program);
+  registerSchedule(program);
   registerDiff(program);
   registerUsage(program);
   registerPush(program);

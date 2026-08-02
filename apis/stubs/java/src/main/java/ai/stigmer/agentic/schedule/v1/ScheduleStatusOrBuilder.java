@@ -113,13 +113,16 @@ public interface ScheduleStatusOrBuilder extends
   /**
    * <pre>
    * Why the platform paused this schedule; empty when not paused.
-   * Re-enabling is the owner's explicit act: an update touching the
-   * spec clears the pause.
+   * Cleared only by the resume RPC — the owner's explicit act.
    *
    * &#64;internal
-   * Written ONLY by the platform auto-pause (DD-008 D7) — never an echo
-   * of spec.enabled (DD-009 pinned behaviors: one writer per field;
-   * consoles derive owner-disabled state from spec on read).
+   * "Paused" is the platform's latch, distinct from the owner's switch
+   * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
+   * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
+   * spec.enabled (DD-009 pinned behaviors: one writer per field;
+   * consoles derive owner-disabled state from spec on read). Updates
+   * and applies preserve it verbatim; resume is deliberately the ONE
+   * clearing path (DD-013 D-D).
    * </pre>
    *
    * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>
@@ -129,13 +132,16 @@ public interface ScheduleStatusOrBuilder extends
   /**
    * <pre>
    * Why the platform paused this schedule; empty when not paused.
-   * Re-enabling is the owner's explicit act: an update touching the
-   * spec clears the pause.
+   * Cleared only by the resume RPC — the owner's explicit act.
    *
    * &#64;internal
-   * Written ONLY by the platform auto-pause (DD-008 D7) — never an echo
-   * of spec.enabled (DD-009 pinned behaviors: one writer per field;
-   * consoles derive owner-disabled state from spec on read).
+   * "Paused" is the platform's latch, distinct from the owner's switch
+   * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
+   * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
+   * spec.enabled (DD-009 pinned behaviors: one writer per field;
+   * consoles derive owner-disabled state from spec on read). Updates
+   * and applies preserve it verbatim; resume is deliberately the ONE
+   * clearing path (DD-013 D-D).
    * </pre>
    *
    * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>

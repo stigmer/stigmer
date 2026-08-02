@@ -14,9 +14,13 @@ import (
 // that omits enabled disables firing — fails closed, matching every
 // other resource. status is preserved verbatim from the existing
 // schedule, which is the guarantee that keeps the firing observations
-// and the platform auto-pause immune to declarative clobber (the
-// scheduling runtime is their sole writer — DD-008 D7 / DD-009 pinned
-// behaviors).
+// and the platform pause immune to declarative clobber (status is
+// written only by the scheduling runtime and the explicit resume
+// command — DD-008 D7 / DD-009 pinned behaviors / DD-013 D-D). Update
+// deliberately does NOT clear a platform pause: apply routes through
+// this handler, and update-clears-pause would let a routine GitOps
+// re-apply silently un-pause a failing schedule. Resume is the one
+// clearing path.
 //
 // Pipeline:
 //  1. ValidateProto - Proto field constraints

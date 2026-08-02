@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/schedule/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_schedule_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxMowEChlTY2hlZHVsZUNvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlEmIKBmNyZWF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZRooLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZSIE0LgYARKUAQoGdXBkYXRlEiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjbCuBgyCAIQOCILbWV0YWRhdGEuaWQqH3VuYXV0aG9yaXplZCB0byB1cGRhdGUgc2NoZWR1bGUSkAEKBmRlbGV0ZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjDCuBgsCAMQOCIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byBkZWxldGUgc2NoZWR1bGUaBKD/KzhiBnByb3RvMw", [file_ai_stigmer_agentic_schedule_v1_api, file_ai_stigmer_agentic_schedule_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxMp8FChlTY2hlZHVsZUNvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlEmIKBmNyZWF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZRooLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZSIE0LgYARKUAQoGdXBkYXRlEiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjbCuBgyCAIQOCILbWV0YWRhdGEuaWQqH3VuYXV0aG9yaXplZCB0byB1cGRhdGUgc2NoZWR1bGUSkAEKBmRlbGV0ZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjDCuBgsCAMQOCIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byBkZWxldGUgc2NoZWR1bGUSkAEKBnJlc3VtZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjDCuBgsCAIQOCIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byByZXN1bWUgc2NoZWR1bGUaBKD/KzhiBnByb3RvMw", [file_ai_stigmer_agentic_schedule_v1_api, file_ai_stigmer_agentic_schedule_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ScheduleCommandController handles write operations for schedules.
@@ -30,10 +30,11 @@ export const ScheduleCommandController: GenService<{
    * The authorization and state-operation are determined depending on
    * whether the schedule is going to be created or updated, resolved as
    * part of request execution. Status is preserved verbatim across
-   * apply-as-update (the AgentChannel decision-004 posture): the
-   * scheduling runtime is status's sole writer, and a routine manifest
-   * apply must never reset the failure streak or un-pause an
-   * auto-paused schedule (DD-008 D7 / DD-009 pinned behaviors).
+   * apply-as-update (the AgentChannel decision-004 posture): status is
+   * written only by the scheduling runtime and by the explicit resume
+   * command, and a routine manifest apply must never reset the failure
+   * streak or un-pause a platform-paused schedule (DD-008 D7 / DD-009
+   * pinned behaviors / DD-013 D-D).
    *
    * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.apply
    */
@@ -71,8 +72,9 @@ export const ScheduleCommandController: GenService<{
    *
    * Replaces the spec wholesale. The slug, the referenced agent, and the
    * target arm are immutable; cron, time zone, enablement, and the
-   * message may all change. Status (firing observations, auto-pause) is
-   * never touched by updates.
+   * message may all change. Status (firing observations, the platform
+   * pause) is never touched by updates — use resume to clear a platform
+   * pause.
    *
    * @internal
    * Authorization: requires can_edit permission on the schedule.
@@ -82,9 +84,12 @@ export const ScheduleCommandController: GenService<{
    * may not edit — the AgentChannel rule for the AgentChannel reason.
    * Target-arm immutability (an agent schedule cannot become a workflow
    * schedule once that arm exists) is enforced in-handler: the two
-   * targets enter different execution pipelines. When the clock lands,
-   * an update touching the spec also clears a platform auto-pause
-   * through the ensure-on-mutate path (DD-008 D7/D9).
+   * targets enter different execution pipelines. Update deliberately
+   * does NOT clear a platform auto-pause (DD-013 D-D, superseding the
+   * DD-008 D7 ensure-on-mutate sketch): apply routes through this same
+   * handler, so any update-clears-pause behavior would let a routine
+   * GitOps re-apply silently un-pause a failing schedule. resume is the
+   * one clearing path.
    *
    * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.update
    */
@@ -97,8 +102,8 @@ export const ScheduleCommandController: GenService<{
    * Delete a schedule.
    *
    * Firing stops permanently. Executions created by past fires are
-   * untouched. To pause firing while keeping the schedule and its
-   * history, update it with enabled=false instead.
+   * untouched. To stop firing while keeping the schedule and its
+   * history, disable it (enabled=false) instead.
    *
    * @internal
    * Authorization: requires can_delete permission on the schedule. The
@@ -110,6 +115,35 @@ export const ScheduleCommandController: GenService<{
    * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.delete
    */
   delete: {
+    methodKind: "unary";
+    input: typeof ScheduleIdSchema;
+    output: typeof ScheduleSchema;
+  },
+  /**
+   * Resume a schedule the platform paused after repeated run failures.
+   *
+   * Clears status.paused_reason, resets status.consecutive_failures,
+   * and re-arms the clock. Resuming a schedule that is not paused
+   * succeeds and changes nothing. A disabled schedule stays disabled:
+   * resume clears the platform's pause, not the owner's switch
+   * (spec.enabled).
+   *
+   * @internal
+   * Authorization: requires can_edit permission on the schedule — the
+   * update bar; resuming does not change which agent runs, so it does
+   * not re-open create's consent bar (DD-009 C-6). This command is
+   * deliberately the ONLY path that clears a platform auto-pause
+   * (DD-013 D-D): apply and update preserve status byte-for-byte, so a
+   * routine manifest apply can never silently un-pause a failing
+   * schedule. The cloud handler loads before authorizing (#224: a
+   * missing schedule answers NOT_FOUND, not PERMISSION_DENIED) and
+   * patches status leaves rather than saving the row — the tick is a
+   * concurrent status writer. OSS excludes the authorization step, per
+   * its recorded single-user posture.
+   *
+   * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.resume
+   */
+  resume: {
     methodKind: "unary";
     input: typeof ScheduleIdSchema;
     output: typeof ScheduleSchema;
