@@ -4,9 +4,13 @@ An implementation-agnostic suite that defines the Stigmer gRPC/proto API as an
 executable contract. It runs unchanged against any backend that claims to
 implement the API:
 
-- the OSS Go `stigmer-server` (today),
-- the TypeScript server rewrite (as it lands),
-- the Java cloud `stigmer-service` (the `cloud` target — Class A today).
+- the OSS Go `stigmer-server` (the `local-go` / `local-go-execution` targets),
+- the Java cloud `stigmer-service` (the `cloud` target — Class A, plus the
+  schedule firing suite: the first execution-class behavior asserted on BOTH
+  editions, possible because schedule fires need the engine but no runner).
+
+(A TypeScript server rewrite was once a planned third target; it was
+cancelled 2026-06-14 — the Go server is retained as the OSS backend.)
 
 The contract — not any one implementation — is the product. This suite is what
 keeps the implementations honest and makes agentic dual-maintenance safe:

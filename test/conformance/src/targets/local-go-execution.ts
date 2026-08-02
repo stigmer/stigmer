@@ -42,6 +42,11 @@ export class LocalGoExecutionTarget implements TargetProfile {
     // so a gated agent_call child never surfaces its gate to the parent workflow
     // (DD-012). The forwarder's reachable negatives still run unconditionally.
     workflowChildApprovalForwarding: false,
+    // The OSS Go clock (T04 slice 3): triggers fire for real through the
+    // server's own Temporal Schedules. True here since the clock landed —
+    // the firing suite now runs identically on both editions, which is
+    // the executable form of edition parity for schedules.
+    scheduleFiring: true,
   };
 
   private temporal: RunningTemporal | undefined;
@@ -60,7 +65,17 @@ export class LocalGoExecutionTarget implements TargetProfile {
     this.temporal = await spawnTemporal();
 
     // 2. Go server, pointed at the live Temporal frontend.
-    this.server = await spawnServer(binary, { temporalHostPort: this.temporal.hostPort });
+    this.server = await spawnServer(binary, {
+      temporalHostPort: this.temporal.hostPort,
+      env: {
+        // Failure-streak auto-pause threshold: two failed fires instead
+        // of the production five, so the schedule firing suite proves
+        // the pause in two triggers — the SAME override the cloud
+        // conformance environment inherits from the integration
+        // harness's buildServiceEnv (one vocabulary, both editions).
+        STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES: "2",
+      },
+    });
     this.conformanceClients = makeClients(createTransport(this.server.baseUrl));
     await awaitGrpcReady(this.conformanceClients, () => this.server?.logTail() ?? "(no server)");
 

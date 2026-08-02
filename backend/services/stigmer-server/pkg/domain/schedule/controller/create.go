@@ -21,10 +21,13 @@ import (
 //  4. CheckDuplicate - Org+slug uniqueness
 //  5. BuildNewState - Set ID (sch_ prefix), clear client-provided status,
 //     audit fields. The status wipe is the contract: status is
-//     platform-owned and starts empty — nothing fires until the clock
-//     lands, and no client may seed firing observations.
+//     platform-owned and starts empty — no client may seed firing
+//     observations.
 //  6. NormalizeReferences - Make references absolute (fill org)
 //  7. Persist - Save the schedule
+//  8. ArmScheduleArtifact - Converge the Temporal artifact and stamp
+//     next_fire_at (non-critical: never refuses — DD-015 D-A; the
+//     reconciliation pass is the correctness path)
 //
 // No search-index step: schedule is not_search_indexed by design — a
 // schedule is operational configuration reached through its target's
@@ -53,5 +56,6 @@ func (c *ScheduleController) buildCreatePipeline() *pipeline.Pipeline[*schedulev
 		AddStep(steps.NewBuildNewStateStep[*schedulev1.Schedule]()).
 		AddStep(steps.NewNormalizeReferencesStep[*schedulev1.Schedule]()).
 		AddStep(steps.NewPersistStep[*schedulev1.Schedule](c.store)).
+		AddStep(&armScheduleStep{controller: c}).
 		Build()
 }

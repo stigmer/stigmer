@@ -2,9 +2,10 @@ package schedule
 
 import (
 	"context"
+	"errors"
 
 	schedulev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1"
-	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
@@ -29,14 +30,17 @@ import (
 //  1. ValidateProto - Validate proto field constraints (ID wrapper)
 //  2. ExtractResourceId - Extract ID from ScheduleId.Value wrapper
 //  3. LoadExistingForDelete - Load the schedule (NOT_FOUND if missing)
-//  4. ClearSchedulePause - Clear paused_reason + reset the streak
-//  5. PersistResumedSchedule - Save, skipped when nothing changed
+//  4. ClearSchedulePause - Clear the latch + streak in ONE atomic
+//     read-modify-write on the LIVE row (the DD-013 D-D revisit: the
+//     clock is a concurrent status writer now, and the previous
+//     load-mutate-save across step boundaries could revert a fire
+//     recorded in the gap)
+//  5. ArmResumedScheduleArtifact - Re-arm the clock so the un-pause
+//     reaches Temporal NOW, and answer with a fresh next_fire_at
+//     (non-critical; the reconciliation pass is the correctness path)
 //
 // Note: Unlike Stigmer Cloud, OSS excludes the authorization step (no
-// multi-user auth; cloud requires can_edit on the schedule). OSS also
-// persists the full row where cloud patches status leaves: OSS has no
-// concurrent status writer until the slice-3 clock lands, which must
-// revisit this deliberately (DD-013 D-D).
+// multi-user auth; cloud requires can_edit on the schedule).
 func (c *ScheduleController) Resume(ctx context.Context, scheduleId *schedulev1.ScheduleId) (*schedulev1.Schedule, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, scheduleId)
 
@@ -53,77 +57,71 @@ func (c *ScheduleController) Resume(ctx context.Context, scheduleId *schedulev1.
 	return resumed.(*schedulev1.Schedule), nil
 }
 
-// resumeChangedKey marks that the clear step actually cleared something,
-// so the persist step can skip the write (and its audit bump) on the
-// idempotent no-op path.
-const resumeChangedKey = "resumeChanged"
-
 func (c *ScheduleController) buildResumePipeline() *pipeline.Pipeline[*schedulev1.ScheduleId] {
 	return pipeline.NewPipeline[*schedulev1.ScheduleId]("schedule-resume").
 		AddStep(steps.NewValidateProtoStep[*schedulev1.ScheduleId]()).
 		AddStep(steps.NewExtractResourceIdStep[*schedulev1.ScheduleId]()).
 		AddStep(steps.NewLoadExistingForDeleteStep[*schedulev1.ScheduleId, *schedulev1.Schedule](c.store)).
-		AddStep(&clearSchedulePauseStep{}).
-		AddStep(&persistResumedScheduleStep{store: c.store}).
+		AddStep(&clearSchedulePauseStep{store: c.store}).
+		AddStep(&armResumedScheduleStep{controller: c}).
 		Build()
 }
 
+// errResumeNothingToClear aborts the atomic write on the idempotent
+// no-op path — the fresh row has no latch and no streak, so nothing is
+// written and no audit bumps.
+var errResumeNothingToClear = errors.New("nothing to clear")
+
 // clearSchedulePauseStep clears status.paused_reason and resets
-// status.consecutive_failures on the loaded schedule, preserving the rest
-// of status — the rotate-share-link status-mutation discipline. When both
-// are already clear it marks the pipeline as unchanged so persist can
-// no-op.
-type clearSchedulePauseStep struct{}
+// status.consecutive_failures in ONE store.UpdateResource closure on the
+// freshly-read row, preserving every other status leaf as the concurrent
+// runtime last wrote it.
+//
+// This is the revisit DD-013 D-D reserved for this slice: the previous
+// implementation loaded the row in one step and full-row-saved it in
+// another, which was safe only while nothing else wrote schedule status.
+// The clock ended that — a fire recorded (or a streak advanced) between
+// the load and the save would have been silently reverted. The
+// agent-execution domain adopted this exact primitive after losing user
+// approvals to the same race class.
+type clearSchedulePauseStep struct {
+	store store.Store
+}
 
 func (s *clearSchedulePauseStep) Name() string {
 	return "ClearSchedulePause"
 }
 
 func (s *clearSchedulePauseStep) Execute(ctx *pipeline.RequestContext[*schedulev1.ScheduleId]) error {
-	schedule := ctx.Get(steps.ExistingResourceKey).(*schedulev1.Schedule)
+	loaded := ctx.Get(steps.ExistingResourceKey).(*schedulev1.Schedule)
+	scheduleID := loaded.GetMetadata().GetId()
 
-	status := schedule.GetStatus()
-	if status.GetPausedReason() == "" && status.GetConsecutiveFailures() == 0 {
-		ctx.Set(resumeChangedKey, false)
+	live := &schedulev1.Schedule{}
+	err := s.store.UpdateResource(ctx.Context(), apiresourcekind.ApiResourceKind_schedule,
+		scheduleID, live, func() error {
+			status := live.GetStatus()
+			if status.GetPausedReason() == "" && status.GetConsecutiveFailures() == 0 {
+				return errResumeNothingToClear
+			}
+			live.Status.PausedReason = ""
+			live.Status.ConsecutiveFailures = 0
+			// Resuming with strikes left would re-pause on the next
+			// failure — a lie; both clear together, always.
+			if auditErr := steps.SetAuditFieldsForUpdate(live); auditErr != nil {
+				return auditErr
+			}
+			return nil
+		})
+	switch {
+	case err == nil, errors.Is(err, errResumeNothingToClear):
+		// live holds the post-image (cleared, or the untouched fresh row
+		// on the no-op path) — the honest response either way.
+		ctx.Set(steps.ExistingResourceKey, live)
 		return nil
+	case errors.Is(err, store.ErrNotFound):
+		// Deleted between load and clear: the delete won.
+		return grpclib.NotFoundError("Schedule", scheduleID)
+	default:
+		return grpclib.InternalError(err, "failed to resume schedule")
 	}
-
-	if schedule.Status == nil {
-		schedule.Status = &schedulev1.ScheduleStatus{}
-	}
-	schedule.Status.PausedReason = ""
-	schedule.Status.ConsecutiveFailures = 0
-
-	if err := steps.SetAuditFieldsForUpdate(schedule); err != nil {
-		return grpclib.InternalError(err, "failed to set audit fields")
-	}
-
-	ctx.Set(steps.ExistingResourceKey, schedule)
-	ctx.Set(resumeChangedKey, true)
-	return nil
-}
-
-// persistResumedScheduleStep saves the resumed schedule, skipping the
-// write entirely on the idempotent no-op path.
-type persistResumedScheduleStep struct {
-	store store.Store
-}
-
-func (s *persistResumedScheduleStep) Name() string {
-	return "PersistResumedSchedule"
-}
-
-func (s *persistResumedScheduleStep) Execute(ctx *pipeline.RequestContext[*schedulev1.ScheduleId]) error {
-	if changed, ok := ctx.Get(resumeChangedKey).(bool); ok && !changed {
-		return nil
-	}
-
-	schedule := ctx.Get(steps.ExistingResourceKey).(*schedulev1.Schedule)
-	err := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_schedule,
-		schedule.GetMetadata().GetId(), schedule)
-	if err != nil {
-		return grpclib.InternalError(err, "failed to save schedule")
-	}
-
-	return nil
 }

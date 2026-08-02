@@ -33,6 +33,11 @@ export interface SpawnServerOptions {
   // target (Class B) passes its dev-server address so workflowCreator is
   // injected and executions can actually run.
   temporalHostPort?: string;
+  // Extra environment for the server process, layered over the fixed base
+  // (the target's config seam — e.g. the execution target pins the schedule
+  // auto-pause threshold so the firing suite proves the pause in two fires).
+  // Keys here win over the base on collision.
+  env?: Record<string, string>;
 }
 
 export async function spawnServer(
@@ -54,6 +59,7 @@ export async function spawnServer(
       TEMPORAL_HOST_PORT: temporalHostPort,
       ENV: "local",
       LOG_LEVEL: "warn",
+      ...(opts.env ?? {}),
     },
   });
 

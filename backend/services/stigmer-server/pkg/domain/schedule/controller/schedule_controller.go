@@ -47,6 +47,12 @@ type ScheduleController struct {
 	schedulev1.UnimplementedScheduleCommandControllerServer
 	schedulev1.UnimplementedScheduleQueryControllerServer
 	store store.Store
+
+	// clock is the scheduling runtime (see clock.go), injected by server
+	// wiring via SetClock. Nil when Temporal was never configured; every
+	// consumer degrades rather than refuses (DD-015 D-A), except trigger,
+	// whose whole purpose is a fire.
+	clock Clock
 }
 
 // NewScheduleController creates a new ScheduleController.

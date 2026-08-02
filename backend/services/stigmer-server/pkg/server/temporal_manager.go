@@ -14,6 +14,7 @@ import (
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	agentexecutionactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities"
+	scheduletemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/schedule/temporal"
 	workflowexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal"
 	workflowexecutionactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
@@ -45,6 +46,15 @@ type TemporalManager struct {
 
 	// Server dependencies (for worker creation and workflow creator injection)
 	serverDeps *serverDependencies
+
+	// Reconnect hooks, run after every successful reconnection (after
+	// workers restart and workflow creators re-inject). First consumer:
+	// the schedule reconciliation kick — in OSS a reconnect very often
+	// means the managed Temporal DEV SERVER restarted with EMPTY state,
+	// so every schedule artifact must be re-armed immediately, not at
+	// the next periodic pass (DD-015 D-B).
+	reconnectHooksMu sync.Mutex
+	reconnectHooks   []func()
 }
 
 // serverDependencies holds references to server components needed for reconnection
@@ -55,6 +65,14 @@ type serverDependencies struct {
 	workflowController            interface{} // *workflowcontroller.WorkflowController
 	agentExecutionStreamBroker    interface{} // *agentexecution.StreamBroker
 	workflowExecutionStreamBroker interface{} // *workflowexecution.StreamBroker
+
+	// scheduleWorkerConfig creates the schedule clock's worker (typed:
+	// this manager already imports the domain temporal packages it
+	// builds workers from). Set later than the others — its activities
+	// need the in-process gRPC clients, which exist only after
+	// StartInProcess — which is why StartWorkers runs after the
+	// downstream clients are built.
+	scheduleWorkerConfig *scheduletemporal.WorkerConfig
 }
 
 // NewTemporalManager creates a new Temporal connection manager
@@ -82,6 +100,33 @@ func (tm *TemporalManager) SetDependencies(
 	tm.serverDeps.workflowController = workflowController
 	tm.serverDeps.agentExecutionStreamBroker = agentExecutionStreamBroker
 	tm.serverDeps.workflowExecutionStreamBroker = workflowExecutionStreamBroker
+}
+
+// SetScheduleWorkerConfig registers the schedule clock's worker factory,
+// so createWorkers includes it on first start AND on every reconnect —
+// a worker missing from the reconnect path silently dies after the
+// first Temporal blip.
+func (tm *TemporalManager) SetScheduleWorkerConfig(workerConfig *scheduletemporal.WorkerConfig) {
+	tm.serverDeps.scheduleWorkerConfig = workerConfig
+}
+
+// AddReconnectHook registers a callback to run after every successful
+// reconnection, once workers are restarted and workflow creators
+// re-injected.
+func (tm *TemporalManager) AddReconnectHook(hook func()) {
+	tm.reconnectHooksMu.Lock()
+	defer tm.reconnectHooksMu.Unlock()
+	tm.reconnectHooks = append(tm.reconnectHooks, hook)
+}
+
+func (tm *TemporalManager) runReconnectHooks() {
+	tm.reconnectHooksMu.Lock()
+	hooks := make([]func(), len(tm.reconnectHooks))
+	copy(hooks, tm.reconnectHooks)
+	tm.reconnectHooksMu.Unlock()
+	for _, hook := range hooks {
+		hook()
+	}
 }
 
 // GetClient returns the current Temporal client (may be nil)
@@ -288,6 +333,11 @@ func (tm *TemporalManager) attemptReconnection(ctx context.Context) {
 	// Reinject workflow creators into controllers
 	tm.reinjectWorkflowCreators(newClient)
 
+	// Run reconnect hooks (e.g. the schedule reconciliation kick — the
+	// dev server behind this reconnect may have restarted with empty
+	// state, destroying every schedule artifact).
+	tm.runReconnectHooks()
+
 	// Clean up old client
 	if oldClient != nil {
 		log.Debug().Msg("Closing old Temporal client")
@@ -403,6 +453,13 @@ func (tm *TemporalManager) createWorkers(temporalClient client.Client) []worker.
 		} else {
 			log.Warn().Msg("Failed to type assert agent execution dependencies")
 		}
+	}
+
+	// 3. Create schedule clock worker (the tick workflow + activities on
+	// its own queue, so spanning ticks never starve agent executions)
+	if tm.serverDeps.scheduleWorkerConfig != nil {
+		workers = append(workers, tm.serverDeps.scheduleWorkerConfig.CreateWorker(temporalClient))
+		log.Debug().Msg("Created schedule clock worker")
 	}
 
 	return workers

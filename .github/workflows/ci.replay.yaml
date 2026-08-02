@@ -1,17 +1,31 @@
 # =============================================================================
 # Temporal Workflow Replay Determinism Gate
 # =============================================================================
-# Replays committed gold master event histories against the current
-# ExecuteServerlessWorkflow code. Catches non-deterministic changes that
-# would silently corrupt in-flight workflow executions.
+# Replays committed gold-master event histories against the current Go
+# workflow implementations in stigmer-server. Catches non-deterministic
+# changes that would silently corrupt in-flight workflow executions on a
+# user's machine — load-bearing here because OSS releases cut every 1-3
+# days, so a workflow-body change WILL straddle a release with histories
+# in flight.
 #
-# This is a lightweight CI job — no Testcontainers, no Java service, no
-# running Temporal server. It just runs `go test` against JSON history files.
+# This is a lightweight CI job — no Testcontainers, no service, no running
+# Temporal server. It just runs `go test` against committed JSON histories.
 #
-# If this fails, the workflow's command sequence has changed in a way that
-# is incompatible with in-flight executions. Fix by:
+# The replay tests are their own skip-guard: each fails loudly when its
+# testdata/replay-histories/ directory is empty (a silently-skipped gate
+# was how this workflow spent months pointing at a deleted directory —
+# backend/services/workflow-runner — without anyone noticing).
+#
+# If this fails, a workflow's command sequence has changed in a way that is
+# incompatible with in-flight executions. Fix by:
 # 1. Adding workflow.GetVersion() for backward compatibility
-# 2. Regenerating histories: make capture-replay-histories
+# 2. Re-capturing histories from a live run (temporal workflow show
+#    --output json against the dev server) once the old histories are
+#    genuinely obsolete
+#
+# Coverage today: the schedule tick (schedule/temporal). Named follow-up:
+# gold masters for the agent-execution and workflow-execution workflows,
+# whose capture needs a full runner flow.
 # =============================================================================
 
 name: ci.replay
@@ -19,12 +33,16 @@ name: ci.replay
 on:
   pull_request:
     paths:
-      - "backend/services/workflow-runner/**"
+      - "backend/services/stigmer-server/pkg/domain/schedule/temporal/**"
+      - "backend/services/stigmer-server/pkg/domain/agentexecution/temporal/**"
+      - "backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/**"
       - ".github/workflows/ci.replay.yaml"
   push:
     branches: [main]
     paths:
-      - "backend/services/workflow-runner/**"
+      - "backend/services/stigmer-server/pkg/domain/schedule/temporal/**"
+      - "backend/services/stigmer-server/pkg/domain/agentexecution/temporal/**"
+      - "backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/**"
       - ".github/workflows/ci.replay.yaml"
   workflow_dispatch: {}
 
@@ -49,20 +67,5 @@ jobs:
           go-version-file: go.work
 
       - name: Run replay tests
-        working-directory: backend/services/workflow-runner
-        run: go test ./test/replay/ -v -count=1
-
-      - name: Guard against silent skip
-        working-directory: backend/services/workflow-runner
-        run: |
-          HISTORY_DIR="test/replay/testdata/replay-histories"
-          if [ ! -d "$HISTORY_DIR" ]; then
-            echo "::warning::No replay histories directory — replay tests were skipped"
-            exit 0
-          fi
-          COUNT=$(find "$HISTORY_DIR" -name '*.json' -type f | wc -l)
-          if [ "$COUNT" -eq 0 ]; then
-            echo "::warning::No .json history files — replay tests were skipped"
-            exit 0
-          fi
-          echo "Replay tested $COUNT history files"
+        working-directory: backend/services/stigmer-server
+        run: go test ./pkg/domain/schedule/temporal/ -run 'Replay' -v -count=1

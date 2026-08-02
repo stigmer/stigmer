@@ -145,6 +145,41 @@ export const ScheduleCommandController = {
       O: Schedule,
       kind: MethodKind.Unary,
     },
+    /**
+     * Trigger a schedule to fire once, immediately.
+     *
+     * The manual fire runs through the schedule's own clock, so everything
+     * a cron fire does applies: a fresh run is created, status.last_fire_at
+     * and status.last_execution_id record it, and its verdict feeds the
+     * failure streak (a successful manual fire resets the streak). The fire
+     * is asynchronous — the response carries the schedule, and the run
+     * appears on status as it starts. A disabled schedule refuses (enable
+     * it first); a platform-paused schedule refuses (resume it first).
+     *
+     * @internal
+     * Authorization: requires can_edit permission on the schedule — the
+     * update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
+     * Refusal matrix in-handler (DD-014 D-B): disabled and paused both
+     * answer FAILED_PRECONDITION with teaching copy; the cloud handler
+     * loads before authorizing (#224: a missing schedule answers NOT_FOUND,
+     * not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
+     * overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
+     * SKIP would silently swallow a trigger issued while a previous fire is
+     * still tracking, and a human asking to run now means now. Cron fires
+     * keep SKIP, baked into the artifact. Manual fires feed the failure
+     * streak and reset it on success (DD-014 D-D): one verdict path, no
+     * manual-fire exemption. OSS answers FAILED_PRECONDITION until its
+     * clock lands (T04 slice 3a), then fires for real; OSS excludes the
+     * authorization step per its recorded single-user posture.
+     *
+     * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.trigger
+     */
+    trigger: {
+      name: "trigger",
+      I: ScheduleId,
+      O: Schedule,
+      kind: MethodKind.Unary,
+    },
   }
 } as const;
 

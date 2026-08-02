@@ -41,6 +41,9 @@ export class CloudTarget implements TargetProfile {
     versionTagging: true,
     secretRedaction: true,
     workflowChildApprovalForwarding: true,
+    // The hermetic cloud env boots Temporal and the Java service runs the
+    // schedule clock (T04 slice 2) — triggers fire for real.
+    scheduleFiring: true,
   };
 
   private grpcBaseUrl: string | undefined;

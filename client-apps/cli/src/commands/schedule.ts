@@ -1,11 +1,13 @@
 // `stigmer schedule resume <ref>` — clear a platform auto-pause from a
-// schedule.
+// schedule. `stigmer schedule trigger <ref>` — fire it once, immediately.
 //
 // The platform pauses a schedule after repeated failed runs and records
 // why in status.paused_reason; resume is the owner's explicit act that
 // clears it (the owner's enabled switch is a different lever — see
-// docs/vocabulary.md, "Disabled vs. paused"). Declarative verbs stay in
-// the generic matrix (apply/get/list/delete); this group exists for the
+// docs/vocabulary.md, "Disabled vs. paused"). Trigger fires the schedule
+// through its own clock (DD-014), so everything a cron fire does applies
+// — including feeding the failure streak. Declarative verbs stay in the
+// generic matrix (apply/get/list/delete); this group exists for the
 // kind-specific operational actions, the `stigmer share` shape.
 //
 // Thin handler: resolve credentials/org, delegate to resources/schedule,
@@ -25,6 +27,29 @@ export function registerSchedule(program: Command): void {
     .description("clear a platform pause so a schedule fires again (id, org/slug, or slug)")
     .action((ref: string, options: OutputFlags, command: Command) => runScheduleResume(ref, options, command));
   addResultFlags(resume);
+
+  const trigger = schedule
+    .command("trigger <ref>")
+    .description("fire a schedule once, immediately (id, org/slug, or slug)")
+    .action((ref: string, options: OutputFlags, command: Command) => runScheduleTrigger(ref, options, command));
+  addResultFlags(trigger);
+}
+
+async function runScheduleTrigger(ref: string, options: OutputFlags, command: Command): Promise<void> {
+  const format = resultFormat(options);
+
+  const [{ connectBackend }, { triggerSchedule }, { renderResult }] = await Promise.all([
+    import("../backend.js"),
+    import("../resources/schedule.js"),
+    import("../output/command-result.js"),
+  ]);
+
+  const client = connectBackend();
+  ensureAuthenticated(client.config);
+  const org = resolveOrganization(client.config, globalOrg(command));
+
+  const result = await triggerSchedule(client.stigmer, ref, org);
+  renderResult(result, format);
 }
 
 async function runScheduleResume(ref: string, options: OutputFlags, command: Command): Promise<void> {

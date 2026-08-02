@@ -18,6 +18,8 @@ import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/ag
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
+import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SkillCommandController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/command_pb";
@@ -56,6 +58,8 @@ export interface ConformanceClients {
   executionContextQuery: Client<typeof ExecutionContextQueryController>;
   mcpServerCommand: Client<typeof McpServerCommandController>;
   mcpServerQuery: Client<typeof McpServerQueryController>;
+  scheduleCommand: Client<typeof ScheduleCommandController>;
+  scheduleQuery: Client<typeof ScheduleQueryController>;
   sessionCommand: Client<typeof SessionCommandController>;
   sessionQuery: Client<typeof SessionQueryController>;
   skillCommand: Client<typeof SkillCommandController>;
@@ -108,6 +112,8 @@ export function makeClients(transport: Transport): ConformanceClients {
     executionContextQuery: createClient(ExecutionContextQueryController, transport),
     mcpServerCommand: createClient(McpServerCommandController, transport),
     mcpServerQuery: createClient(McpServerQueryController, transport),
+    scheduleCommand: createClient(ScheduleCommandController, transport),
+    scheduleQuery: createClient(ScheduleQueryController, transport),
     sessionCommand: createClient(SessionCommandController, transport),
     sessionQuery: createClient(SessionQueryController, transport),
     skillCommand: createClient(SkillCommandController, transport),

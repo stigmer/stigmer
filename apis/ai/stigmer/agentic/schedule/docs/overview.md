@@ -10,6 +10,17 @@ manifest never touches them. Disabling a schedule pauses firing while
 preserving the schedule and its history; deleting it stops firing
 permanently without touching the referenced agent or past executions.
 
+`trigger` fires a schedule once, immediately (`stigmer schedule trigger`).
+The manual fire runs through the schedule's own clock, so it records on
+status and its outcome feeds the failure streak exactly like a cron fire;
+a disabled or platform-paused schedule refuses instead of firing.
+
+In the open-source edition, schedules fire while `stigmer up` is running.
+The daemon is user-session scoped: after a reboot, nothing fires until you
+run `stigmer up` again. A fire missed while the daemon (or your laptop)
+was down lands within the 60-minute catch-up window once it returns, and
+is skipped entirely after that.
+
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
 kind: Schedule

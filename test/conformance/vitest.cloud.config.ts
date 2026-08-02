@@ -14,7 +14,15 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    include: ["src/suites/**/*.conformance.test.ts"],
+    // schedule-firing is the one execution-class suite the cloud run picks
+    // up: firing needs the engine (which this environment boots) but no
+    // runner and no LLM (fires target a deleted agent and fail inside the
+    // tick), so it is the first Class B behavior assertable against cloud —
+    // and, once the OSS Go clock lands, against both editions.
+    include: [
+      "src/suites/**/*.conformance.test.ts",
+      "src/suites-execution/schedule-firing.conformance.test.ts",
+    ],
     exclude: ["src/suites/mcp.conformance.test.ts"],
     globalSetup: ["./src/harness/global-setup-cloud.ts"],
     env: {

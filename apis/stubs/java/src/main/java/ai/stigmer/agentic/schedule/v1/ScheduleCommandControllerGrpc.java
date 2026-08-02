@@ -170,6 +170,37 @@ public final class ScheduleCommandControllerGrpc {
     return getResumeMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ScheduleId,
+      ai.stigmer.agentic.schedule.v1.Schedule> getTriggerMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "trigger",
+      requestType = ai.stigmer.agentic.schedule.v1.ScheduleId.class,
+      responseType = ai.stigmer.agentic.schedule.v1.Schedule.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ScheduleId,
+      ai.stigmer.agentic.schedule.v1.Schedule> getTriggerMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ScheduleId, ai.stigmer.agentic.schedule.v1.Schedule> getTriggerMethod;
+    if ((getTriggerMethod = ScheduleCommandControllerGrpc.getTriggerMethod) == null) {
+      synchronized (ScheduleCommandControllerGrpc.class) {
+        if ((getTriggerMethod = ScheduleCommandControllerGrpc.getTriggerMethod) == null) {
+          ScheduleCommandControllerGrpc.getTriggerMethod = getTriggerMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.schedule.v1.ScheduleId, ai.stigmer.agentic.schedule.v1.Schedule>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "trigger"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.schedule.v1.ScheduleId.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.schedule.v1.Schedule.getDefaultInstance()))
+              .setSchemaDescriptor(new ScheduleCommandControllerMethodDescriptorSupplier("trigger"))
+              .build();
+        }
+      }
+    }
+    return getTriggerMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -351,6 +382,38 @@ public final class ScheduleCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getResumeMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Trigger a schedule to fire once, immediately.
+     * The manual fire runs through the schedule's own clock, so everything
+     * a cron fire does applies: a fresh run is created, status.last_fire_at
+     * and status.last_execution_id record it, and its verdict feeds the
+     * failure streak (a successful manual fire resets the streak). The fire
+     * is asynchronous — the response carries the schedule, and the run
+     * appears on status as it starts. A disabled schedule refuses (enable
+     * it first); a platform-paused schedule refuses (resume it first).
+     * &#64;internal
+     * Authorization: requires can_edit permission on the schedule — the
+     * update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
+     * Refusal matrix in-handler (DD-014 D-B): disabled and paused both
+     * answer FAILED_PRECONDITION with teaching copy; the cloud handler
+     * loads before authorizing (#224: a missing schedule answers NOT_FOUND,
+     * not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
+     * overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
+     * SKIP would silently swallow a trigger issued while a previous fire is
+     * still tracking, and a human asking to run now means now. Cron fires
+     * keep SKIP, baked into the artifact. Manual fires feed the failure
+     * streak and reset it on success (DD-014 D-D): one verdict path, no
+     * manual-fire exemption. OSS answers FAILED_PRECONDITION until its
+     * clock lands (T04 slice 3a), then fires for real; OSS excludes the
+     * authorization step per its recorded single-user posture.
+     * </pre>
+     */
+    default void trigger(ai.stigmer.agentic.schedule.v1.ScheduleId request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getTriggerMethod(), responseObserver);
+    }
   }
 
   /**
@@ -506,6 +569,39 @@ public final class ScheduleCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getResumeMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Trigger a schedule to fire once, immediately.
+     * The manual fire runs through the schedule's own clock, so everything
+     * a cron fire does applies: a fresh run is created, status.last_fire_at
+     * and status.last_execution_id record it, and its verdict feeds the
+     * failure streak (a successful manual fire resets the streak). The fire
+     * is asynchronous — the response carries the schedule, and the run
+     * appears on status as it starts. A disabled schedule refuses (enable
+     * it first); a platform-paused schedule refuses (resume it first).
+     * &#64;internal
+     * Authorization: requires can_edit permission on the schedule — the
+     * update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
+     * Refusal matrix in-handler (DD-014 D-B): disabled and paused both
+     * answer FAILED_PRECONDITION with teaching copy; the cloud handler
+     * loads before authorizing (#224: a missing schedule answers NOT_FOUND,
+     * not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
+     * overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
+     * SKIP would silently swallow a trigger issued while a previous fire is
+     * still tracking, and a human asking to run now means now. Cron fires
+     * keep SKIP, baked into the artifact. Manual fires feed the failure
+     * streak and reset it on success (DD-014 D-D): one verdict path, no
+     * manual-fire exemption. OSS answers FAILED_PRECONDITION until its
+     * clock lands (T04 slice 3a), then fires for real; OSS excludes the
+     * authorization step per its recorded single-user posture.
+     * </pre>
+     */
+    public void trigger(ai.stigmer.agentic.schedule.v1.ScheduleId request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getTriggerMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -642,6 +738,38 @@ public final class ScheduleCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getResumeMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Trigger a schedule to fire once, immediately.
+     * The manual fire runs through the schedule's own clock, so everything
+     * a cron fire does applies: a fresh run is created, status.last_fire_at
+     * and status.last_execution_id record it, and its verdict feeds the
+     * failure streak (a successful manual fire resets the streak). The fire
+     * is asynchronous — the response carries the schedule, and the run
+     * appears on status as it starts. A disabled schedule refuses (enable
+     * it first); a platform-paused schedule refuses (resume it first).
+     * &#64;internal
+     * Authorization: requires can_edit permission on the schedule — the
+     * update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
+     * Refusal matrix in-handler (DD-014 D-B): disabled and paused both
+     * answer FAILED_PRECONDITION with teaching copy; the cloud handler
+     * loads before authorizing (#224: a missing schedule answers NOT_FOUND,
+     * not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
+     * overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
+     * SKIP would silently swallow a trigger issued while a previous fire is
+     * still tracking, and a human asking to run now means now. Cron fires
+     * keep SKIP, baked into the artifact. Manual fires feed the failure
+     * streak and reset it on success (DD-014 D-D): one verdict path, no
+     * manual-fire exemption. OSS answers FAILED_PRECONDITION until its
+     * clock lands (T04 slice 3a), then fires for real; OSS excludes the
+     * authorization step per its recorded single-user posture.
+     * </pre>
+     */
+    public ai.stigmer.agentic.schedule.v1.Schedule trigger(ai.stigmer.agentic.schedule.v1.ScheduleId request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getTriggerMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -777,6 +905,38 @@ public final class ScheduleCommandControllerGrpc {
     public ai.stigmer.agentic.schedule.v1.Schedule resume(ai.stigmer.agentic.schedule.v1.ScheduleId request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getResumeMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Trigger a schedule to fire once, immediately.
+     * The manual fire runs through the schedule's own clock, so everything
+     * a cron fire does applies: a fresh run is created, status.last_fire_at
+     * and status.last_execution_id record it, and its verdict feeds the
+     * failure streak (a successful manual fire resets the streak). The fire
+     * is asynchronous — the response carries the schedule, and the run
+     * appears on status as it starts. A disabled schedule refuses (enable
+     * it first); a platform-paused schedule refuses (resume it first).
+     * &#64;internal
+     * Authorization: requires can_edit permission on the schedule — the
+     * update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
+     * Refusal matrix in-handler (DD-014 D-B): disabled and paused both
+     * answer FAILED_PRECONDITION with teaching copy; the cloud handler
+     * loads before authorizing (#224: a missing schedule answers NOT_FOUND,
+     * not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
+     * overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
+     * SKIP would silently swallow a trigger issued while a previous fire is
+     * still tracking, and a human asking to run now means now. Cron fires
+     * keep SKIP, baked into the artifact. Manual fires feed the failure
+     * streak and reset it on success (DD-014 D-D): one verdict path, no
+     * manual-fire exemption. OSS answers FAILED_PRECONDITION until its
+     * clock lands (T04 slice 3a), then fires for real; OSS excludes the
+     * authorization step per its recorded single-user posture.
+     * </pre>
+     */
+    public ai.stigmer.agentic.schedule.v1.Schedule trigger(ai.stigmer.agentic.schedule.v1.ScheduleId request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getTriggerMethod(), getCallOptions(), request);
     }
   }
 
@@ -919,6 +1079,39 @@ public final class ScheduleCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getResumeMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Trigger a schedule to fire once, immediately.
+     * The manual fire runs through the schedule's own clock, so everything
+     * a cron fire does applies: a fresh run is created, status.last_fire_at
+     * and status.last_execution_id record it, and its verdict feeds the
+     * failure streak (a successful manual fire resets the streak). The fire
+     * is asynchronous — the response carries the schedule, and the run
+     * appears on status as it starts. A disabled schedule refuses (enable
+     * it first); a platform-paused schedule refuses (resume it first).
+     * &#64;internal
+     * Authorization: requires can_edit permission on the schedule — the
+     * update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
+     * Refusal matrix in-handler (DD-014 D-B): disabled and paused both
+     * answer FAILED_PRECONDITION with teaching copy; the cloud handler
+     * loads before authorizing (#224: a missing schedule answers NOT_FOUND,
+     * not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
+     * overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
+     * SKIP would silently swallow a trigger issued while a previous fire is
+     * still tracking, and a human asking to run now means now. Cron fires
+     * keep SKIP, baked into the artifact. Manual fires feed the failure
+     * streak and reset it on success (DD-014 D-D): one verdict path, no
+     * manual-fire exemption. OSS answers FAILED_PRECONDITION until its
+     * clock lands (T04 slice 3a), then fires for real; OSS excludes the
+     * authorization step per its recorded single-user posture.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.Schedule> trigger(
+        ai.stigmer.agentic.schedule.v1.ScheduleId request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getTriggerMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_APPLY = 0;
@@ -926,6 +1119,7 @@ public final class ScheduleCommandControllerGrpc {
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_DELETE = 3;
   private static final int METHODID_RESUME = 4;
+  private static final int METHODID_TRIGGER = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -962,6 +1156,10 @@ public final class ScheduleCommandControllerGrpc {
           break;
         case METHODID_RESUME:
           serviceImpl.resume((ai.stigmer.agentic.schedule.v1.ScheduleId) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule>) responseObserver);
+          break;
+        case METHODID_TRIGGER:
+          serviceImpl.trigger((ai.stigmer.agentic.schedule.v1.ScheduleId) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule>) responseObserver);
           break;
         default:
@@ -1017,6 +1215,13 @@ public final class ScheduleCommandControllerGrpc {
               ai.stigmer.agentic.schedule.v1.ScheduleId,
               ai.stigmer.agentic.schedule.v1.Schedule>(
                 service, METHODID_RESUME)))
+        .addMethod(
+          getTriggerMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.schedule.v1.ScheduleId,
+              ai.stigmer.agentic.schedule.v1.Schedule>(
+                service, METHODID_TRIGGER)))
         .build();
   }
 
@@ -1070,6 +1275,7 @@ public final class ScheduleCommandControllerGrpc {
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())
               .addMethod(getResumeMethod())
+              .addMethod(getTriggerMethod())
               .build();
         }
       }

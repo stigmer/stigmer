@@ -58,6 +58,7 @@ import (
 	projectcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/controller"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/reconcile"
 	schedulecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/schedule/controller"
+	scheduletemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/schedule/temporal"
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
 	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
 	skillstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
@@ -68,6 +69,7 @@ import (
 	workflowexecutionworkflows "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	workflowinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowinstance/controller"
 	agentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
+	agentexecutionclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentexecution"
 	environmentclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
 	executioncontextclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/executioncontext"
 	mcpserverclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/mcpserver"
@@ -466,16 +468,6 @@ func Run() error {
 		log.Fatal().Err(err).Msg("Failed to start in-process gRPC server")
 	}
 
-	// ============================================================================
-	// Start Temporal workers (after gRPC services ready)
-	// ============================================================================
-
-	if err := temporalManager.StartWorkers(temporalClient); err != nil {
-		log.Warn().
-			Err(err).
-			Msg("Failed to start Temporal workers - health monitor will retry")
-	}
-
 	// Create in-process gRPC connection
 	// This connection goes through all gRPC interceptors (validation, logging, etc.)
 	// even though it's in-process, ensuring consistent behavior with network calls
@@ -495,8 +487,45 @@ func Run() error {
 	skillClient := skillclient.NewClient(inProcessConn)
 	environmentClient := environmentclient.NewClient(inProcessConn)
 	executionContextClient := executioncontextclient.NewClient(inProcessConn)
+	agentExecutionClient := agentexecutionclient.NewClient(inProcessConn)
 
-	log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, Workflow, WorkflowInstance, McpServer, Skill, Environment, and ExecutionContext")
+	log.Info().Msg("Created in-process gRPC clients for Agent, AgentInstance, Session, Workflow, WorkflowInstance, McpServer, Skill, Environment, ExecutionContext, and AgentExecution")
+
+	// ============================================================================
+	// Schedule clock (T04 slice 3 — DD-014/DD-015)
+	// ============================================================================
+	// The clock components read the Temporal client through the manager's
+	// GetClient provider, so they survive reconnects without re-injection
+	// and degrade (never refuse) while Temporal is away. The run starter
+	// goes through the in-process agent-execution client so every fire
+	// enters the FULL create pipeline — which is why this wiring (and
+	// StartWorkers below) sits after the downstream clients exist.
+	scheduleTemporalConfig := scheduletemporal.LoadConfig()
+	scheduleArtifact := scheduletemporal.NewArtifact(scheduleTemporalConfig)
+	scheduleSyncer := scheduletemporal.NewSyncer(temporalManager.GetClient, store, scheduleArtifact)
+	scheduleRunStarter := scheduletemporal.NewRunStarter(store, scheduleTemporalConfig, agentExecutionClient)
+	scheduleTickActivities := scheduletemporal.NewTickActivities(store, scheduleTemporalConfig, scheduleSyncer, scheduleRunStarter)
+	temporalManager.SetScheduleWorkerConfig(
+		scheduletemporal.NewWorkerConfig(scheduleTemporalConfig, scheduleTickActivities))
+	scheduleController.SetClock(scheduleSyncer)
+	scheduleReconciler := scheduletemporal.NewReconciler(
+		temporalManager.GetClient, store, scheduleSyncer, scheduleTemporalConfig)
+
+	log.Info().
+		Str("queue", scheduleTemporalConfig.StigmerQueue).
+		Msg("Wired schedule clock (syncer, run starter, tick activities, reconciler)")
+
+	// ============================================================================
+	// Start Temporal workers (after gRPC services ready AND the schedule
+	// worker config is set — a worker registered only here would never
+	// start on first boot)
+	// ============================================================================
+
+	if err := temporalManager.StartWorkers(temporalClient); err != nil {
+		log.Warn().
+			Err(err).
+			Msg("Failed to start Temporal workers - health monitor will retry")
+	}
 
 	// ============================================================================
 	// Rebuild search index at startup
@@ -635,6 +664,15 @@ func Run() error {
 
 	// Start health monitor for automatic reconnection
 	temporalManager.StartHealthMonitor(monitorCtx)
+
+	// Start the schedule reconciliation loop: an immediate boot pass
+	// (the managed Temporal dev server may have restarted with empty
+	// state while this daemon was down), a periodic pass, and a kicked
+	// pass on every Temporal reconnect — in OSS that reconnect is
+	// exactly the moment every schedule artifact is most likely gone
+	// (DD-015 D-B).
+	kickScheduleReconcile := scheduleReconciler.StartReconciliation(monitorCtx)
+	temporalManager.AddReconnectHook(kickScheduleReconcile)
 
 	// Setup graceful shutdown
 	done := make(chan os.Signal, 1)

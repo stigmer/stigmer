@@ -21,14 +21,16 @@ import (
 //  2. ExtractResourceId - Extract ID from ScheduleId.Value wrapper
 //  3. LoadExistingForDelete - Load the schedule (stored in context for return)
 //  4. DeleteResource - Delete the schedule from the database
+//  5. TeardownScheduleArtifact - Delete the Temporal artifact
+//     (best-effort, AFTER the row delete — DD-008 D9: the row is the
+//     source of truth, so a failed row delete never tears down a live
+//     schedule's clock, and a failed teardown leaves an orphan that
+//     cannot fire past revalidation and is reaped by reconciliation)
 //
 // No search-index cleanup: schedule is not_search_indexed.
 //
 // Note: Unlike Stigmer Cloud, OSS excludes the authorization step (no
-// multi-user auth). The Temporal artifact teardown (best-effort, AFTER
-// the row delete — DD-008 D9) arrives with the clock in BOTH editions;
-// until then delete is the row alone, and an orphaned artifact cannot
-// exist because nothing creates one yet.
+// multi-user auth).
 //
 // The deleted schedule is returned for audit trail purposes (gRPC convention).
 func (c *ScheduleController) Delete(ctx context.Context, scheduleId *schedulev1.ScheduleId) (*schedulev1.Schedule, error) {
@@ -53,5 +55,6 @@ func (c *ScheduleController) buildDeletePipeline() *pipeline.Pipeline[*schedulev
 		AddStep(steps.NewExtractResourceIdStep[*schedulev1.ScheduleId]()).
 		AddStep(steps.NewLoadExistingForDeleteStep[*schedulev1.ScheduleId, *schedulev1.Schedule](c.store)).
 		AddStep(steps.NewDeleteResourceStep[*schedulev1.ScheduleId](c.store)).
+		AddStep(&teardownScheduleArtifactStep{controller: c}).
 		Build()
 }

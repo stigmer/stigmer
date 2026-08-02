@@ -54,6 +54,26 @@ export interface CapabilityFlags {
   // where the full round-trip exists — including the future local-ts-execution
   // (T04) target, which is where the OSS implementation will finally land.
   workflowChildApprovalForwarding: boolean;
+  // Schedules actually FIRE here: a trigger records status.last_fire_at,
+  // repeated failed fires accumulate status.consecutive_failures into the
+  // platform auto-pause, and resume + re-trigger fires again. Requires a
+  // Temporal-backed scheduling clock behind the server.
+  //
+  // True for cloud (the hermetic cloud env boots Temporal and the Java
+  // service runs the schedule clock shipped in T04 slice 2). False for
+  // local-go (the CRUD target runs without Temporal at all) and for
+  // local-go-execution UNTIL the OSS Go clock lands (T04 slice 3) — the
+  // Schedule contract, CLI, and trigger/resume refusal matrix all exist in
+  // OSS today, but nothing fires. Flipping this flag to true for
+  // local-go-execution is slice 3's finish line: the firing suite then runs
+  // identically against both editions.
+  //
+  // Deliberately a capability flag and not a heavier target: firing needs
+  // the engine but NOT a runner or LLM (the suite fires against a
+  // deleted target agent, so every fire fails deterministically before any
+  // execution is created) — which is what lets this be the first
+  // execution-class behavior asserted cross-edition.
+  scheduleFiring: boolean;
 }
 
 // Tenancy scope a test operates within. Locally this is just a unique org slug

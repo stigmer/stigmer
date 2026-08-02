@@ -56,6 +56,39 @@ async function loadSchedule(stigmer: Stigmer, ref: string, org: string): Promise
   return stigmer.schedule.getByReference({ org: parsed.org, slug: parsed.slug });
 }
 
+/**
+ * Resolve `ref` (a `sch_…` id, `org/slug`, or bare slug against `org`) and
+ * fire it once, immediately (project DD-014).
+ *
+ * The fire is asynchronous: the RPC answers with the schedule, and the run
+ * lands on status (last_fire_at / last_execution_id) as it starts — the
+ * same observability contract cron fires have. Disabled and platform-paused
+ * schedules are refused by the server with teaching copy; the CLI relays
+ * the server's message verbatim (never pattern-match refusal text).
+ */
+export async function triggerSchedule(stigmer: Stigmer, ref: string, org: string): Promise<CommandResult> {
+  const before = await loadSchedule(stigmer, ref, org);
+  const id = before.metadata?.id ?? "";
+  if (id === "") {
+    throw new UsageError(`Schedule '${ref}' has no id — cannot trigger`);
+  }
+
+  const triggered = await stigmer.schedule.trigger(id);
+
+  const slug = triggered.metadata?.slug ?? "";
+  const name = triggered.metadata?.name || slug;
+  const result = CommandResult.success(`Schedule '${name}' triggered — a run is starting`);
+
+  const section = result.addSection();
+  const orgSlug = triggered.metadata?.org ? `${triggered.metadata.org}/${slug}` : slug;
+  section.field("Watch it land", `stigmer get schedule ${orgSlug} (status.last_execution_id)`);
+  if (triggered.status?.nextFireAt !== undefined) {
+    section.field("Next cron fire", timestampDate(triggered.status.nextFireAt).toISOString());
+  }
+
+  return result;
+}
+
 function describeOutcome(schedule: Schedule, wasPausedReason: string, wasFailures: number): CommandResult {
   const slug = schedule.metadata?.slug ?? "";
   const name = schedule.metadata?.name || slug;

@@ -43,26 +43,27 @@ stigmer version
 </Step>
 <Step>
 
-## Start the server
+## Start the local stack
 
 ```bash
-stigmer server
+stigmer up
 ```
 
-On first run, Stigmer asks for your Anthropic API key — local agents run on
-Claude models, and the best current model is picked for you automatically. If
-`ANTHROPIC_API_KEY` is already set in your shell, it's used without prompting.
-
-Once configured, the server starts. You'll see:
+This starts the whole local stack — the server, the agent runner, and a managed
+Temporal — as a background daemon, so there is no terminal to keep open. You'll
+see:
 
 ```
-Web console available at http://localhost:8234
+Stigmer local stack is up
 ```
 
-Leave this terminal running and open a new one for the next steps.
+Local agents run on Claude models. If `ANTHROPIC_API_KEY` is set in your shell
+it is picked up automatically; otherwise run `stigmer setup` once to configure
+your provider.
 
 <Callout type="info">
-  Run `stigmer server setup` at any time to update your API key.
+  Check the stack with `stigmer status`, stop it with `stigmer down`, and run
+  `stigmer setup` at any time to update your API key.
 </Callout>
 
 </Step>
@@ -110,10 +111,10 @@ Stigmer treats Agents as **declarative resources**. You described what the Agent
 should do in a YAML file, applied it to the server, and ran it. The same pattern
 works for Skills, MCP Servers, and every other Stigmer resource.
 
-Your local server also runs a web console at
-[`http://localhost:8234`](http://localhost:8234). The next tutorials use this
-console to create Skills, connect tools, and build Agents — the same experience
-as Stigmer Cloud, running on your machine.
+Everything on your machine is driven from the terminal and the SDKs; for a
+visual console, the cloud experience at
+[`app.stigmer.ai`](https://app.stigmer.ai) offers the same resource model as a
+managed service.
 
 Right now your Agent gives generic answers. It doesn't know anything specific to
 your business. The next tutorial fixes that.
@@ -123,7 +124,7 @@ your business. The next tutorial fixes that.
 
 The next tutorials show how to call your Agent from code using the Stigmer SDK.
 Set up a project now so you're ready. If you prefer to follow along using just
-the web console, you can skip this step.
+the CLI, you can skip this step.
 
 <Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
 <Tab value="TypeScript">

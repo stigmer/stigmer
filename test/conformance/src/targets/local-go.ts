@@ -20,6 +20,8 @@ export class LocalGoTarget implements TargetProfile {
     versionTagging: true,
     secretRedaction: false,
     workflowChildApprovalForwarding: false,
+    // No Temporal behind this target at all — schedules cannot fire.
+    scheduleFiring: false,
   };
 
   private server: RunningServer | undefined;

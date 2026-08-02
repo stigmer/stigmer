@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ScheduleCommandController_Apply_FullMethodName  = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/apply"
-	ScheduleCommandController_Create_FullMethodName = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/create"
-	ScheduleCommandController_Update_FullMethodName = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/update"
-	ScheduleCommandController_Delete_FullMethodName = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/delete"
-	ScheduleCommandController_Resume_FullMethodName = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/resume"
+	ScheduleCommandController_Apply_FullMethodName   = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/apply"
+	ScheduleCommandController_Create_FullMethodName  = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/create"
+	ScheduleCommandController_Update_FullMethodName  = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/update"
+	ScheduleCommandController_Delete_FullMethodName  = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/delete"
+	ScheduleCommandController_Resume_FullMethodName  = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/resume"
+	ScheduleCommandController_Trigger_FullMethodName = "/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/trigger"
 )
 
 // ScheduleCommandControllerClient is the client API for ScheduleCommandController service.
@@ -117,6 +118,32 @@ type ScheduleCommandControllerClient interface {
 	// concurrent status writer. OSS excludes the authorization step, per
 	// its recorded single-user posture.
 	Resume(ctx context.Context, in *ScheduleId, opts ...grpc.CallOption) (*Schedule, error)
+	// Trigger a schedule to fire once, immediately.
+	//
+	// The manual fire runs through the schedule's own clock, so everything
+	// a cron fire does applies: a fresh run is created, status.last_fire_at
+	// and status.last_execution_id record it, and its verdict feeds the
+	// failure streak (a successful manual fire resets the streak). The fire
+	// is asynchronous — the response carries the schedule, and the run
+	// appears on status as it starts. A disabled schedule refuses (enable
+	// it first); a platform-paused schedule refuses (resume it first).
+	//
+	// @internal
+	// Authorization: requires can_edit permission on the schedule — the
+	// update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
+	// Refusal matrix in-handler (DD-014 D-B): disabled and paused both
+	// answer FAILED_PRECONDITION with teaching copy; the cloud handler
+	// loads before authorizing (#224: a missing schedule answers NOT_FOUND,
+	// not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
+	// overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
+	// SKIP would silently swallow a trigger issued while a previous fire is
+	// still tracking, and a human asking to run now means now. Cron fires
+	// keep SKIP, baked into the artifact. Manual fires feed the failure
+	// streak and reset it on success (DD-014 D-D): one verdict path, no
+	// manual-fire exemption. OSS answers FAILED_PRECONDITION until its
+	// clock lands (T04 slice 3a), then fires for real; OSS excludes the
+	// authorization step per its recorded single-user posture.
+	Trigger(ctx context.Context, in *ScheduleId, opts ...grpc.CallOption) (*Schedule, error)
 }
 
 type scheduleCommandControllerClient struct {
@@ -171,6 +198,16 @@ func (c *scheduleCommandControllerClient) Resume(ctx context.Context, in *Schedu
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Schedule)
 	err := c.cc.Invoke(ctx, ScheduleCommandController_Resume_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *scheduleCommandControllerClient) Trigger(ctx context.Context, in *ScheduleId, opts ...grpc.CallOption) (*Schedule, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Schedule)
+	err := c.cc.Invoke(ctx, ScheduleCommandController_Trigger_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -268,6 +305,32 @@ type ScheduleCommandControllerServer interface {
 	// concurrent status writer. OSS excludes the authorization step, per
 	// its recorded single-user posture.
 	Resume(context.Context, *ScheduleId) (*Schedule, error)
+	// Trigger a schedule to fire once, immediately.
+	//
+	// The manual fire runs through the schedule's own clock, so everything
+	// a cron fire does applies: a fresh run is created, status.last_fire_at
+	// and status.last_execution_id record it, and its verdict feeds the
+	// failure streak (a successful manual fire resets the streak). The fire
+	// is asynchronous — the response carries the schedule, and the run
+	// appears on status as it starts. A disabled schedule refuses (enable
+	// it first); a platform-paused schedule refuses (resume it first).
+	//
+	// @internal
+	// Authorization: requires can_edit permission on the schedule — the
+	// update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
+	// Refusal matrix in-handler (DD-014 D-B): disabled and paused both
+	// answer FAILED_PRECONDITION with teaching copy; the cloud handler
+	// loads before authorizing (#224: a missing schedule answers NOT_FOUND,
+	// not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
+	// overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
+	// SKIP would silently swallow a trigger issued while a previous fire is
+	// still tracking, and a human asking to run now means now. Cron fires
+	// keep SKIP, baked into the artifact. Manual fires feed the failure
+	// streak and reset it on success (DD-014 D-D): one verdict path, no
+	// manual-fire exemption. OSS answers FAILED_PRECONDITION until its
+	// clock lands (T04 slice 3a), then fires for real; OSS excludes the
+	// authorization step per its recorded single-user posture.
+	Trigger(context.Context, *ScheduleId) (*Schedule, error)
 }
 
 // UnimplementedScheduleCommandControllerServer should be embedded to have
@@ -291,6 +354,9 @@ func (UnimplementedScheduleCommandControllerServer) Delete(context.Context, *Sch
 }
 func (UnimplementedScheduleCommandControllerServer) Resume(context.Context, *ScheduleId) (*Schedule, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Resume not implemented")
+}
+func (UnimplementedScheduleCommandControllerServer) Trigger(context.Context, *ScheduleId) (*Schedule, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Trigger not implemented")
 }
 func (UnimplementedScheduleCommandControllerServer) testEmbeddedByValue() {}
 
@@ -402,6 +468,24 @@ func _ScheduleCommandController_Resume_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ScheduleCommandController_Trigger_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScheduleId)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScheduleCommandControllerServer).Trigger(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScheduleCommandController_Trigger_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScheduleCommandControllerServer).Trigger(ctx, req.(*ScheduleId))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ScheduleCommandController_ServiceDesc is the grpc.ServiceDesc for ScheduleCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -428,6 +512,10 @@ var ScheduleCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "resume",
 			Handler:    _ScheduleCommandController_Resume_Handler,
+		},
+		{
+			MethodName: "trigger",
+			Handler:    _ScheduleCommandController_Trigger_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -4,6 +4,7 @@ go_library(
     name = "controller",
     srcs = [
         "apply.go",
+        "clock.go",
         "create.go",
         "cron.go",
         "delete.go",
@@ -14,6 +15,7 @@ go_library(
         "resume.go",
         "schedule_controller.go",
         "steps.go",
+        "trigger.go",
         "update.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/schedule/controller",
@@ -29,6 +31,7 @@ go_library(
         "//backend/libs/go/store",
         "@com_github_rs_zerolog//log",
         "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//types/known/timestamppb",
     ],
 )
 
@@ -37,6 +40,7 @@ go_test(
     srcs = [
         "cron_test.go",
         "schedule_test.go",
+        "trigger_test.go",
     ],
     embed = [":controller"],
     deps = [

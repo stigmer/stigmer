@@ -55,6 +55,12 @@ export class ScheduleClient {
     } catch (e) { throw wrapError(e); }
   }
 
+  async trigger(id: string): Promise<Schedule> {
+    try {
+      return await this.command.trigger(create(ScheduleIdSchema, { value: id }));
+    } catch (e) { throw wrapError(e); }
+  }
+
   async get(id: string): Promise<Schedule> {
     try {
       return await this.query.get(create(ScheduleIdSchema, { value: id }));

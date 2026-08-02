@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/schedule/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_schedule_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxMp8FChlTY2hlZHVsZUNvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlEmIKBmNyZWF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZRooLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZSIE0LgYARKUAQoGdXBkYXRlEiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjbCuBgyCAIQOCILbWV0YWRhdGEuaWQqH3VuYXV0aG9yaXplZCB0byB1cGRhdGUgc2NoZWR1bGUSkAEKBmRlbGV0ZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjDCuBgsCAMQOCIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byBkZWxldGUgc2NoZWR1bGUSkAEKBnJlc3VtZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjDCuBgsCAIQOCIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byByZXN1bWUgc2NoZWR1bGUaBKD/KzhiBnByb3RvMw", [file_ai_stigmer_agentic_schedule_v1_api, file_ai_stigmer_agentic_schedule_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxMrQGChlTY2hlZHVsZUNvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlEmIKBmNyZWF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZRooLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZSIE0LgYARKUAQoGdXBkYXRlEiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjbCuBgyCAIQOCILbWV0YWRhdGEuaWQqH3VuYXV0aG9yaXplZCB0byB1cGRhdGUgc2NoZWR1bGUSkAEKBmRlbGV0ZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjDCuBgsCAMQOCIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byBkZWxldGUgc2NoZWR1bGUSkAEKBnJlc3VtZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjDCuBgsCAIQOCIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byByZXN1bWUgc2NoZWR1bGUSkgEKB3RyaWdnZXISKi5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVJZBooLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZSIxwrgYLQgCEDgiBXZhbHVlKiB1bmF1dGhvcml6ZWQgdG8gdHJpZ2dlciBzY2hlZHVsZRoEoP8rOGIGcHJvdG8z", [file_ai_stigmer_agentic_schedule_v1_api, file_ai_stigmer_agentic_schedule_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ScheduleCommandController handles write operations for schedules.
@@ -144,6 +144,40 @@ export const ScheduleCommandController: GenService<{
    * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.resume
    */
   resume: {
+    methodKind: "unary";
+    input: typeof ScheduleIdSchema;
+    output: typeof ScheduleSchema;
+  },
+  /**
+   * Trigger a schedule to fire once, immediately.
+   *
+   * The manual fire runs through the schedule's own clock, so everything
+   * a cron fire does applies: a fresh run is created, status.last_fire_at
+   * and status.last_execution_id record it, and its verdict feeds the
+   * failure streak (a successful manual fire resets the streak). The fire
+   * is asynchronous — the response carries the schedule, and the run
+   * appears on status as it starts. A disabled schedule refuses (enable
+   * it first); a platform-paused schedule refuses (resume it first).
+   *
+   * @internal
+   * Authorization: requires can_edit permission on the schedule — the
+   * update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
+   * Refusal matrix in-handler (DD-014 D-B): disabled and paused both
+   * answer FAILED_PRECONDITION with teaching copy; the cloud handler
+   * loads before authorizing (#224: a missing schedule answers NOT_FOUND,
+   * not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
+   * overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
+   * SKIP would silently swallow a trigger issued while a previous fire is
+   * still tracking, and a human asking to run now means now. Cron fires
+   * keep SKIP, baked into the artifact. Manual fires feed the failure
+   * streak and reset it on success (DD-014 D-D): one verdict path, no
+   * manual-fire exemption. OSS answers FAILED_PRECONDITION until its
+   * clock lands (T04 slice 3a), then fires for real; OSS excludes the
+   * authorization step per its recorded single-user posture.
+   *
+   * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.trigger
+   */
+  trigger: {
     methodKind: "unary";
     input: typeof ScheduleIdSchema;
     output: typeof ScheduleSchema;

@@ -41,6 +41,11 @@ class ScheduleCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleId.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.FromString,
                 _registered_method=True)
+        self.trigger = channel.unary_unary(
+                '/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/trigger',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleId.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.FromString,
+                _registered_method=True)
 
 
 class ScheduleCommandControllerServicer(object):
@@ -157,6 +162,37 @@ class ScheduleCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def trigger(self, request, context):
+        """Trigger a schedule to fire once, immediately.
+
+        The manual fire runs through the schedule's own clock, so everything
+        a cron fire does applies: a fresh run is created, status.last_fire_at
+        and status.last_execution_id record it, and its verdict feeds the
+        failure streak (a successful manual fire resets the streak). The fire
+        is asynchronous — the response carries the schedule, and the run
+        appears on status as it starts. A disabled schedule refuses (enable
+        it first); a platform-paused schedule refuses (resume it first).
+
+        @internal
+        Authorization: requires can_edit permission on the schedule — the
+        update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
+        Refusal matrix in-handler (DD-014 D-B): disabled and paused both
+        answer FAILED_PRECONDITION with teaching copy; the cloud handler
+        loads before authorizing (#224: a missing schedule answers NOT_FOUND,
+        not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
+        overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
+        SKIP would silently swallow a trigger issued while a previous fire is
+        still tracking, and a human asking to run now means now. Cron fires
+        keep SKIP, baked into the artifact. Manual fires feed the failure
+        streak and reset it on success (DD-014 D-D): one verdict path, no
+        manual-fire exemption. OSS answers FAILED_PRECONDITION until its
+        clock lands (T04 slice 3a), then fires for real; OSS excludes the
+        authorization step per its recorded single-user posture.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ScheduleCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -182,6 +218,11 @@ def add_ScheduleCommandControllerServicer_to_server(servicer, server):
             ),
             'resume': grpc.unary_unary_rpc_method_handler(
                     servicer.resume,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleId.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.SerializeToString,
+            ),
+            'trigger': grpc.unary_unary_rpc_method_handler(
+                    servicer.trigger,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleId.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.SerializeToString,
             ),
@@ -320,6 +361,33 @@ class ScheduleCommandController(object):
             request,
             target,
             '/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/resume',
+            ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleId.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def trigger(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.schedule.v1.ScheduleCommandController/trigger',
             ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleId.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2.Schedule.FromString,
             options,
