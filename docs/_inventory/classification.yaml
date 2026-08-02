@@ -254,6 +254,15 @@ pages:
       depictable stills; Slack's own screens stay prose — we depict only our
       product.
 
+  guides/channels/send-proactive-messages-with-templates:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Enable proactive messaging on a WhatsApp channel, author an approved
+      template in WhatsApp Manager, and have the Agent send reminders and
+      invoices with it.
+    medium: none
+
   guides/channels/set-up-your-meta-app:
     fate: keep
     diataxis: how-to

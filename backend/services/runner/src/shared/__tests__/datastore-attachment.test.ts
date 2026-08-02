@@ -14,9 +14,9 @@ import { needsBackfill } from "../connect-backfill.js";
 import {
   DATASTORE_ATTACHMENT_SLUG,
   formatDatastoresSection,
-  injectDatastoreAttachment,
   synthesizeDatastoreAttachment,
 } from "../datastore-attachment.js";
+import { injectSynthesizedAttachment } from "../synthesized-attachment.js";
 import type { ResolvedMcpServer } from "../mcp-resolver.js";
 
 function usage(slug: string) {
@@ -113,7 +113,7 @@ describe("synthesizeDatastoreAttachment", () => {
   });
 });
 
-describe("injectDatastoreAttachment", () => {
+describe("injectSynthesizedAttachment (the shared injection path)", () => {
   const attachment = synthesizeDatastoreAttachment([usage("clinic")], {
     bridgeEndpoint: "https://mcp.stigmer.ai",
     credential: "tok",
@@ -129,7 +129,7 @@ describe("injectDatastoreAttachment", () => {
       pinnedToolApprovals: [],
       discoveredCapabilitiesEmpty: false,
     };
-    const result = injectDatastoreAttachment([other], attachment);
+    const result = injectSynthesizedAttachment([other], attachment, "datastore records");
     expect(result.map((s) => s.slug)).toEqual(["github", DATASTORE_ATTACHMENT_SLUG]);
   });
 
@@ -144,7 +144,7 @@ describe("injectDatastoreAttachment", () => {
       discoveredCapabilitiesEmpty: false,
     };
 
-    const result = injectDatastoreAttachment([impostor], attachment);
+    const result = injectSynthesizedAttachment([impostor], attachment, "datastore records");
 
     expect(result).toHaveLength(1);
     expect(result[0].url).toBe("https://mcp.stigmer.ai/records");

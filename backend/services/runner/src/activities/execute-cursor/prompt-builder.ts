@@ -23,6 +23,10 @@ import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agen
 import { formatContextBridgeText } from "../../shared/context-bridge.js";
 import { formatDatastoresSection } from "../../shared/datastore-attachment.js";
 import {
+  formatChannelTemplatesSection,
+  type ChannelMessagingInfo,
+} from "../../shared/channel-attachment.js";
+import {
   formatSenderIdentityText,
   type SenderIdentity,
 } from "../../shared/sender-identity.js";
@@ -61,6 +65,12 @@ export interface EnhancedPromptOptions {
    * pointing the model at the synthesized record tools.
    */
   datastoreUsages?: DatastoreUsage[];
+  /**
+   * Serving proactive channels + their approved templates — rendered as
+   * the `<available_channel_templates>` section (proactive-messaging
+   * DD-003 D5) beside the synthesized send_channel_message tool.
+   */
+  channelMessaging?: ChannelMessagingInfo[];
   subAgents: SubAgent[];
   workspaceDirs: string[];
   workspaceFileRefs: string[];
@@ -131,6 +141,15 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
 
   if (options.datastoreUsages !== undefined && options.datastoreUsages.length > 0) {
     sections.push(formatDatastoresSection(options.datastoreUsages));
+  }
+
+  if (options.channelMessaging !== undefined && options.channelMessaging.length > 0) {
+    // "" when nothing is sendable — the tool alone still serves text
+    // sends inside a 24-hour window (DD-006 D6).
+    const channelSection = formatChannelTemplatesSection(options.channelMessaging);
+    if (channelSection !== "") {
+      sections.push(channelSection);
+    }
   }
 
   if (options.subAgents.length > 0) {

@@ -19,8 +19,12 @@ export type Transport = "stdio" | "http" | "both";
  *   argument surface. This is what the runner-synthesized datastore
  *   attachment spawns over stdio (T05 R1); over HTTP the same roster is
  *   served on the /records route regardless of this setting.
+ * - "channels": only send_channel_message (proactive-messaging DD-006
+ *   D8) with the agent-facing argument surface. This is what the
+ *   runner-synthesized channel attachment spawns over stdio; over HTTP
+ *   the same roster is served on the /channels route.
  */
-export type Roster = "full" | "records";
+export type Roster = "full" | "records" | "channels";
 
 /**
  * OAuth 2.0 Protected Resource Metadata (RFC 9728) discovery settings.
@@ -58,7 +62,7 @@ export interface Config {
 }
 
 const VALID_TRANSPORTS: readonly string[] = ["stdio", "http", "both"];
-const VALID_ROSTERS: readonly string[] = ["full", "records"];
+const VALID_ROSTERS: readonly string[] = ["full", "records", "channels"];
 const VALID_LOG_FORMATS: readonly string[] = ["text", "json"];
 const VALID_LOG_LEVELS: readonly string[] = ["debug", "info", "warn", "error"];
 
@@ -97,7 +101,9 @@ export function validateConfig(cfg: Config): void {
   }
 
   if (!VALID_ROSTERS.includes(cfg.roster)) {
-    throw new Error(`invalid STIGMER_MCP_ROSTER "${cfg.roster}": must be full or records`);
+    throw new Error(
+      `invalid STIGMER_MCP_ROSTER "${cfg.roster}": must be full, records, or channels`,
+    );
   }
 
   if (cfg.stigmerServerAddress === "") {

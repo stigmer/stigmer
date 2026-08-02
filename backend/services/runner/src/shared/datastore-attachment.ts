@@ -33,6 +33,7 @@
 
 import type { DatastoreUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { ResolvedMcpServer } from "./mcp-resolver.js";
+import { grpcTarget, type SynthesizedAttachmentOptions } from "./synthesized-attachment.js";
 
 /**
  * The synthesized attachment's slug. Reserved: a user McpServer with
@@ -44,25 +45,6 @@ export const DATASTORE_ATTACHMENT_SLUG = "stigmer-records";
 /** The bridge route serving the records-only roster (mcp-server T05 R1). */
 export const RECORDS_ROUTE = "/records";
 
-export interface DatastoreAttachmentOptions {
-  /**
-   * The bridge's HTTP endpoint (STIGMER_MCP_BRIDGE_ENDPOINT, e.g.
-   * https://mcp.stigmer.ai). Null selects the OSS stdio shape.
-   */
-  bridgeEndpoint: string | null;
-  /**
-   * The execution's session-scoped credential (the sandbox token a
-   * cloud runner holds, or the desktop runner's exchanged scoped
-   * token). Null attaches no Authorization header (OSS/local).
-   */
-  credential: string | null;
-  /**
-   * The stigmer backend endpoint the stdio child dials
-   * (config.stigmerBackendEndpoint). Only used for the OSS shape.
-   */
-  backendEndpoint: string;
-}
-
 /**
  * Synthesize the records attachment for an agent's datastore usages.
  * Returns undefined when the agent uses no datastores — the attachment
@@ -70,7 +52,7 @@ export interface DatastoreAttachmentOptions {
  */
 export function synthesizeDatastoreAttachment(
   datastoreUsages: DatastoreUsage[],
-  options: DatastoreAttachmentOptions,
+  options: SynthesizedAttachmentOptions,
 ): ResolvedMcpServer | undefined {
   if (datastoreUsages.length === 0) {
     return undefined;
@@ -108,28 +90,6 @@ export function synthesizeDatastoreAttachment(
 }
 
 /**
- * Inject the synthesized attachment into a resolved server list —
- * AFTER resolve + backfill (see file header). A user server shadowing
- * the reserved slug is replaced, loudly.
- */
-export function injectDatastoreAttachment(
-  resolvedServers: ResolvedMcpServer[],
-  attachment: ResolvedMcpServer,
-): ResolvedMcpServer[] {
-  const shadowed = resolvedServers.some((s) => s.slug === attachment.slug);
-  if (shadowed) {
-    console.warn(
-      `MCP server slug "${attachment.slug}" is reserved for the datastore ` +
-      "records attachment; the user-defined server is replaced.",
-    );
-  }
-  return [
-    ...resolvedServers.filter((s) => s.slug !== attachment.slug),
-    attachment,
-  ];
-}
-
-/**
  * The `<available_datastores>` prompt section (DD-005 SD-5, the
  * skills-section precedent): names the attached datastores and points
  * the model at describe_datastore first. Shared by both harnesses so
@@ -151,16 +111,4 @@ export function formatDatastoresSection(datastoreUsages: DatastoreUsage[]): stri
     ...entries,
     "</available_datastores>",
   ].join("\n");
-}
-
-/**
- * The gRPC dial target (host:port) for a backend endpoint URL — the
- * shape STIGMER_SERVER_ADDRESS wants (the bridge warns on schemes).
- */
-function grpcTarget(endpoint: string): string {
-  try {
-    return new URL(endpoint).host;
-  } catch {
-    return endpoint;
-  }
 }

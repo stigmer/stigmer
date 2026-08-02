@@ -33,9 +33,14 @@ import { resolveMcpTransportPosture } from "../../shared/mcp-transport-guard.js"
 import { backfillMcpServersIfNeeded } from "../../shared/connect-backfill.js";
 import {
   formatDatastoresSection,
-  injectDatastoreAttachment,
   synthesizeDatastoreAttachment,
 } from "../../shared/datastore-attachment.js";
+import {
+  discoverChannelMessaging,
+  formatChannelTemplatesSection,
+  synthesizeChannelAttachment,
+} from "../../shared/channel-attachment.js";
+import { injectSynthesizedAttachment } from "../../shared/synthesized-attachment.js";
 import { WorkspaceProvisioner } from "../../shared/workspace/provisioner.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
@@ -334,8 +339,26 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     ];
     const datastoreUsages = agent.spec!.datastoreUsages || [];
 
+    // The synthesized attachments' credential story (DD-006 D4): the
+    // exchanged token authenticates the discovery reads per-call (the
+    // messaging reach refuses a desktop runner's ambient embedded_runner
+    // credential; undefined lets the ambient credential apply). The
+    // attachment header falls back to the ambient credential.
+    const exchangedRunnerToken =
+      await client.acquireScopedRunnerToken({ agentExecutionId: executionId });
+    const attachmentCredential = exchangedRunnerToken
+      ?? config.stigmerTokenRef?.current
+      ?? config.stigmerToken;
+
+    // The channel discovery read runs BEFORE the MCP gate below: an
+    // agent whose ONLY tool source is a proactive channel would
+    // otherwise never enter MCP resolution and never connect the
+    // attachment (DD-006 D7). Every failure mode degrades to an empty
+    // answer — no tool, no section, execution unharmed.
+    const channelMessaging = await discoverChannelMessaging(client, exchangedRunnerToken);
+
     let resolvedMcpServers: Awaited<ReturnType<typeof resolveMcpServers>> | null = null;
-    if (mcpServerUsages.length > 0 || datastoreUsages.length > 0) {
+    if (mcpServerUsages.length > 0 || datastoreUsages.length > 0 || channelMessaging.length > 0) {
       await reportSetupProgress(client, executionId, "Connecting tools…");
       const transportPosture = resolveMcpTransportPosture(config.mode);
       resolvedMcpServers = await resolveMcpServers(
@@ -360,17 +383,30 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       // approval maps keep it approval-free by construction (see
       // shared/datastore-attachment.ts).
       if (datastoreUsages.length > 0) {
-        const scopedCredential =
-          (await client.acquireScopedRunnerToken({ agentExecutionId: executionId }))
-          ?? config.stigmerTokenRef?.current
-          ?? config.stigmerToken;
         const attachment = synthesizeDatastoreAttachment(datastoreUsages, {
           bridgeEndpoint: config.mcpBridgeEndpoint,
-          credential: scopedCredential,
+          credential: attachmentCredential,
           backendEndpoint: config.stigmerBackendEndpoint,
         });
         if (attachment) {
-          backfilledServers = injectDatastoreAttachment(backfilledServers, attachment);
+          backfilledServers = injectSynthesizedAttachment(
+            backfilledServers, attachment, "datastore records",
+          );
+        }
+      }
+
+      // The channel messaging attachment (DD-006 D7/D8) — the records
+      // attachment's twin, injected under the same after-backfill rule.
+      if (channelMessaging.length > 0) {
+        const attachment = synthesizeChannelAttachment(channelMessaging, {
+          bridgeEndpoint: config.mcpBridgeEndpoint,
+          credential: attachmentCredential,
+          backendEndpoint: config.stigmerBackendEndpoint,
+        });
+        if (attachment) {
+          backfilledServers = injectSynthesizedAttachment(
+            backfilledServers, attachment, "channel messaging",
+          );
         }
       }
       resolvedMcpServers = { resolvedServers: backfilledServers };
@@ -444,6 +480,11 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       skillsPromptSection,
       datastoresPromptSection: datastoreUsages.length > 0
         ? formatDatastoresSection(datastoreUsages)
+        : undefined,
+      // "" (nothing sendable) threads as undefined: the tool alone still
+      // serves text sends inside a 24-hour window (DD-006 D6).
+      channelTemplatesPromptSection: channelMessaging.length > 0
+        ? formatChannelTemplatesSection(channelMessaging) || undefined
         : undefined,
       workspaceFileRefs: execution.spec!.workspaceFileRefs || [],
       workspaceRoot: workspaceBackend.rootDir,

@@ -60,10 +60,12 @@ import { StreamingUpdateScheduler, loadStreamingConfig } from "../../shared/stre
 import { createCursorEventRecorder } from "./cursor-event-recorder.js";
 import { resolveMcpServers, toCursorMcpConfig, validateMcpServerEnv } from "./mcp-resolver.js";
 import { resolveMcpTransportPosture } from "../../shared/mcp-transport-guard.js";
+import { synthesizeDatastoreAttachment } from "../../shared/datastore-attachment.js";
 import {
-  injectDatastoreAttachment,
-  synthesizeDatastoreAttachment,
-} from "../../shared/datastore-attachment.js";
+  discoverChannelMessaging,
+  synthesizeChannelAttachment,
+} from "../../shared/channel-attachment.js";
+import { injectSynthesizedAttachment } from "../../shared/synthesized-attachment.js";
 import { mergeApprovalPolicies } from "./approval-policy.js";
 import { deriveActiveLeases, isUnattendedApprovalMode } from "../../shared/approval-policy.js";
 import { backfillMcpServersIfNeeded } from "./connect-backfill.js";
@@ -607,6 +609,19 @@ async function executeCursorInner(
     );
     setupTiming.mark("backfill_mcp");
 
+    // The synthesized attachments' credential story (DD-006 D4): the
+    // exchanged token authenticates the discovery reads per-call (a
+    // desktop runner's ambient embedded_runner credential is refused by
+    // the messaging reach; undefined lets a cloud sandbox runner's
+    // ambient session-scoped token or OSS's no-auth apply). The
+    // attachment header falls back to the ambient credential where no
+    // exchange happens.
+    const exchangedRunnerToken =
+      await client.acquireScopedRunnerToken({ agentExecutionId: executionId });
+    const attachmentCredential = exchangedRunnerToken
+      ?? config.stigmerTokenRef?.current
+      ?? config.stigmerToken;
+
     // Phase 4a2: Synthesize the datastore records attachment (T05).
     // Deliberately AFTER resolve + backfill: the attachment has no
     // McpServerUsage and reports discovered capabilities, so the
@@ -614,18 +629,38 @@ async function executeCursorInner(
     // delete_record (which on channels would be silently skipped).
     // Empty approval maps keep it approval-free by construction.
     if (blueprint.datastoreUsages.length > 0) {
-      const scopedCredential =
-        (await client.acquireScopedRunnerToken({ agentExecutionId: executionId }))
-        ?? config.stigmerTokenRef?.current
-        ?? config.stigmerToken;
       const attachment = synthesizeDatastoreAttachment(blueprint.datastoreUsages, {
         bridgeEndpoint: config.mcpBridgeEndpoint,
-        credential: scopedCredential,
+        credential: attachmentCredential,
         backendEndpoint: config.stigmerBackendEndpoint,
       });
       if (attachment) {
-        const resolvedServers = injectDatastoreAttachment(
-          mcpResolution.resolvedServers, attachment,
+        const resolvedServers = injectSynthesizedAttachment(
+          mcpResolution.resolvedServers, attachment, "datastore records",
+        );
+        mcpResolution = {
+          resolvedServers,
+          cursorConfig: toCursorMcpConfig(resolvedServers),
+        };
+      }
+    }
+
+    // Phase 4a3: Synthesize the channel messaging attachment (DD-006
+    // D7/D8), the records attachment's twin. The discovery read is the
+    // attachment decision — the control plane runs the SAME candidate
+    // computation the send authorization uses — and every failure mode
+    // (no channel, OSS, registry down, pre-3a control plane) degrades
+    // to honest absence: no tool, no section, execution unharmed.
+    const channelMessaging = await discoverChannelMessaging(client, exchangedRunnerToken);
+    if (channelMessaging.length > 0) {
+      const attachment = synthesizeChannelAttachment(channelMessaging, {
+        bridgeEndpoint: config.mcpBridgeEndpoint,
+        credential: attachmentCredential,
+        backendEndpoint: config.stigmerBackendEndpoint,
+      });
+      if (attachment) {
+        const resolvedServers = injectSynthesizedAttachment(
+          mcpResolution.resolvedServers, attachment, "channel messaging",
         );
         mcpResolution = {
           resolvedServers,
@@ -992,6 +1027,7 @@ async function executeCursorInner(
       userMessage: spec.message,
       skills: skillMetadata,
       datastoreUsages: blueprint.datastoreUsages,
+      channelMessaging,
       subAgents: blueprint.subAgents,
       workspaceDirs: blueprint.workspaceDirs,
       workspaceFileRefs: spec.workspaceFileRefs ?? [],
@@ -1605,6 +1641,7 @@ async function executeCursorInner(
             userMessage: spec.message,
             skills: skillMetadata,
             datastoreUsages: blueprint.datastoreUsages,
+            channelMessaging,
             subAgents: blueprint.subAgents,
             workspaceDirs: blueprint.workspaceDirs,
             workspaceFileRefs: spec.workspaceFileRefs ?? [],
@@ -2169,6 +2206,11 @@ export interface BuildPromptInput {
   skills: import("./prompt-builder.js").SkillMetadata[];
   /** Datastores attached via `datastore_usages` — the `<available_datastores>` section. */
   datastoreUsages?: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").DatastoreUsage[];
+  /**
+   * Serving proactive channels + their templates (the DD-006 D2
+   * discovery read) — the `<available_channel_templates>` section.
+   */
+  channelMessaging?: import("../../shared/channel-attachment.js").ChannelMessagingInfo[];
   subAgents: import("@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb").SubAgent[];
   workspaceDirs: string[];
   workspaceFileRefs: string[];
@@ -2276,6 +2318,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     userMessage,
     skills,
     datastoreUsages: input.datastoreUsages ?? [],
+    channelMessaging: input.channelMessaging ?? [],
     subAgents,
     workspaceDirs,
     workspaceFileRefs,

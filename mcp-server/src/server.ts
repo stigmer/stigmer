@@ -22,6 +22,7 @@ import type { Config } from "./config.js";
 import { registerAgentExecutionTools } from "./domains/agentexecutions/tools.js";
 import { registerAgentResources } from "./domains/agents/resources.js";
 import { registerAgentTools } from "./domains/agents/tools.js";
+import { registerChannelTools } from "./domains/channels/tools.js";
 import type { BackendTarget } from "./domains/client.js";
 import { registerDatastoreResources } from "./domains/datastores/resources.js";
 import { registerDatastoreTools } from "./domains/datastores/tools.js";
@@ -80,6 +81,21 @@ export function createRecordsServer(target: BackendTarget): McpServer {
   const server = new McpServer({ name: "mcp-server-stigmer-records", version: SERVER_VERSION });
   const tools = registerRecordTools(server, target, "agent");
   log.info("tools registered (records roster)", { count: tools.length, tools });
+  return server;
+}
+
+/**
+ * Build a channels-only MCP server: send_channel_message with the
+ * agent-facing argument surface, and nothing else (proactive-messaging
+ * DD-006 D8 — the records-roster pattern). This is the roster the
+ * runner-synthesized channel attachment connects to; the structural
+ * guarantee mirrors the records roster's. Served on the /channels HTTP
+ * route and as the stdio roster when STIGMER_MCP_ROSTER=channels.
+ */
+export function createChannelsServer(target: BackendTarget): McpServer {
+  const server = new McpServer({ name: "mcp-server-stigmer-channels", version: SERVER_VERSION });
+  const tools = registerChannelTools(server, target);
+  log.info("tools registered (channels roster)", { count: tools.length, tools });
   return server;
 }
 
@@ -167,12 +183,20 @@ export type RouteServerFactory = (path: string) => McpServer;
 /** HTTP route serving the records-only roster (T05 R1). */
 export const RECORDS_ROUTE = "/records";
 
+/** HTTP route serving the channels-only roster (DD-006 D8). */
+export const CHANNELS_ROUTE = "/channels";
+
 /**
  * The standard HTTP route dispatch: the records-only roster on
- * {@link RECORDS_ROUTE}, the full roster everywhere else.
+ * {@link RECORDS_ROUTE}, the channels-only roster on
+ * {@link CHANNELS_ROUTE}, the full roster everywhere else.
  */
 export function routedServerFactory(target: BackendTarget): RouteServerFactory {
-  return (path) => (path === RECORDS_ROUTE ? createRecordsServer(target) : createServer(target));
+  return (path) => {
+    if (path === RECORDS_ROUTE) return createRecordsServer(target);
+    if (path === CHANNELS_ROUTE) return createChannelsServer(target);
+    return createServer(target);
+  };
 }
 
 /**
@@ -350,12 +374,14 @@ async function routeRequest(
 }
 
 /**
- * The stdio server for the configured roster: the records-only roster
- * when STIGMER_MCP_ROSTER=records (what the OSS runner-synthesized
- * datastore attachment spawns), the full roster otherwise.
+ * The stdio server for the configured roster: the records-only or
+ * channels-only roster when STIGMER_MCP_ROSTER names one (what the OSS
+ * runner-synthesized attachments spawn), the full roster otherwise.
  */
 export function stdioServer(target: BackendTarget, cfg: Config): McpServer {
-  return cfg.roster === "records" ? createRecordsServer(target) : createServer(target);
+  if (cfg.roster === "records") return createRecordsServer(target);
+  if (cfg.roster === "channels") return createChannelsServer(target);
+  return createServer(target);
 }
 
 /** Return a single header value, collapsing the array form Node may produce. */
