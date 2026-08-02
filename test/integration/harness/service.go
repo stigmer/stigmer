@@ -451,6 +451,13 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		// execution no local runner can complete.
 		"STIGMER_SCHEDULES_SESSION_DEFAULTS_HARNESS=native",
 
+		// Failure-streak auto-pause (DD-013): two failed fires instead of
+		// the production five, so the tracking wire test proves the
+		// pause without five trigger round-trips. Only the tracking test
+		// accumulates failures — every other schedule test fires
+		// successfully or never fires.
+		"STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES=2",
+
 		fmt.Sprintf("STIGMER_ACTIVITY_ROUTING=%s", activityRouting(cfg)),
 		fmt.Sprintf("STIGMER_WORKFLOW_ACTIVITY_ROUTING=%s", workflowActivityRouting(cfg)),
 		fmt.Sprintf("STIGMER_DEFAULT_EXECUTION_TARGET=%s", defaultExecutionTarget(cfg)),

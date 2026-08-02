@@ -540,3 +540,118 @@ func TestSchedule_RunLifecycle(t *testing.T) {
 			result.GetStatus().GetError())
 	})
 }
+
+// TestSchedule_RunTracking verifies the failure streak, the auto-pause,
+// and resume clearing it, end to end over the wire (T04 slice 2b-ii,
+// DD-013) — WITHOUT an LLM: a dangling agent_ref makes every fire a
+// deterministic TARGET_MISSING failure (DD-008 D9: agent deletion never
+// cascades to schedules; the streak is how the dangle surfaces), so this
+// tier runs in offline CI. The harness lowers the pause threshold to 2
+// (service.go) so the pause lands in two fires instead of five.
+//
+// The pause copy, the cleared next_fire_at, the artifact's paused state,
+// the skipped-while-paused tick, and resume re-arming the clock are all
+// asserted against the LIVE system — the cloud fat JAR plus the same
+// Temporal dev server it schedules on.
+func TestSchedule_RunTracking(t *testing.T) {
+	require.NotNil(t, grpcConn)
+	require.NotNil(t, testHarness.Temporal, "Temporal dev server must be available")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	defer cancel()
+
+	temporalClient, err := testHarness.Temporal.Client()
+	require.NoError(t, err, "should connect to Temporal")
+	t.Cleanup(temporalClient.Close)
+	inspector := harness.NewScheduleInspector(temporalClient)
+
+	clients := harness.NewClients(grpcConn)
+	org := harness.TestOrg
+
+	agent := harness.CreateAgent(t, ctx, clients, "test-schedule-tracking",
+		"You are a helpful agent for schedule tracking tests.")
+
+	created, err := clients.ScheduleCommand.Apply(ctx,
+		scheduleManifestFor(org, "tracking-schedule", agent.GetMetadata().GetSlug()))
+	require.NoError(t, err)
+	scheduleID := created.GetMetadata().GetId()
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cleanupCancel()
+		_, _ = clients.ScheduleCommand.Delete(cleanupCtx,
+			&schedulev1.ScheduleId{Value: scheduleID})
+	})
+
+	// Dangle the target: from here every fire fails deterministically.
+	_, err = clients.AgentCommand.Delete(ctx,
+		&agentv1.AgentId{Value: agent.GetMetadata().GetId()})
+	require.NoError(t, err, "agent deletion must not cascade to the schedule")
+
+	getSchedule := func() *schedulev1.Schedule {
+		got, getErr := clients.ScheduleQuery.Get(ctx,
+			&schedulev1.ScheduleId{Value: scheduleID})
+		require.NoError(t, getErr)
+		return got
+	}
+
+	// ── 1. The first failed fire advances the streak, no pause ──
+	require.NoError(t, inspector.TriggerArtifact(ctx, scheduleID))
+	require.Eventually(t, func() bool {
+		return getSchedule().GetStatus().GetConsecutiveFailures() == 1
+	}, 60*time.Second, 500*time.Millisecond,
+		"a TARGET_MISSING fire must advance consecutive_failures to 1")
+	assert.Empty(t, getSchedule().GetStatus().GetPausedReason(),
+		"one failure must not pause (threshold is 2 in this suite)")
+
+	// ── 2. The threshold fire pauses: teaching copy, cleared next fire,
+	// paused artifact ──
+	require.NoError(t, inspector.TriggerArtifact(ctx, scheduleID))
+	var paused *schedulev1.Schedule
+	require.Eventually(t, func() bool {
+		got := getSchedule()
+		if got.GetStatus().GetPausedReason() == "" {
+			return false
+		}
+		paused = got
+		return true
+	}, 60*time.Second, 500*time.Millisecond,
+		"the second failure must cross the threshold and pause the schedule")
+
+	assert.Equal(t, int32(2), paused.GetStatus().GetConsecutiveFailures())
+	assert.Contains(t, paused.GetStatus().GetPausedReason(),
+		"Paused after 2 consecutive failed runs.",
+		"the pause copy teaches the mechanism")
+	assert.Contains(t, paused.GetStatus().GetPausedReason(), "not found",
+		"the pause copy names the last failure — the dangling agent")
+	assert.Nil(t, paused.GetStatus().GetNextFireAt(),
+		"a paused schedule has no next fire (the field's contract)")
+
+	require.Eventually(t, func() bool {
+		desc, descErr := inspector.DescribeArtifact(ctx, scheduleID)
+		return descErr == nil && desc.Schedule.State.Paused
+	}, 30*time.Second, 500*time.Millisecond,
+		"the pause must reach the Temporal artifact (immediate re-sync, sweep as backstop)")
+
+	// ── 3. A paused schedule's ticks skip: the streak is frozen ──
+	require.NoError(t, inspector.TriggerArtifact(ctx, scheduleID))
+	time.Sleep(3 * time.Second) // give a wrongly-firing tick time to do damage
+	assert.Equal(t, int32(2), getSchedule().GetStatus().GetConsecutiveFailures(),
+		"ticks on a paused schedule must no-op — the streak stays frozen")
+
+	// ── 4. Resume clears the latch, resets the streak, re-arms the clock ──
+	resumed, err := clients.ScheduleCommand.Resume(ctx,
+		&schedulev1.ScheduleId{Value: scheduleID})
+	require.NoError(t, err)
+	assert.Empty(t, resumed.GetStatus().GetPausedReason(),
+		"resume clears the platform's latch")
+	assert.Zero(t, resumed.GetStatus().GetConsecutiveFailures(),
+		"resume resets the streak — 2 strikes would re-pause on the next failure")
+	assert.NotNil(t, resumed.GetStatus().GetNextFireAt(),
+		"resume re-arms the clock and answers with the next fire")
+
+	require.Eventually(t, func() bool {
+		desc, descErr := inspector.DescribeArtifact(ctx, scheduleID)
+		return descErr == nil && !desc.Schedule.State.Paused
+	}, 30*time.Second, 500*time.Millisecond,
+		"the resumed artifact must be unpaused")
+}
