@@ -9,6 +9,24 @@ export default defineConfig({
     // default suite never tries to load them.
     exclude: ["**/node_modules/**", "**/*.a11y.test.tsx", "**/*.layout.test.tsx"],
     environment: "happy-dom",
+    // Never let happy-dom follow a navigation over the real network. An
+    // anchor click with target="_blank" (the browser-download flows) becomes
+    // a popup navigation whose request happy-dom issues with its INTERNAL
+    // Fetch class — a globalThis.fetch stub cannot intercept it; only these
+    // settings block it, before any request is created. Unblocked, the stray
+    // DNS lookup resolves after its test has returned and the error lands on
+    // an unrelated test (the AgentShareList flake in issue #334).
+    environmentOptions: {
+      happyDOM: {
+        settings: {
+          navigation: {
+            disableMainFrameNavigation: true,
+            disableChildFrameNavigation: true,
+            disableChildPageNavigation: true,
+          },
+        },
+      },
+    },
     // Raises testing-library's suite-wide async timeout (portaled Base UI
     // content mounts asynchronously and flakes under CI load at the 1s
     // default); see the rationale in the setup file.
