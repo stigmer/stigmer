@@ -23,6 +23,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	schedulev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
@@ -56,6 +57,7 @@ import (
 	organizationcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/organization/controller"
 	projectcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/controller"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/project/reconcile"
+	schedulecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/schedule/controller"
 	sessioncontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/session/controller"
 	skillcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller"
 	skillstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/storage"
@@ -361,6 +363,15 @@ func Run() error {
 	channelappv1.RegisterChannelAppQueryControllerServer(grpcServer, channelAppController)
 
 	log.Info().Msg("Registered ChannelApp controllers")
+
+	// Create and register Schedule controller (the schedule contract,
+	// T04 slice 1) — storage and validation only; the clock (per-resource
+	// Temporal Schedules) lands with the scheduling runtime.
+	scheduleController := schedulecontroller.NewScheduleController(store)
+	schedulev1.RegisterScheduleCommandControllerServer(grpcServer, scheduleController)
+	schedulev1.RegisterScheduleQueryControllerServer(grpcServer, scheduleController)
+
+	log.Info().Msg("Registered Schedule controllers")
 
 	// Register AgentExecution controller (created earlier for Temporal worker dependency)
 	agentexecutionv1.RegisterAgentExecutionCommandControllerServer(grpcServer, agentExecutionController)

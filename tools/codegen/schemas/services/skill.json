@@ -304,6 +304,7 @@
               "environment",
               "artifact",
               "execution_context",
+              "schedule",
               "project"
             ]
           },
@@ -639,6 +640,11 @@
           "name": "execution_context",
           "number": 54,
           "description": "User-owned runtime context for managing execution state."
+        },
+        {
+          "name": "schedule",
+          "number": 56,
+          "description": "Recurring trigger that runs an agent on a cron schedule."
         },
         {
           "name": "project",

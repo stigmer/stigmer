@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.schedule.v1;
+
+import "ai/stigmer/commons/apiresource/field_options.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
+import "buf/validate/validate.proto";
+
+// ScheduleSpec defines when a schedule fires and what it runs.
+//
+// The spec is deliberately small: a cron expression, the IANA time zone
+// it is evaluated in, the owner's enablement switch, and the target each
+// fire runs. Everything the platform observes about firing lives in
+// status — a declarative apply can never clobber it.
+//
+// @internal
+// DD-008 D8 as amended by DD-009: the target oneof is inline (the
+// AgentChannelSpec.provider_config shape, C-3) and the agent target
+// carries an ApiResourceReference, not a slug string (C-2). Apply-time
+// cron validation is purely lexical (C-4) so no cron parser exists in
+// either edition; the Temporal server owns calendar/DST semantics (D2).
+message ScheduleSpec {
+  // Cron expression in the classic 5-field form (minute, hour,
+  // day-of-month, month, day-of-week), evaluated in `time_zone` — for
+  // example "0 9 * * *" for daily at 09:00. The shorthands @hourly,
+  // @daily, @weekly, @monthly, and @yearly are also accepted. Timezone
+  // prefixes (CRON_TZ=/TZ=), @every intervals, 6- or 7-field forms, and
+  // trailing comments are rejected.
+  //
+  // @internal
+  // DD-009 C-4: deliberately narrower than the Temporal server's cron
+  // grammar. CRON_TZ=/TZ= would carry a second timezone authority beside
+  // `time_zone` (Temporal itself rejects the combination at
+  // schedule-create time — accepting it here would store a spec that
+  // detonates when the clock lands); @every compiles to an interval spec
+  // and bypasses the calendar model; the 7-field form has a seconds
+  // column. The 5-field restriction is a structural one-minute firing
+  // floor with zero cron parsing. The configurable interval floor
+  // (stigmer.schedules.limits, DD-008 D7) lands with the clock, enforced
+  // against Temporal's own computed fire times. Widening this grammar
+  // later is additive; narrowing it would break stored specs.
+  string cron = 1 [(buf.validate.field).string.min_len = 1];
+
+  // IANA time zone the cron is evaluated in, e.g. "Asia/Kolkata".
+  //
+  // @internal
+  // The single timezone authority (DD-009 C-4): validation refuses cron
+  // strings carrying their own CRON_TZ=/TZ= prefix. Zone-name validity is
+  // checked against the platform tz database in both editions
+  // (time.LoadLocation / ZoneId.of); DST evaluation semantics are the
+  // Temporal server's concern (DD-008 D2), identical for both editions.
+  string time_zone = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Whether the schedule fires. Off pauses firing without deleting the
+  // schedule or its history.
+  //
+  // @internal
+  // The owner's lever, and the only pause the owner writes — platform
+  // auto-pause is recorded on status, never spec (DD-008 D7). Sibling
+  // bool shape (AgentShareSpec/AgentChannelSpec.enabled): manifests set
+  // `enabled: true` explicitly, no edition defaults it, and no status
+  // field echoes it (DD-009 pinned behaviors — consoles derive
+  // owner-disabled state from spec on read).
+  bool enabled = 3;
+
+  // What this schedule runs at each fire. Exactly one target must be set.
+  //
+  // @internal
+  // The extension seam (DD-008 D1, the provider_config oneof pattern): a
+  // future `workflow` arm reuses the WorkflowExecution create pipeline
+  // directly — carrying its two recorded divergences from the agent path
+  // (version pinning; the CRITICAL pre-persist sandbox step, DD-008 D8).
+  // The arm is immutable across updates (DD-009 pinned behaviors): an
+  // agent schedule must not morph into a workflow schedule — the two
+  // targets enter different execution pipelines.
+  oneof target {
+    option (buf.validate.oneof).required = true;
+
+    // Run an agent with a configured prompt.
+    AgentTarget agent = 4;
+
+    // Reserved (additive): WorkflowTarget workflow = 5;
+  }
+}
+
+// AgentTarget runs an agent with a configured prompt at each fire.
+message AgentTarget {
+  // Reference to the agent this schedule runs.
+  //
+  // @internal
+  // Invariant (enforced in create/update/apply handlers of both editions,
+  // the AgentChannel/AgentShare Phase A rule): agent_ref.org must equal
+  // metadata.org — the schedule-owning org is the billing org for every
+  // fire. Creation requires can_edit on THIS referenced agent (DD-009
+  // C-6). Agent deletion does not cascade to schedules (house
+  // convention): a dangling reference surfaces at fire time as a failed
+  // tick feeding the auto-pause streak (DD-008 D9), never as a silent
+  // stall.
+  ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [
+    (ai.stigmer.commons.apiresource.reference_kind) = agent,
+    (buf.validate.field).required = true,
+    (buf.validate.field).cel = {
+      id: "agent_ref.kind"
+      message: "agent_ref must reference a resource with kind=agent"
+      expression: "this.kind == 40"
+    }
+  ];
+
+  // Prompt each run starts from. The platform appends the fire time in
+  // the schedule's time zone so the agent knows "today".
+  //
+  // @internal
+  // DD-008 D5: the runner injects no current date into any prompt, so
+  // the tick composes this message plus a fire-context line. The bound
+  // applies to the stored prompt, not the composed message.
+  string message = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 8192
+  }];
+}

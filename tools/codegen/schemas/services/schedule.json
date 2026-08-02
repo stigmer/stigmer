@@ -1,0 +1,687 @@
+{
+  "resource": "schedule",
+  "package": "ai.stigmer.agentic.schedule.v1",
+  "goImportPath": "schedulev1",
+  "services": [
+    {
+      "name": "ScheduleCommandController",
+      "role": "command",
+      "protoFile": "ai/stigmer/agentic/schedule/v1/command.proto",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "Schedule",
+          "inputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
+          "outputType": "Schedule",
+          "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
+          "description": "Create or update a schedule.\n\n @internal\n The authorization and state-operation are determined depending on\n whether the schedule is going to be created or updated, resolved as\n part of request execution. Status is preserved verbatim across\n apply-as-update (the AgentChannel decision-004 posture): the\n scheduling runtime is status's sole writer, and a routine manifest\n apply must never reset the failure streak or un-pause an\n auto-paused schedule (DD-008 D7 / DD-009 pinned behaviors)."
+        },
+        {
+          "name": "Create",
+          "inputType": "Schedule",
+          "inputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
+          "outputType": "Schedule",
+          "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
+          "description": "Create a schedule.\n\n Scheduling an agent is a billing-affecting decision: every fire\n creates an execution that consumes the schedule-owning\n organization's credits, unattended.\n\n @internal\n Authorization: requires can_edit on the REFERENCED AGENT\n (spec.agent.agent_ref), checked in-handler — the AgentChannel /\n same-org AgentShare Phase A bar (DD-009 C-6): whoever may edit the\n agent may schedule it; there is deliberately no org-level\n can_create_schedule permission. Standard org-scoped create tuples\n (owner = creator); no visibility tuples (the kind has no visibility\n block). Invariant enforced here: metadata.org must equal\n spec.agent.agent_ref.org."
+        },
+        {
+          "name": "Update",
+          "inputType": "Schedule",
+          "inputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
+          "outputType": "Schedule",
+          "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
+          "description": "Update an existing schedule.\n\n Replaces the spec wholesale. The slug, the referenced agent, and the\n target arm are immutable; cron, time zone, enablement, and the\n message may all change. Status (firing observations, auto-pause) is\n never touched by updates.\n\n @internal\n Authorization: requires can_edit permission on the schedule.\n agent_ref immutability is a consent-bar guarantee, not convenience\n (DD-009 C-7): create's bar is can_edit on the REFERENCED agent, and\n a repointing update would let a schedule owner drive an agent they\n may not edit — the AgentChannel rule for the AgentChannel reason.\n Target-arm immutability (an agent schedule cannot become a workflow\n schedule once that arm exists) is enforced in-handler: the two\n targets enter different execution pipelines. When the clock lands,\n an update touching the spec also clears a platform auto-pause\n through the ensure-on-mutate path (DD-008 D7/D9)."
+        },
+        {
+          "name": "Delete",
+          "inputType": "ScheduleId",
+          "inputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleId",
+          "outputType": "Schedule",
+          "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
+          "description": "Delete a schedule.\n\n Firing stops permanently. Executions created by past fires are\n untouched. To pause firing while keeping the schedule and its\n history, update it with enabled=false instead.\n\n @internal\n Authorization: requires can_delete permission on the schedule. The\n referenced agent is untouched. The Temporal artifact teardown\n (best-effort, AFTER the row delete — DD-008 D9) arrives with the\n clock; until then delete is the row alone, and an orphaned artifact\n is harmless by construction (fire-time revalidation no-ops it)."
+        }
+      ]
+    },
+    {
+      "name": "ScheduleQueryController",
+      "role": "query",
+      "protoFile": "ai/stigmer/agentic/schedule/v1/query.proto",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "ScheduleId",
+          "inputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleId",
+          "outputType": "Schedule",
+          "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
+          "description": "Get a single schedule by ID."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "Schedule",
+          "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
+          "description": "Get a schedule by its organization-scoped reference (org/slug).\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions (the AgentShare /\n AgentChannel pattern)."
+        },
+        {
+          "name": "GetByAgent",
+          "inputType": "GetSchedulesByAgentRequest",
+          "inputFullType": "ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest",
+          "outputType": "ScheduleList",
+          "outputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleList",
+          "description": "Get all schedules of a specific agent.\n Returns only schedules the caller has access to.\n\n This is how the agent's operational surfaces and CLI resolve an\n agent's existing schedules regardless of slug.\n\n @internal\n Authorization in-handler: FGA-filtered in cloud, unrestricted in OSS\n (the getByAgent family convention — agent channels, agent shares,\n agent instances)."
+        },
+        {
+          "name": "List",
+          "inputType": "ListSchedulesRequest",
+          "inputFullType": "ai.stigmer.agentic.schedule.v1.ListSchedulesRequest",
+          "outputType": "ScheduleList",
+          "outputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleList",
+          "description": "List schedules with optional label filtering.\n\n @internal\n Authorization in-handler via FGA-filtered queries (cloud) or\n unrestricted store queries (OSS)."
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource.\n\n When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens,\n starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\".\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form).\n\n Use empty org for same-org references (the common case).\n Use explicit org for cross-org references (e.g., marketplace resources).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "iam_policy",
+              "identity_account",
+              "api_key",
+              "invitation",
+              "identity_provider",
+              "oauth_app",
+              "platform_client",
+              "organization",
+              "platform",
+              "agent",
+              "agent_execution",
+              "session",
+              "skill",
+              "mcp_server",
+              "agent_instance",
+              "agent_share",
+              "agent_channel",
+              "channel_app",
+              "datastore",
+              "workflow",
+              "workflow_instance",
+              "workflow_execution",
+              "environment",
+              "artifact",
+              "execution_context",
+              "schedule",
+              "project"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter\n and end with a letter or digit (e.g., \"web-search\", \"code-reviewer\").\n Length: 2-63 characters.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 2,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetSchedulesByAgentRequest",
+      "description": "Input for retrieving all schedules of a specific agent.",
+      "protoType": "ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest",
+      "protoFile": "apis/ai/stigmer/agentic/schedule/v1/io.proto",
+      "fields": [
+        {
+          "name": "AgentId",
+          "jsonName": "agentId",
+          "protoField": "agent_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Identifier of the agent whose schedules to retrieve.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageInfo",
+          "jsonName": "pageInfo",
+          "protoField": "page_info",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination options.",
+          "required": false
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the results to.\n\n When set, only schedules whose metadata.org matches are returned —\n the org-context view a console tab needs. When empty, results are\n bounded only by the caller's view permissions, which for a member of\n several organizations spans all of them.\n\n @internal\n Mirrors the org scoping on the sibling getByAgent/getByWorkflow\n requests (agent channels, agent shares, agent instances). Handlers\n implementing this RPC must apply the filter in their query/list step.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ScheduleList",
+      "description": "Response containing a paginated list of schedules.",
+      "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleList",
+      "protoFile": "apis/ai/stigmer/agentic/schedule/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of schedules matching the query.",
+          "required": false
+        },
+        {
+          "name": "Items",
+          "jsonName": "items",
+          "protoField": "items",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "Schedule"
+            }
+          },
+          "description": "Schedules in the current page.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListSchedulesRequest",
+      "description": "Input for listing schedules within an organization.",
+      "protoType": "ai.stigmer.agentic.schedule.v1.ListSchedulesRequest",
+      "protoFile": "apis/ai/stigmer/agentic/schedule/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the listing.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        },
+        {
+          "name": "Labels",
+          "jsonName": "labels",
+          "protoField": "labels",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "string"
+            }
+          },
+          "description": "Filter by metadata labels. AND semantics: all labels must match.",
+          "required": false
+        },
+        {
+          "name": "PageInfo",
+          "jsonName": "pageInfo",
+          "protoField": "page_info",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination options.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "enumTypes": [
+    {
+      "name": "ApiResourceKind",
+      "description": "API resource kinds for Stigmer.",
+      "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+      "values": [
+        {
+          "name": "api_resource_version",
+          "number": 1,
+          "description": "Immutable version record tracking changes to an API resource."
+        },
+        {
+          "name": "iam_policy",
+          "number": 10,
+          "description": "Role-based access control policy for granting permissions on resources."
+        },
+        {
+          "name": "identity_account",
+          "number": 11,
+          "description": "User account in the identity system."
+        },
+        {
+          "name": "api_key",
+          "number": 12,
+          "description": "Credential for programmatic API access."
+        },
+        {
+          "name": "invitation",
+          "number": 20,
+          "description": "Shareable link for joining an organization with a configurable role."
+        },
+        {
+          "name": "identity_provider",
+          "number": 21,
+          "description": "External identity provider for federated authentication."
+        },
+        {
+          "name": "oauth_app",
+          "number": 22,
+          "description": "Registered OAuth application with an external vendor for outbound authentication."
+        },
+        {
+          "name": "platform_client",
+          "number": 23,
+          "description": "OAuth2 client credential for platform builders embedding Stigmer into their products."
+        },
+        {
+          "name": "organization",
+          "number": 30,
+          "description": "Top-level tenant that owns and manages resources.\n\n Organization is the one resource whose metadata.id equals its metadata.slug\n (set by the create pipeline), not a minted org_\u003culid\u003e. It is the immutable,\n globally unique tenancy root that every child resource references by slug\n (metadata.org), so its slug is globally unique and doubles as its id.\n id_prefix below is retained deliberately: it still anchors legacy org_\u003culid\u003e\n records and the CLI's id-vs-slug detection — it is not used to mint new ids."
+        },
+        {
+          "name": "platform",
+          "number": 31,
+          "description": "Singleton platform instance representing the Stigmer deployment."
+        },
+        {
+          "name": "agent",
+          "number": 40,
+          "description": "AI assistant with instructions, tools, skills, and a delegation model."
+        },
+        {
+          "name": "agent_execution",
+          "number": 41,
+          "description": "Single run of an agent within a session, tracking tool calls and responses."
+        },
+        {
+          "name": "session",
+          "number": 42,
+          "description": "Conversation thread between a user and an agent."
+        },
+        {
+          "name": "skill",
+          "number": 43,
+          "description": "Knowledge resource that provides domain-specific context to an agent."
+        },
+        {
+          "name": "mcp_server",
+          "number": 44,
+          "description": "External tool server connected via the Model Context Protocol."
+        },
+        {
+          "name": "agent_instance",
+          "number": 45,
+          "description": "Configured deployment of an agent with environment-specific overrides."
+        },
+        {
+          "name": "agent_share",
+          "number": 46,
+          "description": "Hosted chat link for an agent with its own audience, origins, and credentials."
+        },
+        {
+          "name": "agent_channel",
+          "number": 47,
+          "description": "Connection binding an agent to an external messaging platform workspace."
+        },
+        {
+          "name": "channel_app",
+          "number": 48,
+          "description": "Customer-owned messaging-platform app (e.g. a Slack app) that agent\n channels can install through instead of the shared platform app."
+        },
+        {
+          "name": "datastore",
+          "number": 49,
+          "description": "Declared collections of typed business records with role-aware access\n grants; agents read and write records through grant-checked tools."
+        },
+        {
+          "name": "workflow",
+          "number": 50,
+          "description": "Multi-step orchestration defining how agents collaborate on a task."
+        },
+        {
+          "name": "workflow_instance",
+          "number": 51,
+          "description": "Configured deployment of a workflow with environment-specific bindings."
+        },
+        {
+          "name": "workflow_execution",
+          "number": 52,
+          "description": "Single run of a workflow instance, tracking step progress and outcomes."
+        },
+        {
+          "name": "environment",
+          "number": 53,
+          "description": "Named set of variables and secrets for agent and workflow execution."
+        },
+        {
+          "name": "artifact",
+          "number": 55,
+          "description": "Persisted blob produced during workflow or agent execution."
+        },
+        {
+          "name": "execution_context",
+          "number": 54,
+          "description": "User-owned runtime context for managing execution state."
+        },
+        {
+          "name": "schedule",
+          "number": 56,
+          "description": "Recurring trigger that runs an agent on a cron schedule."
+        },
+        {
+          "name": "project",
+          "number": 60,
+          "description": "Aggregate root grouping related resources for lifecycle management."
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceVisibility",
+      "description": "Visibility controls who can access an API resource.\n This is orthogonal to ownership - visibility is about access control,\n while ownership (org) determines who manages the resource.\n\n Key distinction:\n - Ownership: Which organization controls/manages the resource\n - Visibility: Who can access/use the resource\n\n All resources belong to an organization. Visibility determines whether\n users outside that organization can access the resource.\n\n The visibility levels map to FGA tuples:\n - PRIVATE: no additional viewer tuples (owner-only access)\n - ORG: resource#viewer@organization:\u003corg\u003e#member tuple (all org members)\n - PUBLIC: resource#viewer@identity_account:* with allow_public (all users)\n - PLATFORM: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user\n   (all members of all organizations managed by the owning org's\n   IdentityProvider)",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+      "values": [
+        {
+          "name": "visibility_private",
+          "number": 1,
+          "description": "Only the owner, explicitly granted principals, and — for blueprint kinds\n in the cloud edition — org admins can access.\n This is the default for instances and personal resources.\n\n Org admins count as owners of blueprint kinds (agent, agent_share,\n skill, workflow, project, mcp_server), so a private blueprint stays\n manageable — and visible — to its org's admins. Personal kinds\n (instances, environments, sessions) stay creator-only.\n\n @internal\n Named visibility_private to avoid Java reserved keyword conflict.\n Admin inheritance is the FGA-model composition\n `owner: [identity_account] or admin from organization` (T08)."
+        },
+        {
+          "name": "visibility_public",
+          "number": 2,
+          "description": "Anyone can access (read) this resource.\n Used for marketplace-published resources (e.g., \"stigmer/web-search\").\n Write access still requires org membership.\n Named visibility_public to avoid Java reserved keyword conflict."
+        },
+        {
+          "name": "visibility_org",
+          "number": 3,
+          "description": "All members of the owning organization can access (read) this resource.\n Used for instances where a team wants shared observability of executions\n without granting access to all authenticated users.\n\n FGA tuple: resource#viewer@organization:\u003corg\u003e#member\n\n For workflow instances, this enables zero-tuple-per-execution shared\n observability: all org members see all executions via inheritance."
+        },
+        {
+          "name": "visibility_platform",
+          "number": 4,
+          "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
+        }
+      ]
+    }
+  ],
+  "resourceDescription": "Schedule runs an agent on a recurring cron schedule.\n\n A schedule is operational configuration, like AgentChannel: it names a\n target (an agent and the prompt each run starts from), a cron expression\n with an IANA time zone, and an enablement switch. The platform-observed\n firing state (next fire time, failure streak, auto-pause) lives in\n status. Deleting a schedule stops firing permanently; disabling pauses\n firing while preserving the schedule and its history.\n\n @internal\n DD-008 D1 (as amended by DD-009): standalone kind (56), target oneof\n extensible to workflows without a new kind. One agent may have many\n schedules with different prompts; metadata.org is the billing org for\n every fire. Calendar semantics live in the Temporal server (D2) — the\n platform parses no cron in either edition. The defaults resolver does\n NOT default the slug to the agent slug (schedules are N-per-agent, the\n AgentChannel P7 rule); standard derive-from-name applies. The\n overview.md file provides the SDK-facing description and example YAML.",
+  "statusType": {
+    "name": "ScheduleStatus",
+    "description": "ScheduleStatus contains system-managed state for a schedule.\n\n @internal\n Platform-owned; the scheduling runtime (tick + lifecycle sync) is the\n sole writer. Preserved VERBATIM across apply and update (the\n AgentChannel decision-004 posture) — load-bearing for DD-008 D7's\n auto-pause, which records on status precisely so the platform never\n writes spec. A routine manifest apply must never reset the failure\n streak or un-pause a schedule; both editions carry a regression test\n for this (DD-009 pinned behaviors).",
+    "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleStatus",
+    "protoFile": "apis/ai/stigmer/agentic/schedule/v1/status.proto",
+    "fields": [
+      {
+        "name": "NextFireAt",
+        "jsonName": "nextFireAt",
+        "protoField": "next_fire_at",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "When the schedule next fires, in UTC. Absent while the schedule is\n disabled, auto-paused, or not yet synchronized with the clock.",
+        "required": false
+      },
+      {
+        "name": "LastFireAt",
+        "jsonName": "lastFireAt",
+        "protoField": "last_fire_at",
+        "type": {
+          "kind": "timestamp"
+        },
+        "description": "When the schedule last fired, in UTC.",
+        "required": false
+      },
+      {
+        "name": "LastExecutionId",
+        "jsonName": "lastExecutionId",
+        "protoField": "last_execution_id",
+        "type": {
+          "kind": "string"
+        },
+        "description": "ID of the agent execution created by the most recent fire.\n\n @internal\n The reverse pointer of the stigmer.ai/schedule-id label stamped on\n every schedule-created execution (DD-008 D4) — the audit link is\n queryable from either end.",
+        "required": false
+      },
+      {
+        "name": "ConsecutiveFailures",
+        "jsonName": "consecutiveFailures",
+        "protoField": "consecutive_failures",
+        "type": {
+          "kind": "int32"
+        },
+        "description": "Number of consecutive failed runs. A successful run resets it.\n\n @internal\n Feeds the failure-streak auto-pause (DD-008 D7; platform default 5).",
+        "required": false
+      },
+      {
+        "name": "PausedReason",
+        "jsonName": "pausedReason",
+        "protoField": "paused_reason",
+        "type": {
+          "kind": "string"
+        },
+        "description": "Why the platform paused this schedule; empty when not paused.\n Re-enabling is the owner's explicit act: an update touching the\n spec clears the pause.\n\n @internal\n Written ONLY by the platform auto-pause (DD-008 D7) — never an echo\n of spec.enabled (DD-009 pinned behaviors: one writer per field;\n consoles derive owner-disabled state from spec on read).",
+        "required": false
+      },
+      {
+        "name": "Audit",
+        "jsonName": "audit",
+        "protoField": "audit",
+        "type": {
+          "kind": "message",
+          "messageType": "ApiResourceAudit"
+        },
+        "description": "Standard audit information (created_at, updated_at, created_by, etc.)",
+        "required": false
+      }
+    ]
+  },
+  "statusNestedTypes": [
+    {
+      "name": "ApiResourceAudit",
+      "description": "ApiResourceAudit contains both spec-level and status-level audit details.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAudit",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "SpecAudit",
+          "jsonName": "specAudit",
+          "protoField": "spec_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's specification (desired state).",
+          "required": false
+        },
+        {
+          "name": "StatusAudit",
+          "jsonName": "statusAudit",
+          "protoField": "status_audit",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditInfo"
+          },
+          "description": "Audit info for the resource's status (actual state).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditActor",
+      "description": "ApiResourceAuditActor represents the entity that performed an action.\n\n This is the platform's single actor vocabulary: every \"who did this\"\n reference (created_by / updated_by, version-history applied_by / pushed_by,\n approval resolved_by_actor) uses this message, so actor rendering is\n uniform across all surfaces.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "Id",
+          "jsonName": "id",
+          "protoField": "id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Unique identifier of the actor.\n\n @internal\n Historically, some writers populate this with the actor's email address\n rather than the identity-account ID. New writers should use the\n identity-account ID and carry the email in the dedicated field below;\n renderers must treat this value as an opaque last-resort label.",
+          "required": false
+        },
+        {
+          "name": "Avatar",
+          "jsonName": "avatar",
+          "protoField": "avatar",
+          "type": {
+            "kind": "string"
+          },
+          "description": "URL to the actor's avatar image.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Human-readable display name (e.g. \"Ada Lovelace\"). Empty when unknown;\n renderers fall back to email, then id.",
+          "required": false
+        },
+        {
+          "name": "Email",
+          "jsonName": "email",
+          "protoField": "email",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Email address of the actor. Empty when unknown or not applicable\n (e.g. machine accounts).",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceAuditInfo",
+      "description": "ApiResourceAuditInfo contains detailed audit information.",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceAuditInfo",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/status.proto",
+      "fields": [
+        {
+          "name": "CreatedBy",
+          "jsonName": "createdBy",
+          "protoField": "created_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who created this resource.",
+          "required": false
+        },
+        {
+          "name": "CreatedAt",
+          "jsonName": "createdAt",
+          "protoField": "created_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was created.",
+          "required": false
+        },
+        {
+          "name": "UpdatedBy",
+          "jsonName": "updatedBy",
+          "protoField": "updated_by",
+          "type": {
+            "kind": "message",
+            "messageType": "ApiResourceAuditActor"
+          },
+          "description": "Actor who last updated this resource.",
+          "required": false
+        },
+        {
+          "name": "UpdatedAt",
+          "jsonName": "updatedAt",
+          "protoField": "updated_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "Timestamp when the resource was last updated.",
+          "required": false
+        },
+        {
+          "name": "Event",
+          "jsonName": "event",
+          "protoField": "event",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Type of the last event (e.g., \"created\", \"updated\").",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

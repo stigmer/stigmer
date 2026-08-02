@@ -86,7 +86,8 @@ Execution | | **Workflow Execution** | --- | run, execution | Workflow Execution
 **Sub-Agent** | --- | --- | Sub-Agent | SubAgent, `sub_agents` | Sub-Agent | |
 **Agent Channel** | --- | --- | channel, Agent Channel | AgentChannel,
 `kind: AgentChannel` | Agent Channel | | **Channel App** | --- | --- | Channel
-App | ChannelApp, `kind: ChannelApp` | Channel App |
+App | ChannelApp, `kind: ChannelApp` | Channel App | | **Schedule** | --- | ---
+| schedule, Schedule | Schedule, `kind: Schedule` | Schedule |
 
 Dash (—) means the term should not appear in that context.
 
@@ -681,6 +682,32 @@ with WhatsApp Business access) that Agent Channels install through.
   Agent per app, so registering additional Channel Apps is also how several
   Agents serve the same workspace. For WhatsApp, a phone number serves one Agent
   per app.
+
+---
+
+#### Schedule
+
+A recurring trigger that runs an Agent on a cron schedule---for example, sending
+fee reminders every morning at nine.
+
+- **Capitalize**: Yes, when referring to the Stigmer resource. Lowercase
+  "schedule" is fine in prose once the concept is established ("the schedule
+  fires," "disable the schedule").
+- **API surface**: `kind: Schedule`, prefix `sch`. proto:
+  `agentic/schedule/v1/spec.proto`. CLI: `stigmer get schedule`,
+  `stigmer list schedule`.
+- **Key fields**: `cron` (classic 5-field form, evaluated in `time_zone`),
+  `time_zone` (IANA name), `enabled`, and the target (`agent` with `agent_ref`
+  and `message`). Firing observations (`next_fire_at`, `consecutive_failures`,
+  `paused_reason`) live in `status`, written only by the platform---applying a
+  manifest never touches them.
+- **Context rule**: How-to and reference only. In how-to docs, introduce as "run
+  your Agent on a schedule," then use "schedule."
+- **Note**: Do not confuse with a Temporal Schedule, the engine artifact the
+  platform manages internally to do the firing. Docs and code comments always
+  say "Temporal Schedule" for the engine artifact and "Schedule" (or
+  `kind: Schedule`) for the user-facing resource; one Schedule resource is
+  backed by one Temporal Schedule.
 
 ---
 

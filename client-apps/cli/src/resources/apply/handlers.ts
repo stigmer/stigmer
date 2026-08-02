@@ -29,6 +29,8 @@ import { type Environment, EnvironmentSchema } from "@stigmer/protos/ai/stigmer/
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { type McpServer, McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
+import { type Schedule, ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { type Session, SessionSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
 import { type Workflow, WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
@@ -173,6 +175,15 @@ export const APPLY_HANDLERS: ReadonlyMap<ApiResourceKind, ApplyHandler> = new Ma
       displayName: "Session",
       schema: SessionSchema,
       apply: (c, m) => c(SessionCommandController).apply(m as Session),
+    },
+  ],
+  [
+    ApiResourceKind.schedule,
+    {
+      kind: ApiResourceKind.schedule,
+      displayName: "Schedule",
+      schema: ScheduleSchema,
+      apply: (c, m) => c(ScheduleCommandController).apply(m as Schedule),
     },
   ],
 ]);

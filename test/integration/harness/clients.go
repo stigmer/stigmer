@@ -12,6 +12,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executionctxv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	schedulev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
@@ -65,6 +66,10 @@ type Clients struct {
 	DatastoreQuery         datastorev1.DatastoreQueryControllerClient
 	DatastoreRecordCommand datastorev1.DatastoreRecordCommandControllerClient
 	DatastoreRecordQuery   datastorev1.DatastoreRecordQueryControllerClient
+
+	// Schedule services
+	ScheduleCommand schedulev1.ScheduleCommandControllerClient
+	ScheduleQuery   schedulev1.ScheduleQueryControllerClient
 
 	// Environment services
 	EnvironmentCommand environmentv1.EnvironmentCommandControllerClient
@@ -155,6 +160,9 @@ func NewClients(conn grpc.ClientConnInterface) *Clients {
 		DatastoreQuery:         datastorev1.NewDatastoreQueryControllerClient(conn),
 		DatastoreRecordCommand: datastorev1.NewDatastoreRecordCommandControllerClient(conn),
 		DatastoreRecordQuery:   datastorev1.NewDatastoreRecordQueryControllerClient(conn),
+
+		ScheduleCommand: schedulev1.NewScheduleCommandControllerClient(conn),
+		ScheduleQuery:   schedulev1.NewScheduleQueryControllerClient(conn),
 
 		EnvironmentCommand: environmentv1.NewEnvironmentCommandControllerClient(conn),
 		EnvironmentQuery:   environmentv1.NewEnvironmentQueryControllerClient(conn),
