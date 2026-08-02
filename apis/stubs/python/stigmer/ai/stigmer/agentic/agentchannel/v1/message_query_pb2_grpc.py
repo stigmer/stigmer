@@ -27,6 +27,11 @@ class ChannelMessageQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_message__io__pb2.ListChannelTemplatesInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_message__io__pb2.ChannelTemplates.FromString,
                 _registered_method=True)
+        self.listMessagingChannels = channel.unary_unary(
+                '/ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController/listMessagingChannels',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_message__io__pb2.ListMessagingChannelsInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_message__io__pb2.MessagingChannels.FromString,
+                _registered_method=True)
 
 
 class ChannelMessageQueryControllerServicer(object):
@@ -62,6 +67,29 @@ class ChannelMessageQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def listMessagingChannels(self, request, context):
+        """List the agent channels the caller can send business-initiated
+        messages on.
+
+        Everything the read needs derives from the caller's credential; an
+        agent with no proactive-messaging channel receives an empty list.
+
+        @internal
+        proactive-messaging DD-006 D2: the runner's tool-attachment
+        decision, replacing DD-002 D5's getByAgent plan (FGA-scoped — a
+        sandbox token structurally receives an empty list there). Cloud
+        answers from the SAME candidate computation ChannelMessagingReach
+        uses (chain → serving proactive channels → sender-registry filter),
+        so the attachment decision and the send authorization can never
+        disagree. Session-bound callers only in this slice: direct
+        principals get INVALID_ARGUMENT pointing at the channel resource
+        surface. OSS returns an empty list (DD-006 D3) — a discovery read
+        answering "none", unlike its action siblings' FAILED_PRECONDITION.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ChannelMessageQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -69,6 +97,11 @@ def add_ChannelMessageQueryControllerServicer_to_server(servicer, server):
                     servicer.listTemplates,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_message__io__pb2.ListChannelTemplatesInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_message__io__pb2.ChannelTemplates.SerializeToString,
+            ),
+            'listMessagingChannels': grpc.unary_unary_rpc_method_handler(
+                    servicer.listMessagingChannels,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_message__io__pb2.ListMessagingChannelsInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_message__io__pb2.MessagingChannels.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -106,6 +139,33 @@ class ChannelMessageQueryController(object):
             '/ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController/listTemplates',
             ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_message__io__pb2.ListChannelTemplatesInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_message__io__pb2.ChannelTemplates.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listMessagingChannels(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController/listMessagingChannels',
+            ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_message__io__pb2.ListMessagingChannelsInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_message__io__pb2.MessagingChannels.FromString,
             options,
             channel_credentials,
             insecure,

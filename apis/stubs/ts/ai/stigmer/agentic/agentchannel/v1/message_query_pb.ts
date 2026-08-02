@@ -4,7 +4,7 @@
 
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ChannelTemplatesSchema, ListChannelTemplatesInputSchema } from "./message_io_pb.js";
+import type { ChannelTemplatesSchema, ListChannelTemplatesInputSchema, ListMessagingChannelsInputSchema, MessagingChannelsSchema } from "./message_io_pb.js";
 import { file_ai_stigmer_agentic_agentchannel_v1_message_io } from "./message_io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -13,7 +13,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agentchannel/v1/message_query.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_message_query: GenFile = /*@__PURE__*/
-  fileDesc("CjZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL21lc3NhZ2VfcXVlcnkucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEysgEKHUNoYW5uZWxNZXNzYWdlUXVlcnlDb250cm9sbGVyEooBCg1saXN0VGVtcGxhdGVzEj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5MaXN0Q2hhbm5lbFRlbXBsYXRlc0lucHV0GjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsVGVtcGxhdGVzIgTQuBgBGgSg/ysvYgZwcm90bzM", [file_ai_stigmer_agentic_agentchannel_v1_message_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CjZhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL21lc3NhZ2VfcXVlcnkucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEyyQIKHUNoYW5uZWxNZXNzYWdlUXVlcnlDb250cm9sbGVyEooBCg1saXN0VGVtcGxhdGVzEj0uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5MaXN0Q2hhbm5lbFRlbXBsYXRlc0lucHV0GjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsVGVtcGxhdGVzIgTQuBgBEpQBChVsaXN0TWVzc2FnaW5nQ2hhbm5lbHMSPi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkxpc3RNZXNzYWdpbmdDaGFubmVsc0lucHV0GjUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5NZXNzYWdpbmdDaGFubmVscyIE0LgYARoEoP8rL2IGcHJvdG8z", [file_ai_stigmer_agentic_agentchannel_v1_message_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ChannelMessageQueryController serves runtime reads that support
@@ -52,6 +52,32 @@ export const ChannelMessageQueryController: GenService<{
     methodKind: "unary";
     input: typeof ListChannelTemplatesInputSchema;
     output: typeof ChannelTemplatesSchema;
+  },
+  /**
+   * List the agent channels the caller can send business-initiated
+   * messages on.
+   *
+   * Everything the read needs derives from the caller's credential; an
+   * agent with no proactive-messaging channel receives an empty list.
+   *
+   * @internal
+   * proactive-messaging DD-006 D2: the runner's tool-attachment
+   * decision, replacing DD-002 D5's getByAgent plan (FGA-scoped — a
+   * sandbox token structurally receives an empty list there). Cloud
+   * answers from the SAME candidate computation ChannelMessagingReach
+   * uses (chain → serving proactive channels → sender-registry filter),
+   * so the attachment decision and the send authorization can never
+   * disagree. Session-bound callers only in this slice: direct
+   * principals get INVALID_ARGUMENT pointing at the channel resource
+   * surface. OSS returns an empty list (DD-006 D3) — a discovery read
+   * answering "none", unlike its action siblings' FAILED_PRECONDITION.
+   *
+   * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController.listMessagingChannels
+   */
+  listMessagingChannels: {
+    methodKind: "unary";
+    input: typeof ListMessagingChannelsInputSchema;
+    output: typeof MessagingChannelsSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_agentchannel_v1_message_query, 0);

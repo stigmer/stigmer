@@ -41,16 +41,20 @@ public final class MessageQueryProto extends com.google.protobuf.GeneratedFile {
       "annel/v1/message_io.proto\0328ai/stigmer/co" +
       "mmons/apiresource/rpc_service_options.pr" +
       "oto\032+ai/stigmer/commons/rpc/method_optio" +
-      "ns.proto2\262\001\n\035ChannelMessageQueryControll" +
+      "ns.proto2\311\002\n\035ChannelMessageQueryControll" +
       "er\022\212\001\n\rlistTemplates\022=.ai.stigmer.agenti" +
       "c.agentchannel.v1.ListChannelTemplatesIn" +
       "put\0324.ai.stigmer.agentic.agentchannel.v1" +
-      ".ChannelTemplates\"\004\320\270\030\001\032\004\240\377+/B\300\001B\021Messag" +
-      "eQueryProtoP\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agenti" +
-      "c.Agentchannel.V1\312\002\"Ai\\Stigmer\\Agentic\\A" +
-      "gentchannel\\V1\342\002.Ai\\Stigmer\\Agentic\\Agen" +
-      "tchannel\\V1\\GPBMetadata\352\002&Ai::Stigmer::A" +
-      "gentic::Agentchannel::V1b\006proto3"
+      ".ChannelTemplates\"\004\320\270\030\001\022\224\001\n\025listMessagin" +
+      "gChannels\022>.ai.stigmer.agentic.agentchan" +
+      "nel.v1.ListMessagingChannelsInput\0325.ai.s" +
+      "tigmer.agentic.agentchannel.v1.Messaging" +
+      "Channels\"\004\320\270\030\001\032\004\240\377+/B\300\001B\021MessageQueryPro" +
+      "toP\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agentic.Agentch" +
+      "annel.V1\312\002\"Ai\\Stigmer\\Agentic\\Agentchann" +
+      "el\\V1\342\002.Ai\\Stigmer\\Agentic\\Agentchannel\\" +
+      "V1\\GPBMetadata\352\002&Ai::Stigmer::Agentic::A" +
+      "gentchannel::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

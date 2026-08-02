@@ -16,6 +16,8 @@ import ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput;
 import ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput;
 import ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest;
 import ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput;
+import ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput;
+import ai.stigmer.agentic.agentchannel.v1.MessagingChannels;
 import ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput;
 import ai.stigmer.agentic.agentchannel.v1.SendChannelMessageOutput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
@@ -81,6 +83,12 @@ public final class AgentChannelClient {
     public ChannelTemplates listTemplates(ListChannelTemplatesInput input) {
         try {
             return channelMessageQuery.listTemplates(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public MessagingChannels listMessagingChannels(ListMessagingChannelsInput input) {
+        try {
+            return channelMessageQuery.listMessagingChannels(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

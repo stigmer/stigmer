@@ -52,6 +52,37 @@ public final class ChannelMessageQueryControllerGrpc {
     return getListTemplatesMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput,
+      ai.stigmer.agentic.agentchannel.v1.MessagingChannels> getListMessagingChannelsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listMessagingChannels",
+      requestType = ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput.class,
+      responseType = ai.stigmer.agentic.agentchannel.v1.MessagingChannels.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput,
+      ai.stigmer.agentic.agentchannel.v1.MessagingChannels> getListMessagingChannelsMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput, ai.stigmer.agentic.agentchannel.v1.MessagingChannels> getListMessagingChannelsMethod;
+    if ((getListMessagingChannelsMethod = ChannelMessageQueryControllerGrpc.getListMessagingChannelsMethod) == null) {
+      synchronized (ChannelMessageQueryControllerGrpc.class) {
+        if ((getListMessagingChannelsMethod = ChannelMessageQueryControllerGrpc.getListMessagingChannelsMethod) == null) {
+          ChannelMessageQueryControllerGrpc.getListMessagingChannelsMethod = getListMessagingChannelsMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput, ai.stigmer.agentic.agentchannel.v1.MessagingChannels>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listMessagingChannels"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentchannel.v1.MessagingChannels.getDefaultInstance()))
+              .setSchemaDescriptor(new ChannelMessageQueryControllerMethodDescriptorSupplier("listMessagingChannels"))
+              .build();
+        }
+      }
+    }
+    return getListMessagingChannelsMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -146,6 +177,30 @@ public final class ChannelMessageQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ChannelTemplates> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListTemplatesMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * List the agent channels the caller can send business-initiated
+     * messages on.
+     * Everything the read needs derives from the caller's credential; an
+     * agent with no proactive-messaging channel receives an empty list.
+     * &#64;internal
+     * proactive-messaging DD-006 D2: the runner's tool-attachment
+     * decision, replacing DD-002 D5's getByAgent plan (FGA-scoped — a
+     * sandbox token structurally receives an empty list there). Cloud
+     * answers from the SAME candidate computation ChannelMessagingReach
+     * uses (chain → serving proactive channels → sender-registry filter),
+     * so the attachment decision and the send authorization can never
+     * disagree. Session-bound callers only in this slice: direct
+     * principals get INVALID_ARGUMENT pointing at the channel resource
+     * surface. OSS returns an empty list (DD-006 D3) — a discovery read
+     * answering "none", unlike its action siblings' FAILED_PRECONDITION.
+     * </pre>
+     */
+    default void listMessagingChannels(ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.MessagingChannels> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListMessagingChannelsMethod(), responseObserver);
+    }
   }
 
   /**
@@ -216,6 +271,31 @@ public final class ChannelMessageQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getListTemplatesMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * List the agent channels the caller can send business-initiated
+     * messages on.
+     * Everything the read needs derives from the caller's credential; an
+     * agent with no proactive-messaging channel receives an empty list.
+     * &#64;internal
+     * proactive-messaging DD-006 D2: the runner's tool-attachment
+     * decision, replacing DD-002 D5's getByAgent plan (FGA-scoped — a
+     * sandbox token structurally receives an empty list there). Cloud
+     * answers from the SAME candidate computation ChannelMessagingReach
+     * uses (chain → serving proactive channels → sender-registry filter),
+     * so the attachment decision and the send authorization can never
+     * disagree. Session-bound callers only in this slice: direct
+     * principals get INVALID_ARGUMENT pointing at the channel resource
+     * surface. OSS returns an empty list (DD-006 D3) — a discovery read
+     * answering "none", unlike its action siblings' FAILED_PRECONDITION.
+     * </pre>
+     */
+    public void listMessagingChannels(ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.MessagingChannels> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListMessagingChannelsMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -265,6 +345,30 @@ public final class ChannelMessageQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getListTemplatesMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * List the agent channels the caller can send business-initiated
+     * messages on.
+     * Everything the read needs derives from the caller's credential; an
+     * agent with no proactive-messaging channel receives an empty list.
+     * &#64;internal
+     * proactive-messaging DD-006 D2: the runner's tool-attachment
+     * decision, replacing DD-002 D5's getByAgent plan (FGA-scoped — a
+     * sandbox token structurally receives an empty list there). Cloud
+     * answers from the SAME candidate computation ChannelMessagingReach
+     * uses (chain → serving proactive channels → sender-registry filter),
+     * so the attachment decision and the send authorization can never
+     * disagree. Session-bound callers only in this slice: direct
+     * principals get INVALID_ARGUMENT pointing at the channel resource
+     * surface. OSS returns an empty list (DD-006 D3) — a discovery read
+     * answering "none", unlike its action siblings' FAILED_PRECONDITION.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentchannel.v1.MessagingChannels listMessagingChannels(ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListMessagingChannelsMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -313,6 +417,30 @@ public final class ChannelMessageQueryControllerGrpc {
     public ai.stigmer.agentic.agentchannel.v1.ChannelTemplates listTemplates(ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getListTemplatesMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List the agent channels the caller can send business-initiated
+     * messages on.
+     * Everything the read needs derives from the caller's credential; an
+     * agent with no proactive-messaging channel receives an empty list.
+     * &#64;internal
+     * proactive-messaging DD-006 D2: the runner's tool-attachment
+     * decision, replacing DD-002 D5's getByAgent plan (FGA-scoped — a
+     * sandbox token structurally receives an empty list there). Cloud
+     * answers from the SAME candidate computation ChannelMessagingReach
+     * uses (chain → serving proactive channels → sender-registry filter),
+     * so the attachment decision and the send authorization can never
+     * disagree. Session-bound callers only in this slice: direct
+     * principals get INVALID_ARGUMENT pointing at the channel resource
+     * surface. OSS returns an empty list (DD-006 D3) — a discovery read
+     * answering "none", unlike its action siblings' FAILED_PRECONDITION.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentchannel.v1.MessagingChannels listMessagingChannels(ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListMessagingChannelsMethod(), getCallOptions(), request);
     }
   }
 
@@ -364,9 +492,35 @@ public final class ChannelMessageQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getListTemplatesMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * List the agent channels the caller can send business-initiated
+     * messages on.
+     * Everything the read needs derives from the caller's credential; an
+     * agent with no proactive-messaging channel receives an empty list.
+     * &#64;internal
+     * proactive-messaging DD-006 D2: the runner's tool-attachment
+     * decision, replacing DD-002 D5's getByAgent plan (FGA-scoped — a
+     * sandbox token structurally receives an empty list there). Cloud
+     * answers from the SAME candidate computation ChannelMessagingReach
+     * uses (chain → serving proactive channels → sender-registry filter),
+     * so the attachment decision and the send authorization can never
+     * disagree. Session-bound callers only in this slice: direct
+     * principals get INVALID_ARGUMENT pointing at the channel resource
+     * surface. OSS returns an empty list (DD-006 D3) — a discovery read
+     * answering "none", unlike its action siblings' FAILED_PRECONDITION.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentchannel.v1.MessagingChannels> listMessagingChannels(
+        ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListMessagingChannelsMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_LIST_TEMPLATES = 0;
+  private static final int METHODID_LIST_MESSAGING_CHANNELS = 1;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -388,6 +542,10 @@ public final class ChannelMessageQueryControllerGrpc {
         case METHODID_LIST_TEMPLATES:
           serviceImpl.listTemplates((ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ChannelTemplates>) responseObserver);
+          break;
+        case METHODID_LIST_MESSAGING_CHANNELS:
+          serviceImpl.listMessagingChannels((ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.MessagingChannels>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -414,6 +572,13 @@ public final class ChannelMessageQueryControllerGrpc {
               ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput,
               ai.stigmer.agentic.agentchannel.v1.ChannelTemplates>(
                 service, METHODID_LIST_TEMPLATES)))
+        .addMethod(
+          getListMessagingChannelsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput,
+              ai.stigmer.agentic.agentchannel.v1.MessagingChannels>(
+                service, METHODID_LIST_MESSAGING_CHANNELS)))
         .build();
   }
 
@@ -463,6 +628,7 @@ public final class ChannelMessageQueryControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new ChannelMessageQueryControllerFileDescriptorSupplier())
               .addMethod(getListTemplatesMethod())
+              .addMethod(getListMessagingChannelsMethod())
               .build();
         }
       }

@@ -9,7 +9,7 @@ import { AgentChannelSchema, type AgentChannel } from "@stigmer/protos/ai/stigme
 import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
 import { AgentChannelIdSchema, InitiateChannelInstallInputSchema, InitiateChannelInstallOutputSchema, CompleteChannelInstallInputSchema, GetAgentChannelsByAgentRequestSchema, AgentChannelListSchema, ListAgentChannelsRequestSchema, type InitiateChannelInstallInput, type InitiateChannelInstallOutput, type CompleteChannelInstallInput, type GetAgentChannelsByAgentRequest, type AgentChannelList, type ListAgentChannelsRequest } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
 import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
-import { SendChannelMessageInputSchema, SendChannelMessageOutputSchema, ListChannelTemplatesInputSchema, ChannelTemplatesSchema, type SendChannelMessageInput, type SendChannelMessageOutput, type ListChannelTemplatesInput, type ChannelTemplates } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import { SendChannelMessageInputSchema, SendChannelMessageOutputSchema, ListChannelTemplatesInputSchema, ChannelTemplatesSchema, ListMessagingChannelsInputSchema, MessagingChannelsSchema, type SendChannelMessageInput, type SendChannelMessageOutput, type ListChannelTemplatesInput, type ChannelTemplates, type ListMessagingChannelsInput, type MessagingChannels } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
 import { AgentChannelSpecSchema, SlackChannelConfigSchema, WhatsAppChannelConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/spec_pb";
@@ -77,6 +77,12 @@ export class AgentChannelClient {
   async listTemplates(input: ListChannelTemplatesInput): Promise<ChannelTemplates> {
     try {
       return await this.channelMessageQuery.listTemplates(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async listMessagingChannels(input: ListMessagingChannelsInput): Promise<MessagingChannels> {
+    try {
+      return await this.channelMessageQuery.listMessagingChannels(input);
     } catch (e) { throw wrapError(e); }
   }
 

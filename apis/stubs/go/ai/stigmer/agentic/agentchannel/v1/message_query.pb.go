@@ -26,20 +26,25 @@ var File_ai_stigmer_agentic_agentchannel_v1_message_query_proto protoreflect.Fil
 
 const file_ai_stigmer_agentic_agentchannel_v1_message_query_proto_rawDesc = "" +
 	"\n" +
-	"6ai/stigmer/agentic/agentchannel/v1/message_query.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a3ai/stigmer/agentic/agentchannel/v1/message_io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xb2\x01\n" +
+	"6ai/stigmer/agentic/agentchannel/v1/message_query.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a3ai/stigmer/agentic/agentchannel/v1/message_io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xc9\x02\n" +
 	"\x1dChannelMessageQueryController\x12\x8a\x01\n" +
-	"\rlistTemplates\x12=.ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput\x1a4.ai.stigmer.agentic.agentchannel.v1.ChannelTemplates\"\x04и\x18\x01\x1a\x04\xa0\xff+/B\xc4\x02\n" +
+	"\rlistTemplates\x12=.ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput\x1a4.ai.stigmer.agentic.agentchannel.v1.ChannelTemplates\"\x04и\x18\x01\x12\x94\x01\n" +
+	"\x15listMessagingChannels\x12>.ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput\x1a5.ai.stigmer.agentic.agentchannel.v1.MessagingChannels\"\x04и\x18\x01\x1a\x04\xa0\xff+/B\xc4\x02\n" +
 	"&com.ai.stigmer.agentic.agentchannel.v1B\x11MessageQueryProtoP\x01ZZgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_agentchannel_v1_message_query_proto_goTypes = []any{
-	(*ListChannelTemplatesInput)(nil), // 0: ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput
-	(*ChannelTemplates)(nil),          // 1: ai.stigmer.agentic.agentchannel.v1.ChannelTemplates
+	(*ListChannelTemplatesInput)(nil),  // 0: ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput
+	(*ListMessagingChannelsInput)(nil), // 1: ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput
+	(*ChannelTemplates)(nil),           // 2: ai.stigmer.agentic.agentchannel.v1.ChannelTemplates
+	(*MessagingChannels)(nil),          // 3: ai.stigmer.agentic.agentchannel.v1.MessagingChannels
 }
 var file_ai_stigmer_agentic_agentchannel_v1_message_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController.listTemplates:input_type -> ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput
-	1, // 1: ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController.listTemplates:output_type -> ai.stigmer.agentic.agentchannel.v1.ChannelTemplates
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	1, // 1: ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController.listMessagingChannels:input_type -> ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput
+	2, // 2: ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController.listTemplates:output_type -> ai.stigmer.agentic.agentchannel.v1.ChannelTemplates
+	3, // 3: ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController.listMessagingChannels:output_type -> ai.stigmer.agentic.agentchannel.v1.MessagingChannels
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

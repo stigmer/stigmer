@@ -49,6 +49,7 @@ private static final long serialVersionUID = 0L;
     bodyText_ = "";
     headerFormat_ = "";
     rejectionReason_ = "";
+    unsupportedReason_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -514,6 +515,75 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int UNSUPPORTED_REASON_FIELD_NUMBER = 10;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object unsupportedReason_ = "";
+  /**
+   * <pre>
+   * Why this platform version cannot send the template. Empty when the
+   * template can be sent.
+   *
+   * &#64;internal
+   * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
+   * rejection_reason: that is the PROVIDER's verdict on the template;
+   * this is Stigmer's verdict on its own ability to supply the
+   * template's send payload (e.g. a text-header variable or dynamic-URL
+   * button the TemplatePayload contract cannot express). Sendability is
+   * derived — empty means sendable — and deliberately NOT a second
+   * boolean field: one writer (the provider mapper), nothing to drift.
+   * The runner's prompt section and the send pre-check both key off it.
+   * </pre>
+   *
+   * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>
+   * @return The unsupportedReason.
+   */
+  @java.lang.Override
+  public java.lang.String getUnsupportedReason() {
+    java.lang.Object ref = unsupportedReason_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      unsupportedReason_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Why this platform version cannot send the template. Empty when the
+   * template can be sent.
+   *
+   * &#64;internal
+   * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
+   * rejection_reason: that is the PROVIDER's verdict on the template;
+   * this is Stigmer's verdict on its own ability to supply the
+   * template's send payload (e.g. a text-header variable or dynamic-URL
+   * button the TemplatePayload contract cannot express). Sendability is
+   * derived — empty means sendable — and deliberately NOT a second
+   * boolean field: one writer (the provider mapper), nothing to drift.
+   * The runner's prompt section and the send pre-check both key off it.
+   * </pre>
+   *
+   * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>
+   * @return The bytes for unsupportedReason.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getUnsupportedReasonBytes() {
+    java.lang.Object ref = unsupportedReason_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      unsupportedReason_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -554,6 +624,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(rejectionReason_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, rejectionReason_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(unsupportedReason_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 10, unsupportedReason_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -596,6 +669,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(rejectionReason_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(9, rejectionReason_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(unsupportedReason_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(10, unsupportedReason_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -629,6 +705,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getHeaderFormat())) return false;
     if (!getRejectionReason()
         .equals(other.getRejectionReason())) return false;
+    if (!getUnsupportedReason()
+        .equals(other.getUnsupportedReason())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -660,6 +738,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getHeaderFormat().hashCode();
     hash = (37 * hash) + REJECTION_REASON_FIELD_NUMBER;
     hash = (53 * hash) + getRejectionReason().hashCode();
+    hash = (37 * hash) + UNSUPPORTED_REASON_FIELD_NUMBER;
+    hash = (53 * hash) + getUnsupportedReason().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -812,6 +892,7 @@ private static final long serialVersionUID = 0L;
       bodyText_ = "";
       headerFormat_ = "";
       rejectionReason_ = "";
+      unsupportedReason_ = "";
       return this;
     }
 
@@ -872,6 +953,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000100) != 0)) {
         result.rejectionReason_ = rejectionReason_;
+      }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.unsupportedReason_ = unsupportedReason_;
       }
     }
 
@@ -935,6 +1019,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getRejectionReason().isEmpty()) {
         rejectionReason_ = other.rejectionReason_;
         bitField0_ |= 0x00000100;
+        onChanged();
+      }
+      if (!other.getUnsupportedReason().isEmpty()) {
+        unsupportedReason_ = other.unsupportedReason_;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1008,6 +1097,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000100;
               break;
             } // case 74
+            case 82: {
+              unsupportedReason_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 82
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1943,6 +2037,153 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       rejectionReason_ = value;
       bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object unsupportedReason_ = "";
+    /**
+     * <pre>
+     * Why this platform version cannot send the template. Empty when the
+     * template can be sent.
+     *
+     * &#64;internal
+     * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
+     * rejection_reason: that is the PROVIDER's verdict on the template;
+     * this is Stigmer's verdict on its own ability to supply the
+     * template's send payload (e.g. a text-header variable or dynamic-URL
+     * button the TemplatePayload contract cannot express). Sendability is
+     * derived — empty means sendable — and deliberately NOT a second
+     * boolean field: one writer (the provider mapper), nothing to drift.
+     * The runner's prompt section and the send pre-check both key off it.
+     * </pre>
+     *
+     * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>
+     * @return The unsupportedReason.
+     */
+    public java.lang.String getUnsupportedReason() {
+      java.lang.Object ref = unsupportedReason_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        unsupportedReason_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Why this platform version cannot send the template. Empty when the
+     * template can be sent.
+     *
+     * &#64;internal
+     * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
+     * rejection_reason: that is the PROVIDER's verdict on the template;
+     * this is Stigmer's verdict on its own ability to supply the
+     * template's send payload (e.g. a text-header variable or dynamic-URL
+     * button the TemplatePayload contract cannot express). Sendability is
+     * derived — empty means sendable — and deliberately NOT a second
+     * boolean field: one writer (the provider mapper), nothing to drift.
+     * The runner's prompt section and the send pre-check both key off it.
+     * </pre>
+     *
+     * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>
+     * @return The bytes for unsupportedReason.
+     */
+    public com.google.protobuf.ByteString
+        getUnsupportedReasonBytes() {
+      java.lang.Object ref = unsupportedReason_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        unsupportedReason_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Why this platform version cannot send the template. Empty when the
+     * template can be sent.
+     *
+     * &#64;internal
+     * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
+     * rejection_reason: that is the PROVIDER's verdict on the template;
+     * this is Stigmer's verdict on its own ability to supply the
+     * template's send payload (e.g. a text-header variable or dynamic-URL
+     * button the TemplatePayload contract cannot express). Sendability is
+     * derived — empty means sendable — and deliberately NOT a second
+     * boolean field: one writer (the provider mapper), nothing to drift.
+     * The runner's prompt section and the send pre-check both key off it.
+     * </pre>
+     *
+     * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>
+     * @param value The unsupportedReason to set.
+     * @return This builder for chaining.
+     */
+    public Builder setUnsupportedReason(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      unsupportedReason_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Why this platform version cannot send the template. Empty when the
+     * template can be sent.
+     *
+     * &#64;internal
+     * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
+     * rejection_reason: that is the PROVIDER's verdict on the template;
+     * this is Stigmer's verdict on its own ability to supply the
+     * template's send payload (e.g. a text-header variable or dynamic-URL
+     * button the TemplatePayload contract cannot express). Sendability is
+     * derived — empty means sendable — and deliberately NOT a second
+     * boolean field: one writer (the provider mapper), nothing to drift.
+     * The runner's prompt section and the send pre-check both key off it.
+     * </pre>
+     *
+     * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearUnsupportedReason() {
+      unsupportedReason_ = getDefaultInstance().getUnsupportedReason();
+      bitField0_ = (bitField0_ & ~0x00000200);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Why this platform version cannot send the template. Empty when the
+     * template can be sent.
+     *
+     * &#64;internal
+     * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
+     * rejection_reason: that is the PROVIDER's verdict on the template;
+     * this is Stigmer's verdict on its own ability to supply the
+     * template's send payload (e.g. a text-header variable or dynamic-URL
+     * button the TemplatePayload contract cannot express). Sendability is
+     * derived — empty means sendable — and deliberately NOT a second
+     * boolean field: one writer (the provider mapper), nothing to drift.
+     * The runner's prompt section and the send pre-check both key off it.
+     * </pre>
+     *
+     * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>
+     * @param value The bytes for unsupportedReason to set.
+     * @return This builder for chaining.
+     */
+    public Builder setUnsupportedReasonBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      unsupportedReason_ = value;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }

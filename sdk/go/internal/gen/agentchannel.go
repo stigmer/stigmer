@@ -68,6 +68,11 @@ func (a *AgentChannelClient) ListTemplates(ctx context.Context, input *agentchan
 	return resp, wrapErr(err)
 }
 
+func (a *AgentChannelClient) ListMessagingChannels(ctx context.Context, input *agentchannelv1.ListMessagingChannelsInput) (*agentchannelv1.MessagingChannels, error) {
+	resp, err := a.channelMessageQuery.ListMessagingChannels(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (a *AgentChannelClient) Get(ctx context.Context, id string) (*agentchannelv1.AgentChannel, error) {
 	resp, err := a.query.Get(ctx, &agentchannelv1.AgentChannelId{Value: id})
 	return resp, wrapErr(err)
