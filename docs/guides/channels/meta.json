@@ -4,6 +4,7 @@
     "connect-slack",
     "bring-your-own-slack-app",
     "connect-whatsapp",
-    "set-up-your-meta-app"
+    "set-up-your-meta-app",
+    "send-proactive-messages-with-templates"
   ]
 }

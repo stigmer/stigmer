@@ -1,0 +1,134 @@
+---
+title: Send Proactive Messages with Templates
+description:
+  Let your Agent start WhatsApp conversations — reminders, notifications, and
+  invoices — using message templates approved by WhatsApp.
+---
+
+By default, a connected WhatsApp channel only replies: the Agent answers when
+someone writes to it. This guide shows you how to let the Agent start the
+conversation instead — send a fee reminder, a booking notification, or an
+invoice — using message templates that WhatsApp has approved.
+
+<Callout type="info">
+  Proactive messaging requires Stigmer Cloud, and a WhatsApp channel that is
+  already connected. If you haven't connected one yet, start with [Connect an
+  Agent to WhatsApp](/docs/guides/channels/connect-whatsapp).
+</Callout>
+
+## How it works
+
+WhatsApp only delivers a free-form text message inside a 24-hour
+customer-service window — the day after the person last wrote to you. Outside
+that window, WhatsApp requires a **message template**: a pre-approved message
+shape with placeholders, like "Hi &#123;&#123;1&#125;&#125;, your fee of
+&#123;&#123;2&#125;&#125; is due &#123;&#123;3&#125;&#125;."
+
+You author templates in **WhatsApp Manager** (Meta's own console) and WhatsApp
+approves them. Stigmer keeps no copy: your Agent reads the approved list live
+and sees each template's full text in its context, so it fills the placeholders
+with real values from the conversation or your data. When it sends, Stigmer
+delivers the message, retries transient failures in the background, and gives
+the Agent an honest outcome either way.
+
+## Turn on proactive messaging
+
+Proactive sending is off until the channel's owner turns it on. Set
+`proactive_messaging_enabled` on the channel:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: AgentChannel
+metadata:
+  name: isc-whatsapp
+  org: isc
+spec:
+  agent_ref:
+    kind: agent
+    org: isc
+    slug: assistant
+  enabled: true
+  proactive_messaging_enabled: true
+  whatsapp:
+    phone_number_id: "106540352242922"
+  app_ref:
+    kind: channel_app
+    org: isc
+    slug: isc-whatsapp-app
+```
+
+Apply it with `stigmer apply -f channel.yaml`. From the next run onward, the
+Agent gets a `send_channel_message` tool and a list of the channel's approved
+templates in its context. Turning the flag off removes both — no Agent change
+needed.
+
+## Author a template in WhatsApp Manager
+
+Templates are created in WhatsApp Manager, not in Stigmer:
+
+1. Open
+   [WhatsApp Manager](https://business.facebook.com/wa/manage/message-templates/)
+   for the WhatsApp Business Account that owns your number.
+2. Create a template. Pick the **Utility** category for reminders and
+   notifications. Write the body with numbered placeholders — "Hi
+   &#123;&#123;1&#125;&#125;, your &#123;&#123;2&#125;&#125; fee of
+   &#123;&#123;3&#125;&#125; is due today."
+3. Submit it and wait for WhatsApp's approval. Utility templates are usually
+   approved within minutes.
+
+Once approved, the template shows up for your Agent automatically — there is
+nothing to import.
+
+These template shapes work today: body placeholders (numbered or named), plain
+text headers, footers, static buttons, and **image headers** — for an image
+header, the Agent supplies a public HTTPS link to the image at send time (for
+example a hosted UPI QR code). Templates that need more — a placeholder inside
+the header text, video or document headers, buttons with dynamic links or
+copy-codes — are not sendable through Stigmer yet, and the Agent's template list
+leaves them out so it never composes against one.
+
+## Ask the Agent to send
+
+With the flag on and a template approved, tell the Agent what to do — in a
+console test Session, or on a schedule:
+
+> Find members with fees due in the next 3 days and send each one a
+> fee_reminder.
+
+The Agent sees each template's exact text beside its parameters, fills the
+placeholders, and calls its send tool once per recipient. Each call returns one
+of three outcomes:
+
+- **accepted** — WhatsApp took the message.
+- **queued** — a temporary failure; Stigmer keeps retrying in the background.
+  The Agent should not resend.
+- **refused** — a final no, with the reason in plain words (an unknown template,
+  a paused template, a missing image link, a rate cap). The Agent adapts instead
+  of retrying.
+
+## Who the Agent can message
+
+The rules depend on how the run started:
+
+- A run that a **channel conversation** started can only message people who have
+  already written to that channel — it replies proactively, but never
+  cold-messages.
+- A run an **operator** started (a console Session, or a schedule) can message
+  any recipient, within the platform's rolling send caps.
+
+Recipients are always phone-number IDs on the channel's provider, and every send
+is recorded with its outcome for audit.
+
+## Troubleshooting
+
+- **The Agent says it has no messaging channel.** The channel is not installed,
+  is switched off, or `proactive_messaging_enabled` is not set. All three are on
+  the channel — the Agent's definition needs no change.
+- **The template list is empty but WhatsApp Manager shows approved templates.**
+  The channel app's access token is missing the `whatsapp_business_management`
+  permission. Regenerate the token with that permission (see
+  [Set up your Meta app](/docs/guides/channels/set-up-your-meta-app)). Sending
+  is unaffected while you fix this — only discovery degrades.
+- **A send is refused with "not approved for sending".** The template is
+  pending, paused, or rejected in WhatsApp Manager. The refusal names the status
+  and what to do about it.

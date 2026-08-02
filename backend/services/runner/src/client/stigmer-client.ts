@@ -50,6 +50,8 @@ import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/ap
 import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { PlatformQueryController, GetRunnerScopedTokenInputSchema } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
+import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { isEmbeddedRunnerToken } from "./token-claims.js";
 import { assertCreateRequirements, assertReferenceRequirements } from "./server-contracts.js";
 
@@ -156,6 +158,7 @@ export class StigmerClient {
   private readonly workflowQuery: Client<typeof WorkflowQueryController>;
   private readonly workflowInstanceQuery: Client<typeof WorkflowInstanceQueryController>;
   private readonly platformQuery: Client<typeof PlatformQueryController>;
+  private readonly channelMessageQuery: Client<typeof ChannelMessageQueryController>;
 
   private readonly tokenRef: TokenRef | null;
   private readonly runnerTokenRef: TokenRef | null;
@@ -239,6 +242,7 @@ export class StigmerClient {
     this.workflowQuery = createClient(WorkflowQueryController, this.transport);
     this.workflowInstanceQuery = createClient(WorkflowInstanceQueryController, this.transport);
     this.platformQuery = createClient(PlatformQueryController, this.transport);
+    this.channelMessageQuery = createClient(ChannelMessageQueryController, this.transport);
   }
 
   /**
@@ -378,6 +382,48 @@ export class StigmerClient {
       );
       return undefined;
     }
+  }
+
+  /**
+   * The agent's serving proactive-messaging channels, as data
+   * (proactive-messaging DD-006 D2) — the runner's tool-attachment
+   * decision. An empty list is the everyday answer (most agents have no
+   * proactive channel).
+   *
+   * When a scoped runner token is supplied, the read authenticates with
+   * it per-call (the {@link getExecutionContextByExecutionId} precedent):
+   * the messaging reach refuses the desktop runner's ambient
+   * embedded_runner credential outright, and one desktop runner process
+   * serves many sessions concurrently, so the credential cannot live in
+   * a shared ref. A cloud sandbox runner's ambient credential is already
+   * the session-scoped token; OSS sends nothing and answers empty.
+   */
+  async listMessagingChannels(scopedToken?: string): Promise<MessagingChannel[]> {
+    const res = await this.channelMessageQuery.listMessagingChannels(
+      {},
+      scopedToken
+        ? { headers: { authorization: `Bearer ${scopedToken}` } }
+        : undefined,
+    );
+    return res.entries;
+  }
+
+  /**
+   * The channel's provider template registry, approved entries only —
+   * the `<available_channel_templates>` prompt section's source
+   * (proactive-messaging DD-003 D5). Entries carry the DD-006 D1
+   * sendability verdict (`unsupportedReason`, empty means sendable);
+   * the section formatter filters on it. Credential rules as
+   * {@link listMessagingChannels}.
+   */
+  async listChannelTemplates(channel: string, scopedToken?: string): Promise<ChannelTemplate[]> {
+    const res = await this.channelMessageQuery.listTemplates(
+      { channel, approvedOnly: true },
+      scopedToken
+        ? { headers: { authorization: `Bearer ${scopedToken}` } }
+        : undefined,
+    );
+    return res.entries;
   }
 
   async getSession(sessionId: string): Promise<Session> {

@@ -26,6 +26,10 @@ export function mockStigmerClient(overrides: MockMethods = {}): StigmerClient {
     getRunnerScopedToken: vi.fn().mockResolvedValue(undefined),
     getSession: vi.fn().mockResolvedValue({}),
     updateSession: vi.fn().mockResolvedValue({}),
+    // No proactive channels by default — the everyday answer for most
+    // agents (DD-006 D2); tests opt in to a channel-bound agent.
+    listMessagingChannels: vi.fn().mockResolvedValue([]),
+    listChannelTemplates: vi.fn().mockResolvedValue([]),
     getAgent: vi.fn().mockResolvedValue({}),
     getAgentInstance: vi.fn().mockResolvedValue({}),
     getMcpServer: vi.fn().mockResolvedValue({}),

@@ -98,6 +98,12 @@ export interface PromptBuilderInput {
    * formatDatastoresSection); empty when the agent uses no datastores.
    */
   datastoresPromptSection?: string;
+  /**
+   * The `<available_channel_templates>` section
+   * (shared/channel-attachment.ts formatChannelTemplatesSection); absent
+   * when the agent serves no proactive channel or nothing is sendable.
+   */
+  channelTemplatesPromptSection?: string;
   workspaceFileRefs: string[];
   workspaceRoot: string;
   injectedFiles: InjectedFile[];
@@ -172,6 +178,10 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
 
   if (input.datastoresPromptSection) {
     prompt += "\n\n" + input.datastoresPromptSection;
+  }
+
+  if (input.channelTemplatesPromptSection) {
+    prompt += "\n\n" + input.channelTemplatesPromptSection;
   }
 
   if (input.workspaceFileRefs.length > 0) {
