@@ -29,7 +29,7 @@ var minioBuckets = []string{"test-bucket", "test-claimcheck-bucket"}
 // StartMinIO starts a MinIO container with default credentials and
 // pre-creates the required S3 buckets.
 func StartMinIO(ctx context.Context) (*MinIOContainer, error) {
-	container, err := minio.Run(ctx, "minio/minio:latest",
+	container, err := minio.Run(ctx, minioImage,
 		minio.WithUsername(minioDefaultUser),
 		minio.WithPassword(minioDefaultPassword),
 	)

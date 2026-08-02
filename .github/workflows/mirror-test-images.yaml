@@ -1,0 +1,80 @@
+# =============================================================================
+# Mirror Test Images — copy integration-harness images from Docker Hub to GHCR
+# =============================================================================
+#
+# Why: every integration suite boots ~7 containers per CI leg, across 5
+# parallel legs. Pulling them anonymously from Docker Hub made harness boot a
+# recurring flake (rate limits, registry outages — issue #334). CI instead
+# pulls from a GHCR mirror via TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX; this
+# workflow keeps that mirror populated.
+#
+# The image list is derived from the harness source itself
+# (test/integration/harness/images.go, MirrorImages), so the mirror can never
+# drift from what the harness boots — including the testcontainers Ryuk
+# reaper, whose version follows the testcontainers-go dependency.
+#
+# The mirror packages (ghcr.io/stigmer/mirror/*) are public, so CI and local
+# runs pull them anonymously with no login step. New packages created by this
+# workflow default to PRIVATE visibility and must be flipped to public once:
+#   gh api -X PATCH /orgs/stigmer/packages/container/<url-encoded-name> \
+#     -f visibility=public
+#
+# When a PR changes an image (or bumps testcontainers-go), run this workflow
+# manually from the PR branch so the mirror has the new image before the
+# integration legs re-run. Copies are idempotent; re-runs are cheap.
+
+name: Mirror Test Images
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      # The image list itself.
+      - "test/integration/harness/images.go"
+      # A testcontainers-go bump in any suite module can move the Ryuk version.
+      - "test/*/go.mod"
+      - ".github/workflows/mirror-test-images.yaml"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  mirror:
+    name: Mirror to GHCR
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+
+      # crane copies images registry-to-registry, preserving multi-arch
+      # manifest lists byte-for-byte (no local docker pull/push round-trip).
+      - name: Install crane
+        uses: imjasonh/setup-crane@v0.4
+
+      # crane reads the credentials docker/login-action writes to the
+      # Docker config keychain.
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Mirror harness images
+        working-directory: test/integration
+        run: |
+          set -euo pipefail
+          MIRROR_PREFIX="ghcr.io/${{ github.repository_owner }}/mirror"
+          go run ./cmd/print-mirror-images | while read -r image; do
+            echo "::group::Mirroring ${image}"
+            crane copy "${image}" "${MIRROR_PREFIX}/${image}"
+            echo "::endgroup::"
+          done

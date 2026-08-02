@@ -16,7 +16,7 @@ type RedisContainer struct {
 }
 
 func StartRedis(ctx context.Context) (*RedisContainer, error) {
-	container, err := redis.Run(ctx, "redis:7-alpine")
+	container, err := redis.Run(ctx, redisImage)
 	if err != nil {
 		return nil, fmt.Errorf("start redis container: %w", err)
 	}

@@ -30,14 +30,7 @@ type OpenBaoContainer struct {
 	RootToken string
 }
 
-const (
-	// Pinned to the production OpenBAO version — the same image
-	// VaultClientOpenBaoTest (stigmer-cloud) locks to, so what boots here is
-	// what runs in prod.
-	openBaoImage = "openbao/openbao:2.4.4"
-
-	openBaoRootToken = "integration-test-root-token"
-)
+const openBaoRootToken = "integration-test-root-token"
 
 // StartOpenBao starts a dev-mode OpenBAO container and mounts the Transit
 // engine. Dev mode auto-mounts only KV v2 (at secret/, the service's

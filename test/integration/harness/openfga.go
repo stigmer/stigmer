@@ -32,7 +32,7 @@ type OpenFGAContainer struct {
 //
 // Requires the `fga` CLI on PATH for DSL-to-JSON transformation.
 func StartOpenFGA(ctx context.Context, fgaModelDir string) (*OpenFGAContainer, error) {
-	container, err := openfga.Run(ctx, "openfga/openfga:v1.8.2")
+	container, err := openfga.Run(ctx, openFGAImage)
 	if err != nil {
 		return nil, fmt.Errorf("start openfga container: %w", err)
 	}

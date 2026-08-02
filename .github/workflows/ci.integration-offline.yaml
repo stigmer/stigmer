@@ -144,6 +144,12 @@ jobs:
     name: "Integration Tests (${{ matrix.label }})"
     runs-on: ubuntu-latest
     needs: build-service-jar
+    # Pull harness images from the GHCR mirror instead of Docker Hub —
+    # anonymous Hub pulls made harness boot a recurring flake (issue #334).
+    # testcontainers-go rewrites every bare-Hub reference, Ryuk included;
+    # see test/integration/harness/images.go for the mirrored list.
+    env:
+      TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: ghcr.io/stigmer/mirror
     strategy:
       fail-fast: false
       matrix:
