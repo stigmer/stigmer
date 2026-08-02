@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/client"
 )
@@ -78,11 +79,21 @@ func (si *ScheduleInspector) ArtifactExists(
 // path (spike-verified: a triggered action carries the same nominal-time
 // search attribute and workflow-id suffix a cron fire does), instead of
 // parking the suite on a cron minute boundary.
+//
+// The trigger explicitly bypasses the artifact's SKIP overlap policy:
+// since slice 2b-ii a tick SPANS its run, and in offline CI a triggered
+// run never reaches a terminal phase (no runner), so the previous tick
+// can still be tracking when a test wants its next fire — under SKIP the
+// second trigger would silently vanish and the test would hang on an
+// Eventually loop. Production fires keep SKIP (baked into the artifact);
+// this override exists only so tests control WHEN fires happen.
 func (si *ScheduleInspector) TriggerArtifact(
 	ctx context.Context, scheduleResourceID string) error {
 	return si.client.ScheduleClient().
 		GetHandle(ctx, ScheduleArtifactID(scheduleResourceID)).
-		Trigger(ctx, client.ScheduleTriggerOptions{})
+		Trigger(ctx, client.ScheduleTriggerOptions{
+			Overlap: enumspb.SCHEDULE_OVERLAP_POLICY_ALLOW_ALL,
+		})
 }
 
 // ListProbeLeftovers returns the ids of any fire-time probe schedules
