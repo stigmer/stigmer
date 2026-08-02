@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.schedule.v1;
+
+import "ai/stigmer/commons/apiresource/status.proto";
+import "google/protobuf/timestamp.proto";
+
+// ScheduleStatus contains system-managed state for a schedule.
+//
+// @internal
+// Platform-owned; the scheduling runtime (tick + lifecycle sync) is the
+// sole writer. Preserved VERBATIM across apply and update (the
+// AgentChannel decision-004 posture) — load-bearing for DD-008 D7's
+// auto-pause, which records on status precisely so the platform never
+// writes spec. A routine manifest apply must never reset the failure
+// streak or un-pause a schedule; both editions carry a regression test
+// for this (DD-009 pinned behaviors).
+message ScheduleStatus {
+  // When the schedule next fires, in UTC. Absent while the schedule is
+  // disabled, auto-paused, or not yet synchronized with the clock.
+  google.protobuf.Timestamp next_fire_at = 1;
+
+  // When the schedule last fired, in UTC.
+  google.protobuf.Timestamp last_fire_at = 2;
+
+  // ID of the agent execution created by the most recent fire.
+  //
+  // @internal
+  // The reverse pointer of the stigmer.ai/schedule-id label stamped on
+  // every schedule-created execution (DD-008 D4) — the audit link is
+  // queryable from either end.
+  string last_execution_id = 3;
+
+  // Number of consecutive failed runs. A successful run resets it.
+  //
+  // @internal
+  // Feeds the failure-streak auto-pause (DD-008 D7; platform default 5).
+  int32 consecutive_failures = 4;
+
+  // Why the platform paused this schedule; empty when not paused.
+  // Re-enabling is the owner's explicit act: an update touching the
+  // spec clears the pause.
+  //
+  // @internal
+  // Written ONLY by the platform auto-pause (DD-008 D7) — never an echo
+  // of spec.enabled (DD-009 pinned behaviors: one writer per field;
+  // consoles derive owner-disabled state from spec on read).
+  string paused_reason = 5;
+
+  // Standard audit information (created_at, updated_at, created_by, etc.)
+  ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
+}

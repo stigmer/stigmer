@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.schedule.v1;
+
+import "ai/stigmer/agentic/schedule/v1/spec.proto";
+import "ai/stigmer/agentic/schedule/v1/status.proto";
+import "ai/stigmer/commons/apiresource/metadata.proto";
+import "buf/validate/validate.proto";
+
+// Schedule runs an agent on a recurring cron schedule.
+//
+// A schedule is operational configuration, like AgentChannel: it names a
+// target (an agent and the prompt each run starts from), a cron expression
+// with an IANA time zone, and an enablement switch. The platform-observed
+// firing state (next fire time, failure streak, auto-pause) lives in
+// status. Deleting a schedule stops firing permanently; disabling pauses
+// firing while preserving the schedule and its history.
+//
+// @internal
+// DD-008 D1 (as amended by DD-009): standalone kind (56), target oneof
+// extensible to workflows without a new kind. One agent may have many
+// schedules with different prompts; metadata.org is the billing org for
+// every fire. Calendar semantics live in the Temporal server (D2) — the
+// platform parses no cron in either edition. The defaults resolver does
+// NOT default the slug to the agent slug (schedules are N-per-agent, the
+// AgentChannel P7 rule); standard derive-from-name applies. The
+// overview.md file provides the SDK-facing description and example YAML.
+message Schedule {
+  // API version for this resource type.
+  string api_version = 1 [(buf.validate.field).string.const = 'agentic.stigmer.ai/v1'];
+
+  // Resource kind identifier.
+  string kind = 2 [(buf.validate.field).string.const = 'Schedule'];
+
+  // Resource metadata including name, organization, and labels.
+  ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
+
+  // Configurable properties: cron, time zone, enablement, and the target.
+  ScheduleSpec spec = 4;
+
+  // System-managed state: firing observations, failure streak, auto-pause reason, and audit trail.
+  ScheduleStatus status = 5;
+}

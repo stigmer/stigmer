@@ -26,6 +26,7 @@ type Client struct {
 	Organization      *OrganizationClient
 	PlatformClient    *PlatformClientClient
 	Project           *ProjectClient
+	Schedule          *ScheduleClient
 	Session           *SessionClient
 	Skill             *SkillClient
 	Workflow          *WorkflowClient
@@ -56,6 +57,7 @@ func NewClient(conn grpc.ClientConnInterface) *Client {
 		Organization:      NewOrganizationClient(conn),
 		PlatformClient:    NewPlatformClientClient(conn),
 		Project:           NewProjectClient(conn),
+		Schedule:          NewScheduleClient(conn),
 		Session:           NewSessionClient(conn),
 		Skill:             NewSkillClient(conn),
 		Workflow:          NewWorkflowClient(conn),

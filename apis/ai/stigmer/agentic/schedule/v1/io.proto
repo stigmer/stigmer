@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.schedule.v1;
+
+import "ai/stigmer/agentic/schedule/v1/api.proto";
+import "ai/stigmer/commons/rpc/pagination.proto";
+import "buf/validate/validate.proto";
+
+// ScheduleId wraps a schedule identifier.
+message ScheduleId {
+  // Unique identifier of the schedule.
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// Input for retrieving all schedules of a specific agent.
+message GetSchedulesByAgentRequest {
+  // Identifier of the agent whose schedules to retrieve.
+  string agent_id = 1 [(buf.validate.field).required = true];
+
+  // Pagination options.
+  ai.stigmer.commons.rpc.PageInfo page_info = 2;
+
+  // Organization slug to scope the results to.
+  //
+  // When set, only schedules whose metadata.org matches are returned —
+  // the org-context view a console tab needs. When empty, results are
+  // bounded only by the caller's view permissions, which for a member of
+  // several organizations spans all of them.
+  //
+  // @internal
+  // Mirrors the org scoping on the sibling getByAgent/getByWorkflow
+  // requests (agent channels, agent shares, agent instances). Handlers
+  // implementing this RPC must apply the filter in their query/list step.
+  string org = 3;
+}
+
+// Response containing a paginated list of schedules.
+message ScheduleList {
+  // Total number of schedules matching the query.
+  int32 total_count = 1;
+
+  // Schedules in the current page.
+  repeated Schedule items = 2;
+}
+
+// Input for listing schedules within an organization.
+message ListSchedulesRequest {
+  // Organization slug to scope the listing.
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Filter by metadata labels. AND semantics: all labels must match.
+  map<string, string> labels = 2;
+
+  // Pagination options.
+  ai.stigmer.commons.rpc.PageInfo page_info = 3;
+}

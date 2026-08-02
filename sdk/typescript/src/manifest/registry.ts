@@ -40,6 +40,9 @@ import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/e
 import { type McpServer, McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { type Schedule, ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
+import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
 import { type Workflow, WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
@@ -191,7 +194,7 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     apply: (c, m) => c(AgentShareCommandController).apply(m as AgentShare),
     getByReference: (c, ref) => c(AgentShareQueryController).getByReference(ref),
   },
-  // Last: an AgentChannel references an Agent, a ChannelApp, and Environments.
+  // An AgentChannel references an Agent, a ChannelApp, and Environments.
   {
     kind: ApiResourceKind.agent_channel,
     yamlKind: "AgentChannel",
@@ -201,6 +204,18 @@ const HANDLERS: readonly ManifestKindHandler[] = [
     applyOrder: 11,
     apply: (c, m) => c(AgentChannelCommandController).apply(m as AgentChannel),
     getByReference: (c, ref) => c(AgentChannelQueryController).getByReference(ref),
+  },
+  // Last: a Schedule references an Agent (and, later, a Workflow) — it
+  // applies after every kind it can target.
+  {
+    kind: ApiResourceKind.schedule,
+    yamlKind: "Schedule",
+    displayName: "Schedule",
+    apiVersion: AGENTIC_V1,
+    schema: ScheduleSchema,
+    applyOrder: 12,
+    apply: (c, m) => c(ScheduleCommandController).apply(m as Schedule),
+    getByReference: (c, ref) => c(ScheduleQueryController).getByReference(ref),
   },
 ];
 

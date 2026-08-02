@@ -15,6 +15,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/mcpserver/v1"
+	schedulev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/schedule/v1"
 	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	skillv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/skill/v1"
 	workflowv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/workflow/v1"
@@ -129,6 +130,11 @@ func PlatformClientInputFromProto(p *platformclientv1.PlatformClient) *PlatformC
 // ProjectInputFromProto creates a ProjectInput from a proto Project resource.
 func ProjectInputFromProto(p *projectv1.Project) *ProjectInput {
 	return gen.ProjectInputFromProto(p)
+}
+
+// ScheduleInputFromProto creates a ScheduleInput from a proto Schedule resource.
+func ScheduleInputFromProto(p *schedulev1.Schedule) *ScheduleInput {
+	return gen.ScheduleInputFromProto(p)
 }
 
 // SessionInputFromProto creates a SessionInput from a proto Session resource.

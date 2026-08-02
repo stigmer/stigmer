@@ -505,6 +505,11 @@
           "description": "User-owned runtime context for managing execution state."
         },
         {
+          "name": "schedule",
+          "number": 56,
+          "description": "Recurring trigger that runs an agent on a cron schedule."
+        },
+        {
           "name": "project",
           "number": 60,
           "description": "Aggregate root grouping related resources for lifecycle management."

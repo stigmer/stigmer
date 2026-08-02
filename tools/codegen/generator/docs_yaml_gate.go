@@ -41,6 +41,7 @@ import (
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1"
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
 	_ "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"

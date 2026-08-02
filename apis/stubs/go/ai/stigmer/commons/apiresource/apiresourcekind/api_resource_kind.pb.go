@@ -238,6 +238,8 @@ const (
 	ApiResourceKind_artifact ApiResourceKind = 55
 	// User-owned runtime context for managing execution state.
 	ApiResourceKind_execution_context ApiResourceKind = 54
+	// Recurring trigger that runs an agent on a cron schedule.
+	ApiResourceKind_schedule ApiResourceKind = 56
 	// Aggregate root grouping related resources for lifecycle management.
 	ApiResourceKind_project ApiResourceKind = 60
 )
@@ -272,6 +274,7 @@ var (
 		53: "environment",
 		55: "artifact",
 		54: "execution_context",
+		56: "schedule",
 		60: "project",
 	}
 	ApiResourceKind_value = map[string]int32{
@@ -302,6 +305,7 @@ var (
 		"environment":               53,
 		"artifact":                  55,
 		"execution_context":         54,
+		"schedule":                  56,
 		"project":                   60,
 	}
 )
@@ -493,7 +497,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"cloud_only\x10\x02*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\x85\x11\n" +
+	"\astigmer\x10\x01*\xc4\x11\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -537,7 +541,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x11workflow_instance\x12\x11workflow_instance\x1a\x14workflow_instance_id:\x02\x01\x04\x12J\n" +
 	"\venvironment\x105\x1a9\xaa\xff+5\b\x01\x10\x01\x1a\vEnvironment\"\vEnvironment*\x03env@\x01J\x0e\b\x02\x10\x01*\x02\x18\x010\x01:\x02\x01\x04\x12;\n" +
 	"\bartifact\x107\x1a-\xaa\xff+)\b\x01\x10\x01\x1a\bArtifact\"\bArtifact*\x03art@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x12R\n" +
-	"\x11execution_context\x106\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04ectx@\x01J\x04\b\x04\x10\x01\x128\n" +
+	"\x11execution_context\x106\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04ectx@\x01J\x04\b\x04\x10\x01\x12=\n" +
+	"\bschedule\x108\x1a/\xaa\xff++\b\x01\x10\x01\x1a\bSchedule\"\bSchedule*\x03sch8\x01@\x01J\b\b\x02\x10\x01:\x02\x01\x04\x128\n" +
 	"\aproject\x10<\x1a+\xaa\xff+'\b\x03\x10\x01\x1a\aProject\"\aProject*\x03prj@\x01J\b\b\x02\x10\x01:\x02\x01\x04:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x81\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZWgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"

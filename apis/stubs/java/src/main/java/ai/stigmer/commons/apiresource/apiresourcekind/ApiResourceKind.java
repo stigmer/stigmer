@@ -242,6 +242,14 @@ public enum ApiResourceKind
   execution_context(54),
   /**
    * <pre>
+   * Recurring trigger that runs an agent on a cron schedule.
+   * </pre>
+   *
+   * <code>schedule = 56 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  schedule(56),
+  /**
+   * <pre>
    * Aggregate root grouping related resources for lifecycle management.
    * </pre>
    *
@@ -487,6 +495,14 @@ public enum ApiResourceKind
   public static final int execution_context_VALUE = 54;
   /**
    * <pre>
+   * Recurring trigger that runs an agent on a cron schedule.
+   * </pre>
+   *
+   * <code>schedule = 56 [(.ai.stigmer.commons.apiresource.apiresourcekind.kind_meta) = { ... }</code>
+   */
+  public static final int schedule_VALUE = 56;
+  /**
+   * <pre>
    * Aggregate root grouping related resources for lifecycle management.
    * </pre>
    *
@@ -546,6 +562,7 @@ public enum ApiResourceKind
       case 53: return environment;
       case 55: return artifact;
       case 54: return execution_context;
+      case 56: return schedule;
       case 60: return project;
       default: return null;
     }

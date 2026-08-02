@@ -26,6 +26,7 @@ public class GeneratedClient {
     public final OrganizationClient organization;
     public final PlatformClientClient platformclient;
     public final ProjectClient project;
+    public final ScheduleClient schedule;
     public final SessionClient session;
     public final SkillClient skill;
     public final WorkflowClient workflow;
@@ -53,6 +54,7 @@ public class GeneratedClient {
         this.organization = new OrganizationClient(channel);
         this.platformclient = new PlatformClientClient(channel);
         this.project = new ProjectClient(channel);
+        this.schedule = new ScheduleClient(channel);
         this.session = new SessionClient(channel);
         this.skill = new SkillClient(channel);
         this.workflow = new WorkflowClient(channel);

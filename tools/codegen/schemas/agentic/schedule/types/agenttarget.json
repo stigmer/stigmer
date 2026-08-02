@@ -1,0 +1,37 @@
+{
+  "name": "AgentTarget",
+  "description": "AgentTarget runs an agent with a configured prompt at each fire.",
+  "protoType": "ai.stigmer.agentic.schedule.v1.AgentTarget",
+  "protoFile": "apis/ai/stigmer/agentic/schedule/v1/spec.proto",
+  "fields": [
+    {
+      "name": "AgentRef",
+      "jsonName": "agentRef",
+      "protoField": "agent_ref",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "Reference to the agent this schedule runs.\n\n @internal\n Invariant (enforced in create/update/apply handlers of both editions,\n the AgentChannel/AgentShare Phase A rule): agent_ref.org must equal\n metadata.org — the schedule-owning org is the billing org for every\n fire. Creation requires can_edit on THIS referenced agent (DD-009\n C-6). Agent deletion does not cascade to schedules (house\n convention): a dangling reference surfaces at fire time as a failed\n tick feeding the auto-pause streak (DD-008 D9), never as a silent\n stall.",
+      "required": true,
+      "referenceKind": 40,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Message",
+      "jsonName": "message",
+      "protoField": "message",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Prompt each run starts from. The platform appends the fire time in\n the schedule's time zone so the agent knows \"today\".\n\n @internal\n DD-008 D5: the runner injects no current date into any prompt, so\n the tick composes this message plus a fire-context line. The bound\n applies to the stored prompt, not the composed message.",
+      "required": false,
+      "validation": {
+        "minLength": 1,
+        "maxLength": 8192
+      }
+    }
+  ]
+}

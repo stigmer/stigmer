@@ -52,6 +52,7 @@
           "environment",
           "artifact",
           "execution_context",
+          "schedule",
           "project"
         ]
       },

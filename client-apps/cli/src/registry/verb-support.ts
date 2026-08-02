@@ -52,6 +52,9 @@ export const VERB_SUPPORT: ReadonlyMap<ApiResourceKind, ReadonlySet<Verb>> = new
   // generic verbs cover the declarative path (apply a manifest, inspect,
   // tear down — delete is guarded server-side for non-empty datastores).
   [ApiResourceKind.datastore, new Set<Verb>([Verb.Apply, Verb.Validate, Verb.Get, Verb.List, Verb.Delete])],
+  // Firing is the platform's job (Temporal Schedules); the generic verbs
+  // cover the declarative path (apply a manifest, inspect, tear down).
+  [ApiResourceKind.schedule, new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete])],
   [ApiResourceKind.agent_instance, new Set<Verb>([Verb.Apply, Verb.Get, Verb.List, Verb.Delete])],
   // No list: proto exposes getByWorkflow (requires workflow_id), not a generic list.
   [ApiResourceKind.workflow_instance, new Set<Verb>([Verb.Apply, Verb.Get, Verb.Delete])],
