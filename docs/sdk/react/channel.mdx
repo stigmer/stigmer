@@ -137,6 +137,100 @@ const { sessions, isLoading, error } = useChannelSessions(
 ```
 
 
+### useChannelTemplateList
+
+Data hook that lists a channel's message templates as the channel's
+provider registry reports them (`listTemplates`) — every field
+provider-verbatim, including approval `status`, the provider's
+`rejectionReason`, and Stigmer's own `unsupportedReason` (why this
+platform version cannot send an otherwise-approved template).
+
+The channel is addressed by `slug` + `org` (not id), because that is
+the RPC's key — the provider registry is derived from the channel's
+phone number, not stored on any Stigmer resource. Pass an empty
+`channelSlug` or `org` to skip fetching (stable no-op).
+
+While any entry is PENDING the hook polls every 60 seconds — the
+server's registry-cache TTL, so a faster interval would only re-read
+a cached answer. There is deliberately no `refetchInterval` option:
+the pending-only conditional poll is the hook's policy, and
+`approvedOnly` (a wire field) is the only knob exposed.
+
+Results are never cached across mounts: a template's approval status
+can change on the provider's side at any time, and rendering a stale
+"APPROVED" is exactly what this surface must not do.
+
+**Signature**
+
+```tsx
+function useChannelTemplateList(channelSlug: string, org: string, options?: UseChannelTemplateListOptions): UseChannelTemplateListReturn
+```
+
+<TypeTable
+  type={{
+    channelSlug: { type: "string", description: "", required: true },
+    org: { type: "string", description: "", required: true },
+    options: { type: "UseChannelTemplateListOptions", description: "" },
+  }}
+/>
+
+**Returns** — `UseChannelTemplateListReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed request, or `null` when healthy." },
+    isLoading: { type: "boolean", description: "`true` while the initial fetch is in flight and no data is shown." },
+    isRefetching: { type: "boolean", description: "`true` while a background refetch is in flight and stale data is shown." },
+    refetch: { type: "() => void", description: "Re-fetch the templates from the server." },
+    templates: { type: "readonly ChannelTemplate[]", description: "The channel provider's templates, verbatim, in provider order. Empty while loading, on error, and when the registry answered with no templates — `templates.length === 0 && !isLoading && !error` means the provider reported none, which callers should phrase as \"none found\" rather than \"none exist\" (an empty success is indistinguishable from a filtered or truncated one)." },
+  }}
+/>
+
+```tsx
+const { templates, isLoading, error } = useChannelTemplateList(
+  channel.metadata?.slug ?? "",
+  channel.metadata?.org ?? "",
+);
+```
+
+
+### useChannelTemplateReadiness
+
+Resolve whether a channel's template registry can be read, without a
+network call — the courtesy pre-check for the Templates surface.
+
+Mirrors the server's own gate order for `listTemplates`
+(`ChannelMessagingReach.resolveDirect`: installed → enabled →
+proactive grant), answering from fields already on the fetched
+`AgentChannel`. The server stays authoritative: a `ready`
+verdict here only means the call is worth making, and whatever the
+server then says wins.
+
+Two shape choices are deliberate. `channel-off` and `not-proactive`
+are split although the server collapses them into one refusal —
+their fixes differ (flip the card's serving switch vs. grant
+`proactive_messaging_enabled`). And `not-installed` stays coarse
+across pending/revoked, because `providerPresentation`'s
+`describeChannel` already renders the right sentence for each.
+
+**Signature**
+
+```tsx
+function useChannelTemplateReadiness(channel: AgentChannel): ChannelTemplateReadiness
+```
+
+<TypeTable
+  type={{
+    channel: { type: "AgentChannel", description: "", required: true },
+  }}
+/>
+
+```tsx
+const readiness = useChannelTemplateReadiness(channel);
+if (readiness.status !== "ready") return <TeachingState ... />;
+```
+
+
 ### useChannelToolReadiness
 
 Channel-scoped wrapper over [`useToolCredentialsReadiness`](/docs/sdk/react/environment#usetoolcredentialsreadiness):
@@ -467,6 +561,46 @@ channel card action.
 />
 
 
+### ChannelTemplatesDialog
+
+Lists a channel's message templates as the provider's registry
+reports them — for WhatsApp, the templates a business authored in
+WhatsApp Manager, each with its approval status.
+
+This is the diagnosis surface for business-initiated messaging: it is
+the one place that shows the provider's rejection copy AND Stigmer's
+own `unsupported_reason` (why an approved template still cannot be
+sent by the agent). The runner's prompt deliberately filters
+unsendable templates rather than annotating them, so a template
+"missing" from the agent's repertoire is explained here and nowhere
+else.
+
+The dialog is a window onto the provider, never an editor: templates
+are authored and approved in WhatsApp Manager, and the empty state
+says so. Before fetching, a readiness pre-check answers the
+preconditions the channel resource already knows (cloud runtime,
+installed, serving, proactive grant) as teaching states instead of
+relayed refusals; once a fetch does fail, the server's message
+renders verbatim.
+
+Built on the native `<dialog>` element, matching the SDK's modal
+convention. Most hosts mount it via [`AgentChannelsPanel`](#agentchannelspanel)'s
+channel card action menu, which shows the action only for providers
+whose descriptor declares `supportsMessageTemplates`.
+
+**Props** — `ChannelTemplatesDialogProps`
+
+<TypeTable
+  type={{
+    channel: { type: "AgentChannel", description: "The channel whose provider template registry is listed.", required: true },
+    modal: { type: "boolean", description: "When `false`, renders as an in-flow open dialog instead of a top-layer modal — for embedding in constrained surfaces (documentation demos, visual tests). Interactive hosts keep the default." },
+    onEditYaml: { type: "() => void", description: "Opens the channel's YAML editor — the only place `proactive_messaging_enabled` can be granted today. Wired by AgentChannelsPanel to its Edit YAML dialog; when absent, the teaching state renders without the affordance." },
+    onOpenChange: { type: "(open: boolean) => void", description: "Called when the dialog requests an open-state change.", required: true },
+    open: { type: "boolean", description: "Whether the dialog is open.", required: true },
+  }}
+/>
+
+
 ### ChannelToolCredentials
 
 The channel's credential-binding surface: explanatory copy, the
@@ -598,6 +732,23 @@ function agentChannelToInput(channel: AgentChannel): AgentChannelInput
 ```
 
 
+### ChannelTemplateReadiness
+
+Whether a channel can answer a template-registry read
+(`listTemplates`), and if not, which precondition fails first.
+
+- `cloud-only` — the deployment is not cloud; the template registry
+  is part of the cloud channel runtime.
+- `not-installed` — the provider install has not completed (covers
+  both pending and revoked; render the per-provider
+  `describeChannel` sentence, which already distinguishes them).
+- `channel-off` — the owner's serving switch (`spec.enabled`) is off.
+- `not-proactive` — `spec.proactive_messaging_enabled` is not set;
+  business-initiated messaging (and with it the template surface)
+  is not granted on this channel.
+- `ready` — the read can be made.
+
+
 ### InstallChannelPhase
 
 Progress phases of a direct channel install.
@@ -613,4 +764,59 @@ Progress phases of the Slack channel install flow.
 Mirrors the MCP OAuth phases minus `connecting` — a channel install has
 no tool-discovery step; `completeInstall` returns the installed channel
 directly.
+
+
+### splitTemplateBody
+
+Split a template body into text and placeholder segments so the
+placeholders — the parts the agent fills at send time — can render
+visually distinct from the literal copy.
+
+The concatenation of all segment values is always the input,
+verbatim: this function classifies, it never rewrites.
+
+```tsx
+function splitTemplateBody(body: string): readonly TemplateBodySegment[]
+```
+
+
+### TemplateBodySegment
+
+One segment of a template body: literal text or a `{{...}}` placeholder.
+
+<TypeTable
+  type={{
+    kind: { type: "\"text\" | \"placeholder\"", description: "", required: true },
+    value: { type: "string", description: "The verbatim slice, braces included for placeholders (`\"{{1}}\"`).", required: true },
+  }}
+/>
+
+
+### templateStatusPhase
+
+Map a provider-verbatim template status onto a [`StatusPhase`](/docs/sdk/react/resource-workbench#statusphase)
+for `StatusBadge` coloring.
+
+The wire carries the provider's own vocabulary, never a Stigmer enum
+(DD-003 D6) — so the caller renders the verbatim status string as the
+badge label and uses this phase only for the color. WhatsApp's
+observed set exceeds the documented five (IN_APPEAL, LIMIT_EXCEEDED,
+PENDING_DELETION, DELETED occur, and Meta can add more), so unknown
+statuses deliberately land on `draft` — a neutral tone that renders
+the provider's word without claiming to understand it.
+
+```tsx
+function templateStatusPhase(status: string): StatusPhase
+```
+
+
+### UseChannelTemplateListOptions
+
+Options for [`useChannelTemplateList`](#usechanneltemplatelist).
+
+<TypeTable
+  type={{
+    approvedOnly: { type: "boolean", description: "When `true`, only templates the provider will accept for sending are returned (WhatsApp: status APPROVED). The console leaves it unset to render every status with its badge; agent-composition surfaces set it so a model never drafts against a paused or pending template." },
+  }}
+/>
 

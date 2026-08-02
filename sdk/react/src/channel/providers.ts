@@ -43,6 +43,18 @@ export interface ChannelProviderDescriptor {
   readonly Icon: ComponentType<{ readonly className?: string }>;
   /** How this provider's install flow runs. */
   readonly installStyle: ChannelInstallStyle;
+  /**
+   * Whether this provider has a message-template registry the console
+   * can list (`listTemplates`). Mirrors the server's proactive-sender
+   * registry, which is the de-facto provider filter behind that RPC —
+   * a provider with no registered sender answers `PROVIDER_UNSUPPORTED`.
+   *
+   * `false` for Slack is not a gap: Slack has no template concept at
+   * all, so consumers hide the Templates affordance entirely rather
+   * than disable it — a disabled item would falsely imply it may work
+   * there one day.
+   */
+  readonly supportsMessageTemplates: boolean;
 }
 
 /**
@@ -55,8 +67,20 @@ export interface ChannelProviderDescriptor {
  * demos. A third entry is the signal to fold these into a provider menu.
  */
 export const CHANNEL_PROVIDERS: readonly ChannelProviderDescriptor[] = [
-  { id: "slack", label: "Slack", Icon: SlackMarkIcon, installStyle: "redirect" },
-  { id: "whatsapp", label: "WhatsApp", Icon: WhatsAppMarkIcon, installStyle: "direct" },
+  {
+    id: "slack",
+    label: "Slack",
+    Icon: SlackMarkIcon,
+    installStyle: "redirect",
+    supportsMessageTemplates: false,
+  },
+  {
+    id: "whatsapp",
+    label: "WhatsApp",
+    Icon: WhatsAppMarkIcon,
+    installStyle: "direct",
+    supportsMessageTemplates: true,
+  },
 ];
 
 /**
