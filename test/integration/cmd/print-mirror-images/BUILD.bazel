@@ -1,0 +1,15 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "print-mirror-images_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/stigmer/stigmer/test/integration/cmd/print-mirror-images",
+    visibility = ["//visibility:private"],
+    deps = ["//test/integration/harness"],
+)
+
+go_binary(
+    name = "print-mirror-images",
+    embed = [":print-mirror-images_lib"],
+    visibility = ["//visibility:public"],
+)
