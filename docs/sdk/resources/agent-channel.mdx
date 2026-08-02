@@ -35,7 +35,10 @@ spec:
 ```
 
 A WhatsApp channel names the Business phone number it serves and always
-installs through your own Meta app:
+installs through your own Meta app. A channel is reply-only until its
+owner sets `proactive_messaging_enabled`, which lets the serving agent
+send business-initiated messages (reminders, notifications) on the
+channel through `sendMessage`:
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -49,6 +52,7 @@ spec:
     org: workshop
     slug: support-agent
   enabled: true
+  proactive_messaging_enabled: true
   whatsapp:
     phone_number_id: "106540352242922"
   app_ref:

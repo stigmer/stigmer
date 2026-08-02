@@ -13,6 +13,7 @@ go_library(
         "message_io.pb.go",
         "message_query.pb.go",
         "message_query_grpc.pb.go",
+        "outbound.pb.go",
         "query.pb.go",
         "query_grpc.pb.go",
         "spec.pb.go",
