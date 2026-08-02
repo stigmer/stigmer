@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/message_io.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_message_io: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL21lc3NhZ2VfaW8ucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEivQEKF1NlbmRDaGFubmVsTWVzc2FnZUlucHV0EhgKB2NoYW5uZWwYASABKAlCB7pIBHICGD8SFAoDb3JnGAIgASgJQge6SARyAhg/Eh0KCXJlY2lwaWVudBgDIAEoCUIKukgHcgUQARiAARJTCgdwYXlsb2FkGAQgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsT3V0Ym91bmRQYXlsb2FkQga6SAPIAQEisQEKFkNoYW5uZWxPdXRib3VuZFBheWxvYWQSPwoEdGV4dBgBIAEoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuVGV4dFBheWxvYWRIABJHCgh0ZW1wbGF0ZRgCIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuVGVtcGxhdGVQYXlsb2FkSABCDQoEa2luZBIFukgCCAEiJwoLVGV4dFBheWxvYWQSGAoEYm9keRgBIAEoCUIKukgHcgUQARiAICKBAgoPVGVtcGxhdGVQYXlsb2FkEhgKBG5hbWUYASABKAlCCrpIB3IFEAEYgAQSGQoIbGFuZ3VhZ2UYAiABKAlCB7pIBHICGBASYQoKcGFyYW1ldGVycxgDIAMoCzJDLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuVGVtcGxhdGVQYXlsb2FkLlBhcmFtZXRlcnNFbnRyeUIIukgFmgECEDISIwoRaGVhZGVyX2ltYWdlX2xpbmsYBCABKAlCCLpIBXIDGIAQGjEKD1BhcmFtZXRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIq0BChhTZW5kQ2hhbm5lbE1lc3NhZ2VPdXRwdXQSRwoHb3V0Y29tZRgBIAEoDjI2LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbFNlbmRPdXRjb21lEhsKE291dGJvdW5kX21lc3NhZ2VfaWQYAiABKAkSGwoTcHJvdmlkZXJfbWVzc2FnZV9pZBgDIAEoCRIOCgZkZXRhaWwYBCABKAkiYgoZTGlzdENoYW5uZWxUZW1wbGF0ZXNJbnB1dBIYCgdjaGFubmVsGAEgASgJQge6SARyAhg/EhQKA29yZxgCIAEoCUIHukgEcgIYPxIVCg1hcHByb3ZlZF9vbmx5GAMgASgIIlgKEENoYW5uZWxUZW1wbGF0ZXMSRAoHZW50cmllcxgBIAMoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbFRlbXBsYXRlIsoBCg9DaGFubmVsVGVtcGxhdGUSDAoEbmFtZRgBIAEoCRIQCghsYW5ndWFnZRgCIAEoCRIQCghjYXRlZ29yeRgDIAEoCRIOCgZzdGF0dXMYBCABKAkSGAoQcGFyYW1ldGVyX2Zvcm1hdBgFIAEoCRIXCg9wYXJhbWV0ZXJfbmFtZXMYBiADKAkSEQoJYm9keV90ZXh0GAcgASgJEhUKDWhlYWRlcl9mb3JtYXQYCCABKAkSGAoQcmVqZWN0aW9uX3JlYXNvbhgJIAEoCSphChJDaGFubmVsU2VuZE91dGNvbWUSJAogY2hhbm5lbF9zZW5kX291dGNvbWVfdW5zcGVjaWZpZWQQABIMCghhY2NlcHRlZBABEgoKBnF1ZXVlZBACEgsKB3JlZnVzZWQQA2IGcHJvdG8z", [file_buf_validate_validate]);
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL21lc3NhZ2VfaW8ucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEivQEKF1NlbmRDaGFubmVsTWVzc2FnZUlucHV0EhgKB2NoYW5uZWwYASABKAlCB7pIBHICGD8SFAoDb3JnGAIgASgJQge6SARyAhg/Eh0KCXJlY2lwaWVudBgDIAEoCUIKukgHcgUQARiAARJTCgdwYXlsb2FkGAQgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsT3V0Ym91bmRQYXlsb2FkQga6SAPIAQEisQEKFkNoYW5uZWxPdXRib3VuZFBheWxvYWQSPwoEdGV4dBgBIAEoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuVGV4dFBheWxvYWRIABJHCgh0ZW1wbGF0ZRgCIAEoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuVGVtcGxhdGVQYXlsb2FkSABCDQoEa2luZBIFukgCCAEiJwoLVGV4dFBheWxvYWQSGAoEYm9keRgBIAEoCUIKukgHcgUQARiAICKBAgoPVGVtcGxhdGVQYXlsb2FkEhgKBG5hbWUYASABKAlCCrpIB3IFEAEYgAQSGQoIbGFuZ3VhZ2UYAiABKAlCB7pIBHICGBASYQoKcGFyYW1ldGVycxgDIAMoCzJDLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuVGVtcGxhdGVQYXlsb2FkLlBhcmFtZXRlcnNFbnRyeUIIukgFmgECEDISIwoRaGVhZGVyX2ltYWdlX2xpbmsYBCABKAlCCLpIBXIDGIAQGjEKD1BhcmFtZXRlcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIq0BChhTZW5kQ2hhbm5lbE1lc3NhZ2VPdXRwdXQSRwoHb3V0Y29tZRgBIAEoDjI2LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbFNlbmRPdXRjb21lEhsKE291dGJvdW5kX21lc3NhZ2VfaWQYAiABKAkSGwoTcHJvdmlkZXJfbWVzc2FnZV9pZBgDIAEoCRIOCgZkZXRhaWwYBCABKAkiYgoZTGlzdENoYW5uZWxUZW1wbGF0ZXNJbnB1dBIYCgdjaGFubmVsGAEgASgJQge6SARyAhg/EhQKA29yZxgCIAEoCUIHukgEcgIYPxIVCg1hcHByb3ZlZF9vbmx5GAMgASgIIlgKEENoYW5uZWxUZW1wbGF0ZXMSRAoHZW50cmllcxgBIAMoCzIzLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbFRlbXBsYXRlIuYBCg9DaGFubmVsVGVtcGxhdGUSDAoEbmFtZRgBIAEoCRIQCghsYW5ndWFnZRgCIAEoCRIQCghjYXRlZ29yeRgDIAEoCRIOCgZzdGF0dXMYBCABKAkSGAoQcGFyYW1ldGVyX2Zvcm1hdBgFIAEoCRIXCg9wYXJhbWV0ZXJfbmFtZXMYBiADKAkSEQoJYm9keV90ZXh0GAcgASgJEhUKDWhlYWRlcl9mb3JtYXQYCCABKAkSGAoQcmVqZWN0aW9uX3JlYXNvbhgJIAEoCRIaChJ1bnN1cHBvcnRlZF9yZWFzb24YCiABKAkiHAoaTGlzdE1lc3NhZ2luZ0NoYW5uZWxzSW5wdXQiWgoRTWVzc2FnaW5nQ2hhbm5lbHMSRQoHZW50cmllcxgBIAMoCzI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuTWVzc2FnaW5nQ2hhbm5lbCI1ChBNZXNzYWdpbmdDaGFubmVsEg8KB2NoYW5uZWwYASABKAkSEAoIcHJvdmlkZXIYAiABKAkqYQoSQ2hhbm5lbFNlbmRPdXRjb21lEiQKIGNoYW5uZWxfc2VuZF9vdXRjb21lX3Vuc3BlY2lmaWVkEAASDAoIYWNjZXB0ZWQQARIKCgZxdWV1ZWQQAhILCgdyZWZ1c2VkEANiBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
  * Input for sending a business-initiated message on an agent channel.
@@ -388,6 +388,24 @@ export type ChannelTemplate = Message<"ai.stigmer.agentic.agentchannel.v1.Channe
    * @generated from field: string rejection_reason = 9;
    */
   rejectionReason: string;
+
+  /**
+   * Why this platform version cannot send the template. Empty when the
+   * template can be sent.
+   *
+   * @internal
+   * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
+   * rejection_reason: that is the PROVIDER's verdict on the template;
+   * this is Stigmer's verdict on its own ability to supply the
+   * template's send payload (e.g. a text-header variable or dynamic-URL
+   * button the TemplatePayload contract cannot express). Sendability is
+   * derived — empty means sendable — and deliberately NOT a second
+   * boolean field: one writer (the provider mapper), nothing to drift.
+   * The runner's prompt section and the send pre-check both key off it.
+   *
+   * @generated from field: string unsupported_reason = 10;
+   */
+  unsupportedReason: string;
 };
 
 /**
@@ -396,6 +414,90 @@ export type ChannelTemplate = Message<"ai.stigmer.agentic.agentchannel.v1.Channe
  */
 export const ChannelTemplateSchema: GenMessage<ChannelTemplate> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentchannel_v1_message_io, 7);
+
+/**
+ * Input for listing the agent channels the caller can send
+ * business-initiated messages on.
+ *
+ * @internal
+ * proactive-messaging DD-006 D2. Deliberately empty (the
+ * GetServerInfoInput house style): org, agent, and session all derive
+ * from the caller's token (DD-013 — never from arguments). Session-bound
+ * callers only in this slice; a direct principal is told to use the
+ * channel resource surface instead. Room is reserved for a
+ * direct-caller `org` arm if one is ever justified.
+ *
+ * @generated from message ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput
+ */
+export type ListMessagingChannelsInput = Message<"ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput"> & {
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput.
+ * Use `create(ListMessagingChannelsInputSchema)` to create a new message.
+ */
+export const ListMessagingChannelsInputSchema: GenMessage<ListMessagingChannelsInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_message_io, 8);
+
+/**
+ * MessagingChannels contains the agent channels the caller can send
+ * business-initiated messages on.
+ *
+ * @generated from message ai.stigmer.agentic.agentchannel.v1.MessagingChannels
+ */
+export type MessagingChannels = Message<"ai.stigmer.agentic.agentchannel.v1.MessagingChannels"> & {
+  /**
+   * One entry per serving proactive-enabled channel.
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agentchannel.v1.MessagingChannel entries = 1;
+   */
+  entries: MessagingChannel[];
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentchannel.v1.MessagingChannels.
+ * Use `create(MessagingChannelsSchema)` to create a new message.
+ */
+export const MessagingChannelsSchema: GenMessage<MessagingChannels> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_message_io, 9);
+
+/**
+ * MessagingChannel is one agent channel available for business-initiated
+ * messaging, as a slim projection.
+ *
+ * @internal
+ * proactive-messaging DD-006 D2: deliberately NOT the AgentChannel
+ * resource — provider_config and status carry install facts and
+ * credential references that must never reach a sandbox-token surface.
+ * The runner needs exactly enough to name the channel in a send and
+ * label the prompt section.
+ *
+ * @generated from message ai.stigmer.agentic.agentchannel.v1.MessagingChannel
+ */
+export type MessagingChannel = Message<"ai.stigmer.agentic.agentchannel.v1.MessagingChannel"> & {
+  /**
+   * AgentChannel slug, the `channel` value sendMessage and listTemplates
+   * accept.
+   *
+   * @generated from field: string channel = 1;
+   */
+  channel: string;
+
+  /**
+   * Provider key, verbatim from the channel's provider_config arm
+   * (e.g. "whatsapp").
+   *
+   * @generated from field: string provider = 2;
+   */
+  provider: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentchannel.v1.MessagingChannel.
+ * Use `create(MessagingChannelSchema)` to create a new message.
+ */
+export const MessagingChannelSchema: GenMessage<MessagingChannel> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentchannel_v1_message_io, 10);
 
 /**
  * ChannelSendOutcome reports what happened to a business-initiated

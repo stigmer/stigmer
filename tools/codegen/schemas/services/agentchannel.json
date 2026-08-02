@@ -85,6 +85,14 @@
           "outputType": "ChannelTemplates",
           "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelTemplates",
           "description": "List the message templates available on an agent channel.\n\n Read live from the channel provider's registry (WhatsApp: the\n WABA's templates), lightly cached. The provider is the source of\n truth; entries carry its vocabulary verbatim.\n\n @internal\n DD-003 D6. Same in-handler token-class reach as sendMessage (DD-002\n D2/D4): sandbox tokens resolve through the serving channel, direct\n principals through channel visibility; fail closed. The WABA id is\n derived from the channel's phone_number_id on demand and cached —\n never stored (DD-003 D3). A token missing the management scope\n degrades this read only, never sends (DD-003 D7, Meta error 200 →\n FAILED_PRECONDITION pointing at token regeneration). Cloud-first\n runtime: the OSS edition returns FAILED_PRECONDITION (decision 001\n D-g posture)."
+        },
+        {
+          "name": "ListMessagingChannels",
+          "inputType": "ListMessagingChannelsInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput",
+          "outputType": "MessagingChannels",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.MessagingChannels",
+          "description": "List the agent channels the caller can send business-initiated\n messages on.\n\n Everything the read needs derives from the caller's credential; an\n agent with no proactive-messaging channel receives an empty list.\n\n @internal\n proactive-messaging DD-006 D2: the runner's tool-attachment\n decision, replacing DD-002 D5's getByAgent plan (FGA-scoped — a\n sandbox token structurally receives an empty list there). Cloud\n answers from the SAME candidate computation ChannelMessagingReach\n uses (chain → serving proactive channels → sender-registry filter),\n so the attachment decision and the send authorization can never\n disagree. Session-bound callers only in this slice: direct\n principals get INVALID_ARGUMENT pointing at the channel resource\n surface. OSS returns an empty list (DD-006 D3) — a discovery read\n answering \"none\", unlike its action siblings' FAILED_PRECONDITION."
         }
       ]
     },
@@ -413,6 +421,35 @@
             }
           },
           "description": "Template entries, one per (name, language) pair.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ListMessagingChannelsInput",
+      "description": "Input for listing the agent channels the caller can send\n business-initiated messages on.\n\n @internal\n proactive-messaging DD-006 D2. Deliberately empty (the\n GetServerInfoInput house style): org, agent, and session all derive\n from the caller's token (DD-013 — never from arguments). Session-bound\n callers only in this slice; a direct principal is told to use the\n channel resource surface instead. Room is reserved for a\n direct-caller `org` arm if one is ever justified.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/message_io.proto",
+      "fields": []
+    },
+    {
+      "name": "MessagingChannels",
+      "description": "MessagingChannels contains the agent channels the caller can send\n business-initiated messages on.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.MessagingChannels",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/message_io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "MessagingChannel"
+            }
+          },
+          "description": "One entry per serving proactive-enabled channel.",
           "required": false
         }
       ]

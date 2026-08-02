@@ -79,6 +79,12 @@ class AgentChannelClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list_messaging_channels(self, input: message_io_pb2.ListMessagingChannelsInput) -> message_io_pb2.MessagingChannels:
+        try:
+            return self._channelMessageQuery.listMessagingChannels(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.AgentChannel:
         try:
             return self._query.get(io_pb2.AgentChannelId(value=id))

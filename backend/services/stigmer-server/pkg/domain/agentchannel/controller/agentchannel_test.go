@@ -1181,4 +1181,20 @@ func TestChannelMessageController_CloudOnlyPosture(t *testing.T) {
 			t.Errorf("listTemplates refusal must carry the documented copy, got %q", got)
 		}
 	})
+
+	// The deliberate divergence (DD-006 D3): the DISCOVERY read answers
+	// "none" instead of refusing — the runner calls it on every agent
+	// execution, and an expected-error path in that hot loop would be
+	// noise for the identical honest outcome (no tool, no section).
+	t.Run("listMessagingChannels answers with an empty list, never a refusal", func(t *testing.T) {
+		res, err := mc.ListMessagingChannels(channelCtx(),
+			&agentchannelv1.ListMessagingChannelsInput{})
+		if err != nil {
+			t.Fatalf("expected the empty-list answer, got error: %v", err)
+		}
+		if len(res.GetEntries()) != 0 {
+			t.Errorf("OSS has no proactive send runtime; expected zero entries, got %d",
+				len(res.GetEntries()))
+		}
+	})
 }

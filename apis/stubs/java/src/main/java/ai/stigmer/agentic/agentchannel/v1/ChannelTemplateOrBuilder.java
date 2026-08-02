@@ -226,4 +226,46 @@ public interface ChannelTemplateOrBuilder extends
    */
   com.google.protobuf.ByteString
       getRejectionReasonBytes();
+
+  /**
+   * <pre>
+   * Why this platform version cannot send the template. Empty when the
+   * template can be sent.
+   *
+   * &#64;internal
+   * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
+   * rejection_reason: that is the PROVIDER's verdict on the template;
+   * this is Stigmer's verdict on its own ability to supply the
+   * template's send payload (e.g. a text-header variable or dynamic-URL
+   * button the TemplatePayload contract cannot express). Sendability is
+   * derived — empty means sendable — and deliberately NOT a second
+   * boolean field: one writer (the provider mapper), nothing to drift.
+   * The runner's prompt section and the send pre-check both key off it.
+   * </pre>
+   *
+   * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>
+   * @return The unsupportedReason.
+   */
+  java.lang.String getUnsupportedReason();
+  /**
+   * <pre>
+   * Why this platform version cannot send the template. Empty when the
+   * template can be sent.
+   *
+   * &#64;internal
+   * proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
+   * rejection_reason: that is the PROVIDER's verdict on the template;
+   * this is Stigmer's verdict on its own ability to supply the
+   * template's send payload (e.g. a text-header variable or dynamic-URL
+   * button the TemplatePayload contract cannot express). Sendability is
+   * derived — empty means sendable — and deliberately NOT a second
+   * boolean field: one writer (the provider mapper), nothing to drift.
+   * The runner's prompt section and the send pre-check both key off it.
+   * </pre>
+   *
+   * <code>string unsupported_reason = 10 [json_name = "unsupportedReason"];</code>
+   * @return The bytes for unsupportedReason.
+   */
+  com.google.protobuf.ByteString
+      getUnsupportedReasonBytes();
 }

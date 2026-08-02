@@ -61,3 +61,23 @@ func (c *ChannelMessageController) ListTemplates(
 	}
 	return nil, grpclib.FailedPreconditionError(proactiveMessagingUnavailableMessage)
 }
+
+// ListMessagingChannels answers with an EMPTY list — a deliberate
+// divergence from its refusing siblings (proactive-messaging DD-006 D3).
+//
+// The siblings refuse because their caller asked to DO a cloud-only
+// thing; this is a capability-DISCOVERY read whose truthful OSS answer is
+// "none" (channels exist here, but no business-initiated send runtime
+// does). The runner issues this read on every agent execution to decide
+// whether to attach the send_channel_message tool — an expected-error
+// path in that hot loop would be noise, and the empty list produces the
+// identical, honest outcome: no tool, no prompt section.
+func (c *ChannelMessageController) ListMessagingChannels(
+	ctx context.Context,
+	input *agentchannelv1.ListMessagingChannelsInput,
+) (*agentchannelv1.MessagingChannels, error) {
+	if err := grpclib.SharedValidator().Validate(input); err != nil {
+		return nil, grpclib.InvalidArgumentError("%v", err)
+	}
+	return &agentchannelv1.MessagingChannels{}, nil
+}

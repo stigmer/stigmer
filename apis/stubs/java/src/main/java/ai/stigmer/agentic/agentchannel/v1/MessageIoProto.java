@@ -71,6 +71,21 @@ public final class MessageIoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentchannel_v1_ChannelTemplate_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentchannel_v1_ListMessagingChannelsInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentchannel_v1_ListMessagingChannelsInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentchannel_v1_MessagingChannels_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentchannel_v1_MessagingChannels_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentchannel_v1_MessagingChannel_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentchannel_v1_MessagingChannel_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -114,22 +129,28 @@ public final class MessageIoProto extends com.google.protobuf.GeneratedFile {
       "nly\030\003 \001(\010R\014approvedOnly\"a\n\020ChannelTempla" +
       "tes\022M\n\007entries\030\001 \003(\01323.ai.stigmer.agenti" +
       "c.agentchannel.v1.ChannelTemplateR\007entri" +
-      "es\"\266\002\n\017ChannelTemplate\022\022\n\004name\030\001 \001(\tR\004na" +
+      "es\"\345\002\n\017ChannelTemplate\022\022\n\004name\030\001 \001(\tR\004na" +
       "me\022\032\n\010language\030\002 \001(\tR\010language\022\032\n\010catego" +
       "ry\030\003 \001(\tR\010category\022\026\n\006status\030\004 \001(\tR\006stat" +
       "us\022)\n\020parameter_format\030\005 \001(\tR\017parameterF" +
       "ormat\022\'\n\017parameter_names\030\006 \003(\tR\016paramete" +
       "rNames\022\033\n\tbody_text\030\007 \001(\tR\010bodyText\022#\n\rh" +
       "eader_format\030\010 \001(\tR\014headerFormat\022)\n\020reje" +
-      "ction_reason\030\t \001(\tR\017rejectionReason*a\n\022C" +
-      "hannelSendOutcome\022$\n channel_send_outcom" +
-      "e_unspecified\020\000\022\014\n\010accepted\020\001\022\n\n\006queued\020" +
-      "\002\022\013\n\007refused\020\003B\275\001B\016MessageIoProtoP\001\242\002\004AS" +
-      "AA\252\002\"Ai.Stigmer.Agentic.Agentchannel.V1\312" +
-      "\002\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\342\002.A" +
-      "i\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMet" +
-      "adata\352\002&Ai::Stigmer::Agentic::Agentchann" +
-      "el::V1b\006proto3"
+      "ction_reason\030\t \001(\tR\017rejectionReason\022-\n\022u" +
+      "nsupported_reason\030\n \001(\tR\021unsupportedReas" +
+      "on\"\034\n\032ListMessagingChannelsInput\"c\n\021Mess" +
+      "agingChannels\022N\n\007entries\030\001 \003(\01324.ai.stig" +
+      "mer.agentic.agentchannel.v1.MessagingCha" +
+      "nnelR\007entries\"H\n\020MessagingChannel\022\030\n\007cha" +
+      "nnel\030\001 \001(\tR\007channel\022\032\n\010provider\030\002 \001(\tR\010p" +
+      "rovider*a\n\022ChannelSendOutcome\022$\n channel" +
+      "_send_outcome_unspecified\020\000\022\014\n\010accepted\020" +
+      "\001\022\n\n\006queued\020\002\022\013\n\007refused\020\003B\275\001B\016MessageIo" +
+      "ProtoP\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agentic.Agen" +
+      "tchannel.V1\312\002\"Ai\\Stigmer\\Agentic\\Agentch" +
+      "annel\\V1\342\002.Ai\\Stigmer\\Agentic\\Agentchann" +
+      "el\\V1\\GPBMetadata\352\002&Ai::Stigmer::Agentic" +
+      "::Agentchannel::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -189,7 +210,25 @@ public final class MessageIoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentchannel_v1_ChannelTemplate_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_ChannelTemplate_descriptor,
-        new java.lang.String[] { "Name", "Language", "Category", "Status", "ParameterFormat", "ParameterNames", "BodyText", "HeaderFormat", "RejectionReason", });
+        new java.lang.String[] { "Name", "Language", "Category", "Status", "ParameterFormat", "ParameterNames", "BodyText", "HeaderFormat", "RejectionReason", "UnsupportedReason", });
+    internal_static_ai_stigmer_agentic_agentchannel_v1_ListMessagingChannelsInput_descriptor =
+      getDescriptor().getMessageType(8);
+    internal_static_ai_stigmer_agentic_agentchannel_v1_ListMessagingChannelsInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentchannel_v1_ListMessagingChannelsInput_descriptor,
+        new java.lang.String[] { });
+    internal_static_ai_stigmer_agentic_agentchannel_v1_MessagingChannels_descriptor =
+      getDescriptor().getMessageType(9);
+    internal_static_ai_stigmer_agentic_agentchannel_v1_MessagingChannels_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentchannel_v1_MessagingChannels_descriptor,
+        new java.lang.String[] { "Entries", });
+    internal_static_ai_stigmer_agentic_agentchannel_v1_MessagingChannel_descriptor =
+      getDescriptor().getMessageType(10);
+    internal_static_ai_stigmer_agentic_agentchannel_v1_MessagingChannel_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentchannel_v1_MessagingChannel_descriptor,
+        new java.lang.String[] { "Channel", "Provider", });
     descriptor.resolveAllFeaturesImmutable();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

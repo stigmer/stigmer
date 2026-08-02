@@ -638,8 +638,21 @@ type ChannelTemplate struct {
 	// Provider's rejection reason, verbatim. Empty unless status is a
 	// rejected state.
 	RejectionReason string `protobuf:"bytes,9,opt,name=rejection_reason,json=rejectionReason,proto3" json:"rejection_reason,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Why this platform version cannot send the template. Empty when the
+	// template can be sent.
+	//
+	// @internal
+	// proactive-messaging DD-005 D7 / DD-006 D1. Distinct from
+	// rejection_reason: that is the PROVIDER's verdict on the template;
+	// this is Stigmer's verdict on its own ability to supply the
+	// template's send payload (e.g. a text-header variable or dynamic-URL
+	// button the TemplatePayload contract cannot express). Sendability is
+	// derived — empty means sendable — and deliberately NOT a second
+	// boolean field: one writer (the provider mapper), nothing to drift.
+	// The runner's prompt section and the send pre-check both key off it.
+	UnsupportedReason string `protobuf:"bytes,10,opt,name=unsupported_reason,json=unsupportedReason,proto3" json:"unsupported_reason,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ChannelTemplate) Reset() {
@@ -735,6 +748,171 @@ func (x *ChannelTemplate) GetRejectionReason() string {
 	return ""
 }
 
+func (x *ChannelTemplate) GetUnsupportedReason() string {
+	if x != nil {
+		return x.UnsupportedReason
+	}
+	return ""
+}
+
+// Input for listing the agent channels the caller can send
+// business-initiated messages on.
+//
+// @internal
+// proactive-messaging DD-006 D2. Deliberately empty (the
+// GetServerInfoInput house style): org, agent, and session all derive
+// from the caller's token (DD-013 — never from arguments). Session-bound
+// callers only in this slice; a direct principal is told to use the
+// channel resource surface instead. Room is reserved for a
+// direct-caller `org` arm if one is ever justified.
+type ListMessagingChannelsInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListMessagingChannelsInput) Reset() {
+	*x = ListMessagingChannelsInput{}
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListMessagingChannelsInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListMessagingChannelsInput) ProtoMessage() {}
+
+func (x *ListMessagingChannelsInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListMessagingChannelsInput.ProtoReflect.Descriptor instead.
+func (*ListMessagingChannelsInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_rawDescGZIP(), []int{8}
+}
+
+// MessagingChannels contains the agent channels the caller can send
+// business-initiated messages on.
+type MessagingChannels struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// One entry per serving proactive-enabled channel.
+	Entries       []*MessagingChannel `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MessagingChannels) Reset() {
+	*x = MessagingChannels{}
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MessagingChannels) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MessagingChannels) ProtoMessage() {}
+
+func (x *MessagingChannels) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MessagingChannels.ProtoReflect.Descriptor instead.
+func (*MessagingChannels) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *MessagingChannels) GetEntries() []*MessagingChannel {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+// MessagingChannel is one agent channel available for business-initiated
+// messaging, as a slim projection.
+//
+// @internal
+// proactive-messaging DD-006 D2: deliberately NOT the AgentChannel
+// resource — provider_config and status carry install facts and
+// credential references that must never reach a sandbox-token surface.
+// The runner needs exactly enough to name the channel in a send and
+// label the prompt section.
+type MessagingChannel struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// AgentChannel slug, the `channel` value sendMessage and listTemplates
+	// accept.
+	Channel string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	// Provider key, verbatim from the channel's provider_config arm
+	// (e.g. "whatsapp").
+	Provider      string `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MessagingChannel) Reset() {
+	*x = MessagingChannel{}
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MessagingChannel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MessagingChannel) ProtoMessage() {}
+
+func (x *MessagingChannel) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MessagingChannel.ProtoReflect.Descriptor instead.
+func (*MessagingChannel) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *MessagingChannel) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+func (x *MessagingChannel) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agentchannel_v1_message_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_rawDesc = "" +
@@ -774,7 +952,7 @@ const file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_rawDesc = "" +
 	"\x03org\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x18?R\x03org\x12#\n" +
 	"\rapproved_only\x18\x03 \x01(\bR\fapprovedOnly\"a\n" +
 	"\x10ChannelTemplates\x12M\n" +
-	"\aentries\x18\x01 \x03(\v23.ai.stigmer.agentic.agentchannel.v1.ChannelTemplateR\aentries\"\xb6\x02\n" +
+	"\aentries\x18\x01 \x03(\v23.ai.stigmer.agentic.agentchannel.v1.ChannelTemplateR\aentries\"\xe5\x02\n" +
 	"\x0fChannelTemplate\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
 	"\blanguage\x18\x02 \x01(\tR\blanguage\x12\x1a\n" +
@@ -784,7 +962,15 @@ const file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_rawDesc = "" +
 	"\x0fparameter_names\x18\x06 \x03(\tR\x0eparameterNames\x12\x1b\n" +
 	"\tbody_text\x18\a \x01(\tR\bbodyText\x12#\n" +
 	"\rheader_format\x18\b \x01(\tR\fheaderFormat\x12)\n" +
-	"\x10rejection_reason\x18\t \x01(\tR\x0frejectionReason*a\n" +
+	"\x10rejection_reason\x18\t \x01(\tR\x0frejectionReason\x12-\n" +
+	"\x12unsupported_reason\x18\n" +
+	" \x01(\tR\x11unsupportedReason\"\x1c\n" +
+	"\x1aListMessagingChannelsInput\"c\n" +
+	"\x11MessagingChannels\x12N\n" +
+	"\aentries\x18\x01 \x03(\v24.ai.stigmer.agentic.agentchannel.v1.MessagingChannelR\aentries\"H\n" +
+	"\x10MessagingChannel\x12\x18\n" +
+	"\achannel\x18\x01 \x01(\tR\achannel\x12\x1a\n" +
+	"\bprovider\x18\x02 \x01(\tR\bprovider*a\n" +
 	"\x12ChannelSendOutcome\x12$\n" +
 	" channel_send_outcome_unspecified\x10\x00\x12\f\n" +
 	"\baccepted\x10\x01\x12\n" +
@@ -806,31 +992,35 @@ func file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_rawDescGZIP() []by
 }
 
 var file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_goTypes = []any{
-	(ChannelSendOutcome)(0),           // 0: ai.stigmer.agentic.agentchannel.v1.ChannelSendOutcome
-	(*SendChannelMessageInput)(nil),   // 1: ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput
-	(*ChannelOutboundPayload)(nil),    // 2: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
-	(*TextPayload)(nil),               // 3: ai.stigmer.agentic.agentchannel.v1.TextPayload
-	(*TemplatePayload)(nil),           // 4: ai.stigmer.agentic.agentchannel.v1.TemplatePayload
-	(*SendChannelMessageOutput)(nil),  // 5: ai.stigmer.agentic.agentchannel.v1.SendChannelMessageOutput
-	(*ListChannelTemplatesInput)(nil), // 6: ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput
-	(*ChannelTemplates)(nil),          // 7: ai.stigmer.agentic.agentchannel.v1.ChannelTemplates
-	(*ChannelTemplate)(nil),           // 8: ai.stigmer.agentic.agentchannel.v1.ChannelTemplate
-	nil,                               // 9: ai.stigmer.agentic.agentchannel.v1.TemplatePayload.ParametersEntry
+	(ChannelSendOutcome)(0),            // 0: ai.stigmer.agentic.agentchannel.v1.ChannelSendOutcome
+	(*SendChannelMessageInput)(nil),    // 1: ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput
+	(*ChannelOutboundPayload)(nil),     // 2: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
+	(*TextPayload)(nil),                // 3: ai.stigmer.agentic.agentchannel.v1.TextPayload
+	(*TemplatePayload)(nil),            // 4: ai.stigmer.agentic.agentchannel.v1.TemplatePayload
+	(*SendChannelMessageOutput)(nil),   // 5: ai.stigmer.agentic.agentchannel.v1.SendChannelMessageOutput
+	(*ListChannelTemplatesInput)(nil),  // 6: ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput
+	(*ChannelTemplates)(nil),           // 7: ai.stigmer.agentic.agentchannel.v1.ChannelTemplates
+	(*ChannelTemplate)(nil),            // 8: ai.stigmer.agentic.agentchannel.v1.ChannelTemplate
+	(*ListMessagingChannelsInput)(nil), // 9: ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput
+	(*MessagingChannels)(nil),          // 10: ai.stigmer.agentic.agentchannel.v1.MessagingChannels
+	(*MessagingChannel)(nil),           // 11: ai.stigmer.agentic.agentchannel.v1.MessagingChannel
+	nil,                                // 12: ai.stigmer.agentic.agentchannel.v1.TemplatePayload.ParametersEntry
 }
 var file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_depIdxs = []int32{
-	2, // 0: ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput.payload:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
-	3, // 1: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload.text:type_name -> ai.stigmer.agentic.agentchannel.v1.TextPayload
-	4, // 2: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload.template:type_name -> ai.stigmer.agentic.agentchannel.v1.TemplatePayload
-	9, // 3: ai.stigmer.agentic.agentchannel.v1.TemplatePayload.parameters:type_name -> ai.stigmer.agentic.agentchannel.v1.TemplatePayload.ParametersEntry
-	0, // 4: ai.stigmer.agentic.agentchannel.v1.SendChannelMessageOutput.outcome:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelSendOutcome
-	8, // 5: ai.stigmer.agentic.agentchannel.v1.ChannelTemplates.entries:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelTemplate
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	2,  // 0: ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput.payload:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
+	3,  // 1: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload.text:type_name -> ai.stigmer.agentic.agentchannel.v1.TextPayload
+	4,  // 2: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload.template:type_name -> ai.stigmer.agentic.agentchannel.v1.TemplatePayload
+	12, // 3: ai.stigmer.agentic.agentchannel.v1.TemplatePayload.parameters:type_name -> ai.stigmer.agentic.agentchannel.v1.TemplatePayload.ParametersEntry
+	0,  // 4: ai.stigmer.agentic.agentchannel.v1.SendChannelMessageOutput.outcome:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelSendOutcome
+	8,  // 5: ai.stigmer.agentic.agentchannel.v1.ChannelTemplates.entries:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelTemplate
+	11, // 6: ai.stigmer.agentic.agentchannel.v1.MessagingChannels.entries:type_name -> ai.stigmer.agentic.agentchannel.v1.MessagingChannel
+	7,  // [7:7] is the sub-list for method output_type
+	7,  // [7:7] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_init() }
@@ -848,7 +1038,7 @@ func file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_rawDesc), len(file_ai_stigmer_agentic_agentchannel_v1_message_io_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   9,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

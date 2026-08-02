@@ -36,4 +36,25 @@ service ChannelMessageQueryController {
   rpc listTemplates(ListChannelTemplatesInput) returns (ChannelTemplates) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
+
+  // List the agent channels the caller can send business-initiated
+  // messages on.
+  //
+  // Everything the read needs derives from the caller's credential; an
+  // agent with no proactive-messaging channel receives an empty list.
+  //
+  // @internal
+  // proactive-messaging DD-006 D2: the runner's tool-attachment
+  // decision, replacing DD-002 D5's getByAgent plan (FGA-scoped — a
+  // sandbox token structurally receives an empty list there). Cloud
+  // answers from the SAME candidate computation ChannelMessagingReach
+  // uses (chain → serving proactive channels → sender-registry filter),
+  // so the attachment decision and the send authorization can never
+  // disagree. Session-bound callers only in this slice: direct
+  // principals get INVALID_ARGUMENT pointing at the channel resource
+  // surface. OSS returns an empty list (DD-006 D3) — a discovery read
+  // answering "none", unlike its action siblings' FAILED_PRECONDITION.
+  rpc listMessagingChannels(ListMessagingChannelsInput) returns (MessagingChannels) {
+    option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
+  }
 }

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ChannelTemplates, ListChannelTemplatesInput } from "./message_io_pbjs";
+import { ChannelTemplates, ListChannelTemplatesInput, ListMessagingChannelsInput, MessagingChannels } from "./message_io_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -45,6 +45,33 @@ export const ChannelMessageQueryController = {
       name: "listTemplates",
       I: ListChannelTemplatesInput,
       O: ChannelTemplates,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List the agent channels the caller can send business-initiated
+     * messages on.
+     *
+     * Everything the read needs derives from the caller's credential; an
+     * agent with no proactive-messaging channel receives an empty list.
+     *
+     * @internal
+     * proactive-messaging DD-006 D2: the runner's tool-attachment
+     * decision, replacing DD-002 D5's getByAgent plan (FGA-scoped — a
+     * sandbox token structurally receives an empty list there). Cloud
+     * answers from the SAME candidate computation ChannelMessagingReach
+     * uses (chain → serving proactive channels → sender-registry filter),
+     * so the attachment decision and the send authorization can never
+     * disagree. Session-bound callers only in this slice: direct
+     * principals get INVALID_ARGUMENT pointing at the channel resource
+     * surface. OSS returns an empty list (DD-006 D3) — a discovery read
+     * answering "none", unlike its action siblings' FAILED_PRECONDITION.
+     *
+     * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController.listMessagingChannels
+     */
+    listMessagingChannels: {
+      name: "listMessagingChannels",
+      I: ListMessagingChannelsInput,
+      O: MessagingChannels,
       kind: MethodKind.Unary,
     },
   }

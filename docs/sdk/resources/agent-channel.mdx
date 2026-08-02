@@ -94,6 +94,7 @@ AgentChannel agentChannel = client.agentChannels().get("ach_01j5q3k7m8r2s4tnz2hf
 | [`getByAgent`](#getbyagent) | Get all channels of a specific agent. |
 | [`getByReference`](#getbyreference) | Get an agent channel by its organization-scoped reference (org/slug). |
 | [`list`](#list) | List agent channels with optional label filtering. |
+| [`listMessagingChannels`](#listmessagingchannels) | List the agent channels the caller can send business-initiated messages on. |
 | [`listTemplates`](#listtemplates) | List the message templates available on an agent channel. |
 | [`apply`](#apply) | Create or update an agent channel. |
 | [`create`](#create) | Create an agent channel. |
@@ -284,6 +285,39 @@ AgentChannelList result = client.agentChannels().list(ListAgentChannelsRequest.b
 **Parameters**: [`ListAgentChannelsRequest`](#listagentchannelsrequest)
 
 **Returns**: [`AgentChannelList`](#agentchannellist)
+
+### listMessagingChannels
+
+List the agent channels the caller can send business-initiated messages on.
+
+Everything the read needs derives from the caller's credential; an agent with no proactive-messaging channel receives an empty list.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const messagingChannels = await stigmer.agentChannel.listMessagingChannels(input);
+```
+</Tab>
+<Tab value="Go">
+```go
+messagingChannels, err := client.AgentChannel.ListMessagingChannels(ctx, input)
+```
+</Tab>
+<Tab value="Python">
+```python
+messaging_channels = client.agent_channels.list_messaging_channels(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+MessagingChannels messagingChannels = client.agentChannels().listMessagingChannels(input);
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListMessagingChannelsInput`](#listmessagingchannelsinput)
+
+**Returns**: [`MessagingChannels`](#messagingchannels)
 
 ### listTemplates
 
@@ -893,6 +927,20 @@ ChannelTemplates contains the message templates available on an agent channel.
 <TypeTable
   type={{
     entries: { type: "ChannelTemplateInput[]", description: "Template entries, one per (name, language) pair." },
+  }}
+/>
+
+### ListMessagingChannelsInput
+
+Input for listing the agent channels the caller can send business-initiated messages on.
+
+### MessagingChannels
+
+MessagingChannels contains the agent channels the caller can send business-initiated messages on.
+
+<TypeTable
+  type={{
+    entries: { type: "MessagingChannelInput[]", description: "One entry per serving proactive-enabled channel." },
   }}
 />
 

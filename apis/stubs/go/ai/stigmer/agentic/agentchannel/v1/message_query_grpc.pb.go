@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ChannelMessageQueryController_ListTemplates_FullMethodName = "/ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController/listTemplates"
+	ChannelMessageQueryController_ListTemplates_FullMethodName         = "/ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController/listTemplates"
+	ChannelMessageQueryController_ListMessagingChannels_FullMethodName = "/ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryController/listMessagingChannels"
 )
 
 // ChannelMessageQueryControllerClient is the client API for ChannelMessageQueryController service.
@@ -52,6 +53,24 @@ type ChannelMessageQueryControllerClient interface {
 	// runtime: the OSS edition returns FAILED_PRECONDITION (decision 001
 	// D-g posture).
 	ListTemplates(ctx context.Context, in *ListChannelTemplatesInput, opts ...grpc.CallOption) (*ChannelTemplates, error)
+	// List the agent channels the caller can send business-initiated
+	// messages on.
+	//
+	// Everything the read needs derives from the caller's credential; an
+	// agent with no proactive-messaging channel receives an empty list.
+	//
+	// @internal
+	// proactive-messaging DD-006 D2: the runner's tool-attachment
+	// decision, replacing DD-002 D5's getByAgent plan (FGA-scoped — a
+	// sandbox token structurally receives an empty list there). Cloud
+	// answers from the SAME candidate computation ChannelMessagingReach
+	// uses (chain → serving proactive channels → sender-registry filter),
+	// so the attachment decision and the send authorization can never
+	// disagree. Session-bound callers only in this slice: direct
+	// principals get INVALID_ARGUMENT pointing at the channel resource
+	// surface. OSS returns an empty list (DD-006 D3) — a discovery read
+	// answering "none", unlike its action siblings' FAILED_PRECONDITION.
+	ListMessagingChannels(ctx context.Context, in *ListMessagingChannelsInput, opts ...grpc.CallOption) (*MessagingChannels, error)
 }
 
 type channelMessageQueryControllerClient struct {
@@ -66,6 +85,16 @@ func (c *channelMessageQueryControllerClient) ListTemplates(ctx context.Context,
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ChannelTemplates)
 	err := c.cc.Invoke(ctx, ChannelMessageQueryController_ListTemplates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *channelMessageQueryControllerClient) ListMessagingChannels(ctx context.Context, in *ListMessagingChannelsInput, opts ...grpc.CallOption) (*MessagingChannels, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MessagingChannels)
+	err := c.cc.Invoke(ctx, ChannelMessageQueryController_ListMessagingChannels_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -102,6 +131,24 @@ type ChannelMessageQueryControllerServer interface {
 	// runtime: the OSS edition returns FAILED_PRECONDITION (decision 001
 	// D-g posture).
 	ListTemplates(context.Context, *ListChannelTemplatesInput) (*ChannelTemplates, error)
+	// List the agent channels the caller can send business-initiated
+	// messages on.
+	//
+	// Everything the read needs derives from the caller's credential; an
+	// agent with no proactive-messaging channel receives an empty list.
+	//
+	// @internal
+	// proactive-messaging DD-006 D2: the runner's tool-attachment
+	// decision, replacing DD-002 D5's getByAgent plan (FGA-scoped — a
+	// sandbox token structurally receives an empty list there). Cloud
+	// answers from the SAME candidate computation ChannelMessagingReach
+	// uses (chain → serving proactive channels → sender-registry filter),
+	// so the attachment decision and the send authorization can never
+	// disagree. Session-bound callers only in this slice: direct
+	// principals get INVALID_ARGUMENT pointing at the channel resource
+	// surface. OSS returns an empty list (DD-006 D3) — a discovery read
+	// answering "none", unlike its action siblings' FAILED_PRECONDITION.
+	ListMessagingChannels(context.Context, *ListMessagingChannelsInput) (*MessagingChannels, error)
 }
 
 // UnimplementedChannelMessageQueryControllerServer should be embedded to have
@@ -113,6 +160,9 @@ type UnimplementedChannelMessageQueryControllerServer struct{}
 
 func (UnimplementedChannelMessageQueryControllerServer) ListTemplates(context.Context, *ListChannelTemplatesInput) (*ChannelTemplates, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListTemplates not implemented")
+}
+func (UnimplementedChannelMessageQueryControllerServer) ListMessagingChannels(context.Context, *ListMessagingChannelsInput) (*MessagingChannels, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListMessagingChannels not implemented")
 }
 func (UnimplementedChannelMessageQueryControllerServer) testEmbeddedByValue() {}
 
@@ -152,6 +202,24 @@ func _ChannelMessageQueryController_ListTemplates_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChannelMessageQueryController_ListMessagingChannels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMessagingChannelsInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChannelMessageQueryControllerServer).ListMessagingChannels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChannelMessageQueryController_ListMessagingChannels_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChannelMessageQueryControllerServer).ListMessagingChannels(ctx, req.(*ListMessagingChannelsInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChannelMessageQueryController_ServiceDesc is the grpc.ServiceDesc for ChannelMessageQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -162,6 +230,10 @@ var ChannelMessageQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "listTemplates",
 			Handler:    _ChannelMessageQueryController_ListTemplates_Handler,
+		},
+		{
+			MethodName: "listMessagingChannels",
+			Handler:    _ChannelMessageQueryController_ListMessagingChannels_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

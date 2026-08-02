@@ -27,7 +27,7 @@ from ai.stigmer.commons.apiresource import rpc_service_options_pb2 as ai_dot_sti
 from ai.stigmer.commons.rpc import method_options_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_method__options__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n6ai/stigmer/agentic/agentchannel/v1/message_query.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x33\x61i/stigmer/agentic/agentchannel/v1/message_io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xb2\x01\n\x1d\x43hannelMessageQueryController\x12\x8a\x01\n\rlistTemplates\x12=.ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput\x1a\x34.ai.stigmer.agentic.agentchannel.v1.ChannelTemplates\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+/B\xe8\x01\n&com.ai.stigmer.agentic.agentchannel.v1B\x11MessageQueryProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n6ai/stigmer/agentic/agentchannel/v1/message_query.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x33\x61i/stigmer/agentic/agentchannel/v1/message_io.proto\x1a\x38\x61i/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xc9\x02\n\x1d\x43hannelMessageQueryController\x12\x8a\x01\n\rlistTemplates\x12=.ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput\x1a\x34.ai.stigmer.agentic.agentchannel.v1.ChannelTemplates\"\x04\xd0\xb8\x18\x01\x12\x94\x01\n\x15listMessagingChannels\x12>.ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput\x1a\x35.ai.stigmer.agentic.agentchannel.v1.MessagingChannels\"\x04\xd0\xb8\x18\x01\x1a\x04\xa0\xff+/B\xe8\x01\n&com.ai.stigmer.agentic.agentchannel.v1B\x11MessageQueryProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,6 +39,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CHANNELMESSAGEQUERYCONTROLLER']._serialized_options = b'\240\377+/'
   _globals['_CHANNELMESSAGEQUERYCONTROLLER'].methods_by_name['listTemplates']._loaded_options = None
   _globals['_CHANNELMESSAGEQUERYCONTROLLER'].methods_by_name['listTemplates']._serialized_options = b'\320\270\030\001'
+  _globals['_CHANNELMESSAGEQUERYCONTROLLER'].methods_by_name['listMessagingChannels']._loaded_options = None
+  _globals['_CHANNELMESSAGEQUERYCONTROLLER'].methods_by_name['listMessagingChannels']._serialized_options = b'\320\270\030\001'
   _globals['_CHANNELMESSAGEQUERYCONTROLLER']._serialized_start=251
-  _globals['_CHANNELMESSAGEQUERYCONTROLLER']._serialized_end=429
+  _globals['_CHANNELMESSAGEQUERYCONTROLLER']._serialized_end=580
 # @@protoc_insertion_point(module_scope)

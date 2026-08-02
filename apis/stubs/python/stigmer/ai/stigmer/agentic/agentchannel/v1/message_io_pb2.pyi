@@ -93,7 +93,7 @@ class ChannelTemplates(_message.Message):
     def __init__(self, entries: _Optional[_Iterable[_Union[ChannelTemplate, _Mapping]]] = ...) -> None: ...
 
 class ChannelTemplate(_message.Message):
-    __slots__ = ("name", "language", "category", "status", "parameter_format", "parameter_names", "body_text", "header_format", "rejection_reason")
+    __slots__ = ("name", "language", "category", "status", "parameter_format", "parameter_names", "body_text", "header_format", "rejection_reason", "unsupported_reason")
     NAME_FIELD_NUMBER: _ClassVar[int]
     LANGUAGE_FIELD_NUMBER: _ClassVar[int]
     CATEGORY_FIELD_NUMBER: _ClassVar[int]
@@ -103,6 +103,7 @@ class ChannelTemplate(_message.Message):
     BODY_TEXT_FIELD_NUMBER: _ClassVar[int]
     HEADER_FORMAT_FIELD_NUMBER: _ClassVar[int]
     REJECTION_REASON_FIELD_NUMBER: _ClassVar[int]
+    UNSUPPORTED_REASON_FIELD_NUMBER: _ClassVar[int]
     name: str
     language: str
     category: str
@@ -112,4 +113,23 @@ class ChannelTemplate(_message.Message):
     body_text: str
     header_format: str
     rejection_reason: str
-    def __init__(self, name: _Optional[str] = ..., language: _Optional[str] = ..., category: _Optional[str] = ..., status: _Optional[str] = ..., parameter_format: _Optional[str] = ..., parameter_names: _Optional[_Iterable[str]] = ..., body_text: _Optional[str] = ..., header_format: _Optional[str] = ..., rejection_reason: _Optional[str] = ...) -> None: ...
+    unsupported_reason: str
+    def __init__(self, name: _Optional[str] = ..., language: _Optional[str] = ..., category: _Optional[str] = ..., status: _Optional[str] = ..., parameter_format: _Optional[str] = ..., parameter_names: _Optional[_Iterable[str]] = ..., body_text: _Optional[str] = ..., header_format: _Optional[str] = ..., rejection_reason: _Optional[str] = ..., unsupported_reason: _Optional[str] = ...) -> None: ...
+
+class ListMessagingChannelsInput(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class MessagingChannels(_message.Message):
+    __slots__ = ("entries",)
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    entries: _containers.RepeatedCompositeFieldContainer[MessagingChannel]
+    def __init__(self, entries: _Optional[_Iterable[_Union[MessagingChannel, _Mapping]]] = ...) -> None: ...
+
+class MessagingChannel(_message.Message):
+    __slots__ = ("channel", "provider")
+    CHANNEL_FIELD_NUMBER: _ClassVar[int]
+    PROVIDER_FIELD_NUMBER: _ClassVar[int]
+    channel: str
+    provider: str
+    def __init__(self, channel: _Optional[str] = ..., provider: _Optional[str] = ...) -> None: ...
