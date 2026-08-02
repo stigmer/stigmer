@@ -14,6 +14,7 @@ import (
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	enumspb "go.temporal.io/api/enums/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -22,11 +23,15 @@ import (
 // backend (this suite boots the stigmer-service fat JAR — see
 // suite_test.go): the declarative apply loop, the read surface (get,
 // getByReference, getByAgent), the update immutability rules, the cron
-// grammar refusals, and delete. The edition-specific pipelines are pinned
-// in each edition's own controller suites (schedule/controller tests in
-// Go, ScheduleSpecRulesTest + the repo contract suite in Java); this
-// asserts the shared contract over the wire (T04 slice 1). Nothing fires:
-// the clock is slice 2 — this slice's contract is storage and validation.
+// grammar refusals, and delete (T04 slice 1) — plus the clock (T04 slice
+// 2a): every write converges a Temporal Schedule artifact on the SAME
+// Temporal dev server this harness runs, so TestSchedule_ClockLifecycle
+// asserts the artifact directly through the Temporal ScheduleClient (the
+// first use of that API in this repo) and proves a fire lands on status.
+// The edition-specific pipelines are pinned in each edition's own suites
+// (schedule/controller tests in Go; ScheduleSpecRulesTest, the schedule
+// temporal package tests, and the repo contract suite in Java). The OSS
+// Go server's own clock is T04 slice 3.
 
 // scheduleManifestFor builds a Schedule manifest as a YAML apply would
 // send it: relative agent_ref (empty org — the server normalizes it).
@@ -209,4 +214,150 @@ func TestSchedule_ContractRefusals(t *testing.T) {
 		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
 		assert.Contains(t, err.Error(), "spec.agent.agent_ref is immutable")
 	})
+
+	t.Run("the interval floor is enforced from Temporal's own fire times", func(t *testing.T) {
+		// */2 passes the lexical grammar (slice 1) but fires every two
+		// minutes — below the 5-minute platform floor, which the probe
+		// step computes from Temporal's projected fire times (DD-010 D-C:
+		// the platform parses no cron).
+		fast := scheduleManifestFor(org, "refusal-floor", agentSlug)
+		fast.Spec.Cron = "*/2 * * * *"
+		_, err := clients.ScheduleCommand.Apply(ctx, fast)
+		require.Error(t, err)
+		assert.Equal(t, codes.FailedPrecondition, status.Code(err))
+		assert.Contains(t, err.Error(), "minimum interval")
+
+		// Refusal happens BEFORE the first write: no row exists.
+		_, err = clients.ScheduleQuery.GetByReference(ctx, &apiresource.ApiResourceReference{
+			Kind: apiresourcekind.ApiResourceKind_schedule,
+			Org:  org,
+			Slug: "refusal-floor",
+		})
+		require.Error(t, err, "a floor refusal must persist nothing")
+	})
+
+	t.Run("a lexically valid cron Temporal rejects is refused with Temporal's verdict", func(t *testing.T) {
+		// Minute 99 passes the lexical grammar (digits, five fields) but
+		// is out of range — the probe relays Temporal's own parser verdict
+		// as INVALID_ARGUMENT instead of letting the spec detonate at
+		// arming time (the C-4 gap, closed by DD-010 D-A).
+		bad := scheduleManifestFor(org, "refusal-temporal-verdict", agentSlug)
+		bad.Spec.Cron = "99 * * * *"
+		_, err := clients.ScheduleCommand.Apply(ctx, bad)
+		require.Error(t, err)
+		assert.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+}
+
+// TestSchedule_ClockLifecycle verifies the clock end to end (T04 slice
+// 2a): every schedule write converges a Temporal Schedule artifact with
+// the complete desired state (asserted directly through the Temporal
+// ScheduleClient against the same dev server the service under test
+// uses), a triggered fire lands on status through the tick workflow, the
+// enabled flag round-trips to the artifact's paused state, and delete
+// tears the artifact down.
+func TestSchedule_ClockLifecycle(t *testing.T) {
+	require.NotNil(t, grpcConn)
+	require.NotNil(t, testHarness.Temporal, "Temporal dev server must be available")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	temporalClient, err := testHarness.Temporal.Client()
+	require.NoError(t, err, "should connect to Temporal")
+	t.Cleanup(temporalClient.Close)
+	inspector := harness.NewScheduleInspector(temporalClient)
+
+	clients := harness.NewClients(grpcConn)
+	org := harness.TestOrg
+
+	agent := harness.CreateAgent(t, ctx, clients, "test-schedule-clock",
+		"You are a helpful agent for schedule clock tests.")
+
+	created, err := clients.ScheduleCommand.Apply(ctx,
+		scheduleManifestFor(org, "clock-schedule", agent.GetMetadata().GetSlug()))
+	require.NoError(t, err)
+	scheduleID := created.GetMetadata().GetId()
+
+	// ── 1. The artifact is armed with the complete desired state ──
+	desc, err := inspector.DescribeArtifact(ctx, scheduleID)
+	require.NoError(t, err, "apply must create the Temporal artifact")
+	assert.Equal(t, "cron=0 9 * * * tz=Asia/Kolkata", desc.Schedule.State.Note,
+		"the state note is the drift fingerprint (cron does not round-trip)")
+	assert.False(t, desc.Schedule.State.Paused, "an enabled schedule must not be paused")
+	assert.Equal(t, "Asia/Kolkata", desc.Schedule.Spec.TimeZoneName)
+	assert.Equal(t, enumspb.SCHEDULE_OVERLAP_POLICY_SKIP, desc.Schedule.Policy.Overlap,
+		"SKIP must be explicit — a tracked tick makes it real (DD-008 D6)")
+	assert.False(t, desc.Schedule.Policy.PauseOnFailure,
+		"Temporal must never pause behind the platform's back (DD-010 D-D)")
+
+	// The apply response mirrors the armed state — no stale read needed.
+	assert.NotNil(t, created.GetStatus().GetNextFireAt(),
+		"an armed schedule answers with its next fire time")
+
+	// ── 2. A fire lands on status through the tick workflow ──
+	// trigger() replaces waiting on a cron minute boundary and exercises
+	// the same mechanism (nominal-time search attribute + id suffix).
+	require.NoError(t, inspector.TriggerArtifact(ctx, scheduleID))
+
+	var lastFire time.Time
+	require.Eventually(t, func() bool {
+		fetched, getErr := clients.ScheduleQuery.Get(ctx,
+			&schedulev1.ScheduleId{Value: scheduleID})
+		if getErr != nil || fetched.GetStatus().GetLastFireAt() == nil {
+			return false
+		}
+		lastFire = fetched.GetStatus().GetLastFireAt().AsTime()
+		return true
+	}, 30*time.Second, 500*time.Millisecond,
+		"the tick must record last_fire_at after a triggered fire")
+
+	assert.Zero(t, lastFire.Nanosecond(),
+		"last_fire_at is the NOMINAL fire time — whole seconds by construction")
+	assert.WithinDuration(t, time.Now(), lastFire, 2*time.Minute,
+		"a triggered fire's nominal time is the trigger moment")
+
+	// ── 3. Disabling pauses the artifact and clears next_fire_at ──
+	fetched, err := clients.ScheduleQuery.Get(ctx, &schedulev1.ScheduleId{Value: scheduleID})
+	require.NoError(t, err)
+	fetched.Spec.Enabled = false
+	disabled, err := clients.ScheduleCommand.Apply(ctx, fetched)
+	require.NoError(t, err)
+	assert.Nil(t, disabled.GetStatus().GetNextFireAt(),
+		"next_fire_at is absent while disabled — the field's contract")
+
+	desc, err = inspector.DescribeArtifact(ctx, scheduleID)
+	require.NoError(t, err)
+	assert.True(t, desc.Schedule.State.Paused, "disabling must pause the artifact")
+
+	// ── 4. Re-enabling with a new cron updates the artifact in place ──
+	fetched, err = clients.ScheduleQuery.Get(ctx, &schedulev1.ScheduleId{Value: scheduleID})
+	require.NoError(t, err)
+	fetched.Spec.Enabled = true
+	fetched.Spec.Cron = "30 18 * * *"
+	reenabled, err := clients.ScheduleCommand.Apply(ctx, fetched)
+	require.NoError(t, err)
+	assert.NotNil(t, reenabled.GetStatus().GetNextFireAt(),
+		"re-enabling re-arms and answers with the next fire time")
+
+	desc, err = inspector.DescribeArtifact(ctx, scheduleID)
+	require.NoError(t, err)
+	assert.Equal(t, "cron=30 18 * * * tz=Asia/Kolkata", desc.Schedule.State.Note)
+	assert.False(t, desc.Schedule.State.Paused)
+
+	// ── 5. Delete tears the artifact down ──
+	_, err = clients.ScheduleCommand.Delete(ctx, &schedulev1.ScheduleId{Value: scheduleID})
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool {
+		exists, existsErr := inspector.ArtifactExists(ctx, scheduleID)
+		return existsErr == nil && !exists
+	}, 10*time.Second, 250*time.Millisecond,
+		"delete must tear the Temporal artifact down")
+
+	// ── 6. The write path leaves no probe residue behind ──
+	leftovers, err := inspector.ListProbeLeftovers(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, leftovers,
+		"every fire-time probe must be deleted within its request")
 }
