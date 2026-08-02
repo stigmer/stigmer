@@ -444,6 +444,13 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 		"STIGMER_SHARING_MAX_TURNS_PER_SESSION=5",
 		"STIGMER_RUNNER_LAUNCHER_TYPE=noop",
 
+		// Scheduled runs ride the harness this suite actually operates:
+		// production defaults schedule sessions to cursor (DD-012 D-F),
+		// but the suite's runnable path is the native unified runner —
+		// without this override a triggered fire would dispatch a cursor
+		// execution no local runner can complete.
+		"STIGMER_SCHEDULES_SESSION_DEFAULTS_HARNESS=native",
+
 		fmt.Sprintf("STIGMER_ACTIVITY_ROUTING=%s", activityRouting(cfg)),
 		fmt.Sprintf("STIGMER_WORKFLOW_ACTIVITY_ROUTING=%s", workflowActivityRouting(cfg)),
 		fmt.Sprintf("STIGMER_DEFAULT_EXECUTION_TARGET=%s", defaultExecutionTarget(cfg)),

@@ -4,11 +4,14 @@ package integration
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	schedulev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/test/integration/harness"
@@ -360,4 +363,132 @@ func TestSchedule_ClockLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, leftovers,
 		"every fire-time probe must be deleted within its request")
+}
+
+// TestSchedule_RunLifecycle verifies the run (T04 slice 2b-i, project
+// DD-012): a triggered fire creates a real AgentExecution through the
+// standard pipeline as the schedule caller — deterministic name (the
+// idempotency key), schedule-id labels on the execution AND its fresh
+// session, the pinned session subject, the unattended stamp, and the
+// status.last_execution_id reverse pointer. The cross-repo pinned strings
+// asserted here (`stigmer.ai/schedule-id`, `Scheduled run: `, the name
+// format) are the mirror guards DD-008 D10 requires.
+//
+// The completion tier (the run reaching a terminal phase — the proof that
+// the runner's blueprint reads pass the schedule arm of the sandbox
+// bypass, DD-012 D-D layer 2) needs a live runner + LLM key and rides the
+// native prerequisites gate like every completion test in this suite.
+func TestSchedule_RunLifecycle(t *testing.T) {
+	require.NotNil(t, grpcConn)
+	require.NotNil(t, testHarness.Temporal, "Temporal dev server must be available")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	temporalClient, err := testHarness.Temporal.Client()
+	require.NoError(t, err, "should connect to Temporal")
+	t.Cleanup(temporalClient.Close)
+	inspector := harness.NewScheduleInspector(temporalClient)
+
+	clients := harness.NewClients(grpcConn)
+	org := harness.TestOrg
+
+	agent := harness.CreateAgent(t, ctx, clients, "test-schedule-run",
+		"You are a helpful agent for schedule run tests. Respond briefly.")
+
+	created, err := clients.ScheduleCommand.Apply(ctx,
+		scheduleManifestFor(org, "run-schedule", agent.GetMetadata().GetSlug()))
+	require.NoError(t, err)
+	scheduleID := created.GetMetadata().GetId()
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cleanupCancel()
+		_, _ = clients.ScheduleCommand.Delete(cleanupCtx,
+			&schedulev1.ScheduleId{Value: scheduleID})
+	})
+
+	// ── 1. A triggered fire creates the run and stamps the pointer ──
+	require.NoError(t, inspector.TriggerArtifact(ctx, scheduleID))
+
+	var fetched *schedulev1.Schedule
+	require.Eventually(t, func() bool {
+		got, getErr := clients.ScheduleQuery.Get(ctx,
+			&schedulev1.ScheduleId{Value: scheduleID})
+		if getErr != nil || got.GetStatus().GetLastExecutionId() == "" {
+			return false
+		}
+		fetched = got
+		return true
+	}, 60*time.Second, 500*time.Millisecond,
+		"the tick must create the execution and stamp last_execution_id")
+
+	executionID := fetched.GetStatus().GetLastExecutionId()
+	execution, err := clients.AgentExecutionQuery.Get(ctx,
+		&agentexecv1.AgentExecutionId{Value: executionID})
+	require.NoError(t, err, "the stamped execution must be readable")
+
+	// ── 2. The execution carries the run contract ──
+	// The deterministic name = the idempotency key (DD-012 D-A), derived
+	// from the schedule id and the NOMINAL fire time — recomputed here
+	// from status.last_fire_at, byte-for-byte (the cross-repo pin).
+	require.NotNil(t, fetched.GetStatus().GetLastFireAt())
+	expectedName := strings.ToLower(strings.ReplaceAll(scheduleID, "_", "-")) +
+		"-" + fetched.GetStatus().GetLastFireAt().AsTime().UTC().Format("20060102t150405z")
+	assert.Equal(t, expectedName, execution.GetMetadata().GetName(),
+		"the execution name is the (schedule, nominal fire time) idempotency key")
+	assert.Equal(t, scheduleID,
+		execution.GetMetadata().GetLabels()["stigmer.ai/schedule-id"],
+		"the audit label links the run back to its schedule")
+	assert.Equal(t, org, execution.GetMetadata().GetOrg(),
+		"the scope step forces the schedule's org")
+	assert.Equal(t, agentexecv1.ApprovalMode_APPROVAL_MODE_UNATTENDED,
+		execution.GetSpec().GetExecutionConfig().GetApprovalMode(),
+		"a scheduled run is unattended — gated tools must skip-and-adapt (DD-014)")
+	assert.Contains(t, execution.GetSpec().GetMessage(),
+		"Send fee reminders to members whose dues fall in the next 3 days.",
+		"the owner's configured prompt rides the message")
+	assert.Contains(t, execution.GetSpec().GetMessage(), "(Scheduled fire time: ",
+		"the fire-context line supplies the date the runner never injects (DD-008 D5)")
+	assert.Contains(t, execution.GetSpec().GetMessage(), "Asia/Kolkata",
+		"the fire time renders in the schedule's own zone")
+
+	// ── 3. The fresh session carries the subject, label, and link ──
+	sessionID := execution.GetSpec().GetSessionId()
+	require.NotEmpty(t, sessionID, "each tick runs on a fresh auto-created session")
+	session, err := clients.SessionQuery.Get(ctx, &sessionv1.SessionId{Value: sessionID})
+	require.NoError(t, err,
+		"the session must be readable — its schedule link grants can_view to the "+
+			"schedule's viewers (DD-012 D-E)")
+	assert.Equal(t, "Scheduled run: run-schedule", session.GetSpec().GetSubject(),
+		"the pinned subject titles the session and opts out of LLM titling")
+	assert.Equal(t, scheduleID,
+		session.GetMetadata().GetLabels()["stigmer.ai/schedule-id"])
+
+	// ── 4. A second trigger CAN mint a second run (a new nominal time is
+	// a new fire — idempotency is per fire, never per schedule) ──
+	require.NoError(t, inspector.TriggerArtifact(ctx, scheduleID))
+	require.Eventually(t, func() bool {
+		got, getErr := clients.ScheduleQuery.Get(ctx,
+			&schedulev1.ScheduleId{Value: scheduleID})
+		return getErr == nil && got.GetStatus().GetLastExecutionId() != "" &&
+			got.GetStatus().GetLastExecutionId() != executionID
+	}, 60*time.Second, 500*time.Millisecond,
+		"a later fire must create its own execution and advance the pointer")
+
+	// ── 5. Completion: the runner's blueprint reads pass the schedule arm
+	// of the sandbox bypass (DD-012 D-D layer 2). "Created" alone would
+	// not catch a mid-run denial, which dies AFTER billing and sandbox
+	// side effects — hence the terminal-phase assertion.
+	t.Run("run completes end to end", func(t *testing.T) {
+		harness.RequireNativePrereqs(t, testHarness)
+
+		waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+		result, err := waiter.WaitForTerminal(ctx, executionID, 4*time.Minute)
+		require.NoError(t, err, "the scheduled run must reach a terminal phase")
+		require.Equal(t, agentexecv1.ExecutionPhase_EXECUTION_COMPLETED,
+			result.GetStatus().GetPhase(),
+			"a permission denial in the runner's blueprint reads would fail here — "+
+				"the exact hole DD-012 D-D exists to close; error: %s",
+			result.GetStatus().GetError())
+	})
 }
