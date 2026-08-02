@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { FileCode2, KeyRound, MessageSquare, MoreHorizontal, Trash2 } from "lucide-react";
+import { FileCode2, KeyRound, LayoutTemplate, MessageSquare, MoreHorizontal, Trash2 } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { getUserMessage } from "@stigmer/sdk";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -22,6 +22,7 @@ import { useDeploymentMode } from "../deployment-mode.js";
 import { CloudFeatureNotice } from "../internal/CloudFeatureNotice.js";
 import { ChannelConversationsDialog } from "./ChannelConversationsDialog.js";
 import { ChannelCredentialsDialog } from "./ChannelCredentialsDialog.js";
+import { ChannelTemplatesDialog } from "./ChannelTemplatesDialog.js";
 import { ConnectSlackDialog } from "./ConnectSlackDialog.js";
 import { ConnectWhatsAppDialog } from "./ConnectWhatsAppDialog.js";
 import {
@@ -146,6 +147,12 @@ export function AgentChannelsPanel({
   // The channel whose conversations are being viewed (DD-012: read-only
   // channel-session observability for the channel's viewers).
   const [viewingConversations, setViewingConversations] =
+    useState<AgentChannel | null>(null);
+
+  // The channel whose provider message templates are being viewed
+  // (proactive-messaging DD-007: the business-messaging diagnosis
+  // surface).
+  const [viewingTemplates, setViewingTemplates] =
     useState<AgentChannel | null>(null);
 
   // The channel being edited as YAML (the kind-agnostic manifest flow).
@@ -293,6 +300,7 @@ export function AgentChannelsPanel({
                   onDeleteClick={() => void handleDelete(channel)}
                   onEditCredentials={() => setEditingCredentials(channel)}
                   onViewConversations={() => setViewingConversations(channel)}
+                  onViewTemplates={() => setViewingTemplates(channel)}
                   onEditYaml={() => setEditingYaml(channel)}
                   refetch={refetch}
                 />
@@ -349,6 +357,25 @@ export function AgentChannelsPanel({
         />
       )}
 
+      {viewingTemplates && (
+        <ChannelTemplatesDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setViewingTemplates(null);
+          }}
+          channel={viewingTemplates}
+          // The dialog's not-proactive teaching state routes to the
+          // panel's own YAML editor — the one place the grant can be
+          // set today (proactive-messaging DD-007's named follow-up is
+          // a first-class card affordance).
+          onEditYaml={() => {
+            const channel = viewingTemplates;
+            setViewingTemplates(null);
+            setEditingYaml(channel);
+          }}
+        />
+      )}
+
       {editingYaml && (
         <EditResourceYamlDialog
           open
@@ -383,6 +410,7 @@ interface ChannelCardProps {
   readonly onDeleteClick: () => void;
   readonly onEditCredentials: () => void;
   readonly onViewConversations: () => void;
+  readonly onViewTemplates: () => void;
   readonly onEditYaml: () => void;
   readonly refetch: () => void;
 }
@@ -396,6 +424,7 @@ function ChannelCard({
   onDeleteClick,
   onEditCredentials,
   onViewConversations,
+  onViewTemplates,
   onEditYaml,
   refetch,
 }: ChannelCardProps) {
@@ -513,6 +542,19 @@ function ChannelCard({
               >
                 Conversations
               </ActionMenu.Item>
+              {/* Gated on the bar the server enforces for listTemplates
+                  (ChannelMessagingReach: can_edit), and on the provider
+                  declaring a template registry at all — hidden, not
+                  disabled, for providers with no template concept. */}
+              {canEdit && provider.supportsMessageTemplates && (
+                <ActionMenu.Item
+                  icon={<LayoutTemplate />}
+                  onSelect={onViewTemplates}
+                  data-cursor-target="channel-templates"
+                >
+                  Templates
+                </ActionMenu.Item>
+              )}
               {canEdit && (
                 <ActionMenu.Item
                   icon={<KeyRound />}

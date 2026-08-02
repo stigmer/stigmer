@@ -17,6 +17,9 @@ export {
 } from "./providerPresentation.js";
 export type { ChannelProviderPresentation } from "./providerPresentation.js";
 
+export { templateStatusPhase, splitTemplateBody } from "./templatePresentation.js";
+export type { TemplateBodySegment } from "./templatePresentation.js";
+
 export { useAgentChannel } from "./useAgentChannel.js";
 export type { UseAgentChannelReturn } from "./useAgentChannel.js";
 
@@ -43,8 +46,17 @@ export type {
 
 export { useChannelToolReadiness } from "./useChannelToolReadiness.js";
 
+export { useChannelTemplateReadiness } from "./useChannelTemplateReadiness.js";
+export type { ChannelTemplateReadiness } from "./useChannelTemplateReadiness.js";
+
 export { useChannelSessions } from "./useChannelSessions.js";
 export type { UseChannelSessionsReturn } from "./useChannelSessions.js";
+
+export { useChannelTemplateList } from "./useChannelTemplateList.js";
+export type {
+  UseChannelTemplateListOptions,
+  UseChannelTemplateListReturn,
+} from "./useChannelTemplateList.js";
 
 export { AgentChannelsPanel } from "./AgentChannelsPanel.js";
 export type { AgentChannelsPanelProps } from "./AgentChannelsPanel.js";
@@ -63,3 +75,6 @@ export type { ChannelToolCredentialsProps } from "./ChannelToolCredentials.js";
 
 export { ChannelConversationsDialog } from "./ChannelConversationsDialog.js";
 export type { ChannelConversationsDialogProps } from "./ChannelConversationsDialog.js";
+
+export { ChannelTemplatesDialog } from "./ChannelTemplatesDialog.js";
+export type { ChannelTemplatesDialogProps } from "./ChannelTemplatesDialog.js";

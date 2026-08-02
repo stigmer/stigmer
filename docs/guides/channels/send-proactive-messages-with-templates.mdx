@@ -77,7 +77,10 @@ Templates are created in WhatsApp Manager, not in Stigmer:
    approved within minutes.
 
 Once approved, the template shows up for your Agent automatically — there is
-nothing to import.
+nothing to import. To see the list as Stigmer sees it, open the agent's
+**Channels** tab in the console and pick **Templates** from the WhatsApp
+channel's card menu. Each template appears with its approval status and its full
+text, straight from WhatsApp.
 
 These template shapes work today: body placeholders (numbered or named), plain
 text headers, footers, static buttons, and **image headers** — for an image
@@ -132,3 +135,8 @@ is recorded with its outcome for audit.
 - **A send is refused with "not approved for sending".** The template is
   pending, paused, or rejected in WhatsApp Manager. The refusal names the status
   and what to do about it.
+- **A template is approved but the Agent never uses it.** Open **Templates** on
+  the channel's card in the console. An approved template that Stigmer cannot
+  send — say one with a video header or a dynamic-link button — shows the exact
+  reason there. The Agent's own list leaves such templates out, so this view is
+  where you find out why.

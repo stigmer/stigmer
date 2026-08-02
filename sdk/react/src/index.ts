@@ -1259,13 +1259,18 @@ export {
   useConnectSlackChannel,
   useInstallChannel,
   useChannelToolReadiness,
+  useChannelTemplateReadiness,
   useChannelSessions,
+  useChannelTemplateList,
+  templateStatusPhase,
+  splitTemplateBody,
   AgentChannelsPanel,
   ConnectSlackDialog,
   ConnectWhatsAppDialog,
   ChannelCredentialsDialog,
   ChannelToolCredentials,
   ChannelConversationsDialog,
+  ChannelTemplatesDialog,
 } from "./channel/index.js";
 export type {
   UseAgentChannelListReturn,
@@ -1277,13 +1282,18 @@ export type {
   SlackConnectPhase,
   UseInstallChannelReturn,
   InstallChannelPhase,
+  ChannelTemplateReadiness,
   UseChannelSessionsReturn,
+  UseChannelTemplateListOptions,
+  UseChannelTemplateListReturn,
+  TemplateBodySegment,
   AgentChannelsPanelProps,
   ConnectSlackDialogProps,
   ConnectWhatsAppDialogProps,
   ChannelCredentialsDialogProps,
   ChannelToolCredentialsProps,
   ChannelConversationsDialogProps,
+  ChannelTemplatesDialogProps,
 } from "./channel/index.js";
 
 // Error — structured error display with classification, retry, and contextual guidance

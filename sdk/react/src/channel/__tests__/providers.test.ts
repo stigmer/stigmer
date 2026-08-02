@@ -38,6 +38,15 @@ describe("channel provider registry", () => {
     expect(channelProviderOf("telegram")).toBeNull();
     expect(channelProviderOf(undefined)).toBeNull();
   });
+
+  it("declares the template capability per provider — WhatsApp only", () => {
+    // Mirrors the server's proactive-sender registry (the de-facto
+    // provider filter behind listTemplates). Slack's false is not a
+    // gap: Slack has no template concept, so the Templates affordance
+    // hides rather than disables.
+    expect(channelProviderOf("whatsapp")?.supportsMessageTemplates).toBe(true);
+    expect(channelProviderOf("slack")?.supportsMessageTemplates).toBe(false);
+  });
 });
 
 describe("channel provider presentation", () => {

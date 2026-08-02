@@ -613,6 +613,79 @@ describe("AgentChannelsPanel", () => {
     expect(screen.queryByText(/including credentials/i)).toBeNull();
   });
 
+  it("offers Templates on WhatsApp cards and opens the dialog from the menu", async () => {
+    const client = createMockStigmer({
+      channels: [makeWhatsAppChannel()],
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("Support WhatsApp")).toBeTruthy(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Templates" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Templates" }),
+    ).toBeTruthy();
+    // This channel has no proactive grant — the dialog teaches instead
+    // of firing a doomed listTemplates call (project DD-007 D4).
+    expect(
+      screen.getByText("Business-initiated messaging is not enabled"),
+    ).toBeTruthy();
+  });
+
+  it("offers no Templates item on providers without a template registry", async () => {
+    const client = createMockStigmer({
+      channels: [makeChannel({ teamName: "Acme HQ" })],
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() => expect(screen.getByText("Support Slack")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+
+    // Slack has no template concept: hidden, not disabled — a disabled
+    // item would imply the capability might one day exist there.
+    expect(
+      await screen.findByRole("menuitem", { name: /conversations/i }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: "Templates" })).toBeNull();
+  });
+
+  it("hides Templates from viewers — the server's listTemplates bar is can_edit", async () => {
+    const checkMyPermission = vi
+      .fn()
+      .mockResolvedValue({ isAuthorized: false });
+    const client = createMockStigmer({
+      channels: [makeWhatsAppChannel()],
+      checkMyPermission,
+    });
+    render(
+      <Providers client={client}>
+        <AgentChannelsPanel agent={makeAgent()} />
+      </Providers>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("Support WhatsApp")).toBeTruthy(),
+    );
+    await waitFor(() => expect(checkMyPermission).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
+
+    expect(
+      await screen.findByRole("menuitem", { name: /conversations/i }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: "Templates" })).toBeNull();
+  });
+
   it("renders an error state when the list fails to load", async () => {
     const client = {
       agentChannel: {
