@@ -252,6 +252,54 @@ func TestSchedule_ContractRefusals(t *testing.T) {
 	})
 }
 
+// TestSchedule_Resume verifies the resume command over the wire (T04
+// slice 2b-ii pair A, DD-013 D-D): resuming an unpaused schedule is an
+// idempotent no-op that answers the full resource with status untouched,
+// and a missing schedule answers NOT_FOUND (the handler loads before
+// authorizing, #224). The full pause→resume loop — a genuinely paused
+// schedule going live again — is proven with the tracking runtime (pair
+// B), which is what makes a platform pause producible over the wire in
+// the first place.
+func TestSchedule_Resume(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	org := harness.TestOrg
+
+	agent := harness.CreateAgent(t, ctx, clients, "test-schedule-resume",
+		"You are a helpful agent for schedule resume tests.")
+
+	created, err := clients.ScheduleCommand.Apply(ctx,
+		scheduleManifestFor(org, "resume-wire-schedule", agent.GetMetadata().GetSlug()))
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cleanupCancel()
+		_, _ = clients.ScheduleCommand.Delete(cleanupCtx,
+			&schedulev1.ScheduleId{Value: created.GetMetadata().GetId()})
+	})
+
+	t.Run("resuming an unpaused schedule is an idempotent no-op", func(t *testing.T) {
+		resumed, err := clients.ScheduleCommand.Resume(ctx,
+			&schedulev1.ScheduleId{Value: created.GetMetadata().GetId()})
+		require.NoError(t, err, "resume of an unpaused schedule must succeed")
+		assert.Equal(t, created.GetMetadata().GetId(), resumed.GetMetadata().GetId())
+		assert.Empty(t, resumed.GetStatus().GetPausedReason())
+		assert.Zero(t, resumed.GetStatus().GetConsecutiveFailures())
+	})
+
+	t.Run("resuming a missing schedule answers NOT_FOUND", func(t *testing.T) {
+		_, err := clients.ScheduleCommand.Resume(ctx,
+			&schedulev1.ScheduleId{Value: "sch_01DOESNOTEXIST0000000000000"})
+		require.Error(t, err)
+		assert.Equal(t, codes.NotFound, status.Code(err),
+			"a missing schedule must answer NOT_FOUND, never PERMISSION_DENIED — the handler loads before authorizing")
+	})
+}
+
 // TestSchedule_ClockLifecycle verifies the clock end to end (T04 slice
 // 2a): every schedule write converges a Temporal Schedule artifact with
 // the complete desired state (asserted directly through the Temporal

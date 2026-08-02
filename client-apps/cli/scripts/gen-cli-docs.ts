@@ -76,6 +76,7 @@ const COMMAND_GROUP: Record<string, GroupId> = {
   connect: "resource",
   tag: "resource",
   share: "resource",
+  schedule: "resource",
   // Artifact
   push: "artifact",
   download: "artifact",

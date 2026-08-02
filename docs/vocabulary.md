@@ -701,6 +701,13 @@ fee reminders every morning at nine.
   and `message`). Firing observations (`next_fire_at`, `consecutive_failures`,
   `paused_reason`) live in `status`, written only by the platform---applying a
   manifest never touches them.
+- **Disabled vs. paused**: two words, two levers, two writers. A schedule is
+  **disabled** when its owner sets `enabled: false` in the spec---the owner's
+  switch, cleared by the owner editing the spec. A schedule is **paused** when
+  the platform stops it after repeated failed runs and records why in
+  `status.paused_reason`---the platform's latch, cleared only by the resume
+  command (`stigmer schedule resume`). Never use "paused" for the owner's switch
+  or "disabled" for the platform's latch.
 - **Context rule**: How-to and reference only. In how-to docs, introduce as "run
   your Agent on a schedule," then use "schedule."
 - **Note**: Do not confuse with a Temporal Schedule, the engine artifact the

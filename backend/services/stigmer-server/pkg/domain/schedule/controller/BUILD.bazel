@@ -11,6 +11,7 @@ go_library(
         "get_by_agent.go",
         "get_by_reference.go",
         "list.go",
+        "resume.go",
         "schedule_controller.go",
         "steps.go",
         "update.go",

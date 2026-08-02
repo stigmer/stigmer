@@ -14,7 +14,7 @@
           "inputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
           "outputType": "Schedule",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
-          "description": "Create or update a schedule.\n\n @internal\n The authorization and state-operation are determined depending on\n whether the schedule is going to be created or updated, resolved as\n part of request execution. Status is preserved verbatim across\n apply-as-update (the AgentChannel decision-004 posture): the\n scheduling runtime is status's sole writer, and a routine manifest\n apply must never reset the failure streak or un-pause an\n auto-paused schedule (DD-008 D7 / DD-009 pinned behaviors)."
+          "description": "Create or update a schedule.\n\n @internal\n The authorization and state-operation are determined depending on\n whether the schedule is going to be created or updated, resolved as\n part of request execution. Status is preserved verbatim across\n apply-as-update (the AgentChannel decision-004 posture): status is\n written only by the scheduling runtime and by the explicit resume\n command, and a routine manifest apply must never reset the failure\n streak or un-pause a platform-paused schedule (DD-008 D7 / DD-009\n pinned behaviors / DD-013 D-D)."
         },
         {
           "name": "Create",
@@ -30,7 +30,7 @@
           "inputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
           "outputType": "Schedule",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
-          "description": "Update an existing schedule.\n\n Replaces the spec wholesale. The slug, the referenced agent, and the\n target arm are immutable; cron, time zone, enablement, and the\n message may all change. Status (firing observations, auto-pause) is\n never touched by updates.\n\n @internal\n Authorization: requires can_edit permission on the schedule.\n agent_ref immutability is a consent-bar guarantee, not convenience\n (DD-009 C-7): create's bar is can_edit on the REFERENCED agent, and\n a repointing update would let a schedule owner drive an agent they\n may not edit — the AgentChannel rule for the AgentChannel reason.\n Target-arm immutability (an agent schedule cannot become a workflow\n schedule once that arm exists) is enforced in-handler: the two\n targets enter different execution pipelines. When the clock lands,\n an update touching the spec also clears a platform auto-pause\n through the ensure-on-mutate path (DD-008 D7/D9)."
+          "description": "Update an existing schedule.\n\n Replaces the spec wholesale. The slug, the referenced agent, and the\n target arm are immutable; cron, time zone, enablement, and the\n message may all change. Status (firing observations, the platform\n pause) is never touched by updates — use resume to clear a platform\n pause.\n\n @internal\n Authorization: requires can_edit permission on the schedule.\n agent_ref immutability is a consent-bar guarantee, not convenience\n (DD-009 C-7): create's bar is can_edit on the REFERENCED agent, and\n a repointing update would let a schedule owner drive an agent they\n may not edit — the AgentChannel rule for the AgentChannel reason.\n Target-arm immutability (an agent schedule cannot become a workflow\n schedule once that arm exists) is enforced in-handler: the two\n targets enter different execution pipelines. Update deliberately\n does NOT clear a platform auto-pause (DD-013 D-D, superseding the\n DD-008 D7 ensure-on-mutate sketch): apply routes through this same\n handler, so any update-clears-pause behavior would let a routine\n GitOps re-apply silently un-pause a failing schedule. resume is the\n one clearing path."
         },
         {
           "name": "Delete",
@@ -38,7 +38,15 @@
           "inputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleId",
           "outputType": "Schedule",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
-          "description": "Delete a schedule.\n\n Firing stops permanently. Executions created by past fires are\n untouched. To pause firing while keeping the schedule and its\n history, update it with enabled=false instead.\n\n @internal\n Authorization: requires can_delete permission on the schedule. The\n referenced agent is untouched. The Temporal artifact teardown\n (best-effort, AFTER the row delete — DD-008 D9) arrives with the\n clock; until then delete is the row alone, and an orphaned artifact\n is harmless by construction (fire-time revalidation no-ops it)."
+          "description": "Delete a schedule.\n\n Firing stops permanently. Executions created by past fires are\n untouched. To stop firing while keeping the schedule and its\n history, disable it (enabled=false) instead.\n\n @internal\n Authorization: requires can_delete permission on the schedule. The\n referenced agent is untouched. The Temporal artifact teardown\n (best-effort, AFTER the row delete — DD-008 D9) arrives with the\n clock; until then delete is the row alone, and an orphaned artifact\n is harmless by construction (fire-time revalidation no-ops it)."
+        },
+        {
+          "name": "Resume",
+          "inputType": "ScheduleId",
+          "inputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleId",
+          "outputType": "Schedule",
+          "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
+          "description": "Resume a schedule the platform paused after repeated run failures.\n\n Clears status.paused_reason, resets status.consecutive_failures,\n and re-arms the clock. Resuming a schedule that is not paused\n succeeds and changes nothing. A disabled schedule stays disabled:\n resume clears the platform's pause, not the owner's switch\n (spec.enabled).\n\n @internal\n Authorization: requires can_edit permission on the schedule — the\n update bar; resuming does not change which agent runs, so it does\n not re-open create's consent bar (DD-009 C-6). This command is\n deliberately the ONLY path that clears a platform auto-pause\n (DD-013 D-D): apply and update preserve status byte-for-byte, so a\n routine manifest apply can never silently un-pause a failing\n schedule. The cloud handler loads before authorizing (#224: a\n missing schedule answers NOT_FOUND, not PERMISSION_DENIED) and\n patches status leaves rather than saving the row — the tick is a\n concurrent status writer. OSS excludes the authorization step, per\n its recorded single-user posture."
         }
       ]
     },
@@ -477,7 +485,7 @@
   "resourceDescription": "Schedule runs an agent on a recurring cron schedule.\n\n A schedule is operational configuration, like AgentChannel: it names a\n target (an agent and the prompt each run starts from), a cron expression\n with an IANA time zone, and an enablement switch. The platform-observed\n firing state (next fire time, failure streak, auto-pause) lives in\n status. Deleting a schedule stops firing permanently; disabling pauses\n firing while preserving the schedule and its history.\n\n @internal\n DD-008 D1 (as amended by DD-009): standalone kind (56), target oneof\n extensible to workflows without a new kind. One agent may have many\n schedules with different prompts; metadata.org is the billing org for\n every fire. Calendar semantics live in the Temporal server (D2) — the\n platform parses no cron in either edition. The defaults resolver does\n NOT default the slug to the agent slug (schedules are N-per-agent, the\n AgentChannel P7 rule); standard derive-from-name applies. The\n overview.md file provides the SDK-facing description and example YAML.",
   "statusType": {
     "name": "ScheduleStatus",
-    "description": "ScheduleStatus contains system-managed state for a schedule.\n\n @internal\n Platform-owned; the scheduling runtime (tick + lifecycle sync) is the\n sole writer. Preserved VERBATIM across apply and update (the\n AgentChannel decision-004 posture) — load-bearing for DD-008 D7's\n auto-pause, which records on status precisely so the platform never\n writes spec. A routine manifest apply must never reset the failure\n streak or un-pause a schedule; both editions carry a regression test\n for this (DD-009 pinned behaviors).",
+    "description": "ScheduleStatus contains system-managed state for a schedule.\n\n @internal\n Platform-owned; written only by the scheduling runtime (tick +\n lifecycle sync) and by the explicit resume command (DD-013 D-D).\n Preserved VERBATIM across apply and update (the AgentChannel\n decision-004 posture) — load-bearing for DD-008 D7's auto-pause,\n which records on status precisely so the platform never writes spec.\n A routine manifest apply must never reset the failure streak or\n un-pause a schedule; both editions carry a regression test for this\n (DD-009 pinned behaviors).",
     "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleStatus",
     "protoFile": "apis/ai/stigmer/agentic/schedule/v1/status.proto",
     "fields": [
@@ -528,7 +536,7 @@
         "type": {
           "kind": "string"
         },
-        "description": "Why the platform paused this schedule; empty when not paused.\n Re-enabling is the owner's explicit act: an update touching the\n spec clears the pause.\n\n @internal\n Written ONLY by the platform auto-pause (DD-008 D7) — never an echo\n of spec.enabled (DD-009 pinned behaviors: one writer per field;\n consoles derive owner-disabled state from spec on read).",
+        "description": "Why the platform paused this schedule; empty when not paused.\n Cleared only by the resume RPC — the owner's explicit act.\n\n @internal\n \"Paused\" is the platform's latch, distinct from the owner's switch\n (spec.enabled = false is \"disabled\" — project DD-013 D-E). Written\n ONLY by the platform auto-pause (DD-008 D7) — never an echo of\n spec.enabled (DD-009 pinned behaviors: one writer per field;\n consoles derive owner-disabled state from spec on read). Updates\n and applies preserve it verbatim; resume is deliberately the ONE\n clearing path (DD-013 D-D).",
         "required": false
       },
       {

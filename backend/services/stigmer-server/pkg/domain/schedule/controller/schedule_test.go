@@ -376,6 +376,107 @@ func TestScheduleApply_PreservesStatusVerbatim(t *testing.T) {
 	}
 }
 
+func TestScheduleResume(t *testing.T) {
+	t.Run("clears the platform pause and the failure streak, preserving the rest of status", func(t *testing.T) {
+		tc := newTestControllers(t)
+		agent := createTestAgent(t, tc, "resume-agent")
+		created := createTestSchedule(t, tc, agent, "resume-schedule", true)
+
+		// Simulate the tracking runtime: a platform-paused schedule with
+		// firing observations resume must NOT disturb.
+		stored := proto.Clone(created).(*schedulev1.Schedule)
+		stored.Status.ConsecutiveFailures = 5
+		stored.Status.PausedReason = "Paused after 5 consecutive failed runs."
+		stored.Status.LastExecutionId = "aex_01TESTEXECUTION"
+		stored.Status.LastFireAt = timestamppb.New(timestamppb.Now().AsTime())
+		if err := tc.store.SaveResource(context.Background(),
+			apiresourcekind.ApiResourceKind_schedule, stored.GetMetadata().GetId(), stored); err != nil {
+			t.Fatalf("failed to seed platform-written status: %v", err)
+		}
+
+		resumed, err := tc.schedules.Resume(scheduleCtx(),
+			&schedulev1.ScheduleId{Value: created.GetMetadata().GetId()})
+		if err != nil {
+			t.Fatalf("Resume failed: %v", err)
+		}
+
+		if resumed.GetStatus().GetPausedReason() != "" {
+			t.Errorf("resume must clear paused_reason, got %q", resumed.GetStatus().GetPausedReason())
+		}
+		if resumed.GetStatus().GetConsecutiveFailures() != 0 {
+			t.Errorf("resume must reset consecutive_failures — leaving the streak at 5 would re-pause on the next failure; got %d",
+				resumed.GetStatus().GetConsecutiveFailures())
+		}
+		if resumed.GetStatus().GetLastExecutionId() != "aex_01TESTEXECUTION" {
+			t.Errorf("resume must preserve last_execution_id verbatim; got %q",
+				resumed.GetStatus().GetLastExecutionId())
+		}
+		if resumed.GetStatus().GetLastFireAt() == nil {
+			t.Errorf("resume must preserve last_fire_at verbatim; got nil")
+		}
+
+		// The clear is durable, not just a response-shaping artifact.
+		reloaded := &schedulev1.Schedule{}
+		if err := tc.store.GetResource(context.Background(),
+			apiresourcekind.ApiResourceKind_schedule, created.GetMetadata().GetId(), reloaded); err != nil {
+			t.Fatalf("failed to reload schedule: %v", err)
+		}
+		if reloaded.GetStatus().GetPausedReason() != "" || reloaded.GetStatus().GetConsecutiveFailures() != 0 {
+			t.Errorf("resume must persist the cleared latch; stored paused_reason=%q consecutive_failures=%d",
+				reloaded.GetStatus().GetPausedReason(), reloaded.GetStatus().GetConsecutiveFailures())
+		}
+	})
+
+	t.Run("is an idempotent no-op on an unpaused schedule — no write, no audit bump", func(t *testing.T) {
+		tc := newTestControllers(t)
+		agent := createTestAgent(t, tc, "resume-noop-agent")
+		created := createTestSchedule(t, tc, agent, "resume-noop-schedule", true)
+
+		resumed, err := tc.schedules.Resume(scheduleCtx(),
+			&schedulev1.ScheduleId{Value: created.GetMetadata().GetId()})
+		if err != nil {
+			t.Fatalf("Resume of an unpaused schedule must succeed, got: %v", err)
+		}
+		if !proto.Equal(resumed.GetStatus(), created.GetStatus()) {
+			t.Errorf("no-op resume must leave status byte-identical (no audit bump);\n created: %v\n resumed: %v",
+				created.GetStatus(), resumed.GetStatus())
+		}
+	})
+
+	t.Run("clears a failure streak even before the pause threshold", func(t *testing.T) {
+		tc := newTestControllers(t)
+		agent := createTestAgent(t, tc, "resume-streak-agent")
+		created := createTestSchedule(t, tc, agent, "resume-streak-schedule", true)
+
+		stored := proto.Clone(created).(*schedulev1.Schedule)
+		stored.Status.ConsecutiveFailures = 3
+		if err := tc.store.SaveResource(context.Background(),
+			apiresourcekind.ApiResourceKind_schedule, stored.GetMetadata().GetId(), stored); err != nil {
+			t.Fatalf("failed to seed failure streak: %v", err)
+		}
+
+		resumed, err := tc.schedules.Resume(scheduleCtx(),
+			&schedulev1.ScheduleId{Value: created.GetMetadata().GetId()})
+		if err != nil {
+			t.Fatalf("Resume failed: %v", err)
+		}
+		if resumed.GetStatus().GetConsecutiveFailures() != 0 {
+			t.Errorf("resume must reset a pre-threshold streak (the owner fixed the agent and wants a clean slate); got %d",
+				resumed.GetStatus().GetConsecutiveFailures())
+		}
+	})
+
+	t.Run("missing schedule answers NotFound", func(t *testing.T) {
+		tc := newTestControllers(t)
+
+		_, err := tc.schedules.Resume(scheduleCtx(),
+			&schedulev1.ScheduleId{Value: "sch_01DOESNOTEXIST0000000000000"})
+		if status.Code(err) != codes.NotFound {
+			t.Errorf("resume of a missing schedule must be NotFound, got %v (%v)", status.Code(err), err)
+		}
+	})
+}
+
 func TestScheduleApply_CreatesWhenAbsent(t *testing.T) {
 	tc := newTestControllers(t)
 	agent := createTestAgent(t, tc, "apply-create-agent")

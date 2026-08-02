@@ -71,6 +71,7 @@ Schedule schedule = client.schedules().get("sch_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`create`](#create) | Create a schedule. |
 | [`update`](#update) | Update an existing schedule. |
 | [`delete`](#delete) | Delete a schedule. |
+| [`resume`](#resume) | Resume a schedule the platform paused after repeated run failures. |
 
 ### get
 
@@ -394,7 +395,7 @@ Schedule schedule = client.schedules().create(ScheduleInput.builder()
 
 Update an existing schedule.
 
-Replaces the spec wholesale. The slug, the referenced agent, and the target arm are immutable; cron, time zone, enablement, and the message may all change. Status (firing observations, auto-pause) is never touched by updates.
+Replaces the spec wholesale. The slug, the referenced agent, and the target arm are immutable; cron, time zone, enablement, and the message may all change. Status (firing observations, the platform pause) is never touched by updates — use resume to clear a platform pause.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -463,7 +464,7 @@ Schedule schedule = client.schedules().update(ScheduleInput.builder()
 
 Delete a schedule.
 
-Firing stops permanently. Executions created by past fires are untouched. To pause firing while keeping the schedule and its history, update it with enabled=false instead.
+Firing stops permanently. Executions created by past fires are untouched. To stop firing while keeping the schedule and its history, disable it (enabled=false) instead.
 
 <SDKTabs>
 <Tab value="TypeScript">
@@ -484,6 +485,43 @@ schedule = client.schedules.delete(id)
 <Tab value="Java">
 ```java
 Schedule schedule = client.schedules().delete(id);
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Schedule identifier. |
+
+**Returns**: [`Schedule`](#schedule)
+
+### resume
+
+Resume a schedule the platform paused after repeated run failures.
+
+Clears status.paused_reason, resets status.consecutive_failures, and re-arms the clock. Resuming a schedule that is not paused succeeds and changes nothing. A disabled schedule stays disabled: resume clears the platform's pause, not the owner's switch (spec.enabled).
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const schedule = await stigmer.schedule.resume(id);
+```
+</Tab>
+<Tab value="Go">
+```go
+schedule, err := client.Schedule.Resume(ctx, id)
+```
+</Tab>
+<Tab value="Python">
+```python
+schedule = client.schedules.resume(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+Schedule schedule = client.schedules().resume(id);
 ```
 </Tab>
 </SDKTabs>

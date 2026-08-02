@@ -102,12 +102,14 @@ public interface ScheduleSpecOrBuilder extends
 
   /**
    * <pre>
-   * Whether the schedule fires. Off pauses firing without deleting the
-   * schedule or its history.
+   * Whether the schedule fires. Off disables firing without deleting
+   * the schedule or its history.
    *
    * &#64;internal
-   * The owner's lever, and the only pause the owner writes — platform
-   * auto-pause is recorded on status, never spec (DD-008 D7). Sibling
+   * The owner's switch — "disabled", deliberately distinct from
+   * "paused", the platform's failure-streak latch recorded on
+   * status.paused_reason and never on spec (DD-008 D7, DD-013 D-E:
+   * the two words name two levers with two writers). Sibling
    * bool shape (AgentShareSpec/AgentChannelSpec.enabled): manifests set
    * `enabled: true` explicitly, no edition defaults it, and no status
    * field echoes it (DD-009 pinned behaviors — consoles derive

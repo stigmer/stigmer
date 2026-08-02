@@ -47,6 +47,12 @@ public final class ScheduleClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public Schedule resume(String id) {
+        try {
+            return command.resume(ScheduleId.newBuilder().setValue(id).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
     public Schedule get(String id) {
         try {
             return query.get(ScheduleId.newBuilder().setValue(id).build());

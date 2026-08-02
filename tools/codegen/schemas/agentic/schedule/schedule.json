@@ -38,7 +38,7 @@
       "type": {
         "kind": "bool"
       },
-      "description": "Whether the schedule fires. Off pauses firing without deleting the\n schedule or its history.\n\n @internal\n The owner's lever, and the only pause the owner writes — platform\n auto-pause is recorded on status, never spec (DD-008 D7). Sibling\n bool shape (AgentShareSpec/AgentChannelSpec.enabled): manifests set\n `enabled: true` explicitly, no edition defaults it, and no status\n field echoes it (DD-009 pinned behaviors — consoles derive\n owner-disabled state from spec on read).",
+      "description": "Whether the schedule fires. Off disables firing without deleting\n the schedule or its history.\n\n @internal\n The owner's switch — \"disabled\", deliberately distinct from\n \"paused\", the platform's failure-streak latch recorded on\n status.paused_reason and never on spec (DD-008 D7, DD-013 D-E:\n the two words name two levers with two writers). Sibling\n bool shape (AgentShareSpec/AgentChannelSpec.enabled): manifests set\n `enabled: true` explicitly, no edition defaults it, and no status\n field echoes it (DD-009 pinned behaviors — consoles derive\n owner-disabled state from spec on read).",
       "required": false
     },
     {

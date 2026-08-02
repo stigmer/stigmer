@@ -10,13 +10,14 @@ package ai.stigmer.agentic.schedule.v1;
  * ScheduleStatus contains system-managed state for a schedule.
  *
  * &#64;internal
- * Platform-owned; the scheduling runtime (tick + lifecycle sync) is the
- * sole writer. Preserved VERBATIM across apply and update (the
- * AgentChannel decision-004 posture) — load-bearing for DD-008 D7's
- * auto-pause, which records on status precisely so the platform never
- * writes spec. A routine manifest apply must never reset the failure
- * streak or un-pause a schedule; both editions carry a regression test
- * for this (DD-009 pinned behaviors).
+ * Platform-owned; written only by the scheduling runtime (tick +
+ * lifecycle sync) and by the explicit resume command (DD-013 D-D).
+ * Preserved VERBATIM across apply and update (the AgentChannel
+ * decision-004 posture) — load-bearing for DD-008 D7's auto-pause,
+ * which records on status precisely so the platform never writes spec.
+ * A routine manifest apply must never reset the failure streak or
+ * un-pause a schedule; both editions carry a regression test for this
+ * (DD-009 pinned behaviors).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.schedule.v1.ScheduleStatus}
@@ -224,13 +225,16 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Why the platform paused this schedule; empty when not paused.
-   * Re-enabling is the owner's explicit act: an update touching the
-   * spec clears the pause.
+   * Cleared only by the resume RPC — the owner's explicit act.
    *
    * &#64;internal
-   * Written ONLY by the platform auto-pause (DD-008 D7) — never an echo
-   * of spec.enabled (DD-009 pinned behaviors: one writer per field;
-   * consoles derive owner-disabled state from spec on read).
+   * "Paused" is the platform's latch, distinct from the owner's switch
+   * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
+   * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
+   * spec.enabled (DD-009 pinned behaviors: one writer per field;
+   * consoles derive owner-disabled state from spec on read). Updates
+   * and applies preserve it verbatim; resume is deliberately the ONE
+   * clearing path (DD-013 D-D).
    * </pre>
    *
    * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>
@@ -252,13 +256,16 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Why the platform paused this schedule; empty when not paused.
-   * Re-enabling is the owner's explicit act: an update touching the
-   * spec clears the pause.
+   * Cleared only by the resume RPC — the owner's explicit act.
    *
    * &#64;internal
-   * Written ONLY by the platform auto-pause (DD-008 D7) — never an echo
-   * of spec.enabled (DD-009 pinned behaviors: one writer per field;
-   * consoles derive owner-disabled state from spec on read).
+   * "Paused" is the platform's latch, distinct from the owner's switch
+   * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
+   * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
+   * spec.enabled (DD-009 pinned behaviors: one writer per field;
+   * consoles derive owner-disabled state from spec on read). Updates
+   * and applies preserve it verbatim; resume is deliberately the ONE
+   * clearing path (DD-013 D-D).
    * </pre>
    *
    * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>
@@ -547,13 +554,14 @@ private static final long serialVersionUID = 0L;
    * ScheduleStatus contains system-managed state for a schedule.
    *
    * &#64;internal
-   * Platform-owned; the scheduling runtime (tick + lifecycle sync) is the
-   * sole writer. Preserved VERBATIM across apply and update (the
-   * AgentChannel decision-004 posture) — load-bearing for DD-008 D7's
-   * auto-pause, which records on status precisely so the platform never
-   * writes spec. A routine manifest apply must never reset the failure
-   * streak or un-pause a schedule; both editions carry a regression test
-   * for this (DD-009 pinned behaviors).
+   * Platform-owned; written only by the scheduling runtime (tick +
+   * lifecycle sync) and by the explicit resume command (DD-013 D-D).
+   * Preserved VERBATIM across apply and update (the AgentChannel
+   * decision-004 posture) — load-bearing for DD-008 D7's auto-pause,
+   * which records on status precisely so the platform never writes spec.
+   * A routine manifest apply must never reset the failure streak or
+   * un-pause a schedule; both editions carry a regression test for this
+   * (DD-009 pinned behaviors).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.schedule.v1.ScheduleStatus}
@@ -1289,13 +1297,16 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Why the platform paused this schedule; empty when not paused.
-     * Re-enabling is the owner's explicit act: an update touching the
-     * spec clears the pause.
+     * Cleared only by the resume RPC — the owner's explicit act.
      *
      * &#64;internal
-     * Written ONLY by the platform auto-pause (DD-008 D7) — never an echo
-     * of spec.enabled (DD-009 pinned behaviors: one writer per field;
-     * consoles derive owner-disabled state from spec on read).
+     * "Paused" is the platform's latch, distinct from the owner's switch
+     * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
+     * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
+     * spec.enabled (DD-009 pinned behaviors: one writer per field;
+     * consoles derive owner-disabled state from spec on read). Updates
+     * and applies preserve it verbatim; resume is deliberately the ONE
+     * clearing path (DD-013 D-D).
      * </pre>
      *
      * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>
@@ -1316,13 +1327,16 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Why the platform paused this schedule; empty when not paused.
-     * Re-enabling is the owner's explicit act: an update touching the
-     * spec clears the pause.
+     * Cleared only by the resume RPC — the owner's explicit act.
      *
      * &#64;internal
-     * Written ONLY by the platform auto-pause (DD-008 D7) — never an echo
-     * of spec.enabled (DD-009 pinned behaviors: one writer per field;
-     * consoles derive owner-disabled state from spec on read).
+     * "Paused" is the platform's latch, distinct from the owner's switch
+     * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
+     * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
+     * spec.enabled (DD-009 pinned behaviors: one writer per field;
+     * consoles derive owner-disabled state from spec on read). Updates
+     * and applies preserve it verbatim; resume is deliberately the ONE
+     * clearing path (DD-013 D-D).
      * </pre>
      *
      * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>
@@ -1344,13 +1358,16 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Why the platform paused this schedule; empty when not paused.
-     * Re-enabling is the owner's explicit act: an update touching the
-     * spec clears the pause.
+     * Cleared only by the resume RPC — the owner's explicit act.
      *
      * &#64;internal
-     * Written ONLY by the platform auto-pause (DD-008 D7) — never an echo
-     * of spec.enabled (DD-009 pinned behaviors: one writer per field;
-     * consoles derive owner-disabled state from spec on read).
+     * "Paused" is the platform's latch, distinct from the owner's switch
+     * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
+     * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
+     * spec.enabled (DD-009 pinned behaviors: one writer per field;
+     * consoles derive owner-disabled state from spec on read). Updates
+     * and applies preserve it verbatim; resume is deliberately the ONE
+     * clearing path (DD-013 D-D).
      * </pre>
      *
      * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>
@@ -1368,13 +1385,16 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Why the platform paused this schedule; empty when not paused.
-     * Re-enabling is the owner's explicit act: an update touching the
-     * spec clears the pause.
+     * Cleared only by the resume RPC — the owner's explicit act.
      *
      * &#64;internal
-     * Written ONLY by the platform auto-pause (DD-008 D7) — never an echo
-     * of spec.enabled (DD-009 pinned behaviors: one writer per field;
-     * consoles derive owner-disabled state from spec on read).
+     * "Paused" is the platform's latch, distinct from the owner's switch
+     * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
+     * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
+     * spec.enabled (DD-009 pinned behaviors: one writer per field;
+     * consoles derive owner-disabled state from spec on read). Updates
+     * and applies preserve it verbatim; resume is deliberately the ONE
+     * clearing path (DD-013 D-D).
      * </pre>
      *
      * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>
@@ -1389,13 +1409,16 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Why the platform paused this schedule; empty when not paused.
-     * Re-enabling is the owner's explicit act: an update touching the
-     * spec clears the pause.
+     * Cleared only by the resume RPC — the owner's explicit act.
      *
      * &#64;internal
-     * Written ONLY by the platform auto-pause (DD-008 D7) — never an echo
-     * of spec.enabled (DD-009 pinned behaviors: one writer per field;
-     * consoles derive owner-disabled state from spec on read).
+     * "Paused" is the platform's latch, distinct from the owner's switch
+     * (spec.enabled = false is "disabled" — project DD-013 D-E). Written
+     * ONLY by the platform auto-pause (DD-008 D7) — never an echo of
+     * spec.enabled (DD-009 pinned behaviors: one writer per field;
+     * consoles derive owner-disabled state from spec on read). Updates
+     * and applies preserve it verbatim; resume is deliberately the ONE
+     * clearing path (DD-013 D-D).
      * </pre>
      *
      * <code>string paused_reason = 5 [json_name = "pausedReason"];</code>

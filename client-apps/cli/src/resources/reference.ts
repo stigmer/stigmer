@@ -86,6 +86,11 @@ export function isSessionId(ref: string): boolean {
   return hasKindPrefix(ref, idPrefixFor(ApiResourceKind.session));
 }
 
+/** True if `ref` carries the schedule ID prefix (`sch_…`/`sch-…`). */
+export function isScheduleId(ref: string): boolean {
+  return hasKindPrefix(ref, idPrefixFor(ApiResourceKind.schedule));
+}
+
 /**
  * True if `ref` starts with ANY known resource-ID prefix (length-agnostic).
  * Mirrors Go's reference.HasResourceIDPrefix: use it to detect *intent* (the
