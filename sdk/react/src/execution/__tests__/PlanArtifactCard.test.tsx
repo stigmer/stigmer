@@ -1,5 +1,11 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+import {
+  render,
+  screen,
+  fireEvent,
+  cleanup,
+  waitFor,
+} from "@testing-library/react";
 import type { ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { Stigmer } from "@stigmer/sdk";
@@ -46,6 +52,17 @@ function renderCard(ui: ReactNode) {
 }
 
 afterEach(cleanup);
+
+// The download flow ends in a transient-anchor click with target="_blank".
+// Left unstubbed, happy-dom treats that click as a real popup navigation and
+// fetches the fixture URL over the actual network — after this test has
+// already returned, so the DNS failure gets attributed to whichever test the
+// worker is running by then (the flake in issue #334).
+beforeEach(() => {
+  vi.spyOn(HTMLAnchorElement.prototype, "click")
+    .mockImplementation(() => {})
+    .mockClear();
+});
 
 describe("PlanArtifactCard — compact document card", () => {
   it("is an accessible region with the plan's title, filename, and size", () => {
@@ -178,6 +195,7 @@ describe("PlanArtifactCard — compact document card", () => {
 
   it("downloads the artifact on demand via a freshly minted URL", async () => {
     const { stigmer, getArtifactDownloadUrl } = createStigmerMock();
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, "click");
     render(
       withStigmer(
         <PlanArtifactCard executionId="aex_1" artifact={planArtifact} org="acme" />,
@@ -191,6 +209,9 @@ describe("PlanArtifactCard — compact document card", () => {
     const req = getArtifactDownloadUrl.mock.calls[0][0];
     expect(req.executionId).toBe("aex_1");
     expect(req.storageKey).toBe("artifacts/aex_1/plan.md");
+    // Wait for the mint-URL → anchor-click continuation INSIDE the test body;
+    // returning while it is still in flight is what let it escape.
+    await waitFor(() => expect(anchorClick).toHaveBeenCalledTimes(1));
   });
 });
 

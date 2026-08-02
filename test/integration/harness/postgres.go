@@ -125,7 +125,7 @@ func StartAppPostgres(ctx context.Context) (*AppPostgresContainer, error) {
 }
 
 func runPostgres16(ctx context.Context, database, user, password string) (*postgres.PostgresContainer, string, string, error) {
-	container, err := postgres.Run(ctx, "postgres:16-alpine",
+	container, err := postgres.Run(ctx, postgresImage,
 		postgres.WithDatabase(database),
 		postgres.WithUsername(user),
 		postgres.WithPassword(password),

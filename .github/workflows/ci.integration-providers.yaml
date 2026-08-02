@@ -71,6 +71,10 @@ jobs:
     needs: build-service-jar
     timeout-minutes: 15
     environment: provider-integration
+    # Harness images come from the GHCR mirror, not Docker Hub (issue #334);
+    # see test/integration/harness/images.go.
+    env:
+      TESTCONTAINERS_HUB_IMAGE_NAME_PREFIX: ghcr.io/stigmer/mirror
     steps:
       - name: Checkout
         uses: actions/checkout@v4

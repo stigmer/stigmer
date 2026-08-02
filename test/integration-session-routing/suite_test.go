@@ -41,7 +41,10 @@ func TestMain(m *testing.M) {
 		cfg.OutputDir = ".test-output-session-routing"
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	// The boot budget also absorbs testcontainers-go's image-pull retry
+	// backoff, so a slow registry gets headroom instead of killing the run
+	// at the context deadline (issue #334).
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Minute)
 	defer cancel()
 
 	var err error
