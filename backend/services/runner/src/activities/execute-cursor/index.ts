@@ -49,6 +49,10 @@ import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "..
 import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";
 import { readContextBridge } from "../../shared/context-bridge.js";
 import { readSenderIdentity } from "../../shared/sender-identity.js";
+import {
+  injectCallerIdentityEnv,
+  resolveCallerIdentity,
+} from "../../shared/caller-identity.js";
 import { readSessionContext } from "../../shared/session-context.js";
 import { withholdSecretContentFromMessages } from "../../shared/tool-row.js";
 import { StallTimeoutError, formatStallFailure } from "../../shared/stall-watchdog.js";
@@ -592,11 +596,23 @@ async function executeCursorInner(
       }
     }
 
-    // Phase 4: Resolve MCP servers with approval policies
+    // Phase 4: Resolve MCP servers with approval policies.
+    // The MCP-bound env map (and ONLY it — never the agent process env)
+    // carries the reserved caller-identity keys, so a server that declares
+    // them in spec.env can template the platform-verified caller into its
+    // headers. filterEnvToDeclaredKeys keeps every other server blind.
     await reportSetupProgress(client, executionId, "Resolving MCP servers");
     const transportPosture = resolveMcpTransportPosture(config.mode);
+    const mcpEnvVars = injectCallerIdentityEnv(
+      envVars,
+      resolveCallerIdentity(
+        blueprint.sessionSpec.metadata,
+        session.status?.audit?.specAudit?.createdBy,
+      ),
+      sessionId,
+    );
     let mcpResolution = await resolveMcpServers(
-      client, blueprint.mergedMcpServerUsages, envVars, transportPosture,
+      client, blueprint.mergedMcpServerUsages, mcpEnvVars, transportPosture,
     );
     setupTiming.mark("resolve_mcp_servers");
 
@@ -604,7 +620,7 @@ async function executeCursorInner(
     heartbeatPhase = "resolving_mcp_servers";
     const sessionOrg = session.metadata?.org ?? "";
     mcpResolution = await backfillMcpServersIfNeeded(
-      client, mcpResolution, blueprint.mergedMcpServerUsages, envVars, sessionOrg,
+      client, mcpResolution, blueprint.mergedMcpServerUsages, mcpEnvVars, sessionOrg,
       transportPosture, heartbeat, secretKeys,
     );
     setupTiming.mark("backfill_mcp");

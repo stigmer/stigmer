@@ -89,7 +89,7 @@
           "messageType": "EnvVarDeclaration"
         }
       },
-      "description": "Environment variable declarations for this MCP server.\n Keys are variable names; values describe their metadata and optionality.",
+      "description": "Environment variable declarations for this MCP server.\n Keys are variable names; values describe their metadata and optionality.\n\n @internal\n Reserved platform keys — declared here like any other variable, but\n their values are injected by the runner per resolution context and are\n authoritative over same-named user env entries:\n   STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token\n       (\"whatsapp_phone\", \"slack_user_id\", \"stigmer_user\", \"anonymous\")\n   STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,\n       email); empty for anonymous\n   STIGMER_SESSION_ID            — the session the identity was\n       resolved for; empty outside a session\n Reserved keys MUST be declared `optional: true`: they have no value at\n execution-create time, and a required declaration fails the pipeline's\n env-completeness validation before the runner ever injects them.\n Discovery (the connect workflow) runs with no session and injects the\n anonymous sentinel — a server consuming these keys must answer\n tools/list for anonymous callers and gate tool CALLS instead. The\n injected header is runner-asserted, not signed: pair it with a shared\n secret and treat it as trustworthy only for servers you operate.",
       "required": false
     },
     {

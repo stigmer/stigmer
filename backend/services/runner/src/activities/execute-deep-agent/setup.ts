@@ -26,6 +26,10 @@ import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js
 import { createCheckpointer } from "../../shared/checkpointer/factory.js";
 import { readContextBridge } from "../../shared/context-bridge.js";
 import { readSenderIdentity } from "../../shared/sender-identity.js";
+import {
+  injectCallerIdentityEnv,
+  resolveCallerIdentity,
+} from "../../shared/caller-identity.js";
 import { readSessionContext } from "../../shared/session-context.js";
 import { connectMcpServers, type McpConnectionResult } from "../../shared/mcp-manager.js";
 import { resolveMcpServers } from "../../shared/mcp-resolver.js";
@@ -361,8 +365,19 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     if (mcpServerUsages.length > 0 || datastoreUsages.length > 0 || channelMessaging.length > 0) {
       await reportSetupProgress(client, executionId, "Connecting tools…");
       const transportPosture = resolveMcpTransportPosture(config.mode);
+      // The MCP-bound env map (and ONLY it) carries the reserved
+      // caller-identity keys — mirror of the Cursor harness's Phase 4
+      // injection; filterEnvToDeclaredKeys keeps undeclared servers blind.
+      const mcpEnvVars = injectCallerIdentityEnv(
+        envResult.mergedEnvVars,
+        resolveCallerIdentity(
+          session.spec!.metadata,
+          session.status?.audit?.specAudit?.createdBy,
+        ),
+        sessionId,
+      );
       resolvedMcpServers = await resolveMcpServers(
-        client, mcpServerUsages, envResult.mergedEnvVars, transportPosture,
+        client, mcpServerUsages, mcpEnvVars, transportPosture,
       );
       timing.mark("resolve_mcp_servers");
 
@@ -371,7 +386,7 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
         client,
         resolvedMcpServers.resolvedServers,
         mcpServerUsages,
-        envResult.mergedEnvVars,
+        mcpEnvVars,
         sessionOrg,
         transportPosture,
         undefined,

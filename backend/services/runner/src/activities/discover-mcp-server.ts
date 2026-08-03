@@ -30,6 +30,7 @@ import {
   type McpTransportPosture,
 } from "../shared/mcp-transport-guard.js";
 import { detectOAuthChallenge } from "../shared/mcp-oauth-detect.js";
+import { injectAnonymousCallerIdentityForDiscovery } from "../shared/caller-identity.js";
 import { withTimeout } from "../shared/with-timeout.js";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { Config } from "../config.js";
@@ -249,7 +250,18 @@ export async function discoverMcpServer(
   const declaredEnvKeys = mcpServer.spec.env
     ? new Set(Object.keys(mcpServer.spec.env))
     : new Set<string>();
-  const finalEnv = injectPlatformEnv(declaredEnvKeys, envVars);
+  const platformEnv = injectPlatformEnv(declaredEnvKeys, envVars);
+
+  // Discovery runs with no session, so every declared caller-identity key
+  // resolves to the anonymous sentinel — without it, a server templating
+  // ${STIGMER_CALLER_IDENTITY_VALUE} in its headers would fail discovery
+  // with PlaceholderResolutionError and its tools would never be
+  // classified. Servers consuming these keys answer tools/list to
+  // anonymous callers by contract.
+  const finalEnv = injectAnonymousCallerIdentityForDiscovery(
+    declaredEnvKeys,
+    platformEnv,
+  );
 
   const resolved = mcpServerToResolved(mcpServer, slug, finalEnv);
   if (!resolved) {

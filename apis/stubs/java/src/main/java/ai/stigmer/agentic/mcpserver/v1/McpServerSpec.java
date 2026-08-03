@@ -489,6 +489,25 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
+   *
+   * &#64;internal
+   * Reserved platform keys — declared here like any other variable, but
+   * their values are injected by the runner per resolution context and are
+   * authoritative over same-named user env entries:
+   * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
+   * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
+   * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
+   * email); empty for anonymous
+   * STIGMER_SESSION_ID            — the session the identity was
+   * resolved for; empty outside a session
+   * Reserved keys MUST be declared `optional: true`: they have no value at
+   * execution-create time, and a required declaration fails the pipeline's
+   * env-completeness validation before the runner ever injects them.
+   * Discovery (the connect workflow) runs with no session and injects the
+   * anonymous sentinel — a server consuming these keys must answer
+   * tools/list for anonymous callers and gate tool CALLS instead. The
+   * injected header is runner-asserted, not signed: pair it with a shared
+   * secret and treat it as trustworthy only for servers you operate.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -511,6 +530,25 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
+   *
+   * &#64;internal
+   * Reserved platform keys — declared here like any other variable, but
+   * their values are injected by the runner per resolution context and are
+   * authoritative over same-named user env entries:
+   * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
+   * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
+   * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
+   * email); empty for anonymous
+   * STIGMER_SESSION_ID            — the session the identity was
+   * resolved for; empty outside a session
+   * Reserved keys MUST be declared `optional: true`: they have no value at
+   * execution-create time, and a required declaration fails the pipeline's
+   * env-completeness validation before the runner ever injects them.
+   * Discovery (the connect workflow) runs with no session and injects the
+   * anonymous sentinel — a server consuming these keys must answer
+   * tools/list for anonymous callers and gate tool CALLS instead. The
+   * injected header is runner-asserted, not signed: pair it with a shared
+   * secret and treat it as trustworthy only for servers you operate.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -523,6 +561,25 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
+   *
+   * &#64;internal
+   * Reserved platform keys — declared here like any other variable, but
+   * their values are injected by the runner per resolution context and are
+   * authoritative over same-named user env entries:
+   * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
+   * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
+   * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
+   * email); empty for anonymous
+   * STIGMER_SESSION_ID            — the session the identity was
+   * resolved for; empty outside a session
+   * Reserved keys MUST be declared `optional: true`: they have no value at
+   * execution-create time, and a required declaration fails the pipeline's
+   * env-completeness validation before the runner ever injects them.
+   * Discovery (the connect workflow) runs with no session and injects the
+   * anonymous sentinel — a server consuming these keys must answer
+   * tools/list for anonymous callers and gate tool CALLS instead. The
+   * injected header is runner-asserted, not signed: pair it with a shared
+   * secret and treat it as trustworthy only for servers you operate.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -542,6 +599,25 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
    * <pre>
    * Environment variable declarations for this MCP server.
    * Keys are variable names; values describe their metadata and optionality.
+   *
+   * &#64;internal
+   * Reserved platform keys — declared here like any other variable, but
+   * their values are injected by the runner per resolution context and are
+   * authoritative over same-named user env entries:
+   * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
+   * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
+   * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
+   * email); empty for anonymous
+   * STIGMER_SESSION_ID            — the session the identity was
+   * resolved for; empty outside a session
+   * Reserved keys MUST be declared `optional: true`: they have no value at
+   * execution-create time, and a required declaration fails the pipeline's
+   * env-completeness validation before the runner ever injects them.
+   * Discovery (the connect workflow) runs with no session and injects the
+   * anonymous sentinel — a server consuming these keys must answer
+   * tools/list for anonymous callers and gate tool CALLS instead. The
+   * injected header is runner-asserted, not signed: pair it with a shared
+   * secret and treat it as trustworthy only for servers you operate.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -2559,6 +2635,25 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this MCP server.
      * Keys are variable names; values describe their metadata and optionality.
+     *
+     * &#64;internal
+     * Reserved platform keys — declared here like any other variable, but
+     * their values are injected by the runner per resolution context and are
+     * authoritative over same-named user env entries:
+     * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
+     * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
+     * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
+     * email); empty for anonymous
+     * STIGMER_SESSION_ID            — the session the identity was
+     * resolved for; empty outside a session
+     * Reserved keys MUST be declared `optional: true`: they have no value at
+     * execution-create time, and a required declaration fails the pipeline's
+     * env-completeness validation before the runner ever injects them.
+     * Discovery (the connect workflow) runs with no session and injects the
+     * anonymous sentinel — a server consuming these keys must answer
+     * tools/list for anonymous callers and gate tool CALLS instead. The
+     * injected header is runner-asserted, not signed: pair it with a shared
+     * secret and treat it as trustworthy only for servers you operate.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -2581,6 +2676,25 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this MCP server.
      * Keys are variable names; values describe their metadata and optionality.
+     *
+     * &#64;internal
+     * Reserved platform keys — declared here like any other variable, but
+     * their values are injected by the runner per resolution context and are
+     * authoritative over same-named user env entries:
+     * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
+     * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
+     * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
+     * email); empty for anonymous
+     * STIGMER_SESSION_ID            — the session the identity was
+     * resolved for; empty outside a session
+     * Reserved keys MUST be declared `optional: true`: they have no value at
+     * execution-create time, and a required declaration fails the pipeline's
+     * env-completeness validation before the runner ever injects them.
+     * Discovery (the connect workflow) runs with no session and injects the
+     * anonymous sentinel — a server consuming these keys must answer
+     * tools/list for anonymous callers and gate tool CALLS instead. The
+     * injected header is runner-asserted, not signed: pair it with a shared
+     * secret and treat it as trustworthy only for servers you operate.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -2593,6 +2707,25 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this MCP server.
      * Keys are variable names; values describe their metadata and optionality.
+     *
+     * &#64;internal
+     * Reserved platform keys — declared here like any other variable, but
+     * their values are injected by the runner per resolution context and are
+     * authoritative over same-named user env entries:
+     * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
+     * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
+     * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
+     * email); empty for anonymous
+     * STIGMER_SESSION_ID            — the session the identity was
+     * resolved for; empty outside a session
+     * Reserved keys MUST be declared `optional: true`: they have no value at
+     * execution-create time, and a required declaration fails the pipeline's
+     * env-completeness validation before the runner ever injects them.
+     * Discovery (the connect workflow) runs with no session and injects the
+     * anonymous sentinel — a server consuming these keys must answer
+     * tools/list for anonymous callers and gate tool CALLS instead. The
+     * injected header is runner-asserted, not signed: pair it with a shared
+     * secret and treat it as trustworthy only for servers you operate.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -2611,6 +2744,25 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this MCP server.
      * Keys are variable names; values describe their metadata and optionality.
+     *
+     * &#64;internal
+     * Reserved platform keys — declared here like any other variable, but
+     * their values are injected by the runner per resolution context and are
+     * authoritative over same-named user env entries:
+     * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
+     * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
+     * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
+     * email); empty for anonymous
+     * STIGMER_SESSION_ID            — the session the identity was
+     * resolved for; empty outside a session
+     * Reserved keys MUST be declared `optional: true`: they have no value at
+     * execution-create time, and a required declaration fails the pipeline's
+     * env-completeness validation before the runner ever injects them.
+     * Discovery (the connect workflow) runs with no session and injects the
+     * anonymous sentinel — a server consuming these keys must answer
+     * tools/list for anonymous callers and gate tool CALLS instead. The
+     * injected header is runner-asserted, not signed: pair it with a shared
+     * secret and treat it as trustworthy only for servers you operate.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -2634,6 +2786,25 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this MCP server.
      * Keys are variable names; values describe their metadata and optionality.
+     *
+     * &#64;internal
+     * Reserved platform keys — declared here like any other variable, but
+     * their values are injected by the runner per resolution context and are
+     * authoritative over same-named user env entries:
+     * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
+     * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
+     * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
+     * email); empty for anonymous
+     * STIGMER_SESSION_ID            — the session the identity was
+     * resolved for; empty outside a session
+     * Reserved keys MUST be declared `optional: true`: they have no value at
+     * execution-create time, and a required declaration fails the pipeline's
+     * env-completeness validation before the runner ever injects them.
+     * Discovery (the connect workflow) runs with no session and injects the
+     * anonymous sentinel — a server consuming these keys must answer
+     * tools/list for anonymous callers and gate tool CALLS instead. The
+     * injected header is runner-asserted, not signed: pair it with a shared
+     * secret and treat it as trustworthy only for servers you operate.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -2658,6 +2829,25 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this MCP server.
      * Keys are variable names; values describe their metadata and optionality.
+     *
+     * &#64;internal
+     * Reserved platform keys — declared here like any other variable, but
+     * their values are injected by the runner per resolution context and are
+     * authoritative over same-named user env entries:
+     * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
+     * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
+     * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
+     * email); empty for anonymous
+     * STIGMER_SESSION_ID            — the session the identity was
+     * resolved for; empty outside a session
+     * Reserved keys MUST be declared `optional: true`: they have no value at
+     * execution-create time, and a required declaration fails the pipeline's
+     * env-completeness validation before the runner ever injects them.
+     * Discovery (the connect workflow) runs with no session and injects the
+     * anonymous sentinel — a server consuming these keys must answer
+     * tools/list for anonymous callers and gate tool CALLS instead. The
+     * injected header is runner-asserted, not signed: pair it with a shared
+     * secret and treat it as trustworthy only for servers you operate.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -2676,6 +2866,25 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this MCP server.
      * Keys are variable names; values describe their metadata and optionality.
+     *
+     * &#64;internal
+     * Reserved platform keys — declared here like any other variable, but
+     * their values are injected by the runner per resolution context and are
+     * authoritative over same-named user env entries:
+     * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
+     * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
+     * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
+     * email); empty for anonymous
+     * STIGMER_SESSION_ID            — the session the identity was
+     * resolved for; empty outside a session
+     * Reserved keys MUST be declared `optional: true`: they have no value at
+     * execution-create time, and a required declaration fails the pipeline's
+     * env-completeness validation before the runner ever injects them.
+     * Discovery (the connect workflow) runs with no session and injects the
+     * anonymous sentinel — a server consuming these keys must answer
+     * tools/list for anonymous callers and gate tool CALLS instead. The
+     * injected header is runner-asserted, not signed: pair it with a shared
+     * secret and treat it as trustworthy only for servers you operate.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>
@@ -2696,6 +2905,25 @@ ai.stigmer.agentic.environment.v1.EnvVarDeclaration defaultValue) {
      * <pre>
      * Environment variable declarations for this MCP server.
      * Keys are variable names; values describe their metadata and optionality.
+     *
+     * &#64;internal
+     * Reserved platform keys — declared here like any other variable, but
+     * their values are injected by the runner per resolution context and are
+     * authoritative over same-named user env entries:
+     * STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
+     * ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
+     * STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
+     * email); empty for anonymous
+     * STIGMER_SESSION_ID            — the session the identity was
+     * resolved for; empty outside a session
+     * Reserved keys MUST be declared `optional: true`: they have no value at
+     * execution-create time, and a required declaration fails the pipeline's
+     * env-completeness validation before the runner ever injects them.
+     * Discovery (the connect workflow) runs with no session and injects the
+     * anonymous sentinel — a server consuming these keys must answer
+     * tools/list for anonymous callers and gate tool CALLS instead. The
+     * injected header is runner-asserted, not signed: pair it with a shared
+     * secret and treat it as trustworthy only for servers you operate.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvVarDeclaration&gt; env = 8 [json_name = "env"];</code>

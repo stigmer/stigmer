@@ -329,6 +329,16 @@ pages:
     embeds:
       DemoByoaSetup: replace
 
+  guides/integrations/caller-identity-for-mcp-servers:
+    fate: keep
+    diataxis: how-to
+    teaches:
+      Declare the reserved caller-identity env keys and template them into
+      MCP server headers so the server receives the platform-verified caller,
+      handle the anonymous discovery context, and pair the header with a
+      shared secret.
+    medium: none
+
   guides/editors/connect-mcp:
     fate: keep
     diataxis: how-to

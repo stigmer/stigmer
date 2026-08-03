@@ -52,6 +52,13 @@ public interface HttpServerConfigOrBuilder extends
    * "Authorization": "Bearer ${API_TOKEN}"
    * "X-API-Version": "2024-01"
    * "X-Tenant-ID": "${TENANT_ID}"
+   *
+   * &#64;internal
+   * Templates may also reference the reserved caller-identity keys
+   * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
+   * server declares them in spec.env — see the env field's reserved-key
+   * contract. Placeholders resolve against the env FILTERED to declared
+   * keys, so an undeclared reserved key in a template fails resolution.
    * </pre>
    *
    * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>
@@ -69,6 +76,13 @@ public interface HttpServerConfigOrBuilder extends
    * "Authorization": "Bearer ${API_TOKEN}"
    * "X-API-Version": "2024-01"
    * "X-Tenant-ID": "${TENANT_ID}"
+   *
+   * &#64;internal
+   * Templates may also reference the reserved caller-identity keys
+   * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
+   * server declares them in spec.env — see the env field's reserved-key
+   * contract. Placeholders resolve against the env FILTERED to declared
+   * keys, so an undeclared reserved key in a template fails resolution.
    * </pre>
    *
    * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>
@@ -93,6 +107,13 @@ public interface HttpServerConfigOrBuilder extends
    * "Authorization": "Bearer ${API_TOKEN}"
    * "X-API-Version": "2024-01"
    * "X-Tenant-ID": "${TENANT_ID}"
+   *
+   * &#64;internal
+   * Templates may also reference the reserved caller-identity keys
+   * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
+   * server declares them in spec.env — see the env field's reserved-key
+   * contract. Placeholders resolve against the env FILTERED to declared
+   * keys, so an undeclared reserved key in a template fails resolution.
    * </pre>
    *
    * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>
@@ -111,6 +132,13 @@ public interface HttpServerConfigOrBuilder extends
    * "Authorization": "Bearer ${API_TOKEN}"
    * "X-API-Version": "2024-01"
    * "X-Tenant-ID": "${TENANT_ID}"
+   *
+   * &#64;internal
+   * Templates may also reference the reserved caller-identity keys
+   * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
+   * server declares them in spec.env — see the env field's reserved-key
+   * contract. Placeholders resolve against the env FILTERED to declared
+   * keys, so an undeclared reserved key in a template fails resolution.
    * </pre>
    *
    * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>
@@ -132,6 +160,13 @@ java.lang.String defaultValue);
    * "Authorization": "Bearer ${API_TOKEN}"
    * "X-API-Version": "2024-01"
    * "X-Tenant-ID": "${TENANT_ID}"
+   *
+   * &#64;internal
+   * Templates may also reference the reserved caller-identity keys
+   * (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
+   * server declares them in spec.env — see the env field's reserved-key
+   * contract. Placeholders resolve against the env FILTERED to declared
+   * keys, so an undeclared reserved key in a template fails resolution.
    * </pre>
    *
    * <code>map&lt;string, string&gt; headers = 2 [json_name = "headers"];</code>

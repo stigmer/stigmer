@@ -1,0 +1,88 @@
+---
+title: Caller identity for MCP servers
+description:
+  Receive the platform-verified identity of the person talking to your agent in
+  your own MCP server, without trusting anything the model says.
+---
+
+When your agent serves people over a channel like WhatsApp, your MCP server
+often needs to know who is asking. A member should see their own membership, not
+someone else's. You cannot trust the model to pass a phone number as a tool
+argument — a persuasive user could talk the agent into passing someone else's.
+
+Stigmer solves this with reserved environment keys. The runner injects the
+verified caller identity into your server's configuration at resolution time.
+The value never passes through the model, so the model cannot change it.
+
+## The reserved keys
+
+| Key                             | Value                                                                                                                       |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `STIGMER_CALLER_IDENTITY_KIND`  | What kind of identity this is: `whatsapp_phone`, `slack_user_id`, `stigmer_user` (a console or CLI session), or `anonymous` |
+| `STIGMER_CALLER_IDENTITY_VALUE` | The identity itself: the WhatsApp wa_id, the Slack user id, or the Stigmer user's email. Empty for `anonymous`              |
+| `STIGMER_SESSION_ID`            | The session the identity was resolved for. Empty outside a session                                                          |
+
+The identity comes from the strongest source available: the channel-verified
+sender for channel sessions, the logged-in Stigmer user for console and CLI
+sessions, and `anonymous` when neither exists.
+
+## Declare the keys and template your headers
+
+Declare the reserved keys in your server's `env` — marked `optional: true` — and
+reference them in your headers:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: McpServer
+metadata:
+  name: gym-management
+spec:
+  description: >
+    Membership tools for the gym. Resolves the caller's role from the
+    platform-verified identity on every call.
+  http:
+    url: "https://gym-mcp.example.com/mcp"
+    headers:
+      Authorization: "Bearer ${GYM_MCP_SHARED_SECRET}"
+      X-Stigmer-Caller-Kind: "${STIGMER_CALLER_IDENTITY_KIND}"
+      X-Stigmer-Caller-Value: "${STIGMER_CALLER_IDENTITY_VALUE}"
+  env:
+    GYM_MCP_SHARED_SECRET:
+      is_secret: true
+      description: Shared secret the MCP server requires on every request
+    STIGMER_CALLER_IDENTITY_KIND:
+      optional: true
+      description: Injected by the platform — the caller identity's kind
+    STIGMER_CALLER_IDENTITY_VALUE:
+      optional: true
+      description: Injected by the platform — the caller identity's value
+```
+
+Two rules matter here:
+
+1. **Declare every reserved key you template.** Placeholders resolve against the
+   variables your server declares. An undeclared key in a template fails
+   resolution.
+2. **Mark the reserved keys `optional: true`.** Their values come from the
+   runner at execution time, not from an Environment. A required declaration
+   fails execution creation with a missing-variable error.
+
+## Handle the anonymous caller
+
+Tool discovery runs when your server connects, before any conversation exists.
+In that context the reserved keys resolve to the anonymous sentinel: kind
+`anonymous`, empty value.
+
+Your server must answer `tools/list` for anonymous callers. Gate tool _calls_
+instead: resolve the identity to a role on every call, and refuse calls the role
+does not permit. Deny by default.
+
+## Trust the header only behind your secret
+
+The identity header is asserted by the runner. It is not a signed token. That
+closes the prompt-injection hole — the model cannot influence the value — but
+anyone who can reach your endpoint directly can send any header they like.
+
+Always pair the identity headers with a shared secret, as in the example above,
+and reject requests that fail the secret check before reading anything else. Use
+this pattern only for MCP servers you operate yourself.

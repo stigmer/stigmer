@@ -411,6 +411,55 @@ describe("DiscoverMcpServer activity", () => {
       expect(mockClient.getExecutionContextByExecutionId).toHaveBeenCalledWith("ctx-abc");
     });
 
+    it("discovers a caller-identity-templating server via the anonymous sentinel", async () => {
+      // Discovery has no session, so declared STIGMER_CALLER_IDENTITY_*
+      // placeholders resolve to the anonymous sentinel instead of failing
+      // with PlaceholderResolutionError — the failure mode that would
+      // leave an identity-consuming server's tools permanently
+      // unclassified. The server sees an anonymous caller and must answer
+      // tools/list (its authz layer refuses tool CALLS, not discovery).
+      const { discoverMcpServer } = await import("../discover-mcp-server.js");
+      const { MultiServerMCPClient } = await import("@langchain/mcp-adapters");
+
+      const spec = makeHttpSpec("https://isc-mcp.example.com/mcp");
+      spec.serverType.value.headers = {
+        "X-Stigmer-Caller-Kind": "${STIGMER_CALLER_IDENTITY_KIND}",
+        "X-Stigmer-Caller-Value": "${STIGMER_CALLER_IDENTITY_VALUE}",
+        Authorization: "Bearer ${ISC_SHARED_SECRET}",
+      };
+      spec.env = {
+        STIGMER_CALLER_IDENTITY_KIND: { optional: true },
+        STIGMER_CALLER_IDENTITY_VALUE: { optional: true },
+        ISC_SHARED_SECRET: { isSecret: true },
+      };
+
+      const mockClient = makeMockStigmerClient({
+        mcpServer: makeMcpServer({ metadata: { slug: "isc-gym" }, spec }),
+        executionContext: {
+          spec: { data: { ISC_SHARED_SECRET: { value: "s3cret", isSecret: true } } },
+        },
+      });
+
+      const mockMcpClient = makeMockMcpClient({
+        tools: [{ name: "get_gym_info", description: "Public info", inputSchema: { type: "object" } }],
+      });
+      mockInitializeConnections.mockResolvedValue({});
+      mockGetClient.mockResolvedValue(mockMcpClient);
+
+      const result = await discoverMcpServer(
+        { mcpServerId: "mcp-isc", executionContextId: "ctx-isc" },
+        { stigmerClient: mockClient as any, transportPosture: "stdio-forbidden" },
+      );
+
+      expect(result.tools).toHaveLength(1);
+      const connectionConfig = vi.mocked(MultiServerMCPClient).mock.calls[0][0] as any;
+      expect(connectionConfig["isc-gym"].headers).toEqual({
+        "X-Stigmer-Caller-Kind": "anonymous",
+        "X-Stigmer-Caller-Value": "",
+        Authorization: "Bearer s3cret",
+      });
+    });
+
     it("returns empty env when no executionContextId provided", async () => {
       const { discoverMcpServer } = await import("../discover-mcp-server.js");
 

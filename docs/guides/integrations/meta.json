@@ -5,6 +5,7 @@
     "connect-from-marketplace",
     "oauth-for-tools",
     "bring-your-own-oauth",
-    "oauth-architecture"
+    "oauth-architecture",
+    "caller-identity-for-mcp-servers"
   ]
 }

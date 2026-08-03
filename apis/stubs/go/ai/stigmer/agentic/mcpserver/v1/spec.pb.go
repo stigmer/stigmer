@@ -63,6 +63,27 @@ type McpServerSpec struct {
 	DefaultEnabledTools []string `protobuf:"bytes,7,rep,name=default_enabled_tools,json=defaultEnabledTools,proto3" json:"default_enabled_tools,omitempty"`
 	// Environment variable declarations for this MCP server.
 	// Keys are variable names; values describe their metadata and optionality.
+	//
+	// @internal
+	// Reserved platform keys — declared here like any other variable, but
+	// their values are injected by the runner per resolution context and are
+	// authoritative over same-named user env entries:
+	//
+	//	STIGMER_CALLER_IDENTITY_KIND  — the verified caller's kind token
+	//	    ("whatsapp_phone", "slack_user_id", "stigmer_user", "anonymous")
+	//	STIGMER_CALLER_IDENTITY_VALUE — the identity value (wa_id, user id,
+	//	    email); empty for anonymous
+	//	STIGMER_SESSION_ID            — the session the identity was
+	//	    resolved for; empty outside a session
+	//
+	// Reserved keys MUST be declared `optional: true`: they have no value at
+	// execution-create time, and a required declaration fails the pipeline's
+	// env-completeness validation before the runner ever injects them.
+	// Discovery (the connect workflow) runs with no session and injects the
+	// anonymous sentinel — a server consuming these keys must answer
+	// tools/list for anonymous callers and gate tool CALLS instead. The
+	// injected header is runner-asserted, not signed: pair it with a shared
+	// secret and treat it as trustworthy only for servers you operate.
 	Env map[string]*v1.EnvVarDeclaration `protobuf:"bytes,8,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Manual tool approval overrides set by the MCP server owner.
 	//
@@ -370,6 +391,13 @@ type HttpServerConfig struct {
 	//	"Authorization": "Bearer ${API_TOKEN}"
 	//	"X-API-Version": "2024-01"
 	//	"X-Tenant-ID": "${TENANT_ID}"
+	//
+	// @internal
+	// Templates may also reference the reserved caller-identity keys
+	// (STIGMER_CALLER_IDENTITY_KIND / _VALUE, STIGMER_SESSION_ID) when the
+	// server declares them in spec.env — see the env field's reserved-key
+	// contract. Placeholders resolve against the env FILTERED to declared
+	// keys, so an undeclared reserved key in a template fails resolution.
 	Headers map[string]string `protobuf:"bytes,2,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Query parameters to append to the URL.
 	// Values can reference environment variables using ${VAR_NAME} syntax.
