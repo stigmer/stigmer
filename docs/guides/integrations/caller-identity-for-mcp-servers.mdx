@@ -1,30 +1,30 @@
 ---
 title: Caller identity for MCP servers
 description:
-  Receive the platform-verified identity of the person talking to your agent in
+  Receive the platform-verified identity of the person talking to your Agent in
   your own MCP server, without trusting anything the model says.
 ---
 
-When your agent serves people over a channel like WhatsApp, your MCP server
+When your Agent serves people over a channel like WhatsApp, your MCP server
 often needs to know who is asking. A member should see their own membership, not
 someone else's. You cannot trust the model to pass a phone number as a tool
-argument — a persuasive user could talk the agent into passing someone else's.
+argument — a persuasive user could talk the Agent into passing someone else's.
 
-Stigmer solves this with reserved environment keys. The runner injects the
-verified caller identity into your server's configuration at resolution time.
-The value never passes through the model, so the model cannot change it.
+Stigmer solves this with reserved environment variable keys. The runner injects
+the verified caller identity into your server's configuration at resolution
+time. The value never passes through the model, so the model cannot change it.
 
 ## The reserved keys
 
 | Key                             | Value                                                                                                                       |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `STIGMER_CALLER_IDENTITY_KIND`  | What kind of identity this is: `whatsapp_phone`, `slack_user_id`, `stigmer_user` (a console or CLI session), or `anonymous` |
-| `STIGMER_CALLER_IDENTITY_VALUE` | The identity itself: the WhatsApp wa_id, the Slack user id, or the Stigmer user's email. Empty for `anonymous`              |
-| `STIGMER_SESSION_ID`            | The session the identity was resolved for. Empty outside a session                                                          |
+| `STIGMER_CALLER_IDENTITY_KIND`  | What kind of identity this is: `whatsapp_phone`, `slack_user_id`, `stigmer_user` (a console or CLI Session), or `anonymous` |
+| `STIGMER_CALLER_IDENTITY_VALUE` | The identity itself: the WhatsApp wa_id, the Slack user ID, or the Stigmer user's email. Empty for `anonymous`              |
+| `STIGMER_SESSION_ID`            | The Session the identity was resolved for. Empty outside a Session                                                          |
 
 The identity comes from the strongest source available: the channel-verified
-sender for channel sessions, the logged-in Stigmer user for console and CLI
-sessions, and `anonymous` when neither exists.
+sender for channel Sessions, the logged-in Stigmer user for console and CLI
+Sessions, and `anonymous` when neither exists.
 
 ## Declare the keys and template your headers
 
@@ -83,6 +83,6 @@ The identity header is asserted by the runner. It is not a signed token. That
 closes the prompt-injection hole — the model cannot influence the value — but
 anyone who can reach your endpoint directly can send any header they like.
 
-Always pair the identity headers with a shared secret, as in the example above,
-and reject requests that fail the secret check before reading anything else. Use
-this pattern only for MCP servers you operate yourself.
+Always pair the identity headers with a shared secret, as in the preceding
+example, and reject requests that fail the secret check before reading anything
+else. Use this pattern only for MCP servers you operate yourself.
