@@ -244,8 +244,11 @@ public interface ChannelOutboundMessageOrBuilder extends
    * Provider message id once the provider accepted (WhatsApp: wamid).
    *
    * &#64;internal
-   * Uniquely indexed where present — the DD-002 D10 statuses seam
-   * correlates delivery receipts by this value when it lands (slice 2b).
+   * Uniquely indexed where present — the provider-side identity of this
+   * send, kept for forensics and as the payments-era correlation anchor.
+   * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
+   * wamid lands here only AFTER the provider accepts, while receipts are
+   * correlated by the send-time callback token, which can never miss.
    * </pre>
    *
    * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -257,8 +260,11 @@ public interface ChannelOutboundMessageOrBuilder extends
    * Provider message id once the provider accepted (WhatsApp: wamid).
    *
    * &#64;internal
-   * Uniquely indexed where present — the DD-002 D10 statuses seam
-   * correlates delivery receipts by this value when it lands (slice 2b).
+   * Uniquely indexed where present — the provider-side identity of this
+   * send, kept for forensics and as the payments-era correlation anchor.
+   * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
+   * wamid lands here only AFTER the provider accepts, while receipts are
+   * correlated by the send-time callback token, which can never miss.
    * </pre>
    *
    * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -347,4 +353,121 @@ public interface ChannelOutboundMessageOrBuilder extends
    * <code>.google.protobuf.Timestamp next_attempt_at = 15 [json_name = "nextAttemptAt"];</code>
    */
   com.google.protobuf.TimestampOrBuilder getNextAttemptAtOrBuilder();
+
+  /**
+   * <pre>
+   * The provider's report of what became of the message after it was
+   * accepted — a SECOND axis beside `status`, which tracks the
+   * platform's own send attempt. `status = delivered` means "handed to
+   * the provider"; `receipt_state = receipt_delivered` means "reached
+   * the recipient's device".
+   *
+   * &#64;internal
+   * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
+   * handler, its single writer, advancing monotonically (sent &lt;
+   * delivered &lt; read; failed is sticky-terminal) because Meta delivers
+   * receipts out of order and may skip `delivered` entirely. The stamp
+   * never touches updated_at — that timestamp belongs to the
+   * send-attempt axis.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
+   * @return The enum numeric value on the wire for receiptState.
+   */
+  int getReceiptStateValue();
+  /**
+   * <pre>
+   * The provider's report of what became of the message after it was
+   * accepted — a SECOND axis beside `status`, which tracks the
+   * platform's own send attempt. `status = delivered` means "handed to
+   * the provider"; `receipt_state = receipt_delivered` means "reached
+   * the recipient's device".
+   *
+   * &#64;internal
+   * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
+   * handler, its single writer, advancing monotonically (sent &lt;
+   * delivered &lt; read; failed is sticky-terminal) because Meta delivers
+   * receipts out of order and may skip `delivered` entirely. The stamp
+   * never touches updated_at — that timestamp belongs to the
+   * send-attempt axis.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
+   * @return The receiptState.
+   */
+  ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState getReceiptState();
+
+  /**
+   * <pre>
+   * The provider's verbatim explanation when receipt_state is
+   * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+   * details when present). Empty otherwise.
+   *
+   * &#64;internal
+   * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
+   * never pattern-matched; receipt_error_code is the structured twin.
+   * </pre>
+   *
+   * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
+   * @return The receiptDetail.
+   */
+  java.lang.String getReceiptDetail();
+  /**
+   * <pre>
+   * The provider's verbatim explanation when receipt_state is
+   * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+   * details when present). Empty otherwise.
+   *
+   * &#64;internal
+   * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
+   * never pattern-matched; receipt_error_code is the structured twin.
+   * </pre>
+   *
+   * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
+   * @return The bytes for receiptDetail.
+   */
+  com.google.protobuf.ByteString
+      getReceiptDetailBytes();
+
+  /**
+   * <pre>
+   * The provider's numeric error code when receipt_state is
+   * receipt_failed (WhatsApp: errors[0].code, e.g. 131026 "recipient
+   * cannot receive WhatsApp messages"). Zero otherwise.
+   * </pre>
+   *
+   * <code>int32 receipt_error_code = 18 [json_name = "receiptErrorCode"];</code>
+   * @return The receiptErrorCode.
+   */
+  int getReceiptErrorCode();
+
+  /**
+   * <pre>
+   * When the provider reported the latest receipt state (the provider's
+   * own event timestamp, not our processing time).
+   * </pre>
+   *
+   * <code>.google.protobuf.Timestamp receipt_at = 19 [json_name = "receiptAt"];</code>
+   * @return Whether the receiptAt field is set.
+   */
+  boolean hasReceiptAt();
+  /**
+   * <pre>
+   * When the provider reported the latest receipt state (the provider's
+   * own event timestamp, not our processing time).
+   * </pre>
+   *
+   * <code>.google.protobuf.Timestamp receipt_at = 19 [json_name = "receiptAt"];</code>
+   * @return The receiptAt.
+   */
+  com.google.protobuf.Timestamp getReceiptAt();
+  /**
+   * <pre>
+   * When the provider reported the latest receipt state (the provider's
+   * own event timestamp, not our processing time).
+   * </pre>
+   *
+   * <code>.google.protobuf.Timestamp receipt_at = 19 [json_name = "receiptAt"];</code>
+   */
+  com.google.protobuf.TimestampOrBuilder getReceiptAtOrBuilder();
 }

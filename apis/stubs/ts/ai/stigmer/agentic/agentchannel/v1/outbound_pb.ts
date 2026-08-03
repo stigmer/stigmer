@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/outbound.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_outbound: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL291dGJvdW5kLnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxItcEChZDaGFubmVsT3V0Ym91bmRNZXNzYWdlEhsKE291dGJvdW5kX21lc3NhZ2VfaWQYASABKAkSGAoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCRILCgNvcmcYAyABKAkSEgoKc2Vzc2lvbl9pZBgEIAEoCRJJCgZvcmlnaW4YBSABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxPdXRib3VuZE9yaWdpbhIRCglyZWNpcGllbnQYBiABKAkSSwoHcGF5bG9hZBgHIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbE91dGJvdW5kUGF5bG9hZBJJCgZzdGF0dXMYCCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxEZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgJIAEoBRISCgpsYXN0X2Vycm9yGAogASgJEhcKD2lkZW1wb3RlbmN5X2tleRgLIAEoCRIbChNwcm92aWRlcl9tZXNzYWdlX2lkGAwgASgJEi4KCmNyZWF0ZWRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYDiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKD25leHRfYXR0ZW1wdF9hdBgPIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAqaAoVQ2hhbm5lbE91dGJvdW5kT3JpZ2luEicKI2NoYW5uZWxfb3V0Ym91bmRfb3JpZ2luX3Vuc3BlY2lmaWVkEAASGAoUY2hhbm5lbF9jb252ZXJzYXRpb24QARIMCghvcGVyYXRvchACYgZwcm90bzM", [file_ai_stigmer_agentic_agentchannel_v1_delivery, file_ai_stigmer_agentic_agentchannel_v1_message_io, file_google_protobuf_timestamp]);
+  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL291dGJvdW5kLnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIosGChZDaGFubmVsT3V0Ym91bmRNZXNzYWdlEhsKE291dGJvdW5kX21lc3NhZ2VfaWQYASABKAkSGAoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCRILCgNvcmcYAyABKAkSEgoKc2Vzc2lvbl9pZBgEIAEoCRJJCgZvcmlnaW4YBSABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxPdXRib3VuZE9yaWdpbhIRCglyZWNpcGllbnQYBiABKAkSSwoHcGF5bG9hZBgHIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbE91dGJvdW5kUGF5bG9hZBJJCgZzdGF0dXMYCCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxEZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgJIAEoBRISCgpsYXN0X2Vycm9yGAogASgJEhcKD2lkZW1wb3RlbmN5X2tleRgLIAEoCRIbChNwcm92aWRlcl9tZXNzYWdlX2lkGAwgASgJEi4KCmNyZWF0ZWRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYDiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKD25leHRfYXR0ZW1wdF9hdBgPIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASTgoNcmVjZWlwdF9zdGF0ZRgQIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbFJlY2VpcHRTdGF0ZRIWCg5yZWNlaXB0X2RldGFpbBgRIAEoCRIaChJyZWNlaXB0X2Vycm9yX2NvZGUYEiABKAUSLgoKcmVjZWlwdF9hdBgTIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAqgwEKE0NoYW5uZWxSZWNlaXB0U3RhdGUSHQoZcmVjZWlwdF9zdGF0ZV91bnNwZWNpZmllZBAAEhAKDHJlY2VpcHRfc2VudBABEhUKEXJlY2VpcHRfZGVsaXZlcmVkEAISEAoMcmVjZWlwdF9yZWFkEAMSEgoOcmVjZWlwdF9mYWlsZWQQBCpoChVDaGFubmVsT3V0Ym91bmRPcmlnaW4SJwojY2hhbm5lbF9vdXRib3VuZF9vcmlnaW5fdW5zcGVjaWZpZWQQABIYChRjaGFubmVsX2NvbnZlcnNhdGlvbhABEgwKCG9wZXJhdG9yEAJiBnByb3RvMw", [file_ai_stigmer_agentic_agentchannel_v1_delivery, file_ai_stigmer_agentic_agentchannel_v1_message_io, file_google_protobuf_timestamp]);
 
 /**
  * ChannelOutboundMessage tracks the delivery of one business-initiated
@@ -129,8 +129,11 @@ export type ChannelOutboundMessage = Message<"ai.stigmer.agentic.agentchannel.v1
    * Provider message id once the provider accepted (WhatsApp: wamid).
    *
    * @internal
-   * Uniquely indexed where present — the DD-002 D10 statuses seam
-   * correlates delivery receipts by this value when it lands (slice 2b).
+   * Uniquely indexed where present — the provider-side identity of this
+   * send, kept for forensics and as the payments-era correlation anchor.
+   * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
+   * wamid lands here only AFTER the provider accepts, while receipts are
+   * correlated by the send-time callback token, which can never miss.
    *
    * @generated from field: string provider_message_id = 12;
    */
@@ -156,6 +159,55 @@ export type ChannelOutboundMessage = Message<"ai.stigmer.agentic.agentchannel.v1
    * @generated from field: google.protobuf.Timestamp next_attempt_at = 15;
    */
   nextAttemptAt?: Timestamp;
+
+  /**
+   * The provider's report of what became of the message after it was
+   * accepted — a SECOND axis beside `status`, which tracks the
+   * platform's own send attempt. `status = delivered` means "handed to
+   * the provider"; `receipt_state = receipt_delivered` means "reached
+   * the recipient's device".
+   *
+   * @internal
+   * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
+   * handler, its single writer, advancing monotonically (sent <
+   * delivered < read; failed is sticky-terminal) because Meta delivers
+   * receipts out of order and may skip `delivered` entirely. The stamp
+   * never touches updated_at — that timestamp belongs to the
+   * send-attempt axis.
+   *
+   * @generated from field: ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16;
+   */
+  receiptState: ChannelReceiptState;
+
+  /**
+   * The provider's verbatim explanation when receipt_state is
+   * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+   * details when present). Empty otherwise.
+   *
+   * @internal
+   * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
+   * never pattern-matched; receipt_error_code is the structured twin.
+   *
+   * @generated from field: string receipt_detail = 17;
+   */
+  receiptDetail: string;
+
+  /**
+   * The provider's numeric error code when receipt_state is
+   * receipt_failed (WhatsApp: errors[0].code, e.g. 131026 "recipient
+   * cannot receive WhatsApp messages"). Zero otherwise.
+   *
+   * @generated from field: int32 receipt_error_code = 18;
+   */
+  receiptErrorCode: number;
+
+  /**
+   * When the provider reported the latest receipt state (the provider's
+   * own event timestamp, not our processing time).
+   *
+   * @generated from field: google.protobuf.Timestamp receipt_at = 19;
+   */
+  receiptAt?: Timestamp;
 };
 
 /**
@@ -164,6 +216,67 @@ export type ChannelOutboundMessage = Message<"ai.stigmer.agentic.agentchannel.v1
  */
 export const ChannelOutboundMessageSchema: GenMessage<ChannelOutboundMessage> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentchannel_v1_outbound, 0);
+
+/**
+ * ChannelReceiptState is the provider-reported delivery progress of an
+ * accepted outbound message, as learned from delivery receipts.
+ *
+ * @internal
+ * DD-016 D6. Provider-neutral four-state vocabulary; WhatsApp's fifth
+ * value `played` (voice playback) maps to receipt_read (DD-016 D8), and
+ * the raw webhook payload retains the verbatim value. Values carry the
+ * receipt_ prefix because proto3 enum values are package-scoped —
+ * `delivered` and `failed` are taken by ChannelDeliveryStatus — which is
+ * also a feature: the send-attempt axis and the receipt axis can never
+ * be confused on the wire. Enum numbers are IDENTITY only; the stamp's
+ * monotonic ordering lives in an explicit rank map in the handler, so a
+ * future value cannot silently mis-rank.
+ *
+ * @generated from enum ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState
+ */
+export enum ChannelReceiptState {
+  /**
+   * Default value when no receipt has been recorded.
+   *
+   * @generated from enum value: receipt_state_unspecified = 0;
+   */
+  receipt_state_unspecified = 0,
+
+  /**
+   * The provider accepted the message into its delivery queue.
+   *
+   * @generated from enum value: receipt_sent = 1;
+   */
+  receipt_sent = 1,
+
+  /**
+   * The message reached the recipient's device.
+   *
+   * @generated from enum value: receipt_delivered = 2;
+   */
+  receipt_delivered = 2,
+
+  /**
+   * The recipient viewed the message (or played it, for voice).
+   *
+   * @generated from enum value: receipt_read = 3;
+   */
+  receipt_read = 3,
+
+  /**
+   * The provider could not deliver the message; receipt_detail and
+   * receipt_error_code carry the provider's verdict.
+   *
+   * @generated from enum value: receipt_failed = 4;
+   */
+  receipt_failed = 4,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState.
+ */
+export const ChannelReceiptStateSchema: GenEnum<ChannelReceiptState> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentchannel_v1_outbound, 0);
 
 /**
  * ChannelOutboundOrigin records which trust context authorized a
@@ -206,5 +319,5 @@ export enum ChannelOutboundOrigin {
  * Describes the enum ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin.
  */
 export const ChannelOutboundOriginSchema: GenEnum<ChannelOutboundOrigin> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentchannel_v1_outbound, 0);
+  enumDesc(file_ai_stigmer_agentic_agentchannel_v1_outbound, 1);
 

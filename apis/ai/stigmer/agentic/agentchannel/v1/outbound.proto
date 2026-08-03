@@ -68,8 +68,11 @@ message ChannelOutboundMessage {
   // Provider message id once the provider accepted (WhatsApp: wamid).
   //
   // @internal
-  // Uniquely indexed where present — the DD-002 D10 statuses seam
-  // correlates delivery receipts by this value when it lands (slice 2b).
+  // Uniquely indexed where present — the provider-side identity of this
+  // send, kept for forensics and as the payments-era correlation anchor.
+  // Receipt correlation deliberately does NOT ride it (DD-016 D2): the
+  // wamid lands here only AFTER the provider accepts, while receipts are
+  // correlated by the send-time callback token, which can never miss.
   string provider_message_id = 12;
 
   // When the outbound record was created (send-RPC time).
@@ -80,6 +83,70 @@ message ChannelOutboundMessage {
 
   // Earliest time of the next delivery attempt (backoff schedule).
   google.protobuf.Timestamp next_attempt_at = 15;
+
+  // The provider's report of what became of the message after it was
+  // accepted — a SECOND axis beside `status`, which tracks the
+  // platform's own send attempt. `status = delivered` means "handed to
+  // the provider"; `receipt_state = receipt_delivered` means "reached
+  // the recipient's device".
+  //
+  // @internal
+  // DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
+  // handler, its single writer, advancing monotonically (sent <
+  // delivered < read; failed is sticky-terminal) because Meta delivers
+  // receipts out of order and may skip `delivered` entirely. The stamp
+  // never touches updated_at — that timestamp belongs to the
+  // send-attempt axis.
+  ChannelReceiptState receipt_state = 16;
+
+  // The provider's verbatim explanation when receipt_state is
+  // receipt_failed (WhatsApp: the errors[0] title, plus error_data
+  // details when present). Empty otherwise.
+  //
+  // @internal
+  // Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
+  // never pattern-matched; receipt_error_code is the structured twin.
+  string receipt_detail = 17;
+
+  // The provider's numeric error code when receipt_state is
+  // receipt_failed (WhatsApp: errors[0].code, e.g. 131026 "recipient
+  // cannot receive WhatsApp messages"). Zero otherwise.
+  int32 receipt_error_code = 18;
+
+  // When the provider reported the latest receipt state (the provider's
+  // own event timestamp, not our processing time).
+  google.protobuf.Timestamp receipt_at = 19;
+}
+
+// ChannelReceiptState is the provider-reported delivery progress of an
+// accepted outbound message, as learned from delivery receipts.
+//
+// @internal
+// DD-016 D6. Provider-neutral four-state vocabulary; WhatsApp's fifth
+// value `played` (voice playback) maps to receipt_read (DD-016 D8), and
+// the raw webhook payload retains the verbatim value. Values carry the
+// receipt_ prefix because proto3 enum values are package-scoped —
+// `delivered` and `failed` are taken by ChannelDeliveryStatus — which is
+// also a feature: the send-attempt axis and the receipt axis can never
+// be confused on the wire. Enum numbers are IDENTITY only; the stamp's
+// monotonic ordering lives in an explicit rank map in the handler, so a
+// future value cannot silently mis-rank.
+enum ChannelReceiptState {
+  // Default value when no receipt has been recorded.
+  receipt_state_unspecified = 0;
+
+  // The provider accepted the message into its delivery queue.
+  receipt_sent = 1;
+
+  // The message reached the recipient's device.
+  receipt_delivered = 2;
+
+  // The recipient viewed the message (or played it, for voice).
+  receipt_read = 3;
+
+  // The provider could not deliver the message; receipt_detail and
+  // receipt_error_code carry the provider's verdict.
+  receipt_failed = 4;
 }
 
 // ChannelOutboundOrigin records which trust context authorized a

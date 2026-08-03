@@ -22,6 +22,80 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// ChannelReceiptState is the provider-reported delivery progress of an
+// accepted outbound message, as learned from delivery receipts.
+//
+// @internal
+// DD-016 D6. Provider-neutral four-state vocabulary; WhatsApp's fifth
+// value `played` (voice playback) maps to receipt_read (DD-016 D8), and
+// the raw webhook payload retains the verbatim value. Values carry the
+// receipt_ prefix because proto3 enum values are package-scoped —
+// `delivered` and `failed` are taken by ChannelDeliveryStatus — which is
+// also a feature: the send-attempt axis and the receipt axis can never
+// be confused on the wire. Enum numbers are IDENTITY only; the stamp's
+// monotonic ordering lives in an explicit rank map in the handler, so a
+// future value cannot silently mis-rank.
+type ChannelReceiptState int32
+
+const (
+	// Default value when no receipt has been recorded.
+	ChannelReceiptState_receipt_state_unspecified ChannelReceiptState = 0
+	// The provider accepted the message into its delivery queue.
+	ChannelReceiptState_receipt_sent ChannelReceiptState = 1
+	// The message reached the recipient's device.
+	ChannelReceiptState_receipt_delivered ChannelReceiptState = 2
+	// The recipient viewed the message (or played it, for voice).
+	ChannelReceiptState_receipt_read ChannelReceiptState = 3
+	// The provider could not deliver the message; receipt_detail and
+	// receipt_error_code carry the provider's verdict.
+	ChannelReceiptState_receipt_failed ChannelReceiptState = 4
+)
+
+// Enum value maps for ChannelReceiptState.
+var (
+	ChannelReceiptState_name = map[int32]string{
+		0: "receipt_state_unspecified",
+		1: "receipt_sent",
+		2: "receipt_delivered",
+		3: "receipt_read",
+		4: "receipt_failed",
+	}
+	ChannelReceiptState_value = map[string]int32{
+		"receipt_state_unspecified": 0,
+		"receipt_sent":              1,
+		"receipt_delivered":         2,
+		"receipt_read":              3,
+		"receipt_failed":            4,
+	}
+)
+
+func (x ChannelReceiptState) Enum() *ChannelReceiptState {
+	p := new(ChannelReceiptState)
+	*p = x
+	return p
+}
+
+func (x ChannelReceiptState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ChannelReceiptState) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_enumTypes[0].Descriptor()
+}
+
+func (ChannelReceiptState) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_enumTypes[0]
+}
+
+func (x ChannelReceiptState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ChannelReceiptState.Descriptor instead.
+func (ChannelReceiptState) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_rawDescGZIP(), []int{0}
+}
+
 // ChannelOutboundOrigin records which trust context authorized a
 // business-initiated send.
 //
@@ -68,11 +142,11 @@ func (x ChannelOutboundOrigin) String() string {
 }
 
 func (ChannelOutboundOrigin) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_enumTypes[0].Descriptor()
+	return file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_enumTypes[1].Descriptor()
 }
 
 func (ChannelOutboundOrigin) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_enumTypes[0]
+	return &file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_enumTypes[1]
 }
 
 func (x ChannelOutboundOrigin) Number() protoreflect.EnumNumber {
@@ -81,7 +155,7 @@ func (x ChannelOutboundOrigin) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ChannelOutboundOrigin.Descriptor instead.
 func (ChannelOutboundOrigin) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_rawDescGZIP(), []int{0}
+	return file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_rawDescGZIP(), []int{1}
 }
 
 // ChannelOutboundMessage tracks the delivery of one business-initiated
@@ -136,8 +210,11 @@ type ChannelOutboundMessage struct {
 	// Provider message id once the provider accepted (WhatsApp: wamid).
 	//
 	// @internal
-	// Uniquely indexed where present — the DD-002 D10 statuses seam
-	// correlates delivery receipts by this value when it lands (slice 2b).
+	// Uniquely indexed where present — the provider-side identity of this
+	// send, kept for forensics and as the payments-era correlation anchor.
+	// Receipt correlation deliberately does NOT ride it (DD-016 D2): the
+	// wamid lands here only AFTER the provider accepts, while receipts are
+	// correlated by the send-time callback token, which can never miss.
 	ProviderMessageId string `protobuf:"bytes,12,opt,name=provider_message_id,json=providerMessageId,proto3" json:"provider_message_id,omitempty"`
 	// When the outbound record was created (send-RPC time).
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
@@ -145,6 +222,35 @@ type ChannelOutboundMessage struct {
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// Earliest time of the next delivery attempt (backoff schedule).
 	NextAttemptAt *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=next_attempt_at,json=nextAttemptAt,proto3" json:"next_attempt_at,omitempty"`
+	// The provider's report of what became of the message after it was
+	// accepted — a SECOND axis beside `status`, which tracks the
+	// platform's own send attempt. `status = delivered` means "handed to
+	// the provider"; `receipt_state = receipt_delivered` means "reached
+	// the recipient's device".
+	//
+	// @internal
+	// DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
+	// handler, its single writer, advancing monotonically (sent <
+	// delivered < read; failed is sticky-terminal) because Meta delivers
+	// receipts out of order and may skip `delivered` entirely. The stamp
+	// never touches updated_at — that timestamp belongs to the
+	// send-attempt axis.
+	ReceiptState ChannelReceiptState `protobuf:"varint,16,opt,name=receipt_state,json=receiptState,proto3,enum=ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState" json:"receipt_state,omitempty"`
+	// The provider's verbatim explanation when receipt_state is
+	// receipt_failed (WhatsApp: the errors[0] title, plus error_data
+	// details when present). Empty otherwise.
+	//
+	// @internal
+	// Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
+	// never pattern-matched; receipt_error_code is the structured twin.
+	ReceiptDetail string `protobuf:"bytes,17,opt,name=receipt_detail,json=receiptDetail,proto3" json:"receipt_detail,omitempty"`
+	// The provider's numeric error code when receipt_state is
+	// receipt_failed (WhatsApp: errors[0].code, e.g. 131026 "recipient
+	// cannot receive WhatsApp messages"). Zero otherwise.
+	ReceiptErrorCode int32 `protobuf:"varint,18,opt,name=receipt_error_code,json=receiptErrorCode,proto3" json:"receipt_error_code,omitempty"`
+	// When the provider reported the latest receipt state (the provider's
+	// own event timestamp, not our processing time).
+	ReceiptAt     *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=receipt_at,json=receiptAt,proto3" json:"receipt_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -284,11 +390,39 @@ func (x *ChannelOutboundMessage) GetNextAttemptAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *ChannelOutboundMessage) GetReceiptState() ChannelReceiptState {
+	if x != nil {
+		return x.ReceiptState
+	}
+	return ChannelReceiptState_receipt_state_unspecified
+}
+
+func (x *ChannelOutboundMessage) GetReceiptDetail() string {
+	if x != nil {
+		return x.ReceiptDetail
+	}
+	return ""
+}
+
+func (x *ChannelOutboundMessage) GetReceiptErrorCode() int32 {
+	if x != nil {
+		return x.ReceiptErrorCode
+	}
+	return 0
+}
+
+func (x *ChannelOutboundMessage) GetReceiptAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ReceiptAt
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_agentchannel_v1_outbound_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_rawDesc = "" +
 	"\n" +
-	"1ai/stigmer/agentic/agentchannel/v1/outbound.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x1a3ai/stigmer/agentic/agentchannel/v1/message_io.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8b\x06\n" +
+	"1ai/stigmer/agentic/agentchannel/v1/outbound.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x1a3ai/stigmer/agentic/agentchannel/v1/message_io.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf9\a\n" +
 	"\x16ChannelOutboundMessage\x12.\n" +
 	"\x13outbound_message_id\x18\x01 \x01(\tR\x11outboundMessageId\x12(\n" +
 	"\x10agent_channel_id\x18\x02 \x01(\tR\x0eagentChannelId\x12\x10\n" +
@@ -309,7 +443,18 @@ const file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_rawDesc = "" +
 	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12B\n" +
-	"\x0fnext_attempt_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\rnextAttemptAt*h\n" +
+	"\x0fnext_attempt_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\rnextAttemptAt\x12\\\n" +
+	"\rreceipt_state\x18\x10 \x01(\x0e27.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptStateR\freceiptState\x12%\n" +
+	"\x0ereceipt_detail\x18\x11 \x01(\tR\rreceiptDetail\x12,\n" +
+	"\x12receipt_error_code\x18\x12 \x01(\x05R\x10receiptErrorCode\x129\n" +
+	"\n" +
+	"receipt_at\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\treceiptAt*\x83\x01\n" +
+	"\x13ChannelReceiptState\x12\x1d\n" +
+	"\x19receipt_state_unspecified\x10\x00\x12\x10\n" +
+	"\freceipt_sent\x10\x01\x12\x15\n" +
+	"\x11receipt_delivered\x10\x02\x12\x10\n" +
+	"\freceipt_read\x10\x03\x12\x12\n" +
+	"\x0ereceipt_failed\x10\x04*h\n" +
 	"\x15ChannelOutboundOrigin\x12'\n" +
 	"#channel_outbound_origin_unspecified\x10\x00\x12\x18\n" +
 	"\x14channel_conversation\x10\x01\x12\f\n" +
@@ -328,27 +473,30 @@ func file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_rawDescGZIP() []byte
 	return file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_goTypes = []any{
-	(ChannelOutboundOrigin)(0),     // 0: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
-	(*ChannelOutboundMessage)(nil), // 1: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage
-	(*ChannelOutboundPayload)(nil), // 2: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
-	(ChannelDeliveryStatus)(0),     // 3: ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
-	(*timestamppb.Timestamp)(nil),  // 4: google.protobuf.Timestamp
+	(ChannelReceiptState)(0),       // 0: ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState
+	(ChannelOutboundOrigin)(0),     // 1: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
+	(*ChannelOutboundMessage)(nil), // 2: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage
+	(*ChannelOutboundPayload)(nil), // 3: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
+	(ChannelDeliveryStatus)(0),     // 4: ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
+	(*timestamppb.Timestamp)(nil),  // 5: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_depIdxs = []int32{
-	0, // 0: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.origin:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
-	2, // 1: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.payload:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
-	3, // 2: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.status:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
-	4, // 3: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.created_at:type_name -> google.protobuf.Timestamp
-	4, // 4: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.updated_at:type_name -> google.protobuf.Timestamp
-	4, // 5: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.next_attempt_at:type_name -> google.protobuf.Timestamp
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	1, // 0: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.origin:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
+	3, // 1: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.payload:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
+	4, // 2: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.status:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
+	5, // 3: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.created_at:type_name -> google.protobuf.Timestamp
+	5, // 4: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.updated_at:type_name -> google.protobuf.Timestamp
+	5, // 5: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.next_attempt_at:type_name -> google.protobuf.Timestamp
+	0, // 6: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.receipt_state:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState
+	5, // 7: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage.receipt_at:type_name -> google.protobuf.Timestamp
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_init() }
@@ -363,7 +511,7 @@ func file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_rawDesc), len(file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,

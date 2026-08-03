@@ -59,6 +59,8 @@ private static final long serialVersionUID = 0L;
     lastError_ = "";
     idempotencyKey_ = "";
     providerMessageId_ = "";
+    receiptState_ = 0;
+    receiptDetail_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -536,8 +538,11 @@ private static final long serialVersionUID = 0L;
    * Provider message id once the provider accepted (WhatsApp: wamid).
    *
    * &#64;internal
-   * Uniquely indexed where present — the DD-002 D10 statuses seam
-   * correlates delivery receipts by this value when it lands (slice 2b).
+   * Uniquely indexed where present — the provider-side identity of this
+   * send, kept for forensics and as the payments-era correlation anchor.
+   * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
+   * wamid lands here only AFTER the provider accepts, while receipts are
+   * correlated by the send-time callback token, which can never miss.
    * </pre>
    *
    * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -561,8 +566,11 @@ private static final long serialVersionUID = 0L;
    * Provider message id once the provider accepted (WhatsApp: wamid).
    *
    * &#64;internal
-   * Uniquely indexed where present — the DD-002 D10 statuses seam
-   * correlates delivery receipts by this value when it lands (slice 2b).
+   * Uniquely indexed where present — the provider-side identity of this
+   * send, kept for forensics and as the payments-era correlation anchor.
+   * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
+   * wamid lands here only AFTER the provider accepts, while receipts are
+   * correlated by the send-time callback token, which can never miss.
    * </pre>
    *
    * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -697,6 +705,173 @@ private static final long serialVersionUID = 0L;
     return nextAttemptAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : nextAttemptAt_;
   }
 
+  public static final int RECEIPT_STATE_FIELD_NUMBER = 16;
+  private int receiptState_ = 0;
+  /**
+   * <pre>
+   * The provider's report of what became of the message after it was
+   * accepted — a SECOND axis beside `status`, which tracks the
+   * platform's own send attempt. `status = delivered` means "handed to
+   * the provider"; `receipt_state = receipt_delivered` means "reached
+   * the recipient's device".
+   *
+   * &#64;internal
+   * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
+   * handler, its single writer, advancing monotonically (sent &lt;
+   * delivered &lt; read; failed is sticky-terminal) because Meta delivers
+   * receipts out of order and may skip `delivered` entirely. The stamp
+   * never touches updated_at — that timestamp belongs to the
+   * send-attempt axis.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
+   * @return The enum numeric value on the wire for receiptState.
+   */
+  @java.lang.Override public int getReceiptStateValue() {
+    return receiptState_;
+  }
+  /**
+   * <pre>
+   * The provider's report of what became of the message after it was
+   * accepted — a SECOND axis beside `status`, which tracks the
+   * platform's own send attempt. `status = delivered` means "handed to
+   * the provider"; `receipt_state = receipt_delivered` means "reached
+   * the recipient's device".
+   *
+   * &#64;internal
+   * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
+   * handler, its single writer, advancing monotonically (sent &lt;
+   * delivered &lt; read; failed is sticky-terminal) because Meta delivers
+   * receipts out of order and may skip `delivered` entirely. The stamp
+   * never touches updated_at — that timestamp belongs to the
+   * send-attempt axis.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
+   * @return The receiptState.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState getReceiptState() {
+    ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState result = ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState.forNumber(receiptState_);
+    return result == null ? ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState.UNRECOGNIZED : result;
+  }
+
+  public static final int RECEIPT_DETAIL_FIELD_NUMBER = 17;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object receiptDetail_ = "";
+  /**
+   * <pre>
+   * The provider's verbatim explanation when receipt_state is
+   * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+   * details when present). Empty otherwise.
+   *
+   * &#64;internal
+   * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
+   * never pattern-matched; receipt_error_code is the structured twin.
+   * </pre>
+   *
+   * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
+   * @return The receiptDetail.
+   */
+  @java.lang.Override
+  public java.lang.String getReceiptDetail() {
+    java.lang.Object ref = receiptDetail_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      receiptDetail_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The provider's verbatim explanation when receipt_state is
+   * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+   * details when present). Empty otherwise.
+   *
+   * &#64;internal
+   * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
+   * never pattern-matched; receipt_error_code is the structured twin.
+   * </pre>
+   *
+   * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
+   * @return The bytes for receiptDetail.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getReceiptDetailBytes() {
+    java.lang.Object ref = receiptDetail_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      receiptDetail_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
+  public static final int RECEIPT_ERROR_CODE_FIELD_NUMBER = 18;
+  private int receiptErrorCode_ = 0;
+  /**
+   * <pre>
+   * The provider's numeric error code when receipt_state is
+   * receipt_failed (WhatsApp: errors[0].code, e.g. 131026 "recipient
+   * cannot receive WhatsApp messages"). Zero otherwise.
+   * </pre>
+   *
+   * <code>int32 receipt_error_code = 18 [json_name = "receiptErrorCode"];</code>
+   * @return The receiptErrorCode.
+   */
+  @java.lang.Override
+  public int getReceiptErrorCode() {
+    return receiptErrorCode_;
+  }
+
+  public static final int RECEIPT_AT_FIELD_NUMBER = 19;
+  private com.google.protobuf.Timestamp receiptAt_;
+  /**
+   * <pre>
+   * When the provider reported the latest receipt state (the provider's
+   * own event timestamp, not our processing time).
+   * </pre>
+   *
+   * <code>.google.protobuf.Timestamp receipt_at = 19 [json_name = "receiptAt"];</code>
+   * @return Whether the receiptAt field is set.
+   */
+  @java.lang.Override
+  public boolean hasReceiptAt() {
+    return ((bitField0_ & 0x00000010) != 0);
+  }
+  /**
+   * <pre>
+   * When the provider reported the latest receipt state (the provider's
+   * own event timestamp, not our processing time).
+   * </pre>
+   *
+   * <code>.google.protobuf.Timestamp receipt_at = 19 [json_name = "receiptAt"];</code>
+   * @return The receiptAt.
+   */
+  @java.lang.Override
+  public com.google.protobuf.Timestamp getReceiptAt() {
+    return receiptAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : receiptAt_;
+  }
+  /**
+   * <pre>
+   * When the provider reported the latest receipt state (the provider's
+   * own event timestamp, not our processing time).
+   * </pre>
+   *
+   * <code>.google.protobuf.Timestamp receipt_at = 19 [json_name = "receiptAt"];</code>
+   */
+  @java.lang.Override
+  public com.google.protobuf.TimestampOrBuilder getReceiptAtOrBuilder() {
+    return receiptAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : receiptAt_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -755,6 +930,18 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000008) != 0)) {
       output.writeMessage(15, getNextAttemptAt());
+    }
+    if (receiptState_ != ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState.receipt_state_unspecified.getNumber()) {
+      output.writeEnum(16, receiptState_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(receiptDetail_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 17, receiptDetail_);
+    }
+    if (receiptErrorCode_ != 0) {
+      output.writeInt32(18, receiptErrorCode_);
+    }
+    if (((bitField0_ & 0x00000010) != 0)) {
+      output.writeMessage(19, getReceiptAt());
     }
     getUnknownFields().writeTo(output);
   }
@@ -817,6 +1004,21 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(15, getNextAttemptAt());
     }
+    if (receiptState_ != ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState.receipt_state_unspecified.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(16, receiptState_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(receiptDetail_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(17, receiptDetail_);
+    }
+    if (receiptErrorCode_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(18, receiptErrorCode_);
+    }
+    if (((bitField0_ & 0x00000010) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(19, getReceiptAt());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -872,6 +1074,16 @@ private static final long serialVersionUID = 0L;
       if (!getNextAttemptAt()
           .equals(other.getNextAttemptAt())) return false;
     }
+    if (receiptState_ != other.receiptState_) return false;
+    if (!getReceiptDetail()
+        .equals(other.getReceiptDetail())) return false;
+    if (getReceiptErrorCode()
+        != other.getReceiptErrorCode()) return false;
+    if (hasReceiptAt() != other.hasReceiptAt()) return false;
+    if (hasReceiptAt()) {
+      if (!getReceiptAt()
+          .equals(other.getReceiptAt())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -920,6 +1132,16 @@ private static final long serialVersionUID = 0L;
     if (hasNextAttemptAt()) {
       hash = (37 * hash) + NEXT_ATTEMPT_AT_FIELD_NUMBER;
       hash = (53 * hash) + getNextAttemptAt().hashCode();
+    }
+    hash = (37 * hash) + RECEIPT_STATE_FIELD_NUMBER;
+    hash = (53 * hash) + receiptState_;
+    hash = (37 * hash) + RECEIPT_DETAIL_FIELD_NUMBER;
+    hash = (53 * hash) + getReceiptDetail().hashCode();
+    hash = (37 * hash) + RECEIPT_ERROR_CODE_FIELD_NUMBER;
+    hash = (53 * hash) + getReceiptErrorCode();
+    if (hasReceiptAt()) {
+      hash = (37 * hash) + RECEIPT_AT_FIELD_NUMBER;
+      hash = (53 * hash) + getReceiptAt().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -1076,6 +1298,7 @@ private static final long serialVersionUID = 0L;
         internalGetCreatedAtFieldBuilder();
         internalGetUpdatedAtFieldBuilder();
         internalGetNextAttemptAtFieldBuilder();
+        internalGetReceiptAtFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1112,6 +1335,14 @@ private static final long serialVersionUID = 0L;
       if (nextAttemptAtBuilder_ != null) {
         nextAttemptAtBuilder_.dispose();
         nextAttemptAtBuilder_ = null;
+      }
+      receiptState_ = 0;
+      receiptDetail_ = "";
+      receiptErrorCode_ = 0;
+      receiptAt_ = null;
+      if (receiptAtBuilder_ != null) {
+        receiptAtBuilder_.dispose();
+        receiptAtBuilder_ = null;
       }
       return this;
     }
@@ -1204,6 +1435,21 @@ private static final long serialVersionUID = 0L;
             : nextAttemptAtBuilder_.build();
         to_bitField0_ |= 0x00000008;
       }
+      if (((from_bitField0_ & 0x00008000) != 0)) {
+        result.receiptState_ = receiptState_;
+      }
+      if (((from_bitField0_ & 0x00010000) != 0)) {
+        result.receiptDetail_ = receiptDetail_;
+      }
+      if (((from_bitField0_ & 0x00020000) != 0)) {
+        result.receiptErrorCode_ = receiptErrorCode_;
+      }
+      if (((from_bitField0_ & 0x00040000) != 0)) {
+        result.receiptAt_ = receiptAtBuilder_ == null
+            ? receiptAt_
+            : receiptAtBuilder_.build();
+        to_bitField0_ |= 0x00000010;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1279,6 +1525,20 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasNextAttemptAt()) {
         mergeNextAttemptAt(other.getNextAttemptAt());
+      }
+      if (other.receiptState_ != 0) {
+        setReceiptStateValue(other.getReceiptStateValue());
+      }
+      if (!other.getReceiptDetail().isEmpty()) {
+        receiptDetail_ = other.receiptDetail_;
+        bitField0_ |= 0x00010000;
+        onChanged();
+      }
+      if (other.getReceiptErrorCode() != 0) {
+        setReceiptErrorCode(other.getReceiptErrorCode());
+      }
+      if (other.hasReceiptAt()) {
+        mergeReceiptAt(other.getReceiptAt());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1389,6 +1649,28 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00004000;
               break;
             } // case 122
+            case 128: {
+              receiptState_ = input.readEnum();
+              bitField0_ |= 0x00008000;
+              break;
+            } // case 128
+            case 138: {
+              receiptDetail_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00010000;
+              break;
+            } // case 138
+            case 144: {
+              receiptErrorCode_ = input.readInt32();
+              bitField0_ |= 0x00020000;
+              break;
+            } // case 144
+            case 154: {
+              input.readMessage(
+                  internalGetReceiptAtFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00040000;
+              break;
+            } // case 154
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2436,8 +2718,11 @@ private static final long serialVersionUID = 0L;
      * Provider message id once the provider accepted (WhatsApp: wamid).
      *
      * &#64;internal
-     * Uniquely indexed where present — the DD-002 D10 statuses seam
-     * correlates delivery receipts by this value when it lands (slice 2b).
+     * Uniquely indexed where present — the provider-side identity of this
+     * send, kept for forensics and as the payments-era correlation anchor.
+     * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
+     * wamid lands here only AFTER the provider accepts, while receipts are
+     * correlated by the send-time callback token, which can never miss.
      * </pre>
      *
      * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -2460,8 +2745,11 @@ private static final long serialVersionUID = 0L;
      * Provider message id once the provider accepted (WhatsApp: wamid).
      *
      * &#64;internal
-     * Uniquely indexed where present — the DD-002 D10 statuses seam
-     * correlates delivery receipts by this value when it lands (slice 2b).
+     * Uniquely indexed where present — the provider-side identity of this
+     * send, kept for forensics and as the payments-era correlation anchor.
+     * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
+     * wamid lands here only AFTER the provider accepts, while receipts are
+     * correlated by the send-time callback token, which can never miss.
      * </pre>
      *
      * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -2485,8 +2773,11 @@ private static final long serialVersionUID = 0L;
      * Provider message id once the provider accepted (WhatsApp: wamid).
      *
      * &#64;internal
-     * Uniquely indexed where present — the DD-002 D10 statuses seam
-     * correlates delivery receipts by this value when it lands (slice 2b).
+     * Uniquely indexed where present — the provider-side identity of this
+     * send, kept for forensics and as the payments-era correlation anchor.
+     * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
+     * wamid lands here only AFTER the provider accepts, while receipts are
+     * correlated by the send-time callback token, which can never miss.
      * </pre>
      *
      * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -2506,8 +2797,11 @@ private static final long serialVersionUID = 0L;
      * Provider message id once the provider accepted (WhatsApp: wamid).
      *
      * &#64;internal
-     * Uniquely indexed where present — the DD-002 D10 statuses seam
-     * correlates delivery receipts by this value when it lands (slice 2b).
+     * Uniquely indexed where present — the provider-side identity of this
+     * send, kept for forensics and as the payments-era correlation anchor.
+     * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
+     * wamid lands here only AFTER the provider accepts, while receipts are
+     * correlated by the send-time callback token, which can never miss.
      * </pre>
      *
      * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -2524,8 +2818,11 @@ private static final long serialVersionUID = 0L;
      * Provider message id once the provider accepted (WhatsApp: wamid).
      *
      * &#64;internal
-     * Uniquely indexed where present — the DD-002 D10 statuses seam
-     * correlates delivery receipts by this value when it lands (slice 2b).
+     * Uniquely indexed where present — the provider-side identity of this
+     * send, kept for forensics and as the payments-era correlation anchor.
+     * Receipt correlation deliberately does NOT ride it (DD-016 D2): the
+     * wamid lands here only AFTER the provider accepts, while receipts are
+     * correlated by the send-time callback token, which can never miss.
      * </pre>
      *
      * <code>string provider_message_id = 12 [json_name = "providerMessageId"];</code>
@@ -3011,6 +3308,476 @@ private static final long serialVersionUID = 0L;
         nextAttemptAt_ = null;
       }
       return nextAttemptAtBuilder_;
+    }
+
+    private int receiptState_ = 0;
+    /**
+     * <pre>
+     * The provider's report of what became of the message after it was
+     * accepted — a SECOND axis beside `status`, which tracks the
+     * platform's own send attempt. `status = delivered` means "handed to
+     * the provider"; `receipt_state = receipt_delivered` means "reached
+     * the recipient's device".
+     *
+     * &#64;internal
+     * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
+     * handler, its single writer, advancing monotonically (sent &lt;
+     * delivered &lt; read; failed is sticky-terminal) because Meta delivers
+     * receipts out of order and may skip `delivered` entirely. The stamp
+     * never touches updated_at — that timestamp belongs to the
+     * send-attempt axis.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
+     * @return The enum numeric value on the wire for receiptState.
+     */
+    @java.lang.Override public int getReceiptStateValue() {
+      return receiptState_;
+    }
+    /**
+     * <pre>
+     * The provider's report of what became of the message after it was
+     * accepted — a SECOND axis beside `status`, which tracks the
+     * platform's own send attempt. `status = delivered` means "handed to
+     * the provider"; `receipt_state = receipt_delivered` means "reached
+     * the recipient's device".
+     *
+     * &#64;internal
+     * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
+     * handler, its single writer, advancing monotonically (sent &lt;
+     * delivered &lt; read; failed is sticky-terminal) because Meta delivers
+     * receipts out of order and may skip `delivered` entirely. The stamp
+     * never touches updated_at — that timestamp belongs to the
+     * send-attempt axis.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
+     * @param value The enum numeric value on the wire for receiptState to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setReceiptStateValue(int value) {
+      receiptState_ = value;
+      bitField0_ |= 0x00008000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The provider's report of what became of the message after it was
+     * accepted — a SECOND axis beside `status`, which tracks the
+     * platform's own send attempt. `status = delivered` means "handed to
+     * the provider"; `receipt_state = receipt_delivered` means "reached
+     * the recipient's device".
+     *
+     * &#64;internal
+     * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
+     * handler, its single writer, advancing monotonically (sent &lt;
+     * delivered &lt; read; failed is sticky-terminal) because Meta delivers
+     * receipts out of order and may skip `delivered` entirely. The stamp
+     * never touches updated_at — that timestamp belongs to the
+     * send-attempt axis.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
+     * @return The receiptState.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState getReceiptState() {
+      ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState result = ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState.forNumber(receiptState_);
+      return result == null ? ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * The provider's report of what became of the message after it was
+     * accepted — a SECOND axis beside `status`, which tracks the
+     * platform's own send attempt. `status = delivered` means "handed to
+     * the provider"; `receipt_state = receipt_delivered` means "reached
+     * the recipient's device".
+     *
+     * &#64;internal
+     * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
+     * handler, its single writer, advancing monotonically (sent &lt;
+     * delivered &lt; read; failed is sticky-terminal) because Meta delivers
+     * receipts out of order and may skip `delivered` entirely. The stamp
+     * never touches updated_at — that timestamp belongs to the
+     * send-attempt axis.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
+     * @param value The receiptState to set.
+     * @return This builder for chaining.
+     */
+    public Builder setReceiptState(ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00008000;
+      receiptState_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The provider's report of what became of the message after it was
+     * accepted — a SECOND axis beside `status`, which tracks the
+     * platform's own send attempt. `status = delivered` means "handed to
+     * the provider"; `receipt_state = receipt_delivered` means "reached
+     * the recipient's device".
+     *
+     * &#64;internal
+     * DD-016 D5/D6 (T02 slice 2c). Stamped by the delivery receipt
+     * handler, its single writer, advancing monotonically (sent &lt;
+     * delivered &lt; read; failed is sticky-terminal) because Meta delivers
+     * receipts out of order and may skip `delivered` entirely. The stamp
+     * never touches updated_at — that timestamp belongs to the
+     * send-attempt axis.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState receipt_state = 16 [json_name = "receiptState"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearReceiptState() {
+      bitField0_ = (bitField0_ & ~0x00008000);
+      receiptState_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object receiptDetail_ = "";
+    /**
+     * <pre>
+     * The provider's verbatim explanation when receipt_state is
+     * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+     * details when present). Empty otherwise.
+     *
+     * &#64;internal
+     * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
+     * never pattern-matched; receipt_error_code is the structured twin.
+     * </pre>
+     *
+     * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
+     * @return The receiptDetail.
+     */
+    public java.lang.String getReceiptDetail() {
+      java.lang.Object ref = receiptDetail_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        receiptDetail_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The provider's verbatim explanation when receipt_state is
+     * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+     * details when present). Empty otherwise.
+     *
+     * &#64;internal
+     * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
+     * never pattern-matched; receipt_error_code is the structured twin.
+     * </pre>
+     *
+     * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
+     * @return The bytes for receiptDetail.
+     */
+    public com.google.protobuf.ByteString
+        getReceiptDetailBytes() {
+      java.lang.Object ref = receiptDetail_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        receiptDetail_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The provider's verbatim explanation when receipt_state is
+     * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+     * details when present). Empty otherwise.
+     *
+     * &#64;internal
+     * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
+     * never pattern-matched; receipt_error_code is the structured twin.
+     * </pre>
+     *
+     * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
+     * @param value The receiptDetail to set.
+     * @return This builder for chaining.
+     */
+    public Builder setReceiptDetail(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      receiptDetail_ = value;
+      bitField0_ |= 0x00010000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The provider's verbatim explanation when receipt_state is
+     * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+     * details when present). Empty otherwise.
+     *
+     * &#64;internal
+     * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
+     * never pattern-matched; receipt_error_code is the structured twin.
+     * </pre>
+     *
+     * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearReceiptDetail() {
+      receiptDetail_ = getDefaultInstance().getReceiptDetail();
+      bitField0_ = (bitField0_ & ~0x00010000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The provider's verbatim explanation when receipt_state is
+     * receipt_failed (WhatsApp: the errors[0] title, plus error_data
+     * details when present). Empty otherwise.
+     *
+     * &#64;internal
+     * Provider-owned vocabulary, relayed verbatim (the DD-003 D6 rule) —
+     * never pattern-matched; receipt_error_code is the structured twin.
+     * </pre>
+     *
+     * <code>string receipt_detail = 17 [json_name = "receiptDetail"];</code>
+     * @param value The bytes for receiptDetail to set.
+     * @return This builder for chaining.
+     */
+    public Builder setReceiptDetailBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      receiptDetail_ = value;
+      bitField0_ |= 0x00010000;
+      onChanged();
+      return this;
+    }
+
+    private int receiptErrorCode_ ;
+    /**
+     * <pre>
+     * The provider's numeric error code when receipt_state is
+     * receipt_failed (WhatsApp: errors[0].code, e.g. 131026 "recipient
+     * cannot receive WhatsApp messages"). Zero otherwise.
+     * </pre>
+     *
+     * <code>int32 receipt_error_code = 18 [json_name = "receiptErrorCode"];</code>
+     * @return The receiptErrorCode.
+     */
+    @java.lang.Override
+    public int getReceiptErrorCode() {
+      return receiptErrorCode_;
+    }
+    /**
+     * <pre>
+     * The provider's numeric error code when receipt_state is
+     * receipt_failed (WhatsApp: errors[0].code, e.g. 131026 "recipient
+     * cannot receive WhatsApp messages"). Zero otherwise.
+     * </pre>
+     *
+     * <code>int32 receipt_error_code = 18 [json_name = "receiptErrorCode"];</code>
+     * @param value The receiptErrorCode to set.
+     * @return This builder for chaining.
+     */
+    public Builder setReceiptErrorCode(int value) {
+
+      receiptErrorCode_ = value;
+      bitField0_ |= 0x00020000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The provider's numeric error code when receipt_state is
+     * receipt_failed (WhatsApp: errors[0].code, e.g. 131026 "recipient
+     * cannot receive WhatsApp messages"). Zero otherwise.
+     * </pre>
+     *
+     * <code>int32 receipt_error_code = 18 [json_name = "receiptErrorCode"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearReceiptErrorCode() {
+      bitField0_ = (bitField0_ & ~0x00020000);
+      receiptErrorCode_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.Timestamp receiptAt_;
+    private com.google.protobuf.SingleFieldBuilder<
+        com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> receiptAtBuilder_;
+    /**
+     * <pre>
+     * When the provider reported the latest receipt state (the provider's
+     * own event timestamp, not our processing time).
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp receipt_at = 19 [json_name = "receiptAt"];</code>
+     * @return Whether the receiptAt field is set.
+     */
+    public boolean hasReceiptAt() {
+      return ((bitField0_ & 0x00040000) != 0);
+    }
+    /**
+     * <pre>
+     * When the provider reported the latest receipt state (the provider's
+     * own event timestamp, not our processing time).
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp receipt_at = 19 [json_name = "receiptAt"];</code>
+     * @return The receiptAt.
+     */
+    public com.google.protobuf.Timestamp getReceiptAt() {
+      if (receiptAtBuilder_ == null) {
+        return receiptAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : receiptAt_;
+      } else {
+        return receiptAtBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * When the provider reported the latest receipt state (the provider's
+     * own event timestamp, not our processing time).
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp receipt_at = 19 [json_name = "receiptAt"];</code>
+     */
+    public Builder setReceiptAt(com.google.protobuf.Timestamp value) {
+      if (receiptAtBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        receiptAt_ = value;
+      } else {
+        receiptAtBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00040000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * When the provider reported the latest receipt state (the provider's
+     * own event timestamp, not our processing time).
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp receipt_at = 19 [json_name = "receiptAt"];</code>
+     */
+    public Builder setReceiptAt(
+        com.google.protobuf.Timestamp.Builder builderForValue) {
+      if (receiptAtBuilder_ == null) {
+        receiptAt_ = builderForValue.build();
+      } else {
+        receiptAtBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00040000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * When the provider reported the latest receipt state (the provider's
+     * own event timestamp, not our processing time).
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp receipt_at = 19 [json_name = "receiptAt"];</code>
+     */
+    public Builder mergeReceiptAt(com.google.protobuf.Timestamp value) {
+      if (receiptAtBuilder_ == null) {
+        if (((bitField0_ & 0x00040000) != 0) &&
+          receiptAt_ != null &&
+          receiptAt_ != com.google.protobuf.Timestamp.getDefaultInstance()) {
+          getReceiptAtBuilder().mergeFrom(value);
+        } else {
+          receiptAt_ = value;
+        }
+      } else {
+        receiptAtBuilder_.mergeFrom(value);
+      }
+      if (receiptAt_ != null) {
+        bitField0_ |= 0x00040000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * When the provider reported the latest receipt state (the provider's
+     * own event timestamp, not our processing time).
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp receipt_at = 19 [json_name = "receiptAt"];</code>
+     */
+    public Builder clearReceiptAt() {
+      bitField0_ = (bitField0_ & ~0x00040000);
+      receiptAt_ = null;
+      if (receiptAtBuilder_ != null) {
+        receiptAtBuilder_.dispose();
+        receiptAtBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * When the provider reported the latest receipt state (the provider's
+     * own event timestamp, not our processing time).
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp receipt_at = 19 [json_name = "receiptAt"];</code>
+     */
+    public com.google.protobuf.Timestamp.Builder getReceiptAtBuilder() {
+      bitField0_ |= 0x00040000;
+      onChanged();
+      return internalGetReceiptAtFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * When the provider reported the latest receipt state (the provider's
+     * own event timestamp, not our processing time).
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp receipt_at = 19 [json_name = "receiptAt"];</code>
+     */
+    public com.google.protobuf.TimestampOrBuilder getReceiptAtOrBuilder() {
+      if (receiptAtBuilder_ != null) {
+        return receiptAtBuilder_.getMessageOrBuilder();
+      } else {
+        return receiptAt_ == null ?
+            com.google.protobuf.Timestamp.getDefaultInstance() : receiptAt_;
+      }
+    }
+    /**
+     * <pre>
+     * When the provider reported the latest receipt state (the provider's
+     * own event timestamp, not our processing time).
+     * </pre>
+     *
+     * <code>.google.protobuf.Timestamp receipt_at = 19 [json_name = "receiptAt"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder> 
+        internalGetReceiptAtFieldBuilder() {
+      if (receiptAtBuilder_ == null) {
+        receiptAtBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            com.google.protobuf.Timestamp, com.google.protobuf.Timestamp.Builder, com.google.protobuf.TimestampOrBuilder>(
+                getReceiptAt(),
+                getParentForChildren(),
+                isClean());
+        receiptAt_ = null;
+      }
+      return receiptAtBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentchannel.v1.ChannelOutboundMessage)

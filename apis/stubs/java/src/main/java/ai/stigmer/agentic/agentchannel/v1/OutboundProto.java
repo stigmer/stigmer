@@ -45,7 +45,7 @@ public final class OutboundProto extends com.google.protobuf.GeneratedFile {
       "nnel.v1\0321ai/stigmer/agentic/agentchannel" +
       "/v1/delivery.proto\0323ai/stigmer/agentic/a" +
       "gentchannel/v1/message_io.proto\032\037google/" +
-      "protobuf/timestamp.proto\"\213\006\n\026ChannelOutb" +
+      "protobuf/timestamp.proto\"\371\007\n\026ChannelOutb" +
       "oundMessage\022.\n\023outbound_message_id\030\001 \001(\t" +
       "R\021outboundMessageId\022(\n\020agent_channel_id\030" +
       "\002 \001(\tR\016agentChannelId\022\020\n\003org\030\003 \001(\tR\003org\022" +
@@ -65,14 +65,24 @@ public final class OutboundProto extends com.google.protobuf.GeneratedFile {
       "9\n\nupdated_at\030\016 \001(\0132\032.google.protobuf.Ti" +
       "mestampR\tupdatedAt\022B\n\017next_attempt_at\030\017 " +
       "\001(\0132\032.google.protobuf.TimestampR\rnextAtt" +
-      "emptAt*h\n\025ChannelOutboundOrigin\022\'\n#chann" +
-      "el_outbound_origin_unspecified\020\000\022\030\n\024chan" +
-      "nel_conversation\020\001\022\014\n\010operator\020\002B\274\001B\rOut" +
-      "boundProtoP\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agentic" +
-      ".Agentchannel.V1\312\002\"Ai\\Stigmer\\Agentic\\Ag" +
-      "entchannel\\V1\342\002.Ai\\Stigmer\\Agentic\\Agent" +
-      "channel\\V1\\GPBMetadata\352\002&Ai::Stigmer::Ag" +
-      "entic::Agentchannel::V1b\006proto3"
+      "emptAt\022\\\n\rreceipt_state\030\020 \001(\01627.ai.stigm" +
+      "er.agentic.agentchannel.v1.ChannelReceip" +
+      "tStateR\014receiptState\022%\n\016receipt_detail\030\021" +
+      " \001(\tR\rreceiptDetail\022,\n\022receipt_error_cod" +
+      "e\030\022 \001(\005R\020receiptErrorCode\0229\n\nreceipt_at\030" +
+      "\023 \001(\0132\032.google.protobuf.TimestampR\trecei" +
+      "ptAt*\203\001\n\023ChannelReceiptState\022\035\n\031receipt_" +
+      "state_unspecified\020\000\022\020\n\014receipt_sent\020\001\022\025\n" +
+      "\021receipt_delivered\020\002\022\020\n\014receipt_read\020\003\022\022" +
+      "\n\016receipt_failed\020\004*h\n\025ChannelOutboundOri" +
+      "gin\022\'\n#channel_outbound_origin_unspecifi" +
+      "ed\020\000\022\030\n\024channel_conversation\020\001\022\014\n\010operat" +
+      "or\020\002B\274\001B\rOutboundProtoP\001\242\002\004ASAA\252\002\"Ai.Sti" +
+      "gmer.Agentic.Agentchannel.V1\312\002\"Ai\\Stigme" +
+      "r\\Agentic\\Agentchannel\\V1\342\002.Ai\\Stigmer\\A" +
+      "gentic\\Agentchannel\\V1\\GPBMetadata\352\002&Ai:" +
+      ":Stigmer::Agentic::Agentchannel::V1b\006pro" +
+      "to3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -86,7 +96,7 @@ public final class OutboundProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentchannel_v1_ChannelOutboundMessage_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_ChannelOutboundMessage_descriptor,
-        new java.lang.String[] { "OutboundMessageId", "AgentChannelId", "Org", "SessionId", "Origin", "Recipient", "Payload", "Status", "Attempts", "LastError", "IdempotencyKey", "ProviderMessageId", "CreatedAt", "UpdatedAt", "NextAttemptAt", });
+        new java.lang.String[] { "OutboundMessageId", "AgentChannelId", "Org", "SessionId", "Origin", "Recipient", "Payload", "Status", "Attempts", "LastError", "IdempotencyKey", "ProviderMessageId", "CreatedAt", "UpdatedAt", "NextAttemptAt", "ReceiptState", "ReceiptDetail", "ReceiptErrorCode", "ReceiptAt", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentchannel.v1.DeliveryProto.getDescriptor();
     ai.stigmer.agentic.agentchannel.v1.MessageIoProto.getDescriptor();

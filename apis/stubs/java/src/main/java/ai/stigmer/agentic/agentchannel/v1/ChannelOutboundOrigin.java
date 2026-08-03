@@ -145,7 +145,7 @@ public enum ChannelOutboundOrigin
   }
   public static com.google.protobuf.Descriptors.EnumDescriptor
       getDescriptor() {
-    return ai.stigmer.agentic.agentchannel.v1.OutboundProto.getDescriptor().getEnumType(0);
+    return ai.stigmer.agentic.agentchannel.v1.OutboundProto.getDescriptor().getEnumType(1);
   }
 
   private static final ChannelOutboundOrigin[] VALUES = values();
