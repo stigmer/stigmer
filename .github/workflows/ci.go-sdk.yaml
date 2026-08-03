@@ -1,0 +1,79 @@
+# =============================================================================
+# Go SDK quality gate: sdk/go
+# =============================================================================
+# The Go-SDK counterpart of ci.java-sdk: the only CI that compiles sdk/go
+# before it ships inside release artifacts (release.cli and release.desktop
+# tar up sdk/go/internal/gen without ever compiling it). It exists because a
+# generated file containing a type error (schedule.go's oneof
+# ApiResourceReference member, 2026-08-03) reached main uncompiled — no
+# workflow built sdk/go, so `make check-go` was red on every developer
+# machine while CI stayed green.
+#
+# Two gates, one job:
+#   - freshness — regenerates the SDK client code (Stage 2, schemas are
+#     committed) and fails if the committed copy differs, so stale or
+#     hand-edited generated code fails here rather than silently drifting
+#     from the generator.
+#   - build + vet + test — compiles the whole module, so any codegen output
+#     that cannot compile fails pre-merge instead of at release time.
+# =============================================================================
+
+name: ci.go-sdk
+
+on:
+  pull_request:
+    paths:
+      - "apis/**"
+      - "sdk/go/**"
+      - "tools/codegen/**"
+      - ".github/workflows/ci.go-sdk.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "apis/**"
+      - "sdk/go/**"
+      - "tools/codegen/**"
+      - ".github/workflows/ci.go-sdk.yaml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-go-sdk-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  go-sdk:
+    name: codegen freshness / build / test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: |
+            sdk/go/go.sum
+            tools/go.sum
+
+      # Stage 2 only: proto stubs and JSON schemas are committed; the client
+      # generator is a pure function of tools/codegen/schemas.
+      - name: Generate SDK client code
+        run: make -C sdk/go codegen-clients
+
+      - name: Verify committed generated code is fresh
+        run: git diff --exit-code sdk/go/internal/gen
+
+      - name: Build, vet, and test
+        working-directory: sdk/go
+        run: |
+          go build ./...
+          go vet ./...
+          go test ./... -count=1
+
+      - name: Run the client generator's own tests
+        working-directory: tools
+        run: go test ./codegen/generator/... -count=1

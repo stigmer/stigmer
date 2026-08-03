@@ -1073,8 +1073,13 @@ func emitToProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap m
 // Member fields are copied directly (scalars, enums, maps). A member field in
 // a synthetic oneof (proto3 optional, group "_<field>") maps to a pointer on
 // the proto struct: the zero value is left absent (proto presence semantics)
-// and any other value is set via a pointer. Message-typed member fields are
-// not supported — no current schema has one.
+// and any other value is set via a pointer. An ApiResourceReference member
+// converts through ResourceRef.toProto() with the schema's referenceKind
+// stamped, mirroring the spec-level and nested-message handling — a direct
+// copy would not compile (ResourceRef vs *apiresource.ApiResourceReference;
+// Schedule's AgentTarget.agent_ref was the first schema to hit this).
+// Other message-typed member fields remain unsupported — no current schema
+// has one, and one would fail compilation rather than silently misconvert.
 func emitOneofMemberToProto(buf *bytes.Buffer, f *FieldSchema, alias, containerMsg, dst string, typeMap map[string]*TypeSchema) {
 	protoField := goProtoFieldName(f.ProtoField)
 	oneofWrapper := containerMsg + "_" + protoField
@@ -1107,6 +1112,20 @@ func emitOneofMemberToProto(buf *bytes.Buffer, f *FieldSchema, alias, containerM
 			fmt.Fprintf(buf, "\t\tif i.%s.%s != %s {\n", f.Name, field.Name, zero)
 			fmt.Fprintf(buf, "\t\t\tv := i.%s.%s\n", f.Name, field.Name)
 			fmt.Fprintf(buf, "\t\t\tm.%s = &v\n", pf)
+			buf.WriteString("\t\t}\n")
+			continue
+		}
+		if field.Type.Kind == "message" && field.Type.MessageType == "ApiResourceReference" {
+			fmt.Fprintf(buf, "\t\tif i.%s.%s.Org != \"\" || i.%s.%s.Slug != \"\" {\n",
+				f.Name, field.Name, f.Name, field.Name)
+			if field.ReferenceKind != 0 {
+				enumName := apiResourceKindEnumNames[field.ReferenceKind]
+				fmt.Fprintf(buf, "\t\t\tref := i.%s.%s.toProto()\n", f.Name, field.Name)
+				fmt.Fprintf(buf, "\t\t\tref.Kind = apiresourcekind.ApiResourceKind_%s\n", enumName)
+				fmt.Fprintf(buf, "\t\t\tm.%s = ref\n", pf)
+			} else {
+				fmt.Fprintf(buf, "\t\t\tm.%s = i.%s.%s.toProto()\n", pf, f.Name, field.Name)
+			}
 			buf.WriteString("\t\t}\n")
 			continue
 		}
@@ -1454,6 +1473,14 @@ func emitFromProtoOneof(buf *bytes.Buffer, fields []*FieldSchema, alias string, 
 		fmt.Fprintf(buf, "\t\t\tinput.%s = &%sInput{\n", f.Name, msgType)
 		for _, field := range ts.Fields {
 			pf := goProtoFieldName(field.ProtoField)
+			// An ApiResourceReference member maps to a ResourceRef input
+			// field: a raw getter would not compile (the schedule
+			// AgentTarget.agent_ref regression). Mirrors the nested and
+			// spec-level fromProto handling.
+			if field.Type.Kind == "message" && field.Type.MessageType == "ApiResourceReference" {
+				fmt.Fprintf(buf, "\t\t\t\t%s: resourceRefFromProto(ov.Get%s()),\n", field.Name, pf)
+				continue
+			}
 			fmt.Fprintf(buf, "\t\t\t\t%s: ov.Get%s(),\n", field.Name, pf)
 		}
 		buf.WriteString("\t\t\t}\n\t\t}\n")

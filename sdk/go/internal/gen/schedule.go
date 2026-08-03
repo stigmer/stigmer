@@ -112,7 +112,11 @@ func (i *ScheduleInput) toProto() *schedulev1.Schedule {
 	resource.Spec.Enabled = i.Enabled
 	if i.Agent != nil {
 		m := &schedulev1.AgentTarget{}
-		m.AgentRef = i.Agent.AgentRef
+		if i.Agent.AgentRef.Org != "" || i.Agent.AgentRef.Slug != "" {
+			ref := i.Agent.AgentRef.toProto()
+			ref.Kind = apiresourcekind.ApiResourceKind_agent
+			m.AgentRef = ref
+		}
 		m.Message = i.Agent.Message
 		resource.Spec.Target = &schedulev1.ScheduleSpec_Agent{Agent: m}
 	}
@@ -138,7 +142,7 @@ func ScheduleInputFromProto(p *schedulev1.Schedule) *ScheduleInput {
 		input.Enabled = s.GetEnabled()
 		if ov := s.GetAgent(); ov != nil {
 			input.Agent = &AgentTargetInput{
-				AgentRef: ov.GetAgentRef(),
+				AgentRef: resourceRefFromProto(ov.GetAgentRef()),
 				Message:  ov.GetMessage(),
 			}
 		}
