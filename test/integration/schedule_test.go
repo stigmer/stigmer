@@ -514,6 +514,14 @@ func TestSchedule_RunLifecycle(t *testing.T) {
 
 	// ── 4. A second trigger CAN mint a second run (a new nominal time is
 	// a new fire — idempotency is per fire, never per schedule) ──
+	// The nominal time is second-granular (it IS the idempotency key), so
+	// a trigger landing in the SAME wall second as the first fire would
+	// dedupe into the first execution and the pointer would never advance.
+	// Wait out the first fire's second before triggering again.
+	firstFireSecond := fetched.GetStatus().GetLastFireAt().AsTime().Truncate(time.Second)
+	if wait := time.Until(firstFireSecond.Add(1200 * time.Millisecond)); wait > 0 {
+		time.Sleep(wait)
+	}
 	require.NoError(t, inspector.TriggerArtifact(ctx, scheduleID))
 	require.Eventually(t, func() bool {
 		got, getErr := clients.ScheduleQuery.Get(ctx,
