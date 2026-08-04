@@ -38,6 +38,16 @@ export interface UseWorkflowExecutionListOptions {
    */
   readonly workflowId?: string | null;
   /**
+   * Organization slug to scope the cross-workflow listing to. Applies only
+   * to the `list()` branch (no `workflowId`); ignored by `listByWorkflow()`,
+   * which is already scoped by the workflow itself.
+   *
+   * When omitted, results are bounded only by the caller's view permissions —
+   * for a member of several organizations that spans all of them. Console
+   * pages should always pass the active org.
+   */
+  readonly org?: string | null;
+  /**
    * Server-side filter criteria. When set, the backend filters
    * before returning results, reducing transfer size.
    *
@@ -110,6 +120,7 @@ export function useWorkflowExecutionList(
   const pageSize = options?.pageSize ?? 20;
   const pageToken = options?.pageToken ?? "";
   const workflowId = options?.workflowId ?? null;
+  const org = options?.org ?? "";
   const fetchFn = async () => {
     if (workflowId) {
       const resp = await stigmer.workflowExecution.listByWorkflow(
@@ -122,7 +133,7 @@ export function useWorkflowExecutionList(
     }
 
     const resp = await stigmer.workflowExecution.list(
-      create(ListWorkflowExecutionsRequestSchema, { pageSize, pageToken }),
+      create(ListWorkflowExecutionsRequestSchema, { pageSize, pageToken, org }),
     );
     return {
       executions: [...resp.entries],
@@ -138,7 +149,7 @@ export function useWorkflowExecutionList(
     refetch,
   } = useFetch<ExecutionListData>(
     fetchFn,
-    [stigmer, workflowId, pageSize, pageToken],
+    [stigmer, workflowId, org, pageSize, pageToken],
     INITIAL_DATA,
   );
 

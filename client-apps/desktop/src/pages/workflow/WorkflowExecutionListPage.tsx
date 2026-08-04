@@ -1,12 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import { Activity } from "lucide-react";
-import { WorkflowExecutionPhaseBadge, useWorkflowExecutionList } from "@stigmer/react";
+import {
+  WorkflowExecutionPhaseBadge,
+  useActiveOrgSlug,
+  useWorkflowExecutionList,
+} from "@stigmer/react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 
 export default function WorkflowExecutionListPage() {
   const navigate = useNavigate();
+  const org = useActiveOrgSlug();
   const { executions, isLoading, error } = useWorkflowExecutionList({
     pageSize: 50,
+    org,
   });
 
   return (

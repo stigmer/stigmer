@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
-import { FetchCacheProvider, useResolveAgentExecutionSession } from "@stigmer/react";
+import { useResolveAgentExecutionSession } from "@stigmer/react";
 import { Button } from "@/domain/_shared/ui/button";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
 import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
@@ -59,8 +59,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // The fetch cache lives in Providers.tsx (above OrgProvider) so an org
+  // switch clears it — see the provider composition doc there.
   return (
-    <FetchCacheProvider>
+    <>
       {/* eslint-disable-next-line stigmer/no-main-tokens-in-sidebar -- app shell wraps both sidebar and main content */}
       <div className="bg-background text-foreground flex h-screen">
         {/* Mobile backdrop */}
@@ -127,7 +129,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </main>
       </div>
-    </FetchCacheProvider>
+    </>
   );
 }
 

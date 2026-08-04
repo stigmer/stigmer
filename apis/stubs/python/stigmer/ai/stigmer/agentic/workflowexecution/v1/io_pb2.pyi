@@ -64,7 +64,7 @@ class WorkflowExecutionList(_message.Message):
     def __init__(self, total_pages: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[_api_pb2.WorkflowExecution, _Mapping]]] = ...) -> None: ...
 
 class ListWorkflowExecutionsRequest(_message.Message):
-    __slots__ = ("page_size", "page_token", "phase", "tags", "filter", "sort_field", "sort_ascending")
+    __slots__ = ("page_size", "page_token", "phase", "tags", "filter", "sort_field", "sort_ascending", "org")
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     PHASE_FIELD_NUMBER: _ClassVar[int]
@@ -72,6 +72,7 @@ class ListWorkflowExecutionsRequest(_message.Message):
     FILTER_FIELD_NUMBER: _ClassVar[int]
     SORT_FIELD_FIELD_NUMBER: _ClassVar[int]
     SORT_ASCENDING_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     page_size: int
     page_token: str
     phase: _enum_pb2_1.ExecutionPhase
@@ -79,7 +80,8 @@ class ListWorkflowExecutionsRequest(_message.Message):
     filter: ExecutionFilterCriteria
     sort_field: ExecutionSortField
     sort_ascending: bool
-    def __init__(self, page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., phase: _Optional[_Union[_enum_pb2_1.ExecutionPhase, str]] = ..., tags: _Optional[_Iterable[str]] = ..., filter: _Optional[_Union[ExecutionFilterCriteria, _Mapping]] = ..., sort_field: _Optional[_Union[ExecutionSortField, str]] = ..., sort_ascending: bool = ...) -> None: ...
+    org: str
+    def __init__(self, page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., phase: _Optional[_Union[_enum_pb2_1.ExecutionPhase, str]] = ..., tags: _Optional[_Iterable[str]] = ..., filter: _Optional[_Union[ExecutionFilterCriteria, _Mapping]] = ..., sort_field: _Optional[_Union[ExecutionSortField, str]] = ..., sort_ascending: bool = ..., org: _Optional[str] = ...) -> None: ...
 
 class ListWorkflowExecutionsByWorkflowRequest(_message.Message):
     __slots__ = ("workflow_id", "page_size", "page_token", "filter", "sort_field", "sort_ascending")

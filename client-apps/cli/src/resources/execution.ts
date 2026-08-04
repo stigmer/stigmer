@@ -124,15 +124,29 @@ export async function getExecution(client: Stigmer, id: string): Promise<Resourc
   return { schema: WorkflowExecutionSchema, message: await client.workflowExecution.get(id) };
 }
 
-/** List agent executions for the current context, paginated by `limit`. */
-export async function listAgentExecutions(client: Stigmer, limit: number): Promise<ResourceResult> {
-  const message = await client.agentExecution.list(create(ListAgentExecutionsRequestSchema, { pageSize: limit }));
+/**
+ * List agent executions for the current context, paginated by `limit`.
+ *
+ * `org` scopes results to that organization; empty means permission-bounded
+ * (all orgs the caller can view — the OSS single-tenant behavior).
+ */
+export async function listAgentExecutions(client: Stigmer, limit: number, org = ""): Promise<ResourceResult> {
+  const message = await client.agentExecution.list(
+    create(ListAgentExecutionsRequestSchema, { pageSize: limit, org }),
+  );
   return { schema: AgentExecutionListSchema, message };
 }
 
-/** List workflow executions for the current context, paginated by `limit`. */
-export async function listWorkflowExecutions(client: Stigmer, limit: number): Promise<ResourceResult> {
-  const message = await client.workflowExecution.list(create(ListWorkflowExecutionsRequestSchema, { pageSize: limit }));
+/**
+ * List workflow executions for the current context, paginated by `limit`.
+ *
+ * `org` scopes results to that organization; empty means permission-bounded
+ * (all orgs the caller can view — the OSS single-tenant behavior).
+ */
+export async function listWorkflowExecutions(client: Stigmer, limit: number, org = ""): Promise<ResourceResult> {
+  const message = await client.workflowExecution.list(
+    create(ListWorkflowExecutionsRequestSchema, { pageSize: limit, org }),
+  );
   return { schema: WorkflowExecutionListSchema, message };
 }
 

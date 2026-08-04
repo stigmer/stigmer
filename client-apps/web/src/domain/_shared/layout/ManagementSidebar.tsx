@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { SettingsSidebar, useSettingsNavGroups } from "@stigmer/react";
 import type { SidebarLinkRenderProps } from "@stigmer/react";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
@@ -18,6 +18,7 @@ import { useSidebarOpen } from "./use-layout-state";
 export function ManagementSidebar() {
   const sidebar = useSidebarOpen();
   const pathname = usePathname();
+  const router = useRouter();
   const { lastSessionZonePath } = useSessionNavigation();
   const navGroups = useSettingsNavGroups();
 
@@ -35,6 +36,14 @@ export function ManagementSidebar() {
     [],
   );
 
+  // Org switch leaves the settings zone: settings pages render the previous
+  // org's data (members, API keys, billing). Dashboard is the org-neutral
+  // landing; the SDK's OrgProvider clears the fetch cache. Mirrors the
+  // workspace sidebar and desktop (DD-016).
+  const handleOrgChanged = useCallback(() => {
+    router.push("/dashboard");
+  }, [router]);
+
   return (
     <SettingsSidebar
       groups={navGroups}
@@ -44,6 +53,7 @@ export function ManagementSidebar() {
       footer={<UserMenu />}
       isOpen={sidebar.isOpen}
       onCollapse={sidebar.close}
+      onOrgChanged={handleOrgChanged}
     />
   );
 }

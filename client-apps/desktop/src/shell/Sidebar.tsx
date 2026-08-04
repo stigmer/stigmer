@@ -125,7 +125,12 @@ export function Sidebar() {
       ) : null,
     [backgroundSessionIds],
   );
-  const handleOrgChanged = useCallback(() => navigate("/"), [navigate]);
+  // Org switch is a full context change: navigate to the org-neutral
+  // Dashboard (matching web, DD-016). The SDK's OrgProvider clears the fetch
+  // cache. Landing on "/dashboard" (not "/") also overwrites the persisted
+  // stigmer:lastRoute — the route persister skips "/" — so the previous
+  // org's deep link can't be restored on next launch.
+  const handleOrgChanged = useCallback(() => navigate("/dashboard"), [navigate]);
 
   return (
     <WorkspaceSidebar

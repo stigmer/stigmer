@@ -40,6 +40,20 @@ message ListAgentExecutionsRequest {
 
   // Filter by tags (optional).
   repeated string tags = 4;
+
+  // Organization slug to scope the results to.
+  //
+  // When set, only executions whose metadata.org matches are returned — the
+  // org-context view a console tab needs. When empty, results are bounded
+  // only by the caller's view permissions, which for a member of several
+  // organizations spans all of them.
+  //
+  // @internal
+  // Optional by design: pre-existing callers rely on the permission-bounded
+  // behavior, and the OSS single-user edition treats org filtering as a
+  // no-op. Filtering happens in the query/list step of each edition's
+  // handler, never client-side.
+  string org = 5;
 }
 
 // ListAgentExecutionsBySessionRequest lists all executions in a session.

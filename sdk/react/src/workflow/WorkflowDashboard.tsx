@@ -82,6 +82,7 @@ export const WorkflowDashboard = memo(function WorkflowDashboard({
               create(ListWorkflowExecutionsRequestSchema, {
                 pageSize: 5,
                 phase: ExecutionPhase.EXECUTION_FAILED,
+                org,
               }),
             );
             return [...resp.entries] as readonly WorkflowExecution[];

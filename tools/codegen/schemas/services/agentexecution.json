@@ -696,6 +696,16 @@
           },
           "description": "Filter by tags (optional).",
           "required": false
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug to scope the results to.\n\n When set, only executions whose metadata.org matches are returned — the\n org-context view a console tab needs. When empty, results are bounded\n only by the caller's view permissions, which for a member of several\n organizations spans all of them.\n\n @internal\n Optional by design: pre-existing callers rely on the permission-bounded\n behavior, and the OSS single-user edition treats org filtering as a\n no-op. Filtering happens in the query/list step of each edition's\n handler, never client-side.",
+          "required": false
         }
       ]
     },

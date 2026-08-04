@@ -26,7 +26,9 @@ const (
 // 4. BuildResponse - Build final AgentExecutionList response
 //
 // Note: For OSS (local single-user), we return all executions without authorization.
-// Pagination and filtering can be added later as needed.
+// The request's `org` field is deliberately a no-op here — the local edition is
+// single-tenant, so org scoping (added for the cloud dashboard's org-context views)
+// has nothing to narrow. Pagination and filtering can be added later as needed.
 func (c *AgentExecutionController) List(ctx context.Context, req *agentexecutionv1.ListAgentExecutionsRequest) (*agentexecutionv1.AgentExecutionList, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, req)
 

@@ -48,6 +48,7 @@ export function useDashboardFailedRuns(
               create(ListAgentExecutionsRequestSchema, {
                 pageSize: PAGE_SIZE,
                 phase: AgentPhase.EXECUTION_FAILED,
+                org: orgVal,
               }),
             );
             return [...resp.entries] as readonly AgentExecution[];
@@ -64,6 +65,7 @@ export function useDashboardFailedRuns(
               create(ListWorkflowExecutionsRequestSchema, {
                 pageSize: PAGE_SIZE,
                 phase: WorkflowPhase.EXECUTION_FAILED,
+                org: orgVal,
               }),
             );
             return [...resp.entries] as readonly WorkflowExecution[];

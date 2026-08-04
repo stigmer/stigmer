@@ -2,7 +2,7 @@
 
 import { type MouseEvent, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useRecentActivity, WorkspaceSidebar } from "@stigmer/react";
 import type { SidebarLinkRenderProps, WorkspaceNavId } from "@stigmer/react";
 import { useSessionNavigation } from "@/domain/session/session-navigation";
@@ -27,6 +27,7 @@ function isPlainClick(e: MouseEvent): boolean {
 export function Sidebar() {
   const sidebar = useSidebarOpen();
   const pathname = usePathname();
+  const router = useRouter();
   const recentActivity = useRecentActivity();
   const { refetch, prependOptimistic } = recentActivity;
   const { activeSessionId, isSessionZone, navigateToSession, navigateToHome } =
@@ -43,6 +44,15 @@ export function Sidebar() {
     : isLibraryActive
       ? "library"
       : null;
+
+  // Org switch is a full context change: whatever page is open belongs to
+  // the previous org's view (detail pages are keyed on the URL org, not the
+  // active org, so they would otherwise keep rendering stale content).
+  // Dashboard is the org-neutral landing; the SDK's OrgProvider clears the
+  // fetch cache. Mirrors desktop's handler (DD-016).
+  const handleOrgChanged = useCallback(() => {
+    router.push("/dashboard");
+  }, [router]);
 
   const entriesRef = useRef(recentActivity.entries);
   useEffect(() => {
@@ -143,6 +153,7 @@ export function Sidebar() {
       footer={<UserMenu />}
       isOpen={sidebar.isOpen}
       onCollapse={sidebar.close}
+      onOrgChanged={handleOrgChanged}
     />
   );
 }

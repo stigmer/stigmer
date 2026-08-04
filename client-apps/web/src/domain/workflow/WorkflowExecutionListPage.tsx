@@ -1,14 +1,20 @@
 "use client";
 
 import { Activity } from "lucide-react";
-import { WorkflowExecutionPhaseBadge, useWorkflowExecutionList } from "@stigmer/react";
+import {
+  WorkflowExecutionPhaseBadge,
+  useActiveOrgSlug,
+  useWorkflowExecutionList,
+} from "@stigmer/react";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useExecutionNavigation } from "@/domain/workflow/execution-navigation";
 
 export function WorkflowExecutionListPage() {
   const { navigateToExecution } = useExecutionNavigation();
+  const org = useActiveOrgSlug();
   const { executions, isLoading, error } = useWorkflowExecutionList({
     pageSize: 50,
+    org,
   });
 
   return (

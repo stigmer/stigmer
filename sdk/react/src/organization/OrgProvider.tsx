@@ -12,6 +12,7 @@ import {
 } from "react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useStigmer } from "../hooks.js";
+import { useFetchCache } from "../internal/FetchCacheProvider.js";
 
 /** Value exposed by {@link OrgProvider} via {@link useOrg}. */
 export interface OrgContextValue {
@@ -63,19 +64,27 @@ function persistSlug(slug: string): void {
  * organization selection, and persists the choice to `localStorage`
  * under the key `stigmer:activeOrgSlug`.
  *
- * Must be rendered inside a {@link StigmerProvider}.
+ * Must be rendered inside a {@link StigmerProvider}. Mount it BELOW
+ * `FetchCacheProvider` (when one is used): switching the active org clears
+ * the nearest fetch cache, so view state cached under the previous org
+ * context — session and execution entries are keyed by id, not org — can
+ * never bleed into the new one. Navigation on switch stays the host's
+ * responsibility via `OrgSwitcher`'s `onOrgChanged` callback.
  *
  * @example
  * ```tsx
  * <StigmerProvider client={client}>
- *   <OrgProvider>
- *     <App />
- *   </OrgProvider>
+ *   <FetchCacheProvider>
+ *     <OrgProvider>
+ *       <App />
+ *     </OrgProvider>
+ *   </FetchCacheProvider>
  * </StigmerProvider>
  * ```
  */
 export function OrgProvider({ children }: { children: ReactNode }) {
   const stigmer = useStigmer();
+  const fetchCache = useFetchCache();
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [activeOrg, setActiveOrgState] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -139,6 +148,22 @@ export function OrgProvider({ children }: { children: ReactNode }) {
       persistSlug(org.metadata.slug);
     }
   }, []);
+
+  // Org-switch invariant: view state cached under one org context must not
+  // survive into another. Covers every path that changes the active org
+  // (explicit switch, post-create refresh) while skipping the initial
+  // restore (previous slug is null). Cache keys for sessions/executions are
+  // id-scoped, not org-scoped, so a TTL'd entry would otherwise outlive the
+  // switch. No-op when no FetchCacheProvider is mounted.
+  const previousSlugRef = useRef<string | null>(null);
+  const activeSlug = activeOrg?.metadata?.slug ?? null;
+  useEffect(() => {
+    const previous = previousSlugRef.current;
+    previousSlugRef.current = activeSlug;
+    if (previous !== null && activeSlug !== null && previous !== activeSlug) {
+      fetchCache?.clear();
+    }
+  }, [activeSlug, fetchCache]);
 
   const value = useMemo<OrgContextValue>(
     () => ({

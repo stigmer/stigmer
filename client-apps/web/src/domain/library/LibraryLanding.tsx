@@ -7,7 +7,6 @@ import { Bot, Database, FileCode2, Plus, Sparkles, Server, Workflow } from "luci
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { getDraftSessionUrl } from "@/domain/session/draft-session";
-import { readPersistedScope } from "@/domain/library/scope-persistence";
 import {
   ApplyManifestDialog,
   useAgentCount,
@@ -85,18 +84,18 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
   },
 ];
 
+// Cards always count in org scope (the hooks' default): the landing presents
+// "your organization's library", so it never inherits the per-list-page Org/All
+// toggle. Inheriting it made each card silently follow whatever scope was last
+// used on its list page — five cards could show five different scopes, and an
+// "All" card counted cross-org public resources. Desktop's landing has always
+// been org-only; this matches it (DD-016).
 function useResourceCounts(org: string | null, refetchToken?: unknown) {
-  const agentScope = readPersistedScope("agents");
-  const workflowScope = readPersistedScope("workflows");
-  const skillScope = readPersistedScope("skills");
-  const mcpScope = readPersistedScope("mcp-servers");
-  const datastoreScope = readPersistedScope("datastores");
-
-  const agents = useAgentCount(org, { scope: agentScope, refetchToken });
-  const workflows = useWorkflowCount(org, { scope: workflowScope, refetchToken });
-  const skills = useSkillCount(org, { scope: skillScope, refetchToken });
-  const mcpServers = useMcpServerCount(org, { scope: mcpScope, refetchToken });
-  const datastores = useDatastoreCount(org, { scope: datastoreScope, refetchToken });
+  const agents = useAgentCount(org, { refetchToken });
+  const workflows = useWorkflowCount(org, { refetchToken });
+  const skills = useSkillCount(org, { refetchToken });
+  const mcpServers = useMcpServerCount(org, { refetchToken });
+  const datastores = useDatastoreCount(org, { refetchToken });
 
   return {
     agents,

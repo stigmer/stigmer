@@ -48,16 +48,18 @@ class AgentExecutionList(_message.Message):
     def __init__(self, total_pages: _Optional[int] = ..., entries: _Optional[_Iterable[_Union[_api_pb2.AgentExecution, _Mapping]]] = ...) -> None: ...
 
 class ListAgentExecutionsRequest(_message.Message):
-    __slots__ = ("page_size", "page_token", "phase", "tags")
+    __slots__ = ("page_size", "page_token", "phase", "tags", "org")
     PAGE_SIZE_FIELD_NUMBER: _ClassVar[int]
     PAGE_TOKEN_FIELD_NUMBER: _ClassVar[int]
     PHASE_FIELD_NUMBER: _ClassVar[int]
     TAGS_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     page_size: int
     page_token: str
     phase: _enum_pb2.ExecutionPhase
     tags: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tags: _Optional[_Iterable[str]] = ...) -> None: ...
+    org: str
+    def __init__(self, page_size: _Optional[int] = ..., page_token: _Optional[str] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tags: _Optional[_Iterable[str]] = ..., org: _Optional[str] = ...) -> None: ...
 
 class ListAgentExecutionsBySessionRequest(_message.Message):
     __slots__ = ("session_id", "page_size", "page_token")

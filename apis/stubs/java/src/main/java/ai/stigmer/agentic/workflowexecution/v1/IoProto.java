@@ -196,7 +196,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n\025WorkflowExecutionList\022\037\n\013total_pages\030\001" +
       " \001(\005R\ntotalPages\022T\n\007entries\030\002 \003(\0132:.ai.s" +
       "tigmer.agentic.workflowexecution.v1.Work" +
-      "flowExecutionR\007entries\"\233\003\n\035ListWorkflowE" +
+      "flowExecutionR\007entries\"\255\003\n\035ListWorkflowE" +
       "xecutionsRequest\022\033\n\tpage_size\030\001 \001(\005R\010pag" +
       "eSize\022\035\n\npage_token\030\002 \001(\tR\tpageToken\022M\n\005" +
       "phase\030\003 \001(\01627.ai.stigmer.agentic.workflo" +
@@ -206,165 +206,165 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "ionFilterCriteriaR\006filter\022Z\n\nsort_field\030" +
       "\006 \001(\0162;.ai.stigmer.agentic.workflowexecu" +
       "tion.v1.ExecutionSortFieldR\tsortField\022%\n" +
-      "\016sort_ascending\030\007 \001(\010R\rsortAscending\"\353\002\n" +
-      "\'ListWorkflowExecutionsByWorkflowRequest" +
-      "\022\'\n\013workflow_id\030\001 \001(\tB\006\272H\003\310\001\001R\nworkflowI" +
-      "d\022\033\n\tpage_size\030\002 \001(\005R\010pageSize\022\035\n\npage_t" +
-      "oken\030\003 \001(\tR\tpageToken\022X\n\006filter\030\004 \001(\0132@." +
-      "ai.stigmer.agentic.workflowexecution.v1." +
-      "ExecutionFilterCriteriaR\006filter\022Z\n\nsort_" +
-      "field\030\005 \001(\0162;.ai.stigmer.agentic.workflo" +
-      "wexecution.v1.ExecutionSortFieldR\tsortFi" +
-      "eld\022%\n\016sort_ascending\030\006 \001(\010R\rsortAscendi" +
-      "ng\"\331\003\n\"WorkflowExecutionUpdateStatusInpu" +
-      "t\022*\n\014execution_id\030\001 \001(\tB\007\272H\004r\002\020\001R\013execut" +
-      "ionId\022`\n\006status\030\002 \001(\0132@.ai.stigmer.agent" +
-      "ic.workflowexecution.v1.WorkflowExecutio" +
-      "nStatusB\006\272H\003\310\001\001R\006status\022W\n\006events\030\n \003(\0132" +
-      "?.ai.stigmer.agentic.workflowexecution.v" +
-      "1.WorkflowExecutionEventR\006events\0228\n\030upda" +
-      "te_pending_approvals\030\013 \001(\010R\026updatePendin" +
-      "gApprovals\022=\n\033update_pending_file_review" +
-      "s\030\014 \001(\010R\030updatePendingFileReviews\022S\n\'pen" +
-      "ding_update_child_agent_execution_id\030\r \001" +
-      "(\tR\"pendingUpdateChildAgentExecutionId\"\350" +
-      "\001\n\033SubmitWorkflowApprovalInput\022*\n\014execut" +
-      "ion_id\030\001 \001(\tB\007\272H\004r\002\020\001R\013executionId\022)\n\014to" +
-      "ol_call_id\030\002 \001(\tB\007\272H\004r\002\020\001R\ntoolCallId\022X\n" +
-      "\006action\030\003 \001(\01624.ai.stigmer.agentic.agent" +
-      "execution.v1.ApprovalActionB\n\272H\007\202\001\004\020\001 \000R" +
-      "\006action\022\030\n\007comment\030\004 \001(\tR\007comment\"\240\004\n\037Su" +
-      "bmitWorkflowFileDecisionInput\022*\n\014executi" +
-      "on_id\030\001 \001(\tB\007\272H\004r\002\020\001R\013executionId\022@\n\030chi" +
-      "ld_agent_execution_id\030\002 \001(\tB\007\272H\004r\002\020\001R\025ch" +
-      "ildAgentExecutionId\022+\n\rchange_set_id\030\003 \001" +
-      "(\tB\007\272H\004r\002\020\001R\013changeSetId\022Y\n\005scope\030\004 \001(\0162" +
-      "7.ai.stigmer.agentic.agentexecution.v1.F" +
-      "ileDecisionScopeB\n\272H\007\202\001\004\020\001 \000R\005scope\022$\n\016f" +
-      "ile_change_id\030\005 \001(\tR\014fileChangeId\022\\\n\006act" +
-      "ion\030\006 \001(\01628.ai.stigmer.agentic.agentexec" +
-      "ution.v1.FileDecisionActionB\n\272H\007\202\001\004\020\001 \000R" +
-      "\006action\0220\n\017expected_digest\030\007 \001(\tB\007\272H\004r\002\020" +
-      "\001R\016expectedDigest\022\026\n\006reason\030\010 \001(\tR\006reaso" +
-      "n\0229\n\030acknowledge_unreviewable\030\t \001(\010R\027ack" +
-      "nowledgeUnreviewable\"\202\002\n\037SubmitWorkflowT" +
-      "askApprovalInput\022*\n\014execution_id\030\001 \001(\tB\007" +
-      "\272H\004r\002\020\001R\013executionId\022$\n\ttask_name\030\002 \001(\tB" +
-      "\007\272H\004r\002\020\001R\010taskName\022!\n\007outcome\030\003 \001(\tB\007\272H\004" +
-      "r\002\020\001R\007outcome\0224\n\tform_data\030\004 \001(\0132\027.googl" +
-      "e.protobuf.StructR\010formData\022\032\n\010reviewer\030" +
-      "\005 \001(\tR\010reviewer\022\030\n\007comment\030\006 \001(\tR\007commen" +
-      "t\"N\n!SubscribeWorkflowExecutionRequest\022)" +
-      "\n\014execution_id\030\001 \001(\tB\006\272H\003\310\001\001R\013executionI" +
-      "d\"O\n\034CancelWorkflowExecutionInput\022\027\n\002id\030" +
-      "\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001(\tR\006reas" +
-      "on\"R\n\037TerminateWorkflowExecutionInput\022\027\n" +
-      "\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001(\tR\006" +
-      "reason\"P\n\035RecoverWorkflowExecutionInput\022" +
-      "\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001(\t" +
-      "R\006reason\"N\n\033PauseWorkflowExecutionInput\022" +
-      "\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006reason\030\002 \001(\t" +
-      "R\006reason\"7\n\034ResumeWorkflowExecutionInput" +
-      "\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\"\303\001\n\017SendSignal" +
-      "Input\022*\n\014execution_id\030\001 \001(\tB\007\272H\004r\002\020\001R\013ex" +
-      "ecutionId\022(\n\013signal_name\030\002 \001(\tB\007\272H\004r\002\020\001R" +
-      "\nsignalName\0221\n\007payload\030\003 \001(\0132\027.google.pr" +
-      "otobuf.StructR\007payload\022\'\n\017idempotency_ke" +
-      "y\030\004 \001(\tR\016idempotencyKey\"\376\001\n\022GetEventLogR" +
-      "equest\022*\n\014execution_id\030\001 \001(\tB\007\272H\004r\002\020\001R\013e" +
-      "xecutionId\022%\n\016after_sequence\030\002 \001(\004R\rafte" +
-      "rSequence\022[\n\013event_types\030\003 \003(\0162:.ai.stig" +
-      "mer.agentic.workflowexecution.v1.Workflo" +
-      "wEventTypeR\neventTypes\022\033\n\ttask_name\030\004 \001(" +
-      "\tR\010taskName\022\033\n\tpage_size\030\005 \001(\005R\010pageSize" +
-      "\"\262\001\n\023GetEventLogResponse\022W\n\006events\030\001 \003(\013" +
-      "2?.ai.stigmer.agentic.workflowexecution." +
-      "v1.WorkflowExecutionEventR\006events\022\031\n\010has" +
-      "_more\030\002 \001(\010R\007hasMore\022\'\n\017latest_sequence\030" +
-      "\003 \001(\004R\016latestSequence\"\310\001\n\026SubscribeEvent" +
-      "sRequest\022*\n\014execution_id\030\001 \001(\tB\007\272H\004r\002\020\001R" +
-      "\013executionId\022%\n\016after_sequence\030\002 \001(\004R\raf" +
-      "terSequence\022[\n\013event_types\030\003 \003(\0162:.ai.st" +
-      "igmer.agentic.workflowexecution.v1.Workf" +
-      "lowEventTypeR\neventTypes\"\205\004\n\027ExecutionFi" +
-      "lterCriteria\022O\n\006phases\030\001 \003(\01627.ai.stigme" +
-      "r.agentic.workflowexecution.v1.Execution" +
-      "PhaseR\006phases\022?\n\rstarted_after\030\002 \001(\0132\032.g" +
-      "oogle.protobuf.TimestampR\014startedAfter\022A" +
-      "\n\016started_before\030\003 \001(\0132\032.google.protobuf" +
-      ".TimestampR\rstartedBefore\022<\n\014min_duratio" +
-      "n\030\004 \001(\0132\031.google.protobuf.DurationR\013minD" +
-      "uration\022<\n\014max_duration\030\005 \001(\0132\031.google.p" +
-      "rotobuf.DurationR\013maxDuration\022&\n\017min_cos" +
-      "t_micros\030\006 \001(\003R\rminCostMicros\022&\n\017max_cos" +
-      "t_micros\030\007 \001(\003R\rmaxCostMicros\022(\n\020failed_" +
-      "task_name\030\010 \001(\tR\016failedTaskName\022\037\n\013has_r" +
-      "etries\030\t \001(\010R\nhasRetries\"\265\001\n\032GetExecutio" +
-      "nSummaryRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003o" +
-      "rg\022[\n\013time_window\030\002 \001(\0162:.ai.stigmer.age" +
-      "ntic.workflowexecution.v1.SummaryTimeWin" +
-      "dowR\ntimeWindow\022\037\n\013workflow_id\030\003 \001(\tR\nwo" +
-      "rkflowId\"\237\005\n\020ExecutionSummary\022!\n\014active_" +
-      "count\030\001 \001(\005R\013activeCount\022m\n\014phase_counts" +
-      "\030\002 \003(\0132J.ai.stigmer.agentic.workflowexec" +
-      "ution.v1.ExecutionSummary.PhaseCountsEnt" +
-      "ryR\013phaseCounts\022[\n\ntotal_cost\030\003 \001(\0132<.ai" +
-      ".stigmer.agentic.workflowexecution.v1.Wo" +
-      "rkflowCostSummaryR\ttotalCost\022<\n\014avg_dura" +
-      "tion\030\004 \001(\0132\031.google.protobuf.DurationR\013a" +
-      "vgDuration\022p\n\025top_failing_workflows\030\005 \003(" +
-      "\0132<.ai.stigmer.agentic.workflowexecution" +
-      ".v1.WorkflowFailureRankR\023topFailingWorkf" +
-      "lows\022h\n\020cost_by_workflow\030\006 \003(\0132>.ai.stig" +
-      "mer.agentic.workflowexecution.v1.Workflo" +
-      "wCostBreakdownR\016costByWorkflow\022\037\n\013total_" +
-      "count\030\007 \001(\005R\ntotalCount\022!\n\014success_rate\030" +
-      "\010 \001(\001R\013successRate\032>\n\020PhaseCountsEntry\022\020" +
-      "\n\003key\030\001 \001(\005R\003key\022\024\n\005value\030\002 \001(\005R\005value:\002" +
-      "8\001\"\231\001\n\023WorkflowCostSummary\022$\n\016total_cost" +
-      "_usd\030\001 \001(\001R\014totalCostUsd\022,\n\022total_input_" +
-      "tokens\030\002 \001(\003R\020totalInputTokens\022.\n\023total_" +
-      "output_tokens\030\003 \001(\003R\021totalOutputTokens\"\204" +
-      "\001\n\023WorkflowFailureRank\022#\n\rworkflow_slug\030" +
-      "\001 \001(\tR\014workflowSlug\022#\n\rworkflow_name\030\002 \001" +
-      "(\tR\014workflowName\022#\n\rfailure_count\030\003 \001(\005R" +
-      "\014failureCount\"\260\001\n\025WorkflowCostBreakdown\022" +
-      "#\n\rworkflow_slug\030\001 \001(\tR\014workflowSlug\022#\n\r" +
-      "workflow_name\030\002 \001(\tR\014workflowName\022$\n\016tot" +
-      "al_cost_usd\030\003 \001(\001R\014totalCostUsd\022\'\n\017execu" +
-      "tion_count\030\004 \001(\005R\016executionCount\"t\n\033List" +
-      "PendingApprovalsRequest\022\031\n\003org\030\001 \001(\tB\007\272H" +
-      "\004r\002\020\001R\003org\022\033\n\tpage_size\030\002 \001(\005R\010pageSize\022" +
-      "\035\n\npage_token\030\003 \001(\tR\tpageToken\"\341\002\n\017Pendi" +
-      "ngApproval\022!\n\014execution_id\030\001 \001(\tR\013execut" +
-      "ionId\022#\n\rworkflow_name\030\002 \001(\tR\014workflowNa" +
-      "me\022\033\n\ttask_name\030\003 \001(\tR\010taskName\022\034\n\treque" +
-      "ster\030\004 \001(\tR\trequester\022=\n\014requested_at\030\005 " +
-      "\001(\0132\032.google.protobuf.TimestampR\013request" +
-      "edAt\0229\n\ntimeout_at\030\006 \001(\0132\032.google.protob" +
-      "uf.TimestampR\ttimeoutAt\0228\n\013form_schema\030\007" +
-      " \001(\0132\027.google.protobuf.StructR\nformSchem" +
-      "a\022\027\n\007ui_hint\030\010 \001(\tR\006uiHint\"\263\001\n\024PendingAp" +
-      "provalsList\022R\n\007entries\030\001 \003(\01328.ai.stigme" +
-      "r.agentic.workflowexecution.v1.PendingAp" +
-      "provalR\007entries\022\037\n\013total_count\030\002 \001(\005R\nto" +
-      "talCount\022&\n\017next_page_token\030\003 \001(\tR\rnextP" +
-      "ageToken*\302\001\n\022ExecutionSortField\022$\n EXECU" +
-      "TION_SORT_FIELD_UNSPECIFIED\020\000\022#\n\037EXECUTI" +
-      "ON_SORT_FIELD_STARTED_AT\020\001\022!\n\035EXECUTION_" +
-      "SORT_FIELD_DURATION\020\002\022\035\n\031EXECUTION_SORT_" +
-      "FIELD_COST\020\003\022\037\n\033EXECUTION_SORT_FIELD_STA" +
-      "TUS\020\004*\277\001\n\021SummaryTimeWindow\022#\n\037SUMMARY_T" +
-      "IME_WINDOW_UNSPECIFIED\020\000\022 \n\034SUMMARY_TIME" +
-      "_WINDOW_LAST_24H\020\001\022\037\n\033SUMMARY_TIME_WINDO" +
-      "W_LAST_7D\020\002\022 \n\034SUMMARY_TIME_WINDOW_LAST_" +
-      "30D\020\003\022 \n\034SUMMARY_TIME_WINDOW_ALL_TIME\020\004B" +
-      "\312\001B\007IoProtoP\001\242\002\004ASAW\252\002\'Ai.Stigmer.Agenti" +
-      "c.Workflowexecution.V1\312\002\'Ai\\Stigmer\\Agen" +
-      "tic\\Workflowexecution\\V1\342\0023Ai\\Stigmer\\Ag" +
-      "entic\\Workflowexecution\\V1\\GPBMetadata\352\002" +
-      "+Ai::Stigmer::Agentic::Workflowexecution" +
-      "::V1b\006proto3"
+      "\016sort_ascending\030\007 \001(\010R\rsortAscending\022\020\n\003" +
+      "org\030\010 \001(\tR\003org\"\353\002\n\'ListWorkflowExecution" +
+      "sByWorkflowRequest\022\'\n\013workflow_id\030\001 \001(\tB" +
+      "\006\272H\003\310\001\001R\nworkflowId\022\033\n\tpage_size\030\002 \001(\005R\010" +
+      "pageSize\022\035\n\npage_token\030\003 \001(\tR\tpageToken\022" +
+      "X\n\006filter\030\004 \001(\0132@.ai.stigmer.agentic.wor" +
+      "kflowexecution.v1.ExecutionFilterCriteri" +
+      "aR\006filter\022Z\n\nsort_field\030\005 \001(\0162;.ai.stigm" +
+      "er.agentic.workflowexecution.v1.Executio" +
+      "nSortFieldR\tsortField\022%\n\016sort_ascending\030" +
+      "\006 \001(\010R\rsortAscending\"\331\003\n\"WorkflowExecuti" +
+      "onUpdateStatusInput\022*\n\014execution_id\030\001 \001(" +
+      "\tB\007\272H\004r\002\020\001R\013executionId\022`\n\006status\030\002 \001(\0132" +
+      "@.ai.stigmer.agentic.workflowexecution.v" +
+      "1.WorkflowExecutionStatusB\006\272H\003\310\001\001R\006statu" +
+      "s\022W\n\006events\030\n \003(\0132?.ai.stigmer.agentic.w" +
+      "orkflowexecution.v1.WorkflowExecutionEve" +
+      "ntR\006events\0228\n\030update_pending_approvals\030\013" +
+      " \001(\010R\026updatePendingApprovals\022=\n\033update_p" +
+      "ending_file_reviews\030\014 \001(\010R\030updatePending" +
+      "FileReviews\022S\n\'pending_update_child_agen" +
+      "t_execution_id\030\r \001(\tR\"pendingUpdateChild" +
+      "AgentExecutionId\"\350\001\n\033SubmitWorkflowAppro" +
+      "valInput\022*\n\014execution_id\030\001 \001(\tB\007\272H\004r\002\020\001R" +
+      "\013executionId\022)\n\014tool_call_id\030\002 \001(\tB\007\272H\004r" +
+      "\002\020\001R\ntoolCallId\022X\n\006action\030\003 \001(\01624.ai.sti" +
+      "gmer.agentic.agentexecution.v1.ApprovalA" +
+      "ctionB\n\272H\007\202\001\004\020\001 \000R\006action\022\030\n\007comment\030\004 \001" +
+      "(\tR\007comment\"\240\004\n\037SubmitWorkflowFileDecisi" +
+      "onInput\022*\n\014execution_id\030\001 \001(\tB\007\272H\004r\002\020\001R\013" +
+      "executionId\022@\n\030child_agent_execution_id\030" +
+      "\002 \001(\tB\007\272H\004r\002\020\001R\025childAgentExecutionId\022+\n" +
+      "\rchange_set_id\030\003 \001(\tB\007\272H\004r\002\020\001R\013changeSet" +
+      "Id\022Y\n\005scope\030\004 \001(\01627.ai.stigmer.agentic.a" +
+      "gentexecution.v1.FileDecisionScopeB\n\272H\007\202" +
+      "\001\004\020\001 \000R\005scope\022$\n\016file_change_id\030\005 \001(\tR\014f" +
+      "ileChangeId\022\\\n\006action\030\006 \001(\01628.ai.stigmer" +
+      ".agentic.agentexecution.v1.FileDecisionA" +
+      "ctionB\n\272H\007\202\001\004\020\001 \000R\006action\0220\n\017expected_di" +
+      "gest\030\007 \001(\tB\007\272H\004r\002\020\001R\016expectedDigest\022\026\n\006r" +
+      "eason\030\010 \001(\tR\006reason\0229\n\030acknowledge_unrev" +
+      "iewable\030\t \001(\010R\027acknowledgeUnreviewable\"\202" +
+      "\002\n\037SubmitWorkflowTaskApprovalInput\022*\n\014ex" +
+      "ecution_id\030\001 \001(\tB\007\272H\004r\002\020\001R\013executionId\022$" +
+      "\n\ttask_name\030\002 \001(\tB\007\272H\004r\002\020\001R\010taskName\022!\n\007" +
+      "outcome\030\003 \001(\tB\007\272H\004r\002\020\001R\007outcome\0224\n\tform_" +
+      "data\030\004 \001(\0132\027.google.protobuf.StructR\010for" +
+      "mData\022\032\n\010reviewer\030\005 \001(\tR\010reviewer\022\030\n\007com" +
+      "ment\030\006 \001(\tR\007comment\"N\n!SubscribeWorkflow" +
+      "ExecutionRequest\022)\n\014execution_id\030\001 \001(\tB\006" +
+      "\272H\003\310\001\001R\013executionId\"O\n\034CancelWorkflowExe" +
+      "cutionInput\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id\022\026\n\006" +
+      "reason\030\002 \001(\tR\006reason\"R\n\037TerminateWorkflo" +
+      "wExecutionInput\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002id" +
+      "\022\026\n\006reason\030\002 \001(\tR\006reason\"P\n\035RecoverWorkf" +
+      "lowExecutionInput\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002" +
+      "id\022\026\n\006reason\030\002 \001(\tR\006reason\"N\n\033PauseWorkf" +
+      "lowExecutionInput\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R\002" +
+      "id\022\026\n\006reason\030\002 \001(\tR\006reason\"7\n\034ResumeWork" +
+      "flowExecutionInput\022\027\n\002id\030\001 \001(\tB\007\272H\004r\002\020\001R" +
+      "\002id\"\303\001\n\017SendSignalInput\022*\n\014execution_id\030" +
+      "\001 \001(\tB\007\272H\004r\002\020\001R\013executionId\022(\n\013signal_na" +
+      "me\030\002 \001(\tB\007\272H\004r\002\020\001R\nsignalName\0221\n\007payload" +
+      "\030\003 \001(\0132\027.google.protobuf.StructR\007payload" +
+      "\022\'\n\017idempotency_key\030\004 \001(\tR\016idempotencyKe" +
+      "y\"\376\001\n\022GetEventLogRequest\022*\n\014execution_id" +
+      "\030\001 \001(\tB\007\272H\004r\002\020\001R\013executionId\022%\n\016after_se" +
+      "quence\030\002 \001(\004R\rafterSequence\022[\n\013event_typ" +
+      "es\030\003 \003(\0162:.ai.stigmer.agentic.workflowex" +
+      "ecution.v1.WorkflowEventTypeR\neventTypes" +
+      "\022\033\n\ttask_name\030\004 \001(\tR\010taskName\022\033\n\tpage_si" +
+      "ze\030\005 \001(\005R\010pageSize\"\262\001\n\023GetEventLogRespon" +
+      "se\022W\n\006events\030\001 \003(\0132?.ai.stigmer.agentic." +
+      "workflowexecution.v1.WorkflowExecutionEv" +
+      "entR\006events\022\031\n\010has_more\030\002 \001(\010R\007hasMore\022\'" +
+      "\n\017latest_sequence\030\003 \001(\004R\016latestSequence\"" +
+      "\310\001\n\026SubscribeEventsRequest\022*\n\014execution_" +
+      "id\030\001 \001(\tB\007\272H\004r\002\020\001R\013executionId\022%\n\016after_" +
+      "sequence\030\002 \001(\004R\rafterSequence\022[\n\013event_t" +
+      "ypes\030\003 \003(\0162:.ai.stigmer.agentic.workflow" +
+      "execution.v1.WorkflowEventTypeR\neventTyp" +
+      "es\"\205\004\n\027ExecutionFilterCriteria\022O\n\006phases" +
+      "\030\001 \003(\01627.ai.stigmer.agentic.workflowexec" +
+      "ution.v1.ExecutionPhaseR\006phases\022?\n\rstart" +
+      "ed_after\030\002 \001(\0132\032.google.protobuf.Timesta" +
+      "mpR\014startedAfter\022A\n\016started_before\030\003 \001(\013" +
+      "2\032.google.protobuf.TimestampR\rstartedBef" +
+      "ore\022<\n\014min_duration\030\004 \001(\0132\031.google.proto" +
+      "buf.DurationR\013minDuration\022<\n\014max_duratio" +
+      "n\030\005 \001(\0132\031.google.protobuf.DurationR\013maxD" +
+      "uration\022&\n\017min_cost_micros\030\006 \001(\003R\rminCos" +
+      "tMicros\022&\n\017max_cost_micros\030\007 \001(\003R\rmaxCos" +
+      "tMicros\022(\n\020failed_task_name\030\010 \001(\tR\016faile" +
+      "dTaskName\022\037\n\013has_retries\030\t \001(\010R\nhasRetri" +
+      "es\"\265\001\n\032GetExecutionSummaryRequest\022\031\n\003org" +
+      "\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022[\n\013time_window\030\002 \001(" +
+      "\0162:.ai.stigmer.agentic.workflowexecution" +
+      ".v1.SummaryTimeWindowR\ntimeWindow\022\037\n\013wor" +
+      "kflow_id\030\003 \001(\tR\nworkflowId\"\237\005\n\020Execution" +
+      "Summary\022!\n\014active_count\030\001 \001(\005R\013activeCou" +
+      "nt\022m\n\014phase_counts\030\002 \003(\0132J.ai.stigmer.ag" +
+      "entic.workflowexecution.v1.ExecutionSumm" +
+      "ary.PhaseCountsEntryR\013phaseCounts\022[\n\ntot" +
+      "al_cost\030\003 \001(\0132<.ai.stigmer.agentic.workf" +
+      "lowexecution.v1.WorkflowCostSummaryR\ttot" +
+      "alCost\022<\n\014avg_duration\030\004 \001(\0132\031.google.pr" +
+      "otobuf.DurationR\013avgDuration\022p\n\025top_fail" +
+      "ing_workflows\030\005 \003(\0132<.ai.stigmer.agentic" +
+      ".workflowexecution.v1.WorkflowFailureRan" +
+      "kR\023topFailingWorkflows\022h\n\020cost_by_workfl" +
+      "ow\030\006 \003(\0132>.ai.stigmer.agentic.workflowex" +
+      "ecution.v1.WorkflowCostBreakdownR\016costBy" +
+      "Workflow\022\037\n\013total_count\030\007 \001(\005R\ntotalCoun" +
+      "t\022!\n\014success_rate\030\010 \001(\001R\013successRate\032>\n\020" +
+      "PhaseCountsEntry\022\020\n\003key\030\001 \001(\005R\003key\022\024\n\005va" +
+      "lue\030\002 \001(\005R\005value:\0028\001\"\231\001\n\023WorkflowCostSum" +
+      "mary\022$\n\016total_cost_usd\030\001 \001(\001R\014totalCostU" +
+      "sd\022,\n\022total_input_tokens\030\002 \001(\003R\020totalInp" +
+      "utTokens\022.\n\023total_output_tokens\030\003 \001(\003R\021t" +
+      "otalOutputTokens\"\204\001\n\023WorkflowFailureRank" +
+      "\022#\n\rworkflow_slug\030\001 \001(\tR\014workflowSlug\022#\n" +
+      "\rworkflow_name\030\002 \001(\tR\014workflowName\022#\n\rfa" +
+      "ilure_count\030\003 \001(\005R\014failureCount\"\260\001\n\025Work" +
+      "flowCostBreakdown\022#\n\rworkflow_slug\030\001 \001(\t" +
+      "R\014workflowSlug\022#\n\rworkflow_name\030\002 \001(\tR\014w" +
+      "orkflowName\022$\n\016total_cost_usd\030\003 \001(\001R\014tot" +
+      "alCostUsd\022\'\n\017execution_count\030\004 \001(\005R\016exec" +
+      "utionCount\"t\n\033ListPendingApprovalsReques" +
+      "t\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003org\022\033\n\tpage_siz" +
+      "e\030\002 \001(\005R\010pageSize\022\035\n\npage_token\030\003 \001(\tR\tp" +
+      "ageToken\"\341\002\n\017PendingApproval\022!\n\014executio" +
+      "n_id\030\001 \001(\tR\013executionId\022#\n\rworkflow_name" +
+      "\030\002 \001(\tR\014workflowName\022\033\n\ttask_name\030\003 \001(\tR" +
+      "\010taskName\022\034\n\trequester\030\004 \001(\tR\trequester\022" +
+      "=\n\014requested_at\030\005 \001(\0132\032.google.protobuf." +
+      "TimestampR\013requestedAt\0229\n\ntimeout_at\030\006 \001" +
+      "(\0132\032.google.protobuf.TimestampR\ttimeoutA" +
+      "t\0228\n\013form_schema\030\007 \001(\0132\027.google.protobuf" +
+      ".StructR\nformSchema\022\027\n\007ui_hint\030\010 \001(\tR\006ui" +
+      "Hint\"\263\001\n\024PendingApprovalsList\022R\n\007entries" +
+      "\030\001 \003(\01328.ai.stigmer.agentic.workflowexec" +
+      "ution.v1.PendingApprovalR\007entries\022\037\n\013tot" +
+      "al_count\030\002 \001(\005R\ntotalCount\022&\n\017next_page_" +
+      "token\030\003 \001(\tR\rnextPageToken*\302\001\n\022Execution" +
+      "SortField\022$\n EXECUTION_SORT_FIELD_UNSPEC" +
+      "IFIED\020\000\022#\n\037EXECUTION_SORT_FIELD_STARTED_" +
+      "AT\020\001\022!\n\035EXECUTION_SORT_FIELD_DURATION\020\002\022" +
+      "\035\n\031EXECUTION_SORT_FIELD_COST\020\003\022\037\n\033EXECUT" +
+      "ION_SORT_FIELD_STATUS\020\004*\277\001\n\021SummaryTimeW" +
+      "indow\022#\n\037SUMMARY_TIME_WINDOW_UNSPECIFIED" +
+      "\020\000\022 \n\034SUMMARY_TIME_WINDOW_LAST_24H\020\001\022\037\n\033" +
+      "SUMMARY_TIME_WINDOW_LAST_7D\020\002\022 \n\034SUMMARY" +
+      "_TIME_WINDOW_LAST_30D\020\003\022 \n\034SUMMARY_TIME_" +
+      "WINDOW_ALL_TIME\020\004B\312\001B\007IoProtoP\001\242\002\004ASAW\252\002" +
+      "\'Ai.Stigmer.Agentic.Workflowexecution.V1" +
+      "\312\002\'Ai\\Stigmer\\Agentic\\Workflowexecution\\" +
+      "V1\342\0023Ai\\Stigmer\\Agentic\\Workflowexecutio" +
+      "n\\V1\\GPBMetadata\352\002+Ai::Stigmer::Agentic:" +
+      ":Workflowexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -401,7 +401,7 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflowexecution_v1_ListWorkflowExecutionsRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowexecution_v1_ListWorkflowExecutionsRequest_descriptor,
-        new java.lang.String[] { "PageSize", "PageToken", "Phase", "Tags", "Filter", "SortField", "SortAscending", });
+        new java.lang.String[] { "PageSize", "PageToken", "Phase", "Tags", "Filter", "SortField", "SortAscending", "Org", });
     internal_static_ai_stigmer_agentic_workflowexecution_v1_ListWorkflowExecutionsByWorkflowRequest_descriptor =
       getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_agentic_workflowexecution_v1_ListWorkflowExecutionsByWorkflowRequest_fieldAccessorTable = new

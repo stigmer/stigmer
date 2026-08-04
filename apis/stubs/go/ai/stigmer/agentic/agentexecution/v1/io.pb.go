@@ -234,7 +234,20 @@ type ListAgentExecutionsRequest struct {
 	// Filter by execution phase (optional).
 	Phase ExecutionPhase `protobuf:"varint,3,opt,name=phase,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ExecutionPhase" json:"phase,omitempty"`
 	// Filter by tags (optional).
-	Tags          []string `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
+	Tags []string `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
+	// Organization slug to scope the results to.
+	//
+	// When set, only executions whose metadata.org matches are returned — the
+	// org-context view a console tab needs. When empty, results are bounded
+	// only by the caller's view permissions, which for a member of several
+	// organizations spans all of them.
+	//
+	// @internal
+	// Optional by design: pre-existing callers rely on the permission-bounded
+	// behavior, and the OSS single-user edition treats org filtering as a
+	// no-op. Filtering happens in the query/list step of each edition's
+	// handler, never client-side.
+	Org           string `protobuf:"bytes,5,opt,name=org,proto3" json:"org,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -295,6 +308,13 @@ func (x *ListAgentExecutionsRequest) GetTags() []string {
 		return x.Tags
 	}
 	return nil
+}
+
+func (x *ListAgentExecutionsRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
 }
 
 // ListAgentExecutionsBySessionRequest lists all executions in a session.
@@ -3271,13 +3291,14 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\x12AgentExecutionList\x12\x1f\n" +
 	"\vtotal_pages\x18\x01 \x01(\x05R\n" +
 	"totalPages\x12N\n" +
-	"\aentries\x18\x02 \x03(\v24.ai.stigmer.agentic.agentexecution.v1.AgentExecutionR\aentries\"\xb8\x01\n" +
+	"\aentries\x18\x02 \x03(\v24.ai.stigmer.agentic.agentexecution.v1.AgentExecutionR\aentries\"\xca\x01\n" +
 	"\x1aListAgentExecutionsRequest\x12\x1b\n" +
 	"\tpage_size\x18\x01 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\x12J\n" +
 	"\x05phase\x18\x03 \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ExecutionPhaseR\x05phase\x12\x12\n" +
-	"\x04tags\x18\x04 \x03(\tR\x04tags\"\x88\x01\n" +
+	"\x04tags\x18\x04 \x03(\tR\x04tags\x12\x10\n" +
+	"\x03org\x18\x05 \x01(\tR\x03org\"\x88\x01\n" +
 	"#ListAgentExecutionsBySessionRequest\x12%\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\tsessionId\x12\x1b\n" +

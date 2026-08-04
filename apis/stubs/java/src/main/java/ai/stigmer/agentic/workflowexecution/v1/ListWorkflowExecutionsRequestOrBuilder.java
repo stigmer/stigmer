@@ -207,4 +207,46 @@ public interface ListWorkflowExecutionsRequestOrBuilder extends
    * @return The sortAscending.
    */
   boolean getSortAscending();
+
+  /**
+   * <pre>
+   * Organization slug to scope the results to.
+   *
+   * When set, only executions whose metadata.org matches are returned — the
+   * org-context view a console tab needs. When empty, results are bounded
+   * only by the caller's view permissions, which for a member of several
+   * organizations spans all of them.
+   *
+   * &#64;internal
+   * Optional by design: pre-existing callers rely on the permission-bounded
+   * behavior, and the OSS single-user edition treats org filtering as a
+   * no-op. Filtering happens in the query/list step of each edition's
+   * handler, never client-side.
+   * </pre>
+   *
+   * <code>string org = 8 [json_name = "org"];</code>
+   * @return The org.
+   */
+  java.lang.String getOrg();
+  /**
+   * <pre>
+   * Organization slug to scope the results to.
+   *
+   * When set, only executions whose metadata.org matches are returned — the
+   * org-context view a console tab needs. When empty, results are bounded
+   * only by the caller's view permissions, which for a member of several
+   * organizations spans all of them.
+   *
+   * &#64;internal
+   * Optional by design: pre-existing callers rely on the permission-bounded
+   * behavior, and the OSS single-user edition treats org filtering as a
+   * no-op. Filtering happens in the query/list step of each edition's
+   * handler, never client-side.
+   * </pre>
+   *
+   * <code>string org = 8 [json_name = "org"];</code>
+   * @return The bytes for org.
+   */
+  com.google.protobuf.ByteString
+      getOrgBytes();
 }

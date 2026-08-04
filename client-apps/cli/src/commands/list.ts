@@ -38,7 +38,7 @@ async function runList(type: string, options: ListFlags, command: Command): Prom
   const { isExecutionAlias } = await import("../resources/execution.js");
   const { isSessionAlias } = await import("../resources/session.js");
   if (isExecutionAlias(type)) {
-    await runListExecutions(options);
+    await runListExecutions(options, command);
     return;
   }
   if (isSessionAlias(type)) {
@@ -67,8 +67,10 @@ async function runList(type: string, options: ListFlags, command: Command): Prom
 }
 
 // Executions bypass the registry: they're listed by their own controllers and
-// optionally filtered to agent (default) or workflow by `--type`.
-async function runListExecutions(options: ListFlags): Promise<void> {
+// optionally filtered to agent (default) or workflow by `--type`. Results are
+// scoped to the resolved org context (--org flag, env, or configured context);
+// an unset cloud context resolves to "" = permission-bounded across orgs.
+async function runListExecutions(options: ListFlags, command: Command): Promise<void> {
   const [{ connectBackend }, execution] = await Promise.all([
     import("../backend.js"),
     import("../resources/execution.js"),
@@ -76,19 +78,20 @@ async function runListExecutions(options: ListFlags): Promise<void> {
 
   const client = connectBackend();
   ensureAuthenticated(client.config);
+  const org = resolveOrganization(client.config, globalOrg(command));
   const limit = parseLimit(options.limit);
   const format = readFormat(options);
 
   const filter = (options.type ?? "").trim().toLowerCase();
   if (filter === "workflow" || filter === "wf") {
-    const result = await execution.listWorkflowExecutions(client.stigmer, limit);
+    const result = await execution.listWorkflowExecutions(client.stigmer, limit, org);
     process.stdout.write(execution.renderExecutionList(result, format, "workflow"));
     return;
   }
   if (filter !== "" && filter !== "agent") {
     throw new UsageError(`unknown execution type filter: ${options.type}\n\nValid values: agent, workflow`);
   }
-  const result = await execution.listAgentExecutions(client.stigmer, limit);
+  const result = await execution.listAgentExecutions(client.stigmer, limit, org);
   process.stdout.write(execution.renderExecutionList(result, format, "agent"));
 }
 

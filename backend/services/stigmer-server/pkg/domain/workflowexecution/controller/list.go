@@ -22,6 +22,9 @@ import (
 // - Supports sort field and direction (T13)
 // - No authorization filtering (single user)
 // - No pagination (acceptable for local usage)
+// - The request's `org` field is deliberately a no-op: the local edition is
+//   single-tenant, so org scoping (added for the cloud dashboard's
+//   org-context views) has nothing to narrow
 func (c *WorkflowExecutionController) List(ctx context.Context, req *workflowexecutionv1.ListWorkflowExecutionsRequest) (*workflowexecutionv1.WorkflowExecutionList, error) {
 	data, err := c.store.ListResources(ctx, apiresourcekind.ApiResourceKind_workflow_execution)
 	if err != nil {

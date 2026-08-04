@@ -11,7 +11,8 @@ export interface UseResourceCountOptions {
    * Controls resource visibility scope.
    *
    * - `"org"` — all resources owned by the given organization, regardless of visibility.
-   * - `"all"` — all resources the caller is authorized to access, across all organizations.
+   * - `"all"` — all resources owned by the given organization plus public resources
+   *   from other organizations.
    *
    * @default "org"
    */
@@ -64,10 +65,15 @@ export function useResourceCount(
   const { data: count, isLoading, isRefetching, error, refetch } = useFetch<number | undefined>(
     org
       ? async () => {
+          // Identical params to useResourceList so a card's count always matches
+          // the list page it links to. `org` is ALWAYS sent: an empty org means
+          // "every org the caller can access" to the search backend (a global FGA
+          // dump), and `crossOrgPublic` with an empty org matches zero rows.
           const params: ListParams = {
-            org: scope === "all" ? "" : org,
+            org,
             query: query || undefined,
             excludePublic: false,
+            crossOrgPublic: scope === "all",
             page: { num: 1, size: 1 },
           };
           const result = await listFn(params);

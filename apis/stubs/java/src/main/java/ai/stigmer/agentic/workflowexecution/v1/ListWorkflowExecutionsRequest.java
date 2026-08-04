@@ -40,6 +40,7 @@ private static final long serialVersionUID = 0L;
     tags_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
     sortField_ = 0;
+    org_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -333,6 +334,75 @@ private static final long serialVersionUID = 0L;
     return sortAscending_;
   }
 
+  public static final int ORG_FIELD_NUMBER = 8;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object org_ = "";
+  /**
+   * <pre>
+   * Organization slug to scope the results to.
+   *
+   * When set, only executions whose metadata.org matches are returned — the
+   * org-context view a console tab needs. When empty, results are bounded
+   * only by the caller's view permissions, which for a member of several
+   * organizations spans all of them.
+   *
+   * &#64;internal
+   * Optional by design: pre-existing callers rely on the permission-bounded
+   * behavior, and the OSS single-user edition treats org filtering as a
+   * no-op. Filtering happens in the query/list step of each edition's
+   * handler, never client-side.
+   * </pre>
+   *
+   * <code>string org = 8 [json_name = "org"];</code>
+   * @return The org.
+   */
+  @java.lang.Override
+  public java.lang.String getOrg() {
+    java.lang.Object ref = org_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      org_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Organization slug to scope the results to.
+   *
+   * When set, only executions whose metadata.org matches are returned — the
+   * org-context view a console tab needs. When empty, results are bounded
+   * only by the caller's view permissions, which for a member of several
+   * organizations spans all of them.
+   *
+   * &#64;internal
+   * Optional by design: pre-existing callers rely on the permission-bounded
+   * behavior, and the OSS single-user edition treats org filtering as a
+   * no-op. Filtering happens in the query/list step of each edition's
+   * handler, never client-side.
+   * </pre>
+   *
+   * <code>string org = 8 [json_name = "org"];</code>
+   * @return The bytes for org.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getOrgBytes() {
+    java.lang.Object ref = org_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      org_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -367,6 +437,9 @@ private static final long serialVersionUID = 0L;
     }
     if (sortAscending_ != false) {
       output.writeBool(7, sortAscending_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 8, org_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -408,6 +481,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(7, sortAscending_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(org_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(8, org_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -438,6 +514,8 @@ private static final long serialVersionUID = 0L;
     if (sortField_ != other.sortField_) return false;
     if (getSortAscending()
         != other.getSortAscending()) return false;
+    if (!getOrg()
+        .equals(other.getOrg())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -468,6 +546,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + SORT_ASCENDING_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getSortAscending());
+    hash = (37 * hash) + ORG_FIELD_NUMBER;
+    hash = (53 * hash) + getOrg().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -624,6 +704,7 @@ private static final long serialVersionUID = 0L;
       }
       sortField_ = 0;
       sortAscending_ = false;
+      org_ = "";
       return this;
     }
 
@@ -683,6 +764,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000040) != 0)) {
         result.sortAscending_ = sortAscending_;
       }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.org_ = org_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -727,6 +811,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getSortAscending() != false) {
         setSortAscending(other.getSortAscending());
+      }
+      if (!other.getOrg().isEmpty()) {
+        org_ = other.org_;
+        bitField0_ |= 0x00000080;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -791,6 +880,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 56
+            case 66: {
+              org_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1568,6 +1662,153 @@ private static final long serialVersionUID = 0L;
     public Builder clearSortAscending() {
       bitField0_ = (bitField0_ & ~0x00000040);
       sortAscending_ = false;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object org_ = "";
+    /**
+     * <pre>
+     * Organization slug to scope the results to.
+     *
+     * When set, only executions whose metadata.org matches are returned — the
+     * org-context view a console tab needs. When empty, results are bounded
+     * only by the caller's view permissions, which for a member of several
+     * organizations spans all of them.
+     *
+     * &#64;internal
+     * Optional by design: pre-existing callers rely on the permission-bounded
+     * behavior, and the OSS single-user edition treats org filtering as a
+     * no-op. Filtering happens in the query/list step of each edition's
+     * handler, never client-side.
+     * </pre>
+     *
+     * <code>string org = 8 [json_name = "org"];</code>
+     * @return The org.
+     */
+    public java.lang.String getOrg() {
+      java.lang.Object ref = org_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        org_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Organization slug to scope the results to.
+     *
+     * When set, only executions whose metadata.org matches are returned — the
+     * org-context view a console tab needs. When empty, results are bounded
+     * only by the caller's view permissions, which for a member of several
+     * organizations spans all of them.
+     *
+     * &#64;internal
+     * Optional by design: pre-existing callers rely on the permission-bounded
+     * behavior, and the OSS single-user edition treats org filtering as a
+     * no-op. Filtering happens in the query/list step of each edition's
+     * handler, never client-side.
+     * </pre>
+     *
+     * <code>string org = 8 [json_name = "org"];</code>
+     * @return The bytes for org.
+     */
+    public com.google.protobuf.ByteString
+        getOrgBytes() {
+      java.lang.Object ref = org_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        org_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Organization slug to scope the results to.
+     *
+     * When set, only executions whose metadata.org matches are returned — the
+     * org-context view a console tab needs. When empty, results are bounded
+     * only by the caller's view permissions, which for a member of several
+     * organizations spans all of them.
+     *
+     * &#64;internal
+     * Optional by design: pre-existing callers rely on the permission-bounded
+     * behavior, and the OSS single-user edition treats org filtering as a
+     * no-op. Filtering happens in the query/list step of each edition's
+     * handler, never client-side.
+     * </pre>
+     *
+     * <code>string org = 8 [json_name = "org"];</code>
+     * @param value The org to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOrg(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      org_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Organization slug to scope the results to.
+     *
+     * When set, only executions whose metadata.org matches are returned — the
+     * org-context view a console tab needs. When empty, results are bounded
+     * only by the caller's view permissions, which for a member of several
+     * organizations spans all of them.
+     *
+     * &#64;internal
+     * Optional by design: pre-existing callers rely on the permission-bounded
+     * behavior, and the OSS single-user edition treats org filtering as a
+     * no-op. Filtering happens in the query/list step of each edition's
+     * handler, never client-side.
+     * </pre>
+     *
+     * <code>string org = 8 [json_name = "org"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearOrg() {
+      org_ = getDefaultInstance().getOrg();
+      bitField0_ = (bitField0_ & ~0x00000080);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Organization slug to scope the results to.
+     *
+     * When set, only executions whose metadata.org matches are returned — the
+     * org-context view a console tab needs. When empty, results are bounded
+     * only by the caller's view permissions, which for a member of several
+     * organizations spans all of them.
+     *
+     * &#64;internal
+     * Optional by design: pre-existing callers rely on the permission-bounded
+     * behavior, and the OSS single-user edition treats org filtering as a
+     * no-op. Filtering happens in the query/list step of each edition's
+     * handler, never client-side.
+     * </pre>
+     *
+     * <code>string org = 8 [json_name = "org"];</code>
+     * @param value The bytes for org to set.
+     * @return This builder for chaining.
+     */
+    public Builder setOrgBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      org_ = value;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }

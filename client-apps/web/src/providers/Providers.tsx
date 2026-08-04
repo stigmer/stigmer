@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/providers/ThemeProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { isRetryableError } from "@stigmer/sdk";
-import { OrgProvider } from "@stigmer/react";
+import { FetchCacheProvider, OrgProvider } from "@stigmer/react";
 import { AuthProvider, AuthGuard } from "@/auth";
 import { StigmerTransportBridge } from "@/providers/StigmerTransportBridge";
 import { Toaster } from "@/domain/_shared/ui/sonner";
@@ -68,9 +68,11 @@ const queryClient = new QueryClient({
  * 4. QueryClientProvider      — TanStack Query cache and state management
  * 5. StigmerTransportBridge   — bridges console auth to @stigmer/* library transport
  * 6. IdentityAccountGate      — ensures the caller's identity account exists (provisions on first signup)
- * 7. OrgProvider              — fetches organizations and provides OrgContext
- * 8. OrgGate                  — blocks app until user has at least one organization
- * 9. Toaster                  — sonner toast container (themed, top-right)
+ * 7. FetchCacheProvider       — cross-mount fetch cache; ABOVE OrgProvider so an org
+ *                               switch can clear it (and matching desktop's order, DD-016)
+ * 8. OrgProvider              — fetches organizations and provides OrgContext
+ * 9. OrgGate                  — blocks app until user has at least one organization
+ * 10. Toaster                 — sonner toast container (themed, top-right)
  *
  * Public routes (e.g. `/login`, `/invite/`) receive only ConfigGate +
  * ThemeProvider. They manage their own SDK client and provider.
@@ -119,12 +121,14 @@ function ProvidersInner({ children }: { children: React.ReactNode }) {
           <QueryClientProvider client={queryClient}>
             <StigmerTransportBridge>
               <IdentityAccountGate>
-                <OrgProvider>
-                  <OrgGate>
-                    {children}
-                    <Toaster />
-                  </OrgGate>
-                </OrgProvider>
+                <FetchCacheProvider>
+                  <OrgProvider>
+                    <OrgGate>
+                      {children}
+                      <Toaster />
+                    </OrgGate>
+                  </OrgProvider>
+                </FetchCacheProvider>
               </IdentityAccountGate>
             </StigmerTransportBridge>
           </QueryClientProvider>
