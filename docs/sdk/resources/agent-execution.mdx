@@ -465,6 +465,7 @@ const result = await stigmer.agentExecution.list({
   pageToken: "...",
   phase: "...",
   tags: [],
+  org: "...",
 });
 ```
 </Tab>
@@ -475,6 +476,7 @@ result, err := client.AgentExecution.List(ctx, &stigmer.ListAgentExecutionsReque
   PageToken: "...",
   Phase:     "...",
   Tags:      []string{},
+  Org:       "...",
 })
 ```
 </Tab>
@@ -485,6 +487,7 @@ result = client.agent_executions.list(ListAgentExecutionsRequest(
     page_token="...",
     phase="...",
     tags=[],
+    org="...",
 ))
 ```
 </Tab>
@@ -495,6 +498,7 @@ AgentExecutionList result = client.agentExecutions().list(ListAgentExecutionsReq
     .pageToken("...")
     .phase("...")
     .tags(List.of())
+    .org("...")
     .build());
 ```
 </Tab>
@@ -1595,6 +1599,7 @@ ListAgentExecutionsRequest specifies parameters for listing executions.
     pageToken: { type: "string", description: "Token for pagination, obtained from previous response." },
     phase: { type: "ExecutionPhase", description: "Filter by execution phase (optional).", typeDescriptionLink: "#executionphase" },
     tags: { type: "string[]", description: "Filter by tags (optional)." },
+    org: { type: "string", description: "Organization slug to scope the results to." },
   }}
 />
 

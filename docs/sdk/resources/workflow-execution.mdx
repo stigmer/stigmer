@@ -236,6 +236,7 @@ const result = await stigmer.workflowExecution.list({
   filter: {},
   sortField: "...",
   sortAscending: false,
+  org: "...",
 });
 ```
 </Tab>
@@ -249,6 +250,7 @@ result, err := client.WorkflowExecution.List(ctx, &stigmer.ListWorkflowExecution
   Filter:        &stigmer.ExecutionFilterCriteriaInput{},
   SortField:     "...",
   SortAscending: false,
+  Org:           "...",
 })
 ```
 </Tab>
@@ -262,6 +264,7 @@ result = client.workflow_executions.list(ListWorkflowExecutionsRequest(
     filter=None,
     sort_field="...",
     sort_ascending=False,
+    org="...",
 ))
 ```
 </Tab>
@@ -275,6 +278,7 @@ WorkflowExecutionList result = client.workflowExecutions().list(ListWorkflowExec
     .filter(null)
     .sortField("...")
     .sortAscending(false)
+    .org("...")
     .build());
 ```
 </Tab>
@@ -1381,6 +1385,7 @@ ListWorkflowExecutionsRequest specifies parameters for listing workflow executio
     filter: { type: "ExecutionFilterCriteriaInput", description: "Structured filter criteria for advanced filtering." },
     sortField: { type: "ExecutionSortField", description: "Sort field.", typeDescriptionLink: "#executionsortfield" },
     sortAscending: { type: "boolean", description: "When true, sorts in ascending order." },
+    org: { type: "string", description: "Organization slug to scope the results to." },
   }}
 />
 
