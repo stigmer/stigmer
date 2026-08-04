@@ -235,8 +235,8 @@
       "slug": "schedule",
       "title": "schedule",
       "description": "",
-      "hooks": 6,
-      "components": 3
+      "hooks": 7,
+      "components": 5
     },
     {
       "slug": "session",

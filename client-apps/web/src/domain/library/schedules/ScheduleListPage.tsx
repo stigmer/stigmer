@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useReducer, useState } from "react";
-import { CalendarClock, Upload } from "lucide-react";
+import Link from "next/link";
+import { CalendarClock, Plus, Upload } from "lucide-react";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { useLibraryNavigation } from "@/domain/library/library-navigation";
 import {
@@ -27,17 +28,34 @@ export function ScheduleListPage() {
   const listFn = useMemo(() => createScheduleListFn(stigmer), [stigmer]);
   const columns = useMemo(() => createScheduleColumns(), []);
 
-  // Schedules are declared in YAML and applied — there is no creation
-  // wizard (matching datastores).
+  // Form-based creation is the primary path; Apply YAML stays as the
+  // secondary, declarative/GitOps path.
+  const newScheduleButton = (
+    <Link
+      href="/library/schedules/new"
+      className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <Plus className="size-3.5" aria-hidden="true" />
+      New schedule
+    </Link>
+  );
+
   const applyYamlButton = (
     <button
       type="button"
       onClick={() => setImportOpen(true)}
-      className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <Upload className="size-3.5" aria-hidden="true" />
       Apply YAML
     </button>
+  );
+
+  const headerActions = (
+    <div className="flex items-center gap-2">
+      {applyYamlButton}
+      {newScheduleButton}
+    </div>
   );
 
   return (
@@ -69,9 +87,9 @@ export function ScheduleListPage() {
         )}
         emptyIcon={<CalendarClock className="size-10" aria-hidden="true" />}
         emptyTitle="No schedules yet"
-        emptyDescription="Declare a schedule in YAML and apply it to run an agent on a cadence."
-        headerAction={applyYamlButton}
-        emptyAction={applyYamlButton}
+        emptyDescription="Create a schedule to run an agent on a cadence — daily, weekly, or any cron expression."
+        headerAction={headerActions}
+        emptyAction={newScheduleButton}
         onItemClick={(item) =>
           navigateToDetail(
             "schedules",

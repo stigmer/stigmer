@@ -35,6 +35,7 @@ const ScheduleDetailPage = lazy(() => import("./pages/library/ScheduleDetailPage
 const AgentNewPage = lazy(() => import("./pages/library/AgentNewPage"));
 const SkillNewPage = lazy(() => import("./pages/library/SkillNewPage"));
 const McpServerNewPage = lazy(() => import("./pages/library/McpServerNewPage"));
+const ScheduleNewPage = lazy(() => import("./pages/library/ScheduleNewPage"));
 const DashboardPage = lazy(() => import("./pages/dashboard/DashboardPage"));
 const WorkflowListPage = lazy(() => import("./pages/workflow/WorkflowListPage"));
 const WorkflowNewPage = lazy(() => import("./pages/workflow/WorkflowNewPage"));
@@ -194,6 +195,14 @@ const routes: RouteObject[] = [
             element: (
               <LazyPage>
                 <ScheduleListPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "schedules/new",
+            element: (
+              <LazyPage>
+                <ScheduleNewPage />
               </LazyPage>
             ),
           },

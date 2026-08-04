@@ -38,6 +38,15 @@ export interface AgentPickerProps {
    * @default "org"
    */
   readonly scope?: "org" | "all";
+  /**
+   * Renders the Org/All scope toggle. Pass `false` to lock the picker
+   * to the `scope` prop — for flows where only one scope can produce a
+   * valid selection (e.g. schedule creation, where the server requires
+   * the target agent to live in the schedule's own org).
+   *
+   * @default true
+   */
+  readonly showScopeToggle?: boolean;
   /** Prevents interaction with the picker when `true`. */
   readonly disabled?: boolean;
   /** Additional CSS class names for the root container. */
@@ -85,6 +94,7 @@ export function AgentPicker({
   onChange,
   onDisplayNameResolved,
   scope,
+  showScopeToggle = true,
   disabled,
   className,
 }: AgentPickerProps) {
@@ -206,7 +216,9 @@ export function AgentPicker({
         autoFocus
       />
 
-      <ScopeToggle value={activeScope} onChange={setActiveScope} disabled={disabled} />
+      {showScopeToggle && (
+        <ScopeToggle value={activeScope} onChange={setActiveScope} disabled={disabled} />
+      )}
 
       {error && <p className="text-xs text-destructive">{error.message}</p>}
 

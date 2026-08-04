@@ -580,6 +580,7 @@ All visual properties flow through `--stgm-*` tokens.
     onDisplayNameResolved: { type: "(key: string, name: string) => void", description: "Called with the display name when an agent is selected (for chip rendering)." },
     org: { type: "string", description: "Organization slug used as the default search scope.", required: true },
     scope: { type: "\"org\" | \"all\"", description: "Controls search scope.  - `\"org\"` — search only within the provided organization. - `\"all\"` — search all organizations the caller can access,   including public/platform agents from other orgs." },
+    showScopeToggle: { type: "boolean", description: "Renders the Org/All scope toggle. Pass `false` to lock the picker to the `scope` prop — for flows where only one scope can produce a valid selection (e.g. schedule creation, where the server requires the target agent to live in the schedule's own org)." },
     value: { type: "ResourceRef | null", description: "Currently selected agent reference, or null if none selected.", required: true },
   }}
 />

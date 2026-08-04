@@ -6,6 +6,59 @@ title: schedule
 
 ## Hooks
 
+### useCreateSchedule
+
+Behavior hook that wraps `schedule.apply()` with loading and error
+state.
+
+Creates a schedule from a `ScheduleInput`. Uses `apply()`
+(upsert) rather than `create()` so re-submissions are idempotent —
+matching the CLI's `stigmer apply` semantics and the established SDK
+mutation hook pattern (`isCreating` flag, `error` state, `clearError`
+reset, result returned from the promise, not stored in hook state).
+
+NOTE: this hook is for CREATION. Editing an existing schedule must
+NOT go through `ScheduleInput` — the input type cannot express every
+metadata field (tags, description), and the server replaces spec and
+mutable metadata wholesale on update, so a down-converting edit would
+silently wipe them. Edit flows use the full-proto path instead (see
+`useSetScheduleEnabled` for the pattern).
+
+**Signature**
+
+```tsx
+function useCreateSchedule(): UseCreateScheduleReturn
+```
+
+**Returns** — `UseCreateScheduleReturn`
+
+<TypeTable
+  type={{
+    clearError: { type: "() => void", description: "Reset `error` to `null`." },
+    create: { type: "(input: ScheduleInput) => Promise<Schedule>", description: "Submit a ScheduleInput to create (or upsert) a schedule.  Uses `stigmer.schedule.apply()` — the idempotent upsert operation. Resolves with the server-created `Schedule` proto including populated metadata (id, slug, audit timestamps) and the platform-computed `status.next_fire_at`." },
+    error: { type: "Error | null", description: "Error from the last failed create, or `null` when healthy." },
+    isCreating: { type: "boolean", description: "`true` while the apply request is in flight." },
+  }}
+/>
+
+```tsx
+const { create, isCreating, error, clearError } = useCreateSchedule();
+
+const schedule = await create({
+  name: "daily-fee-reminders",
+  org: "acme",
+  cron: "0 9 * * *",
+  timeZone: "Asia/Kolkata",
+  enabled: false,
+  agent: {
+    agentRef: { org: "acme", slug: "billing-assistant" },
+    message: "Send today's fee reminders.",
+  },
+});
+// schedule.metadata?.slug → "daily-fee-reminders"
+```
+
+
 ### useResumeSchedule
 
 Behavior hook that resumes a platform-paused schedule.
@@ -241,6 +294,36 @@ function useTriggerSchedule(): UseTriggerScheduleReturn
 
 ## Components
 
+### CadenceField
+
+Human-friendly cadence builder for schedules.
+
+Presents preset cadences (hourly / daily / weekly / monthly) with
+plain time-and-day inputs, generating the 5-field cron expression by
+construction — the user never writes cron unless they choose the
+Custom escape hatch, where the raw expression is validated instantly
+with the platform's own lexical rules ([`validateCron`](#validatecron)).
+
+A live plain-English summary ([`describeCadence`](#describecadence)) always states
+what was chosen. It describes the preset, not a computed fire-time
+forecast — the authoritative next fire time is published by the
+server as `status.next_fire_at` after apply.
+
+Controlled component over [`CadencePreset`](#cadencepreset); convert to the spec
+string with [`cadenceToCron`](#cadencetocron) at submit time.
+
+**Props** — `CadenceFieldProps`
+
+<TypeTable
+  type={{
+    disabled: { type: "boolean", description: "Prevents interaction when `true`." },
+    onChange: { type: "(preset: CadencePreset) => void", description: "Called with the new cadence on every edit.", required: true },
+    timeZone: { type: "string", description: "Time zone name, echoed into the summary line." },
+    value: { type: "CadencePreset", description: "The current cadence.", required: true, typeDescriptionLink: "#cadencepreset" },
+  }}
+/>
+
+
 ### ScheduleDetailView
 
 Self-contained detail view for a Schedule (stigmer/stigmer#352).
@@ -279,6 +362,43 @@ All visual properties flow through `--stgm-*` design tokens.
 />
 
 
+### ScheduleForm
+
+Single-page form for creating a `Schedule`.
+
+Collects the four things a user decides about a schedule — which
+agent, what message, when ([`CadenceField`](#cadencefield), generating the cron
+expression from human-friendly presets), and whether it starts
+enabled — then creates it via [`useCreateSchedule`](#usecreateschedule).
+
+Enabled defaults to OFF, deliberately: it matches the proto/YAML
+default (an omitted `enabled` is false) and the platform's
+recommended workflow — create staged-disabled, validate with
+"Run now" on the detail page, then enable.
+
+Creation only. Editing an existing schedule must not flow through
+this form's curated input — see the note on [`useCreateSchedule`](#usecreateschedule).
+
+**Props** — `ScheduleFormProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS class names for the root form element." },
+    onCancel: { type: "() => void", description: "Fired when the user cancels." },
+    onComplete: { type: "(schedule: Schedule) => void", description: "Fired with the created schedule after a successful submit." },
+    org: { type: "string", description: "Organization slug. Schedules are org-local: the server requires the target agent to live in this same org, so the agent picker is locked to org scope.", required: true },
+  }}
+/>
+
+```tsx
+<ScheduleForm
+  org="acme"
+  onComplete={(s) => navigate(`/library/schedules/${s.metadata?.org}/${s.metadata?.slug}`)}
+  onCancel={() => navigate("/library/schedules")}
+/>
+```
+
+
 ### ScheduleIcon
 
 Clock-with-arrow icon shared by the schedule views.
@@ -306,6 +426,29 @@ so row behavior never diverges between apps (DD-016).
 
 
 ## Types
+
+### CadenceKind
+
+Discriminant of [`CadencePreset`](#cadencepreset).
+
+
+### CadencePreset
+
+A human-friendly cadence, convertible to/from a cron expression.
+
+
+### cadenceToCron
+
+Build the 5-field cron expression for a preset.
+
+Output is always valid by construction: numeric fields only,
+day-of-week in cron numbering (0 = Sunday). For `custom`, the raw
+string is returned as-is — validate it with [`validateCron`](#validatecron).
+
+```tsx
+function cadenceToCron(preset: CadencePreset): string
+```
+
 
 ### createScheduleColumns
 
@@ -347,6 +490,21 @@ function createScheduleListFn(client: ScheduleListClient): (params: ListParams) 
 ```
 
 
+### cronToCadence
+
+Recognize a cron expression as one of the builder's presets.
+
+Only the exact shapes [`cadenceToCron`](#cadencetocron) emits (plus the
+calendar shorthands `@hourly`/`@daily`/`@weekly`/`@monthly`) map to a
+structured preset. Everything else — ranges, steps, names, `@yearly`
+— is a perfectly valid schedule that this UI simply cannot decompose,
+so it round-trips as `custom` with the raw string intact.
+
+```tsx
+function cronToCadence(cron: string): CadencePreset
+```
+
+
 ### deriveScheduleState
 
 Derive a schedule's display state from its spec and status.
@@ -356,6 +514,20 @@ server applies to a manifest that omits `enabled`.
 
 ```tsx
 function deriveScheduleState(spec: ScheduleSpec | undefined, status: ScheduleStatus | undefined): ScheduleStateInfo
+```
+
+
+### describeCadence
+
+Human-readable summary of a cadence, e.g.
+`"Every day at 09:00 (Asia/Kolkata)"`.
+
+This is a description of the chosen preset, not a computed fire-time
+forecast — the platform's next fire time is published by the server
+as `status.next_fire_at` after apply.
+
+```tsx
+function describeCadence(preset: CadencePreset, timeZone?: string): string
 ```
 
 
@@ -471,4 +643,36 @@ Options for [`useScheduleList`](#useschedulelist).
     pageSize: { type: "number", description: "Maximum schedules per page." },
   }}
 />
+
+
+### validateCron
+
+Validate a cron expression against the platform's lexical grammar.
+
+Returns the user-facing error message (identical wording to the
+server's) or `null` when the expression is acceptable. Purely
+lexical — it does not evaluate calendar semantics.
+
+```tsx
+function validateCron(cron: string): string | null
+```
+
+
+### validateTimeZone
+
+Validate an IANA time zone name using the runtime's own tz database
+(`Intl`), mirroring the server's check against the platform tz
+database. Returns the user-facing error message or `null`.
+
+`"Local"` is rejected explicitly for the same reason the server
+rejects it: it is host-dependent, not a zone.
+
+```tsx
+function validateTimeZone(timeZone: string): string | null
+```
+
+
+### WEEKDAY_LABELS
+
+Day-of-week labels indexed by cron numbering (0 = Sunday).
 

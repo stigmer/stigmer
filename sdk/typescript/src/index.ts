@@ -242,6 +242,12 @@ export {
 } from "./gen/platformclient.js";
 export { ProjectClient, type ProjectInput } from "./gen/project.js";
 export {
+  ScheduleClient,
+  buildScheduleProto,
+  type ScheduleInput,
+  type AgentTargetInput,
+} from "./gen/schedule.js";
+export {
   SessionClient,
   type SessionInput,
   type WorkspaceEntryInput,

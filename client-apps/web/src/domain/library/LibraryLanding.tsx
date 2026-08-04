@@ -89,6 +89,11 @@ const ADD_MENU_ITEMS: readonly AddMenuItem[] = [
     icon: <Server className="size-4" aria-hidden="true" />,
     href: getDraftSessionUrl("mcp-server"),
   },
+  {
+    label: "Schedule",
+    icon: <CalendarClock className="size-4" aria-hidden="true" />,
+    href: "/library/schedules/new",
+  },
 ];
 
 // Cards always count in org scope (the hooks' default): the landing presents

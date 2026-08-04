@@ -69,7 +69,7 @@ test.describe("Schedules list page", () => {
     await pinActiveOrg(page);
   });
 
-  test("renders heading, workbench, Apply YAML — and no search box", async ({
+  test("renders heading, workbench, both creation paths — and no search box", async ({
     page,
     stigmerClient,
   }) => {
@@ -80,7 +80,11 @@ test.describe("Schedules list page", () => {
       page.getByRole("heading", { level: 1, name: "Schedules" }),
     ).toBeVisible({ timeout: 15_000 });
     await expect(page.getByLabel("Schedule workbench")).toBeVisible();
-    // No creation wizard — schedules are declared in YAML.
+    // Form-based creation is the primary path; Apply YAML stays as the
+    // secondary, declarative/GitOps path.
+    await expect(
+      page.getByRole("link", { name: "New schedule" }).first(),
+    ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Apply YAML" }).first(),
     ).toBeVisible();
@@ -118,6 +122,77 @@ test.describe("Schedules list page", () => {
       await expect(page.getByRole("button", { name: "Run now" })).toBeVisible();
     } finally {
       await seeded.cleanup();
+    }
+  });
+});
+
+test.describe("Schedule creation form", () => {
+  test.beforeEach(async ({ page }) => {
+    await pinActiveOrg(page);
+  });
+
+  test("creates a schedule from the form with the Daily preset", async ({
+    page,
+    stigmerClient,
+  }) => {
+    await ensureSystemOrg(stigmerClient);
+
+    const stamp = Date.now();
+    const agent = await stigmerClient.agent.create({
+      name: `e2e-form-agent-${stamp}`,
+      org: SYSTEM_ORG,
+      instructions: "You send short reminder messages. Keep responses brief.",
+    });
+    const agentSlug = agent.metadata!.slug!;
+    const scheduleName = `e2e-form-sched-${stamp}`;
+    let scheduleId: string | undefined;
+
+    try {
+      await page.goto("/library/schedules/new");
+
+      await page.getByLabel("Name").fill(scheduleName);
+
+      // The picker is locked to org scope — pick the seeded agent.
+      await page.getByText("Choose an agent…").click();
+      await page.getByPlaceholder("Search agents...").fill(agentSlug);
+      await page.getByRole("option", { name: new RegExp(agentSlug) }).click();
+
+      await page.getByLabel("Message").fill("Send today's reminders.");
+
+      // Default cadence is Daily at 09:00 — the summary states it and
+      // the generated cron lands on the detail page below.
+      await expect(page.getByTestId("cadence-summary")).toContainText(
+        "Every day at 09:00",
+      );
+
+      await page.getByRole("button", { name: "Create schedule" }).click();
+
+      // Landed on the detail page: definition renders the generated
+      // cron, and the staged-disabled default shows the owner's banner.
+      await expect(
+        page.getByRole("heading", { name: scheduleName }),
+      ).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText("0 9 * * *").first()).toBeVisible();
+      await expect(page.getByText("Schedule is disabled")).toBeVisible();
+
+      // Server-side confirmation of what the form submitted.
+      const created = await stigmerClient.schedule.getByReference({
+        org: SYSTEM_ORG,
+        slug: scheduleName,
+      });
+      scheduleId = created.metadata!.id!;
+      expect(created.spec?.cron).toBe("0 9 * * *");
+      expect(created.spec?.enabled).toBe(false);
+      expect(
+        created.spec?.target?.case === "agent"
+          ? created.spec.target.value.agentRef?.slug
+          : undefined,
+      ).toBe(agentSlug);
+    } finally {
+      if (scheduleId) {
+        await stigmerClient.schedule.delete(scheduleId).catch(() => {});
+      }
+      await stigmerClient.agent.delete(agent.metadata!.id!).catch(() => {});
     }
   });
 });

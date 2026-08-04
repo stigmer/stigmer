@@ -773,8 +773,10 @@ export type {
 // Schedule — the disabled-vs-paused state derivation, the direct-query
 // list core + workbench adapter (schedules are not search-backed), data
 // hooks (get by reference, paginated list, count), behavior hooks
-// (resume, trigger once, owner enable/disable via lossless manifest
-// apply), and the detail view
+// (create via apply, resume, trigger once, owner enable/disable via
+// lossless manifest apply), the cadence model (preset ⇄ cron, no cron
+// parsing — recognition of builder-emitted shapes only), the cadence
+// builder, the creation form, and the detail view
 export {
   deriveScheduleState,
   formatNextFire,
@@ -783,10 +785,19 @@ export {
   useSchedule,
   useScheduleList,
   useScheduleCount,
+  useCreateSchedule,
   useResumeSchedule,
   useTriggerSchedule,
   useSetScheduleEnabled,
   createScheduleColumns,
+  cadenceToCron,
+  cronToCadence,
+  describeCadence,
+  validateCron,
+  validateTimeZone,
+  WEEKDAY_LABELS,
+  CadenceField,
+  ScheduleForm,
   ScheduleRowActions,
   ScheduleDetailView,
   ScheduleIcon,
@@ -801,9 +812,14 @@ export type {
   UseScheduleListReturn,
   UseScheduleCountOptions,
   UseScheduleCountReturn,
+  UseCreateScheduleReturn,
   UseResumeScheduleReturn,
   UseTriggerScheduleReturn,
   UseSetScheduleEnabledReturn,
+  CadencePreset,
+  CadenceKind,
+  CadenceFieldProps,
+  ScheduleFormProps,
   ScheduleColumnsOptions,
   ScheduleRowActionsProps,
   ScheduleDetailViewProps,
