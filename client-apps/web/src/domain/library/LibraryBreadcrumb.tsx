@@ -10,6 +10,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   "mcp-servers": "MCP Servers",
   workflows: "Workflows",
   datastores: "Datastores",
+  schedules: "Schedules",
 };
 
 export function LibraryBreadcrumb() {

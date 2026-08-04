@@ -472,6 +472,7 @@ individual hooks and view components directly.
     renderItemAction: { type: "(item: TData) => ReactNode", description: "Per-item action renderer (shown in table rows, card corners, list ends)." },
     renderRow: { type: "(item: TData, index: number) => ReactNode", description: "Custom row renderer for list view. Receives the item and its index. When omitted, falls back to a default row layout." },
     scope: { type: "\"org\" | \"all\"", description: "Scope for resource visibility." },
+    searchable: { type: "boolean", description: "Whether the toolbar renders the text-search input. Set `false` for kinds whose list backend has no text search (e.g. schedules, which use the direct query instead of the search service) — a search box that silently matches nothing is worse than none (DD-006). Opt-in per DD-011: existing consumers keep the search box." },
     searchPlaceholder: { type: "string", description: "Search input placeholder text." },
     viewModes: { type: "readonly ViewMode[]", description: "Available view modes." },
     viewModeStorageKey: { type: "string", description: "localStorage key for persisting view mode preference. Pass `undefined` to disable persistence." },
@@ -703,6 +704,7 @@ Options for [`useResourceCollection`](#useresourcecollection).
   type={{
     columns: { type: "readonly WorkbenchColumnDef<TData>[]", description: "Column definitions for the table view. These are converted to TanStack Table column defs internally." },
     enableSelection: { type: "boolean", description: "Enable row selection state tracking." },
+    getItemId: { type: "(item: TData) => string", description: "Extracts a stable unique ID from an item, used as the TanStack row id. Provide it whenever the row type does not carry a top-level `id` (e.g. full resource protos, where the id lives at `metadata.id`). When omitted, falls back to `SearchResult.id`, then the row index." },
     listFn: { type: "(params: ListParams) => Promise<ListResult> | null", description: "Async function that fetches a page of resources. The hook passes `ListParams` (org, query, page, scope) and expects `ListResult` back. Pass `null` to disable fetching (idle state).", required: true },
     onSortChange: { type: "(sort: SortValue | null) => void", description: "Called when the user changes the sort via a column header click." },
     org: { type: "string | null", description: "Organization slug to scope the query. Pass `null` to disable fetching.", required: true },

@@ -30,6 +30,8 @@ const McpServerListPage = lazy(() => import("./pages/library/McpServerListPage")
 const McpServerDetailPage = lazy(() => import("./pages/library/McpServerDetailPage"));
 const DatastoreListPage = lazy(() => import("./pages/library/DatastoreListPage"));
 const DatastoreDetailPage = lazy(() => import("./pages/library/DatastoreDetailPage"));
+const ScheduleListPage = lazy(() => import("./pages/library/ScheduleListPage"));
+const ScheduleDetailPage = lazy(() => import("./pages/library/ScheduleDetailPage"));
 const AgentNewPage = lazy(() => import("./pages/library/AgentNewPage"));
 const SkillNewPage = lazy(() => import("./pages/library/SkillNewPage"));
 const McpServerNewPage = lazy(() => import("./pages/library/McpServerNewPage"));
@@ -184,6 +186,22 @@ const routes: RouteObject[] = [
             element: (
               <LazyPage>
                 <DatastoreDetailPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "schedules",
+            element: (
+              <LazyPage>
+                <ScheduleListPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: "schedules/:org/:slug",
+            element: (
+              <LazyPage>
+                <ScheduleDetailPage />
               </LazyPage>
             ),
           },

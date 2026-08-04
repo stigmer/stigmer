@@ -132,6 +132,7 @@ export {
   ManifestClient,
   parseManifest,
   serializeManifest,
+  manifestDocumentForResource,
   manifestKinds,
   manifestHandlerForYamlKind,
   manifestHandlerForTypeName,

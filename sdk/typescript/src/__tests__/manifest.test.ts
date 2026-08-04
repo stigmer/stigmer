@@ -1,11 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { create, equals } from "@bufbuild/protobuf";
+import { clone, create, equals } from "@bufbuild/protobuf";
 import { AgentSchema, type Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { EnvironmentSchema, type Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { parse as parseYaml } from "yaml";
 import { parseManifest } from "../manifest/parse";
 import { serializeManifest } from "../manifest/serialize";
+import { manifestDocumentForResource } from "../manifest/document";
 import { manifestKinds, manifestHandlerForYamlKind } from "../manifest/registry";
 
 /**
@@ -242,6 +245,80 @@ describe("serializeManifest", () => {
     // ApiResourceMetadata is a real proto message but not a manifest kind.
     const notAResource = create(ApiResourceMetadataSchema, { name: "x" });
     expect(() => serializeManifest(notAResource)).toThrow(/not.*registry/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// manifestDocumentForResource
+// ---------------------------------------------------------------------------
+
+describe("manifestDocumentForResource", () => {
+  // Shaped like a server-returned schedule: full metadata (including
+  // fields the curated ScheduleInput cannot express, like tags) and a
+  // populated status — the exact input of a lossless partial edit.
+  const schedule = create(ScheduleSchema, {
+    apiVersion: "agentic.stigmer.ai/v1",
+    kind: "Schedule",
+    metadata: {
+      id: "sch_01example",
+      name: "daily-fee-reminders",
+      slug: "daily-fee-reminders",
+      org: "isc",
+      tags: ["billing"],
+      labels: { team: "ops" },
+    },
+    spec: {
+      cron: "0 9 * * *",
+      timeZone: "Asia/Kolkata",
+      enabled: true,
+      target: {
+        case: "agent",
+        value: {
+          agentRef: { kind: ApiResourceKind.agent, org: "isc", slug: "fee-reminder" },
+          message: "Send today's fee reminders.",
+        },
+      },
+    },
+    status: { consecutiveFailures: 2, pausedReason: "" },
+  });
+
+  it("wraps a fetched proto untouched — the lossless edit contract", () => {
+    const flipped = clone(ScheduleSchema, schedule);
+    flipped.spec!.enabled = false;
+
+    const doc = manifestDocumentForResource(flipped);
+
+    expect(doc.handler.yamlKind).toBe("Schedule");
+    expect(doc.name).toBe("daily-fee-reminders");
+    expect(doc.slug).toBe("daily-fee-reminders");
+    expect(doc.org).toBe("isc");
+    // Identity, not a copy: nothing is re-serialized or down-converted,
+    // so every field survives (the ScheduleInput path would drop tags).
+    expect(doc.message).toBe(flipped);
+
+    const expected = clone(ScheduleSchema, schedule);
+    expected.spec!.enabled = false;
+    expect(equals(ScheduleSchema, doc.message as Schedule, expected)).toBe(true);
+  });
+
+  it("falls back to name when the proto has no slug", () => {
+    const bare = create(AgentSchema, { metadata: { name: "x", org: "acme" } });
+    const doc = manifestDocumentForResource(bare);
+    expect(doc.slug).toBe("x");
+  });
+
+  it("rejects messages of kinds outside the registry", () => {
+    const notAResource = create(ApiResourceMetadataSchema, { name: "x" });
+    expect(() => manifestDocumentForResource(notAResource)).toThrow(
+      /not.*registry/i,
+    );
+  });
+
+  it("rejects a resource without metadata.name", () => {
+    const nameless = create(ScheduleSchema, { metadata: { org: "acme" } });
+    expect(() => manifestDocumentForResource(nameless)).toThrow(
+      /metadata\.name/,
+    );
   });
 });
 

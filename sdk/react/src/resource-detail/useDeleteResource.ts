@@ -6,7 +6,12 @@ import { toError } from "../internal/toError.js";
 import { toast } from "../feedback/toast.js";
 
 /** Resource types that support deletion from detail pages. */
-export type DeletableResourceKind = "agent" | "skill" | "mcpServer" | "workflow";
+export type DeletableResourceKind =
+  | "agent"
+  | "skill"
+  | "mcpServer"
+  | "workflow"
+  | "schedule";
 
 export interface UseDeleteResourceReturn {
   /**
@@ -74,6 +79,9 @@ export function useDeleteResource(
         case "workflow":
           await stigmer.workflow.delete(resourceId);
           break;
+        case "schedule":
+          await stigmer.schedule.delete(resourceId);
+          break;
       }
       toast.success(
         resourceName
@@ -106,5 +114,7 @@ function kindLabel(kind: DeletableResourceKind): string {
       return "MCP server";
     case "workflow":
       return "workflow";
+    case "schedule":
+      return "schedule";
   }
 }

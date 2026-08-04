@@ -20,7 +20,8 @@ type LibraryResourceType =
   | "skills"
   | "mcp-servers"
   | "workflows"
-  | "datastores";
+  | "datastores"
+  | "schedules";
 
 interface ActiveDetail {
   readonly resourceType: LibraryResourceType;
@@ -54,7 +55,7 @@ const LibraryNavigationContext = createContext<LibraryNavigationValue | null>(
 // ---------------------------------------------------------------------------
 
 const LIBRARY_DETAIL_RE =
-  /^\/library\/(agents|skills|mcp-servers|workflows|datastores)\/([^/]+)\/([^/]+)\/?$/;
+  /^\/library\/(agents|skills|mcp-servers|workflows|datastores|schedules)\/([^/]+)\/([^/]+)\/?$/;
 
 function parseLibraryDetailPath(pathname: string): ActiveDetail | null {
   const match = pathname.match(LIBRARY_DETAIL_RE);

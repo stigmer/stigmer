@@ -309,13 +309,20 @@ Fetches the authenticated user's organizations via
 organization selection, and persists the choice to `localStorage`
 under the key `stigmer:activeOrgSlug`.
 
-Must be rendered inside a [`StigmerProvider`](/docs/sdk/react/core#stigmerprovider).
+Must be rendered inside a [`StigmerProvider`](/docs/sdk/react/core#stigmerprovider). Mount it BELOW
+`FetchCacheProvider` (when one is used): switching the active org clears
+the nearest fetch cache, so view state cached under the previous org
+context — session and execution entries are keyed by id, not org — can
+never bleed into the new one. Navigation on switch stays the host's
+responsibility via `OrgSwitcher`'s `onOrgChanged` callback.
 
 ```tsx
 <StigmerProvider client={client}>
-  <OrgProvider>
-    <App />
-  </OrgProvider>
+  <FetchCacheProvider>
+    <OrgProvider>
+      <App />
+    </OrgProvider>
+  </FetchCacheProvider>
 </StigmerProvider>
 ```
 

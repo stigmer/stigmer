@@ -3641,6 +3641,7 @@ Options for [`useWorkflowExecutionList`](#useworkflowexecutionlist).
 <TypeTable
   type={{
     filter: { type: "Partial<ExecutionFilterCriteria>", description: "Server-side filter criteria. When set, the backend filters before returning results, reducing transfer size." },
+    org: { type: "string | null", description: "Organization slug to scope the cross-workflow listing to. Applies only to the `list()` branch (no `workflowId`); ignored by `listByWorkflow()`, which is already scoped by the workflow itself.  When omitted, results are bounded only by the caller's view permissions — for a member of several organizations that spans all of them. Console pages should always pass the active org." },
     pageSize: { type: "number", description: "Maximum executions per page." },
     pageToken: { type: "string", description: "Opaque page token for cursor-based pagination." },
     sortAscending: { type: "boolean", description: "When true, sorts ascending. Defaults to false (descending)." },

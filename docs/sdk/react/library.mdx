@@ -192,7 +192,7 @@ if (detection.detected) {
 ### useExportResource
 
 Headless export hook for Stigmer resources (Agent, McpServer,
-Workflow, Datastore).
+Workflow, Datastore, Schedule).
 
 Serializes the resource into YAML and JSON formats and provides
 stable callbacks for copying to clipboard or triggering a file
@@ -817,8 +817,8 @@ Options for [`useExportResource`](#useexportresource).
 
 <TypeTable
   type={{
-    kind: { type: "\"Agent\" | \"Datastore\" | \"McpServer\" | \"Workflow\"", description: "The resource kind — determines which serializer is used.", required: true },
-    resource: { type: "Agent | Datastore | McpServer | Workflow | null", description: "The proto resource to export, or `null` when not yet loaded.", required: true },
+    kind: { type: "\"Agent\" | \"Datastore\" | \"McpServer\" | \"Schedule\" | \"Workflow\"", description: "The resource kind — determines which serializer is used.", required: true },
+    resource: { type: "Agent | Datastore | McpServer | Schedule | Workflow | null", description: "The proto resource to export, or `null` when not yet loaded.", required: true },
   }}
 />
 

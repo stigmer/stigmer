@@ -770,6 +770,45 @@ export type {
   DatastoreDetailViewProps,
 } from "./datastore/index.js";
 
+// Schedule — the disabled-vs-paused state derivation, the direct-query
+// list core + workbench adapter (schedules are not search-backed), data
+// hooks (get by reference, paginated list, count), behavior hooks
+// (resume, trigger once, owner enable/disable via lossless manifest
+// apply), and the detail view
+export {
+  deriveScheduleState,
+  formatNextFire,
+  createScheduleListFn,
+  listSchedulesPage,
+  useSchedule,
+  useScheduleList,
+  useScheduleCount,
+  useResumeSchedule,
+  useTriggerSchedule,
+  useSetScheduleEnabled,
+  createScheduleColumns,
+  ScheduleRowActions,
+  ScheduleDetailView,
+  ScheduleIcon,
+} from "./schedule/index.js";
+export type {
+  ScheduleState,
+  ScheduleStateInfo,
+  ScheduleListClient,
+  SchedulePage,
+  UseScheduleReturn,
+  UseScheduleListOptions,
+  UseScheduleListReturn,
+  UseScheduleCountOptions,
+  UseScheduleCountReturn,
+  UseResumeScheduleReturn,
+  UseTriggerScheduleReturn,
+  UseSetScheduleEnabledReturn,
+  ScheduleColumnsOptions,
+  ScheduleRowActionsProps,
+  ScheduleDetailViewProps,
+} from "./schedule/index.js";
+
 // Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, env var form, system env vars, and styled components
 export {
   useEnvironment,

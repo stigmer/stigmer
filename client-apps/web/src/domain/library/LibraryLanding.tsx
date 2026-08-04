@@ -3,7 +3,7 @@
 import { type MouseEvent, useCallback, useReducer, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bot, Database, FileCode2, Plus, Sparkles, Server, Workflow } from "lucide-react";
+import { Bot, CalendarClock, Database, FileCode2, Plus, Sparkles, Server, Workflow } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { getDraftSessionUrl } from "@/domain/session/draft-session";
@@ -11,6 +11,7 @@ import {
   ApplyManifestDialog,
   useAgentCount,
   useDatastoreCount,
+  useScheduleCount,
   useSkillCount,
   useMcpServerCount,
   useWorkflowCount,
@@ -52,6 +53,12 @@ const RESOURCE_CARDS = [
     label: "Datastores",
     href: "/library/datastores",
     icon: <Database className="size-5" aria-hidden="true" />,
+  },
+  {
+    key: "schedules",
+    label: "Schedules",
+    href: "/library/schedules",
+    icon: <CalendarClock className="size-5" aria-hidden="true" />,
   },
 ] as const;
 
@@ -96,6 +103,7 @@ function useResourceCounts(org: string | null, refetchToken?: unknown) {
   const skills = useSkillCount(org, { refetchToken });
   const mcpServers = useMcpServerCount(org, { refetchToken });
   const datastores = useDatastoreCount(org, { refetchToken });
+  const schedules = useScheduleCount(org, { refetchToken });
 
   return {
     agents,
@@ -103,6 +111,7 @@ function useResourceCounts(org: string | null, refetchToken?: unknown) {
     skills,
     "mcp-servers": mcpServers,
     datastores,
+    schedules,
   } as const;
 }
 

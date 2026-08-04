@@ -58,6 +58,14 @@ export interface UseResourceCollectionOptions<TData = SearchResult> {
   /** Enable row selection state tracking. @default false */
   readonly enableSelection?: boolean;
   /**
+   * Extracts a stable unique ID from an item, used as the TanStack row
+   * id. Provide it whenever the row type does not carry a top-level
+   * `id` (e.g. full resource protos, where the id lives at
+   * `metadata.id`). When omitted, falls back to `SearchResult.id`, then
+   * the row index.
+   */
+  readonly getItemId?: (item: TData) => string;
+  /**
    * Opaque token that forces a background refetch whenever its value
    * changes. Use it to re-read the list after an out-of-band mutation
    * (e.g. applying a manifest or deleting a row) without remounting:
@@ -157,6 +165,7 @@ export function useResourceCollection<TData = SearchResult>(
     onSortChange,
     columns = [],
     enableSelection = false,
+    getItemId,
     refetchToken,
   } = options;
 
@@ -247,7 +256,8 @@ export function useResourceCollection<TData = SearchResult>(
     onRowSelectionChange: enableSelection ? setRowSelection : undefined,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getRowId: (row) => (row as SearchResult).id ?? String(items.indexOf(row as TData)),
+    getRowId: (row, index) =>
+      getItemId?.(row) || (row as SearchResult).id || String(index),
     manualPagination: true,
     manualSorting: true,
     enableRowSelection: enableSelection,

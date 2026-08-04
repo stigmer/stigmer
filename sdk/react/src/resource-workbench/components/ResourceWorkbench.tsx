@@ -155,6 +155,15 @@ export interface ResourceWorkbenchProps<TData = SearchResult> {
 
   // --- Layout ------------------------------------------------------------
 
+  /**
+   * Whether the toolbar renders the text-search input. Set `false` for
+   * kinds whose list backend has no text search (e.g. schedules, which
+   * use the direct query instead of the search service) — a search box
+   * that silently matches nothing is worse than none (DD-006). Opt-in
+   * per DD-011: existing consumers keep the search box.
+   * @default true
+   */
+  readonly searchable?: boolean;
   /** Search input placeholder text. @default "Search\u2026" */
   readonly searchPlaceholder?: string;
   /** Accessible label for the workbench region. @default "Resource workbench" */
@@ -228,6 +237,7 @@ export function ResourceWorkbench<TData = SearchResult>({
   emptyAction,
   onRetry,
   headerAction,
+  searchable = true,
   searchPlaceholder = "Search\u2026",
   "aria-label": ariaLabel = "Resource workbench",
   className,
@@ -267,6 +277,7 @@ export function ResourceWorkbench<TData = SearchResult>({
     onSortChange: filtersHook.setSort,
     columns: columns as WorkbenchColumnDef<TData>[],
     enableSelection,
+    getItemId,
     refetchToken,
   });
 
@@ -305,21 +316,27 @@ export function ResourceWorkbench<TData = SearchResult>({
     >
       {/* --- Toolbar: search + filters + view switcher --- */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1">
-          <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground-subtle" />
-          <input
-            type="text"
-            value={filtersHook.query}
-            onChange={(e) => filtersHook.setQuery(e.target.value)}
-            placeholder={searchPlaceholder}
-            aria-label={searchPlaceholder}
-            className={cn(
-              "w-full rounded-md border border-input bg-background py-1.5 pl-8 pr-3 text-sm",
-              "placeholder:text-muted-foreground-subtle",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            )}
-          />
-        </div>
+        {searchable ? (
+          <div className="relative flex-1">
+            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground-subtle" />
+            <input
+              type="text"
+              value={filtersHook.query}
+              onChange={(e) => filtersHook.setQuery(e.target.value)}
+              placeholder={searchPlaceholder}
+              aria-label={searchPlaceholder}
+              className={cn(
+                "w-full rounded-md border border-input bg-background py-1.5 pl-8 pr-3 text-sm",
+                "placeholder:text-muted-foreground-subtle",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              )}
+            />
+          </div>
+        ) : (
+          // Spacer keeps the scope toggle / view switcher / header action
+          // right-aligned, matching the searchable layout.
+          <div className="flex-1" aria-hidden="true" />
+        )}
         {onScopeChange && (
           <ScopeToggle value={controlledScope} onChange={onScopeChange} />
         )}

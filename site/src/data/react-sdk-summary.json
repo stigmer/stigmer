@@ -232,6 +232,13 @@
       "components": 12
     },
     {
+      "slug": "schedule",
+      "title": "schedule",
+      "description": "",
+      "hooks": 6,
+      "components": 3
+    },
+    {
       "slug": "session",
       "title": "Session",
       "description": "Hooks for session lifecycle, message history, conversation state, and usage tracking.",

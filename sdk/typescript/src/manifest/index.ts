@@ -14,6 +14,8 @@ export type { ManifestKindHandler, ServiceClientFn } from "./registry.js";
 export { parseManifest, metadataOf } from "./parse.js";
 export type { ManifestDocument, ParseManifestOptions } from "./parse.js";
 
+export { manifestDocumentForResource } from "./document.js";
+
 export { serializeManifest } from "./serialize.js";
 
 export { ManifestClient } from "./client.js";
