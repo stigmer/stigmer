@@ -126,11 +126,17 @@ func adjustCredits(t *testing.T, ctx context.Context, clients *harness.Clients, 
 
 // drainCredits zeroes an org's available balance and restores it on
 // cleanup, returning the drained amount.
+//
+// The drain covers available PLUS reserved: an earlier test's execution
+// can still hold a reservation, and its asynchronous release moves the
+// unused hold back into available — landing after a drain of available
+// alone would re-fund the org above the launch-gate threshold mid-test.
+// Overdraining by the reserved amount caps any such release at zero.
 func drainCredits(t *testing.T, ctx context.Context, clients *harness.Clients, org, uniqueID string) int64 {
 	t.Helper()
 	balance, err := clients.BillingQuery.GetCreditBalance(ctx, &billingv1.GetCreditBalanceInput{OrgId: org})
 	require.NoError(t, err, "reading org %s balance should succeed", org)
-	drained := balance.GetAvailableMicros()
+	drained := balance.GetAvailableMicros() + balance.GetReservedMicros()
 	require.Greater(t, drained, int64(0), "org %s must start funded", org)
 
 	adjustCredits(t, ctx, clients, org, -drained, "t10 cross-org billing drain", "t10-drain-"+org+"-"+uniqueID)

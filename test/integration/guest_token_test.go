@@ -643,10 +643,16 @@ func TestGuestToken_LaunchGate_FailClosed_CustomCopy(t *testing.T) {
 	session, err := guestCreateSession(t, ctx, guest, agent, "fail-closed")
 	require.NoError(t, err)
 
-	// Drain the org to zero available balance; restore on cleanup.
+	// Drain the org to zero available balance; restore on cleanup. The
+	// drain covers available PLUS reserved: an earlier test's execution
+	// can still hold a reservation, and its asynchronous release moves
+	// the unused hold back into available — landing between this drain
+	// and the create below would re-fund the org above the launch-gate
+	// threshold and let the guest message through. Overdraining by the
+	// reserved amount caps any such release at zero.
 	balance, err := clients.BillingQuery.GetCreditBalance(ctx, &billingv1.GetCreditBalanceInput{OrgId: org})
 	require.NoError(t, err, "reading the org balance should succeed")
-	drained := balance.GetAvailableMicros()
+	drained := balance.GetAvailableMicros() + balance.GetReservedMicros()
 	require.Greater(t, drained, int64(0), "the test org must start funded")
 
 	_, err = clients.BillingCommand.AdjustCredits(ctx, &billingv1.AdjustCreditsInput{
