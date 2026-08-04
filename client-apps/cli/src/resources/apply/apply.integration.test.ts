@@ -17,6 +17,8 @@ import { type ConnectRouter, createClient } from "@connectrpc/connect";
 import { connectNodeAdapter } from "@connectrpc/connect-node";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { AgentCommandController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/command_pb";
+import type { ChannelApp } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
+import { ChannelAppCommandController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/command_pb";
 import type { Datastore } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
 import { DatastoreCommandController } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/command_pb";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -33,11 +35,13 @@ const openSessions = new Set<ServerHttp2Session>();
 let appliedAgents: Agent[] = [];
 let appliedMcps: McpServer[] = [];
 let appliedDatastores: Datastore[] = [];
+let appliedChannelApps: ChannelApp[] = [];
 
 beforeEach(() => {
   appliedAgents = [];
   appliedMcps = [];
   appliedDatastores = [];
+  appliedChannelApps = [];
 });
 
 function writeYaml(dir: string, name: string, body: string): string {
@@ -63,6 +67,12 @@ beforeAll(async () => {
     router.service(DatastoreCommandController, {
       apply: (req) => {
         appliedDatastores.push(req);
+        return req;
+      },
+    });
+    router.service(ChannelAppCommandController, {
+      apply: (req) => {
+        appliedChannelApps.push(req);
         return req;
       },
     });
@@ -209,6 +219,128 @@ describe("file-mode apply — datastore", () => {
       writeYaml(dir, "datastore.yaml", DATASTORE_YAML);
       const items = resolveApplyItems(dir);
       expect(items.map((i) => i.handler.displayName)).toEqual(["Datastore", "Agent"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+// The stigmer/stigmer#353 regression block: ChannelApp apply used to fail
+// with "apply not implemented for Channel App" because the CLI's handler
+// table was a drifted copy of the SDK manifest registry. The handlers now
+// COME FROM that registry, so this suite pins the whole class: the kind
+// applies, secrets round-trip verbatim, and the ordering the registry
+// encodes (app before the channel that references it) is honored.
+const CHANNEL_APP_YAML = [
+  "apiVersion: agentic.stigmer.ai/v1",
+  "kind: ChannelApp",
+  "metadata:",
+  "  name: demo-whatsapp",
+  "  slug: demo-whatsapp",
+  "spec:",
+  "  whatsapp:",
+  "    app_id: '108954'",
+  "    app_secret: '***REDACTED***'",
+  "    access_token: '***REDACTED***'",
+  "    verify_token: '***REDACTED***'",
+  "",
+].join("\n");
+
+const AGENT_CHANNEL_YAML = [
+  "apiVersion: agentic.stigmer.ai/v1",
+  "kind: AgentChannel",
+  "metadata:",
+  "  name: isc-whatsapp",
+  "  slug: isc-whatsapp",
+  "spec:",
+  "  enabled: true",
+  "  agent_ref: { kind: 40, org: acme, slug: clinic-assistant }",
+  "  whatsapp: { phone_number_id: '106540352242922' }",
+  "",
+].join("\n");
+
+const SCHEDULE_YAML = [
+  "apiVersion: agentic.stigmer.ai/v1",
+  "kind: Schedule",
+  "metadata:",
+  "  name: daily-fee-reminders",
+  "  slug: daily-fee-reminders",
+  "spec:",
+  "  cron: '0 9 * * *'",
+  "  time_zone: Asia/Kolkata",
+  "  enabled: false",
+  "  agent:",
+  "    agent_ref: { kind: 40, org: acme, slug: clinic-assistant }",
+  "    message: run the reminders",
+  "",
+].join("\n");
+
+describe("file-mode apply — channel app (#353)", () => {
+  it("applies a ChannelApp through the raw controller with the redaction markers intact", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(dir, "chapp.yaml", CHANNEL_APP_YAML);
+      const items = resolveApplyItems(dir);
+      expect(items).toHaveLength(1);
+
+      const outcome = await applyItem(controllerFn, items[0], "acme", false);
+      expect(outcome.result.message).toBe("Channel App created successfully");
+
+      expect(appliedChannelApps).toHaveLength(1);
+      const spec = appliedChannelApps[0].spec;
+      expect(spec?.providerConfig.case).toBe("whatsapp");
+      if (spec?.providerConfig.case !== "whatsapp") throw new Error("unreachable");
+      expect(spec.providerConfig.value.appId).toBe("108954");
+      // The redaction markers must reach the server verbatim — that is the
+      // convention by which applying a fetched manifest preserves stored
+      // secrets (verb-support's OAuthApp marker note).
+      expect(spec.providerConfig.value.appSecret).toBe("***REDACTED***");
+      expect(spec.providerConfig.value.accessToken).toBe("***REDACTED***");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("treats a ChannelApp carrying metadata.id as an update", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(
+        dir,
+        "chapp.yaml",
+        CHANNEL_APP_YAML.replace("metadata:", "metadata:\n  id: chapp_existing"),
+      );
+      const items = resolveApplyItems(dir);
+      const outcome = await applyItem(controllerFn, items[0], "acme", false);
+      expect(outcome.result.message).toBe("Channel App updated successfully");
+      expect(appliedChannelApps[0].metadata?.id).toBe("chapp_existing");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("orders one bundle app → channel → schedule regardless of file order", () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      // File names chosen so lexical file order is exactly WRONG — before
+      // the registry unification all three kinds fell to a shared default
+      // priority and applied in this (broken) file order.
+      writeYaml(dir, "a-schedule.yaml", SCHEDULE_YAML);
+      writeYaml(dir, "b-channel.yaml", AGENT_CHANNEL_YAML);
+      writeYaml(dir, "c-chapp.yaml", CHANNEL_APP_YAML);
+      const items = resolveApplyItems(dir);
+      expect(items.map((i) => i.handler.displayName)).toEqual(["Channel App", "Agent Channel", "Schedule"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("file-mode apply — project special case", () => {
+  it("refuses a Project manifest with a pointer to the stigmer.yaml flow", () => {
+    const dir = mkdtempSync(join(tmpdir(), "apply-it-"));
+    try {
+      writeYaml(dir, "project.yaml", ["kind: Project", "metadata:", "  name: Demo", "  slug: demo", ""].join("\n"));
+      expect(() => resolveApplyItems(dir)).toThrow(/stigmer\.yaml/);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

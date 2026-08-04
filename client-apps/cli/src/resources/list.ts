@@ -2,8 +2,11 @@
 //
 // Most registry kinds are search-indexed and list through the unified
 // SearchService. Kinds that are deliberately not search-indexed
-// (organizations, API keys, agent instances, agent channels, channel apps)
-// use their dedicated find/list RPCs with bespoke table shapes.
+// (organizations, API keys, agent instances, agent channels, channel apps,
+// schedules) use their dedicated find/list RPCs with bespoke table shapes,
+// registered in LIST_HANDLERS — the same map-dispatch shape as the get,
+// delete, and apply registries, so the conformance test in
+// registry/registry.test.ts can hold all four to the verb matrix.
 
 import { create } from "@bufbuild/protobuf";
 import { AgentChannelSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
@@ -12,6 +15,8 @@ import { AgentInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/agentins
 import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/api_pb";
 import { ListChannelAppsByOrgInputSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/io_pb";
+import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ListSchedulesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
@@ -26,9 +31,9 @@ import { bool, type JsonObject, obj, renderCollection, str, type TableShape } fr
 // scope). Must stay in step with the server's SearchableKinds allowlist
 // (backend/services/stigmer-server/pkg/query/search/valueobject/
 // search_criteria.go): a kind present here but absent there silently lists
-// as empty. agent_channel and channel_app are deliberately NOT here — they
-// are not_search_indexed by design and take dedicated-RPC branches below.
-const SEARCH_KINDS = new Set<ApiResourceKind>([
+// as empty. The LIST_HANDLERS kinds are deliberately NOT here — they are
+// not_search_indexed by design and take dedicated-RPC handlers below.
+export const SEARCH_KINDS: ReadonlySet<ApiResourceKind> = new Set<ApiResourceKind>([
   ApiResourceKind.agent,
   ApiResourceKind.workflow,
   ApiResourceKind.mcp_server,
@@ -38,6 +43,73 @@ const SEARCH_KINDS = new Set<ApiResourceKind>([
   ApiResourceKind.environment,
 ]);
 
+type ListFn = (client: Stigmer, org: string, limit: number, format: OutputFormat) => Promise<string>;
+
+// Dedicated-RPC list handlers for the non-search-indexed kinds. Every kind
+// declaring List in the verb matrix must appear here or in SEARCH_KINDS —
+// the conformance test enforces it, so the two cannot drift.
+export const LIST_HANDLERS: ReadonlyMap<ApiResourceKind, ListFn> = new Map<ApiResourceKind, ListFn>([
+  [
+    ApiResourceKind.organization,
+    async (client, _org, _limit, format) => {
+      const result = await client.organization.findMyOrganizations();
+      return renderCollection(OrganizationSchema, result.entries, format, ORG_TABLE);
+    },
+  ],
+  [
+    ApiResourceKind.api_key,
+    async (client, _org, _limit, format) => {
+      const result = await client.apiKey.findAll();
+      return renderCollection(ApiKeySchema, result.entries, format, APIKEY_TABLE);
+    },
+  ],
+  [
+    ApiResourceKind.agent_instance,
+    async (client, org, limit, format) => {
+      const result = await client.agentInstance.list(
+        create(ListAgentInstancesRequestSchema, { org, pageInfo: create(PageInfoSchema, { num: 1, size: limit }) }),
+      );
+      return renderCollection(AgentInstanceSchema, result.items, format, INSTANCE_TABLE);
+    },
+  ],
+  [
+    ApiResourceKind.agent_channel,
+    async (client, org, limit, format) => {
+      const result = await client.agentChannel.list(
+        create(ListAgentChannelsRequestSchema, { org, pageInfo: create(PageInfoSchema, { num: 1, size: limit }) }),
+      );
+      return renderCollection(AgentChannelSchema, result.items, format, AGENT_CHANNEL_TABLE);
+    },
+  ],
+  [
+    ApiResourceKind.channel_app,
+    async (client, org, limit, format) => {
+      // listByOrg has no pagination on its contract (the per-org set is small
+      // by design); the limit is applied client-side so --limit stays honest.
+      // `channelapp` (not `channelApp`) is a recorded SDK codegen naming quirk.
+      const result = await client.channelapp.listByOrg(create(ListChannelAppsByOrgInputSchema, { org }));
+      return renderCollection(ChannelAppSchema, result.entries.slice(0, limit), format, CHANNEL_APP_TABLE);
+    },
+  ],
+  [
+    ApiResourceKind.schedule,
+    async (client, org, limit, format) => {
+      // ListSchedulesRequest requires an org (min_len 1), but an unset cloud
+      // context resolves to "" — refuse with actionable copy instead of
+      // relaying the server's raw validation error.
+      if (org === "") {
+        throw new UsageError(
+          "schedules are org-scoped: pass --org <slug> or configure an organization context",
+        );
+      }
+      const result = await client.schedule.list(
+        create(ListSchedulesRequestSchema, { org, pageInfo: create(PageInfoSchema, { num: 1, size: limit }) }),
+      );
+      return renderCollection(ScheduleSchema, result.items, format, SCHEDULE_TABLE);
+    },
+  ],
+]);
+
 export async function listResources(
   client: Stigmer,
   kind: ApiResourceKind,
@@ -45,32 +117,9 @@ export async function listResources(
   limit: number,
   format: OutputFormat,
 ): Promise<string> {
-  if (kind === ApiResourceKind.organization) {
-    const result = await client.organization.findMyOrganizations();
-    return renderCollection(OrganizationSchema, result.entries, format, ORG_TABLE);
-  }
-  if (kind === ApiResourceKind.api_key) {
-    const result = await client.apiKey.findAll();
-    return renderCollection(ApiKeySchema, result.entries, format, APIKEY_TABLE);
-  }
-  if (kind === ApiResourceKind.agent_instance) {
-    const result = await client.agentInstance.list(
-      create(ListAgentInstancesRequestSchema, { org, pageInfo: create(PageInfoSchema, { num: 1, size: limit }) }),
-    );
-    return renderCollection(AgentInstanceSchema, result.items, format, INSTANCE_TABLE);
-  }
-  if (kind === ApiResourceKind.agent_channel) {
-    const result = await client.agentChannel.list(
-      create(ListAgentChannelsRequestSchema, { org, pageInfo: create(PageInfoSchema, { num: 1, size: limit }) }),
-    );
-    return renderCollection(AgentChannelSchema, result.items, format, AGENT_CHANNEL_TABLE);
-  }
-  if (kind === ApiResourceKind.channel_app) {
-    // listByOrg has no pagination on its contract (the per-org set is small
-    // by design); the limit is applied client-side so --limit stays honest.
-    // `channelapp` (not `channelApp`) is a recorded SDK codegen naming quirk.
-    const result = await client.channelapp.listByOrg(create(ListChannelAppsByOrgInputSchema, { org }));
-    return renderCollection(ChannelAppSchema, result.entries.slice(0, limit), format, CHANNEL_APP_TABLE);
+  const dedicated = LIST_HANDLERS.get(kind);
+  if (dedicated !== undefined) {
+    return dedicated(client, org, limit, format);
   }
   if (!SEARCH_KINDS.has(kind)) {
     throw new UsageError("list is not implemented for this resource type");
@@ -142,6 +191,33 @@ const CHANNEL_APP_TABLE: TableShape = {
       str(metadata, "slug"),
       providerOf(obj(json, "spec")),
       date(str(obj(obj(obj(json, "status"), "audit"), "spec_audit"), "created_at")),
+    ];
+  },
+};
+
+// ENABLED is the owner's switch (spec.enabled); STATE is the platform's
+// failure latch, derived from status.paused_reason. They are different
+// states with different remedies — re-apply with `enabled: true` versus
+// `stigmer schedule resume` — so the table keeps them as two columns. An
+// auto-paused schedule with ENABLED true is exactly the condition this
+// surface exists to make visible (stigmer/stigmer#352).
+const SCHEDULE_TABLE: TableShape = {
+  resourceName: "schedules",
+  headers: ["ID", "SLUG", "TARGET", "CRON", "TZ", "ENABLED", "STATE"],
+  row: (json) => {
+    const metadata = obj(json, "metadata");
+    const spec = obj(json, "spec");
+    // The target oneof has one arm today (`agent`); a future workflow arm
+    // extends this accessor alongside the proto.
+    const agentRef = obj(obj(spec, "agent"), "agent_ref");
+    return [
+      str(metadata, "id"),
+      str(metadata, "slug"),
+      `${str(agentRef, "org")}/${str(agentRef, "slug")}`,
+      str(spec, "cron"),
+      str(spec, "time_zone"),
+      bool(spec, "enabled") ? "true" : "false",
+      str(obj(json, "status"), "paused_reason") === "" ? "active" : "paused",
     ];
   },
 };

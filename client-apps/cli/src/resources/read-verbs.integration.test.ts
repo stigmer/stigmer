@@ -21,6 +21,8 @@ import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/
 import { ChannelAppQueryController } from "@stigmer/protos/ai/stigmer/agentic/channelapp/v1/query_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
+import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ApiKeyQueryController } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/query_pb";
@@ -142,6 +144,44 @@ const secondChannelApp = create(ChannelAppSchema, {
   },
 });
 
+// Spec/status populated to exercise every SCHEDULE_TABLE column — and the
+// exact condition the table exists to surface (stigmer/stigmer#352): the
+// owner's switch is ON (spec.enabled) while the platform's failure latch is
+// SET (status.paused_reason), two different states with two different
+// remedies.
+const pausedSchedule = create(ScheduleSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Schedule",
+  metadata: { name: "daily-fee-reminders", slug: "daily-fee-reminders", org: "acme", id: "sch_1" },
+  spec: {
+    cron: "0 9 * * *",
+    timeZone: "Asia/Kolkata",
+    enabled: true,
+    target: {
+      case: "agent",
+      value: { agentRef: { kind: ApiResourceKind.agent, org: "acme", slug: "clinic-assistant" } },
+    },
+  },
+  status: { pausedReason: "5 consecutive failed runs", consecutiveFailures: 5 },
+});
+
+// Owner-disabled and never fired: empty status, so the row must derive
+// "active" from an absent paused_reason and print no bogus timestamps.
+const disabledSchedule = create(ScheduleSchema, {
+  apiVersion: "agentic.stigmer.ai/v1",
+  kind: "Schedule",
+  metadata: { name: "weekly-digest", slug: "weekly-digest", org: "acme", id: "sch_2" },
+  spec: {
+    cron: "30 6 * * 1",
+    timeZone: "UTC",
+    enabled: false,
+    target: {
+      case: "agent",
+      value: { agentRef: { kind: ApiResourceKind.agent, org: "acme", slug: "reviewer" } },
+    },
+  },
+});
+
 let backend: Http2Server;
 let client: Stigmer;
 const openSessions = new Set<ServerHttp2Session>();
@@ -224,6 +264,20 @@ beforeAll(async () => {
       listByOrg: (req) => {
         if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
         return { entries: [knownChannelApp, secondChannelApp] };
+      },
+    });
+    router.service(ScheduleQueryController, {
+      get: (req) => {
+        if (req.value !== "sch_1") throw new ConnectError("schedule not found", Code.NotFound);
+        return pausedSchedule;
+      },
+      getByReference: (req) => {
+        if (req.slug !== "daily-fee-reminders") throw new ConnectError("schedule not found", Code.NotFound);
+        return pausedSchedule;
+      },
+      list: (req) => {
+        if (req.org !== "acme") throw new ConnectError("org is required", Code.InvalidArgument);
+        return { totalCount: 2, items: [pausedSchedule, disabledSchedule] };
       },
     });
   };
@@ -341,6 +395,27 @@ describe("get integration", () => {
     });
   });
 
+  it("fetches a schedule by org/slug and renders backend protojson", async () => {
+    const { schema, message } = await fetchResource(client, ApiResourceKind.schedule, {
+      kind: "ref",
+      org: "acme",
+      slug: "daily-fee-reminders",
+    });
+    const rendered = JSON.parse(renderResource(schema, message, "json"));
+    expect(rendered).toEqual(toJson(ScheduleSchema, pausedSchedule, { useProtoFieldName: true }));
+  });
+
+  it("fetches a schedule by ID, exposing the pause diagnosis get exists for", async () => {
+    const { message } = await fetchResource(client, ApiResourceKind.schedule, { kind: "id", id: "sch_1" });
+    // The full resource is where an operator reads WHY the platform paused
+    // a schedule (paused_reason + the streak) — the list table only flags it.
+    expect(JSON.parse(renderResource(ScheduleSchema, message, "json"))).toMatchObject({
+      metadata: { id: "sch_1" },
+      spec: { enabled: true },
+      status: { paused_reason: "5 consecutive failed runs", consecutive_failures: 5 },
+    });
+  });
+
   it("maps a NotFound backend error to ExitCode.NotFound", async () => {
     const err = await fetchResource(client, ApiResourceKind.agent, { kind: "id", id: "missing" }).catch((e) => e);
     const classified = classify(err);
@@ -348,8 +423,11 @@ describe("get integration", () => {
   });
 
   it("rejects an unsupported kind with a usage error", async () => {
-    // session declares Get in the registry but has no get binding — the
-    // canonical still-unwired kind (environment gained a binding).
+    // session's read verbs are narrowed out of the verb matrix
+    // (stigmer/stigmer#354): the command layer refuses at the gate, and this
+    // resource-layer fallback answers anyone bypassing the gate. Wiring
+    // session get requires BOTH the binding and the matrix line — the
+    // registry conformance test enforces the pairing.
     const err = await fetchResource(client, ApiResourceKind.session, { kind: "id", id: "x" }).catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
   });
@@ -441,10 +519,51 @@ describe("list integration", () => {
     expect(JSON.parse(out)).toEqual([toJson(ChannelAppSchema, knownChannelApp, { useProtoFieldName: true })]);
   });
 
+  it("lists schedules as a table keeping the owner switch and the platform latch distinct", async () => {
+    const out = await listResources(client, ApiResourceKind.schedule, "acme", 50, "table");
+    for (const header of ["ID", "SLUG", "TARGET", "CRON", "TZ", "ENABLED", "STATE"]) {
+      expect(out).toContain(header);
+    }
+    const rows = out.split("\n");
+    // The stigmer/stigmer#352 condition: enabled by the owner, paused by the
+    // platform. Collapsing these into one column would hide exactly this.
+    const pausedRow = rows.find((line) => line.includes("sch_1"));
+    expect(pausedRow).toContain("acme/clinic-assistant");
+    expect(pausedRow).toContain("0 9 * * *");
+    expect(pausedRow).toContain("Asia/Kolkata");
+    expect(pausedRow).toContain("true");
+    expect(pausedRow).toContain("paused");
+    // Owner-disabled with an empty status: derived state is "active" (no
+    // platform latch), and the absent timestamps render nothing bogus.
+    const disabledRow = rows.find((line) => line.includes("sch_2"));
+    expect(disabledRow).toContain("false");
+    expect(disabledRow).toContain("active");
+    expect(disabledRow).not.toContain("paused");
+  });
+
+  it("lists schedules as JSON matching backend protojson", async () => {
+    const out = await listResources(client, ApiResourceKind.schedule, "acme", 50, "json");
+    expect(JSON.parse(out)).toEqual([
+      toJson(ScheduleSchema, pausedSchedule, { useProtoFieldName: true }),
+      toJson(ScheduleSchema, disabledSchedule, { useProtoFieldName: true }),
+    ]);
+  });
+
+  it("refuses to list schedules without an org context, before any RPC", async () => {
+    // ListSchedulesRequest requires org (min_len 1); an unset cloud context
+    // resolves to "". The branch refuses with actionable copy instead of
+    // relaying the server's raw validation error.
+    const err = await listResources(client, ApiResourceKind.schedule, "", 50, "table").catch((e) => e);
+    expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
+    expect(String(err.message)).toContain("--org");
+  });
+
   it("rejects a kind whose list is unwired with a usage error", async () => {
-    // agent_share declares List in the registry but has no list branch —
-    // the canonical still-unwired list kind (the three cutover kinds and
-    // environment gained branches).
+    // agent_share's read verbs are narrowed out of the verb matrix
+    // (stigmer/stigmer#354): the command layer refuses at the gate, and this
+    // resource-layer fallback answers anyone bypassing the gate. Wiring
+    // agent_share list requires BOTH the LIST_HANDLERS entry and the matrix
+    // line — the registry conformance test enforces the pairing.
     const err = await listResources(client, ApiResourceKind.agent_share, "acme", 50, "json").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
   });

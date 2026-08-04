@@ -34,9 +34,15 @@ import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/e
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { McpServerCommandController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/command_pb";
 import { McpServerQueryController } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/query_pb";
+import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
+import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
+import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
+import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/command_pb";
+import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
 import { createNodeClient, normalizeEndpoint } from "@stigmer/sdk/node";
 import type { Stigmer } from "@stigmer/sdk";
 import { createServer as createHttp2Server, type Http2Server, type ServerHttp2Session } from "node:http2";
@@ -85,6 +91,14 @@ const knownChannelApp = create(ChannelAppSchema, {
   metadata: { name: "clinic-meta-app", slug: "clinic-meta-app", org: "acme", id: "chapp_1" },
 });
 
+const knownSchedule = create(ScheduleSchema, {
+  metadata: { name: "daily-fee-reminders", slug: "daily-fee-reminders", org: "acme", id: "sch_1" },
+});
+
+const knownWorkflowInstance = create(WorkflowInstanceSchema, {
+  metadata: { name: "deploy-default", slug: "deploy-default", org: "acme", id: "win_1" },
+});
+
 // Pending execution (cancellable) vs. an already-terminal one.
 const pendingExecution = create(AgentExecutionSchema, {
   metadata: { id: "aex_run" },
@@ -110,8 +124,11 @@ let tagCalls: { workflowId: string; versionHash: string; tag: string }[] = [];
 let datastoreDeletes: { resourceId: string; force: boolean }[] = [];
 let environmentDeletes: { resourceId: string; force: boolean }[] = [];
 let channelAppDeletes: { resourceId: string; force: boolean }[] = [];
-// agent_channel's delete is a typed ID — no force field exists on the wire.
+// agent_channel, schedule, and workflow_instance delete by typed ID — no
+// force field exists on their wire contracts.
 let channelDeleteIds: string[] = [];
+let scheduleDeleteIds: string[] = [];
+let workflowInstanceDeleteIds: string[] = [];
 
 beforeEach(() => {
   cancelCalls = [];
@@ -120,6 +137,8 @@ beforeEach(() => {
   environmentDeletes = [];
   channelAppDeletes = [];
   channelDeleteIds = [];
+  scheduleDeleteIds = [];
+  workflowInstanceDeleteIds = [];
 });
 
 beforeAll(async () => {
@@ -216,6 +235,32 @@ beforeAll(async () => {
       },
     });
 
+    router.service(ScheduleQueryController, {
+      getByReference: (req) => {
+        if (req.slug !== "daily-fee-reminders") throw new ConnectError("schedule not found", Code.NotFound);
+        return knownSchedule;
+      },
+    });
+    router.service(ScheduleCommandController, {
+      delete: (req) => {
+        scheduleDeleteIds.push(req.value);
+        return knownSchedule;
+      },
+    });
+
+    router.service(WorkflowInstanceQueryController, {
+      getByReference: (req) => {
+        if (req.slug !== "deploy-default") throw new ConnectError("workflow instance not found", Code.NotFound);
+        return knownWorkflowInstance;
+      },
+    });
+    router.service(WorkflowInstanceCommandController, {
+      delete: (req) => {
+        workflowInstanceDeleteIds.push(req.value);
+        return knownWorkflowInstance;
+      },
+    });
+
     router.service(WorkflowQueryController, {
       getByReference: (req) => {
         if (req.slug !== "deploy") throw new ConnectError("workflow not found", Code.NotFound);
@@ -306,22 +351,51 @@ describe("delete (standard kinds)", () => {
     expect(classify(err)?.exitCode).toBe(ExitCode.NotFound);
   });
 
+  it("deletes a schedule via its typed ID (tears down the Temporal artifact server-side)", async () => {
+    const plan = await planDelete(client, "schedule", "daily-fee-reminders", "acme");
+    const result = await plan.perform();
+    expect(result.status).toBe("success");
+    expect(result.message).toBe("Schedule deleted successfully");
+    expect(scheduleDeleteIds).toEqual(["sch_1"]);
+  });
+
+  it("deletes a workflow instance via its typed ID", async () => {
+    const plan = await planDelete(client, "workflow-instance", "deploy-default", "acme");
+    const result = await plan.perform();
+    expect(result.status).toBe("success");
+    expect(result.message).toBe("Workflow Instance deleted successfully");
+    expect(workflowInstanceDeleteIds).toEqual(["win_1"]);
+  });
+
   it("rejects an unknown type and lists exactly the wired types", async () => {
     const err = await planDelete(client, "bogus", "x", "acme").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
     // The list is derived from DELETE_HANDLERS (+ the two special cases), so
-    // it must name the wired kinds and never the declared-but-unwired ones.
+    // it must name the wired kinds and never the narrowed ones (#354).
     const message = String(err.message);
-    for (const wired of ["datastore", "environment", "agentchannel", "channelapp", "execution", "organization"]) {
+    for (const wired of [
+      "datastore",
+      "environment",
+      "agentchannel",
+      "channelapp",
+      "schedule",
+      "workflowinstance",
+      "execution",
+      "organization",
+    ]) {
       expect(message).toContain(wired);
     }
     expect(message).not.toContain("session");
     expect(message).not.toContain("oauthapp");
   });
 
-  it("rejects a kind that has no delete handler with a usage error", async () => {
+  it("rejects a narrowed kind at the verb gate with a usage error", async () => {
+    // session's delete verb is narrowed out of the matrix
+    // (stigmer/stigmer#354), so the refusal now happens at the verb-support
+    // gate ("does not support") rather than the dispatch fall-through.
     const err = await planDelete(client, "session", "ses_1", "acme").catch((e) => e);
     expect(classify(err)?.exitCode).toBe(ExitCode.Usage);
+    expect(String(err.message)).toContain("does not support");
   });
 });
 

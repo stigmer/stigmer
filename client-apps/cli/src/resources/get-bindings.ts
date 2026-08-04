@@ -11,8 +11,10 @@ import { ChannelAppSchema } from "@stigmer/protos/ai/stigmer/agentic/channelapp/
 import { DatastoreSchema } from "@stigmer/protos/ai/stigmer/agentic/datastore/v1/api_pb";
 import { EnvironmentSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { McpServerSchema } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
+import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { SkillSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/api_pb";
 import { WorkflowSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
+import { WorkflowInstanceSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiKeySchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
 import { ProjectSchema } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/api_pb";
@@ -27,16 +29,21 @@ export interface ResourceResult {
 
 type Getter = (client: Stigmer, ref: ParsedReference) => Promise<ResourceResult>;
 
-const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
+// Every kind declaring Get in the verb matrix must have an entry here (or a
+// documented special case, e.g. organization) — the conformance test in
+// registry/registry.test.ts enforces it, so the two cannot drift.
+export const GET_BINDINGS: ReadonlyMap<ApiResourceKind, Getter> = new Map([
   [ApiResourceKind.agent, refGetter(ApiResourceKind.agent, AgentSchema, (c) => c.agent)],
   [ApiResourceKind.agent_instance, refGetter(ApiResourceKind.agent_instance, AgentInstanceSchema, (c) => c.agentInstance)],
   [ApiResourceKind.workflow, refGetter(ApiResourceKind.workflow, WorkflowSchema, (c) => c.workflow)],
+  [ApiResourceKind.workflow_instance, refGetter(ApiResourceKind.workflow_instance, WorkflowInstanceSchema, (c) => c.workflowInstance)],
   [ApiResourceKind.mcp_server, refGetter(ApiResourceKind.mcp_server, McpServerSchema, (c) => c.mcpServer)],
   [ApiResourceKind.project, refGetter(ApiResourceKind.project, ProjectSchema, (c) => c.project)],
   [ApiResourceKind.datastore, refGetter(ApiResourceKind.datastore, DatastoreSchema, (c) => c.datastore)],
   [ApiResourceKind.environment, refGetter(ApiResourceKind.environment, EnvironmentSchema, (c) => c.environment)],
   [ApiResourceKind.agent_channel, refGetter(ApiResourceKind.agent_channel, AgentChannelSchema, (c) => c.agentChannel)],
   [ApiResourceKind.channel_app, refGetter(ApiResourceKind.channel_app, ChannelAppSchema, (c) => c.channelapp)],
+  [ApiResourceKind.schedule, refGetter(ApiResourceKind.schedule, ScheduleSchema, (c) => c.schedule)],
   [ApiResourceKind.skill, refGetter(ApiResourceKind.skill, SkillSchema, (c) => c.skill)],
   [ApiResourceKind.api_key, idOnlyGetter(ApiKeySchema, (c) => c.apiKey, "API keys")],
 ]);

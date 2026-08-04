@@ -1,5 +1,4 @@
 // CLI verbs — operations that can be performed on a resource.
-// Mirrors the Go types.Verb set so the two CLIs stay behaviorally identical.
 
 export const Verb = {
   Apply: "apply",

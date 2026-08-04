@@ -1,0 +1,70 @@
+Operate on schedules: fire one immediately, or clear a platform pause.
+
+A schedule runs an agent on a cron, and it can stop firing for two different
+reasons with two different remedies. **Disabled** is the owner's switch
+(`spec.enabled: false` in the manifest) — re-apply with `enabled: true` to
+turn it back on. **Paused** is the platform's failure latch: after repeated
+failed runs the platform pauses the schedule and records the reason on
+status. Applying the manifest never clears a pause; `stigmer schedule
+resume` is the one path that does.
+
+The declarative lifecycle rides the unified verbs: `stigmer apply -f` to
+create or update, `stigmer get schedule` to inspect (including the pause
+reason and failure streak), `stigmer list schedule` to see every schedule's
+enabled/paused state at a glance, and `stigmer delete schedule` to tear one
+down along with its firing clock.
+
+{/* AUTO_USAGE */}
+
+### Common patterns
+
+```bash
+# Fire a schedule once, right now — the fastest way to validate one
+stigmer schedule trigger my-org/daily-fee-reminders
+
+# See why a schedule stopped firing
+stigmer get schedule my-org/daily-fee-reminders
+
+# Clear a platform pause after fixing the underlying failure
+stigmer schedule resume my-org/daily-fee-reminders
+
+# Survey every schedule in the org
+stigmer list schedule --org my-org
+```
+
+{/* AUTO_FLAGS */}
+
+### Disabled versus paused
+
+| State | Set by | Visible in | Cleared by |
+|-------|--------|------------|------------|
+| Disabled | The owner (`spec.enabled: false`) | `ENABLED` column of `stigmer list schedule` | Re-apply the manifest with `enabled: true` |
+| Paused | The platform, after repeated failed runs | `STATE` column, with the reason in `stigmer get schedule` | `stigmer schedule resume` |
+
+A schedule can be enabled by its owner yet paused by the platform at the
+same time — that combination means the schedule is broken, not switched off,
+and resuming it without fixing the failure only restarts the streak.
+
+### Trigger semantics
+
+`stigmer schedule trigger` fires through the same path as a scheduled tick:
+a disabled or paused schedule refuses to fire, the run counts toward the
+failure streak, and a successful run resets it. Use it to validate a new
+schedule immediately instead of waiting for the next cron boundary.
+
+{/* AUTO_SUBCOMMANDS */}
+
+{/* AUTO_GLOBAL_FLAGS */}
+
+## Related commands
+
+| Command | Description |
+|---------|-------------|
+| [`stigmer apply`](./apply) | Create or update a schedule from a manifest |
+| [`stigmer get schedule`](./get) | Inspect a schedule, including pause reason and failure streak |
+| [`stigmer list schedule`](./list) | List schedules with their enabled/paused state |
+| [`stigmer delete schedule`](./delete) | Delete a schedule and tear down its firing clock |
+
+## See also
+
+- [Command Reference](./) — All available commands

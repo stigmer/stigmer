@@ -52,22 +52,26 @@ interface HasMetadata {
 type DeleteFn = (client: Stigmer, id: string, force: boolean) => Promise<HasMetadata>;
 
 // Kinds the unified delete handles directly, each bound to its SDK delete call.
-// Kinds that carry a Delete verb but no entry here (identity_provider,
-// oauth_app, agent_share, workflow_instance, session) fall through to a
-// "not implemented" usage error, matching Go's default branch.
+// Every kind declaring Delete in the verb matrix must have an entry here (or a
+// documented special case) — the conformance test in registry/registry.test.ts
+// enforces it, so the two cannot drift.
 // Kinds whose delete takes a DeleteResourceInput (not an ID) thread the force
 // acknowledgment through; today only the datastore server honors it (the
 // non-empty guard), but force is the contract's generic ack carrier.
-const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<ApiResourceKind, DeleteFn>([
+export const DELETE_HANDLERS: ReadonlyMap<ApiResourceKind, DeleteFn> = new Map<ApiResourceKind, DeleteFn>([
   [ApiResourceKind.agent, (c, id) => c.agent.delete(id)],
   [ApiResourceKind.agent_instance, (c, id) => c.agentInstance.delete(id)],
   [ApiResourceKind.workflow, (c, id) => c.workflow.delete(id)],
+  [ApiResourceKind.workflow_instance, (c, id) => c.workflowInstance.delete(id)],
   [ApiResourceKind.mcp_server, (c, id, force) => c.mcpServer.delete({ resourceId: id, force })],
   [ApiResourceKind.project, (c, id) => c.project.delete(id)],
   [ApiResourceKind.datastore, (c, id, force) => c.datastore.delete({ resourceId: id, force })],
   [ApiResourceKind.environment, (c, id, force) => c.environment.delete({ resourceId: id, force })],
   [ApiResourceKind.agent_channel, (c, id) => c.agentChannel.delete(id)],
   [ApiResourceKind.channel_app, (c, id, force) => c.channelapp.delete({ resourceId: id, force })],
+  // A schedule delete also tears down its Temporal Schedule artifact
+  // server-side; the RPC takes a bare ScheduleId, so force is ignored.
+  [ApiResourceKind.schedule, (c, id) => c.schedule.delete(id)],
   [ApiResourceKind.skill, (c, id) => c.skill.delete(id)],
   [ApiResourceKind.api_key, (c, id) => c.apiKey.delete(id)],
 ]);

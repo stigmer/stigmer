@@ -39,26 +39,6 @@ export interface ApplyOutcome {
   readonly applied?: Message;
 }
 
-// Dependency apply order (ascending priority); kinds absent get 99 (applied
-// last). Mirrors Go's applier.DefaultApplyOrder.
-const APPLY_ORDER: ReadonlyMap<ApiResourceKind, number> = new Map([
-  [ApiResourceKind.organization, 0],
-  [ApiResourceKind.mcp_server, 1],
-  // Before agent: an Agent references a Datastore via datastore_usages
-  // (the McpServer-before-Agent pattern; mirrors the SDK manifest registry).
-  [ApiResourceKind.datastore, 2],
-  [ApiResourceKind.agent, 3],
-  [ApiResourceKind.workflow, 4],
-  [ApiResourceKind.environment, 5],
-  [ApiResourceKind.identity_provider, 6],
-  [ApiResourceKind.oauth_app, 7],
-  [ApiResourceKind.agent_instance, 8],
-  [ApiResourceKind.workflow_instance, 9],
-  [ApiResourceKind.session, 10],
-  // After agent and environment: a share references both.
-  [ApiResourceKind.agent_share, 11],
-]);
-
 /** Expand a path into ordered, kind-resolved apply items (strict YAML parse). */
 export function resolveApplyItems(path: string): ApplyItem[] {
   const files = resolveYamlFiles(path);
@@ -83,14 +63,28 @@ export function resolveHandlerForKind(kind: string, where: string): ApplyHandler
   const info = defaultRegistry().getByYamlKind(kind);
   if (info === undefined) throw new UsageError(`unknown resource kind '${kind}' in ${where}`);
   if (!info.supportedVerbs.has(Verb.Apply)) throw new UsageError(`${info.displayName} does not support 'apply'`);
+  if (info.kind === ApiResourceKind.project) {
+    // Project's Apply verb is the stigmer.yaml track, deliberately not a
+    // manifest handler: a file-mode apply would create a second, member-less
+    // way to apply a project, bypassing the membership reconciler.
+    throw new UsageError(
+      `a Project is not applied from a resource manifest (${where}): ` +
+        "run `stigmer apply` in the directory containing stigmer.yaml and the project is reconciled from its members",
+    );
+  }
   const handler = APPLY_HANDLERS.get(info.kind);
   if (handler === undefined) throw new UsageError(`apply not implemented for ${info.displayName}`);
   return handler;
 }
 
-/** Stable sort by dependency priority (Array.prototype.sort is stable in V8). */
+/**
+ * Stable sort by dependency priority (Array.prototype.sort is stable in V8).
+ * The priority rides each handler (`applyOrder`, sourced from the SDK
+ * manifest registry) — there is deliberately no local ordering table to
+ * drift from it.
+ */
 export function sortApplyItems(items: ApplyItem[]): ApplyItem[] {
-  items.sort((a, b) => priorityOf(a.handler.kind) - priorityOf(b.handler.kind));
+  items.sort((a, b) => a.handler.applyOrder - b.handler.applyOrder);
   return items;
 }
 
@@ -202,6 +196,3 @@ function buildDryRunResult(handler: ApplyHandler, message: Message): CommandResu
   return result;
 }
 
-function priorityOf(kind: ApiResourceKind): number {
-  return APPLY_ORDER.get(kind) ?? 99;
-}
