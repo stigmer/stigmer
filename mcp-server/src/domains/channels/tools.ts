@@ -64,7 +64,11 @@ export function registerChannelTools(server: McpServer, target: BackendTarget): 
       inputSchema: {
         recipient: z
           .string()
-          .describe("Recipient's key on the channel's provider (WhatsApp: the wa_id / phone number)."),
+          .describe(
+            "Recipient's key on the channel's provider, passed to the provider verbatim. " +
+              'WhatsApp: the wa_id — digits only INCLUDING the country code, no "+" or ' +
+              'separators (e.g. "919912850490"). Never reformat a wa_id another tool returned.',
+          ),
         text: z
           .string()
           .optional()
