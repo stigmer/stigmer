@@ -34,6 +34,11 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 #     publish shipped the identical old package and could never do otherwise.
 # Bumping the pin changes the ARG (and therefore the cache key), so the
 # install genuinely re-runs, and the recipe states exactly what prod runs.
+#
+# The bump is ENFORCED, not remembered: release.npm-libs refuses to publish
+# a version this pin does not match (added after the pin sat at 3.4.1 for
+# five releases and prod served a bridge with no /channels route,
+# 2026-08-05). Bump the pin in the same commit you tag.
 ARG MCP_SERVER_VERSION=3.6.0
 ENV STIGMER_MCP_VERSION=$MCP_SERVER_VERSION
 ENV NODE_ENV=production

@@ -174,11 +174,16 @@ export type ServerFactory = () => McpServer;
 
 /**
  * Builds the server for an inbound HTTP `initialize` request, selected
- * by request path. Only the initialize request consults the path — an
- * established session's transport already carries the server it was
- * built with, so follow-up requests dispatch by Mcp-Session-Id alone.
+ * by request path; `undefined` means the route is not recognized and the
+ * request must be refused (404), never served a default roster. Only the
+ * initialize request consults the path — an established session's
+ * transport already carries the server it was built with, so follow-up
+ * requests dispatch by Mcp-Session-Id alone.
  */
-export type RouteServerFactory = (path: string) => McpServer;
+export type RouteServerFactory = (path: string) => McpServer | undefined;
+
+/** HTTP route serving the full roster: the bare origin every published config uses. */
+export const FULL_ROUTE = "/";
 
 /** HTTP route serving the records-only roster (T05 R1). */
 export const RECORDS_ROUTE = "/records";
@@ -187,15 +192,26 @@ export const RECORDS_ROUTE = "/records";
 export const CHANNELS_ROUTE = "/channels";
 
 /**
- * The standard HTTP route dispatch: the records-only roster on
- * {@link RECORDS_ROUTE}, the channels-only roster on
- * {@link CHANNELS_ROUTE}, the full roster everywhere else.
+ * The standard HTTP route dispatch: the full roster on {@link FULL_ROUTE},
+ * the records-only roster on {@link RECORDS_ROUTE}, the channels-only
+ * roster on {@link CHANNELS_ROUTE} — and NOTHING anywhere else.
+ *
+ * The closed route table is load-bearing, not tidiness. This dispatch
+ * once fell through to the full roster for any unrecognized path, and a
+ * production bridge predating /channels answered the runner's channel
+ * attachment with the full roster: the agent got a server named
+ * stigmer-channels with every management tool except the one send tool
+ * it existed for (the 2026-08-05 stale-pin incident). An unknown route
+ * is a deployment mismatch by definition — refuse it loudly so the
+ * mismatch is visible at connect time, instead of serving tools the
+ * caller was never meant to see.
  */
 export function routedServerFactory(target: BackendTarget): RouteServerFactory {
   return (path) => {
+    if (path === FULL_ROUTE) return createServer(target);
     if (path === RECORDS_ROUTE) return createRecordsServer(target);
     if (path === CHANNELS_ROUTE) return createChannelsServer(target);
-    return createServer(target);
+    return undefined;
   };
 }
 
@@ -356,6 +372,16 @@ async function routeRequest(
     return;
   }
 
+  // Route recognition happens exactly where the roster choice happens.
+  // An unknown route gets a 404, never a default roster — see
+  // routedServerFactory for the incident this prevents.
+  const server = makeServer(path);
+  if (server === undefined) {
+    res.writeHead(404, { "Content-Type": "text/plain" });
+    res.end(`unknown MCP route: ${path}`);
+    return;
+  }
+
   const transport: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
     onsessioninitialized: (id) => {
@@ -369,7 +395,7 @@ async function routeRequest(
     if (transport.sessionId !== undefined) sessions.delete(transport.sessionId);
   };
 
-  await makeServer(path).connect(transport);
+  await server.connect(transport);
   await transport.handleRequest(req, res, body);
 }
 

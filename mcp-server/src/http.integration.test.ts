@@ -12,7 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Config } from "./config";
 import { configureLogger } from "./logger";
-import { createServer, serveHttp } from "./server";
+import { routedServerFactory, serveHttp } from "./server";
 
 configureLogger({ level: "error", format: "text" });
 
@@ -49,7 +49,14 @@ beforeAll(async () => {
     logLevel: "error",
   };
   controller = new AbortController();
-  serving = serveHttp(() => createServer({ serverAddress: cfg.stigmerServerAddress, apiKey: "" }), cfg, controller.signal);
+  // The REAL route dispatch, so these tests hold the production route
+  // table: full roster on "/", records on "/records", channels on
+  // "/channels", 404 anywhere else.
+  serving = serveHttp(
+    routedServerFactory({ serverAddress: cfg.stigmerServerAddress, apiKey: "" }),
+    cfg,
+    controller.signal,
+  );
   // Give the listener a tick to bind.
   await new Promise((r) => setTimeout(r, 100));
 });
@@ -137,5 +144,51 @@ describe("HTTP transport hardening + OAuth discovery", () => {
     });
     expect(res.status).toBe(400);
     expect(await res.text()).toContain("missing Mcp-Session-Id header");
+  });
+});
+
+/** POST a real MCP initialize to `path`; returns the raw Response. */
+function initialize(path: string): Promise<Response> {
+  return fetch(`${base()}${path}`, {
+    method: "POST",
+    headers: {
+      authorization: "Bearer test-token",
+      "content-type": "application/json",
+      accept: "application/json, text/event-stream",
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-03-26",
+        capabilities: {},
+        clientInfo: { name: "http-integration", version: "test" },
+      },
+    }),
+  });
+}
+
+describe("HTTP route dispatch (the closed route table)", () => {
+  it.each([
+    ["/", "mcp-server-stigmer"],
+    ["/records", "mcp-server-stigmer-records"],
+    ["/channels", "mcp-server-stigmer-channels"],
+  ])("serves the %s roster as %s", async (path, serverName) => {
+    const res = await initialize(path);
+    expect(res.status).toBe(200);
+    // The initialize result rides an SSE frame; the serverInfo name is
+    // the roster's identity and must match the route exactly.
+    expect(await res.text()).toContain(`"name":"${serverName}"`);
+  });
+
+  it("refuses an unknown route with 404 instead of a default roster", async () => {
+    // The 2026-08-05 incident regression pin: a bridge that does not
+    // recognize a route must say so at connect time — silently serving
+    // the full roster there once handed an agent every management tool
+    // except the send tool its attachment existed for.
+    const res = await initialize("/no-such-roster");
+    expect(res.status).toBe(404);
+    expect(await res.text()).toContain("unknown MCP route: /no-such-roster");
   });
 });
