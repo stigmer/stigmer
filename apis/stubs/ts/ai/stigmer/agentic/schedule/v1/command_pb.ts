@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ScheduleSchema } from "./api_pb.js";
 import { file_ai_stigmer_agentic_schedule_v1_api } from "./api_pb.js";
-import type { ScheduleIdSchema } from "./io_pb.js";
+import type { ScheduleIdSchema, ScheduleTriggerResultSchema } from "./io_pb.js";
 import { file_ai_stigmer_agentic_schedule_v1_io } from "./io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/schedule/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_schedule_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxMrQGChlTY2hlZHVsZUNvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlEmIKBmNyZWF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZRooLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZSIE0LgYARKUAQoGdXBkYXRlEiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjbCuBgyCAIQOCILbWV0YWRhdGEuaWQqH3VuYXV0aG9yaXplZCB0byB1cGRhdGUgc2NoZWR1bGUSkAEKBmRlbGV0ZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjDCuBgsCAMQOCIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byBkZWxldGUgc2NoZWR1bGUSkAEKBnJlc3VtZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjDCuBgsCAIQOCIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byByZXN1bWUgc2NoZWR1bGUSkgEKB3RyaWdnZXISKi5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVJZBooLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZSIxwrgYLQgCEDgiBXZhbHVlKiB1bmF1dGhvcml6ZWQgdG8gdHJpZ2dlciBzY2hlZHVsZRoEoP8rOGIGcHJvdG8z", [file_ai_stigmer_agentic_schedule_v1_api, file_ai_stigmer_agentic_schedule_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvY29tbWFuZC5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxMsEGChlTY2hlZHVsZUNvbW1hbmRDb250cm9sbGVyElsKBWFwcGx5EiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlEmIKBmNyZWF0ZRIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZRooLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZSIE0LgYARKUAQoGdXBkYXRlEiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjbCuBgyCAIQOCILbWV0YWRhdGEuaWQqH3VuYXV0aG9yaXplZCB0byB1cGRhdGUgc2NoZWR1bGUSkAEKBmRlbGV0ZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjDCuBgsCAMQOCIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byBkZWxldGUgc2NoZWR1bGUSkAEKBnJlc3VtZRIqLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZUlkGiguYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxLlNjaGVkdWxlIjDCuBgsCAIQOCIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byByZXN1bWUgc2NoZWR1bGUSnwEKB3RyaWdnZXISKi5haS5zdGlnbWVyLmFnZW50aWMuc2NoZWR1bGUudjEuU2NoZWR1bGVJZBo1LmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZVRyaWdnZXJSZXN1bHQiMcK4GC0IAhA4IgV2YWx1ZSogdW5hdXRob3JpemVkIHRvIHRyaWdnZXIgc2NoZWR1bGUaBKD/KzhiBnByb3RvMw", [file_ai_stigmer_agentic_schedule_v1_api, file_ai_stigmer_agentic_schedule_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ScheduleCommandController handles write operations for schedules.
@@ -149,30 +149,44 @@ export const ScheduleCommandController: GenService<{
     output: typeof ScheduleSchema;
   },
   /**
-   * Trigger a schedule to fire once, immediately.
+   * Trigger a schedule to fire once, immediately, and answer with the
+   * run's real outcome.
    *
-   * The manual fire runs through the schedule's own clock, so everything
-   * a cron fire does applies: a fresh run is created, status.last_fire_at
-   * and status.last_execution_id record it, and its verdict feeds the
-   * failure streak (a successful manual fire resets the streak). The fire
-   * is asynchronous — the response carries the schedule, and the run
-   * appears on status as it starts. A disabled schedule refuses (enable
-   * it first); a platform-paused schedule refuses (resume it first).
+   * The manual fire runs synchronously through the standard execution
+   * create pipeline — every launch gate runs — and the result names what
+   * happened: the created execution's id, or the refusing gate's own
+   * copy verbatim. status.last_fire_at and status.last_execution_id
+   * record a started run. Manual fires do NOT feed the failure streak —
+   * the streak is the unattended (cron) health signal, and a test fire
+   * of a broken schedule must not race its owner to the pause threshold.
+   *
+   * A disabled schedule refuses (enable it first). A platform-paused
+   * schedule MAY be triggered — a test fire is exactly how an owner
+   * verifies a fix before resuming; resume remains the one path that
+   * clears the pause.
    *
    * @internal
    * Authorization: requires can_edit permission on the schedule — the
-   * update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
-   * Refusal matrix in-handler (DD-014 D-B): disabled and paused both
-   * answer FAILED_PRECONDITION with teaching copy; the cloud handler
-   * loads before authorizing (#224: a missing schedule answers NOT_FOUND,
-   * not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
-   * overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
-   * SKIP would silently swallow a trigger issued while a previous fire is
-   * still tracking, and a human asking to run now means now. Cron fires
-   * keep SKIP, baked into the artifact. Manual fires feed the failure
-   * streak and reset it on success (DD-014 D-D): one verdict path, no
-   * manual-fire exemption. OSS answers FAILED_PRECONDITION until its
-   * clock lands (T04 slice 3a), then fires for real; OSS excludes the
+   * update bar (DD-014 D-A). Project DD-017 D-5/D-6 amends DD-014: the
+   * artifact round-trip is gone for manual fires (it made the fire
+   * asynchronous, so the RPC answered before the launch gates ran — a
+   * false "run started" beside a climbing failure counter). Cron fires
+   * keep the tracked artifact tick unchanged. The disabled refusal
+   * SURVIVES for a different reason than DD-014 D-B recorded:
+   * ScheduleBlueprintAccess requires spec.enabled at the create gate AND
+   * the mid-run sandbox read predicate, so a disabled-schedule run would
+   * die mid-execution after billing side effects (consoles offer
+   * "Enable & run now" instead; the fire-legitimacy model that would
+   * lift this is DD-017's named follow-up). Two-level contract: a gRPC
+   * error means the trigger itself was refused (disabled →
+   * FAILED_PRECONDITION with the byte-pinned copy, missing → NOT_FOUND
+   * before authorize, #224); a gRPC success means the fire happened and
+   * ScheduleTriggerResult names the run's outcome — a deterministically
+   * refused run is a successful trigger honestly reported, never an
+   * exception. The handler stamps last_fire_at/last_execution_id and
+   * writes the fire-ledger row (origin=manual) because the tick is not
+   * in the path to do it; status writes ride updateFields, never save()
+   * (DD-010 D-B). OSS mirrors the semantics; it excludes the
    * authorization step per its recorded single-user posture.
    *
    * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleCommandController.trigger
@@ -180,7 +194,7 @@ export const ScheduleCommandController: GenService<{
   trigger: {
     methodKind: "unary";
     input: typeof ScheduleIdSchema;
-    output: typeof ScheduleSchema;
+    output: typeof ScheduleTriggerResultSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_schedule_v1_command, 0);

@@ -24,6 +24,7 @@ const (
 	ScheduleQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/getByReference"
 	ScheduleQueryController_GetByAgent_FullMethodName     = "/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/getByAgent"
 	ScheduleQueryController_List_FullMethodName           = "/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/list"
+	ScheduleQueryController_ListRuns_FullMethodName       = "/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/listRuns"
 )
 
 // ScheduleQueryControllerClient is the client API for ScheduleQueryController service.
@@ -63,6 +64,23 @@ type ScheduleQueryControllerClient interface {
 	// Authorization in-handler via FGA-filtered queries (cloud) or
 	// unrestricted store queries (OSS).
 	List(ctx context.Context, in *ListSchedulesRequest, opts ...grpc.CallOption) (*ScheduleList, error)
+	// List a schedule's run history, newest first.
+	//
+	// Every fire leaves a row — including fires that created no execution
+	// (a refused launch gate, a missing target agent) — with the refusing
+	// gate's copy verbatim. This is the surface that explains
+	// status.consecutive_failures.
+	//
+	// @internal
+	// Backed by the fire ledger (project DD-017 D-7). Authorization:
+	// can_view on the schedule — run history is the schedule's own
+	// operational record; the linked executions keep their own bars. Rows
+	// carrying an execution id but no terminal outcome are enriched with
+	// the execution's live phase at read time (one join), so manual fires
+	// need no tracker and outcome columns never lie. OSS implements the
+	// same contract against its store; the conformance suite holds both
+	// editions to it.
+	ListRuns(ctx context.Context, in *ListScheduleRunsRequest, opts ...grpc.CallOption) (*ScheduleRunList, error)
 }
 
 type scheduleQueryControllerClient struct {
@@ -113,6 +131,16 @@ func (c *scheduleQueryControllerClient) List(ctx context.Context, in *ListSchedu
 	return out, nil
 }
 
+func (c *scheduleQueryControllerClient) ListRuns(ctx context.Context, in *ListScheduleRunsRequest, opts ...grpc.CallOption) (*ScheduleRunList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ScheduleRunList)
+	err := c.cc.Invoke(ctx, ScheduleQueryController_ListRuns_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ScheduleQueryControllerServer is the server API for ScheduleQueryController service.
 // All implementations should embed UnimplementedScheduleQueryControllerServer
 // for forward compatibility.
@@ -150,6 +178,23 @@ type ScheduleQueryControllerServer interface {
 	// Authorization in-handler via FGA-filtered queries (cloud) or
 	// unrestricted store queries (OSS).
 	List(context.Context, *ListSchedulesRequest) (*ScheduleList, error)
+	// List a schedule's run history, newest first.
+	//
+	// Every fire leaves a row — including fires that created no execution
+	// (a refused launch gate, a missing target agent) — with the refusing
+	// gate's copy verbatim. This is the surface that explains
+	// status.consecutive_failures.
+	//
+	// @internal
+	// Backed by the fire ledger (project DD-017 D-7). Authorization:
+	// can_view on the schedule — run history is the schedule's own
+	// operational record; the linked executions keep their own bars. Rows
+	// carrying an execution id but no terminal outcome are enriched with
+	// the execution's live phase at read time (one join), so manual fires
+	// need no tracker and outcome columns never lie. OSS implements the
+	// same contract against its store; the conformance suite holds both
+	// editions to it.
+	ListRuns(context.Context, *ListScheduleRunsRequest) (*ScheduleRunList, error)
 }
 
 // UnimplementedScheduleQueryControllerServer should be embedded to have
@@ -170,6 +215,9 @@ func (UnimplementedScheduleQueryControllerServer) GetByAgent(context.Context, *G
 }
 func (UnimplementedScheduleQueryControllerServer) List(context.Context, *ListSchedulesRequest) (*ScheduleList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
+}
+func (UnimplementedScheduleQueryControllerServer) ListRuns(context.Context, *ListScheduleRunsRequest) (*ScheduleRunList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRuns not implemented")
 }
 func (UnimplementedScheduleQueryControllerServer) testEmbeddedByValue() {}
 
@@ -263,6 +311,24 @@ func _ScheduleQueryController_List_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ScheduleQueryController_ListRuns_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListScheduleRunsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScheduleQueryControllerServer).ListRuns(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ScheduleQueryController_ListRuns_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScheduleQueryControllerServer).ListRuns(ctx, req.(*ListScheduleRunsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ScheduleQueryController_ServiceDesc is the grpc.ServiceDesc for ScheduleQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -285,6 +351,10 @@ var ScheduleQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "list",
 			Handler:    _ScheduleQueryController_List_Handler,
+		},
+		{
+			MethodName: "listRuns",
+			Handler:    _ScheduleQueryController_ListRuns_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

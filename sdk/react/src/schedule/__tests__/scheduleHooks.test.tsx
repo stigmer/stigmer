@@ -3,7 +3,14 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { clone, create, equals } from "@bufbuild/protobuf";
 import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
-import { ScheduleListSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import {
+  ScheduleListSchema,
+  ScheduleTriggerResultSchema,
+  ScheduleRunListSchema,
+  ScheduleRunSchema,
+  ScheduleRunOutcome,
+  ScheduleRunOrigin,
+} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { StigmerError } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
@@ -13,6 +20,7 @@ import { useScheduleList } from "../useScheduleList";
 import { useScheduleCount } from "../useScheduleCount";
 import { useResumeSchedule } from "../useResumeSchedule";
 import { useTriggerSchedule } from "../useTriggerSchedule";
+import { useScheduleRuns } from "../useScheduleRuns";
 import { useSetScheduleEnabled } from "../useSetScheduleEnabled";
 
 vi.mock("../../feedback/toast", () => ({
@@ -196,23 +204,56 @@ describe("useResumeSchedule", () => {
 });
 
 describe("useTriggerSchedule", () => {
-  it("triggers by id and toasts success", async () => {
-    const trigger = vi.fn().mockResolvedValue(SCHEDULE);
+  it("resolves a STARTED result and toasts success", async () => {
+    const started = create(ScheduleTriggerResultSchema, {
+      outcome: ScheduleRunOutcome.STARTED,
+      executionId: "aex_01run",
+      schedule: SCHEDULE,
+    });
+    const trigger = vi.fn().mockResolvedValue(started);
     const client = { schedule: { trigger } };
 
     const { result } = renderHook(() => useTriggerSchedule(), {
       wrapper: wrapper(client),
     });
 
-    await result.current.triggerSchedule("sch_01example");
+    const res = await result.current.triggerSchedule("sch_01example");
 
     expect(trigger).toHaveBeenCalledWith("sch_01example");
+    expect(res.outcome).toBe(ScheduleRunOutcome.STARTED);
+    expect(res.executionId).toBe("aex_01run");
     expect(toast.success).toHaveBeenCalledWith("Run started");
   });
 
-  it("relays the server's refusal copy verbatim", async () => {
-    // The backend's refusal matrix copy is byte-identical across editions
-    // and names the remedy — the UI must not paraphrase it.
+  it("resolves a REFUSED result and toasts the gate's reason verbatim", async () => {
+    // A refused run is a SUCCESSFUL trigger honestly reported (DD-017
+    // D-6): the promise resolves, and the gate's own copy is surfaced,
+    // never paraphrased.
+    const refused = create(ScheduleTriggerResultSchema, {
+      outcome: ScheduleRunOutcome.REFUSED,
+      refusalReason:
+        "run refused: The organization cannot fund a scheduled run right now.",
+      schedule: SCHEDULE,
+    });
+    const trigger = vi.fn().mockResolvedValue(refused);
+    const client = { schedule: { trigger } };
+
+    const { result } = renderHook(() => useTriggerSchedule(), {
+      wrapper: wrapper(client),
+    });
+
+    const res = await result.current.triggerSchedule("sch_01example");
+
+    expect(res.outcome).toBe(ScheduleRunOutcome.REFUSED);
+    expect(toast.error).toHaveBeenCalledWith(
+      "run refused: The organization cannot fund a scheduled run right now.",
+    );
+    expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it("relays a trigger-level gRPC refusal (disabled) verbatim and rejects", async () => {
+    // A disabled schedule is refused at the trigger itself — a gRPC
+    // error, not a result. Copy is byte-identical across editions.
     const refusal = new StigmerError(
       "failed-precondition",
       "schedule is disabled (spec.enabled=false) — enable it before triggering",
@@ -228,6 +269,52 @@ describe("useTriggerSchedule", () => {
     expect(toast.error).toHaveBeenCalledWith(
       "schedule is disabled (spec.enabled=false) — enable it before triggering",
     );
+  });
+});
+
+describe("useScheduleRuns", () => {
+  it("fetches a schedule's run history, newest first", async () => {
+    const listRuns = vi.fn().mockResolvedValue(
+      create(ScheduleRunListSchema, {
+        totalCount: 2,
+        items: [
+          create(ScheduleRunSchema, {
+            scheduleId: "sch_01example",
+            origin: ScheduleRunOrigin.MANUAL,
+            outcome: ScheduleRunOutcome.STARTED,
+            executionId: "aex_01run",
+          }),
+          create(ScheduleRunSchema, {
+            scheduleId: "sch_01example",
+            origin: ScheduleRunOrigin.CRON,
+            outcome: ScheduleRunOutcome.REFUSED,
+            reason: "run refused: missing credential",
+          }),
+        ],
+      }),
+    );
+    const client = { schedule: { listRuns } };
+
+    const { result } = renderHook(() => useScheduleRuns("sch_01example"), {
+      wrapper: wrapper(client),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.runs).toHaveLength(2);
+    expect(result.current.totalCount).toBe(2);
+    expect(result.current.runs[1].reason).toBe("run refused: missing credential");
+  });
+
+  it("skips fetching when scheduleId is null", () => {
+    const listRuns = vi.fn();
+    const client = { schedule: { listRuns } };
+
+    const { result } = renderHook(() => useScheduleRuns(null), {
+      wrapper: wrapper(client),
+    });
+
+    expect(result.current.runs).toEqual([]);
+    expect(listRuns).not.toHaveBeenCalled();
   });
 });
 

@@ -1569,3 +1569,200 @@ func TestStore_BootstrapState_Persistence(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "applied:sha256:abc123", value)
 }
+
+// =============================================================================
+// Schedule Run Operations (Fire Ledger) Tests
+// =============================================================================
+
+func newScheduleRunTestStore(t *testing.T) *Store {
+	t.Helper()
+	s, err := NewStore(filepath.Join(t.TempDir(), "test.sqlite"))
+	require.NoError(t, err)
+	t.Cleanup(func() { s.Close() })
+	return s
+}
+
+func TestStore_ScheduleRuns_UpsertAndList(t *testing.T) {
+	s := newScheduleRunTestStore(t)
+	ctx := context.Background()
+
+	require.NoError(t, s.UpsertScheduleRun(ctx, &store.ScheduleRunRecord{
+		ScheduleID:      "sch_1",
+		Org:             "acme",
+		NominalFireTime: "2026-08-05T09:00:00Z",
+		Origin:          "cron",
+		Outcome:         "refused",
+		Reason:          "run refused: MCP server 'isc-gym' requires environment variable 'ISC_MCP_SHARED_SECRET'",
+		CompletedAt:     "2026-08-05T09:00:01Z",
+	}))
+	require.NoError(t, s.UpsertScheduleRun(ctx, &store.ScheduleRunRecord{
+		ScheduleID:      "sch_1",
+		Org:             "acme",
+		NominalFireTime: "2026-08-05T10:00:00Z",
+		Origin:          "cron",
+		Outcome:         "started",
+		ExecutionID:     "aex_1",
+	}))
+
+	runs, total, err := s.ListScheduleRuns(ctx, "sch_1", 0, 50)
+	require.NoError(t, err)
+	assert.Equal(t, 2, total)
+	require.Len(t, runs, 2)
+	// Newest first.
+	assert.Equal(t, "2026-08-05T10:00:00Z", runs[0].NominalFireTime)
+	assert.Equal(t, "started", runs[0].Outcome)
+	assert.Equal(t, "aex_1", runs[0].ExecutionID)
+	assert.NotEmpty(t, runs[0].RecordedAt)
+	assert.Equal(t, "refused", runs[1].Outcome)
+	// The refusal reason survives verbatim — the whole point of the ledger.
+	assert.Contains(t, runs[1].Reason, "ISC_MCP_SHARED_SECRET")
+
+	// Pagination: offset past the first row.
+	page, total, err := s.ListScheduleRuns(ctx, "sch_1", 1, 1)
+	require.NoError(t, err)
+	assert.Equal(t, 2, total)
+	require.Len(t, page, 1)
+	assert.Equal(t, "2026-08-05T09:00:00Z", page[0].NominalFireTime)
+}
+
+func TestStore_ScheduleRuns_UpsertConvergesUnderRetry(t *testing.T) {
+	s := newScheduleRunTestStore(t)
+	ctx := context.Background()
+
+	record := &store.ScheduleRunRecord{
+		ScheduleID:      "sch_1",
+		NominalFireTime: "2026-08-05T09:00:00Z",
+		Origin:          "cron",
+		Outcome:         "started",
+		ExecutionID:     "aex_1",
+	}
+	// A retried activity writes the same fire twice — one row, not two.
+	require.NoError(t, s.UpsertScheduleRun(ctx, record))
+	require.NoError(t, s.UpsertScheduleRun(ctx, record))
+
+	runs, total, err := s.ListScheduleRuns(ctx, "sch_1", 0, 50)
+	require.NoError(t, err)
+	assert.Equal(t, 1, total)
+	require.Len(t, runs, 1)
+}
+
+func TestStore_ScheduleRuns_TerminalRowIsNeverDowngraded(t *testing.T) {
+	s := newScheduleRunTestStore(t)
+	ctx := context.Background()
+
+	require.NoError(t, s.UpsertScheduleRun(ctx, &store.ScheduleRunRecord{
+		ScheduleID:      "sch_1",
+		NominalFireTime: "2026-08-05T09:00:00Z",
+		Origin:          "cron",
+		Outcome:         "completed",
+		ExecutionID:     "aex_1",
+		CompletedAt:     "2026-08-05T09:05:00Z",
+	}))
+	// A replayed "started" write after the verdict landed is a no-op.
+	require.NoError(t, s.UpsertScheduleRun(ctx, &store.ScheduleRunRecord{
+		ScheduleID:      "sch_1",
+		NominalFireTime: "2026-08-05T09:00:00Z",
+		Origin:          "cron",
+		Outcome:         "started",
+		ExecutionID:     "aex_1",
+	}))
+
+	runs, _, err := s.ListScheduleRuns(ctx, "sch_1", 0, 50)
+	require.NoError(t, err)
+	require.Len(t, runs, 1)
+	assert.Equal(t, "completed", runs[0].Outcome)
+	assert.Equal(t, "2026-08-05T09:05:00Z", runs[0].CompletedAt)
+}
+
+func TestStore_ScheduleRuns_MarkLatestTerminal(t *testing.T) {
+	s := newScheduleRunTestStore(t)
+	ctx := context.Background()
+
+	// An older fire already terminal, a newer one in flight.
+	require.NoError(t, s.UpsertScheduleRun(ctx, &store.ScheduleRunRecord{
+		ScheduleID: "sch_1", NominalFireTime: "2026-08-05T09:00:00Z", Origin: "cron",
+		Outcome: "completed", ExecutionID: "aex_1", CompletedAt: "2026-08-05T09:05:00Z",
+	}))
+	require.NoError(t, s.UpsertScheduleRun(ctx, &store.ScheduleRunRecord{
+		ScheduleID: "sch_1", NominalFireTime: "2026-08-05T10:00:00Z", Origin: "cron",
+		Outcome: "started", ExecutionID: "aex_2",
+	}))
+
+	// A NEWER manual fire is in flight too — the origin filter must keep
+	// the cron verdict off it (manual fires are untracked; their rows
+	// resolve at read time).
+	require.NoError(t, s.UpsertScheduleRun(ctx, &store.ScheduleRunRecord{
+		ScheduleID: "sch_1", NominalFireTime: "2026-08-05T10:30:00Z", Origin: "manual",
+		Outcome: "started", ExecutionID: "aex_manual",
+	}))
+
+	require.NoError(t, s.MarkLatestScheduleRunTerminal(ctx,
+		"sch_1", "cron", "failed", "run aex_2 ended execution_failed", "2026-08-05T10:07:00Z"))
+
+	runs, _, err := s.ListScheduleRuns(ctx, "sch_1", 0, 50)
+	require.NoError(t, err)
+	require.Len(t, runs, 3)
+	// The manual row (newest) is untouched — the verdict landed on the
+	// cron row despite being older.
+	assert.Equal(t, "manual", runs[0].Origin)
+	assert.Equal(t, "started", runs[0].Outcome)
+	assert.Equal(t, "failed", runs[1].Outcome)
+	assert.Equal(t, "run aex_2 ended execution_failed", runs[1].Reason)
+	assert.Equal(t, "2026-08-05T10:07:00Z", runs[1].CompletedAt)
+	// The older, already-terminal row is untouched.
+	assert.Equal(t, "completed", runs[2].Outcome)
+
+	// With every cron row terminal, marking again is a silent no-op.
+	require.NoError(t, s.MarkLatestScheduleRunTerminal(ctx,
+		"sch_1", "cron", "timed_out", "should not land", "2026-08-05T11:00:00Z"))
+	runs, _, err = s.ListScheduleRuns(ctx, "sch_1", 0, 50)
+	require.NoError(t, err)
+	assert.Equal(t, "failed", runs[1].Outcome)
+}
+
+func TestStore_ScheduleRuns_DeleteBySchedule(t *testing.T) {
+	s := newScheduleRunTestStore(t)
+	ctx := context.Background()
+
+	require.NoError(t, s.UpsertScheduleRun(ctx, &store.ScheduleRunRecord{
+		ScheduleID: "sch_1", NominalFireTime: "2026-08-05T09:00:00Z", Origin: "cron", Outcome: "started",
+	}))
+	require.NoError(t, s.UpsertScheduleRun(ctx, &store.ScheduleRunRecord{
+		ScheduleID: "sch_2", NominalFireTime: "2026-08-05T09:00:00Z", Origin: "cron", Outcome: "started",
+	}))
+
+	deleted, err := s.DeleteScheduleRunsBySchedule(ctx, "sch_1")
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), deleted)
+
+	_, total, err := s.ListScheduleRuns(ctx, "sch_1", 0, 50)
+	require.NoError(t, err)
+	assert.Equal(t, 0, total)
+	// The other schedule's history is untouched.
+	_, total, err = s.ListScheduleRuns(ctx, "sch_2", 0, 50)
+	require.NoError(t, err)
+	assert.Equal(t, 1, total)
+}
+
+func TestStore_ScheduleRuns_Prune(t *testing.T) {
+	s := newScheduleRunTestStore(t)
+	ctx := context.Background()
+
+	require.NoError(t, s.UpsertScheduleRun(ctx, &store.ScheduleRunRecord{
+		ScheduleID: "sch_1", NominalFireTime: "2026-05-01T09:00:00Z", Origin: "cron",
+		Outcome: "completed", RecordedAt: "2026-05-01T09:00:00Z", CompletedAt: "2026-05-01T09:05:00Z",
+	}))
+	require.NoError(t, s.UpsertScheduleRun(ctx, &store.ScheduleRunRecord{
+		ScheduleID: "sch_1", NominalFireTime: "2026-08-05T09:00:00Z", Origin: "cron",
+		Outcome: "started", RecordedAt: "2026-08-05T09:00:00Z",
+	}))
+
+	pruned, err := s.PruneScheduleRuns(ctx, "2026-08-01T00:00:00Z")
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), pruned)
+
+	runs, total, err := s.ListScheduleRuns(ctx, "sch_1", 0, 50)
+	require.NoError(t, err)
+	assert.Equal(t, 1, total)
+	assert.Equal(t, "2026-08-05T09:00:00Z", runs[0].NominalFireTime)
+}

@@ -15,8 +15,15 @@ import { useCopyResource } from "../resource-detail/useCopyResource.js";
 import { useDeleteResource } from "../resource-detail/useDeleteResource.js";
 import type { DetailAction, ResourceHeaderMeta } from "../resource-detail/types.js";
 import { useExportResource } from "../library/useExportResource.js";
+import {
+  ScheduleRunOrigin,
+  ScheduleRunOutcome,
+  type ScheduleRun,
+} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import type { ScheduleRunConfig } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
 import { deriveScheduleState, formatNextFire } from "./scheduleState.js";
 import { useSchedule } from "./useSchedule.js";
+import { useScheduleRuns } from "./useScheduleRuns.js";
 import { useResumeSchedule } from "./useResumeSchedule.js";
 import { useSetScheduleEnabled } from "./useSetScheduleEnabled.js";
 import { useTriggerSchedule } from "./useTriggerSchedule.js";
@@ -84,6 +91,11 @@ export function ScheduleDetailView({
   className,
 }: ScheduleDetailViewProps) {
   const { schedule, isLoading, error, refetch } = useSchedule(org, slug);
+  const {
+    runs,
+    isLoading: runsLoading,
+    refetch: refetchRuns,
+  } = useScheduleRuns(schedule?.metadata?.id ?? null);
 
   const { resumeSchedule, isResuming } = useResumeSchedule();
   const { triggerSchedule, isTriggering } = useTriggerSchedule();
@@ -132,18 +144,55 @@ export function ScheduleDetailView({
     refetch();
   };
 
+  // One fire: trigger, refresh the schedule and its run history, and — on
+  // a started run — hand the execution to the host so it can navigate
+  // straight to it (the whole point of the synchronous trigger, DD-017
+  // D-6). A refused run resolves too; its reason is toasted by the hook
+  // and lands in the run history below.
+  const fireNow = async () => {
+    const result = await triggerSchedule(scheduleId);
+    refetch();
+    refetchRuns();
+    if (
+      result.outcome === ScheduleRunOutcome.STARTED &&
+      result.executionId &&
+      onNavigateToExecution
+    ) {
+      onNavigateToExecution(result.executionId);
+    }
+  };
+
   const handleTrigger = async () => {
     const confirmed = await confirm({
       title: "Run this schedule now?",
       description:
         "This starts a real agent execution immediately, outside the cron " +
-        "cadence. The run appears as the schedule's last execution.",
+        "cadence. The run is recorded in this schedule's run history.",
       confirmLabel: "Start run",
       variant: "default",
     });
     if (!confirmed) return;
-    await triggerSchedule(scheduleId);
-    refetch();
+    await fireNow();
+  };
+
+  // A disabled schedule refuses to fire at the server — ScheduleBlueprintAccess
+  // requires spec.enabled at the create gate AND the mid-run read (DD-017
+  // D-5), so a disabled run would die mid-execution after billing. The
+  // staged-disabled test flow the creation form promises is therefore
+  // "enable, then fire", and this makes it one click.
+  const handleEnableAndRun = async () => {
+    const confirmed = await confirm({
+      title: "Enable and run this schedule now?",
+      description:
+        "This schedule is staged disabled. Enabling it lets it fire on its " +
+        "cron cadence going forward, and starts one real run immediately so " +
+        "you can see the result. You can disable it again afterwards.",
+      confirmLabel: "Enable & run",
+      variant: "default",
+    });
+    if (!confirmed) return;
+    await setEnabled(schedule, true);
+    await fireNow();
   };
 
   const handleDelete = async () => {
@@ -160,15 +209,23 @@ export function ScheduleDetailView({
     onDeleted?.();
   };
 
-  const primaryAction: DetailAction = {
-    id: "trigger",
-    label: "Run now",
-    onAction: () => void handleTrigger(),
-    // A disabled or paused schedule refuses to trigger server-side; the
-    // banner above names the remedy, so the button reflects it too
-    // (error prevention over error recovery).
-    disabled: stateInfo.state !== "active" || isTriggering,
-  };
+  // Disabled → "Enable & run now" (the one-click staged-test flow);
+  // active and paused → "Run now" (a paused schedule's owner needs a
+  // test fire to verify a fix before resuming — DD-017 D-5).
+  const primaryAction: DetailAction =
+    stateInfo.state === "disabled"
+      ? {
+          id: "enable-and-run",
+          label: "Enable & run now",
+          onAction: () => void handleEnableAndRun(),
+          disabled: isTriggering || isToggling,
+        }
+      : {
+          id: "trigger",
+          label: "Run now",
+          onAction: () => void handleTrigger(),
+          disabled: isTriggering,
+        };
 
   const actions: DetailAction[] = [
     ...(stateInfo.isPaused
@@ -249,8 +306,12 @@ export function ScheduleDetailView({
         actionLabel="Enable schedule"
         actionBusy={isToggling}
       >
-        The owner switch (<code className="font-mono">spec.enabled</code>) is
-        off — this schedule will not fire.
+        This schedule is staged disabled (
+        <code className="font-mono">spec.enabled</code> is off) — it will not
+        fire on its cron cadence. Use{" "}
+        <span className="font-medium text-foreground">Enable &amp; run now</span>{" "}
+        to enable it and start one test run, or Enable it here to hand it to
+        the cadence.
         {stateInfo.isPaused && (
           <>
             {" "}
@@ -316,6 +377,25 @@ export function ScheduleDetailView({
                   {target?.message || "—"}
                 </p>
               </DetailRow>
+              <DetailRow label="Environments">
+                {target?.environmentRefs && target.environmentRefs.length > 0 ? (
+                  <ul className="flex flex-col gap-0.5">
+                    {target.environmentRefs.map((ref, i) => (
+                      <li
+                        key={`${ref.org}/${ref.slug}-${i}`}
+                        className="font-mono text-xs text-foreground"
+                      >
+                        {ref.org ? `${ref.org}/${ref.slug}` : ref.slug}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span className="text-sm text-muted-foreground">—</span>
+                )}
+              </DetailRow>
+              <DetailRow label="Run limits">
+                <RunLimits config={target?.runConfig} />
+              </DetailRow>
             </dl>
           </Section>
 
@@ -366,6 +446,15 @@ export function ScheduleDetailView({
                 </span>
               </DetailRow>
             </dl>
+          </Section>
+
+          <Section title="Runs">
+            <RunHistory
+              runs={runs}
+              isLoading={runsLoading}
+              now={renderNow}
+              onNavigateToExecution={onNavigateToExecution}
+            />
           </Section>
         </div>
       </ResourceDetailShell>
@@ -456,6 +545,160 @@ function DetailRow({
       <dd className="min-w-0 flex-1">{children}</dd>
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Run limits — the per-schedule run_config, or the platform-default note
+// ---------------------------------------------------------------------------
+
+function RunLimits({
+  config,
+}: {
+  readonly config: ScheduleRunConfig | undefined;
+}) {
+  const modelName = config?.modelName ?? "";
+  const maxCostUsd = config?.maxCostUsd ?? 0;
+  const maxToolRounds = config?.maxToolRounds ?? 0;
+  const parts: string[] = [];
+  if (modelName) parts.push(modelName);
+  if (maxCostUsd > 0) parts.push(`≤ $${maxCostUsd.toFixed(2)}/run`);
+  if (maxToolRounds > 0) parts.push(`≤ ${maxToolRounds} tool rounds`);
+
+  if (parts.length === 0) {
+    return (
+      <span className="text-sm text-muted-foreground">
+        Platform defaults
+      </span>
+    );
+  }
+  return <span className="text-sm text-foreground">{parts.join(" · ")}</span>;
+}
+
+// ---------------------------------------------------------------------------
+// Run history — the fire ledger, rendered (DD-017 D-7)
+// ---------------------------------------------------------------------------
+
+function RunHistory({
+  runs,
+  isLoading,
+  now,
+  onNavigateToExecution,
+}: {
+  readonly runs: readonly ScheduleRun[];
+  readonly isLoading: boolean;
+  readonly now: Date;
+  readonly onNavigateToExecution?: (executionId: string) => void;
+}) {
+  if (isLoading && runs.length === 0) {
+    return (
+      <div className="space-y-2 px-4 py-3" aria-busy="true">
+        <div className="h-4 w-full animate-pulse rounded bg-muted" />
+        <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+      </div>
+    );
+  }
+  if (runs.length === 0) {
+    return (
+      <p className="px-4 py-6 text-center text-xs text-muted-foreground">
+        No runs yet. Use &ldquo;Run now&rdquo; to fire a test run — every fire,
+        including a refused one, is recorded here.
+      </p>
+    );
+  }
+  return (
+    <ul className="divide-y divide-border">
+      {runs.map((run, i) => (
+        <RunRow
+          key={`${run.executionId || "no-exec"}-${run.origin}-${i}`}
+          run={run}
+          now={now}
+          onNavigateToExecution={onNavigateToExecution}
+        />
+      ))}
+    </ul>
+  );
+}
+
+function RunRow({
+  run,
+  now,
+  onNavigateToExecution,
+}: {
+  readonly run: ScheduleRun;
+  readonly now: Date;
+  readonly onNavigateToExecution?: (executionId: string) => void;
+}) {
+  const when = run.nominalFireTime
+    ? formatRelativeTime(timestampDate(run.nominalFireTime), now)
+    : "—";
+  const badge = outcomeBadge(run.outcome);
+  const originLabel =
+    run.origin === ScheduleRunOrigin.MANUAL ? "Manual" : "Scheduled";
+
+  return (
+    <li className="flex flex-col gap-1 px-4 py-2.5">
+      <div className="flex items-center gap-2">
+        <span
+          className={cn(
+            "inline-flex items-center rounded-full px-2 py-0.5 text-[0.65rem] font-medium",
+            badge.className,
+          )}
+        >
+          {badge.label}
+        </span>
+        <span className="text-xs text-muted-foreground">{originLabel}</span>
+        <span className="text-xs text-muted-foreground-subtle">·</span>
+        <span className="text-xs text-muted-foreground">{when}</span>
+      </div>
+      {run.reason && (
+        <p className="whitespace-pre-wrap break-words text-xs text-muted-foreground">
+          {run.reason}
+        </p>
+      )}
+      {run.executionId &&
+        (onNavigateToExecution ? (
+          <button
+            type="button"
+            onClick={() => onNavigateToExecution(run.executionId)}
+            className={cn(
+              "self-start font-mono text-[0.65rem] text-primary underline-offset-2 hover:underline",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm",
+            )}
+          >
+            {run.executionId}
+          </button>
+        ) : (
+          <span className="self-start font-mono text-[0.65rem] text-muted-foreground">
+            {run.executionId}
+          </span>
+        ))}
+    </li>
+  );
+}
+
+/** Verbatim-label badges for a run outcome, colored by health. */
+function outcomeBadge(outcome: ScheduleRunOutcome): {
+  label: string;
+  className: string;
+} {
+  switch (outcome) {
+    case ScheduleRunOutcome.STARTED:
+      return { label: "Started", className: "bg-info/10 text-info" };
+    case ScheduleRunOutcome.COMPLETED:
+      return { label: "Completed", className: "bg-success/10 text-success" };
+    case ScheduleRunOutcome.REFUSED:
+      return { label: "Refused", className: "bg-warning/10 text-warning" };
+    case ScheduleRunOutcome.TARGET_MISSING:
+      return { label: "Target missing", className: "bg-warning/10 text-warning" };
+    case ScheduleRunOutcome.SKIPPED:
+      return { label: "Skipped", className: "bg-muted text-muted-foreground" };
+    case ScheduleRunOutcome.FAILED:
+      return { label: "Failed", className: "bg-destructive/10 text-destructive" };
+    case ScheduleRunOutcome.TIMED_OUT:
+      return { label: "Timed out", className: "bg-destructive/10 text-destructive" };
+    default:
+      return { label: "Unknown", className: "bg-muted text-muted-foreground" };
+  }
 }
 
 function ReferenceLink({

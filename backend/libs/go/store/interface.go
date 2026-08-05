@@ -330,6 +330,50 @@ type Store interface {
 	GetMaxEventSequence(ctx context.Context, executionID string) (int64, error)
 
 	// ===========================================================================
+	// Schedule Run Operations (Fire Ledger)
+	// ===========================================================================
+	// Every schedule fire leaves a row — INCLUDING fires that created no
+	// execution (a refused launch gate, a missing target agent), which is
+	// exactly the case status.consecutive_failures alone cannot explain
+	// (project DD-017 D-7 in stigmer-cloud). One row per fire identity
+	// (schedule id, nominal fire time, origin); writers UPSERT so a
+	// retried Temporal activity converges on its row instead of
+	// double-appending a fire.
+
+	// UpsertScheduleRun inserts or updates the fire's ledger row, keyed on
+	// (ScheduleID, NominalFireTime, Origin). A row that already carries a
+	// terminal outcome (CompletedAt non-empty) is never downgraded: a
+	// replayed "started" write after the verdict landed is a no-op.
+	UpsertScheduleRun(ctx context.Context, record *ScheduleRunRecord) error
+
+	// MarkLatestScheduleRunTerminal stamps the terminal verdict on the
+	// schedule's NEWEST non-terminal row of the given origin. Keyed on
+	// (schedule, origin) by design: the verdict-writing activities
+	// receive only the schedule id (their signatures are pinned by
+	// recorded Temporal histories), and the artifact's SKIP overlap plus
+	// the spanning tick guarantee at most one in-flight CRON run per
+	// schedule. The origin filter is load-bearing: manual fires are
+	// untracked (their rows resolve at read time), so without it a
+	// newer manual row would steal a cron run's verdict. A no-op when no
+	// matching non-terminal row exists (the run's fire predates the
+	// ledger, or the row was pruned).
+	MarkLatestScheduleRunTerminal(ctx context.Context, scheduleID, origin, outcome, reason, completedAt string) error
+
+	// ListScheduleRuns returns the schedule's recorded fires, newest
+	// first, plus the total count for pagination.
+	ListScheduleRuns(ctx context.Context, scheduleID string, offset, limit int) ([]*ScheduleRunRecord, int, error)
+
+	// DeleteScheduleRunsBySchedule removes every ledger row of one
+	// schedule — the delete-cascade twin called after the resource row
+	// delete succeeds.
+	DeleteScheduleRunsBySchedule(ctx context.Context, scheduleID string) (int64, error)
+
+	// PruneScheduleRuns removes ledger rows recorded before the cutoff
+	// (RFC-3339; rows compare lexicographically) — the retention policy
+	// the table was born with. Returns the number of rows removed.
+	PruneScheduleRuns(ctx context.Context, recordedBefore string) (int64, error)
+
+	// ===========================================================================
 	// Search Index Operations (Full-Text Search)
 	// ===========================================================================
 
@@ -386,6 +430,38 @@ type WorkflowExecutionEventRecord struct {
 	TaskName       string
 	Data           []byte // protobuf-serialized WorkflowExecutionEvent
 	CreatedAt      string
+}
+
+// ScheduleRunRecord is one recorded schedule fire — a fire-ledger row.
+// Outcome and Origin carry the lowercase names of the
+// ai.stigmer.agentic.schedule.v1 enum values ("started", "refused",
+// "cron", "manual", …); timestamps are RFC-3339 UTC strings, compared
+// lexicographically (the house convention).
+type ScheduleRunRecord struct {
+	// ScheduleID is the schedule this fire belongs to.
+	ScheduleID string
+	// Org is the organization that owns the schedule.
+	Org string
+	// NominalFireTime is the fire's identity instant (cron: the
+	// scheduled time; manual: the trigger time), whole seconds.
+	NominalFireTime string
+	// Origin is "cron" or "manual".
+	Origin string
+	// Outcome is the fire's current verdict: "started", "refused",
+	// "target_missing", "skipped", then terminal "completed", "failed",
+	// or "timed_out".
+	Outcome string
+	// Reason carries the refusing gate's or terminal verdict's copy
+	// verbatim; empty for healthy outcomes.
+	Reason string
+	// ExecutionID is the created execution, empty when none was created.
+	ExecutionID string
+	// RecordedAt is when the fire's row was first written.
+	RecordedAt string
+	// CompletedAt is when the terminal outcome landed; empty while the
+	// run is in flight (or forever, for fires that created no run —
+	// those are terminal at insert and carry their insert time here).
+	CompletedAt string
 }
 
 // SearchIndexEntry contains the searchable fields extracted from a resource.

@@ -26,19 +26,20 @@ var File_ai_stigmer_agentic_schedule_v1_command_proto protoreflect.FileDescripto
 
 const file_ai_stigmer_agentic_schedule_v1_command_proto_rawDesc = "" +
 	"\n" +
-	",ai/stigmer/agentic/schedule/v1/command.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a(ai/stigmer/agentic/schedule/v1/api.proto\x1a'ai/stigmer/agentic/schedule/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xb4\x06\n" +
+	",ai/stigmer/agentic/schedule/v1/command.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a(ai/stigmer/agentic/schedule/v1/api.proto\x1a'ai/stigmer/agentic/schedule/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a+ai/stigmer/commons/rpc/method_options.proto2\xc1\x06\n" +
 	"\x19ScheduleCommandController\x12[\n" +
 	"\x05apply\x12(.ai.stigmer.agentic.schedule.v1.Schedule\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\x12b\n" +
 	"\x06create\x12(.ai.stigmer.agentic.schedule.v1.Schedule\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"\x04и\x18\x01\x12\x94\x01\n" +
 	"\x06update\x12(.ai.stigmer.agentic.schedule.v1.Schedule\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"6¸\x182\b\x02\x108\"\vmetadata.id*\x1funauthorized to update schedule\x12\x90\x01\n" +
 	"\x06delete\x12*.ai.stigmer.agentic.schedule.v1.ScheduleId\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"0¸\x18,\b\x03\x108\"\x05value*\x1funauthorized to delete schedule\x12\x90\x01\n" +
-	"\x06resume\x12*.ai.stigmer.agentic.schedule.v1.ScheduleId\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"0¸\x18,\b\x02\x108\"\x05value*\x1funauthorized to resume schedule\x12\x92\x01\n" +
-	"\atrigger\x12*.ai.stigmer.agentic.schedule.v1.ScheduleId\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"1¸\x18-\b\x02\x108\"\x05value* unauthorized to trigger schedule\x1a\x04\xa0\xff+8B\xa3\x02\n" +
+	"\x06resume\x12*.ai.stigmer.agentic.schedule.v1.ScheduleId\x1a(.ai.stigmer.agentic.schedule.v1.Schedule\"0¸\x18,\b\x02\x108\"\x05value*\x1funauthorized to resume schedule\x12\x9f\x01\n" +
+	"\atrigger\x12*.ai.stigmer.agentic.schedule.v1.ScheduleId\x1a5.ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult\"1¸\x18-\b\x02\x108\"\x05value* unauthorized to trigger schedule\x1a\x04\xa0\xff+8B\xa3\x02\n" +
 	"\"com.ai.stigmer.agentic.schedule.v1B\fCommandProtoP\x01ZRgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_schedule_v1_command_proto_goTypes = []any{
-	(*Schedule)(nil),   // 0: ai.stigmer.agentic.schedule.v1.Schedule
-	(*ScheduleId)(nil), // 1: ai.stigmer.agentic.schedule.v1.ScheduleId
+	(*Schedule)(nil),              // 0: ai.stigmer.agentic.schedule.v1.Schedule
+	(*ScheduleId)(nil),            // 1: ai.stigmer.agentic.schedule.v1.ScheduleId
+	(*ScheduleTriggerResult)(nil), // 2: ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult
 }
 var file_ai_stigmer_agentic_schedule_v1_command_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.apply:input_type -> ai.stigmer.agentic.schedule.v1.Schedule
@@ -52,7 +53,7 @@ var file_ai_stigmer_agentic_schedule_v1_command_proto_depIdxs = []int32{
 	0, // 8: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.update:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
 	0, // 9: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.delete:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
 	0, // 10: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.resume:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
-	0, // 11: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.trigger:output_type -> ai.stigmer.agentic.schedule.v1.Schedule
+	2, // 11: ai.stigmer.agentic.schedule.v1.ScheduleCommandController.trigger:output_type -> ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult
 	6, // [6:12] is the sub-list for method output_type
 	0, // [0:6] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

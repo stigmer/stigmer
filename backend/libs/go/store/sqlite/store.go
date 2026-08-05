@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
@@ -33,9 +34,11 @@ const (
 	schemaVersion4 = 4
 	// schemaVersion5: Workflow execution events table for event log persistence
 	schemaVersion5 = 5
+	// schemaVersion6: Schedule runs table — the fire ledger (project DD-017)
+	schemaVersion6 = 6
 
 	// currentSchemaVersion is the target version for new databases
-	currentSchemaVersion = schemaVersion5
+	currentSchemaVersion = schemaVersion6
 )
 
 // Store implements store.Store using SQLite as the backing storage.
@@ -148,6 +151,12 @@ func runMigrations(db *sql.DB) error {
 	if currentVersion < schemaVersion5 {
 		if err := migrateToV5(db); err != nil {
 			return fmt.Errorf("migrate to v5: %w", err)
+		}
+	}
+
+	if currentVersion < schemaVersion6 {
+		if err := migrateToV6(db); err != nil {
+			return fmt.Errorf("migrate to v6: %w", err)
 		}
 	}
 
@@ -387,6 +396,48 @@ func migrateToV5(db *sql.DB) error {
 	}
 
 	if err := setSchemaVersion(tx, schemaVersion5); err != nil {
+		return fmt.Errorf("set schema version: %w", err)
+	}
+
+	return tx.Commit()
+}
+
+// migrateToV6 creates the schedule_runs table — the fire ledger (project
+// DD-017 D-7): one row per schedule fire, keyed on the fire identity
+// (schedule_id, nominal_fire_time, origin) so writers can UPSERT under
+// Temporal retry. Rows for fires that created no execution are the whole
+// point — they are the only durable trace of a refused launch gate below
+// the auto-pause threshold.
+func migrateToV6(db *sql.DB) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	schema := `
+		CREATE TABLE IF NOT EXISTS schedule_runs (
+			schedule_id TEXT NOT NULL,
+			org TEXT NOT NULL DEFAULT '',
+			nominal_fire_time TEXT NOT NULL,
+			origin TEXT NOT NULL,
+			outcome TEXT NOT NULL,
+			reason TEXT NOT NULL DEFAULT '',
+			execution_id TEXT NOT NULL DEFAULT '',
+			recorded_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+			completed_at TEXT NOT NULL DEFAULT '',
+			PRIMARY KEY (schedule_id, nominal_fire_time, origin)
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_schedule_runs_recency
+			ON schedule_runs(schedule_id, recorded_at DESC);
+	`
+
+	if _, err := tx.Exec(schema); err != nil {
+		return fmt.Errorf("create schedule_runs table: %w", err)
+	}
+
+	if err := setSchemaVersion(tx, schemaVersion6); err != nil {
 		return fmt.Errorf("set schema version: %w", err)
 	}
 
@@ -1730,6 +1781,170 @@ func (s *Store) GetMaxEventSequence(ctx context.Context, executionID string) (in
 	}
 
 	return maxSeq, nil
+}
+
+// =============================================================================
+// Schedule Run Operations (Fire Ledger)
+// =============================================================================
+
+// UpsertScheduleRun inserts or updates the fire's ledger row, keyed on
+// (schedule_id, nominal_fire_time, origin). The ON CONFLICT arm carries
+// the terminal-immutability guard: a row whose completed_at is already
+// set is never downgraded, so a replayed "started" write after the
+// verdict landed is a no-op by construction.
+func (s *Store) UpsertScheduleRun(ctx context.Context, record *store.ScheduleRunRecord) error {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return fmt.Errorf("store is closed")
+	}
+
+	recordedAt := record.RecordedAt
+	if recordedAt == "" {
+		recordedAt = time.Now().UTC().Format(time.RFC3339)
+	}
+
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO schedule_runs
+			(schedule_id, org, nominal_fire_time, origin, outcome, reason, execution_id, recorded_at, completed_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT (schedule_id, nominal_fire_time, origin) DO UPDATE SET
+			outcome = excluded.outcome,
+			reason = excluded.reason,
+			execution_id = excluded.execution_id,
+			completed_at = excluded.completed_at
+		WHERE schedule_runs.completed_at = ''`,
+		record.ScheduleID, record.Org, record.NominalFireTime, record.Origin,
+		record.Outcome, record.Reason, record.ExecutionID, recordedAt, record.CompletedAt)
+	if err != nil {
+		return fmt.Errorf("upsert schedule run %s/%s/%s: %w",
+			record.ScheduleID, record.NominalFireTime, record.Origin, err)
+	}
+	return nil
+}
+
+// MarkLatestScheduleRunTerminal stamps the terminal verdict on the
+// schedule's newest non-terminal row of the given origin (see the
+// interface doc for why the key is (schedule, origin)). No matching row
+// is a silent no-op.
+func (s *Store) MarkLatestScheduleRunTerminal(ctx context.Context, scheduleID, origin, outcome, reason, completedAt string) error {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return fmt.Errorf("store is closed")
+	}
+
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE schedule_runs SET outcome = ?, reason = ?, completed_at = ?
+		WHERE schedule_id = ? AND origin = ? AND completed_at = ''
+		AND nominal_fire_time = (
+			SELECT MAX(nominal_fire_time) FROM schedule_runs
+			WHERE schedule_id = ? AND origin = ? AND completed_at = ''
+		)`,
+		outcome, reason, completedAt, scheduleID, origin, scheduleID, origin)
+	if err != nil {
+		return fmt.Errorf("mark schedule run terminal for %s: %w", scheduleID, err)
+	}
+	return nil
+}
+
+// ListScheduleRuns returns the schedule's recorded fires, newest first,
+// plus the total count for pagination.
+func (s *Store) ListScheduleRuns(ctx context.Context, scheduleID string, offset, limit int) ([]*store.ScheduleRunRecord, int, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return nil, 0, fmt.Errorf("store is closed")
+	}
+
+	if limit <= 0 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	var total int
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM schedule_runs WHERE schedule_id = ?`, scheduleID).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count schedule runs for %s: %w", scheduleID, err)
+	}
+
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT schedule_id, org, nominal_fire_time, origin, outcome, reason, execution_id, recorded_at, completed_at
+		FROM schedule_runs
+		WHERE schedule_id = ?
+		ORDER BY nominal_fire_time DESC, origin DESC
+		LIMIT ? OFFSET ?`,
+		scheduleID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("query schedule runs for %s: %w", scheduleID, err)
+	}
+	defer rows.Close()
+
+	results := make([]*store.ScheduleRunRecord, 0)
+	for rows.Next() {
+		rec := &store.ScheduleRunRecord{}
+		if err := rows.Scan(&rec.ScheduleID, &rec.Org, &rec.NominalFireTime, &rec.Origin,
+			&rec.Outcome, &rec.Reason, &rec.ExecutionID, &rec.RecordedAt, &rec.CompletedAt); err != nil {
+			return nil, 0, fmt.Errorf("scan schedule run: %w", err)
+		}
+		results = append(results, rec)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate schedule runs: %w", err)
+	}
+	return results, total, nil
+}
+
+// DeleteScheduleRunsBySchedule removes every ledger row of one schedule.
+func (s *Store) DeleteScheduleRunsBySchedule(ctx context.Context, scheduleID string) (int64, error) {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return 0, fmt.Errorf("store is closed")
+	}
+
+	result, err := s.db.ExecContext(ctx,
+		`DELETE FROM schedule_runs WHERE schedule_id = ?`, scheduleID)
+	if err != nil {
+		return 0, fmt.Errorf("delete schedule runs for %s: %w", scheduleID, err)
+	}
+	return result.RowsAffected()
+}
+
+// PruneScheduleRuns removes ledger rows recorded before the cutoff — the
+// retention policy the table was born with (project DD-017 D-7).
+func (s *Store) PruneScheduleRuns(ctx context.Context, recordedBefore string) (int64, error) {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return 0, fmt.Errorf("store is closed")
+	}
+
+	result, err := s.db.ExecContext(ctx,
+		`DELETE FROM schedule_runs WHERE recorded_at < ?`, recordedBefore)
+	if err != nil {
+		return 0, fmt.Errorf("prune schedule runs before %s: %w", recordedBefore, err)
+	}
+	return result.RowsAffected()
 }
 
 // Close releases all resources held by the store.

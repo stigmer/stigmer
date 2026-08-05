@@ -2,6 +2,7 @@ package agentexecution
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/rs/zerolog/log"
@@ -10,6 +11,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	schedulev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
@@ -19,6 +21,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/oauth"
+	scheduletemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/schedule/temporal"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agent"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
@@ -166,6 +169,24 @@ func (b *executionContextBuilder) buildAndPersist(
 	environments, err := b.resolveEnvironments(ctx, instance.GetSpec().GetEnvironmentRefs())
 	if err != nil {
 		return err
+	}
+
+	// 4.5 Schedule-created executions: merge the schedule's own
+	// environment_refs BELOW instance refs (lowest priority — the
+	// AgentShare/AgentChannel layering, project DD-017 D-2/D-4). This is
+	// how a tool-using agent becomes schedulable: the schedule binds the
+	// credentials its unattended runs need without touching the agent or
+	// its default instance. Resolution is keyed on the
+	// stigmer.ai/schedule-id label the run starter stamps — OSS has no
+	// caller tokens to carry the claim the cloud edition resolves
+	// through, and this single-user edition has no trust boundary the
+	// label could widen (the DD-015 divergence posture).
+	scheduleEnvironments, err := b.resolveScheduleEnvironments(ctx, execution)
+	if err != nil {
+		return err
+	}
+	if len(scheduleEnvironments) > 0 {
+		environments = append(scheduleEnvironments, environments...)
 	}
 
 	// 5. Merge all layers
@@ -686,6 +707,68 @@ func injectFromPersonalEnvironment(
 }
 
 // resolveEnvironments fetches each referenced Environment resource in order.
+// resolveScheduleEnvironments resolves the environment_refs of the
+// schedule that created this execution, identified by the
+// stigmer.ai/schedule-id label the run starter stamps. Executions with
+// no schedule label (the overwhelmingly common case) answer nil at the
+// cost of one map lookup. A schedule deleted between the fire and this
+// step degrades to no schedule environments — the run proceeds with the
+// instance's own refs, exactly as it would have before the schedule
+// existed. An unresolvable REF, by contrast, fails the create: that is
+// an authoring error the fire ledger should record as a deterministic
+// refusal, never silently run without credentials (the failure mode
+// this whole seam exists to fix).
+func (b *executionContextBuilder) resolveScheduleEnvironments(
+	ctx context.Context,
+	execution *agentexecutionv1.AgentExecution,
+) ([]*environmentv1.Environment, error) {
+	scheduleID := execution.GetMetadata().GetLabels()[scheduletemporal.ScheduleIDLabelKey]
+	if scheduleID == "" {
+		return nil, nil
+	}
+
+	schedule := &schedulev1.Schedule{}
+	if err := b.store.GetResource(ctx, apiresourcekind.ApiResourceKind_schedule,
+		scheduleID, schedule); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			log.Warn().Str("schedule_id", scheduleID).
+				Str("execution_id", execution.GetMetadata().GetId()).
+				Msg("Schedule-labeled execution's schedule row is gone — running without schedule environments")
+			return nil, nil
+		}
+		return nil, fmt.Errorf("load schedule %s for environment resolution: %w", scheduleID, err)
+	}
+
+	refs := schedule.GetSpec().GetAgent().GetEnvironmentRefs()
+	if len(refs) == 0 {
+		return nil, nil
+	}
+
+	// A manifest ref may omit the org (relative to the schedule's own —
+	// the same-org invariant pins agent_ref.org == metadata.org, and
+	// environment resolution follows the schedule's org).
+	resolved := make([]*apiresource.ApiResourceReference, 0, len(refs))
+	for _, ref := range refs {
+		if ref.GetOrg() == "" {
+			resolved = append(resolved, &apiresource.ApiResourceReference{
+				Kind: ref.GetKind(),
+				Org:  schedule.GetMetadata().GetOrg(),
+				Slug: ref.GetSlug(),
+			})
+			continue
+		}
+		resolved = append(resolved, ref)
+	}
+
+	environments, err := b.resolveEnvironments(ctx, resolved)
+	if err != nil {
+		return nil, fmt.Errorf("resolve schedule %s environment_refs: %w", scheduleID, err)
+	}
+	log.Debug().Str("schedule_id", scheduleID).Int("count", len(environments)).
+		Msg("Resolved schedule environment references")
+	return environments, nil
+}
+
 func (b *executionContextBuilder) resolveEnvironments(
 	ctx context.Context,
 	refs []*apiresource.ApiResourceReference,

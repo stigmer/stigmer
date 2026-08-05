@@ -2,10 +2,16 @@
 
 import { useCallback, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
-import { getUserMessage, type ResourceRef } from "@stigmer/sdk";
+import {
+  getUserMessage,
+  type ResourceRef,
+  type ScheduleRunConfigInput,
+} from "@stigmer/sdk";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { Popover } from "@base-ui/react/popover";
 import { AgentPicker } from "../agent/AgentPicker.js";
+import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
 import { Switch } from "../switch/Switch.js";
 import { useStigmerPortalContainer } from "../portal-container.js";
 import { CadenceField } from "./CadenceField.js";
@@ -83,6 +89,10 @@ export function ScheduleForm({
   const [timeZone, setTimeZone] = useState(browserTimeZone);
   const [enabled, setEnabled] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [environmentRefs, setEnvironmentRefs] = useState<ResourceRef[]>([]);
+  const [modelName, setModelName] = useState("");
+  const [maxCostUsd, setMaxCostUsd] = useState("");
+  const [maxToolRounds, setMaxToolRounds] = useState("");
 
   const trimmedName = name.trim();
   const trimmedMessage = message.trim();
@@ -108,6 +118,7 @@ export function ScheduleForm({
       if (!canSubmit || !agentRef) return;
 
       clearError();
+      const runConfig = buildRunConfig(modelName, maxCostUsd, maxToolRounds);
       try {
         const schedule = await create({
           name: trimmedName,
@@ -115,7 +126,12 @@ export function ScheduleForm({
           cron,
           timeZone,
           enabled,
-          agent: { agentRef, message: trimmedMessage },
+          agent: {
+            agentRef,
+            message: trimmedMessage,
+            ...(environmentRefs.length > 0 ? { environmentRefs } : {}),
+            ...(runConfig ? { runConfig } : {}),
+          },
         });
         onComplete?.(schedule);
       } catch {
@@ -133,6 +149,10 @@ export function ScheduleForm({
       timeZone,
       enabled,
       trimmedMessage,
+      environmentRefs,
+      modelName,
+      maxCostUsd,
+      maxToolRounds,
       onComplete,
     ],
   );
@@ -224,6 +244,30 @@ export function ScheduleForm({
         )}
       </div>
 
+      {/* Environments — how a tool-using agent becomes schedulable
+          (DD-017 D-2). Only org-shared environments resolve for a
+          schedule fire, so the picker is filtered to visibility_org —
+          the same credential surface a channel binding uses. */}
+      <div className="space-y-1">
+        <span id="stgm-new-schedule-env-label" className={labelClasses}>
+          Environments <span className="font-normal text-muted-foreground">(optional)</span>
+        </span>
+        <EnvironmentPicker
+          org={org}
+          value={environmentRefs}
+          onChange={setEnvironmentRefs}
+          disabled={isCreating}
+          filterEnvironment={(env) =>
+            env.metadata?.visibility === ApiResourceVisibility.visibility_org
+          }
+        />
+        <p className={hintClasses}>
+          Bind org-shared credentials (for example an MCP server&rsquo;s secret)
+          so the agent&rsquo;s tools work on an unattended fire. Without this, an
+          agent whose tools need credentials will be refused every run.
+        </p>
+      </div>
+
       {/* Cadence */}
       <div className="space-y-1">
         <span className={labelClasses}>Runs</span>
@@ -234,6 +278,56 @@ export function ScheduleForm({
           disabled={isCreating}
         />
       </div>
+
+      {/* Run limits — per-schedule bounds, clamped by the platform
+          profile (DD-017 D-3). All optional: unset inherits the
+          platform default. */}
+      <fieldset className="space-y-2" disabled={isCreating}>
+        <legend className={labelClasses}>
+          Run limits{" "}
+          <span className="font-normal text-muted-foreground">(optional)</span>
+        </legend>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <label className="space-y-1">
+            <span className={hintClasses}>Model</span>
+            <input
+              type="text"
+              value={modelName}
+              onChange={(e) => setModelName(e.target.value)}
+              placeholder="platform default"
+              className={inputClasses}
+            />
+          </label>
+          <label className="space-y-1">
+            <span className={hintClasses}>Max cost / run (USD)</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={maxCostUsd}
+              onChange={(e) => setMaxCostUsd(e.target.value)}
+              placeholder="platform default"
+              className={inputClasses}
+            />
+          </label>
+          <label className="space-y-1">
+            <span className={hintClasses}>Max tool rounds</span>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={maxToolRounds}
+              onChange={(e) => setMaxToolRounds(e.target.value)}
+              placeholder="platform default"
+              className={inputClasses}
+            />
+          </label>
+        </div>
+        <p className={hintClasses}>
+          The platform caps these; you can lower a limit, never raise it past
+          the platform&rsquo;s ceiling.
+        </p>
+      </fieldset>
 
       {/* Time zone */}
       <div className="space-y-1">
@@ -318,6 +412,32 @@ export function ScheduleForm({
 
 const labelClasses = "block text-xs font-medium text-foreground";
 const hintClasses = "text-[0.65rem] text-muted-foreground";
+
+/**
+ * Assemble a {@link ScheduleRunConfigInput} from the optional run-limit
+ * inputs, or `undefined` when the user left every field blank/zero — an
+ * all-empty run_config carries no meaning, and omitting it keeps the
+ * schedule on the platform defaults (the server's own "empty = inherit"
+ * contract, DD-017 D-3). Non-numeric or negative entries are dropped
+ * rather than sent; the proto's `gte = 0` constraint would reject them
+ * anyway, and a blank field must not become a zero override.
+ */
+function buildRunConfig(
+  modelName: string,
+  maxCostUsd: string,
+  maxToolRounds: string,
+): ScheduleRunConfigInput | undefined {
+  const model = modelName.trim();
+  const cost = Number.parseFloat(maxCostUsd);
+  const rounds = Number.parseInt(maxToolRounds, 10);
+
+  const config: ScheduleRunConfigInput = {};
+  if (model !== "") config.modelName = model;
+  if (Number.isFinite(cost) && cost > 0) config.maxCostUsd = cost;
+  if (Number.isFinite(rounds) && rounds > 0) config.maxToolRounds = rounds;
+
+  return Object.keys(config).length > 0 ? config : undefined;
+}
 const inputClasses = cn(
   "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
   "placeholder:text-muted-foreground",

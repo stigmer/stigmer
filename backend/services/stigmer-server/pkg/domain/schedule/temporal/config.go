@@ -72,6 +72,12 @@ type Config struct {
 	// ExecutionProfileMaxCostUsd bounds each scheduled run's spend,
 	// enforced by the shared runner (0 disables). Default: 1.00.
 	ExecutionProfileMaxCostUsd float64
+
+	// RunHistoryRetentionDays bounds the fire ledger (project DD-017
+	// D-7): rows recorded earlier than this are pruned by the
+	// reconciliation pass. Default: 90 (a quarter of monthly reminder
+	// cycles — run history is a product surface, not delivery plumbing).
+	RunHistoryRetentionDays int
 }
 
 // LoadConfig loads configuration from environment variables.
@@ -86,6 +92,7 @@ func LoadConfig() *Config {
 		ReconciliationIntervalMinutes: getEnvInt("STIGMER_SCHEDULES_RECONCILIATION_INTERVAL_MINUTES", 5),
 		ExecutionProfileMaxToolRounds: getEnvInt("STIGMER_SCHEDULES_EXECUTION_PROFILE_MAX_TOOL_ROUNDS", 20),
 		ExecutionProfileMaxCostUsd:    getEnvFloat("STIGMER_SCHEDULES_EXECUTION_PROFILE_MAX_COST_USD", 1.00),
+		RunHistoryRetentionDays:       getEnvInt("STIGMER_SCHEDULES_RUN_HISTORY_RETENTION_DAYS", 90),
 	}
 }
 
@@ -115,6 +122,15 @@ func (c *Config) ResolvedMaxConsecutiveFailures() int {
 		return 1
 	}
 	return c.MaxConsecutiveFailures
+}
+
+// ResolvedRunHistoryRetentionDays floors the fire-ledger retention at 1
+// day — zero/negative would prune history as it lands.
+func (c *Config) ResolvedRunHistoryRetentionDays() int {
+	if c.RunHistoryRetentionDays < 1 {
+		return 1
+	}
+	return c.RunHistoryRetentionDays
 }
 
 func getEnv(key, defaultValue string) string {

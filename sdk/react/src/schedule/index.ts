@@ -7,6 +7,12 @@ export type { ScheduleListClient, SchedulePage } from "./scheduleListFn.js";
 export { useSchedule } from "./useSchedule.js";
 export type { UseScheduleReturn } from "./useSchedule.js";
 
+export { useScheduleRuns } from "./useScheduleRuns.js";
+export type {
+  UseScheduleRunsOptions,
+  UseScheduleRunsReturn,
+} from "./useScheduleRuns.js";
+
 export { useScheduleList } from "./useScheduleList.js";
 export type {
   UseScheduleListOptions,

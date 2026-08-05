@@ -189,7 +189,15 @@ func (a *TickActivities) StartScheduledRun(ctx context.Context, scheduleResource
 		schedule.GetStatus().GetPausedReason() != "" {
 		log.Info().Str("schedule_id", scheduleResourceID).
 			Msg("Schedule run start no-op — row deleted/disabled/paused between record and start")
-		return &RunStart{Outcome: RunSkipped, TrackingTimeoutMinutes: trackingBudget}, nil
+		skipped := &RunStart{Outcome: RunSkipped, TrackingTimeoutMinutes: trackingBudget}
+		// The deleted-row skip deliberately leaves NO ledger row: the
+		// delete already cascaded the schedule's history, and a
+		// bookkeeping write here would resurrect it.
+		if !errors.Is(err, store.ErrNotFound) {
+			recordRunLedgerStart(ctx, a.store, scheduleResourceID,
+				schedule.GetMetadata().GetOrg(), nominalFireTimeRFC3339, runLedgerOriginCron, skipped)
+		}
+		return skipped, nil
 	}
 
 	nominal, err := time.Parse(time.RFC3339, nominalFireTimeRFC3339)
@@ -225,6 +233,11 @@ func (a *TickActivities) StartScheduledRun(ctx context.Context, scheduleResource
 	default:
 		return nil, fmt.Errorf("unknown run outcome %T", outcome)
 	}
+	// The fire ledger (DD-017 D-7): start failures are terminal at
+	// insert — the refusal reason must survive NOW, not at the pause
+	// threshold.
+	recordRunLedgerStart(ctx, a.store, scheduleResourceID,
+		schedule.GetMetadata().GetOrg(), nominalFireTimeRFC3339, runLedgerOriginCron, result)
 	return result, nil
 }
 
@@ -280,6 +293,7 @@ func (a *TickActivities) RecordSuccessfulRun(ctx context.Context, scheduleResour
 		}
 		return fmt.Errorf("reset failure streak on schedule %s: %w", scheduleResourceID, err)
 	}
+	recordRunLedgerVerdict(ctx, a.store, scheduleResourceID, runLedgerOutcomeCompleted, "")
 	log.Info().Str("schedule_id", scheduleResourceID).
 		Msg("Schedule run completed — failure streak reset")
 	return nil
@@ -338,6 +352,18 @@ func (a *TickActivities) RecordFailedRun(ctx context.Context, scheduleResourceID
 		Int("consecutive_failures", recorded.ConsecutiveFailures).Int("threshold", threshold).
 		Bool("paused", recorded.Paused).Str("reason", reason).
 		Msg("Schedule run failed")
+
+	// The fire ledger's terminal verdict. START_FAILED rows were already
+	// written terminal by the start activity — only tracked-run verdicts
+	// mark here.
+	switch kind {
+	case FailureRunFailed:
+		recordRunLedgerVerdict(ctx, a.store, scheduleResourceID, runLedgerOutcomeFailed, reason)
+	case FailureRunTimedOut:
+		recordRunLedgerVerdict(ctx, a.store, scheduleResourceID, runLedgerOutcomeTimedOut, reason)
+	case FailureStartFailed:
+		// Terminal at insert (recordRunLedgerStart) — nothing to mark.
+	}
 
 	if crossedThreshold {
 		// Best-effort immediate artifact re-sync so the pause reaches

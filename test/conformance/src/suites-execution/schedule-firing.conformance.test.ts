@@ -1,20 +1,35 @@
 // Schedule firing conformance — the cross-edition FIRING contract.
 // Domain: conformance suites (execution engine).
 //
-// The first execution-class suite that runs against BOTH editions: firing
-// needs the engine (Temporal + the schedule clock) but deliberately NO
-// runner and NO LLM — every fire here targets a DELETED agent, so it fails
-// deterministically inside the tick before any execution is created. That
-// one design choice is what makes the failure streak, the platform
-// auto-pause, and resume assertable over the wire, offline, on any target
-// with `scheduleFiring`.
+// The trigger is a SYNCHRONOUS direct run since project DD-017 D-5/D-6
+// (amending DD-014): the RPC runs the full execution create pipeline and
+// answers with the run's REAL outcome — the created execution's id, or
+// the refusing gate's copy verbatim. That reshapes what this suite can
+// and cannot assert black-box:
 //
-// Gated on the scheduleFiring capability (the workflowChildApprovalForwarding
-// pattern): true for cloud today, false for local-go-execution until the OSS
-// Go clock lands (T04 slice 3) — flipping that flag is the slice's finish
-// line, and this suite is the scoreboard.
-import { setTimeout as delay } from "node:timers/promises";
+//   - NEWLY assertable: the outcome contract itself (a dangling target
+//     names itself in the result, synchronously); the DD-017 D-5
+//     reversal that manual fires NEVER feed the failure streak; and the
+//     run-history surface (listRuns) — every fire leaves a row with the
+//     reason verbatim, including fires that created no execution.
+//
+//   - NO LONGER reachable black-box: the failure-streak auto-pause
+//     crossing. It accumulates only from CRON fires now, and a real
+//     cron arc is infeasible here (the cloud conformance environment
+//     keeps the production 5-minute interval floor). The pause
+//     machinery keeps its coverage at the tick level in BOTH editions —
+//     cloud: the wire suites' ScheduleInspector.TriggerArtifact path;
+//     OSS: the tick-activities tests and TestSchedule_RunTracking — and
+//     the pause copy stays byte-pinned in both editions' unit tests.
+//
+// Every no-LLM fire here targets a DELETED agent, so it fails
+// deterministically inside the create pipeline before any execution
+// exists. Gated on the scheduleFiring capability.
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import {
+  ScheduleRunOrigin,
+  ScheduleRunOutcome,
+} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { Code } from "@connectrpc/connect";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { expectGrpcCode } from "../contract/errors";
@@ -23,13 +38,8 @@ import { FixtureTracker } from "../harness/fixtures";
 import { anthropicText } from "../harness/mock-llm";
 import { makeAgent } from "../support/agents";
 import { uniqueName } from "../support/naming";
-import {
-  makeSchedule,
-  pausedReasonCopy,
-  pollScheduleUntil,
-  targetMissingReason,
-  triggerPausedMessage,
-} from "../support/schedules";
+import { makeSchedule, targetMissingReason } from "../support/schedules";
+import { pollUntil } from "../support/execution-poll";
 import { createTarget, type TargetProfile } from "../targets";
 
 // Read once at collection time to gate the describes (constructing a target is
@@ -41,21 +51,7 @@ const firingEnabled = collectionTarget.capabilities.scheduleFiring;
 // completed-run path is covered by the cloud repo's own wire suites).
 const realRunProvable = firingEnabled && collectionTarget.llmProxy !== undefined;
 
-// The auto-pause threshold BOTH harnesses pin to 2 so the pause is provable
-// in two fires instead of the production five: the Java service via
-// STIGMER_SCHEDULES_MAX_CONSECUTIVE_FAILURES=2 in the integration harness's
-// buildServiceEnv (which the hermetic cloud conformance env reuses), and the
-// Go server via the same variable in this suite's server spawn env.
-const PAUSE_THRESHOLD = 2;
-
-// Nominal fire times have whole-second granularity (the workflow-id suffix
-// and the execution idempotency key both truncate to seconds), so two
-// triggers inside one second would collapse into one fire. Space explicit
-// triggers apart by just over a second — this is nominal-time spacing, not a
-// wait for an async effect (those are polled).
-const NOMINAL_TIME_SPACING_MS = 1_100;
-
-describe.skipIf(!firingEnabled)("Schedule firing contract (scheduleFiring targets)", () => {
+describe.skipIf(!firingEnabled)("Schedule trigger contract (scheduleFiring targets)", () => {
   let target: TargetProfile;
   let clients: ConformanceClients;
   const fixtures = new FixtureTracker();
@@ -92,85 +88,62 @@ describe.skipIf(!firingEnabled)("Schedule firing contract (scheduleFiring target
     return { schedule, agentSlug };
   }
 
-  it("a trigger fires: the tick records last_fire_at", async () => {
+  it("a trigger answers the run's real outcome synchronously, stamps the fire, and never feeds the streak", async () => {
     const { org } = await target.provisionTenancy();
-    const { schedule } = await createDanglingSchedule(org);
+    const { schedule, agentSlug } = await createDanglingSchedule(org);
+
+    const result = await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
+
+    // The two-level contract (DD-017 D-6): the trigger SUCCEEDED — the
+    // run's deterministic failure is honestly reported in the result,
+    // never thrown. The reason is the tick's exact vocabulary, pinned
+    // byte-identical in both editions.
+    expect(result.outcome).toBe(ScheduleRunOutcome.TARGET_MISSING);
+    expect(result.refusalReason).toBe(targetMissingReason(org, agentSlug));
+    expect(result.executionId).toBe("");
+
+    // The handler stamps last_fire_at before answering — the fire is
+    // observable in the result itself, no polling.
+    expect(result.schedule?.status?.lastFireAt).toBeDefined();
+
+    // DD-017 D-5, pinned cross-edition: manual fires do NOT feed the
+    // failure streak — a test fire of a broken schedule must not race
+    // its owner to the pause threshold. (The streak is the CRON health
+    // signal; its auto-pause crossing is covered at the tick level in
+    // both editions.)
+    expect(result.schedule?.status?.consecutiveFailures ?? 0).toBe(0);
+    const fresh = await clients.scheduleQuery.get({ value: schedule.metadata!.id });
+    expect(fresh.status?.consecutiveFailures ?? 0).toBe(0);
+    expect(fresh.status?.pausedReason ?? "").toBe("");
+  });
+
+  it("every fire leaves a run-history row with the reason verbatim — including fires that created no execution", async () => {
+    const { org } = await target.provisionTenancy();
+    const { schedule, agentSlug } = await createDanglingSchedule(org);
 
     await clients.scheduleCommand.trigger({ value: schedule.metadata!.id });
 
-    const fired = await pollScheduleUntil(
-      clients,
-      schedule.metadata!.id,
-      "last_fire_at recorded",
-      (s) => s.status?.lastFireAt !== undefined,
-    );
-    expect(fired.status?.lastFireAt).toBeDefined();
+    // The fire ledger (DD-017 D-7): a no-execution fire is exactly the
+    // case status.consecutive_failures alone cannot explain, and exactly
+    // the row this surface exists to keep.
+    const history = await clients.scheduleQuery.listRuns({
+      scheduleId: schedule.metadata!.id,
+    });
+    expect(history.totalCount).toBe(1);
+    const run = history.items[0]!;
+    expect(run.origin).toBe(ScheduleRunOrigin.MANUAL);
+    expect(run.outcome).toBe(ScheduleRunOutcome.TARGET_MISSING);
+    expect(run.reason).toBe(targetMissingReason(org, agentSlug));
+    expect(run.executionId).toBe("");
+    expect(run.completedAt, "a no-run fire is terminal at insert").toBeDefined();
   });
 
-  it("deterministic failures accumulate into the platform auto-pause; resume clears it and the schedule fires again", async () => {
-    const { org } = await target.provisionTenancy();
-    const { schedule, agentSlug } = await createDanglingSchedule(org);
-    const id = schedule.metadata!.id;
-
-    // Fire 1: the dangling target fails the run start before any execution
-    // exists — streak 1, below the threshold, not paused.
-    await clients.scheduleCommand.trigger({ value: id });
-    const afterFirst = await pollScheduleUntil(
-      clients,
-      id,
-      "consecutive_failures == 1",
-      (s) => (s.status?.consecutiveFailures ?? 0) === 1,
+  it("listing runs of a missing schedule is NotFound — an empty history never impersonates 'never fired'", async () => {
+    await expectGrpcCode(
+      () => clients.scheduleQuery.listRuns({ scheduleId: "sch_01conformancemissing" }),
+      Code.NotFound,
+      "list runs of a missing schedule",
     );
-    expect(afterFirst.status?.pausedReason ?? "").toBe("");
-
-    // Fire 2 crosses the threshold: the platform pauses with its exact
-    // teaching copy and clears next_fire_at.
-    await delay(NOMINAL_TIME_SPACING_MS);
-    await clients.scheduleCommand.trigger({ value: id });
-    const expectedPause = pausedReasonCopy(
-      PAUSE_THRESHOLD,
-      targetMissingReason(org, agentSlug),
-    );
-    const paused = await pollScheduleUntil(
-      clients,
-      id,
-      "platform auto-pause",
-      (s) => (s.status?.pausedReason ?? "") !== "",
-    );
-    // The pause copy is contract: both editions must produce it
-    // byte-for-byte, threshold and failure reason included.
-    expect(paused.status?.pausedReason).toBe(expectedPause);
-    expect(paused.status?.consecutiveFailures).toBe(PAUSE_THRESHOLD);
-    expect(paused.status?.nextFireAt, "a paused schedule advertises no next fire").toBeUndefined();
-
-    // Triggering while paused refuses with the exact copy — resume is the
-    // one clearing path.
-    const refusal = await expectGrpcCode(
-      () => clients.scheduleCommand.trigger({ value: id }),
-      Code.FailedPrecondition,
-      "trigger a platform-paused schedule",
-    );
-    expect(refusal.message).toContain(triggerPausedMessage(expectedPause));
-
-    // Resume clears the latch AND the streak (resuming with strikes left
-    // would re-pause on the next failure — a lie), and re-arms the clock.
-    const resumed = await clients.scheduleCommand.resume({ value: id });
-    expect(resumed.status?.pausedReason ?? "").toBe("");
-    expect(resumed.status?.consecutiveFailures ?? 0).toBe(0);
-
-    // The schedule genuinely fires again: a fresh trigger lands a new fire
-    // record and the streak restarts from the failure, not from the pause.
-    await delay(NOMINAL_TIME_SPACING_MS);
-    const lastFireBefore = paused.status?.lastFireAt?.seconds ?? 0n;
-    await clients.scheduleCommand.trigger({ value: id });
-    const firedAgain = await pollScheduleUntil(
-      clients,
-      id,
-      "a post-resume fire recorded",
-      (s) => (s.status?.lastFireAt?.seconds ?? 0n) > lastFireBefore,
-    );
-    expect(firedAgain.status?.consecutiveFailures).toBe(1);
-    expect(firedAgain.status?.pausedReason ?? "").toBe("");
   });
 });
 
@@ -193,61 +166,59 @@ describe.skipIf(!realRunProvable)("Schedule real-run contract (scheduleFiring + 
     await target?.teardown();
   });
 
-  it("a real fire runs the agent to completion — the run lands on status and the completed run resets the streak", async () => {
-    // Failure, then recovery: the exact arc a user with a broken-then-
-    // fixed schedule lives through, and the only black-box way to
-    // observe the completed-run reset (status is platform-owned; a
-    // streak cannot be seeded through the API).
+  it("a real fire runs the agent to completion — the result carries the execution, and run history resolves it at read time", async () => {
     const { org } = await target.provisionTenancy();
 
     const agent = await clients.agentCommand.create(
       makeAgent({ org, name: uniqueName("sched-real-target") }),
     );
-    const agentSlug = agent.metadata!.slug;
     const schedule = await clients.scheduleCommand.create(
-      makeSchedule(org, uniqueName("sched-real"), agentSlug),
+      makeSchedule(org, uniqueName("sched-real"), agent.metadata!.slug),
     );
+    fixtures.defer(() => clients.agentCommand.delete({ value: agent.metadata!.id }));
     fixtures.defer(() => clients.scheduleCommand.delete({ value: schedule.metadata!.id }));
     const id = schedule.metadata!.id;
 
-    // Strike one: delete the target and fire — deterministic failure.
-    await clients.agentCommand.delete({ value: agent.metadata!.id });
-    await clients.scheduleCommand.trigger({ value: id });
-    await pollScheduleUntil(clients, id, "the strike recorded",
-      (s) => (s.status?.consecutiveFailures ?? 0) === 1);
-
-    // Recovery: re-create the agent under the SAME slug (the schedule
-    // references by slug) and script one text turn on the mock LLM so
-    // the run completes.
-    const revived = await clients.agentCommand.create(
-      makeAgent({ org, name: agentSlug }),
-    );
-    fixtures.defer(() => clients.agentCommand.delete({ value: revived.metadata!.id }));
     target.llmProxy!().enqueue(anthropicText("Reminders sent."));
 
-    await delay(NOMINAL_TIME_SPACING_MS);
-    await clients.scheduleCommand.trigger({ value: id });
+    // The sync trigger answers with the execution — no polling for
+    // last_execution_id (the DD-014 shape this replaced).
+    const result = await clients.scheduleCommand.trigger({ value: id });
+    expect(result.outcome).toBe(ScheduleRunOutcome.STARTED);
+    const executionId = result.executionId;
+    expect(executionId).not.toBe("");
+    expect(result.schedule?.status?.lastExecutionId).toBe(executionId);
 
-    // The run lands on status as it starts...
-    const withRun = await pollScheduleUntil(clients, id, "last_execution_id recorded",
-      (s) => (s.status?.lastExecutionId ?? "") !== "");
-    const executionId = withRun.status!.lastExecutionId;
-
-    // ...is a REAL execution shaped by the fire (the full create
-    // pipeline ran: fresh session with the pinned subject, the
-    // fire-context line in the prompt)...
+    // A REAL execution shaped by the fire (the full create pipeline ran:
+    // fresh session with the pinned subject, the fire-context line in
+    // the prompt)...
     const execution = await clients.agentExecutionQuery.get({ value: executionId });
     expect(execution.spec?.message).toContain("(Scheduled fire time: ");
     const session = await clients.sessionQuery.get({ value: execution.spec!.sessionId });
     expect(session.spec?.subject).toBe(`Scheduled run: ${schedule.metadata!.slug}`);
 
-    // ...and its completion resets the streak — the tick tracked the
-    // run to its terminal phase and recorded the verdict.
-    const reset = await pollScheduleUntil(clients, id, "the completed run reset the streak",
-      (s) => (s.status?.consecutiveFailures ?? 0) === 0 && (s.status?.pausedReason ?? "") === "");
-    expect(reset.status?.consecutiveFailures ?? 0).toBe(0);
+    // ...that runs to completion.
+    await pollUntil(
+      () => clients.agentExecutionQuery.get({ value: executionId }),
+      (e) => e.status?.phase === ExecutionPhase.EXECUTION_COMPLETED,
+      (last, timeoutMs) =>
+        `execution ${executionId} did not complete within ${timeoutMs}ms; ` +
+        `last phase: ${last?.status?.phase}`,
+    );
 
-    const finished = await clients.agentExecutionQuery.get({ value: executionId });
-    expect(finished.status?.phase).toBe(ExecutionPhase.EXECUTION_COMPLETED);
+    // Manual fires are untracked by design — the caller watches the
+    // execution — so run history resolves their outcome at READ time
+    // from the execution's live phase (DD-017 D-7's honesty rule).
+    const history = await clients.scheduleQuery.listRuns({ scheduleId: id });
+    expect(history.totalCount).toBe(1);
+    const run = history.items[0]!;
+    expect(run.origin).toBe(ScheduleRunOrigin.MANUAL);
+    expect(run.outcome).toBe(ScheduleRunOutcome.COMPLETED);
+    expect(run.executionId).toBe(executionId);
+
+    // The streak was never fed: manual fires are not the cron health
+    // signal, completed or not.
+    const fresh = await clients.scheduleQuery.get({ value: id });
+    expect(fresh.status?.consecutiveFailures ?? 0).toBe(0);
   });
 });

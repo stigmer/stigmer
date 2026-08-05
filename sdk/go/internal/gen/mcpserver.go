@@ -283,19 +283,10 @@ func McpServerInputFromProto(p *mcpserverv1.McpServer) *McpServerInput {
 		input.GithubStars = s.GetGithubStars()
 		input.Auth = mcpServerAuthInputFromProto(s.GetAuth())
 		if ov := s.GetStdio(); ov != nil {
-			input.Stdio = &StdioServerConfigInput{
-				Command:    ov.GetCommand(),
-				Args:       ov.GetArgs(),
-				WorkingDir: ov.GetWorkingDir(),
-			}
+			input.Stdio = stdioServerConfigInputFromProto(ov)
 		}
 		if ov := s.GetHttp(); ov != nil {
-			input.Http = &HttpServerConfigInput{
-				Url:            ov.GetUrl(),
-				Headers:        ov.GetHeaders(),
-				QueryParams:    ov.GetQueryParams(),
-				TimeoutSeconds: ov.GetTimeoutSeconds(),
-			}
+			input.Http = httpServerConfigInputFromProto(ov)
 		}
 	}
 	return input

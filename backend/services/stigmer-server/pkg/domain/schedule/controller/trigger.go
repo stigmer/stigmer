@@ -2,67 +2,98 @@ package schedule
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	schedulev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	"github.com/stigmer/stigmer/backend/libs/go/store"
+	scheduletemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/schedule/temporal"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// The DD-014 D-B refusal copy, byte-identical to the cloud edition's
+// The trigger refusal copy, byte-identical to the cloud edition's
 // ScheduleTriggerHandler (the backend-engineer rule: same error contracts
 // in both editions; the conformance suite asserts these verbatim). A
 // change on either side must change both.
 const (
-	// triggerDisabledMessage: the owner's switch is off. Honoring the
-	// trigger anyway would need a "manual" marker the tick cannot receive
-	// (Temporal bakes a schedule action's arguments once), so without the
-	// refusal the fire would "succeed" and the tick's revalidation would
-	// silently no-op it — the worst outcome (DD-014 D-B).
+	// triggerDisabledMessage: the owner's switch is off. OSS has no
+	// blueprint-access layer, so the refusal here is pure contract
+	// parity: cloud MUST refuse (ScheduleBlueprintAccess requires
+	// spec.enabled at the create gate AND the mid-run sandbox read
+	// predicate — a disabled-schedule run would die mid-execution after
+	// billing side effects, DD-017 D-5), and the two editions must not
+	// diverge on a refusal a user can observe. Consoles turn the dead
+	// end into a one-click "Enable & run now". The fire-legitimacy model
+	// that would lift the refusal on both editions is DD-017's named
+	// follow-up.
 	triggerDisabledMessage = "schedule is disabled (spec.enabled=false) — enable it before triggering"
 
-	// triggerPausedMessage: the platform's latch is set. Resume stays the
-	// ONE clearing path (DD-013 D-D); the %s carries status.paused_reason
-	// so the caller learns why without a second read.
-	triggerPausedMessage = "schedule is paused by the platform (%s) — resume it before triggering"
-
-	// triggerNoClockMessage: no scheduling runtime is wired into this
-	// process (production wiring always injects it — this is the
-	// defensive posture for embedded/test assemblies that skip server
-	// wiring): refuse honestly, never pretend (the T02 slice-1
+	// triggerNoRunnerMessage: no run starter is wired into this process
+	// (production wiring always injects it — this is the defensive
+	// posture for embedded/test assemblies that skip server wiring):
+	// refuse honestly, never pretend (the T02 slice-1
 	// messaging-controller posture).
-	triggerNoClockMessage = "this Stigmer server process has no scheduling clock wired — the schedule cannot fire"
+	triggerNoRunnerMessage = "this Stigmer server process has no schedule run starter wired — the schedule cannot fire"
 )
 
-// Trigger fires a schedule once, immediately (project DD-014).
+// Runner is the narrow slice of the scheduling runtime the trigger needs
+// (satisfied by schedule/temporal.RunStarter): start one run through the
+// full execution create pipeline and answer with the real outcome.
+// Deliberately NOT the Clock — a manual fire needs no Temporal artifact
+// (DD-017 D-5 amending DD-014 D-A): the artifact round-trip made the
+// fire asynchronous, so the RPC answered "started" before the launch
+// gates ran, which is exactly the false toast the owner hit.
+type Runner interface {
+	StartRun(ctx context.Context, schedule *schedulev1.Schedule, nominalFireTime time.Time) (scheduletemporal.RunOutcomeResult, error)
+}
+
+// SetRunner injects the run starter. Called from server wiring beside
+// SetClock.
+func (c *ScheduleController) SetRunner(runner Runner) {
+	c.runner = runner
+}
+
+// Trigger fires a schedule once, immediately, and answers with the run's
+// real outcome (project DD-017 D-5/D-6, amending DD-014).
 //
-// The manual fire runs through the schedule's own Temporal artifact —
-// ONE fire path for cron and manual fires — so everything a cron fire
-// does applies unchanged: revalidation, idempotent recording, run
-// tracking, and the failure streak (DD-014 D-D). The fire is
-// asynchronous: the response carries the schedule, and the run lands on
-// status (last_fire_at / last_execution_id) as it starts.
+// The manual fire runs SYNCHRONOUSLY through the standard execution
+// create pipeline — every launch gate runs — and the result names what
+// happened: the created execution's id, or the refusing gate's copy
+// verbatim. Two-level contract: a gRPC error means the trigger itself
+// was refused (missing → NOT_FOUND, disabled → FAILED_PRECONDITION); a
+// gRPC success means the fire happened, whatever the run's outcome — a
+// deterministically refused run is a successful trigger honestly
+// reported, never an exception.
 //
-// The refusal matrix runs first, for contract parity with cloud —
-// NOT_FOUND for a missing schedule, FAILED_PRECONDITION for a disabled
-// or platform-paused one, disabled checked first — asserted on both
-// editions by the conformance suite.
+// Semantics settled by DD-017 D-5:
+//   - A PAUSED schedule may be triggered (test-then-resume): a test fire
+//     is exactly how an owner verifies a fix before resuming, and resume
+//     stays the one path that clears the latch (DD-013 D-D).
+//   - Manual fires do NOT feed the failure streak: the sync path is
+//     untracked (the caller watches the execution), so it has no honest
+//     completion verdict to contribute — and a test fire of a broken
+//     schedule must not race its owner to the pause threshold.
+//   - The handler stamps last_fire_at and writes the fire-ledger row
+//     (origin=manual) because the tick is not in the path to do it; the
+//     run starter stamps last_execution_id on success as it does for
+//     cron fires.
 //
 // Pipeline Steps:
 //  1. ValidateProto - Validate proto field constraints (ID wrapper)
 //  2. ExtractResourceId - Extract ID from ScheduleId.Value wrapper
 //  3. LoadExistingForDelete - Load the schedule (NOT_FOUND if missing)
-//  4. ValidateTriggerable - The DD-014 D-B refusal matrix
-//  5. FireTrigger - Ensure the artifact (re-arms drift in-line), then
-//     fire with ALLOW_ALL; Temporal unreachable answers UNAVAILABLE —
-//     a manual fire is the one arming consumer that cannot "converge
-//     later", so unlike the declarative writes it refuses honestly
+//  4. ValidateTriggerable - Refuse disabled (contract parity with cloud)
+//  5. FireDirectRun - Start the run in-process, stamp the fire, write
+//     the ledger row, shape the result
 //
 // Note: Unlike Stigmer Cloud, OSS excludes the authorization step (no
 // multi-user auth; cloud requires can_edit on the schedule).
-func (c *ScheduleController) Trigger(ctx context.Context, scheduleId *schedulev1.ScheduleId) (*schedulev1.Schedule, error) {
+func (c *ScheduleController) Trigger(ctx context.Context, scheduleId *schedulev1.ScheduleId) (*schedulev1.ScheduleTriggerResult, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, scheduleId)
 
 	p := pipeline.NewPipeline[*schedulev1.ScheduleId]("schedule-trigger").
@@ -70,24 +101,28 @@ func (c *ScheduleController) Trigger(ctx context.Context, scheduleId *schedulev1
 		AddStep(steps.NewExtractResourceIdStep[*schedulev1.ScheduleId]()).
 		AddStep(steps.NewLoadExistingForDeleteStep[*schedulev1.ScheduleId, *schedulev1.Schedule](c.store)).
 		AddStep(&validateTriggerableStep{}).
-		AddStep(&fireTriggerStep{controller: c}).
+		AddStep(&fireDirectRunStep{controller: c}).
 		Build()
 	if err := p.Execute(reqCtx); err != nil {
 		return nil, err
 	}
 
-	triggered := reqCtx.Get(steps.ExistingResourceKey)
-	if triggered == nil {
-		return nil, grpclib.InternalError(nil, "triggered schedule not found in context")
+	result, ok := reqCtx.Get(triggerResultKey).(*schedulev1.ScheduleTriggerResult)
+	if !ok || result == nil {
+		return nil, grpclib.InternalError(nil, "trigger result not found in context")
 	}
-	return triggered.(*schedulev1.Schedule), nil
+	return result, nil
 }
 
-// validateTriggerableStep enforces the DD-014 D-B refusal matrix on the
-// loaded schedule: disabled first (the owner's switch), then paused (the
-// platform's latch). Both are FAILED_PRECONDITION with teaching copy —
-// a schedule in either state cannot fire, and pretending otherwise would
-// let the tick's revalidation swallow the fire silently.
+// triggerResultKey carries the shaped ScheduleTriggerResult from the
+// fire step to the handler's return.
+const triggerResultKey = "trigger_result"
+
+// validateTriggerableStep refuses a disabled schedule (the owner's
+// switch) — the ONE remaining trigger refusal (DD-017 D-5 narrowed
+// DD-014 D-B's matrix: paused schedules are now triggerable, and the
+// tick's revalidation no longer guards manual fires because manual fires
+// no longer pass through the tick).
 type validateTriggerableStep struct{}
 
 func (s *validateTriggerableStep) Name() string {
@@ -100,59 +135,104 @@ func (s *validateTriggerableStep) Execute(ctx *pipeline.RequestContext[*schedule
 	if !schedule.GetSpec().GetEnabled() {
 		return grpclib.FailedPreconditionError(triggerDisabledMessage)
 	}
-	if reason := schedule.GetStatus().GetPausedReason(); reason != "" {
-		return grpclib.FailedPreconditionError(triggerPausedMessage, reason)
-	}
 	return nil
 }
 
-// fireTriggerStep ensures the artifact (re-arming any drift in-line, so
-// a trigger works even when the artifact was missing) and fires it once
-// with ALLOW_ALL. Temporal being unreachable answers UNAVAILABLE — never
-// a fake success the user would wait on. On success the fresh
-// next_fire_at is mirrored into the response.
-type fireTriggerStep struct {
+// fireDirectRunStep starts the run in-process and shapes the result:
+// stamp last_fire_at, run the full create pipeline via the Runner, write
+// the fire-ledger row, mirror the outcome into ScheduleTriggerResult.
+// Infrastructure failures from the create pipeline propagate as the
+// handler's error — the in-process client already speaks gRPC status.
+type fireDirectRunStep struct {
 	controller *ScheduleController
 }
 
-func (s *fireTriggerStep) Name() string {
-	return "FireTrigger"
+func (s *fireDirectRunStep) Name() string {
+	return "FireDirectRun"
 }
 
-func (s *fireTriggerStep) Execute(ctx *pipeline.RequestContext[*schedulev1.ScheduleId]) error {
-	clock := s.controller.clock
-	if clock == nil {
-		// No scheduling runtime wired at all (Temporal never configured
-		// in this process) — the honest refusal, not a fake success.
-		return grpclib.FailedPreconditionError(triggerNoClockMessage)
+func (s *fireDirectRunStep) Execute(ctx *pipeline.RequestContext[*schedulev1.ScheduleId]) error {
+	runner := s.controller.runner
+	if runner == nil {
+		return grpclib.FailedPreconditionError(triggerNoRunnerMessage)
 	}
 
 	schedule := ctx.Get(steps.ExistingResourceKey).(*schedulev1.Schedule)
 	scheduleID := schedule.GetMetadata().GetId()
 
-	// Ensure-before-trigger: the one arming consumer that cannot
-	// "converge later". A drifted or missing artifact is re-armed here;
-	// what still fails after that is Temporal itself.
-	nextFireAt, err := clock.EnsureAndRecord(ctx.Context(), schedule)
+	// The manual fire's nominal time is the trigger instant, whole
+	// seconds — the same identity the deterministic execution name uses,
+	// so a manual fire at the exact cron nominal second converges on the
+	// same execution via the ALREADY_EXISTS → re-find path.
+	nominal := time.Now().UTC().Truncate(time.Second)
+	nominalRFC3339 := nominal.Format(time.RFC3339)
+
+	outcome, err := runner.StartRun(ctx.Context(), schedule, nominal)
 	if err != nil {
 		log.Warn().Err(err).Str("schedule_id", scheduleID).
-			Msg("Trigger could not arm the schedule artifact")
-		return grpclib.UnavailableError("The scheduling engine is unavailable — try again shortly")
-	}
-	if err := clock.Trigger(ctx.Context(), scheduleID); err != nil {
-		log.Warn().Err(err).Str("schedule_id", scheduleID).
-			Msg("Trigger could not fire the schedule artifact")
-		return grpclib.UnavailableError("The scheduling engine is unavailable — try again shortly")
+			Msg("Manual trigger's run start failed on infrastructure")
+		return err
 	}
 
-	if schedule.Status == nil {
-		schedule.Status = &schedulev1.ScheduleStatus{}
+	// The fire happened: record it — last_fire_at on status (the tick is
+	// not in this path to do it) and the ledger row (origin=manual).
+	s.stampLastFireAt(ctx.Context(), scheduleID, nominal)
+	scheduletemporal.RecordManualFire(ctx.Context(), s.controller.store,
+		scheduleID, schedule.GetMetadata().GetOrg(), nominalRFC3339, outcome)
+
+	result := &schedulev1.ScheduleTriggerResult{}
+	switch o := outcome.(type) {
+	case scheduletemporal.RunStartedOutcome:
+		result.Outcome = schedulev1.ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_STARTED
+		result.ExecutionId = o.ExecutionID
+		log.Info().Str("schedule_id", scheduleID).Str("execution_id", o.ExecutionID).
+			Bool("already_existed", o.AlreadyExisted).Msg("Schedule triggered manually — run started")
+	case scheduletemporal.RunTargetMissingOutcome:
+		result.Outcome = schedulev1.ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_TARGET_MISSING
+		result.RefusalReason = o.Reason
+		log.Warn().Str("schedule_id", scheduleID).Str("reason", o.Reason).
+			Msg("Schedule triggered manually — target missing")
+	case scheduletemporal.RunRefusedOutcome:
+		result.Outcome = schedulev1.ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_REFUSED
+		result.RefusalReason = o.Reason
+		log.Warn().Str("schedule_id", scheduleID).Str("reason", o.Reason).
+			Msg("Schedule triggered manually — run refused by a launch gate")
+	default:
+		return grpclib.InternalError(nil, "unknown run outcome from the run starter")
 	}
-	if nextFireAt == nil {
-		schedule.Status.NextFireAt = nil
+
+	// Answer with the post-fire row — last_fire_at and (on success)
+	// last_execution_id freshly stamped. A failed re-read degrades to
+	// the loaded schedule rather than failing a fire that already
+	// happened.
+	fresh := &schedulev1.Schedule{}
+	if readErr := s.controller.store.GetResource(ctx.Context(),
+		apiresourcekind.ApiResourceKind_schedule, scheduleID, fresh); readErr == nil {
+		result.Schedule = fresh
 	} else {
-		schedule.Status.NextFireAt = timestamppb.New(*nextFireAt)
+		result.Schedule = schedule
 	}
-	ctx.Set(steps.ExistingResourceKey, schedule)
+
+	ctx.Set(triggerResultKey, result)
 	return nil
+}
+
+// stampLastFireAt records the manual fire on status — best-effort with a
+// loud log: the run already started, and a bookkeeping failure must not
+// turn a real fire into a caller-visible error. (The cron path's stamp
+// rides the tick's recordFire; this is its manual twin.)
+func (s *fireDirectRunStep) stampLastFireAt(ctx context.Context, scheduleID string, nominal time.Time) {
+	live := &schedulev1.Schedule{}
+	err := s.controller.store.UpdateResource(ctx, apiresourcekind.ApiResourceKind_schedule,
+		scheduleID, live, func() error {
+			if live.Status == nil {
+				live.Status = &schedulev1.ScheduleStatus{}
+			}
+			live.Status.LastFireAt = timestamppb.New(nominal)
+			return steps.SetAuditFieldsForUpdate(live)
+		})
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
+		log.Warn().Err(err).Str("schedule_id", scheduleID).
+			Msg("Manual fire's last_fire_at not stamped (best-effort — the run is unaffected)")
+	}
 }

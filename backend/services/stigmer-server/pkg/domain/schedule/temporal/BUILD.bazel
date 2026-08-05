@@ -6,6 +6,7 @@ go_library(
         "artifact.go",
         "config.go",
         "reconcile.go",
+        "runledger.go",
         "runstarter.go",
         "syncer.go",
         "tick_activities.go",

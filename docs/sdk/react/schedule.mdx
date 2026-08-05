@@ -264,13 +264,23 @@ function useSetScheduleEnabled(): UseSetScheduleEnabledReturn
 
 ### useTriggerSchedule
 
-Behavior hook that fires a schedule once, immediately.
+Behavior hook that fires a schedule once, immediately, and reports the
+run's real outcome (project DD-017 D-5/D-6).
 
-The server enforces a refusal matrix — a disabled schedule refuses
-first, then a paused one — both as `FAILED_PRECONDITION` with copy
-that names the remedy ("enable it before triggering" / "resume it
-before triggering"). Error toasts relay that copy verbatim; the copy
-is byte-identical across editions.
+The trigger is a two-level contract, and this hook honors both levels:
+
+- A **gRPC error** means the trigger itself was refused — a disabled
+  schedule answers `FAILED_PRECONDITION` with copy that names the
+  remedy ("enable it before triggering"). The error toast relays that
+  copy verbatim (byte-identical across editions) and the promise
+  rejects.
+- A **success** means the fire happened. The result's `outcome` then
+  says what the RUN did: `STARTED` (an execution was created — a
+  success toast), or `REFUSED` / `TARGET_MISSING` (a launch gate said
+  no — an error toast carrying the gate's `refusalReason` verbatim).
+  The promise RESOLVES in every one of these cases: a refused run is a
+  successful trigger honestly reported, and the caller decides what to
+  do with it (navigate to the execution, show the reason).
 
 Triggering starts a real, billable execution — gate the call behind a
 confirmation (the detail view uses `ConfirmDialog`).
@@ -287,7 +297,7 @@ function useTriggerSchedule(): UseTriggerScheduleReturn
   type={{
     error: { type: "Error | null", description: "Error from the last failed or refused trigger, or `null` when healthy." },
     isTriggering: { type: "boolean", description: "`true` while the trigger request is in flight." },
-    triggerSchedule: { type: "(scheduleId: string) => Promise<Schedule>", description: "Fire the schedule once, now — a real agent execution, outside the cron cadence. Resolves with the post-trigger schedule; refetch to pick up the new `status.last_execution_id`." },
+    triggerSchedule: { type: "(scheduleId: string) => Promise<ScheduleTriggerResult>", description: "Fire the schedule once, now — a real agent execution, outside the cron cadence. Resolves with the ScheduleTriggerResult: the run's REAL outcome (started with an execution id, or refused with the gate's copy), so a caller can navigate to the execution or surface the refusal. Refetch the schedule afterwards to pick up the freshly stamped `status.last_fire_at` / `status.last_execution_id`." },
   }}
 />
 

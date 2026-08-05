@@ -41,7 +41,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\032\'ai/stigmer/agentic/schedule/v1/io.prot" +
       "o\0328ai/stigmer/commons/apiresource/rpc_se" +
       "rvice_options.proto\032+ai/stigmer/commons/" +
-      "rpc/method_options.proto2\264\006\n\031ScheduleCom" +
+      "rpc/method_options.proto2\301\006\n\031ScheduleCom" +
       "mandController\022[\n\005apply\022(.ai.stigmer.age" +
       "ntic.schedule.v1.Schedule\032(.ai.stigmer.a" +
       "gentic.schedule.v1.Schedule\022b\n\006create\022(." +
@@ -58,15 +58,16 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "i.stigmer.agentic.schedule.v1.ScheduleId" +
       "\032(.ai.stigmer.agentic.schedule.v1.Schedu" +
       "le\"0\302\270\030,\010\002\0208\"\005value*\037unauthorized to res" +
-      "ume schedule\022\222\001\n\007trigger\022*.ai.stigmer.ag" +
-      "entic.schedule.v1.ScheduleId\032(.ai.stigme" +
-      "r.agentic.schedule.v1.Schedule\"1\302\270\030-\010\002\0208" +
-      "\"\005value* unauthorized to trigger schedul" +
-      "e\032\004\240\377+8B\253\001B\014CommandProtoP\001\242\002\004ASAS\252\002\036Ai.S" +
-      "tigmer.Agentic.Schedule.V1\312\002\036Ai\\Stigmer\\" +
-      "Agentic\\Schedule\\V1\342\002*Ai\\Stigmer\\Agentic" +
-      "\\Schedule\\V1\\GPBMetadata\352\002\"Ai::Stigmer::" +
-      "Agentic::Schedule::V1b\006proto3"
+      "ume schedule\022\237\001\n\007trigger\022*.ai.stigmer.ag" +
+      "entic.schedule.v1.ScheduleId\0325.ai.stigme" +
+      "r.agentic.schedule.v1.ScheduleTriggerRes" +
+      "ult\"1\302\270\030-\010\002\0208\"\005value* unauthorized to tr" +
+      "igger schedule\032\004\240\377+8B\253\001B\014CommandProtoP\001\242" +
+      "\002\004ASAS\252\002\036Ai.Stigmer.Agentic.Schedule.V1\312" +
+      "\002\036Ai\\Stigmer\\Agentic\\Schedule\\V1\342\002*Ai\\St" +
+      "igmer\\Agentic\\Schedule\\V1\\GPBMetadata\352\002\"" +
+      "Ai::Stigmer::Agentic::Schedule::V1b\006prot" +
+      "o3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

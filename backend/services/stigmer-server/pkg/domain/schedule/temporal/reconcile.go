@@ -171,6 +171,10 @@ func (r *Reconciler) RunPass(ctx context.Context) ReconcileCounts {
 			Msg("Reconciliation deleted an orphaned artifact")
 	}
 
+	// Phase 4: fire-ledger retention (DD-017 D-7) — the clock's one
+	// periodic hook, so the ledger's bound needs no machinery of its own.
+	pruneRunLedger(ctx, r.store, r.config.ResolvedRunHistoryRetentionDays())
+
 	log.Info().Str("counts", counts.String()).Msg("Schedule reconciliation pass complete")
 	return counts
 }

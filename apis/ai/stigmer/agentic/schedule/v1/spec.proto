@@ -119,4 +119,70 @@ message AgentTarget {
     min_len: 1
     max_len: 8192
   }];
+
+  // References to Environment resources whose values are provided to
+  // this schedule's runs.
+  //
+  // This is how a tool-using agent becomes schedulable: bind an
+  // org-shared environment holding the needed credentials (for example
+  // an MCP server's shared secret), and scheduled executions receive its
+  // values at runtime. The agent and its default instance stay
+  // untouched.
+  //
+  // @internal
+  // The AgentChannelSpec.environment_refs analog, third application of
+  // the AgentShare precedent (project DD-017 D-2). Deliberately on the
+  // AgentTarget arm, not ScheduleSpec: the future WorkflowTarget arm
+  // resolves environments through its WorkflowInstance and must not
+  // inherit a dead top-level field. Resolved in the schedule's org
+  // through the org-shared environment resolution seam
+  // (EnvironmentRuntimeResolutionService / OrgSharedEnvironmentPolicy):
+  // each referenced environment must be visibility_org in the
+  // schedule's org, or the merge skips it with a diagnostic. Merged at
+  // execution-context build time only, LOWEST priority (instance refs
+  // and runtime_env override on key conflicts). No write-time existence
+  // or visibility check, matching the share and the channel:
+  // enforcement lives solely at runtime resolution, which fails closed.
+  // No audience CEL — the same-org invariant (agent_ref.org ==
+  // metadata.org) already scopes resolution.
+  repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [
+    (ai.stigmer.commons.apiresource.reference_kind) = environment,
+    (buf.validate.field).repeated.items.cel = {
+      id: "environment_refs.kind"
+      message: "environment_refs must reference resources with kind=environment"
+      expression: "this.kind == 53"
+    }
+  ];
+
+  // Per-schedule bounds for each run. Unset fields inherit the
+  // platform's schedule execution profile.
+  //
+  // @internal
+  // Project DD-017 D-3. A deliberate SUBSET of ExecutionConfig: the
+  // full message carries interactive-surface concepts (interaction
+  // mode, build-from-plan, structured output) and the platform-owned
+  // approval_mode — none of which an unattended fire may set. Clamp
+  // semantics live in the run starter, per field: min(owner, platform)
+  // when the platform cap is set; the owner value stands when the
+  // platform cap is unset. The owner can lower spend, never raise it
+  // past the platform profile.
+  ScheduleRunConfig run_config = 4;
+}
+
+// ScheduleRunConfig bounds the executions a schedule creates.
+//
+// Each field mirrors its ExecutionConfig namesake; zero/empty means
+// "inherit the platform default". See AgentTarget.run_config for the
+// subset rationale.
+message ScheduleRunConfig {
+  // The model each run uses. Example: "claude-sonnet-4-6".
+  string model_name = 1;
+
+  // Maximum estimated cost in USD per run. The platform's schedule
+  // execution profile caps this value; the lower bound wins.
+  double max_cost_usd = 2 [(buf.validate.field).double.gte = 0];
+
+  // Maximum model-to-tools reasoning cycles per run. The platform's
+  // schedule execution profile caps this value; the lower bound wins.
+  int32 max_tool_rounds = 3 [(buf.validate.field).int32.gte = 0];
 }

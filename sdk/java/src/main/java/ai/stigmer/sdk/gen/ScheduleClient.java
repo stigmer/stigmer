@@ -3,12 +3,15 @@
 package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest;
+import ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest;
 import ai.stigmer.agentic.schedule.v1.ListSchedulesRequest;
 import ai.stigmer.agentic.schedule.v1.Schedule;
 import ai.stigmer.agentic.schedule.v1.ScheduleCommandControllerGrpc;
 import ai.stigmer.agentic.schedule.v1.ScheduleId;
 import ai.stigmer.agentic.schedule.v1.ScheduleList;
 import ai.stigmer.agentic.schedule.v1.ScheduleQueryControllerGrpc;
+import ai.stigmer.agentic.schedule.v1.ScheduleRunList;
+import ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
@@ -53,7 +56,7 @@ public final class ScheduleClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public Schedule trigger(String id) {
+    public ScheduleTriggerResult trigger(String id) {
         try {
             return command.trigger(ScheduleId.newBuilder().setValue(id).build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
@@ -80,6 +83,12 @@ public final class ScheduleClient {
     public ScheduleList list(ListSchedulesRequest input) {
         try {
             return query.list(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ScheduleRunList listRuns(ListScheduleRunsRequest input) {
+        try {
+            return query.listRuns(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

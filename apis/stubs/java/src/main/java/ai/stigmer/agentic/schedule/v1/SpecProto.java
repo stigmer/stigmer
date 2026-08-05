@@ -36,6 +36,11 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_schedule_v1_AgentTarget_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleRunConfig_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_schedule_v1_ScheduleRunConfig_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -54,18 +59,29 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ron\022$\n\ttime_zone\030\002 \001(\tB\007\272H\004r\002\020\001R\010timeZon" +
       "e\022\030\n\007enabled\030\003 \001(\010R\007enabled\022C\n\005agent\030\004 \001" +
       "(\0132+.ai.stigmer.agentic.schedule.v1.Agen" +
-      "tTargetH\000R\005agentB\017\n\006target\022\005\272H\002\010\001\"\354\001\n\013Ag" +
+      "tTargetH\000R\005agentB\017\n\006target\022\005\272H\002\010\001\"\232\004\n\013Ag" +
       "entTarget\022\266\001\n\tagent_ref\030\001 \001(\01324.ai.stigm" +
       "er.commons.apiresource.ApiResourceRefere" +
       "nceBc\272H\\\272\001V\n\016agent_ref.kind\0223agent_ref m" +
       "ust reference a resource with kind=agent" +
       "\032\017this.kind == 40\310\001\001\340\205,(R\010agentRef\022$\n\007me" +
-      "ssage\030\002 \001(\tB\n\272H\007r\005\020\001\030\200@R\007messageB\250\001B\tSpe" +
-      "cProtoP\001\242\002\004ASAS\252\002\036Ai.Stigmer.Agentic.Sch" +
-      "edule.V1\312\002\036Ai\\Stigmer\\Agentic\\Schedule\\V" +
-      "1\342\002*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMe" +
-      "tadata\352\002\"Ai::Stigmer::Agentic::Schedule:" +
-      ":V1b\006proto3"
+      "ssage\030\002 \001(\tB\n\272H\007r\005\020\001\030\200@R\007message\022\331\001\n\020env" +
+      "ironment_refs\030\003 \003(\01324.ai.stigmer.commons" +
+      ".apiresource.ApiResourceReferenceBx\272Hq\222\001" +
+      "n\"l\272\001i\n\025environment_refs.kind\022?environme" +
+      "nt_refs must reference resources with ki" +
+      "nd=environment\032\017this.kind == 53\340\205,5R\017env" +
+      "ironmentRefs\022P\n\nrun_config\030\004 \001(\01321.ai.st" +
+      "igmer.agentic.schedule.v1.ScheduleRunCon" +
+      "figR\trunConfig\"\225\001\n\021ScheduleRunConfig\022\035\n\n" +
+      "model_name\030\001 \001(\tR\tmodelName\0220\n\014max_cost_" +
+      "usd\030\002 \001(\001B\016\272H\013\022\t)\000\000\000\000\000\000\000\000R\nmaxCostUsd\022/\n" +
+      "\017max_tool_rounds\030\003 \001(\005B\007\272H\004\032\002(\000R\rmaxTool" +
+      "RoundsB\250\001B\tSpecProtoP\001\242\002\004ASAS\252\002\036Ai.Stigm" +
+      "er.Agentic.Schedule.V1\312\002\036Ai\\Stigmer\\Agen" +
+      "tic\\Schedule\\V1\342\002*Ai\\Stigmer\\Agentic\\Sch" +
+      "edule\\V1\\GPBMetadata\352\002\"Ai::Stigmer::Agen" +
+      "tic::Schedule::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -85,7 +101,13 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_schedule_v1_AgentTarget_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_schedule_v1_AgentTarget_descriptor,
-        new java.lang.String[] { "AgentRef", "Message", });
+        new java.lang.String[] { "AgentRef", "Message", "EnvironmentRefs", "RunConfig", });
+    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleRunConfig_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_schedule_v1_ScheduleRunConfig_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_schedule_v1_ScheduleRunConfig_descriptor,
+        new java.lang.String[] { "ModelName", "MaxCostUsd", "MaxToolRounds", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();

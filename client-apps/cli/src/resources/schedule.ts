@@ -58,13 +58,16 @@ async function loadSchedule(stigmer: Stigmer, ref: string, org: string): Promise
 
 /**
  * Resolve `ref` (a `sch_…` id, `org/slug`, or bare slug against `org`) and
- * fire it once, immediately (project DD-014).
+ * fire it once, immediately (project DD-017 D-5/D-6, amending DD-014).
  *
- * The fire is asynchronous: the RPC answers with the schedule, and the run
- * lands on status (last_fire_at / last_execution_id) as it starts — the
- * same observability contract cron fires have. Disabled and platform-paused
- * schedules are refused by the server with teaching copy; the CLI relays
- * the server's message verbatim (never pattern-match refusal text).
+ * The fire is SYNCHRONOUS: the RPC runs the full execution create pipeline
+ * and the result names the run's real outcome — the created execution's
+ * id, or the refusing gate's copy verbatim. A refused run renders as an
+ * error result (non-zero exit) so a scripted test fire fails honestly,
+ * but the trigger itself succeeded: the fire is recorded in the
+ * schedule's run history either way. A disabled schedule is refused by
+ * the server with teaching copy; the CLI relays the server's message
+ * verbatim (never pattern-match refusal text).
  */
 export async function triggerSchedule(stigmer: Stigmer, ref: string, org: string): Promise<CommandResult> {
   const before = await loadSchedule(stigmer, ref, org);
@@ -74,18 +77,31 @@ export async function triggerSchedule(stigmer: Stigmer, ref: string, org: string
   }
 
   const triggered = await stigmer.schedule.trigger(id);
+  const schedule = triggered.schedule ?? before;
+  const slug = schedule.metadata?.slug ?? "";
+  const name = schedule.metadata?.name || slug;
 
-  const slug = triggered.metadata?.slug ?? "";
-  const name = triggered.metadata?.name || slug;
-  const result = CommandResult.success(`Schedule '${name}' triggered — a run is starting`);
-
-  const section = result.addSection();
-  const orgSlug = triggered.metadata?.org ? `${triggered.metadata.org}/${slug}` : slug;
-  section.field("Watch it land", `stigmer get schedule ${orgSlug} (status.last_execution_id)`);
-  if (triggered.status?.nextFireAt !== undefined) {
-    section.field("Next cron fire", timestampDate(triggered.status.nextFireAt).toISOString());
+  if (triggered.outcome === ScheduleRunOutcome.STARTED) {
+    const result = CommandResult.success(`Schedule '${name}' fired — run started`);
+    const section = result.addSection();
+    section.field("Execution", triggered.executionId);
+    section.field("Watch it", `stigmer get agentexecution ${triggered.executionId}`);
+    if (schedule.status?.nextFireAt !== undefined) {
+      section.field("Next cron fire", timestampDate(schedule.status.nextFireAt).toISOString());
+    }
+    return result;
   }
 
+  // The run was refused deterministically (a launch gate said no, or the
+  // target agent is gone). The fire happened and is recorded in run
+  // history; the refusing gate's copy relays verbatim.
+  const what = triggered.outcome === ScheduleRunOutcome.TARGET_MISSING
+    ? "the target agent was not found"
+    : "a launch gate refused the run";
+  const result = CommandResult.error(`Schedule '${name}' fired, but ${what}`);
+  const section = result.addSection();
+  section.field("Reason", triggered.refusalReason);
+  result.hint("The fire is recorded in the schedule's run history; fix the cause and trigger again.");
   return result;
 }
 

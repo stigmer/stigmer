@@ -13,38 +13,35 @@
 // their own unit tests, and this suite asserts them over the wire on both.
 // A change to any of them is a contract change, not a copy edit.
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { ConformanceClients } from "../harness/clients";
-import { pollUntil, type PollCoreOptions } from "./execution-poll";
 
 export const SCHEDULE_API_VERSION = "agentic.stigmer.ai/v1";
 export const SCHEDULE_KIND = "Schedule";
 
-// ─── The DD-014 D-B trigger refusal matrix (contract copy) ─────────────────
+// ─── The trigger refusal copy (contract copy, DD-017 D-5) ──────────────────
 
-// Refusing a disabled schedule: honoring the trigger would need a "manual"
-// marker the tick cannot receive, so the fire would otherwise "succeed"
-// while the tick's revalidation silently no-ops it.
+// Refusing a disabled schedule — the ONE remaining trigger refusal (DD-017
+// D-5 narrowed DD-014 D-B's matrix: paused schedules now fire, and manual
+// fires run synchronously through the create pipeline rather than the
+// artifact). The refusal survives because ScheduleBlueprintAccess requires
+// spec.enabled at the create gate AND the mid-run sandbox read predicate;
+// consoles offer "Enable & run now" as the remedy.
 export const TRIGGER_DISABLED_MESSAGE =
   "schedule is disabled (spec.enabled=false) — enable it before triggering";
 
-// Refusing a platform-paused schedule, naming the reason — resume stays the
-// one clearing path (DD-013 D-D).
-export function triggerPausedMessage(pausedReason: string): string {
-  return `schedule is paused by the platform (${pausedReason}) — resume it before triggering`;
-}
-
-// ─── The auto-pause teaching copy (contract copy, DD-013/DD-014) ───────────
-
-// What the platform writes into status.paused_reason at the streak crossing.
-export function pausedReasonCopy(threshold: number, lastFailure: string): string {
-  return `Paused after ${threshold} consecutive failed runs. Last failure: ${lastFailure}`;
-}
+// NOTE: the DD-014-era paused-trigger refusal and the auto-pause crossing
+// are no longer black-box assertable here — the streak accumulates only
+// from CRON fires (DD-017 D-5: manual fires never feed it), and a real
+// cron arc is infeasible under the cloud conformance environment's
+// production interval floor. The pause machinery keeps tick-level coverage
+// in both editions, and the pause copy stays byte-pinned in their unit
+// tests.
 
 // The deterministic start-failure copy for a dangling agent reference — the
 // suite's no-LLM failure mechanism: delete the target agent and every fire
-// fails with exactly this reason before any execution is created.
+// fails with exactly this reason before any execution is created. Pinned
+// byte-identical in the Java tick activities and the Go run starter.
 export function targetMissingReason(org: string, agentSlug: string): string {
   return `target agent ${org}/${agentSlug} not found`;
 }
@@ -88,26 +85,7 @@ export function makeSchedule(
   };
 }
 
-// ─── Firing observability ──────────────────────────────────────────────────
-
-// Polls the schedule until `predicate` holds — the poll-don't-sleep rhythm.
-// Firing is asynchronous by contract (the trigger RPC answers before the
-// fire records), so every firing assertion goes through here.
-export async function pollScheduleUntil(
-  clients: ConformanceClients,
-  scheduleId: string,
-  describe: string,
-  predicate: (schedule: Schedule) => boolean,
-  opts: PollCoreOptions = {},
-): Promise<Schedule> {
-  return pollUntil(
-    () => clients.scheduleQuery.get({ value: scheduleId }),
-    predicate,
-    (last, timeoutMs) =>
-      `schedule ${scheduleId} did not reach "${describe}" within ${timeoutMs}ms; ` +
-      `last status: last_fire_at=${last?.status?.lastFireAt !== undefined ? "set" : "unset"}, ` +
-      `consecutive_failures=${last?.status?.consecutiveFailures ?? 0}, ` +
-      `paused_reason=${JSON.stringify(last?.status?.pausedReason ?? "")}`,
-    opts,
-  );
-}
+// The DD-014-era pollScheduleUntil helper is gone with the asynchronous
+// trigger it served: the sync trigger answers with the fire's outcome in
+// the result, so firing assertions read the response (or listRuns) rather
+// than polling status.

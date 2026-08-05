@@ -52,9 +52,9 @@
           "name": "Trigger",
           "inputType": "ScheduleId",
           "inputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleId",
-          "outputType": "Schedule",
-          "outputFullType": "ai.stigmer.agentic.schedule.v1.Schedule",
-          "description": "Trigger a schedule to fire once, immediately.\n\n The manual fire runs through the schedule's own clock, so everything\n a cron fire does applies: a fresh run is created, status.last_fire_at\n and status.last_execution_id record it, and its verdict feeds the\n failure streak (a successful manual fire resets the streak). The fire\n is asynchronous — the response carries the schedule, and the run\n appears on status as it starts. A disabled schedule refuses (enable\n it first); a platform-paused schedule refuses (resume it first).\n\n @internal\n Authorization: requires can_edit permission on the schedule — the\n update bar (DD-014 D-A in the whatsapp-proactive-messaging project).\n Refusal matrix in-handler (DD-014 D-B): disabled and paused both\n answer FAILED_PRECONDITION with teaching copy; the cloud handler\n loads before authorizing (#224: a missing schedule answers NOT_FOUND,\n not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP\n overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,\n SKIP would silently swallow a trigger issued while a previous fire is\n still tracking, and a human asking to run now means now. Cron fires\n keep SKIP, baked into the artifact. Manual fires feed the failure\n streak and reset it on success (DD-014 D-D): one verdict path, no\n manual-fire exemption. OSS answers FAILED_PRECONDITION until its\n clock lands (T04 slice 3a), then fires for real; OSS excludes the\n authorization step per its recorded single-user posture."
+          "outputType": "ScheduleTriggerResult",
+          "outputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult",
+          "description": "Trigger a schedule to fire once, immediately, and answer with the\n run's real outcome.\n\n The manual fire runs synchronously through the standard execution\n create pipeline — every launch gate runs — and the result names what\n happened: the created execution's id, or the refusing gate's own\n copy verbatim. status.last_fire_at and status.last_execution_id\n record a started run. Manual fires do NOT feed the failure streak —\n the streak is the unattended (cron) health signal, and a test fire\n of a broken schedule must not race its owner to the pause threshold.\n\n A disabled schedule refuses (enable it first). A platform-paused\n schedule MAY be triggered — a test fire is exactly how an owner\n verifies a fix before resuming; resume remains the one path that\n clears the pause.\n\n @internal\n Authorization: requires can_edit permission on the schedule — the\n update bar (DD-014 D-A). Project DD-017 D-5/D-6 amends DD-014: the\n artifact round-trip is gone for manual fires (it made the fire\n asynchronous, so the RPC answered before the launch gates ran — a\n false \"run started\" beside a climbing failure counter). Cron fires\n keep the tracked artifact tick unchanged. The disabled refusal\n SURVIVES for a different reason than DD-014 D-B recorded:\n ScheduleBlueprintAccess requires spec.enabled at the create gate AND\n the mid-run sandbox read predicate, so a disabled-schedule run would\n die mid-execution after billing side effects (consoles offer\n \"Enable \u0026 run now\" instead; the fire-legitimacy model that would\n lift this is DD-017's named follow-up). Two-level contract: a gRPC\n error means the trigger itself was refused (disabled →\n FAILED_PRECONDITION with the byte-pinned copy, missing → NOT_FOUND\n before authorize, #224); a gRPC success means the fire happened and\n ScheduleTriggerResult names the run's outcome — a deterministically\n refused run is a successful trigger honestly reported, never an\n exception. The handler stamps last_fire_at/last_execution_id and\n writes the fire-ledger row (origin=manual) because the tick is not\n in the path to do it; status writes ride updateFields, never save()\n (DD-010 D-B). OSS mirrors the semantics; it excludes the\n authorization step per its recorded single-user posture."
         }
       ]
     },
@@ -94,11 +94,78 @@
           "outputType": "ScheduleList",
           "outputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleList",
           "description": "List schedules with optional label filtering.\n\n @internal\n Authorization in-handler via FGA-filtered queries (cloud) or\n unrestricted store queries (OSS)."
+        },
+        {
+          "name": "ListRuns",
+          "inputType": "ListScheduleRunsRequest",
+          "inputFullType": "ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest",
+          "outputType": "ScheduleRunList",
+          "outputFullType": "ai.stigmer.agentic.schedule.v1.ScheduleRunList",
+          "description": "List a schedule's run history, newest first.\n\n Every fire leaves a row — including fires that created no execution\n (a refused launch gate, a missing target agent) — with the refusing\n gate's copy verbatim. This is the surface that explains\n status.consecutive_failures.\n\n @internal\n Backed by the fire ledger (project DD-017 D-7). Authorization:\n can_view on the schedule — run history is the schedule's own\n operational record; the linked executions keep their own bars. Rows\n carrying an execution id but no terminal outcome are enriched with\n the execution's live phase at read time (one join), so manual fires\n need no tracker and outcome columns never lie. OSS implements the\n same contract against its store; the conformance suite holds both\n editions to it."
         }
       ]
     }
   ],
   "methodTypes": [
+    {
+      "name": "ScheduleTriggerResult",
+      "description": "Result of manually triggering a schedule.\n\n A gRPC error means the trigger itself was refused (disabled schedule,\n missing schedule, unauthorized). A successful response means the fire\n happened, and this message names the run's real outcome.",
+      "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult",
+      "protoFile": "apis/ai/stigmer/agentic/schedule/v1/io.proto",
+      "fields": [
+        {
+          "name": "Schedule",
+          "jsonName": "schedule",
+          "protoField": "schedule",
+          "type": {
+            "kind": "message",
+            "messageType": "Schedule"
+          },
+          "description": "The schedule after the fire, status freshly stamped.",
+          "required": false
+        },
+        {
+          "name": "Outcome",
+          "jsonName": "outcome",
+          "protoField": "outcome",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome",
+            "enumValues": [
+              "SCHEDULE_RUN_OUTCOME_STARTED",
+              "SCHEDULE_RUN_OUTCOME_REFUSED",
+              "SCHEDULE_RUN_OUTCOME_TARGET_MISSING",
+              "SCHEDULE_RUN_OUTCOME_SKIPPED",
+              "SCHEDULE_RUN_OUTCOME_COMPLETED",
+              "SCHEDULE_RUN_OUTCOME_FAILED",
+              "SCHEDULE_RUN_OUTCOME_TIMED_OUT"
+            ]
+          },
+          "description": "What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the\n terminal outcomes belong to run history — a manual fire answers at\n run start).",
+          "required": false
+        },
+        {
+          "name": "ExecutionId",
+          "jsonName": "executionId",
+          "protoField": "execution_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the created execution. Set only when outcome is STARTED.",
+          "required": false
+        },
+        {
+          "name": "RefusalReason",
+          "jsonName": "refusalReason",
+          "protoField": "refusal_reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "The refusing launch gate's copy, verbatim. Set only when outcome is\n REFUSED or TARGET_MISSING.",
+          "required": false
+        }
+      ]
+    },
     {
       "name": "ApiResourceReference",
       "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
@@ -312,9 +379,115 @@
           "required": false
         }
       ]
+    },
+    {
+      "name": "ListScheduleRunsRequest",
+      "description": "Input for listing a schedule's run history.",
+      "protoType": "ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest",
+      "protoFile": "apis/ai/stigmer/agentic/schedule/v1/io.proto",
+      "fields": [
+        {
+          "name": "ScheduleId",
+          "jsonName": "scheduleId",
+          "protoField": "schedule_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Schedule whose runs to list.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageInfo",
+          "jsonName": "pageInfo",
+          "protoField": "page_info",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination options. Runs are returned newest first.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ScheduleRunList",
+      "description": "Response containing a paginated list of schedule runs, newest first.",
+      "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleRunList",
+      "protoFile": "apis/ai/stigmer/agentic/schedule/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of recorded runs for the schedule.",
+          "required": false
+        },
+        {
+          "name": "Items",
+          "jsonName": "items",
+          "protoField": "items",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ScheduleRun"
+            }
+          },
+          "description": "Runs in the current page.",
+          "required": false
+        }
+      ]
     }
   ],
   "enumTypes": [
+    {
+      "name": "ScheduleRunOutcome",
+      "description": "What one schedule fire produced.\n\n @internal\n One vocabulary for two surfaces (project DD-017 D-6/D-7): the trigger\n result reports the START outcomes (STARTED / REFUSED /\n TARGET_MISSING), and the run-history rows additionally reach the\n terminal outcomes (COMPLETED / FAILED / TIMED_OUT) written by the cron\n tick's tracking. SKIPPED records a cron fire that revalidated against\n a row deleted/disabled/paused between recording and starting.",
+      "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome",
+      "values": [
+        {
+          "name": "SCHEDULE_RUN_OUTCOME_STARTED",
+          "number": 1,
+          "description": "An execution was created (or idempotently re-found) and is running."
+        },
+        {
+          "name": "SCHEDULE_RUN_OUTCOME_REFUSED",
+          "number": 2,
+          "description": "A launch gate refused the run deterministically; reason carries the\n gate's copy verbatim."
+        },
+        {
+          "name": "SCHEDULE_RUN_OUTCOME_TARGET_MISSING",
+          "number": 3,
+          "description": "The schedule's agent_ref no longer resolves."
+        },
+        {
+          "name": "SCHEDULE_RUN_OUTCOME_SKIPPED",
+          "number": 4,
+          "description": "The fire no-opped: the row was deleted, disabled, or paused between\n the fire being recorded and the run starting."
+        },
+        {
+          "name": "SCHEDULE_RUN_OUTCOME_COMPLETED",
+          "number": 5,
+          "description": "The tracked run reached EXECUTION_COMPLETED."
+        },
+        {
+          "name": "SCHEDULE_RUN_OUTCOME_FAILED",
+          "number": 6,
+          "description": "The tracked run ended terminal-but-not-completed (failed, cancelled,\n or terminated); reason names the terminal phase."
+        },
+        {
+          "name": "SCHEDULE_RUN_OUTCOME_TIMED_OUT",
+          "number": 7,
+          "description": "The tracked run outlived the fire's tracking budget."
+        }
+      ]
+    },
     {
       "name": "ApiResourceKind",
       "description": "API resource kinds for Stigmer.",
@@ -486,6 +659,23 @@
           "name": "visibility_platform",
           "number": 4,
           "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
+        }
+      ]
+    },
+    {
+      "name": "ScheduleRunOrigin",
+      "description": "How a schedule fire was initiated.",
+      "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleRunOrigin",
+      "values": [
+        {
+          "name": "SCHEDULE_RUN_ORIGIN_CRON",
+          "number": 1,
+          "description": "The clock fired the schedule on its cron cadence."
+        },
+        {
+          "name": "SCHEDULE_RUN_ORIGIN_MANUAL",
+          "number": 2,
+          "description": "A caller fired the schedule through the trigger command."
         }
       ]
     }

@@ -93,6 +93,7 @@ type PlatformClientInput = gen.PlatformClientInput
 type ProjectInput = gen.ProjectInput
 type ScheduleInput = gen.ScheduleInput
 type AgentTargetInput = gen.AgentTargetInput
+type ScheduleRunConfigInput = gen.ScheduleRunConfigInput
 type SessionInput = gen.SessionInput
 type SkillInput = gen.SkillInput
 type WorkflowInput = gen.WorkflowInput

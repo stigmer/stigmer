@@ -42,6 +42,11 @@ class ScheduleQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListSchedulesRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleList.FromString,
                 _registered_method=True)
+        self.listRuns = channel.unary_unary(
+                '/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/listRuns',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListScheduleRunsRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleRunList.FromString,
+                _registered_method=True)
 
 
 class ScheduleQueryControllerServicer(object):
@@ -99,6 +104,28 @@ class ScheduleQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def listRuns(self, request, context):
+        """List a schedule's run history, newest first.
+
+        Every fire leaves a row — including fires that created no execution
+        (a refused launch gate, a missing target agent) — with the refusing
+        gate's copy verbatim. This is the surface that explains
+        status.consecutive_failures.
+
+        @internal
+        Backed by the fire ledger (project DD-017 D-7). Authorization:
+        can_view on the schedule — run history is the schedule's own
+        operational record; the linked executions keep their own bars. Rows
+        carrying an execution id but no terminal outcome are enriched with
+        the execution's live phase at read time (one join), so manual fires
+        need no tracker and outcome columns never lie. OSS implements the
+        same contract against its store; the conformance suite holds both
+        editions to it.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ScheduleQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -121,6 +148,11 @@ def add_ScheduleQueryControllerServicer_to_server(servicer, server):
                     servicer.list,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListSchedulesRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleList.SerializeToString,
+            ),
+            'listRuns': grpc.unary_unary_rpc_method_handler(
+                    servicer.listRuns,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListScheduleRunsRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleRunList.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -237,6 +269,33 @@ class ScheduleQueryController(object):
             '/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/list',
             ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListSchedulesRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def listRuns(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.schedule.v1.ScheduleQueryController/listRuns',
+            ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ListScheduleRunsRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_io__pb2.ScheduleRunList.FromString,
             options,
             channel_credentials,
             insecure,

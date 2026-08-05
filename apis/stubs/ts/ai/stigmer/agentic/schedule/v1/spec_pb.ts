@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/schedule/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_schedule_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxIqEBCgxTY2hlZHVsZVNwZWMSFQoEY3JvbhgBIAEoCUIHukgEcgIQARIaCgl0aW1lX3pvbmUYAiABKAlCB7pIBHICEAESDwoHZW5hYmxlZBgDIAEoCBI8CgVhZ2VudBgEIAEoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5BZ2VudFRhcmdldEgAQg8KBnRhcmdldBIFukgCCAEi2QEKC0FnZW50VGFyZ2V0EqwBCglhZ2VudF9yZWYYASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCY7pIXLoBVgoOYWdlbnRfcmVmLmtpbmQSM2FnZW50X3JlZiBtdXN0IHJlZmVyZW5jZSBhIHJlc291cmNlIHdpdGgga2luZD1hZ2VudBoPdGhpcy5raW5kID09IDQwyAEB4IUsKBIbCgdtZXNzYWdlGAIgASgJQgq6SAdyBRABGIBAYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2NoZWR1bGUvdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLnNjaGVkdWxlLnYxIqEBCgxTY2hlZHVsZVNwZWMSFQoEY3JvbhgBIAEoCUIHukgEcgIQARIaCgl0aW1lX3pvbmUYAiABKAlCB7pIBHICEAESDwoHZW5hYmxlZBgDIAEoCBI8CgVhZ2VudBgEIAEoCzIrLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5BZ2VudFRhcmdldEgAQg8KBnRhcmdldBIFukgCCAEi6wMKC0FnZW50VGFyZ2V0EqwBCglhZ2VudF9yZWYYASABKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCY7pIXLoBVgoOYWdlbnRfcmVmLmtpbmQSM2FnZW50X3JlZiBtdXN0IHJlZmVyZW5jZSBhIHJlc291cmNlIHdpdGgga2luZD1hZ2VudBoPdGhpcy5raW5kID09IDQwyAEB4IUsKBIbCgdtZXNzYWdlGAIgASgJQgq6SAdyBRABGIBAEsgBChBlbnZpcm9ubWVudF9yZWZzGAMgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQni6SHGSAW4ibLoBaQoVZW52aXJvbm1lbnRfcmVmcy5raW5kEj9lbnZpcm9ubWVudF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9ZW52aXJvbm1lbnQaD3RoaXMua2luZCA9PSA1M+CFLDUSRQoKcnVuX2NvbmZpZxgEIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5zY2hlZHVsZS52MS5TY2hlZHVsZVJ1bkNvbmZpZyJvChFTY2hlZHVsZVJ1bkNvbmZpZxISCgptb2RlbF9uYW1lGAEgASgJEiQKDG1heF9jb3N0X3VzZBgCIAEoAUIOukgLEgkpAAAAAAAAAAASIAoPbWF4X3Rvb2xfcm91bmRzGAMgASgFQge6SAQaAigAYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * ScheduleSpec defines when a schedule fires and what it runs.
@@ -158,6 +158,55 @@ export type AgentTarget = Message<"ai.stigmer.agentic.schedule.v1.AgentTarget"> 
    * @generated from field: string message = 2;
    */
   message: string;
+
+  /**
+   * References to Environment resources whose values are provided to
+   * this schedule's runs.
+   *
+   * This is how a tool-using agent becomes schedulable: bind an
+   * org-shared environment holding the needed credentials (for example
+   * an MCP server's shared secret), and scheduled executions receive its
+   * values at runtime. The agent and its default instance stay
+   * untouched.
+   *
+   * @internal
+   * The AgentChannelSpec.environment_refs analog, third application of
+   * the AgentShare precedent (project DD-017 D-2). Deliberately on the
+   * AgentTarget arm, not ScheduleSpec: the future WorkflowTarget arm
+   * resolves environments through its WorkflowInstance and must not
+   * inherit a dead top-level field. Resolved in the schedule's org
+   * through the org-shared environment resolution seam
+   * (EnvironmentRuntimeResolutionService / OrgSharedEnvironmentPolicy):
+   * each referenced environment must be visibility_org in the
+   * schedule's org, or the merge skips it with a diagnostic. Merged at
+   * execution-context build time only, LOWEST priority (instance refs
+   * and runtime_env override on key conflicts). No write-time existence
+   * or visibility check, matching the share and the channel:
+   * enforcement lives solely at runtime resolution, which fails closed.
+   * No audience CEL — the same-org invariant (agent_ref.org ==
+   * metadata.org) already scopes resolution.
+   *
+   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3;
+   */
+  environmentRefs: ApiResourceReference[];
+
+  /**
+   * Per-schedule bounds for each run. Unset fields inherit the
+   * platform's schedule execution profile.
+   *
+   * @internal
+   * Project DD-017 D-3. A deliberate SUBSET of ExecutionConfig: the
+   * full message carries interactive-surface concepts (interaction
+   * mode, build-from-plan, structured output) and the platform-owned
+   * approval_mode — none of which an unattended fire may set. Clamp
+   * semantics live in the run starter, per field: min(owner, platform)
+   * when the platform cap is set; the owner value stands when the
+   * platform cap is unset. The owner can lower spend, never raise it
+   * past the platform profile.
+   *
+   * @generated from field: ai.stigmer.agentic.schedule.v1.ScheduleRunConfig run_config = 4;
+   */
+  runConfig?: ScheduleRunConfig;
 };
 
 /**
@@ -166,4 +215,45 @@ export type AgentTarget = Message<"ai.stigmer.agentic.schedule.v1.AgentTarget"> 
  */
 export const AgentTargetSchema: GenMessage<AgentTarget> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_schedule_v1_spec, 1);
+
+/**
+ * ScheduleRunConfig bounds the executions a schedule creates.
+ *
+ * Each field mirrors its ExecutionConfig namesake; zero/empty means
+ * "inherit the platform default". See AgentTarget.run_config for the
+ * subset rationale.
+ *
+ * @generated from message ai.stigmer.agentic.schedule.v1.ScheduleRunConfig
+ */
+export type ScheduleRunConfig = Message<"ai.stigmer.agentic.schedule.v1.ScheduleRunConfig"> & {
+  /**
+   * The model each run uses. Example: "claude-sonnet-4-6".
+   *
+   * @generated from field: string model_name = 1;
+   */
+  modelName: string;
+
+  /**
+   * Maximum estimated cost in USD per run. The platform's schedule
+   * execution profile caps this value; the lower bound wins.
+   *
+   * @generated from field: double max_cost_usd = 2;
+   */
+  maxCostUsd: number;
+
+  /**
+   * Maximum model-to-tools reasoning cycles per run. The platform's
+   * schedule execution profile caps this value; the lower bound wins.
+   *
+   * @generated from field: int32 max_tool_rounds = 3;
+   */
+  maxToolRounds: number;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.schedule.v1.ScheduleRunConfig.
+ * Use `create(ScheduleRunConfigSchema)` to create a new message.
+ */
+export const ScheduleRunConfigSchema: GenMessage<ScheduleRunConfig> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_schedule_v1_spec, 2);
 

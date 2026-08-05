@@ -50,9 +50,15 @@ type ScheduleController struct {
 
 	// clock is the scheduling runtime (see clock.go), injected by server
 	// wiring via SetClock. Nil when Temporal was never configured; every
-	// consumer degrades rather than refuses (DD-015 D-A), except trigger,
-	// whose whole purpose is a fire.
+	// consumer degrades rather than refuses (DD-015 D-A).
 	clock Clock
+
+	// runner starts one run through the full execution create pipeline
+	// (see trigger.go), injected by server wiring via SetRunner. The
+	// trigger command is its one consumer — a manual fire needs no
+	// Temporal artifact (DD-017 D-5), so it works even while Temporal
+	// is away.
+	runner Runner
 }
 
 // NewScheduleController creates a new ScheduleController.

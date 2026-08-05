@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetSchedulesByAgentRequest, ListSchedulesRequest, ScheduleId, ScheduleList } from "./io_pbjs";
+import { GetSchedulesByAgentRequest, ListScheduleRunsRequest, ListSchedulesRequest, ScheduleId, ScheduleList, ScheduleRunList } from "./io_pbjs";
 import { Schedule } from "./api_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pbjs";
@@ -81,6 +81,32 @@ export const ScheduleQueryController = {
       name: "list",
       I: ListSchedulesRequest,
       O: ScheduleList,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List a schedule's run history, newest first.
+     *
+     * Every fire leaves a row — including fires that created no execution
+     * (a refused launch gate, a missing target agent) — with the refusing
+     * gate's copy verbatim. This is the surface that explains
+     * status.consecutive_failures.
+     *
+     * @internal
+     * Backed by the fire ledger (project DD-017 D-7). Authorization:
+     * can_view on the schedule — run history is the schedule's own
+     * operational record; the linked executions keep their own bars. Rows
+     * carrying an execution id but no terminal outcome are enriched with
+     * the execution's live phase at read time (one join), so manual fires
+     * need no tracker and outcome columns never lie. OSS implements the
+     * same contract against its store; the conformance suite holds both
+     * editions to it.
+     *
+     * @generated from rpc ai.stigmer.agentic.schedule.v1.ScheduleQueryController.listRuns
+     */
+    listRuns: {
+      name: "listRuns",
+      I: ListScheduleRunsRequest,
+      O: ScheduleRunList,
       kind: MethodKind.Unary,
     },
   }

@@ -199,7 +199,46 @@ type AgentTarget struct {
 	// DD-008 D5: the runner injects no current date into any prompt, so
 	// the tick composes this message plus a fire-context line. The bound
 	// applies to the stored prompt, not the composed message.
-	Message       string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// References to Environment resources whose values are provided to
+	// this schedule's runs.
+	//
+	// This is how a tool-using agent becomes schedulable: bind an
+	// org-shared environment holding the needed credentials (for example
+	// an MCP server's shared secret), and scheduled executions receive its
+	// values at runtime. The agent and its default instance stay
+	// untouched.
+	//
+	// @internal
+	// The AgentChannelSpec.environment_refs analog, third application of
+	// the AgentShare precedent (project DD-017 D-2). Deliberately on the
+	// AgentTarget arm, not ScheduleSpec: the future WorkflowTarget arm
+	// resolves environments through its WorkflowInstance and must not
+	// inherit a dead top-level field. Resolved in the schedule's org
+	// through the org-shared environment resolution seam
+	// (EnvironmentRuntimeResolutionService / OrgSharedEnvironmentPolicy):
+	// each referenced environment must be visibility_org in the
+	// schedule's org, or the merge skips it with a diagnostic. Merged at
+	// execution-context build time only, LOWEST priority (instance refs
+	// and runtime_env override on key conflicts). No write-time existence
+	// or visibility check, matching the share and the channel:
+	// enforcement lives solely at runtime resolution, which fails closed.
+	// No audience CEL — the same-org invariant (agent_ref.org ==
+	// metadata.org) already scopes resolution.
+	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,3,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
+	// Per-schedule bounds for each run. Unset fields inherit the
+	// platform's schedule execution profile.
+	//
+	// @internal
+	// Project DD-017 D-3. A deliberate SUBSET of ExecutionConfig: the
+	// full message carries interactive-surface concepts (interaction
+	// mode, build-from-plan, structured output) and the platform-owned
+	// approval_mode — none of which an unattended fire may set. Clamp
+	// semantics live in the run starter, per field: min(owner, platform)
+	// when the platform cap is set; the owner value stands when the
+	// platform cap is unset. The owner can lower spend, never raise it
+	// past the platform profile.
+	RunConfig     *ScheduleRunConfig `protobuf:"bytes,4,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -248,6 +287,90 @@ func (x *AgentTarget) GetMessage() string {
 	return ""
 }
 
+func (x *AgentTarget) GetEnvironmentRefs() []*apiresource.ApiResourceReference {
+	if x != nil {
+		return x.EnvironmentRefs
+	}
+	return nil
+}
+
+func (x *AgentTarget) GetRunConfig() *ScheduleRunConfig {
+	if x != nil {
+		return x.RunConfig
+	}
+	return nil
+}
+
+// ScheduleRunConfig bounds the executions a schedule creates.
+//
+// Each field mirrors its ExecutionConfig namesake; zero/empty means
+// "inherit the platform default". See AgentTarget.run_config for the
+// subset rationale.
+type ScheduleRunConfig struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The model each run uses. Example: "claude-sonnet-4-6".
+	ModelName string `protobuf:"bytes,1,opt,name=model_name,json=modelName,proto3" json:"model_name,omitempty"`
+	// Maximum estimated cost in USD per run. The platform's schedule
+	// execution profile caps this value; the lower bound wins.
+	MaxCostUsd float64 `protobuf:"fixed64,2,opt,name=max_cost_usd,json=maxCostUsd,proto3" json:"max_cost_usd,omitempty"`
+	// Maximum model-to-tools reasoning cycles per run. The platform's
+	// schedule execution profile caps this value; the lower bound wins.
+	MaxToolRounds int32 `protobuf:"varint,3,opt,name=max_tool_rounds,json=maxToolRounds,proto3" json:"max_tool_rounds,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScheduleRunConfig) Reset() {
+	*x = ScheduleRunConfig{}
+	mi := &file_ai_stigmer_agentic_schedule_v1_spec_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScheduleRunConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScheduleRunConfig) ProtoMessage() {}
+
+func (x *ScheduleRunConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_schedule_v1_spec_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScheduleRunConfig.ProtoReflect.Descriptor instead.
+func (*ScheduleRunConfig) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_schedule_v1_spec_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ScheduleRunConfig) GetModelName() string {
+	if x != nil {
+		return x.ModelName
+	}
+	return ""
+}
+
+func (x *ScheduleRunConfig) GetMaxCostUsd() float64 {
+	if x != nil {
+		return x.MaxCostUsd
+	}
+	return 0
+}
+
+func (x *ScheduleRunConfig) GetMaxToolRounds() int32 {
+	if x != nil {
+		return x.MaxToolRounds
+	}
+	return 0
+}
+
 var File_ai_stigmer_agentic_schedule_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_schedule_v1_spec_proto_rawDesc = "" +
@@ -258,12 +381,22 @@ const file_ai_stigmer_agentic_schedule_v1_spec_proto_rawDesc = "" +
 	"\ttime_zone\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\btimeZone\x12\x18\n" +
 	"\aenabled\x18\x03 \x01(\bR\aenabled\x12C\n" +
 	"\x05agent\x18\x04 \x01(\v2+.ai.stigmer.agentic.schedule.v1.AgentTargetH\x00R\x05agentB\x0f\n" +
-	"\x06target\x12\x05\xbaH\x02\b\x01\"\xec\x01\n" +
+	"\x06target\x12\x05\xbaH\x02\b\x01\"\x9a\x04\n" +
 	"\vAgentTarget\x12\xb6\x01\n" +
 	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n" +
 	"\x0eagent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\bagentRef\x12$\n" +
 	"\amessage\x18\x02 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\x01\x18\x80@R\amessageB\xa0\x02\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80@R\amessage\x12\xd9\x01\n" +
+	"\x10environment_refs\x18\x03 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n" +
+	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12P\n" +
+	"\n" +
+	"run_config\x18\x04 \x01(\v21.ai.stigmer.agentic.schedule.v1.ScheduleRunConfigR\trunConfig\"\x95\x01\n" +
+	"\x11ScheduleRunConfig\x12\x1d\n" +
+	"\n" +
+	"model_name\x18\x01 \x01(\tR\tmodelName\x120\n" +
+	"\fmax_cost_usd\x18\x02 \x01(\x01B\x0e\xbaH\v\x12\t)\x00\x00\x00\x00\x00\x00\x00\x00R\n" +
+	"maxCostUsd\x12/\n" +
+	"\x0fmax_tool_rounds\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\rmaxToolRoundsB\xa0\x02\n" +
 	"\"com.ai.stigmer.agentic.schedule.v1B\tSpecProtoP\x01ZRgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
 
 var (
@@ -278,20 +411,23 @@ func file_ai_stigmer_agentic_schedule_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_schedule_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_schedule_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_ai_stigmer_agentic_schedule_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_ai_stigmer_agentic_schedule_v1_spec_proto_goTypes = []any{
 	(*ScheduleSpec)(nil),                     // 0: ai.stigmer.agentic.schedule.v1.ScheduleSpec
 	(*AgentTarget)(nil),                      // 1: ai.stigmer.agentic.schedule.v1.AgentTarget
-	(*apiresource.ApiResourceReference)(nil), // 2: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*ScheduleRunConfig)(nil),                // 2: ai.stigmer.agentic.schedule.v1.ScheduleRunConfig
+	(*apiresource.ApiResourceReference)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_agentic_schedule_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.schedule.v1.ScheduleSpec.agent:type_name -> ai.stigmer.agentic.schedule.v1.AgentTarget
-	2, // 1: ai.stigmer.agentic.schedule.v1.AgentTarget.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3, // 1: ai.stigmer.agentic.schedule.v1.AgentTarget.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	3, // 2: ai.stigmer.agentic.schedule.v1.AgentTarget.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	2, // 3: ai.stigmer.agentic.schedule.v1.AgentTarget.run_config:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleRunConfig
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_schedule_v1_spec_proto_init() }
@@ -308,7 +444,7 @@ func file_ai_stigmer_agentic_schedule_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_schedule_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_schedule_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

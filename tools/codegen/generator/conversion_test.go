@@ -1062,6 +1062,73 @@ func TestEmitOneofMemberToProto(t *testing.T) {
 		mustContain(t, got, `m.Message = i.Agent.Message`)
 		mustNotContain(t, got, `m.AgentRef = i.Agent.AgentRef`)
 	})
+
+	t.Run("repeated_reference_member_converts_with_kind_stamp", func(t *testing.T) {
+		// Schedule's AgentTarget.environment_refs (project DD-017): a
+		// repeated ApiResourceReference member converts element-wise with
+		// the schema's kind stamped, exactly like its spec-level twin — a
+		// direct copy assigns []ResourceRef to
+		// []*apiresource.ApiResourceReference and does not compile.
+		f := &FieldSchema{
+			Name: "Agent", JsonName: "agent", ProtoField: "agent",
+			Type:       TypeSpec{Kind: "message", MessageType: "AgentTarget"},
+			OneofGroup: "target",
+		}
+		typeMap := map[string]*TypeSchema{
+			"AgentTarget": {
+				Name: "AgentTarget",
+				Fields: []*FieldSchema{
+					{Name: "EnvironmentRefs", JsonName: "environmentRefs", ProtoField: "environment_refs",
+						Type: TypeSpec{Kind: "array",
+							ElementType: &TypeSpec{Kind: "message", MessageType: "ApiResourceReference"}},
+						ReferenceKind: 53},
+				},
+			},
+		}
+		var buf bytes.Buffer
+		emitOneofMemberToProto(&buf, f, "schedulev1", "ScheduleSpec", "resource.Spec", typeMap)
+		got := buf.String()
+
+		mustContain(t, got, `for _, r := range i.Agent.EnvironmentRefs {`)
+		mustContain(t, got, `ref := r.toProto()`)
+		mustContain(t, got, `ref.Kind = apiresourcekind.ApiResourceKind_environment`)
+		mustContain(t, got, `m.EnvironmentRefs = append(m.EnvironmentRefs, ref)`)
+		mustNotContain(t, got, `m.EnvironmentRefs = i.Agent.EnvironmentRefs`)
+	})
+
+	t.Run("message_member_converts_through_guarded_toProto", func(t *testing.T) {
+		// Schedule's AgentTarget.run_config (project DD-017): a
+		// message-typed member converts through its Input type's own
+		// toProto behind a nil guard — a direct copy assigns
+		// *ScheduleRunConfigInput to the proto type and does not compile.
+		f := &FieldSchema{
+			Name: "Agent", JsonName: "agent", ProtoField: "agent",
+			Type:       TypeSpec{Kind: "message", MessageType: "AgentTarget"},
+			OneofGroup: "target",
+		}
+		typeMap := map[string]*TypeSchema{
+			"AgentTarget": {
+				Name: "AgentTarget",
+				Fields: []*FieldSchema{
+					{Name: "RunConfig", JsonName: "runConfig", ProtoField: "run_config",
+						Type: TypeSpec{Kind: "message", MessageType: "ScheduleRunConfig"}},
+				},
+			},
+			"ScheduleRunConfig": {
+				Name: "ScheduleRunConfig",
+				Fields: []*FieldSchema{
+					field("ModelName", "modelName", "model_name", TypeSpec{Kind: "string"}),
+				},
+			},
+		}
+		var buf bytes.Buffer
+		emitOneofMemberToProto(&buf, f, "schedulev1", "ScheduleSpec", "resource.Spec", typeMap)
+		got := buf.String()
+
+		mustContain(t, got, `if i.Agent.RunConfig != nil {`)
+		mustContain(t, got, `m.RunConfig = i.Agent.RunConfig.toProto()`)
+		mustNotContain(t, got, "m.RunConfig = i.Agent.RunConfig\n")
+	})
 }
 
 // ============================================================================
@@ -1069,12 +1136,16 @@ func TestEmitOneofMemberToProto(t *testing.T) {
 // ============================================================================
 
 func TestEmitFromProtoOneof(t *testing.T) {
-	t.Run("api_resource_reference_member_uses_resourceRefFromProto", func(t *testing.T) {
-		// The reverse of the AgentTarget.agent_ref regression: the inline
-		// input literal must route reference members through
-		// resourceRefFromProto — a raw getter assigns
-		// *apiresource.ApiResourceReference to a ResourceRef field and
-		// does not compile.
+	// DELIBERATE PIN REWRITE (project DD-017): oneof members now convert
+	// through the member type's own generated converter
+	// (<memberType>InputFromProto) instead of an inline struct literal.
+	// The literal was a drifted second copy of the conversion — it
+	// handled only scalar and single-reference members and failed to
+	// compile the first time a member carried a repeated reference or a
+	// nested message (Schedule's AgentTarget.environment_refs /
+	// .run_config). One converter, two callers; the converter itself is
+	// pinned by TestEmitNestedFromProtoFunc-style coverage.
+	t.Run("member_delegates_to_its_generated_converter", func(t *testing.T) {
 		fields := []*FieldSchema{
 			{
 				Name: "Agent", JsonName: "agent", ProtoField: "agent",
@@ -1098,12 +1169,16 @@ func TestEmitFromProtoOneof(t *testing.T) {
 		got := buf.String()
 
 		mustContain(t, got, `if ov := s.GetAgent(); ov != nil {`)
-		mustContain(t, got, `AgentRef: resourceRefFromProto(ov.GetAgentRef()),`)
-		mustContain(t, got, `Message: ov.GetMessage(),`)
+		mustContain(t, got, `input.Agent = agentTargetInputFromProto(ov)`)
+		// The drifted inline literal must not come back.
+		mustNotContain(t, got, `input.Agent = &AgentTargetInput{`)
 		mustNotContain(t, got, `AgentRef: ov.GetAgentRef(),`)
 	})
 
-	t.Run("scalar_members_copy_via_getters", func(t *testing.T) {
+	t.Run("unknown_member_type_is_skipped", func(t *testing.T) {
+		// A member whose type is absent from the type map (e.g. a
+		// synthetic-oneof scalar) emits nothing rather than a call to a
+		// converter that does not exist.
 		fields := []*FieldSchema{
 			{
 				Name: "Stdio", JsonName: "stdio", ProtoField: "stdio",
@@ -1111,19 +1186,11 @@ func TestEmitFromProtoOneof(t *testing.T) {
 				OneofGroup: "server_type",
 			},
 		}
-		typeMap := map[string]*TypeSchema{
-			"StdioServerConfig": {
-				Name: "StdioServerConfig",
-				Fields: []*FieldSchema{
-					field("Command", "command", "command", TypeSpec{Kind: "string"}),
-				},
-			},
-		}
 		var buf bytes.Buffer
-		emitFromProtoOneof(&buf, fields, "mcpv1", typeMap)
-		got := buf.String()
-
-		mustContain(t, got, `Command: ov.GetCommand(),`)
+		emitFromProtoOneof(&buf, fields, "mcpv1", map[string]*TypeSchema{})
+		if buf.Len() != 0 {
+			t.Fatalf("expected no output for a member type missing from the type map, got:\n%s", buf.String())
+		}
 	})
 }
 

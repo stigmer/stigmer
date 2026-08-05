@@ -25,9 +25,10 @@ _sym_db = _symbol_database.Default()
 from ai.stigmer.agentic.schedule.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_schedule_dot_v1_dot_api__pb2
 from ai.stigmer.commons.rpc import pagination_pb2 as ai_dot_stigmer_dot_commons_dot_rpc_dot_pagination__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
+from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/agentic/schedule/v1/io.proto\x12\x1e\x61i.stigmer.agentic.schedule.v1\x1a(ai/stigmer/agentic/schedule/v1/api.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\"*\n\nScheduleId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x90\x01\n\x1aGetSchedulesByAgentRequest\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12=\n\tpage_info\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x12\x10\n\x03org\x18\x03 \x01(\tR\x03org\"o\n\x0cScheduleList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12>\n\x05items\x18\x02 \x03(\x0b\x32(.ai.stigmer.agentic.schedule.v1.ScheduleR\x05items\"\x85\x02\n\x14ListSchedulesRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12X\n\x06labels\x18\x02 \x03(\x0b\x32@.ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntryR\x06labels\x12=\n\tpage_info\x18\x03 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\x42\xca\x01\n\"com.ai.stigmer.agentic.schedule.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1e\x41i.Stigmer.Agentic.Schedule.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\'ai/stigmer/agentic/schedule/v1/io.proto\x12\x1e\x61i.stigmer.agentic.schedule.v1\x1a(ai/stigmer/agentic/schedule/v1/api.proto\x1a\'ai/stigmer/commons/rpc/pagination.proto\x1a\x1b\x62uf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"*\n\nScheduleId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x90\x01\n\x1aGetSchedulesByAgentRequest\x12!\n\x08\x61gent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x07\x61gentId\x12=\n\tpage_info\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x12\x10\n\x03org\x18\x03 \x01(\tR\x03org\"o\n\x0cScheduleList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12>\n\x05items\x18\x02 \x03(\x0b\x32(.ai.stigmer.agentic.schedule.v1.ScheduleR\x05items\"\x85\x02\n\x14ListSchedulesRequest\x12\x19\n\x03org\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x03org\x12X\n\x06labels\x18\x02 \x03(\x0b\x32@.ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntryR\x06labels\x12=\n\tpage_info\x18\x03 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\x1a\x39\n\x0bLabelsEntry\x12\x10\n\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n\x05value\x18\x02 \x01(\tR\x05value:\x02\x38\x01\"\xf5\x01\n\x15ScheduleTriggerResult\x12\x44\n\x08schedule\x18\x01 \x01(\x0b\x32(.ai.stigmer.agentic.schedule.v1.ScheduleR\x08schedule\x12L\n\x07outcome\x18\x02 \x01(\x0e\x32\x32.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcomeR\x07outcome\x12!\n\x0c\x65xecution_id\x18\x03 \x01(\tR\x0b\x65xecutionId\x12%\n\x0erefusal_reason\x18\x04 \x01(\tR\rrefusalReason\"\xd8\x03\n\x0bScheduleRun\x12\x1f\n\x0bschedule_id\x18\x01 \x01(\tR\nscheduleId\x12\x10\n\x03org\x18\x02 \x01(\tR\x03org\x12\x46\n\x11nominal_fire_time\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x0fnominalFireTime\x12I\n\x06origin\x18\x04 \x01(\x0e\x32\x31.ai.stigmer.agentic.schedule.v1.ScheduleRunOriginR\x06origin\x12L\n\x07outcome\x18\x05 \x01(\x0e\x32\x32.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcomeR\x07outcome\x12\x16\n\x06reason\x18\x06 \x01(\tR\x06reason\x12!\n\x0c\x65xecution_id\x18\x07 \x01(\tR\x0b\x65xecutionId\x12;\n\x0brecorded_at\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\nrecordedAt\x12=\n\x0c\x63ompleted_at\x18\t \x01(\x0b\x32\x1a.google.protobuf.TimestampR\x0b\x63ompletedAt\"\x81\x01\n\x17ListScheduleRunsRequest\x12\'\n\x0bschedule_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\nscheduleId\x12=\n\tpage_info\x18\x02 \x01(\x0b\x32 .ai.stigmer.commons.rpc.PageInfoR\x08pageInfo\"u\n\x0fScheduleRunList\x12\x1f\n\x0btotal_count\x18\x01 \x01(\x05R\ntotalCount\x12\x41\n\x05items\x18\x02 \x03(\x0b\x32+.ai.stigmer.agentic.schedule.v1.ScheduleRunR\x05items*v\n\x11ScheduleRunOrigin\x12#\n\x1fSCHEDULE_RUN_ORIGIN_UNSPECIFIED\x10\x00\x12\x1c\n\x18SCHEDULE_RUN_ORIGIN_CRON\x10\x01\x12\x1e\n\x1aSCHEDULE_RUN_ORIGIN_MANUAL\x10\x02*\xb2\x02\n\x12ScheduleRunOutcome\x12$\n SCHEDULE_RUN_OUTCOME_UNSPECIFIED\x10\x00\x12 \n\x1cSCHEDULE_RUN_OUTCOME_STARTED\x10\x01\x12 \n\x1cSCHEDULE_RUN_OUTCOME_REFUSED\x10\x02\x12\'\n#SCHEDULE_RUN_OUTCOME_TARGET_MISSING\x10\x03\x12 \n\x1cSCHEDULE_RUN_OUTCOME_SKIPPED\x10\x04\x12\"\n\x1eSCHEDULE_RUN_OUTCOME_COMPLETED\x10\x05\x12\x1f\n\x1bSCHEDULE_RUN_OUTCOME_FAILED\x10\x06\x12\"\n\x1eSCHEDULE_RUN_OUTCOME_TIMED_OUT\x10\x07\x42\xca\x01\n\"com.ai.stigmer.agentic.schedule.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1e\x41i.Stigmer.Agentic.Schedule.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -43,14 +44,28 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTSCHEDULESREQUEST_LABELSENTRY']._serialized_options = b'8\001'
   _globals['_LISTSCHEDULESREQUEST'].fields_by_name['org']._loaded_options = None
   _globals['_LISTSCHEDULESREQUEST'].fields_by_name['org']._serialized_options = b'\272H\004r\002\020\001'
-  _globals['_SCHEDULEID']._serialized_start=187
-  _globals['_SCHEDULEID']._serialized_end=229
-  _globals['_GETSCHEDULESBYAGENTREQUEST']._serialized_start=232
-  _globals['_GETSCHEDULESBYAGENTREQUEST']._serialized_end=376
-  _globals['_SCHEDULELIST']._serialized_start=378
-  _globals['_SCHEDULELIST']._serialized_end=489
-  _globals['_LISTSCHEDULESREQUEST']._serialized_start=492
-  _globals['_LISTSCHEDULESREQUEST']._serialized_end=753
-  _globals['_LISTSCHEDULESREQUEST_LABELSENTRY']._serialized_start=696
-  _globals['_LISTSCHEDULESREQUEST_LABELSENTRY']._serialized_end=753
+  _globals['_LISTSCHEDULERUNSREQUEST'].fields_by_name['schedule_id']._loaded_options = None
+  _globals['_LISTSCHEDULERUNSREQUEST'].fields_by_name['schedule_id']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_SCHEDULERUNORIGIN']._serialized_start=1762
+  _globals['_SCHEDULERUNORIGIN']._serialized_end=1880
+  _globals['_SCHEDULERUNOUTCOME']._serialized_start=1883
+  _globals['_SCHEDULERUNOUTCOME']._serialized_end=2189
+  _globals['_SCHEDULEID']._serialized_start=220
+  _globals['_SCHEDULEID']._serialized_end=262
+  _globals['_GETSCHEDULESBYAGENTREQUEST']._serialized_start=265
+  _globals['_GETSCHEDULESBYAGENTREQUEST']._serialized_end=409
+  _globals['_SCHEDULELIST']._serialized_start=411
+  _globals['_SCHEDULELIST']._serialized_end=522
+  _globals['_LISTSCHEDULESREQUEST']._serialized_start=525
+  _globals['_LISTSCHEDULESREQUEST']._serialized_end=786
+  _globals['_LISTSCHEDULESREQUEST_LABELSENTRY']._serialized_start=729
+  _globals['_LISTSCHEDULESREQUEST_LABELSENTRY']._serialized_end=786
+  _globals['_SCHEDULETRIGGERRESULT']._serialized_start=789
+  _globals['_SCHEDULETRIGGERRESULT']._serialized_end=1034
+  _globals['_SCHEDULERUN']._serialized_start=1037
+  _globals['_SCHEDULERUN']._serialized_end=1509
+  _globals['_LISTSCHEDULERUNSREQUEST']._serialized_start=1512
+  _globals['_LISTSCHEDULERUNSREQUEST']._serialized_end=1641
+  _globals['_SCHEDULERUNLIST']._serialized_start=1643
+  _globals['_SCHEDULERUNLIST']._serialized_end=1760
 # @@protoc_insertion_point(module_scope)

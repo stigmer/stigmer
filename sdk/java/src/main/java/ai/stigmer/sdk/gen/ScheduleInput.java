@@ -4,6 +4,7 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.schedule.v1.AgentTarget;
 import ai.stigmer.agentic.schedule.v1.Schedule;
+import ai.stigmer.agentic.schedule.v1.ScheduleRunConfig;
 import ai.stigmer.agentic.schedule.v1.ScheduleSpec;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
@@ -97,10 +98,14 @@ public final class ScheduleInput {
     public static final class AgentTargetInput {
         private final ResourceRef agentRef;
         private final String message;
+        private final java.util.List<ResourceRef> environmentRefs;
+        private final ScheduleRunConfigInput runConfig;
 
         private AgentTargetInput(Builder builder) {
             this.agentRef = builder.agentRef;
             this.message = builder.message;
+            this.environmentRefs = builder.environmentRefs;
+            this.runConfig = builder.runConfig;
         }
 
         AgentTarget toProto() {
@@ -112,6 +117,15 @@ public final class ScheduleInput {
             if (this.message != null) {
                 builder.setMessage(this.message);
             }
+            if (this.environmentRefs != null) {
+                for (ResourceRef item : this.environmentRefs) {
+                    builder.addEnvironmentRefs(item.toProto().toBuilder()
+                        .setKind(ApiResourceKind.environment).build());
+                }
+            }
+            if (this.runConfig != null) {
+                builder.setRunConfig(this.runConfig.toProto());
+            }
             return builder.build();
         }
 
@@ -120,13 +134,56 @@ public final class ScheduleInput {
         public static final class Builder {
             private ResourceRef agentRef;
             private String message;
+            private java.util.List<ResourceRef> environmentRefs;
+            private ScheduleRunConfigInput runConfig;
 
             private Builder() {}
 
             public Builder agentRef(ResourceRef agentRef) { this.agentRef = agentRef; return this; }
             public Builder message(String message) { this.message = message; return this; }
+            public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
+            public Builder runConfig(ScheduleRunConfigInput runConfig) { this.runConfig = runConfig; return this; }
 
             public AgentTargetInput build() { return new AgentTargetInput(this); }
+        }
+    }
+
+    /** SDK input type for ScheduleRunConfig. */
+    public static final class ScheduleRunConfigInput {
+        private final String modelName;
+        private final double maxCostUsd;
+        private final int maxToolRounds;
+
+        private ScheduleRunConfigInput(Builder builder) {
+            this.modelName = builder.modelName;
+            this.maxCostUsd = builder.maxCostUsd;
+            this.maxToolRounds = builder.maxToolRounds;
+        }
+
+        ScheduleRunConfig toProto() {
+            ScheduleRunConfig.Builder builder = ScheduleRunConfig.newBuilder();
+            if (this.modelName != null) {
+                builder.setModelName(this.modelName);
+            }
+            builder.setMaxCostUsd(this.maxCostUsd);
+            builder.setMaxToolRounds(this.maxToolRounds);
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String modelName;
+            private double maxCostUsd;
+            private int maxToolRounds;
+
+            private Builder() {}
+
+            public Builder modelName(String modelName) { this.modelName = modelName; return this; }
+            public Builder maxCostUsd(double maxCostUsd) { this.maxCostUsd = maxCostUsd; return this; }
+            public Builder maxToolRounds(int maxToolRounds) { this.maxToolRounds = maxToolRounds; return this; }
+
+            public ScheduleRunConfigInput build() { return new ScheduleRunConfigInput(this); }
         }
     }
 }

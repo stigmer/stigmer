@@ -4,6 +4,13 @@ import type { ReactNode } from "react";
 import { clone, create } from "@bufbuild/protobuf";
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import {
+  ScheduleTriggerResultSchema,
+  ScheduleRunListSchema,
+  ScheduleRunSchema,
+  ScheduleRunOutcome,
+  ScheduleRunOrigin,
+} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
@@ -69,6 +76,7 @@ interface MockClient {
     getByReference: ReturnType<typeof vi.fn>;
     resume: ReturnType<typeof vi.fn>;
     trigger: ReturnType<typeof vi.fn>;
+    listRuns: ReturnType<typeof vi.fn>;
     delete: ReturnType<typeof vi.fn>;
   };
   manifest: { apply: ReturnType<typeof vi.fn> };
@@ -79,7 +87,18 @@ function makeClient(schedule: Schedule): MockClient {
     schedule: {
       getByReference: vi.fn().mockResolvedValue(schedule),
       resume: vi.fn().mockResolvedValue(schedule),
-      trigger: vi.fn().mockResolvedValue(schedule),
+      // The synchronous trigger answers with the run's real outcome
+      // (DD-017 D-6) — a started run by default.
+      trigger: vi.fn().mockResolvedValue(
+        create(ScheduleTriggerResultSchema, {
+          outcome: ScheduleRunOutcome.STARTED,
+          executionId: "aex_01triggered",
+          schedule,
+        }),
+      ),
+      listRuns: vi.fn().mockResolvedValue(
+        create(ScheduleRunListSchema, { items: [], totalCount: 0 }),
+      ),
       delete: vi.fn().mockResolvedValue(schedule),
     },
     manifest: {
@@ -203,12 +222,68 @@ describe("ScheduleDetailView", () => {
     );
   });
 
-  it("disables Run now when the schedule cannot fire", async () => {
-    renderView(makeClient(makeSchedule({ enabled: false })));
+  it("offers 'Enable & run now' on a disabled schedule (DD-017 D-5)", async () => {
+    const client = makeClient(makeSchedule({ enabled: false }));
+    renderView(client);
 
     await screen.findByText("Schedule is disabled");
-    const runButton = screen.getByRole("button", { name: "Run now" });
-    expect((runButton as HTMLButtonElement).disabled).toBe(true);
+    // No plain "Run now": a disabled schedule cannot fire server-side, so
+    // the staged-test flow is one click that enables THEN fires.
+    expect(screen.queryByRole("button", { name: "Run now" })).toBeNull();
+    const enableAndRun = screen.getByRole("button", { name: "Enable & run now" });
+    expect((enableAndRun as HTMLButtonElement).disabled).toBe(false);
+
+    fireEvent.click(enableAndRun);
+    await screen.findByText("Enable and run this schedule now?");
+    fireEvent.click(screen.getByText("Enable & run"));
+
+    // Enable (a full-proto re-apply) THEN fire.
+    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
+    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    expect(doc.message.spec?.enabled).toBe(true);
+    await waitFor(() =>
+      expect(client.schedule.trigger).toHaveBeenCalledWith("sch_01example"),
+    );
+  });
+
+  it("navigates to the execution on a started run", async () => {
+    const onNavigateToExecution = vi.fn();
+    const client = makeClient(makeSchedule());
+    renderView(client, { onNavigateToExecution });
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(screen.getByRole("button", { name: "Run now" }));
+    await screen.findByText("Run this schedule now?");
+    fireEvent.click(screen.getByText("Start run"));
+
+    await waitFor(() =>
+      expect(onNavigateToExecution).toHaveBeenCalledWith("aex_01triggered"),
+    );
+  });
+
+  it("renders the run history from the fire ledger", async () => {
+    const client = makeClient(makeSchedule());
+    client.schedule.listRuns.mockResolvedValue(
+      create(ScheduleRunListSchema, {
+        totalCount: 1,
+        items: [
+          create(ScheduleRunSchema, {
+            scheduleId: "sch_01example",
+            origin: ScheduleRunOrigin.CRON,
+            outcome: ScheduleRunOutcome.REFUSED,
+            reason:
+              "run refused: MCP server 'isc-gym' requires environment variable 'ISC_MCP_SHARED_SECRET'",
+            nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
+          }),
+        ],
+      }),
+    );
+    renderView(client);
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    // The refusal reason — invisible before the ledger — is now on screen.
+    await screen.findByText(/ISC_MCP_SHARED_SECRET/);
+    expect(screen.getByText("Refused")).toBeTruthy();
   });
 
   it("navigates through the callback seams (DD-004)", async () => {

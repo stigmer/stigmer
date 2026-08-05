@@ -143,6 +143,37 @@ public final class ScheduleQueryControllerGrpc {
     return getListMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest,
+      ai.stigmer.agentic.schedule.v1.ScheduleRunList> getListRunsMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listRuns",
+      requestType = ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest.class,
+      responseType = ai.stigmer.agentic.schedule.v1.ScheduleRunList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest,
+      ai.stigmer.agentic.schedule.v1.ScheduleRunList> getListRunsMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest, ai.stigmer.agentic.schedule.v1.ScheduleRunList> getListRunsMethod;
+    if ((getListRunsMethod = ScheduleQueryControllerGrpc.getListRunsMethod) == null) {
+      synchronized (ScheduleQueryControllerGrpc.class) {
+        if ((getListRunsMethod = ScheduleQueryControllerGrpc.getListRunsMethod) == null) {
+          ScheduleQueryControllerGrpc.getListRunsMethod = getListRunsMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest, ai.stigmer.agentic.schedule.v1.ScheduleRunList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listRuns"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.schedule.v1.ScheduleRunList.getDefaultInstance()))
+              .setSchemaDescriptor(new ScheduleQueryControllerMethodDescriptorSupplier("listRuns"))
+              .build();
+        }
+      }
+    }
+    return getListRunsMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -266,6 +297,29 @@ public final class ScheduleQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleList> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * List a schedule's run history, newest first.
+     * Every fire leaves a row — including fires that created no execution
+     * (a refused launch gate, a missing target agent) — with the refusing
+     * gate's copy verbatim. This is the surface that explains
+     * status.consecutive_failures.
+     * &#64;internal
+     * Backed by the fire ledger (project DD-017 D-7). Authorization:
+     * can_view on the schedule — run history is the schedule's own
+     * operational record; the linked executions keep their own bars. Rows
+     * carrying an execution id but no terminal outcome are enriched with
+     * the execution's live phase at read time (one join), so manual fires
+     * need no tracker and outcome columns never lie. OSS implements the
+     * same contract against its store; the conformance suite holds both
+     * editions to it.
+     * </pre>
+     */
+    default void listRuns(ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleRunList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListRunsMethod(), responseObserver);
+    }
   }
 
   /**
@@ -366,6 +420,30 @@ public final class ScheduleQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getListMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * List a schedule's run history, newest first.
+     * Every fire leaves a row — including fires that created no execution
+     * (a refused launch gate, a missing target agent) — with the refusing
+     * gate's copy verbatim. This is the surface that explains
+     * status.consecutive_failures.
+     * &#64;internal
+     * Backed by the fire ledger (project DD-017 D-7). Authorization:
+     * can_view on the schedule — run history is the schedule's own
+     * operational record; the linked executions keep their own bars. Rows
+     * carrying an execution id but no terminal outcome are enriched with
+     * the execution's live phase at read time (one join), so manual fires
+     * need no tracker and outcome columns never lie. OSS implements the
+     * same contract against its store; the conformance suite holds both
+     * editions to it.
+     * </pre>
+     */
+    public void listRuns(ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleRunList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListRunsMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -444,6 +522,29 @@ public final class ScheduleQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getListMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * List a schedule's run history, newest first.
+     * Every fire leaves a row — including fires that created no execution
+     * (a refused launch gate, a missing target agent) — with the refusing
+     * gate's copy verbatim. This is the surface that explains
+     * status.consecutive_failures.
+     * &#64;internal
+     * Backed by the fire ledger (project DD-017 D-7). Authorization:
+     * can_view on the schedule — run history is the schedule's own
+     * operational record; the linked executions keep their own bars. Rows
+     * carrying an execution id but no terminal outcome are enriched with
+     * the execution's live phase at read time (one join), so manual fires
+     * need no tracker and outcome columns never lie. OSS implements the
+     * same contract against its store; the conformance suite holds both
+     * editions to it.
+     * </pre>
+     */
+    public ai.stigmer.agentic.schedule.v1.ScheduleRunList listRuns(ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListRunsMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -521,6 +622,29 @@ public final class ScheduleQueryControllerGrpc {
     public ai.stigmer.agentic.schedule.v1.ScheduleList list(ai.stigmer.agentic.schedule.v1.ListSchedulesRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getListMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List a schedule's run history, newest first.
+     * Every fire leaves a row — including fires that created no execution
+     * (a refused launch gate, a missing target agent) — with the refusing
+     * gate's copy verbatim. This is the surface that explains
+     * status.consecutive_failures.
+     * &#64;internal
+     * Backed by the fire ledger (project DD-017 D-7). Authorization:
+     * can_view on the schedule — run history is the schedule's own
+     * operational record; the linked executions keep their own bars. Rows
+     * carrying an execution id but no terminal outcome are enriched with
+     * the execution's live phase at read time (one join), so manual fires
+     * need no tracker and outcome columns never lie. OSS implements the
+     * same contract against its store; the conformance suite holds both
+     * editions to it.
+     * </pre>
+     */
+    public ai.stigmer.agentic.schedule.v1.ScheduleRunList listRuns(ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListRunsMethod(), getCallOptions(), request);
     }
   }
 
@@ -604,12 +728,37 @@ public final class ScheduleQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getListMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * List a schedule's run history, newest first.
+     * Every fire leaves a row — including fires that created no execution
+     * (a refused launch gate, a missing target agent) — with the refusing
+     * gate's copy verbatim. This is the surface that explains
+     * status.consecutive_failures.
+     * &#64;internal
+     * Backed by the fire ledger (project DD-017 D-7). Authorization:
+     * can_view on the schedule — run history is the schedule's own
+     * operational record; the linked executions keep their own bars. Rows
+     * carrying an execution id but no terminal outcome are enriched with
+     * the execution's live phase at read time (one join), so manual fires
+     * need no tracker and outcome columns never lie. OSS implements the
+     * same contract against its store; the conformance suite holds both
+     * editions to it.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.ScheduleRunList> listRuns(
+        ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListRunsMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
   private static final int METHODID_GET_BY_AGENT = 2;
   private static final int METHODID_LIST = 3;
+  private static final int METHODID_LIST_RUNS = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -643,6 +792,10 @@ public final class ScheduleQueryControllerGrpc {
         case METHODID_LIST:
           serviceImpl.list((ai.stigmer.agentic.schedule.v1.ListSchedulesRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleList>) responseObserver);
+          break;
+        case METHODID_LIST_RUNS:
+          serviceImpl.listRuns((ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleRunList>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -690,6 +843,13 @@ public final class ScheduleQueryControllerGrpc {
               ai.stigmer.agentic.schedule.v1.ListSchedulesRequest,
               ai.stigmer.agentic.schedule.v1.ScheduleList>(
                 service, METHODID_LIST)))
+        .addMethod(
+          getListRunsMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest,
+              ai.stigmer.agentic.schedule.v1.ScheduleRunList>(
+                service, METHODID_LIST_RUNS)))
         .build();
   }
 
@@ -742,6 +902,7 @@ public final class ScheduleQueryControllerGrpc {
               .addMethod(getGetByReferenceMethod())
               .addMethod(getGetByAgentMethod())
               .addMethod(getListMethod())
+              .addMethod(getListRunsMethod())
               .build();
         }
       }

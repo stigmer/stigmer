@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import grpc
 
@@ -56,7 +56,7 @@ class ScheduleClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def trigger(self, id: str) -> api_pb2.Schedule:
+    def trigger(self, id: str) -> io_pb2.ScheduleTriggerResult:
         try:
             return self._command.trigger(io_pb2.ScheduleId(value=id))
         except grpc.RpcError as e:
@@ -85,6 +85,12 @@ class ScheduleClient:
     def list(self, input: io_pb2.ListSchedulesRequest) -> io_pb2.ScheduleList:
         try:
             return self._query.list(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_runs(self, input: io_pb2.ListScheduleRunsRequest) -> io_pb2.ScheduleRunList:
+        try:
+            return self._query.listRuns(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -135,6 +141,8 @@ class AgentTargetInput:
 
     agent_ref: ResourceRef | None
     message: str = ""
+    environment_refs: list[ResourceRef] = field(default_factory=list)
+    run_config: ScheduleRunConfigInput | None = None
 
     def _to_proto(self) -> spec_pb2.AgentTarget:
         msg = spec_pb2.AgentTarget(
@@ -144,5 +152,28 @@ class AgentTargetInput:
             _ref = self.agent_ref._to_proto()
             _ref.kind = 40
             msg.agent_ref.CopyFrom(_ref)
+        for ref in self.environment_refs:
+            _ref = ref._to_proto()
+            _ref.kind = 53
+            msg.environment_refs.append(_ref)
+        if self.run_config is not None:
+            msg.run_config.CopyFrom(self.run_config._to_proto())
+        return msg
+
+
+@dataclass
+class ScheduleRunConfigInput:
+    """SDK input type for ScheduleRunConfig."""
+
+    model_name: str = ""
+    max_cost_usd: float = 0.0
+    max_tool_rounds: int = 0
+
+    def _to_proto(self) -> spec_pb2.ScheduleRunConfig:
+        msg = spec_pb2.ScheduleRunConfig(
+            model_name=self.model_name,
+            max_cost_usd=self.max_cost_usd,
+            max_tool_rounds=self.max_tool_rounds,
+        )
         return msg
 

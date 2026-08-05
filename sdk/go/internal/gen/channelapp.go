@@ -136,19 +136,10 @@ func ChannelAppInputFromProto(p *channelappv1.ChannelApp) *ChannelAppInput {
 	}
 	if s := p.GetSpec(); s != nil {
 		if ov := s.GetSlack(); ov != nil {
-			input.Slack = &SlackChannelAppConfigInput{
-				ClientId:      ov.GetClientId(),
-				ClientSecret:  ov.GetClientSecret(),
-				SigningSecret: ov.GetSigningSecret(),
-			}
+			input.Slack = slackChannelAppConfigInputFromProto(ov)
 		}
 		if ov := s.GetWhatsapp(); ov != nil {
-			input.Whatsapp = &WhatsAppChannelAppConfigInput{
-				AppId:       ov.GetAppId(),
-				AppSecret:   ov.GetAppSecret(),
-				AccessToken: ov.GetAccessToken(),
-				VerifyToken: ov.GetVerifyToken(),
-			}
+			input.Whatsapp = whatsAppChannelAppConfigInputFromProto(ov)
 		}
 	}
 	return input

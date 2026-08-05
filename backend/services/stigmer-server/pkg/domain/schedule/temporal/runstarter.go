@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -214,6 +215,19 @@ func (r *RunStarter) resolveTargetAgent(ctx context.Context, schedule *schedulev
 	return agent, "", nil
 }
 
+// ScheduleIDLabelKey is the audit link stamped on every schedule-created
+// execution — the same key the cloud edition's scope step writes
+// (ScheduleRuntimeConstants.SCHEDULE_ID_METADATA_KEY).
+//
+// In OSS the label is also the environment-resolution key: the execution
+// context step reads it to merge the schedule's environment_refs
+// (DD-017 D-4). Cloud deliberately resolves through the validated token
+// claim instead — a client-suppliable label must not widen what a cloud
+// sandbox reads — but OSS is single-user with no trust boundary, and it
+// has no tokens to carry a claim (the DD-015 divergence posture: same
+// contract, edition-honest mechanism).
+const ScheduleIDLabelKey = "stigmer.ai/schedule-id"
+
 // buildExecutionRequest shapes the run: fresh session per fire with the
 // pinned subject, the fire-context message, and the unattended execution
 // profile. approval_mode=UNATTENDED is a correctness requirement, not a
@@ -229,11 +243,17 @@ func (r *RunStarter) buildExecutionRequest(
 	executionConfig := &agentexecutionv1.ExecutionConfig{
 		ApprovalMode: agentexecutionv1.ApprovalMode_APPROVAL_MODE_UNATTENDED,
 	}
-	if r.config.ExecutionProfileMaxToolRounds > 0 {
-		executionConfig.MaxToolRounds = int32(r.config.ExecutionProfileMaxToolRounds)
-	}
-	if r.config.ExecutionProfileMaxCostUsd > 0 {
-		executionConfig.MaxCostUsd = r.config.ExecutionProfileMaxCostUsd
+	// The platform profile, then the schedule's own run_config CLAMPED by
+	// it (DD-017 D-3): per field, min(owner, platform) when the platform
+	// cap is set; the owner value stands when the platform cap is unset.
+	// The owner can lower spend, never raise it past the platform.
+	runConfig := schedule.GetSpec().GetAgent().GetRunConfig()
+	executionConfig.MaxToolRounds = clampedRunBoundInt(
+		runConfig.GetMaxToolRounds(), int32(r.config.ExecutionProfileMaxToolRounds))
+	executionConfig.MaxCostUsd = clampedRunBoundFloat(
+		runConfig.GetMaxCostUsd(), r.config.ExecutionProfileMaxCostUsd)
+	if model := strings.TrimSpace(runConfig.GetModelName()); model != "" {
+		executionConfig.ModelName = model
 	}
 
 	return &agentexecutionv1.AgentExecution{
@@ -246,6 +266,11 @@ func (r *RunStarter) buildExecutionRequest(
 			// the schedule's own org is stamped directly — it is
 			// load-bearing for the session and execution context.
 			Org: schedule.GetMetadata().GetOrg(),
+			// The audit link (DD-008 D4) AND this edition's
+			// environment-resolution key — see ScheduleIDLabelKey.
+			Labels: map[string]string{
+				ScheduleIDLabelKey: schedule.GetMetadata().GetId(),
+			},
 		},
 		Spec: &agentexecutionv1.AgentExecutionSpec{
 			AgentId: agent.GetMetadata().GetId(),
@@ -255,6 +280,32 @@ func (r *RunStarter) buildExecutionRequest(
 			},
 			ExecutionConfig: executionConfig,
 		},
+	}
+}
+
+// clampedRunBoundInt merges one owner-set run bound with its platform
+// cap: zero means "unset" on either side, and when both are set the
+// LOWER value wins — the platform profile is a guardrail, never a floor.
+func clampedRunBoundInt(owner, platform int32) int32 {
+	switch {
+	case owner <= 0:
+		return max(platform, 0)
+	case platform <= 0:
+		return owner
+	default:
+		return min(owner, platform)
+	}
+}
+
+// clampedRunBoundFloat is clampedRunBoundInt for the cost cap.
+func clampedRunBoundFloat(owner, platform float64) float64 {
+	switch {
+	case owner <= 0:
+		return math.Max(platform, 0)
+	case platform <= 0:
+		return owner
+	default:
+		return math.Min(owner, platform)
 	}
 }
 

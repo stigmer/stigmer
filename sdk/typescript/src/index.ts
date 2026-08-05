@@ -246,6 +246,7 @@ export {
   buildScheduleProto,
   type ScheduleInput,
   type AgentTargetInput,
+  type ScheduleRunConfigInput,
 } from "./gen/schedule.js";
 export {
   SessionClient,

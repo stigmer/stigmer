@@ -508,6 +508,11 @@ func Run() error {
 	temporalManager.SetScheduleWorkerConfig(
 		scheduletemporal.NewWorkerConfig(scheduleTemporalConfig, scheduleTickActivities))
 	scheduleController.SetClock(scheduleSyncer)
+	// The trigger's direct-run path (DD-017 D-5): a manual fire runs the
+	// full create pipeline in-process and answers with the real outcome —
+	// no Temporal artifact round-trip, so it works even while Temporal is
+	// away.
+	scheduleController.SetRunner(scheduleRunStarter)
 	scheduleReconciler := scheduletemporal.NewReconciler(
 		temporalManager.GetClient, store, scheduleSyncer, scheduleTemporalConfig)
 

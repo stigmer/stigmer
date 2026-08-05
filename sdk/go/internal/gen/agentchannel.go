@@ -183,12 +183,10 @@ func AgentChannelInputFromProto(p *agentchannelv1.AgentChannel) *AgentChannelInp
 		input.AppRef = resourceRefFromProto(s.GetAppRef())
 		input.ProactiveMessagingEnabled = s.GetProactiveMessagingEnabled()
 		if ov := s.GetSlack(); ov != nil {
-			input.Slack = &SlackChannelConfigInput{}
+			input.Slack = slackChannelConfigInputFromProto(ov)
 		}
 		if ov := s.GetWhatsapp(); ov != nil {
-			input.Whatsapp = &WhatsAppChannelConfigInput{
-				PhoneNumberId: ov.GetPhoneNumberId(),
-			}
+			input.Whatsapp = whatsAppChannelConfigInputFromProto(ov)
 		}
 	}
 	return input

@@ -7,9 +7,9 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
-import { ScheduleIdSchema, GetSchedulesByAgentRequestSchema, ScheduleListSchema, ListSchedulesRequestSchema, type GetSchedulesByAgentRequest, type ScheduleList, type ListSchedulesRequest } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import { ScheduleIdSchema, ScheduleTriggerResultSchema, GetSchedulesByAgentRequestSchema, ScheduleListSchema, ListSchedulesRequestSchema, ListScheduleRunsRequestSchema, ScheduleRunListSchema, type ScheduleTriggerResult, type GetSchedulesByAgentRequest, type ScheduleList, type ListSchedulesRequest, type ListScheduleRunsRequest, type ScheduleRunList } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
-import { ScheduleSpecSchema, AgentTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
+import { ScheduleSpecSchema, ScheduleRunConfigSchema, AgentTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -55,7 +55,7 @@ export class ScheduleClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async trigger(id: string): Promise<Schedule> {
+  async trigger(id: string): Promise<ScheduleTriggerResult> {
     try {
       return await this.command.trigger(create(ScheduleIdSchema, { value: id }));
     } catch (e) { throw wrapError(e); }
@@ -84,6 +84,12 @@ export class ScheduleClient {
       return await this.query.list(input);
     } catch (e) { throw wrapError(e); }
   }
+
+  async listRuns(input: ListScheduleRunsRequest): Promise<ScheduleRunList> {
+    try {
+      return await this.query.listRuns(input);
+    } catch (e) { throw wrapError(e); }
+  }
 }
 
 /** Input for creating/updating a Schedule. */
@@ -103,12 +109,31 @@ export interface ScheduleInput {
 export interface AgentTargetInput {
   agentRef: ResourceRef;
   message?: string;
+  environmentRefs?: ResourceRef[];
+  runConfig?: ScheduleRunConfigInput;
+}
+
+/** SDK input type for ScheduleRunConfig. */
+export interface ScheduleRunConfigInput {
+  modelName?: string;
+  maxCostUsd?: number;
+  maxToolRounds?: number;
+}
+
+function buildScheduleRunConfigProto(input: ScheduleRunConfigInput) {
+  return Object.assign(create(ScheduleRunConfigSchema), stripUndefined({
+    modelName: input.modelName,
+    maxCostUsd: input.maxCostUsd,
+    maxToolRounds: input.maxToolRounds,
+  }));
 }
 
 function buildAgentTargetProto(input: AgentTargetInput) {
   const msg = create(AgentTargetSchema);
   if (input.agentRef?.slug || input.agentRef?.org) msg.agentRef = create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 });
   if (input.message !== undefined) msg.message = input.message;
+  if (input.environmentRefs) msg.environmentRefs = input.environmentRefs.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 53 }));
+  if (input.runConfig) msg.runConfig = buildScheduleRunConfigProto(input.runConfig);
   return msg;
 }
 

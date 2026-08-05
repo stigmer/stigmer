@@ -5,6 +5,7 @@ package ai.stigmer.agentic.schedule.v1;
 import "ai/stigmer/agentic/schedule/v1/api.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
 
 // ScheduleId wraps a schedule identifier.
 message ScheduleId {
@@ -53,4 +54,134 @@ message ListSchedulesRequest {
 
   // Pagination options.
   ai.stigmer.commons.rpc.PageInfo page_info = 3;
+}
+
+// How a schedule fire was initiated.
+enum ScheduleRunOrigin {
+  SCHEDULE_RUN_ORIGIN_UNSPECIFIED = 0;
+
+  // The clock fired the schedule on its cron cadence.
+  SCHEDULE_RUN_ORIGIN_CRON = 1;
+
+  // A caller fired the schedule through the trigger command.
+  SCHEDULE_RUN_ORIGIN_MANUAL = 2;
+}
+
+// What one schedule fire produced.
+//
+// @internal
+// One vocabulary for two surfaces (project DD-017 D-6/D-7): the trigger
+// result reports the START outcomes (STARTED / REFUSED /
+// TARGET_MISSING), and the run-history rows additionally reach the
+// terminal outcomes (COMPLETED / FAILED / TIMED_OUT) written by the cron
+// tick's tracking. SKIPPED records a cron fire that revalidated against
+// a row deleted/disabled/paused between recording and starting.
+enum ScheduleRunOutcome {
+  SCHEDULE_RUN_OUTCOME_UNSPECIFIED = 0;
+
+  // An execution was created (or idempotently re-found) and is running.
+  SCHEDULE_RUN_OUTCOME_STARTED = 1;
+
+  // A launch gate refused the run deterministically; reason carries the
+  // gate's copy verbatim.
+  SCHEDULE_RUN_OUTCOME_REFUSED = 2;
+
+  // The schedule's agent_ref no longer resolves.
+  SCHEDULE_RUN_OUTCOME_TARGET_MISSING = 3;
+
+  // The fire no-opped: the row was deleted, disabled, or paused between
+  // the fire being recorded and the run starting.
+  SCHEDULE_RUN_OUTCOME_SKIPPED = 4;
+
+  // The tracked run reached EXECUTION_COMPLETED.
+  SCHEDULE_RUN_OUTCOME_COMPLETED = 5;
+
+  // The tracked run ended terminal-but-not-completed (failed, cancelled,
+  // or terminated); reason names the terminal phase.
+  SCHEDULE_RUN_OUTCOME_FAILED = 6;
+
+  // The tracked run outlived the fire's tracking budget.
+  SCHEDULE_RUN_OUTCOME_TIMED_OUT = 7;
+}
+
+// Result of manually triggering a schedule.
+//
+// A gRPC error means the trigger itself was refused (disabled schedule,
+// missing schedule, unauthorized). A successful response means the fire
+// happened, and this message names the run's real outcome.
+message ScheduleTriggerResult {
+  // The schedule after the fire, status freshly stamped.
+  Schedule schedule = 1;
+
+  // What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the
+  // terminal outcomes belong to run history — a manual fire answers at
+  // run start).
+  ScheduleRunOutcome outcome = 2;
+
+  // ID of the created execution. Set only when outcome is STARTED.
+  string execution_id = 3;
+
+  // The refusing launch gate's copy, verbatim. Set only when outcome is
+  // REFUSED or TARGET_MISSING.
+  string refusal_reason = 4;
+}
+
+// One recorded schedule fire — a run-history row.
+//
+// @internal
+// Backed by the fire ledger (project DD-017 D-7): every fire leaves a
+// row, INCLUDING fires that created no execution — the ledger is the
+// one place a refused fire's reason survives below the pause threshold.
+// Rows carrying an execution id but no terminal outcome are enriched
+// with the execution's live phase at read time, so outcome never lies
+// while a run is in flight.
+message ScheduleRun {
+  // Schedule this fire belongs to.
+  string schedule_id = 1;
+
+  // Organization that owns the schedule.
+  string org = 2;
+
+  // The fire's nominal time (cron: the scheduled instant; manual: the
+  // trigger instant).
+  google.protobuf.Timestamp nominal_fire_time = 3;
+
+  // How the fire was initiated.
+  ScheduleRunOrigin origin = 4;
+
+  // What the fire produced.
+  ScheduleRunOutcome outcome = 5;
+
+  // The refusing gate's or terminal verdict's copy, verbatim. Empty for
+  // healthy outcomes.
+  string reason = 6;
+
+  // ID of the created execution. Empty when no execution was created
+  // (refused, target missing, skipped).
+  string execution_id = 7;
+
+  // When the fire was recorded.
+  google.protobuf.Timestamp recorded_at = 8;
+
+  // When the terminal outcome was recorded. Absent while the run is in
+  // flight or when no run was created.
+  google.protobuf.Timestamp completed_at = 9;
+}
+
+// Input for listing a schedule's run history.
+message ListScheduleRunsRequest {
+  // Schedule whose runs to list.
+  string schedule_id = 1 [(buf.validate.field).required = true];
+
+  // Pagination options. Runs are returned newest first.
+  ai.stigmer.commons.rpc.PageInfo page_info = 2;
+}
+
+// Response containing a paginated list of schedule runs, newest first.
+message ScheduleRunList {
+  // Total number of recorded runs for the schedule.
+  int32 total_count = 1;
+
+  // Runs in the current page.
+  repeated ScheduleRun items = 2;
 }

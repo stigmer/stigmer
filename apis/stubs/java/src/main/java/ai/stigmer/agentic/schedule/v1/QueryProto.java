@@ -42,7 +42,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "\'ai/stigmer/commons/apiresource/io.proto" +
       "\0328ai/stigmer/commons/apiresource/rpc_ser" +
       "vice_options.proto\032+ai/stigmer/commons/r" +
-      "pc/method_options.proto2\224\004\n\027ScheduleQuer" +
+      "pc/method_options.proto2\306\005\n\027ScheduleQuer" +
       "yController\022\212\001\n\003get\022*.ai.stigmer.agentic" +
       ".schedule.v1.ScheduleId\032(.ai.stigmer.age" +
       "ntic.schedule.v1.Schedule\"-\302\270\030)\010\001\0208\"\005val" +
@@ -55,12 +55,16 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "agentic.schedule.v1.ScheduleList\"\004\320\270\030\001\022p" +
       "\n\004list\0224.ai.stigmer.agentic.schedule.v1." +
       "ListSchedulesRequest\032,.ai.stigmer.agenti" +
-      "c.schedule.v1.ScheduleList\"\004\320\270\030\001\032\004\240\377+8B\251" +
-      "\001B\nQueryProtoP\001\242\002\004ASAS\252\002\036Ai.Stigmer.Agen" +
-      "tic.Schedule.V1\312\002\036Ai\\Stigmer\\Agentic\\Sch" +
-      "edule\\V1\342\002*Ai\\Stigmer\\Agentic\\Schedule\\V" +
-      "1\\GPBMetadata\352\002\"Ai::Stigmer::Agentic::Sc" +
-      "hedule::V1b\006proto3"
+      "c.schedule.v1.ScheduleList\"\004\320\270\030\001\022\257\001\n\010lis" +
+      "tRuns\0227.ai.stigmer.agentic.schedule.v1.L" +
+      "istScheduleRunsRequest\032/.ai.stigmer.agen" +
+      "tic.schedule.v1.ScheduleRunList\"9\302\270\0305\010\001\020" +
+      "8\"\013schedule_id*\"unauthorized to list sch" +
+      "edule runs\032\004\240\377+8B\251\001B\nQueryProtoP\001\242\002\004ASAS" +
+      "\252\002\036Ai.Stigmer.Agentic.Schedule.V1\312\002\036Ai\\S" +
+      "tigmer\\Agentic\\Schedule\\V1\342\002*Ai\\Stigmer\\" +
+      "Agentic\\Schedule\\V1\\GPBMetadata\352\002\"Ai::St" +
+      "igmer::Agentic::Schedule::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

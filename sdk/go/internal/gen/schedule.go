@@ -49,7 +49,7 @@ func (s *ScheduleClient) Resume(ctx context.Context, id string) (*schedulev1.Sch
 	return resp, wrapErr(err)
 }
 
-func (s *ScheduleClient) Trigger(ctx context.Context, id string) (*schedulev1.Schedule, error) {
+func (s *ScheduleClient) Trigger(ctx context.Context, id string) (*schedulev1.ScheduleTriggerResult, error) {
 	resp, err := s.command.Trigger(ctx, &schedulev1.ScheduleId{Value: id})
 	return resp, wrapErr(err)
 }
@@ -75,6 +75,11 @@ func (s *ScheduleClient) List(ctx context.Context, input *schedulev1.ListSchedul
 	return resp, wrapErr(err)
 }
 
+func (s *ScheduleClient) ListRuns(ctx context.Context, input *schedulev1.ListScheduleRunsRequest) (*schedulev1.ScheduleRunList, error) {
+	resp, err := s.query.ListRuns(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // ScheduleInput holds the fields for creating/updating a Schedule.
 type ScheduleInput struct {
 	Name       string
@@ -90,8 +95,17 @@ type ScheduleInput struct {
 
 // AgentTargetInput is the SDK input type for AgentTarget.
 type AgentTargetInput struct {
-	AgentRef ResourceRef
-	Message  string
+	AgentRef        ResourceRef
+	Message         string
+	EnvironmentRefs []ResourceRef
+	RunConfig       *ScheduleRunConfigInput
+}
+
+// ScheduleRunConfigInput is the SDK input type for ScheduleRunConfig.
+type ScheduleRunConfigInput struct {
+	ModelName     string
+	MaxCostUsd    float64
+	MaxToolRounds int32
 }
 
 func (i *ScheduleInput) toProto() *schedulev1.Schedule {
@@ -118,9 +132,25 @@ func (i *ScheduleInput) toProto() *schedulev1.Schedule {
 			m.AgentRef = ref
 		}
 		m.Message = i.Agent.Message
+		for _, r := range i.Agent.EnvironmentRefs {
+			ref := r.toProto()
+			ref.Kind = apiresourcekind.ApiResourceKind_environment
+			m.EnvironmentRefs = append(m.EnvironmentRefs, ref)
+		}
+		if i.Agent.RunConfig != nil {
+			m.RunConfig = i.Agent.RunConfig.toProto()
+		}
 		resource.Spec.Target = &schedulev1.ScheduleSpec_Agent{Agent: m}
 	}
 	return resource
+}
+
+func (i *ScheduleRunConfigInput) toProto() *schedulev1.ScheduleRunConfig {
+	return &schedulev1.ScheduleRunConfig{
+		ModelName:     i.ModelName,
+		MaxCostUsd:    i.MaxCostUsd,
+		MaxToolRounds: i.MaxToolRounds,
+	}
 }
 
 // ScheduleInputFromProto creates a ScheduleInput from a proto Schedule resource.
@@ -141,10 +171,7 @@ func ScheduleInputFromProto(p *schedulev1.Schedule) *ScheduleInput {
 		input.TimeZone = s.GetTimeZone()
 		input.Enabled = s.GetEnabled()
 		if ov := s.GetAgent(); ov != nil {
-			input.Agent = &AgentTargetInput{
-				AgentRef: resourceRefFromProto(ov.GetAgentRef()),
-				Message:  ov.GetMessage(),
-			}
+			input.Agent = agentTargetInputFromProto(ov)
 		}
 	}
 	return input
@@ -157,5 +184,20 @@ func agentTargetInputFromProto(p *schedulev1.AgentTarget) *AgentTargetInput {
 	input := &AgentTargetInput{}
 	input.AgentRef = resourceRefFromProto(p.GetAgentRef())
 	input.Message = p.GetMessage()
+	for _, r := range p.GetEnvironmentRefs() {
+		input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
+	}
+	input.RunConfig = scheduleRunConfigInputFromProto(p.GetRunConfig())
+	return input
+}
+
+func scheduleRunConfigInputFromProto(p *schedulev1.ScheduleRunConfig) *ScheduleRunConfigInput {
+	if p == nil {
+		return nil
+	}
+	input := &ScheduleRunConfigInput{}
+	input.ModelName = p.GetModelName()
+	input.MaxCostUsd = p.GetMaxCostUsd()
+	input.MaxToolRounds = p.GetMaxToolRounds()
 	return input
 }

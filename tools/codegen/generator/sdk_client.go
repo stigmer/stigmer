@@ -1078,8 +1078,11 @@ func emitToProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap m
 // stamped, mirroring the spec-level and nested-message handling — a direct
 // copy would not compile (ResourceRef vs *apiresource.ApiResourceReference;
 // Schedule's AgentTarget.agent_ref was the first schema to hit this).
-// Other message-typed member fields remain unsupported — no current schema
-// has one, and one would fail compilation rather than silently misconvert.
+// Repeated-reference and message-typed members convert the same way their
+// spec-level twins do (loop + kind stamp; guarded .toProto()) — Schedule's
+// AgentTarget.environment_refs and .run_config were the first schema fields
+// to hit those (project DD-017). Anything else still fails compilation
+// rather than silently misconverting.
 func emitOneofMemberToProto(buf *bytes.Buffer, f *FieldSchema, alias, containerMsg, dst string, typeMap map[string]*TypeSchema) {
 	protoField := goProtoFieldName(f.ProtoField)
 	oneofWrapper := containerMsg + "_" + protoField
@@ -1129,6 +1132,37 @@ func emitOneofMemberToProto(buf *bytes.Buffer, f *FieldSchema, alias, containerM
 			buf.WriteString("\t\t}\n")
 			continue
 		}
+		if field.Type.Kind == "message" {
+			// A message-typed member converts through its Input type's
+			// own toProto (emitNestedToProto descends into oneof members
+			// to emit it) — a direct copy would not compile.
+			fmt.Fprintf(buf, "\t\tif i.%s.%s != nil {\n", f.Name, field.Name)
+			fmt.Fprintf(buf, "\t\t\tm.%s = i.%s.%s.toProto()\n", pf, f.Name, field.Name)
+			buf.WriteString("\t\t}\n")
+			continue
+		}
+		if field.Type.Kind == "array" && field.Type.ElementType != nil && field.Type.ElementType.Kind == "message" {
+			// Mirror the spec-level array-of-message handling: references
+			// get the schema's kind stamped so callers only provide
+			// org/slug; other message elements convert element-wise.
+			if field.Type.ElementType.MessageType == "ApiResourceReference" {
+				fmt.Fprintf(buf, "\t\tfor _, r := range i.%s.%s {\n", f.Name, field.Name)
+				if field.ReferenceKind != 0 {
+					enumName := apiResourceKindEnumNames[field.ReferenceKind]
+					buf.WriteString("\t\t\tref := r.toProto()\n")
+					fmt.Fprintf(buf, "\t\t\tref.Kind = apiresourcekind.ApiResourceKind_%s\n", enumName)
+					fmt.Fprintf(buf, "\t\t\tm.%s = append(m.%s, ref)\n", pf, pf)
+				} else {
+					fmt.Fprintf(buf, "\t\t\tm.%s = append(m.%s, r.toProto())\n", pf, pf)
+				}
+				buf.WriteString("\t\t}\n")
+			} else {
+				fmt.Fprintf(buf, "\t\tfor _, item := range i.%s.%s {\n", f.Name, field.Name)
+				fmt.Fprintf(buf, "\t\t\tm.%s = append(m.%s, item.toProto())\n", pf, pf)
+				buf.WriteString("\t\t}\n")
+			}
+			continue
+		}
 		fmt.Fprintf(buf, "\t\tm.%s = i.%s.%s\n", pf, f.Name, field.Name)
 	}
 	fmt.Fprintf(buf, "\t\t%s.%s = &%s.%s{%s: m}\n", dst, oneofContainer, alias, oneofWrapper, protoField)
@@ -1169,6 +1203,21 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 		return
 	}
 	if f.OneofGroup != "" {
+		// A oneof member's own conversion is inlined by
+		// emitOneofMemberToProto — no method for the member itself. Its
+		// message-typed FIELDS still need their toProto converters
+		// (Schedule's AgentTarget.run_config was the first schema field
+		// to hit this, project DD-017); descend without emitting.
+		descendKey := msgName + "_oneofDescend"
+		if emitted[descendKey] {
+			return
+		}
+		emitted[descendKey] = true
+		if ts, ok := typeMap[msgName]; ok {
+			for _, field := range ts.Fields {
+				emitNestedToProto(buf, field, alias, typeMap, emitted, specName, globalEmitted)
+			}
+		}
 		return
 	}
 
@@ -1459,31 +1508,26 @@ func emitFromProtoField(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap
 	}
 }
 
+// emitFromProtoOneof converts each set oneof member through the member
+// type's own generated converter (<memberType>InputFromProto, emitted by
+// emitNestedFromProtoFunc for every spec field including oneof members).
+// This used to inline a struct literal that handled only scalar and
+// single-reference members — a drifted second copy of the conversion that
+// failed to compile the first time a member carried a repeated reference
+// or a nested message (Schedule's AgentTarget.environment_refs /
+// .run_config, project DD-017). One converter, two callers.
 func emitFromProtoOneof(buf *bytes.Buffer, fields []*FieldSchema, alias string, typeMap map[string]*TypeSchema) {
 	for _, f := range fields {
 		protoField := goProtoFieldName(f.ProtoField)
 		msgType := f.Type.MessageType
 
-		ts, ok := typeMap[msgType]
-		if !ok {
+		if _, ok := typeMap[msgType]; !ok {
 			continue
 		}
 
 		fmt.Fprintf(buf, "\t\tif ov := s.Get%s(); ov != nil {\n", protoField)
-		fmt.Fprintf(buf, "\t\t\tinput.%s = &%sInput{\n", f.Name, msgType)
-		for _, field := range ts.Fields {
-			pf := goProtoFieldName(field.ProtoField)
-			// An ApiResourceReference member maps to a ResourceRef input
-			// field: a raw getter would not compile (the schedule
-			// AgentTarget.agent_ref regression). Mirrors the nested and
-			// spec-level fromProto handling.
-			if field.Type.Kind == "message" && field.Type.MessageType == "ApiResourceReference" {
-				fmt.Fprintf(buf, "\t\t\t\t%s: resourceRefFromProto(ov.Get%s()),\n", field.Name, pf)
-				continue
-			}
-			fmt.Fprintf(buf, "\t\t\t\t%s: ov.Get%s(),\n", field.Name, pf)
-		}
-		buf.WriteString("\t\t\t}\n\t\t}\n")
+		fmt.Fprintf(buf, "\t\t\tinput.%s = %sInputFromProto(ov)\n", f.Name, lowerFirst(msgType))
+		buf.WriteString("\t\t}\n")
 	}
 }
 

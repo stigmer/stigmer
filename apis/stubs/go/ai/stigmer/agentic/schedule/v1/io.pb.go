@@ -11,6 +11,7 @@ import (
 	rpc "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -22,6 +23,141 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+// How a schedule fire was initiated.
+type ScheduleRunOrigin int32
+
+const (
+	ScheduleRunOrigin_SCHEDULE_RUN_ORIGIN_UNSPECIFIED ScheduleRunOrigin = 0
+	// The clock fired the schedule on its cron cadence.
+	ScheduleRunOrigin_SCHEDULE_RUN_ORIGIN_CRON ScheduleRunOrigin = 1
+	// A caller fired the schedule through the trigger command.
+	ScheduleRunOrigin_SCHEDULE_RUN_ORIGIN_MANUAL ScheduleRunOrigin = 2
+)
+
+// Enum value maps for ScheduleRunOrigin.
+var (
+	ScheduleRunOrigin_name = map[int32]string{
+		0: "SCHEDULE_RUN_ORIGIN_UNSPECIFIED",
+		1: "SCHEDULE_RUN_ORIGIN_CRON",
+		2: "SCHEDULE_RUN_ORIGIN_MANUAL",
+	}
+	ScheduleRunOrigin_value = map[string]int32{
+		"SCHEDULE_RUN_ORIGIN_UNSPECIFIED": 0,
+		"SCHEDULE_RUN_ORIGIN_CRON":        1,
+		"SCHEDULE_RUN_ORIGIN_MANUAL":      2,
+	}
+)
+
+func (x ScheduleRunOrigin) Enum() *ScheduleRunOrigin {
+	p := new(ScheduleRunOrigin)
+	*p = x
+	return p
+}
+
+func (x ScheduleRunOrigin) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ScheduleRunOrigin) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_schedule_v1_io_proto_enumTypes[0].Descriptor()
+}
+
+func (ScheduleRunOrigin) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_schedule_v1_io_proto_enumTypes[0]
+}
+
+func (x ScheduleRunOrigin) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ScheduleRunOrigin.Descriptor instead.
+func (ScheduleRunOrigin) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_schedule_v1_io_proto_rawDescGZIP(), []int{0}
+}
+
+// What one schedule fire produced.
+//
+// @internal
+// One vocabulary for two surfaces (project DD-017 D-6/D-7): the trigger
+// result reports the START outcomes (STARTED / REFUSED /
+// TARGET_MISSING), and the run-history rows additionally reach the
+// terminal outcomes (COMPLETED / FAILED / TIMED_OUT) written by the cron
+// tick's tracking. SKIPPED records a cron fire that revalidated against
+// a row deleted/disabled/paused between recording and starting.
+type ScheduleRunOutcome int32
+
+const (
+	ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_UNSPECIFIED ScheduleRunOutcome = 0
+	// An execution was created (or idempotently re-found) and is running.
+	ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_STARTED ScheduleRunOutcome = 1
+	// A launch gate refused the run deterministically; reason carries the
+	// gate's copy verbatim.
+	ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_REFUSED ScheduleRunOutcome = 2
+	// The schedule's agent_ref no longer resolves.
+	ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_TARGET_MISSING ScheduleRunOutcome = 3
+	// The fire no-opped: the row was deleted, disabled, or paused between
+	// the fire being recorded and the run starting.
+	ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_SKIPPED ScheduleRunOutcome = 4
+	// The tracked run reached EXECUTION_COMPLETED.
+	ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_COMPLETED ScheduleRunOutcome = 5
+	// The tracked run ended terminal-but-not-completed (failed, cancelled,
+	// or terminated); reason names the terminal phase.
+	ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_FAILED ScheduleRunOutcome = 6
+	// The tracked run outlived the fire's tracking budget.
+	ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_TIMED_OUT ScheduleRunOutcome = 7
+)
+
+// Enum value maps for ScheduleRunOutcome.
+var (
+	ScheduleRunOutcome_name = map[int32]string{
+		0: "SCHEDULE_RUN_OUTCOME_UNSPECIFIED",
+		1: "SCHEDULE_RUN_OUTCOME_STARTED",
+		2: "SCHEDULE_RUN_OUTCOME_REFUSED",
+		3: "SCHEDULE_RUN_OUTCOME_TARGET_MISSING",
+		4: "SCHEDULE_RUN_OUTCOME_SKIPPED",
+		5: "SCHEDULE_RUN_OUTCOME_COMPLETED",
+		6: "SCHEDULE_RUN_OUTCOME_FAILED",
+		7: "SCHEDULE_RUN_OUTCOME_TIMED_OUT",
+	}
+	ScheduleRunOutcome_value = map[string]int32{
+		"SCHEDULE_RUN_OUTCOME_UNSPECIFIED":    0,
+		"SCHEDULE_RUN_OUTCOME_STARTED":        1,
+		"SCHEDULE_RUN_OUTCOME_REFUSED":        2,
+		"SCHEDULE_RUN_OUTCOME_TARGET_MISSING": 3,
+		"SCHEDULE_RUN_OUTCOME_SKIPPED":        4,
+		"SCHEDULE_RUN_OUTCOME_COMPLETED":      5,
+		"SCHEDULE_RUN_OUTCOME_FAILED":         6,
+		"SCHEDULE_RUN_OUTCOME_TIMED_OUT":      7,
+	}
+)
+
+func (x ScheduleRunOutcome) Enum() *ScheduleRunOutcome {
+	p := new(ScheduleRunOutcome)
+	*p = x
+	return p
+}
+
+func (x ScheduleRunOutcome) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ScheduleRunOutcome) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_schedule_v1_io_proto_enumTypes[1].Descriptor()
+}
+
+func (ScheduleRunOutcome) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_schedule_v1_io_proto_enumTypes[1]
+}
+
+func (x ScheduleRunOutcome) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ScheduleRunOutcome.Descriptor instead.
+func (ScheduleRunOutcome) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_schedule_v1_io_proto_rawDescGZIP(), []int{1}
+}
 
 // ScheduleId wraps a schedule identifier.
 type ScheduleId struct {
@@ -262,11 +398,331 @@ func (x *ListSchedulesRequest) GetPageInfo() *rpc.PageInfo {
 	return nil
 }
 
+// Result of manually triggering a schedule.
+//
+// A gRPC error means the trigger itself was refused (disabled schedule,
+// missing schedule, unauthorized). A successful response means the fire
+// happened, and this message names the run's real outcome.
+type ScheduleTriggerResult struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The schedule after the fire, status freshly stamped.
+	Schedule *Schedule `protobuf:"bytes,1,opt,name=schedule,proto3" json:"schedule,omitempty"`
+	// What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the
+	// terminal outcomes belong to run history — a manual fire answers at
+	// run start).
+	Outcome ScheduleRunOutcome `protobuf:"varint,2,opt,name=outcome,proto3,enum=ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome" json:"outcome,omitempty"`
+	// ID of the created execution. Set only when outcome is STARTED.
+	ExecutionId string `protobuf:"bytes,3,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// The refusing launch gate's copy, verbatim. Set only when outcome is
+	// REFUSED or TARGET_MISSING.
+	RefusalReason string `protobuf:"bytes,4,opt,name=refusal_reason,json=refusalReason,proto3" json:"refusal_reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScheduleTriggerResult) Reset() {
+	*x = ScheduleTriggerResult{}
+	mi := &file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScheduleTriggerResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScheduleTriggerResult) ProtoMessage() {}
+
+func (x *ScheduleTriggerResult) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScheduleTriggerResult.ProtoReflect.Descriptor instead.
+func (*ScheduleTriggerResult) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_schedule_v1_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ScheduleTriggerResult) GetSchedule() *Schedule {
+	if x != nil {
+		return x.Schedule
+	}
+	return nil
+}
+
+func (x *ScheduleTriggerResult) GetOutcome() ScheduleRunOutcome {
+	if x != nil {
+		return x.Outcome
+	}
+	return ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_UNSPECIFIED
+}
+
+func (x *ScheduleTriggerResult) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *ScheduleTriggerResult) GetRefusalReason() string {
+	if x != nil {
+		return x.RefusalReason
+	}
+	return ""
+}
+
+// One recorded schedule fire — a run-history row.
+//
+// @internal
+// Backed by the fire ledger (project DD-017 D-7): every fire leaves a
+// row, INCLUDING fires that created no execution — the ledger is the
+// one place a refused fire's reason survives below the pause threshold.
+// Rows carrying an execution id but no terminal outcome are enriched
+// with the execution's live phase at read time, so outcome never lies
+// while a run is in flight.
+type ScheduleRun struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Schedule this fire belongs to.
+	ScheduleId string `protobuf:"bytes,1,opt,name=schedule_id,json=scheduleId,proto3" json:"schedule_id,omitempty"`
+	// Organization that owns the schedule.
+	Org string `protobuf:"bytes,2,opt,name=org,proto3" json:"org,omitempty"`
+	// The fire's nominal time (cron: the scheduled instant; manual: the
+	// trigger instant).
+	NominalFireTime *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=nominal_fire_time,json=nominalFireTime,proto3" json:"nominal_fire_time,omitempty"`
+	// How the fire was initiated.
+	Origin ScheduleRunOrigin `protobuf:"varint,4,opt,name=origin,proto3,enum=ai.stigmer.agentic.schedule.v1.ScheduleRunOrigin" json:"origin,omitempty"`
+	// What the fire produced.
+	Outcome ScheduleRunOutcome `protobuf:"varint,5,opt,name=outcome,proto3,enum=ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome" json:"outcome,omitempty"`
+	// The refusing gate's or terminal verdict's copy, verbatim. Empty for
+	// healthy outcomes.
+	Reason string `protobuf:"bytes,6,opt,name=reason,proto3" json:"reason,omitempty"`
+	// ID of the created execution. Empty when no execution was created
+	// (refused, target missing, skipped).
+	ExecutionId string `protobuf:"bytes,7,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	// When the fire was recorded.
+	RecordedAt *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=recorded_at,json=recordedAt,proto3" json:"recorded_at,omitempty"`
+	// When the terminal outcome was recorded. Absent while the run is in
+	// flight or when no run was created.
+	CompletedAt   *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScheduleRun) Reset() {
+	*x = ScheduleRun{}
+	mi := &file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScheduleRun) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScheduleRun) ProtoMessage() {}
+
+func (x *ScheduleRun) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScheduleRun.ProtoReflect.Descriptor instead.
+func (*ScheduleRun) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_schedule_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ScheduleRun) GetScheduleId() string {
+	if x != nil {
+		return x.ScheduleId
+	}
+	return ""
+}
+
+func (x *ScheduleRun) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *ScheduleRun) GetNominalFireTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.NominalFireTime
+	}
+	return nil
+}
+
+func (x *ScheduleRun) GetOrigin() ScheduleRunOrigin {
+	if x != nil {
+		return x.Origin
+	}
+	return ScheduleRunOrigin_SCHEDULE_RUN_ORIGIN_UNSPECIFIED
+}
+
+func (x *ScheduleRun) GetOutcome() ScheduleRunOutcome {
+	if x != nil {
+		return x.Outcome
+	}
+	return ScheduleRunOutcome_SCHEDULE_RUN_OUTCOME_UNSPECIFIED
+}
+
+func (x *ScheduleRun) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *ScheduleRun) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *ScheduleRun) GetRecordedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.RecordedAt
+	}
+	return nil
+}
+
+func (x *ScheduleRun) GetCompletedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CompletedAt
+	}
+	return nil
+}
+
+// Input for listing a schedule's run history.
+type ListScheduleRunsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Schedule whose runs to list.
+	ScheduleId string `protobuf:"bytes,1,opt,name=schedule_id,json=scheduleId,proto3" json:"schedule_id,omitempty"`
+	// Pagination options. Runs are returned newest first.
+	PageInfo      *rpc.PageInfo `protobuf:"bytes,2,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListScheduleRunsRequest) Reset() {
+	*x = ListScheduleRunsRequest{}
+	mi := &file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListScheduleRunsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListScheduleRunsRequest) ProtoMessage() {}
+
+func (x *ListScheduleRunsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListScheduleRunsRequest.ProtoReflect.Descriptor instead.
+func (*ListScheduleRunsRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_schedule_v1_io_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListScheduleRunsRequest) GetScheduleId() string {
+	if x != nil {
+		return x.ScheduleId
+	}
+	return ""
+}
+
+func (x *ListScheduleRunsRequest) GetPageInfo() *rpc.PageInfo {
+	if x != nil {
+		return x.PageInfo
+	}
+	return nil
+}
+
+// Response containing a paginated list of schedule runs, newest first.
+type ScheduleRunList struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Total number of recorded runs for the schedule.
+	TotalCount int32 `protobuf:"varint,1,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	// Runs in the current page.
+	Items         []*ScheduleRun `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScheduleRunList) Reset() {
+	*x = ScheduleRunList{}
+	mi := &file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScheduleRunList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScheduleRunList) ProtoMessage() {}
+
+func (x *ScheduleRunList) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScheduleRunList.ProtoReflect.Descriptor instead.
+func (*ScheduleRunList) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_schedule_v1_io_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ScheduleRunList) GetTotalCount() int32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
+func (x *ScheduleRunList) GetItems() []*ScheduleRun {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_schedule_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_schedule_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/agentic/schedule/v1/io.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a(ai/stigmer/agentic/schedule/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"*\n" +
+	"'ai/stigmer/agentic/schedule/v1/io.proto\x12\x1eai.stigmer.agentic.schedule.v1\x1a(ai/stigmer/agentic/schedule/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"*\n" +
 	"\n" +
 	"ScheduleId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\x90\x01\n" +
@@ -284,7 +740,45 @@ const file_ai_stigmer_agentic_schedule_v1_io_proto_rawDesc = "" +
 	"\tpage_info\x18\x03 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x9e\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf5\x01\n" +
+	"\x15ScheduleTriggerResult\x12D\n" +
+	"\bschedule\x18\x01 \x01(\v2(.ai.stigmer.agentic.schedule.v1.ScheduleR\bschedule\x12L\n" +
+	"\aoutcome\x18\x02 \x01(\x0e22.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcomeR\aoutcome\x12!\n" +
+	"\fexecution_id\x18\x03 \x01(\tR\vexecutionId\x12%\n" +
+	"\x0erefusal_reason\x18\x04 \x01(\tR\rrefusalReason\"\xd8\x03\n" +
+	"\vScheduleRun\x12\x1f\n" +
+	"\vschedule_id\x18\x01 \x01(\tR\n" +
+	"scheduleId\x12\x10\n" +
+	"\x03org\x18\x02 \x01(\tR\x03org\x12F\n" +
+	"\x11nominal_fire_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x0fnominalFireTime\x12I\n" +
+	"\x06origin\x18\x04 \x01(\x0e21.ai.stigmer.agentic.schedule.v1.ScheduleRunOriginR\x06origin\x12L\n" +
+	"\aoutcome\x18\x05 \x01(\x0e22.ai.stigmer.agentic.schedule.v1.ScheduleRunOutcomeR\aoutcome\x12\x16\n" +
+	"\x06reason\x18\x06 \x01(\tR\x06reason\x12!\n" +
+	"\fexecution_id\x18\a \x01(\tR\vexecutionId\x12;\n" +
+	"\vrecorded_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"recordedAt\x12=\n" +
+	"\fcompleted_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\x81\x01\n" +
+	"\x17ListScheduleRunsRequest\x12'\n" +
+	"\vschedule_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\n" +
+	"scheduleId\x12=\n" +
+	"\tpage_info\x18\x02 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\"u\n" +
+	"\x0fScheduleRunList\x12\x1f\n" +
+	"\vtotal_count\x18\x01 \x01(\x05R\n" +
+	"totalCount\x12A\n" +
+	"\x05items\x18\x02 \x03(\v2+.ai.stigmer.agentic.schedule.v1.ScheduleRunR\x05items*v\n" +
+	"\x11ScheduleRunOrigin\x12#\n" +
+	"\x1fSCHEDULE_RUN_ORIGIN_UNSPECIFIED\x10\x00\x12\x1c\n" +
+	"\x18SCHEDULE_RUN_ORIGIN_CRON\x10\x01\x12\x1e\n" +
+	"\x1aSCHEDULE_RUN_ORIGIN_MANUAL\x10\x02*\xb2\x02\n" +
+	"\x12ScheduleRunOutcome\x12$\n" +
+	" SCHEDULE_RUN_OUTCOME_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cSCHEDULE_RUN_OUTCOME_STARTED\x10\x01\x12 \n" +
+	"\x1cSCHEDULE_RUN_OUTCOME_REFUSED\x10\x02\x12'\n" +
+	"#SCHEDULE_RUN_OUTCOME_TARGET_MISSING\x10\x03\x12 \n" +
+	"\x1cSCHEDULE_RUN_OUTCOME_SKIPPED\x10\x04\x12\"\n" +
+	"\x1eSCHEDULE_RUN_OUTCOME_COMPLETED\x10\x05\x12\x1f\n" +
+	"\x1bSCHEDULE_RUN_OUTCOME_FAILED\x10\x06\x12\"\n" +
+	"\x1eSCHEDULE_RUN_OUTCOME_TIMED_OUT\x10\aB\x9e\x02\n" +
 	"\"com.ai.stigmer.agentic.schedule.v1B\aIoProtoP\x01ZRgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1;schedulev1\xa2\x02\x04ASAS\xaa\x02\x1eAi.Stigmer.Agentic.Schedule.V1\xca\x02\x1eAi\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3"
 
 var (
@@ -299,26 +793,43 @@ func file_ai_stigmer_agentic_schedule_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_schedule_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_agentic_schedule_v1_io_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_ai_stigmer_agentic_schedule_v1_io_proto_goTypes = []any{
-	(*ScheduleId)(nil),                 // 0: ai.stigmer.agentic.schedule.v1.ScheduleId
-	(*GetSchedulesByAgentRequest)(nil), // 1: ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest
-	(*ScheduleList)(nil),               // 2: ai.stigmer.agentic.schedule.v1.ScheduleList
-	(*ListSchedulesRequest)(nil),       // 3: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest
-	nil,                                // 4: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntry
-	(*rpc.PageInfo)(nil),               // 5: ai.stigmer.commons.rpc.PageInfo
-	(*Schedule)(nil),                   // 6: ai.stigmer.agentic.schedule.v1.Schedule
+	(ScheduleRunOrigin)(0),             // 0: ai.stigmer.agentic.schedule.v1.ScheduleRunOrigin
+	(ScheduleRunOutcome)(0),            // 1: ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome
+	(*ScheduleId)(nil),                 // 2: ai.stigmer.agentic.schedule.v1.ScheduleId
+	(*GetSchedulesByAgentRequest)(nil), // 3: ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest
+	(*ScheduleList)(nil),               // 4: ai.stigmer.agentic.schedule.v1.ScheduleList
+	(*ListSchedulesRequest)(nil),       // 5: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest
+	(*ScheduleTriggerResult)(nil),      // 6: ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult
+	(*ScheduleRun)(nil),                // 7: ai.stigmer.agentic.schedule.v1.ScheduleRun
+	(*ListScheduleRunsRequest)(nil),    // 8: ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest
+	(*ScheduleRunList)(nil),            // 9: ai.stigmer.agentic.schedule.v1.ScheduleRunList
+	nil,                                // 10: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntry
+	(*rpc.PageInfo)(nil),               // 11: ai.stigmer.commons.rpc.PageInfo
+	(*Schedule)(nil),                   // 12: ai.stigmer.agentic.schedule.v1.Schedule
+	(*timestamppb.Timestamp)(nil),      // 13: google.protobuf.Timestamp
 }
 var file_ai_stigmer_agentic_schedule_v1_io_proto_depIdxs = []int32{
-	5, // 0: ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	6, // 1: ai.stigmer.agentic.schedule.v1.ScheduleList.items:type_name -> ai.stigmer.agentic.schedule.v1.Schedule
-	4, // 2: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.labels:type_name -> ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntry
-	5, // 3: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	11, // 0: ai.stigmer.agentic.schedule.v1.GetSchedulesByAgentRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	12, // 1: ai.stigmer.agentic.schedule.v1.ScheduleList.items:type_name -> ai.stigmer.agentic.schedule.v1.Schedule
+	10, // 2: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.labels:type_name -> ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.LabelsEntry
+	11, // 3: ai.stigmer.agentic.schedule.v1.ListSchedulesRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	12, // 4: ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult.schedule:type_name -> ai.stigmer.agentic.schedule.v1.Schedule
+	1,  // 5: ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult.outcome:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome
+	13, // 6: ai.stigmer.agentic.schedule.v1.ScheduleRun.nominal_fire_time:type_name -> google.protobuf.Timestamp
+	0,  // 7: ai.stigmer.agentic.schedule.v1.ScheduleRun.origin:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleRunOrigin
+	1,  // 8: ai.stigmer.agentic.schedule.v1.ScheduleRun.outcome:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleRunOutcome
+	13, // 9: ai.stigmer.agentic.schedule.v1.ScheduleRun.recorded_at:type_name -> google.protobuf.Timestamp
+	13, // 10: ai.stigmer.agentic.schedule.v1.ScheduleRun.completed_at:type_name -> google.protobuf.Timestamp
+	11, // 11: ai.stigmer.agentic.schedule.v1.ListScheduleRunsRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	7,  // 12: ai.stigmer.agentic.schedule.v1.ScheduleRunList.items:type_name -> ai.stigmer.agentic.schedule.v1.ScheduleRun
+	13, // [13:13] is the sub-list for method output_type
+	13, // [13:13] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_schedule_v1_io_proto_init() }
@@ -332,13 +843,14 @@ func file_ai_stigmer_agentic_schedule_v1_io_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_schedule_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_schedule_v1_io_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   5,
+			NumEnums:      2,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_schedule_v1_io_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_schedule_v1_io_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_agentic_schedule_v1_io_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_schedule_v1_io_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_schedule_v1_io_proto = out.File

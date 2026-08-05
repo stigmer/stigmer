@@ -171,28 +171,28 @@ public final class ScheduleCommandControllerGrpc {
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ScheduleId,
-      ai.stigmer.agentic.schedule.v1.Schedule> getTriggerMethod;
+      ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult> getTriggerMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
       fullMethodName = SERVICE_NAME + '/' + "trigger",
       requestType = ai.stigmer.agentic.schedule.v1.ScheduleId.class,
-      responseType = ai.stigmer.agentic.schedule.v1.Schedule.class,
+      responseType = ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
   public static io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ScheduleId,
-      ai.stigmer.agentic.schedule.v1.Schedule> getTriggerMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ScheduleId, ai.stigmer.agentic.schedule.v1.Schedule> getTriggerMethod;
+      ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult> getTriggerMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.schedule.v1.ScheduleId, ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult> getTriggerMethod;
     if ((getTriggerMethod = ScheduleCommandControllerGrpc.getTriggerMethod) == null) {
       synchronized (ScheduleCommandControllerGrpc.class) {
         if ((getTriggerMethod = ScheduleCommandControllerGrpc.getTriggerMethod) == null) {
           ScheduleCommandControllerGrpc.getTriggerMethod = getTriggerMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.agentic.schedule.v1.ScheduleId, ai.stigmer.agentic.schedule.v1.Schedule>newBuilder()
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.schedule.v1.ScheduleId, ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
               .setFullMethodName(generateFullMethodName(SERVICE_NAME, "trigger"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.agentic.schedule.v1.ScheduleId.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.agentic.schedule.v1.Schedule.getDefaultInstance()))
+                  ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult.getDefaultInstance()))
               .setSchemaDescriptor(new ScheduleCommandControllerMethodDescriptorSupplier("trigger"))
               .build();
         }
@@ -385,33 +385,46 @@ public final class ScheduleCommandControllerGrpc {
 
     /**
      * <pre>
-     * Trigger a schedule to fire once, immediately.
-     * The manual fire runs through the schedule's own clock, so everything
-     * a cron fire does applies: a fresh run is created, status.last_fire_at
-     * and status.last_execution_id record it, and its verdict feeds the
-     * failure streak (a successful manual fire resets the streak). The fire
-     * is asynchronous — the response carries the schedule, and the run
-     * appears on status as it starts. A disabled schedule refuses (enable
-     * it first); a platform-paused schedule refuses (resume it first).
+     * Trigger a schedule to fire once, immediately, and answer with the
+     * run's real outcome.
+     * The manual fire runs synchronously through the standard execution
+     * create pipeline — every launch gate runs — and the result names what
+     * happened: the created execution's id, or the refusing gate's own
+     * copy verbatim. status.last_fire_at and status.last_execution_id
+     * record a started run. Manual fires do NOT feed the failure streak —
+     * the streak is the unattended (cron) health signal, and a test fire
+     * of a broken schedule must not race its owner to the pause threshold.
+     * A disabled schedule refuses (enable it first). A platform-paused
+     * schedule MAY be triggered — a test fire is exactly how an owner
+     * verifies a fix before resuming; resume remains the one path that
+     * clears the pause.
      * &#64;internal
      * Authorization: requires can_edit permission on the schedule — the
-     * update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
-     * Refusal matrix in-handler (DD-014 D-B): disabled and paused both
-     * answer FAILED_PRECONDITION with teaching copy; the cloud handler
-     * loads before authorizing (#224: a missing schedule answers NOT_FOUND,
-     * not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
-     * overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
-     * SKIP would silently swallow a trigger issued while a previous fire is
-     * still tracking, and a human asking to run now means now. Cron fires
-     * keep SKIP, baked into the artifact. Manual fires feed the failure
-     * streak and reset it on success (DD-014 D-D): one verdict path, no
-     * manual-fire exemption. OSS answers FAILED_PRECONDITION until its
-     * clock lands (T04 slice 3a), then fires for real; OSS excludes the
+     * update bar (DD-014 D-A). Project DD-017 D-5/D-6 amends DD-014: the
+     * artifact round-trip is gone for manual fires (it made the fire
+     * asynchronous, so the RPC answered before the launch gates ran — a
+     * false "run started" beside a climbing failure counter). Cron fires
+     * keep the tracked artifact tick unchanged. The disabled refusal
+     * SURVIVES for a different reason than DD-014 D-B recorded:
+     * ScheduleBlueprintAccess requires spec.enabled at the create gate AND
+     * the mid-run sandbox read predicate, so a disabled-schedule run would
+     * die mid-execution after billing side effects (consoles offer
+     * "Enable &amp; run now" instead; the fire-legitimacy model that would
+     * lift this is DD-017's named follow-up). Two-level contract: a gRPC
+     * error means the trigger itself was refused (disabled →
+     * FAILED_PRECONDITION with the byte-pinned copy, missing → NOT_FOUND
+     * before authorize, #224); a gRPC success means the fire happened and
+     * ScheduleTriggerResult names the run's outcome — a deterministically
+     * refused run is a successful trigger honestly reported, never an
+     * exception. The handler stamps last_fire_at/last_execution_id and
+     * writes the fire-ledger row (origin=manual) because the tick is not
+     * in the path to do it; status writes ride updateFields, never save()
+     * (DD-010 D-B). OSS mirrors the semantics; it excludes the
      * authorization step per its recorded single-user posture.
      * </pre>
      */
     default void trigger(ai.stigmer.agentic.schedule.v1.ScheduleId request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule> responseObserver) {
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getTriggerMethod(), responseObserver);
     }
   }
@@ -572,33 +585,46 @@ public final class ScheduleCommandControllerGrpc {
 
     /**
      * <pre>
-     * Trigger a schedule to fire once, immediately.
-     * The manual fire runs through the schedule's own clock, so everything
-     * a cron fire does applies: a fresh run is created, status.last_fire_at
-     * and status.last_execution_id record it, and its verdict feeds the
-     * failure streak (a successful manual fire resets the streak). The fire
-     * is asynchronous — the response carries the schedule, and the run
-     * appears on status as it starts. A disabled schedule refuses (enable
-     * it first); a platform-paused schedule refuses (resume it first).
+     * Trigger a schedule to fire once, immediately, and answer with the
+     * run's real outcome.
+     * The manual fire runs synchronously through the standard execution
+     * create pipeline — every launch gate runs — and the result names what
+     * happened: the created execution's id, or the refusing gate's own
+     * copy verbatim. status.last_fire_at and status.last_execution_id
+     * record a started run. Manual fires do NOT feed the failure streak —
+     * the streak is the unattended (cron) health signal, and a test fire
+     * of a broken schedule must not race its owner to the pause threshold.
+     * A disabled schedule refuses (enable it first). A platform-paused
+     * schedule MAY be triggered — a test fire is exactly how an owner
+     * verifies a fix before resuming; resume remains the one path that
+     * clears the pause.
      * &#64;internal
      * Authorization: requires can_edit permission on the schedule — the
-     * update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
-     * Refusal matrix in-handler (DD-014 D-B): disabled and paused both
-     * answer FAILED_PRECONDITION with teaching copy; the cloud handler
-     * loads before authorizing (#224: a missing schedule answers NOT_FOUND,
-     * not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
-     * overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
-     * SKIP would silently swallow a trigger issued while a previous fire is
-     * still tracking, and a human asking to run now means now. Cron fires
-     * keep SKIP, baked into the artifact. Manual fires feed the failure
-     * streak and reset it on success (DD-014 D-D): one verdict path, no
-     * manual-fire exemption. OSS answers FAILED_PRECONDITION until its
-     * clock lands (T04 slice 3a), then fires for real; OSS excludes the
+     * update bar (DD-014 D-A). Project DD-017 D-5/D-6 amends DD-014: the
+     * artifact round-trip is gone for manual fires (it made the fire
+     * asynchronous, so the RPC answered before the launch gates ran — a
+     * false "run started" beside a climbing failure counter). Cron fires
+     * keep the tracked artifact tick unchanged. The disabled refusal
+     * SURVIVES for a different reason than DD-014 D-B recorded:
+     * ScheduleBlueprintAccess requires spec.enabled at the create gate AND
+     * the mid-run sandbox read predicate, so a disabled-schedule run would
+     * die mid-execution after billing side effects (consoles offer
+     * "Enable &amp; run now" instead; the fire-legitimacy model that would
+     * lift this is DD-017's named follow-up). Two-level contract: a gRPC
+     * error means the trigger itself was refused (disabled →
+     * FAILED_PRECONDITION with the byte-pinned copy, missing → NOT_FOUND
+     * before authorize, #224); a gRPC success means the fire happened and
+     * ScheduleTriggerResult names the run's outcome — a deterministically
+     * refused run is a successful trigger honestly reported, never an
+     * exception. The handler stamps last_fire_at/last_execution_id and
+     * writes the fire-ledger row (origin=manual) because the tick is not
+     * in the path to do it; status writes ride updateFields, never save()
+     * (DD-010 D-B). OSS mirrors the semantics; it excludes the
      * authorization step per its recorded single-user posture.
      * </pre>
      */
     public void trigger(ai.stigmer.agentic.schedule.v1.ScheduleId request,
-        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule> responseObserver) {
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult> responseObserver) {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getTriggerMethod(), getCallOptions()), request, responseObserver);
     }
@@ -741,32 +767,45 @@ public final class ScheduleCommandControllerGrpc {
 
     /**
      * <pre>
-     * Trigger a schedule to fire once, immediately.
-     * The manual fire runs through the schedule's own clock, so everything
-     * a cron fire does applies: a fresh run is created, status.last_fire_at
-     * and status.last_execution_id record it, and its verdict feeds the
-     * failure streak (a successful manual fire resets the streak). The fire
-     * is asynchronous — the response carries the schedule, and the run
-     * appears on status as it starts. A disabled schedule refuses (enable
-     * it first); a platform-paused schedule refuses (resume it first).
+     * Trigger a schedule to fire once, immediately, and answer with the
+     * run's real outcome.
+     * The manual fire runs synchronously through the standard execution
+     * create pipeline — every launch gate runs — and the result names what
+     * happened: the created execution's id, or the refusing gate's own
+     * copy verbatim. status.last_fire_at and status.last_execution_id
+     * record a started run. Manual fires do NOT feed the failure streak —
+     * the streak is the unattended (cron) health signal, and a test fire
+     * of a broken schedule must not race its owner to the pause threshold.
+     * A disabled schedule refuses (enable it first). A platform-paused
+     * schedule MAY be triggered — a test fire is exactly how an owner
+     * verifies a fix before resuming; resume remains the one path that
+     * clears the pause.
      * &#64;internal
      * Authorization: requires can_edit permission on the schedule — the
-     * update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
-     * Refusal matrix in-handler (DD-014 D-B): disabled and paused both
-     * answer FAILED_PRECONDITION with teaching copy; the cloud handler
-     * loads before authorizing (#224: a missing schedule answers NOT_FOUND,
-     * not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
-     * overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
-     * SKIP would silently swallow a trigger issued while a previous fire is
-     * still tracking, and a human asking to run now means now. Cron fires
-     * keep SKIP, baked into the artifact. Manual fires feed the failure
-     * streak and reset it on success (DD-014 D-D): one verdict path, no
-     * manual-fire exemption. OSS answers FAILED_PRECONDITION until its
-     * clock lands (T04 slice 3a), then fires for real; OSS excludes the
+     * update bar (DD-014 D-A). Project DD-017 D-5/D-6 amends DD-014: the
+     * artifact round-trip is gone for manual fires (it made the fire
+     * asynchronous, so the RPC answered before the launch gates ran — a
+     * false "run started" beside a climbing failure counter). Cron fires
+     * keep the tracked artifact tick unchanged. The disabled refusal
+     * SURVIVES for a different reason than DD-014 D-B recorded:
+     * ScheduleBlueprintAccess requires spec.enabled at the create gate AND
+     * the mid-run sandbox read predicate, so a disabled-schedule run would
+     * die mid-execution after billing side effects (consoles offer
+     * "Enable &amp; run now" instead; the fire-legitimacy model that would
+     * lift this is DD-017's named follow-up). Two-level contract: a gRPC
+     * error means the trigger itself was refused (disabled →
+     * FAILED_PRECONDITION with the byte-pinned copy, missing → NOT_FOUND
+     * before authorize, #224); a gRPC success means the fire happened and
+     * ScheduleTriggerResult names the run's outcome — a deterministically
+     * refused run is a successful trigger honestly reported, never an
+     * exception. The handler stamps last_fire_at/last_execution_id and
+     * writes the fire-ledger row (origin=manual) because the tick is not
+     * in the path to do it; status writes ride updateFields, never save()
+     * (DD-010 D-B). OSS mirrors the semantics; it excludes the
      * authorization step per its recorded single-user posture.
      * </pre>
      */
-    public ai.stigmer.agentic.schedule.v1.Schedule trigger(ai.stigmer.agentic.schedule.v1.ScheduleId request) throws io.grpc.StatusException {
+    public ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult trigger(ai.stigmer.agentic.schedule.v1.ScheduleId request) throws io.grpc.StatusException {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getTriggerMethod(), getCallOptions(), request);
     }
@@ -909,32 +948,45 @@ public final class ScheduleCommandControllerGrpc {
 
     /**
      * <pre>
-     * Trigger a schedule to fire once, immediately.
-     * The manual fire runs through the schedule's own clock, so everything
-     * a cron fire does applies: a fresh run is created, status.last_fire_at
-     * and status.last_execution_id record it, and its verdict feeds the
-     * failure streak (a successful manual fire resets the streak). The fire
-     * is asynchronous — the response carries the schedule, and the run
-     * appears on status as it starts. A disabled schedule refuses (enable
-     * it first); a platform-paused schedule refuses (resume it first).
+     * Trigger a schedule to fire once, immediately, and answer with the
+     * run's real outcome.
+     * The manual fire runs synchronously through the standard execution
+     * create pipeline — every launch gate runs — and the result names what
+     * happened: the created execution's id, or the refusing gate's own
+     * copy verbatim. status.last_fire_at and status.last_execution_id
+     * record a started run. Manual fires do NOT feed the failure streak —
+     * the streak is the unattended (cron) health signal, and a test fire
+     * of a broken schedule must not race its owner to the pause threshold.
+     * A disabled schedule refuses (enable it first). A platform-paused
+     * schedule MAY be triggered — a test fire is exactly how an owner
+     * verifies a fix before resuming; resume remains the one path that
+     * clears the pause.
      * &#64;internal
      * Authorization: requires can_edit permission on the schedule — the
-     * update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
-     * Refusal matrix in-handler (DD-014 D-B): disabled and paused both
-     * answer FAILED_PRECONDITION with teaching copy; the cloud handler
-     * loads before authorizing (#224: a missing schedule answers NOT_FOUND,
-     * not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
-     * overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
-     * SKIP would silently swallow a trigger issued while a previous fire is
-     * still tracking, and a human asking to run now means now. Cron fires
-     * keep SKIP, baked into the artifact. Manual fires feed the failure
-     * streak and reset it on success (DD-014 D-D): one verdict path, no
-     * manual-fire exemption. OSS answers FAILED_PRECONDITION until its
-     * clock lands (T04 slice 3a), then fires for real; OSS excludes the
+     * update bar (DD-014 D-A). Project DD-017 D-5/D-6 amends DD-014: the
+     * artifact round-trip is gone for manual fires (it made the fire
+     * asynchronous, so the RPC answered before the launch gates ran — a
+     * false "run started" beside a climbing failure counter). Cron fires
+     * keep the tracked artifact tick unchanged. The disabled refusal
+     * SURVIVES for a different reason than DD-014 D-B recorded:
+     * ScheduleBlueprintAccess requires spec.enabled at the create gate AND
+     * the mid-run sandbox read predicate, so a disabled-schedule run would
+     * die mid-execution after billing side effects (consoles offer
+     * "Enable &amp; run now" instead; the fire-legitimacy model that would
+     * lift this is DD-017's named follow-up). Two-level contract: a gRPC
+     * error means the trigger itself was refused (disabled →
+     * FAILED_PRECONDITION with the byte-pinned copy, missing → NOT_FOUND
+     * before authorize, #224); a gRPC success means the fire happened and
+     * ScheduleTriggerResult names the run's outcome — a deterministically
+     * refused run is a successful trigger honestly reported, never an
+     * exception. The handler stamps last_fire_at/last_execution_id and
+     * writes the fire-ledger row (origin=manual) because the tick is not
+     * in the path to do it; status writes ride updateFields, never save()
+     * (DD-010 D-B). OSS mirrors the semantics; it excludes the
      * authorization step per its recorded single-user posture.
      * </pre>
      */
-    public ai.stigmer.agentic.schedule.v1.Schedule trigger(ai.stigmer.agentic.schedule.v1.ScheduleId request) {
+    public ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult trigger(ai.stigmer.agentic.schedule.v1.ScheduleId request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getTriggerMethod(), getCallOptions(), request);
     }
@@ -1082,32 +1134,45 @@ public final class ScheduleCommandControllerGrpc {
 
     /**
      * <pre>
-     * Trigger a schedule to fire once, immediately.
-     * The manual fire runs through the schedule's own clock, so everything
-     * a cron fire does applies: a fresh run is created, status.last_fire_at
-     * and status.last_execution_id record it, and its verdict feeds the
-     * failure streak (a successful manual fire resets the streak). The fire
-     * is asynchronous — the response carries the schedule, and the run
-     * appears on status as it starts. A disabled schedule refuses (enable
-     * it first); a platform-paused schedule refuses (resume it first).
+     * Trigger a schedule to fire once, immediately, and answer with the
+     * run's real outcome.
+     * The manual fire runs synchronously through the standard execution
+     * create pipeline — every launch gate runs — and the result names what
+     * happened: the created execution's id, or the refusing gate's own
+     * copy verbatim. status.last_fire_at and status.last_execution_id
+     * record a started run. Manual fires do NOT feed the failure streak —
+     * the streak is the unattended (cron) health signal, and a test fire
+     * of a broken schedule must not race its owner to the pause threshold.
+     * A disabled schedule refuses (enable it first). A platform-paused
+     * schedule MAY be triggered — a test fire is exactly how an owner
+     * verifies a fix before resuming; resume remains the one path that
+     * clears the pause.
      * &#64;internal
      * Authorization: requires can_edit permission on the schedule — the
-     * update bar (DD-014 D-A in the whatsapp-proactive-messaging project).
-     * Refusal matrix in-handler (DD-014 D-B): disabled and paused both
-     * answer FAILED_PRECONDITION with teaching copy; the cloud handler
-     * loads before authorizing (#224: a missing schedule answers NOT_FOUND,
-     * not PERMISSION_DENIED). The manual fire bypasses the artifact's SKIP
-     * overlap policy (ALLOW_ALL — DD-014 D-C): since a tick SPANS its run,
-     * SKIP would silently swallow a trigger issued while a previous fire is
-     * still tracking, and a human asking to run now means now. Cron fires
-     * keep SKIP, baked into the artifact. Manual fires feed the failure
-     * streak and reset it on success (DD-014 D-D): one verdict path, no
-     * manual-fire exemption. OSS answers FAILED_PRECONDITION until its
-     * clock lands (T04 slice 3a), then fires for real; OSS excludes the
+     * update bar (DD-014 D-A). Project DD-017 D-5/D-6 amends DD-014: the
+     * artifact round-trip is gone for manual fires (it made the fire
+     * asynchronous, so the RPC answered before the launch gates ran — a
+     * false "run started" beside a climbing failure counter). Cron fires
+     * keep the tracked artifact tick unchanged. The disabled refusal
+     * SURVIVES for a different reason than DD-014 D-B recorded:
+     * ScheduleBlueprintAccess requires spec.enabled at the create gate AND
+     * the mid-run sandbox read predicate, so a disabled-schedule run would
+     * die mid-execution after billing side effects (consoles offer
+     * "Enable &amp; run now" instead; the fire-legitimacy model that would
+     * lift this is DD-017's named follow-up). Two-level contract: a gRPC
+     * error means the trigger itself was refused (disabled →
+     * FAILED_PRECONDITION with the byte-pinned copy, missing → NOT_FOUND
+     * before authorize, #224); a gRPC success means the fire happened and
+     * ScheduleTriggerResult names the run's outcome — a deterministically
+     * refused run is a successful trigger honestly reported, never an
+     * exception. The handler stamps last_fire_at/last_execution_id and
+     * writes the fire-ledger row (origin=manual) because the tick is not
+     * in the path to do it; status writes ride updateFields, never save()
+     * (DD-010 D-B). OSS mirrors the semantics; it excludes the
      * authorization step per its recorded single-user posture.
      * </pre>
      */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.Schedule> trigger(
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult> trigger(
         ai.stigmer.agentic.schedule.v1.ScheduleId request) {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getTriggerMethod(), getCallOptions()), request);
@@ -1160,7 +1225,7 @@ public final class ScheduleCommandControllerGrpc {
           break;
         case METHODID_TRIGGER:
           serviceImpl.trigger((ai.stigmer.agentic.schedule.v1.ScheduleId) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.Schedule>) responseObserver);
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -1220,7 +1285,7 @@ public final class ScheduleCommandControllerGrpc {
           io.grpc.stub.ServerCalls.asyncUnaryCall(
             new MethodHandlers<
               ai.stigmer.agentic.schedule.v1.ScheduleId,
-              ai.stigmer.agentic.schedule.v1.Schedule>(
+              ai.stigmer.agentic.schedule.v1.ScheduleTriggerResult>(
                 service, METHODID_TRIGGER)))
         .build();
   }

@@ -98,4 +98,228 @@ public interface AgentTargetOrBuilder extends
    */
   com.google.protobuf.ByteString
       getMessageBytes();
+
+  /**
+   * <pre>
+   * References to Environment resources whose values are provided to
+   * this schedule's runs.
+   *
+   * This is how a tool-using agent becomes schedulable: bind an
+   * org-shared environment holding the needed credentials (for example
+   * an MCP server's shared secret), and scheduled executions receive its
+   * values at runtime. The agent and its default instance stay
+   * untouched.
+   *
+   * &#64;internal
+   * The AgentChannelSpec.environment_refs analog, third application of
+   * the AgentShare precedent (project DD-017 D-2). Deliberately on the
+   * AgentTarget arm, not ScheduleSpec: the future WorkflowTarget arm
+   * resolves environments through its WorkflowInstance and must not
+   * inherit a dead top-level field. Resolved in the schedule's org
+   * through the org-shared environment resolution seam
+   * (EnvironmentRuntimeResolutionService / OrgSharedEnvironmentPolicy):
+   * each referenced environment must be visibility_org in the
+   * schedule's org, or the merge skips it with a diagnostic. Merged at
+   * execution-context build time only, LOWEST priority (instance refs
+   * and runtime_env override on key conflicts). No write-time existence
+   * or visibility check, matching the share and the channel:
+   * enforcement lives solely at runtime resolution, which fails closed.
+   * No audience CEL — the same-org invariant (agent_ref.org ==
+   * metadata.org) already scopes resolution.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> 
+      getEnvironmentRefsList();
+  /**
+   * <pre>
+   * References to Environment resources whose values are provided to
+   * this schedule's runs.
+   *
+   * This is how a tool-using agent becomes schedulable: bind an
+   * org-shared environment holding the needed credentials (for example
+   * an MCP server's shared secret), and scheduled executions receive its
+   * values at runtime. The agent and its default instance stay
+   * untouched.
+   *
+   * &#64;internal
+   * The AgentChannelSpec.environment_refs analog, third application of
+   * the AgentShare precedent (project DD-017 D-2). Deliberately on the
+   * AgentTarget arm, not ScheduleSpec: the future WorkflowTarget arm
+   * resolves environments through its WorkflowInstance and must not
+   * inherit a dead top-level field. Resolved in the schedule's org
+   * through the org-shared environment resolution seam
+   * (EnvironmentRuntimeResolutionService / OrgSharedEnvironmentPolicy):
+   * each referenced environment must be visibility_org in the
+   * schedule's org, or the merge skips it with a diagnostic. Merged at
+   * execution-context build time only, LOWEST priority (instance refs
+   * and runtime_env override on key conflicts). No write-time existence
+   * or visibility check, matching the share and the channel:
+   * enforcement lives solely at runtime resolution, which fails closed.
+   * No audience CEL — the same-org invariant (agent_ref.org ==
+   * metadata.org) already scopes resolution.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index);
+  /**
+   * <pre>
+   * References to Environment resources whose values are provided to
+   * this schedule's runs.
+   *
+   * This is how a tool-using agent becomes schedulable: bind an
+   * org-shared environment holding the needed credentials (for example
+   * an MCP server's shared secret), and scheduled executions receive its
+   * values at runtime. The agent and its default instance stay
+   * untouched.
+   *
+   * &#64;internal
+   * The AgentChannelSpec.environment_refs analog, third application of
+   * the AgentShare precedent (project DD-017 D-2). Deliberately on the
+   * AgentTarget arm, not ScheduleSpec: the future WorkflowTarget arm
+   * resolves environments through its WorkflowInstance and must not
+   * inherit a dead top-level field. Resolved in the schedule's org
+   * through the org-shared environment resolution seam
+   * (EnvironmentRuntimeResolutionService / OrgSharedEnvironmentPolicy):
+   * each referenced environment must be visibility_org in the
+   * schedule's org, or the merge skips it with a diagnostic. Merged at
+   * execution-context build time only, LOWEST priority (instance refs
+   * and runtime_env override on key conflicts). No write-time existence
+   * or visibility check, matching the share and the channel:
+   * enforcement lives solely at runtime resolution, which fails closed.
+   * No audience CEL — the same-org invariant (agent_ref.org ==
+   * metadata.org) already scopes resolution.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   */
+  int getEnvironmentRefsCount();
+  /**
+   * <pre>
+   * References to Environment resources whose values are provided to
+   * this schedule's runs.
+   *
+   * This is how a tool-using agent becomes schedulable: bind an
+   * org-shared environment holding the needed credentials (for example
+   * an MCP server's shared secret), and scheduled executions receive its
+   * values at runtime. The agent and its default instance stay
+   * untouched.
+   *
+   * &#64;internal
+   * The AgentChannelSpec.environment_refs analog, third application of
+   * the AgentShare precedent (project DD-017 D-2). Deliberately on the
+   * AgentTarget arm, not ScheduleSpec: the future WorkflowTarget arm
+   * resolves environments through its WorkflowInstance and must not
+   * inherit a dead top-level field. Resolved in the schedule's org
+   * through the org-shared environment resolution seam
+   * (EnvironmentRuntimeResolutionService / OrgSharedEnvironmentPolicy):
+   * each referenced environment must be visibility_org in the
+   * schedule's org, or the merge skips it with a diagnostic. Merged at
+   * execution-context build time only, LOWEST priority (instance refs
+   * and runtime_env override on key conflicts). No write-time existence
+   * or visibility check, matching the share and the channel:
+   * enforcement lives solely at runtime resolution, which fails closed.
+   * No audience CEL — the same-org invariant (agent_ref.org ==
+   * metadata.org) already scopes resolution.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+      getEnvironmentRefsOrBuilderList();
+  /**
+   * <pre>
+   * References to Environment resources whose values are provided to
+   * this schedule's runs.
+   *
+   * This is how a tool-using agent becomes schedulable: bind an
+   * org-shared environment holding the needed credentials (for example
+   * an MCP server's shared secret), and scheduled executions receive its
+   * values at runtime. The agent and its default instance stay
+   * untouched.
+   *
+   * &#64;internal
+   * The AgentChannelSpec.environment_refs analog, third application of
+   * the AgentShare precedent (project DD-017 D-2). Deliberately on the
+   * AgentTarget arm, not ScheduleSpec: the future WorkflowTarget arm
+   * resolves environments through its WorkflowInstance and must not
+   * inherit a dead top-level field. Resolved in the schedule's org
+   * through the org-shared environment resolution seam
+   * (EnvironmentRuntimeResolutionService / OrgSharedEnvironmentPolicy):
+   * each referenced environment must be visibility_org in the
+   * schedule's org, or the merge skips it with a diagnostic. Merged at
+   * execution-context build time only, LOWEST priority (instance refs
+   * and runtime_env override on key conflicts). No write-time existence
+   * or visibility check, matching the share and the channel:
+   * enforcement lives solely at runtime resolution, which fails closed.
+   * No audience CEL — the same-org invariant (agent_ref.org ==
+   * metadata.org) already scopes resolution.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
+      int index);
+
+  /**
+   * <pre>
+   * Per-schedule bounds for each run. Unset fields inherit the
+   * platform's schedule execution profile.
+   *
+   * &#64;internal
+   * Project DD-017 D-3. A deliberate SUBSET of ExecutionConfig: the
+   * full message carries interactive-surface concepts (interaction
+   * mode, build-from-plan, structured output) and the platform-owned
+   * approval_mode — none of which an unattended fire may set. Clamp
+   * semantics live in the run starter, per field: min(owner, platform)
+   * when the platform cap is set; the owner value stands when the
+   * platform cap is unset. The owner can lower spend, never raise it
+   * past the platform profile.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.schedule.v1.ScheduleRunConfig run_config = 4 [json_name = "runConfig"];</code>
+   * @return Whether the runConfig field is set.
+   */
+  boolean hasRunConfig();
+  /**
+   * <pre>
+   * Per-schedule bounds for each run. Unset fields inherit the
+   * platform's schedule execution profile.
+   *
+   * &#64;internal
+   * Project DD-017 D-3. A deliberate SUBSET of ExecutionConfig: the
+   * full message carries interactive-surface concepts (interaction
+   * mode, build-from-plan, structured output) and the platform-owned
+   * approval_mode — none of which an unattended fire may set. Clamp
+   * semantics live in the run starter, per field: min(owner, platform)
+   * when the platform cap is set; the owner value stands when the
+   * platform cap is unset. The owner can lower spend, never raise it
+   * past the platform profile.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.schedule.v1.ScheduleRunConfig run_config = 4 [json_name = "runConfig"];</code>
+   * @return The runConfig.
+   */
+  ai.stigmer.agentic.schedule.v1.ScheduleRunConfig getRunConfig();
+  /**
+   * <pre>
+   * Per-schedule bounds for each run. Unset fields inherit the
+   * platform's schedule execution profile.
+   *
+   * &#64;internal
+   * Project DD-017 D-3. A deliberate SUBSET of ExecutionConfig: the
+   * full message carries interactive-surface concepts (interaction
+   * mode, build-from-plan, structured output) and the platform-owned
+   * approval_mode — none of which an unattended fire may set. Clamp
+   * semantics live in the run starter, per field: min(owner, platform)
+   * when the platform cap is set; the owner value stands when the
+   * platform cap is unset. The owner can lower spend, never raise it
+   * past the platform profile.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.schedule.v1.ScheduleRunConfig run_config = 4 [json_name = "runConfig"];</code>
+   */
+  ai.stigmer.agentic.schedule.v1.ScheduleRunConfigOrBuilder getRunConfigOrBuilder();
 }

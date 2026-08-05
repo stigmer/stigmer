@@ -32,6 +32,32 @@
         "minLength": 1,
         "maxLength": 8192
       }
+    },
+    {
+      "name": "EnvironmentRefs",
+      "jsonName": "environmentRefs",
+      "protoField": "environment_refs",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "References to Environment resources whose values are provided to\n this schedule's runs.\n\n This is how a tool-using agent becomes schedulable: bind an\n org-shared environment holding the needed credentials (for example\n an MCP server's shared secret), and scheduled executions receive its\n values at runtime. The agent and its default instance stay\n untouched.\n\n @internal\n The AgentChannelSpec.environment_refs analog, third application of\n the AgentShare precedent (project DD-017 D-2). Deliberately on the\n AgentTarget arm, not ScheduleSpec: the future WorkflowTarget arm\n resolves environments through its WorkflowInstance and must not\n inherit a dead top-level field. Resolved in the schedule's org\n through the org-shared environment resolution seam\n (EnvironmentRuntimeResolutionService / OrgSharedEnvironmentPolicy):\n each referenced environment must be visibility_org in the\n schedule's org, or the merge skips it with a diagnostic. Merged at\n execution-context build time only, LOWEST priority (instance refs\n and runtime_env override on key conflicts). No write-time existence\n or visibility check, matching the share and the channel:\n enforcement lives solely at runtime resolution, which fails closed.\n No audience CEL — the same-org invariant (agent_ref.org ==\n metadata.org) already scopes resolution.",
+      "required": false,
+      "referenceKind": 53
+    },
+    {
+      "name": "RunConfig",
+      "jsonName": "runConfig",
+      "protoField": "run_config",
+      "type": {
+        "kind": "message",
+        "messageType": "ScheduleRunConfig"
+      },
+      "description": "Per-schedule bounds for each run. Unset fields inherit the\n platform's schedule execution profile.\n\n @internal\n Project DD-017 D-3. A deliberate SUBSET of ExecutionConfig: the\n full message carries interactive-surface concepts (interaction\n mode, build-from-plan, structured output) and the platform-owned\n approval_mode — none of which an unattended fire may set. Clamp\n semantics live in the run starter, per field: min(owner, platform)\n when the platform cap is set; the owner value stands when the\n platform cap is unset. The owner can lower spend, never raise it\n past the platform profile.",
+      "required": false
     }
   ]
 }
