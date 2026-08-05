@@ -9,10 +9,11 @@ import {
 
 /**
  * Thin shell around the SDK's `ScheduleDetailView` (which owns the full
- * action set — trigger, resume, enable/disable, YAML, delete): the page
- * contributes only breadcrumb label sync and the navigation seams.
- * Wired identically to the web page (DD-016 parity), with React Router
- * in place of Next navigation.
+ * action set — trigger, resume, enable/disable, inline editing, YAML,
+ * delete): the page contributes only breadcrumb label sync and the
+ * navigation seams. Wired identically to the web page (DD-016 parity),
+ * with React Router in place of Next navigation; tabs stay uncontrolled
+ * because desktop routes carry no `?tab=` deep-link convention.
  */
 export default function ScheduleDetailPage() {
   const { org, slug } = useParams<{ org: string; slug: string }>();
@@ -46,6 +47,7 @@ export default function ScheduleDetailPage() {
     <ScheduleDetailView
       org={org}
       slug={slug}
+      editable
       onResourceLoad={handleResourceLoad}
       onNavigateToAgent={(agentOrg, agentSlug) =>
         navigate(`/library/agents/${agentOrg}/${agentSlug}`)

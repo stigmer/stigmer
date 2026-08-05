@@ -39,6 +39,9 @@ function makeSchedule(overrides?: {
   enabled?: boolean;
   pausedReason?: string;
   lastExecutionId?: string;
+  cron?: string;
+  consecutiveFailures?: number;
+  environmentRefs?: readonly { org: string; slug: string }[];
 }): Schedule {
   return create(ScheduleSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
@@ -50,7 +53,7 @@ function makeSchedule(overrides?: {
       org: "isc",
     },
     spec: {
-      cron: "0 9 * * *",
+      cron: overrides?.cron ?? "0 9 * * *",
       timeZone: "Asia/Kolkata",
       enabled: overrides?.enabled ?? true,
       target: {
@@ -58,6 +61,11 @@ function makeSchedule(overrides?: {
         value: {
           agentRef: { kind: ApiResourceKind.agent, org: "isc", slug: "fee-reminder" },
           message: "Send today's fee reminders.",
+          environmentRefs: (overrides?.environmentRefs ?? []).map((r) => ({
+            kind: ApiResourceKind.environment,
+            org: r.org,
+            slug: r.slug,
+          })),
         },
       },
     },
@@ -65,7 +73,8 @@ function makeSchedule(overrides?: {
       nextFireAt: timestampFromDate(new Date(NOW.getTime() + 3 * 3_600_000)),
       lastFireAt: timestampFromDate(new Date(NOW.getTime() - 5 * 60_000)),
       lastExecutionId: overrides?.lastExecutionId ?? "aex_01run",
-      consecutiveFailures: overrides?.pausedReason ? 5 : 0,
+      consecutiveFailures:
+        overrides?.consecutiveFailures ?? (overrides?.pausedReason ? 5 : 0),
       pausedReason: overrides?.pausedReason ?? "",
     },
   });
@@ -80,6 +89,8 @@ interface MockClient {
     delete: ReturnType<typeof vi.fn>;
   };
   manifest: { apply: ReturnType<typeof vi.fn> };
+  // The environments inline editor's picker lists the org's environments.
+  environment: { list: ReturnType<typeof vi.fn> };
 }
 
 function makeClient(schedule: Schedule): MockClient {
@@ -111,6 +122,9 @@ function makeClient(schedule: Schedule): MockClient {
         id: "sch_01example",
         message: doc.message,
       })),
+    },
+    environment: {
+      list: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
     },
   };
 }
@@ -144,8 +158,10 @@ describe("ScheduleDetailView", () => {
     renderView(makeClient(makeSchedule()));
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    // The cadence humanizes into plain English (the stored time zone is
+    // part of the sentence); the raw cron stays as the precise record.
+    expect(screen.getByText("Every day at 09:00 (Asia/Kolkata)")).toBeTruthy();
     expect(screen.getByText("0 9 * * *")).toBeTruthy();
-    expect(screen.getByText("Asia/Kolkata")).toBeTruthy();
     expect(screen.getByText("isc/fee-reminder")).toBeTruthy();
     expect(screen.getByText("Send today's fee reminders.")).toBeTruthy();
     expect(screen.getByText("in 3h")).toBeTruthy();
@@ -331,5 +347,287 @@ describe("ScheduleDetailView", () => {
     await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
 
     expect(schedule.spec?.enabled).toBe(original.spec?.enabled);
+  });
+
+  // -------------------------------------------------------------------------
+  // Cadence humanization
+  // -------------------------------------------------------------------------
+
+  it("falls back to the raw cron for expressions outside the builder's shapes", async () => {
+    renderView(makeClient(makeSchedule({ cron: "*/5 9-17 * * 1-5" })));
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    // Unrecognized shape: the raw expression IS the primary display —
+    // no invented sentence — with the time zone shown alongside.
+    expect(screen.getByText("*/5 9-17 * * 1-5")).toBeTruthy();
+    expect(screen.getByText("Asia/Kolkata")).toBeTruthy();
+    expect(screen.queryByText(/^Every /)).toBeNull();
+  });
+
+  // -------------------------------------------------------------------------
+  // Failure streak
+  // -------------------------------------------------------------------------
+
+  it("renders a plain 0 for a healthy failure streak", async () => {
+    renderView(makeClient(makeSchedule()));
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    expect(screen.getByText("Failure streak")).toBeTruthy();
+    expect(screen.getByText("0")).toBeTruthy();
+    expect(screen.queryByText(/consecutive failed/)).toBeNull();
+  });
+
+  it("explains a non-zero failure streak in plain language", async () => {
+    renderView(makeClient(makeSchedule({ consecutiveFailures: 2 })));
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    expect(screen.getByText("2 consecutive failed runs")).toBeTruthy();
+    // The copy stays qualitative: the pause threshold is server config
+    // the API does not expose, so no hardcoded denominator.
+    expect(
+      screen.getByText(/pauses the schedule automatically/),
+    ).toBeTruthy();
+    expect(screen.getByText(/Manual runs never count/)).toBeTruthy();
+  });
+
+  // -------------------------------------------------------------------------
+  // Tabs — Overview and the paginated Runs tab
+  // -------------------------------------------------------------------------
+
+  it("splits into Overview and Runs tabs, with the run count as badge", async () => {
+    const client = makeClient(makeSchedule());
+    client.schedule.listRuns.mockResolvedValue(
+      create(ScheduleRunListSchema, {
+        totalCount: 12,
+        items: [
+          create(ScheduleRunSchema, {
+            scheduleId: "sch_01example",
+            origin: ScheduleRunOrigin.CRON,
+            outcome: ScheduleRunOutcome.COMPLETED,
+            nominalFireTime: timestampFromDate(new Date(NOW.getTime() - 60_000)),
+          }),
+        ],
+      }),
+    );
+    renderView(client);
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    // The badge fills in once the (separate) runs fetch resolves.
+    await waitFor(() => {
+      const tabs = screen.getAllByRole("tab");
+      expect(tabs.map((t) => t.textContent)).toEqual(["Overview", "Runs12"]);
+    });
+    // Overview is the default: definition on screen, no full table.
+    expect(screen.getByText("Target agent")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("tab", { name: /Runs/ }));
+    await screen.findByRole("table", { name: "Run history" });
+    expect(screen.queryByText("Target agent")).toBeNull();
+  });
+
+  it("pages through the run history (the hook's pagination, finally used)", async () => {
+    const client = makeClient(makeSchedule());
+    client.schedule.listRuns.mockImplementation(
+      async (req: { pageInfo?: { num: number; size: number } }) =>
+        create(ScheduleRunListSchema, {
+          totalCount: 30,
+          items: Array.from(
+            { length: Math.min(req.pageInfo?.size ?? 25, 30) },
+            (_, i) =>
+              create(ScheduleRunSchema, {
+                scheduleId: "sch_01example",
+                origin: ScheduleRunOrigin.CRON,
+                outcome: ScheduleRunOutcome.COMPLETED,
+                nominalFireTime: timestampFromDate(
+                  new Date(NOW.getTime() - (i + 1) * 60_000),
+                ),
+              }),
+          ),
+        }),
+    );
+    renderView(client);
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(screen.getByRole("tab", { name: /Runs/ }));
+    await screen.findByText("Page 1 of 2");
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await waitFor(() => {
+      const pageTwoCall = client.schedule.listRuns.mock.calls.find((call) => {
+        const req = call[0] as { pageInfo?: { num: number; size: number } };
+        return req.pageInfo?.num === 2 && req.pageInfo?.size === 25;
+      });
+      expect(pageTwoCall).toBeTruthy();
+    });
+    await screen.findByText("Page 2 of 2");
+  });
+
+  it("links the Overview recent-runs strip to the Runs tab", async () => {
+    const client = makeClient(makeSchedule());
+    client.schedule.listRuns.mockImplementation(
+      async (req: { pageInfo?: { num: number; size: number } }) =>
+        create(ScheduleRunListSchema, {
+          totalCount: 12,
+          items: Array.from(
+            { length: Math.min(req.pageInfo?.size ?? 25, 12) },
+            (_, i) =>
+              create(ScheduleRunSchema, {
+                scheduleId: "sch_01example",
+                origin: ScheduleRunOrigin.CRON,
+                outcome: ScheduleRunOutcome.COMPLETED,
+                nominalFireTime: timestampFromDate(
+                  new Date(NOW.getTime() - (i + 1) * 60_000),
+                ),
+              }),
+          ),
+        }),
+    );
+    renderView(client);
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(
+      await screen.findByRole("button", { name: "View all 12 runs" }),
+    );
+    await screen.findByRole("table", { name: "Run history" });
+  });
+
+  // -------------------------------------------------------------------------
+  // Inline editing — every save re-applies the FULL proto (never a
+  // down-converted input, which would silently wipe fields)
+  // -------------------------------------------------------------------------
+
+  it("does not offer inline editing without the editable prop", async () => {
+    renderView(makeClient(makeSchedule()));
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(screen.getByText("Send today's fee reminders."));
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Edit cadence" })).toBeNull();
+  });
+
+  it("never offers an edit affordance for the immutable target agent", async () => {
+    renderView(makeClient(makeSchedule()), { editable: true });
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    // The mutable fields have editors; the server-immutable target does not.
+    expect(screen.getByRole("button", { name: "Edit cadence" })).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: /edit target/i }),
+    ).toBeNull();
+  });
+
+  it("saves an edited message by re-applying the full proto", async () => {
+    const client = makeClient(makeSchedule());
+    renderView(client, { editable: true });
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(screen.getByText("Send today's fee reminders."));
+    const textarea = await screen.findByRole("textbox");
+    fireEvent.change(textarea, {
+      target: { value: "Send this week's fee reminders." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
+    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    const target =
+      doc.message.spec?.target?.case === "agent"
+        ? doc.message.spec.target.value
+        : undefined;
+    expect(target?.message).toBe("Send this week's fee reminders.");
+    // Full-proto write: everything the editor did not touch survives.
+    expect(doc.message.metadata?.id).toBe("sch_01example");
+    expect(doc.message.spec?.cron).toBe("0 9 * * *");
+    expect(doc.message.spec?.enabled).toBe(true);
+    expect(target?.agentRef?.slug).toBe("fee-reminder");
+  });
+
+  it("saves an edited cadence through the custom-cron escape hatch", async () => {
+    const client = makeClient(makeSchedule());
+    renderView(client, { editable: true });
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(screen.getByRole("button", { name: "Edit cadence" }));
+    // The stored cron round-trips into the preset picker; Custom
+    // prefills from it rather than starting blank.
+    fireEvent.click(screen.getByRole("radio", { name: "Custom cron" }));
+    fireEvent.change(screen.getByLabelText("Cron expression"), {
+      target: { value: "0 9 * * 1-5" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
+    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    expect(doc.message.spec?.cron).toBe("0 9 * * 1-5");
+    // The time zone rides along with the cadence editor, unchanged here.
+    expect(doc.message.spec?.timeZone).toBe("Asia/Kolkata");
+  });
+
+  it("saves edited run limits, producing the proto's empty-inherits shape", async () => {
+    const client = makeClient(makeSchedule());
+    renderView(client, { editable: true });
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(screen.getByRole("button", { name: "Edit run limits" }));
+    fireEvent.change(screen.getByLabelText("Model"), {
+      target: { value: "gpt-thrift" },
+    });
+    fireEvent.change(screen.getByLabelText("Max cost / run (USD)"), {
+      target: { value: "2.5" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
+    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    const target =
+      doc.message.spec?.target?.case === "agent"
+        ? doc.message.spec.target.value
+        : undefined;
+    expect(target?.runConfig?.modelName).toBe("gpt-thrift");
+    expect(target?.runConfig?.maxCostUsd).toBe(2.5);
+    // Blank field: not a zero override, just absent (inherit).
+    expect(target?.runConfig?.maxToolRounds).toBe(0);
+  });
+
+  it("round-trips environment references with the environment kind stamped", async () => {
+    const client = makeClient(
+      makeSchedule({
+        environmentRefs: [{ org: "isc", slug: "isc-mcp-credentials" }],
+      }),
+    );
+    renderView(client, { editable: true });
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(screen.getByRole("button", { name: "Edit environments" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
+    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    const target =
+      doc.message.spec?.target?.case === "agent"
+        ? doc.message.spec.target.value
+        : undefined;
+    expect(target?.environmentRefs).toHaveLength(1);
+    expect(target?.environmentRefs?.[0].slug).toBe("isc-mcp-credentials");
+    expect(target?.environmentRefs?.[0].kind).toBe(
+      ApiResourceKind.environment,
+    );
+  });
+
+  it("keeps the editor open with the server's message on a failed save", async () => {
+    const client = makeClient(makeSchedule());
+    client.manifest.apply.mockRejectedValueOnce(
+      new Error("spec.cron must have exactly 5 fields"),
+    );
+    renderView(client, { editable: true });
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    fireEvent.click(screen.getByRole("button", { name: "Edit cadence" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    // The server's message lands next to the field; the editor stays
+    // open so the draft is not lost (DD-006).
+    await screen.findByText(/must have exactly 5 fields/);
+    expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
   });
 });

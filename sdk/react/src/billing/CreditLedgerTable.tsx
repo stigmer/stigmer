@@ -12,6 +12,7 @@ import {
   isCredit,
   isHold,
 } from "./format.js";
+import { Pagination } from "../internal/Pagination.js";
 import { useCreditLedger, type UseCreditLedgerOptions } from "./useCreditLedger.js";
 
 /** Props for {@link CreditLedgerTable}. */
@@ -102,6 +103,8 @@ export function CreditLedgerTable({
               pageNum={pageNum}
               totalPages={totalPages}
               onPageChange={setPageNum}
+              ariaLabel="Ledger pagination"
+              className="mt-3"
             />
           )}
         </>
@@ -192,48 +195,6 @@ function LedgerRow({ entry }: { entry: CreditLedgerEntry }) {
       >
         {formatLedgerAmount(entry.amountMicros)}
       </span>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Pagination (internal)
-// ---------------------------------------------------------------------------
-
-function Pagination({
-  pageNum,
-  totalPages,
-  onPageChange,
-}: {
-  pageNum: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}) {
-  return (
-    <div
-      className="mt-3 flex items-center justify-between"
-      role="navigation"
-      aria-label="Ledger pagination"
-    >
-      <button
-        type="button"
-        disabled={pageNum <= 1}
-        onClick={() => onPageChange(pageNum - 1)}
-        className="rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-      >
-        Previous
-      </button>
-      <span className="text-xs tabular-nums text-muted-foreground">
-        Page {pageNum} of {totalPages}
-      </span>
-      <button
-        type="button"
-        disabled={pageNum >= totalPages}
-        onClick={() => onPageChange(pageNum + 1)}
-        className="rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-      >
-        Next
-      </button>
     </div>
   );
 }

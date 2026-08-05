@@ -1,11 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { create } from "@bufbuild/protobuf";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type { ResourceRef } from "@stigmer/sdk";
 import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { ErrorMessage } from "../error/ErrorMessage.js";
+import { InlineEditTextarea } from "../inline-edit/InlineEditTextarea.js";
 import { EditResourceYamlDialog } from "../manifest/EditResourceYamlDialog.js";
 import { ConfirmDialog } from "../resource-detail/ConfirmDialog.js";
 import { ResourceDetailShell } from "../resource-detail/ResourceDetailShell.js";
@@ -13,20 +20,41 @@ import { Section } from "../resource-detail/Section.js";
 import { useConfirmAction } from "../resource-detail/useConfirmAction.js";
 import { useCopyResource } from "../resource-detail/useCopyResource.js";
 import { useDeleteResource } from "../resource-detail/useDeleteResource.js";
-import type { DetailAction, ResourceHeaderMeta } from "../resource-detail/types.js";
+import { useDetailTabs } from "../resource-detail/useDetailTabs.js";
+import type {
+  AdditionalTab,
+  DetailAction,
+  ResourceHeaderMeta,
+} from "../resource-detail/types.js";
+import type { TabItem } from "../tabs/Tabs.js";
 import { useExportResource } from "../library/useExportResource.js";
+import { ScheduleRunOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import {
-  ScheduleRunOrigin,
-  ScheduleRunOutcome,
-  type ScheduleRun,
-} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
-import type { ScheduleRunConfig } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
+  ScheduleRunConfigSchema,
+  type ScheduleRunConfig,
+  type ScheduleSpec,
+} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
+import {
+  cadenceToCron,
+  cronToCadence,
+  describeCadence,
+  validateCron,
+  type CadencePreset,
+} from "./cadence.js";
+import { CadenceField } from "./CadenceField.js";
+import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
 import { deriveScheduleState, formatNextFire } from "./scheduleState.js";
+import {
+  ScheduleRunsCompactList,
+  ScheduleRunsTable,
+} from "./ScheduleRunsTable.js";
+import { TimeZoneField, browserTimeZone } from "./TimeZoneField.js";
 import { useSchedule } from "./useSchedule.js";
 import { useScheduleRuns } from "./useScheduleRuns.js";
 import { useResumeSchedule } from "./useResumeSchedule.js";
 import { useSetScheduleEnabled } from "./useSetScheduleEnabled.js";
 import { useTriggerSchedule } from "./useTriggerSchedule.js";
+import { useUpdateScheduleSpec } from "./useUpdateScheduleSpec.js";
 
 /** Props for {@link ScheduleDetailView}. */
 export interface ScheduleDetailViewProps {
@@ -41,8 +69,9 @@ export interface ScheduleDetailViewProps {
    */
   readonly onNavigateToAgent?: (org: string, slug: string) => void;
   /**
-   * Called when the user activates the last-execution reference
-   * (`aex_…`). When omitted, the id renders as plain text.
+   * Called when the user activates an execution reference (`aex_…`),
+   * from the status row or a run-history row. When omitted, ids render
+   * as plain text.
    */
   readonly onNavigateToExecution?: (executionId: string) => void;
   /** Called after a successful delete (navigate back to the list). */
@@ -50,8 +79,25 @@ export interface ScheduleDetailViewProps {
   /** Called when the schedule loads or reloads (e.g. breadcrumb label sync). */
   readonly onResourceLoad?: (schedule: Schedule) => void;
   /**
-   * The instant "next fire" countdowns are computed against.
-   * Injectable for deterministic tests and Scenar fixtures.
+   * Enable inline editing of the schedule's mutable spec fields
+   * (cadence, message, environments, run limits). Each field saves
+   * independently via a lossless full-resource re-apply
+   * ({@link useUpdateScheduleSpec}). The server-immutable fields —
+   * slug, target agent, target type — never gain an edit affordance.
+   * @default false
+   */
+  readonly editable?: boolean;
+  /** Consumer-provided extension tabs, appended after the built-ins. */
+  readonly additionalTabs?: readonly AdditionalTab[];
+  /** Controlled active tab (pair with `onTabChange`). */
+  readonly activeTab?: string;
+  /** Controlled tab change handler (pair with `activeTab`). */
+  readonly onTabChange?: (tabId: string) => void;
+  /** Initial tab in uncontrolled mode. @default "overview" */
+  readonly defaultTab?: string;
+  /**
+   * The instant "next fire" countdowns and run timestamps are computed
+   * against. Injectable for deterministic tests and Scenar fixtures.
    * @default new Date() at render
    */
   readonly now?: Date;
@@ -59,8 +105,20 @@ export interface ScheduleDetailViewProps {
   readonly className?: string;
 }
 
+const OVERVIEW_TAB_ID = "overview";
+const RUNS_TAB_ID = "runs";
+
+// The Overview strip shows the newest handful of fires; the Runs tab
+// owns the full paginated history.
+const RECENT_RUNS_OPTIONS = { pageSize: 5 } as const;
+
+/** spec.proto pins AgentTarget.message to 8192 characters. */
+const MESSAGE_MAX_LEN = 8192;
+
 /**
- * Self-contained detail view for a Schedule (stigmer/stigmer#352).
+ * Self-contained detail view for a Schedule (stigmer/stigmer#352),
+ * split into an Overview tab (definition + status + recent runs) and a
+ * Runs tab (the full paginated fire ledger).
  *
  * The view's one non-negotiable is rendering the two stop-levers
  * distinctly, each with its inline remedy:
@@ -73,8 +131,9 @@ export interface ScheduleDetailViewProps {
  *
  * Trigger ("Run now") starts a real, billable execution and is gated
  * behind a confirmation; it is disabled while the schedule cannot fire
- * (the banner names the remedy). Edit YAML, Export, and Delete round
- * out the action set.
+ * (the banner names the remedy). With `editable`, the mutable spec
+ * fields edit inline; Edit YAML, Export, and Delete round out the
+ * action set.
  *
  * Handles loading, error, and not-found states automatically.
  * Zero Console dependencies — safe for platform builder embedding.
@@ -87,19 +146,31 @@ export function ScheduleDetailView({
   onNavigateToExecution,
   onDeleted,
   onResourceLoad,
+  editable = false,
+  additionalTabs,
+  activeTab,
+  onTabChange,
+  defaultTab,
   now,
   className,
 }: ScheduleDetailViewProps) {
   const { schedule, isLoading, error, refetch } = useSchedule(org, slug);
+
+  // The recent-runs fetch stays mounted regardless of the active tab:
+  // it feeds the Runs tab badge (total count), the Overview strip, and
+  // post-trigger freshness. The Runs tab's full table owns its own
+  // paginated fetch inside ScheduleRunsTable.
   const {
-    runs,
-    isLoading: runsLoading,
-    refetch: refetchRuns,
-  } = useScheduleRuns(schedule?.metadata?.id ?? null);
+    runs: recentRuns,
+    totalCount: totalRunCount,
+    isLoading: recentRunsLoading,
+    refetch: refetchRecentRuns,
+  } = useScheduleRuns(schedule?.metadata?.id ?? null, RECENT_RUNS_OPTIONS);
 
   const { resumeSchedule, isResuming } = useResumeSchedule();
   const { triggerSchedule, isTriggering } = useTriggerSchedule();
   const { setEnabled, isPending: isToggling } = useSetScheduleEnabled();
+  const { updateSpec, isUpdating } = useUpdateScheduleSpec();
   const { deleteResource, isDeleting } = useDeleteResource(
     "schedule",
     schedule?.metadata?.id ?? null,
@@ -109,6 +180,66 @@ export function ScheduleDetailView({
     useConfirmAction();
   const { copyId, copyQualifiedSlug } = useCopyResource();
   const [editOpen, setEditOpen] = useState(false);
+
+  // Remount key for the Runs tab's table: a manual trigger bumps it so
+  // the table refetches and returns to page 1, where the new fire
+  // appears (the key-remount reset idiom, DD-014).
+  const [runsVersion, setRunsVersion] = useState(0);
+
+  // Last failed inline save, attributed to the field that was edited so
+  // only that editor shows the message. The backend's message is the
+  // UX (DD-006) — e.g. the cron validator's copy surfaces verbatim.
+  const [saveError, setSaveError] = useState<{
+    field: string;
+    message: string;
+  } | null>(null);
+
+  const saveSpecField = useCallback(
+    async (
+      field: string,
+      mutate: (spec: ScheduleSpec) => void,
+    ): Promise<boolean> => {
+      if (!schedule) return false;
+      setSaveError(null);
+      try {
+        await updateSpec(schedule, mutate);
+        refetch();
+        return true;
+      } catch (err) {
+        setSaveError({
+          field,
+          message: err instanceof Error ? err.message : String(err),
+        });
+        return false;
+      }
+    },
+    [schedule, updateSpec, refetch],
+  );
+
+  const builtInTabs = useMemo<readonly TabItem[]>(
+    () => [
+      { id: OVERVIEW_TAB_ID, label: "Overview" },
+      {
+        id: RUNS_TAB_ID,
+        label: "Runs",
+        ...(totalRunCount > 0 ? { badge: totalRunCount } : {}),
+      },
+    ],
+    [totalRunCount],
+  );
+
+  const {
+    effectiveTabs,
+    effectiveActiveTab,
+    effectiveOnTabChange,
+    activeAdditionalTab,
+  } = useDetailTabs({
+    builtInTabs,
+    additionalTabs,
+    activeTab,
+    onTabChange,
+    defaultTab,
+  });
 
   const { copyYaml, downloadYaml } = useExportResource({
     kind: "Schedule",
@@ -132,6 +263,7 @@ export function ScheduleDetailView({
   const renderNow = now ?? new Date();
 
   const scheduleId = meta?.id ?? "";
+  const scheduleOrg = meta?.org || org;
   const target = spec?.target?.case === "agent" ? spec.target.value : undefined;
 
   const handleResume = async () => {
@@ -152,7 +284,8 @@ export function ScheduleDetailView({
   const fireNow = async () => {
     const result = await triggerSchedule(scheduleId);
     refetch();
-    refetchRuns();
+    refetchRecentRuns();
+    setRunsVersion((v) => v + 1);
     if (
       result.outcome === ScheduleRunOutcome.STARTED &&
       result.executionId &&
@@ -332,6 +465,217 @@ export function ScheduleDetailView({
       </StateBanner>
     ) : undefined;
 
+  const overviewContent = (
+    <div className="flex flex-col gap-6">
+      <Section title="Definition">
+        <dl className="divide-y divide-border">
+          <DetailRow label="Cadence">
+            {editable ? (
+              <CadenceInlineEditor
+                cron={spec?.cron ?? ""}
+                timeZone={spec?.timeZone ?? ""}
+                onSave={(cron, timeZone) =>
+                  saveSpecField("cadence", (s) => {
+                    s.cron = cron;
+                    s.timeZone = timeZone;
+                  })
+                }
+                isSaving={isUpdating}
+                error={
+                  saveError?.field === "cadence" ? saveError.message : undefined
+                }
+              />
+            ) : (
+              <CadenceSummary
+                cron={spec?.cron ?? ""}
+                timeZone={spec?.timeZone ?? ""}
+              />
+            )}
+          </DetailRow>
+          {/* Target agent and target type are server-immutable on update,
+              so this row never gains an edit affordance — error
+              prevention over error handling. */}
+          <DetailRow label="Target agent">
+            {target?.agentRef ? (
+              <ReferenceLink
+                label={`${target.agentRef.org}/${target.agentRef.slug}`}
+                onNavigate={
+                  onNavigateToAgent
+                    ? () =>
+                        onNavigateToAgent(
+                          target.agentRef!.org,
+                          target.agentRef!.slug,
+                        )
+                    : undefined
+                }
+              />
+            ) : (
+              <span className="text-sm text-muted-foreground">—</span>
+            )}
+          </DetailRow>
+          <DetailRow label="Message">
+            {editable && target ? (
+              <InlineEditTextarea
+                value={target.message ?? ""}
+                placeholder="The instruction the agent receives on every fire — write it for a run with no human present."
+                onSave={(v) =>
+                  saveSpecField("message", (s) => {
+                    if (s.target.case === "agent") {
+                      s.target.value.message = v.trim();
+                    }
+                  })
+                }
+                isSaving={isUpdating}
+                error={
+                  saveError?.field === "message" ? saveError.message : undefined
+                }
+                validate={validateMessage}
+              />
+            ) : (
+              <p className="whitespace-pre-wrap break-words text-sm text-foreground">
+                {target?.message || "—"}
+              </p>
+            )}
+          </DetailRow>
+          <DetailRow label="Environments">
+            {editable && target ? (
+              <EnvironmentsInlineEditor
+                org={scheduleOrg}
+                refs={target.environmentRefs ?? []}
+                onSave={(refs) =>
+                  saveSpecField("environments", (s) => {
+                    if (s.target.case === "agent") {
+                      s.target.value.environmentRefs = refs.map((r) =>
+                        create(ApiResourceReferenceSchema, {
+                          org: r.org,
+                          slug: r.slug,
+                          kind: ApiResourceKind.environment,
+                        }),
+                      );
+                    }
+                  })
+                }
+                isSaving={isUpdating}
+                error={
+                  saveError?.field === "environments"
+                    ? saveError.message
+                    : undefined
+                }
+              />
+            ) : (
+              <EnvironmentRefList
+                refs={target?.environmentRefs ?? []}
+              />
+            )}
+          </DetailRow>
+          <DetailRow label="Run limits">
+            {editable && target ? (
+              <RunLimitsInlineEditor
+                config={target.runConfig}
+                onSave={(config) =>
+                  saveSpecField("run-limits", (s) => {
+                    if (s.target.case === "agent") {
+                      s.target.value.runConfig = config;
+                    }
+                  })
+                }
+                isSaving={isUpdating}
+                error={
+                  saveError?.field === "run-limits"
+                    ? saveError.message
+                    : undefined
+                }
+              />
+            ) : (
+              <RunLimits config={target?.runConfig} />
+            )}
+          </DetailRow>
+        </dl>
+      </Section>
+
+      <Section title="Status">
+        <dl className="divide-y divide-border">
+          <DetailRow label="Next fire">
+            <span className="text-sm text-foreground">
+              {stateInfo.state === "active" && status?.nextFireAt
+                ? formatNextFire(timestampDate(status.nextFireAt), renderNow)
+                : "—"}
+            </span>
+          </DetailRow>
+          <DetailRow label="Last fired">
+            <span className="text-sm text-foreground">
+              {status?.lastFireAt
+                ? formatRelativeTime(
+                    timestampDate(status.lastFireAt),
+                    renderNow,
+                  )
+                : "Never"}
+            </span>
+          </DetailRow>
+          <DetailRow label="Last execution">
+            {status?.lastExecutionId ? (
+              <ReferenceLink
+                label={status.lastExecutionId}
+                mono
+                onNavigate={
+                  onNavigateToExecution
+                    ? () => onNavigateToExecution(status.lastExecutionId)
+                    : undefined
+                }
+              />
+            ) : (
+              <span className="text-sm text-muted-foreground">—</span>
+            )}
+          </DetailRow>
+          <DetailRow label="Failure streak">
+            <FailureStreak count={status?.consecutiveFailures ?? 0} />
+          </DetailRow>
+        </dl>
+      </Section>
+
+      <Section
+        title="Recent runs"
+        headerActions={
+          totalRunCount > recentRuns.length ? (
+            <button
+              type="button"
+              onClick={() => effectiveOnTabChange(RUNS_TAB_ID)}
+              className={cn(
+                "text-xs font-medium text-primary underline-offset-2 hover:underline",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm",
+              )}
+            >
+              View all {totalRunCount} runs
+            </button>
+          ) : undefined
+        }
+      >
+        <ScheduleRunsCompactList
+          runs={recentRuns}
+          isLoading={recentRunsLoading}
+          now={renderNow}
+          onNavigateToExecution={onNavigateToExecution}
+        />
+      </Section>
+    </div>
+  );
+
+  let tabContent: React.ReactNode;
+  if (activeAdditionalTab) {
+    tabContent = activeAdditionalTab.content;
+  } else if (effectiveActiveTab === RUNS_TAB_ID) {
+    tabContent = (
+      <ScheduleRunsTable
+        key={runsVersion}
+        scheduleId={scheduleId}
+        now={now}
+        onNavigateToExecution={onNavigateToExecution}
+      />
+    );
+  } else {
+    tabContent = overviewContent;
+  }
+
   return (
     <>
       <ResourceDetailShell
@@ -339,124 +683,13 @@ export function ScheduleDetailView({
         headerBanner={headerBanner}
         primaryAction={primaryAction}
         actions={actions}
+        tabs={effectiveTabs}
+        activeTab={effectiveTabs ? effectiveActiveTab : undefined}
+        onTabChange={effectiveTabs ? effectiveOnTabChange : undefined}
+        tabsAriaLabel="Schedule detail sections"
         className={className}
       >
-        <div className="flex flex-col gap-6">
-          <Section title="Definition">
-            <dl className="divide-y divide-border">
-              <DetailRow label="Cron">
-                <code className="font-mono text-sm text-foreground">
-                  {spec?.cron || "—"}
-                </code>
-              </DetailRow>
-              <DetailRow label="Time zone">
-                <span className="text-sm text-foreground">
-                  {spec?.timeZone || "—"}
-                </span>
-              </DetailRow>
-              <DetailRow label="Target agent">
-                {target?.agentRef ? (
-                  <ReferenceLink
-                    label={`${target.agentRef.org}/${target.agentRef.slug}`}
-                    onNavigate={
-                      onNavigateToAgent
-                        ? () =>
-                            onNavigateToAgent(
-                              target.agentRef!.org,
-                              target.agentRef!.slug,
-                            )
-                        : undefined
-                    }
-                  />
-                ) : (
-                  <span className="text-sm text-muted-foreground">—</span>
-                )}
-              </DetailRow>
-              <DetailRow label="Message">
-                <p className="whitespace-pre-wrap break-words text-sm text-foreground">
-                  {target?.message || "—"}
-                </p>
-              </DetailRow>
-              <DetailRow label="Environments">
-                {target?.environmentRefs && target.environmentRefs.length > 0 ? (
-                  <ul className="flex flex-col gap-0.5">
-                    {target.environmentRefs.map((ref, i) => (
-                      <li
-                        key={`${ref.org}/${ref.slug}-${i}`}
-                        className="font-mono text-xs text-foreground"
-                      >
-                        {ref.org ? `${ref.org}/${ref.slug}` : ref.slug}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <span className="text-sm text-muted-foreground">—</span>
-                )}
-              </DetailRow>
-              <DetailRow label="Run limits">
-                <RunLimits config={target?.runConfig} />
-              </DetailRow>
-            </dl>
-          </Section>
-
-          <Section title="Status">
-            <dl className="divide-y divide-border">
-              <DetailRow label="Next fire">
-                <span className="text-sm text-foreground">
-                  {stateInfo.state === "active" && status?.nextFireAt
-                    ? formatNextFire(timestampDate(status.nextFireAt), renderNow)
-                    : "—"}
-                </span>
-              </DetailRow>
-              <DetailRow label="Last fired">
-                <span className="text-sm text-foreground">
-                  {status?.lastFireAt
-                    ? formatRelativeTime(
-                        timestampDate(status.lastFireAt),
-                        renderNow,
-                      )
-                    : "Never"}
-                </span>
-              </DetailRow>
-              <DetailRow label="Last execution">
-                {status?.lastExecutionId ? (
-                  <ReferenceLink
-                    label={status.lastExecutionId}
-                    mono
-                    onNavigate={
-                      onNavigateToExecution
-                        ? () => onNavigateToExecution(status.lastExecutionId)
-                        : undefined
-                    }
-                  />
-                ) : (
-                  <span className="text-sm text-muted-foreground">—</span>
-                )}
-              </DetailRow>
-              <DetailRow label="Consecutive failures">
-                <span
-                  className={cn(
-                    "text-sm",
-                    (status?.consecutiveFailures ?? 0) > 0
-                      ? "font-medium text-warning"
-                      : "text-foreground",
-                  )}
-                >
-                  {status?.consecutiveFailures ?? 0}
-                </span>
-              </DetailRow>
-            </dl>
-          </Section>
-
-          <Section title="Runs">
-            <RunHistory
-              runs={runs}
-              isLoading={runsLoading}
-              now={renderNow}
-              onNavigateToExecution={onNavigateToExecution}
-            />
-          </Section>
-        </div>
+        {tabContent}
       </ResourceDetailShell>
 
       <ConfirmDialog
@@ -527,6 +760,433 @@ function StateBanner({
 }
 
 // ---------------------------------------------------------------------------
+// Cadence summary — plain English first, raw cron as the precise record
+// ---------------------------------------------------------------------------
+
+/**
+ * Render a schedule's cadence for reading: the plain-English sentence
+ * first ("Every day at 09:00 (Asia/Kolkata)"), the raw cron beneath it
+ * in muted mono as the precise record.
+ *
+ * `cronToCadence` RECOGNIZES rather than parses (the platform owns no
+ * cron parser in either edition — see cadence.ts): expressions outside
+ * the builder's shapes come back as `custom`, for which the raw cron IS
+ * the primary display, with the time zone alongside so nothing the
+ * spec stores is hidden.
+ */
+function CadenceSummary({
+  cron,
+  timeZone,
+}: {
+  readonly cron: string;
+  readonly timeZone: string;
+}) {
+  if (!cron) return <span className="text-sm text-muted-foreground">—</span>;
+
+  const preset = cronToCadence(cron);
+  if (preset.kind === "custom") {
+    return (
+      <div className="flex flex-col gap-0.5">
+        <code className="font-mono text-sm text-foreground">{cron}</code>
+        {timeZone && (
+          <span className="text-xs text-muted-foreground">{timeZone}</span>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-sm text-foreground">
+        {describeCadence(preset, timeZone || undefined)}
+      </span>
+      <code className="font-mono text-xs text-muted-foreground">{cron}</code>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Inline editors — per-field click-to-edit over the lossless write path
+// ---------------------------------------------------------------------------
+//
+// Each editor follows the InlineEdit* family's contract: read mode is a
+// click target with a hover pencil; edit mode holds a local draft with
+// explicit Save/Cancel; a failed save keeps the editor open with the
+// server's message rendered verbatim beneath it (DD-006). The editors
+// stay in this file (the AgentDetailView single-organism precedent) and
+// reuse the creation form's field components — CadenceField,
+// TimeZoneField, EnvironmentPicker — so creating and editing a schedule
+// are the same experience.
+
+/** Cadence + time zone edit in one panel — they form one sentence. */
+function CadenceInlineEditor({
+  cron,
+  timeZone,
+  onSave,
+  isSaving,
+  error,
+}: {
+  readonly cron: string;
+  readonly timeZone: string;
+  readonly onSave: (cron: string, timeZone: string) => Promise<boolean>;
+  readonly isSaving: boolean;
+  readonly error?: string;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftCadence, setDraftCadence] = useState<CadencePreset>(() =>
+    cronToCadence(cron),
+  );
+  const [draftZone, setDraftZone] = useState(timeZone);
+
+  const startEdit = () => {
+    // cronToCadence round-trips the stored cron into the preset picker;
+    // unrecognized shapes land on the Custom escape hatch with the raw
+    // string intact.
+    setDraftCadence(cronToCadence(cron));
+    setDraftZone(timeZone || browserTimeZone());
+    setIsEditing(true);
+  };
+
+  if (!isEditing) {
+    return (
+      <InlineReadButton onEdit={startEdit} ariaLabel="Edit cadence">
+        <CadenceSummary cron={cron} timeZone={timeZone} />
+      </InlineReadButton>
+    );
+  }
+
+  const draftCron = cadenceToCron(draftCadence).trim();
+  const canSave = draftCron !== "" && validateCron(draftCron) === null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <CadenceField
+        value={draftCadence}
+        onChange={setDraftCadence}
+        timeZone={draftZone}
+        disabled={isSaving}
+      />
+      <div className="space-y-1">
+        <span className={editorLabelClasses}>Time zone</span>
+        <TimeZoneField
+          value={draftZone}
+          onChange={setDraftZone}
+          disabled={isSaving}
+        />
+      </div>
+      <InlineEditActions
+        onCancel={() => setIsEditing(false)}
+        onSave={async () => {
+          const ok = await onSave(draftCron, draftZone);
+          if (ok) setIsEditing(false);
+        }}
+        isSaving={isSaving}
+        canSave={canSave}
+        error={error}
+      />
+    </div>
+  );
+}
+
+/** Environment bindings edit — org-shared credentials only (DD-017 D-2). */
+function EnvironmentsInlineEditor({
+  org,
+  refs,
+  onSave,
+  isSaving,
+  error,
+}: {
+  readonly org: string;
+  readonly refs: readonly { org: string; slug: string }[];
+  readonly onSave: (refs: readonly ResourceRef[]) => Promise<boolean>;
+  readonly isSaving: boolean;
+  readonly error?: string;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState<ResourceRef[]>([]);
+
+  const startEdit = () => {
+    setDraft(refs.map((r) => ({ org: r.org, slug: r.slug })));
+    setIsEditing(true);
+  };
+
+  if (!isEditing) {
+    return (
+      <InlineReadButton onEdit={startEdit} ariaLabel="Edit environments">
+        <EnvironmentRefList refs={refs} />
+      </InlineReadButton>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <EnvironmentPicker
+        org={org}
+        value={draft}
+        onChange={setDraft}
+        disabled={isSaving}
+        // Only org-shared environments resolve for a schedule fire (the
+        // same credential surface a channel binding uses), so offering
+        // anything else could only produce refused runs.
+        filterEnvironment={isOrgSharedEnvironment}
+      />
+      <p className="text-[0.65rem] text-muted-foreground">
+        Bind org-shared credentials so the agent&rsquo;s tools work on an
+        unattended fire. Without this, an agent whose tools need credentials
+        will be refused every run.
+      </p>
+      <InlineEditActions
+        onCancel={() => setIsEditing(false)}
+        onSave={async () => {
+          const ok = await onSave(draft);
+          if (ok) setIsEditing(false);
+        }}
+        isSaving={isSaving}
+        canSave
+        error={error}
+      />
+    </div>
+  );
+}
+
+function isOrgSharedEnvironment(env: Environment): boolean {
+  return env.metadata?.visibility === ApiResourceVisibility.visibility_org;
+}
+
+/** Run-limit edit — blank inherits the platform default (DD-017 D-3). */
+function RunLimitsInlineEditor({
+  config,
+  onSave,
+  isSaving,
+  error,
+}: {
+  readonly config: ScheduleRunConfig | undefined;
+  readonly onSave: (
+    config: ScheduleRunConfig | undefined,
+  ) => Promise<boolean>;
+  readonly isSaving: boolean;
+  readonly error?: string;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [modelName, setModelName] = useState("");
+  const [maxCostUsd, setMaxCostUsd] = useState("");
+  const [maxToolRounds, setMaxToolRounds] = useState("");
+
+  const startEdit = () => {
+    setModelName(config?.modelName ?? "");
+    setMaxCostUsd(config && config.maxCostUsd > 0 ? String(config.maxCostUsd) : "");
+    setMaxToolRounds(
+      config && config.maxToolRounds > 0 ? String(config.maxToolRounds) : "",
+    );
+    setIsEditing(true);
+  };
+
+  if (!isEditing) {
+    return (
+      <InlineReadButton onEdit={startEdit} ariaLabel="Edit run limits">
+        <RunLimits config={config} />
+      </InlineReadButton>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <label className="space-y-1">
+          <span className={editorLabelClasses}>Model</span>
+          <input
+            type="text"
+            value={modelName}
+            onChange={(e) => setModelName(e.target.value)}
+            placeholder="platform default"
+            disabled={isSaving}
+            className={editorInputClasses}
+          />
+        </label>
+        <label className="space-y-1">
+          <span className={editorLabelClasses}>Max cost / run (USD)</span>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={maxCostUsd}
+            onChange={(e) => setMaxCostUsd(e.target.value)}
+            placeholder="platform default"
+            disabled={isSaving}
+            className={editorInputClasses}
+          />
+        </label>
+        <label className="space-y-1">
+          <span className={editorLabelClasses}>Max tool rounds</span>
+          <input
+            type="number"
+            min="0"
+            step="1"
+            value={maxToolRounds}
+            onChange={(e) => setMaxToolRounds(e.target.value)}
+            placeholder="platform default"
+            disabled={isSaving}
+            className={editorInputClasses}
+          />
+        </label>
+      </div>
+      <p className="text-[0.65rem] text-muted-foreground">
+        The platform caps these; you can lower a limit, never raise it past
+        the platform&rsquo;s ceiling. Leave a field blank to inherit the
+        platform default.
+      </p>
+      <InlineEditActions
+        onCancel={() => setIsEditing(false)}
+        onSave={async () => {
+          const ok = await onSave(
+            buildRunConfigProto(modelName, maxCostUsd, maxToolRounds),
+          );
+          if (ok) setIsEditing(false);
+        }}
+        isSaving={isSaving}
+        canSave
+        error={error}
+      />
+    </div>
+  );
+}
+
+/**
+ * Assemble the run-limit proto from the editor's inputs, or `undefined`
+ * when every field is blank/zero — an all-empty run_config carries no
+ * meaning, and clearing it keeps the schedule on the platform defaults
+ * (the server's own "empty = inherit" contract, DD-017 D-3). Mirrors
+ * the creation form's `buildRunConfig`, producing the proto directly
+ * because the save path re-applies the full resource.
+ */
+function buildRunConfigProto(
+  modelName: string,
+  maxCostUsd: string,
+  maxToolRounds: string,
+): ScheduleRunConfig | undefined {
+  const model = modelName.trim();
+  const cost = Number.parseFloat(maxCostUsd);
+  const rounds = Number.parseInt(maxToolRounds, 10);
+
+  const fields: { modelName?: string; maxCostUsd?: number; maxToolRounds?: number } = {};
+  if (model !== "") fields.modelName = model;
+  if (Number.isFinite(cost) && cost > 0) fields.maxCostUsd = cost;
+  if (Number.isFinite(rounds) && rounds > 0) fields.maxToolRounds = rounds;
+
+  return Object.keys(fields).length > 0
+    ? create(ScheduleRunConfigSchema, fields)
+    : undefined;
+}
+
+/** Mirrors the server's constraint so the editor rejects bad input instantly. */
+function validateMessage(value: string): string | null {
+  if (!value.trim()) {
+    return "Message is required — the agent receives it on every fire.";
+  }
+  if (value.length > MESSAGE_MAX_LEN) {
+    return `Message must be at most ${MESSAGE_MAX_LEN} characters.`;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Inline-edit chrome shared by the bespoke editors above
+// ---------------------------------------------------------------------------
+
+const editorLabelClasses = "block text-xs font-medium text-foreground";
+
+const editorInputClasses = cn(
+  "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
+  "placeholder:text-muted-foreground",
+  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+  "disabled:pointer-events-none disabled:opacity-50",
+);
+
+/** Read-mode click target with the family's hover pencil. */
+function InlineReadButton({
+  onEdit,
+  ariaLabel,
+  children,
+}: {
+  readonly onEdit: () => void;
+  readonly ariaLabel: string;
+  readonly children: React.ReactNode;
+}) {
+  return (
+    <div className="group/inline-edit">
+      <button
+        type="button"
+        onClick={onEdit}
+        aria-label={ariaLabel}
+        className={cn(
+          "-mx-2 w-full rounded-md px-2 py-1.5 text-left transition-colors",
+          "hover:bg-accent-hover cursor-pointer",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        )}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">{children}</div>
+          <PencilIcon className="mt-0.5 size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/inline-edit:opacity-100" />
+        </div>
+      </button>
+    </div>
+  );
+}
+
+/** Save/Cancel footer with the field-attributed error line. */
+function InlineEditActions({
+  onCancel,
+  onSave,
+  isSaving,
+  canSave,
+  error,
+}: {
+  readonly onCancel: () => void;
+  readonly onSave: () => void;
+  readonly isSaving: boolean;
+  readonly canSave: boolean;
+  readonly error?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-end gap-1.5">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isSaving}
+          className={cn(
+            "rounded-md px-2.5 py-1 text-xs font-medium",
+            "border border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
+            "disabled:opacity-50",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={!canSave || isSaving}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium",
+            "bg-primary text-primary-foreground hover:bg-primary-hover",
+            "disabled:pointer-events-none disabled:opacity-50",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+        >
+          {isSaving && <SpinnerIcon />}
+          Save
+        </button>
+      </div>
+      {error && (
+        <p className="text-xs text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Detail rows and references
 // ---------------------------------------------------------------------------
 
@@ -543,6 +1203,61 @@ function DetailRow({
         {label}
       </dt>
       <dd className="min-w-0 flex-1">{children}</dd>
+    </div>
+  );
+}
+
+/** The bound environment references, or the em-dash when there are none. */
+function EnvironmentRefList({
+  refs,
+}: {
+  readonly refs: readonly { org: string; slug: string }[];
+}) {
+  if (refs.length === 0) {
+    return <span className="text-sm text-muted-foreground">—</span>;
+  }
+  return (
+    <ul className="flex flex-col gap-0.5">
+      {refs.map((ref, i) => (
+        <li
+          key={`${ref.org}/${ref.slug}-${i}`}
+          className="font-mono text-xs text-foreground"
+        >
+          {ref.org ? `${ref.org}/${ref.slug}` : ref.slug}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Failure streak — status.consecutive_failures, explained
+// ---------------------------------------------------------------------------
+
+/**
+ * The platform's failure streak: how many SCHEDULED runs in a row ended
+ * badly. The server increments it per failed cron fire, resets it on a
+ * successful run (or Resume), and auto-pauses the schedule when the
+ * streak crosses its threshold. Manual "Run now" fires never count.
+ *
+ * The threshold itself is server configuration not exposed through the
+ * API, so the copy stays qualitative — a hardcoded "of 5" here could
+ * silently drift from what the platform actually enforces.
+ */
+function FailureStreak({ count }: { readonly count: number }) {
+  if (count === 0) {
+    return <span className="text-sm text-foreground">0</span>;
+  }
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-sm font-medium text-warning">
+        {count} consecutive failed {count === 1 ? "run" : "runs"}
+      </span>
+      <p className="text-xs text-muted-foreground">
+        Failed scheduled runs raise this streak; too many in a row and the
+        platform pauses the schedule automatically. One successful run
+        resets it to 0. Manual runs never count.
+      </p>
     </div>
   );
 }
@@ -572,133 +1287,6 @@ function RunLimits({
     );
   }
   return <span className="text-sm text-foreground">{parts.join(" · ")}</span>;
-}
-
-// ---------------------------------------------------------------------------
-// Run history — the fire ledger, rendered (DD-017 D-7)
-// ---------------------------------------------------------------------------
-
-function RunHistory({
-  runs,
-  isLoading,
-  now,
-  onNavigateToExecution,
-}: {
-  readonly runs: readonly ScheduleRun[];
-  readonly isLoading: boolean;
-  readonly now: Date;
-  readonly onNavigateToExecution?: (executionId: string) => void;
-}) {
-  if (isLoading && runs.length === 0) {
-    return (
-      <div className="space-y-2 px-4 py-3" aria-busy="true">
-        <div className="h-4 w-full animate-pulse rounded bg-muted" />
-        <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
-      </div>
-    );
-  }
-  if (runs.length === 0) {
-    return (
-      <p className="px-4 py-6 text-center text-xs text-muted-foreground">
-        No runs yet. Use &ldquo;Run now&rdquo; to fire a test run — every fire,
-        including a refused one, is recorded here.
-      </p>
-    );
-  }
-  return (
-    <ul className="divide-y divide-border">
-      {runs.map((run, i) => (
-        <RunRow
-          key={`${run.executionId || "no-exec"}-${run.origin}-${i}`}
-          run={run}
-          now={now}
-          onNavigateToExecution={onNavigateToExecution}
-        />
-      ))}
-    </ul>
-  );
-}
-
-function RunRow({
-  run,
-  now,
-  onNavigateToExecution,
-}: {
-  readonly run: ScheduleRun;
-  readonly now: Date;
-  readonly onNavigateToExecution?: (executionId: string) => void;
-}) {
-  const when = run.nominalFireTime
-    ? formatRelativeTime(timestampDate(run.nominalFireTime), now)
-    : "—";
-  const badge = outcomeBadge(run.outcome);
-  const originLabel =
-    run.origin === ScheduleRunOrigin.MANUAL ? "Manual" : "Scheduled";
-
-  return (
-    <li className="flex flex-col gap-1 px-4 py-2.5">
-      <div className="flex items-center gap-2">
-        <span
-          className={cn(
-            "inline-flex items-center rounded-full px-2 py-0.5 text-[0.65rem] font-medium",
-            badge.className,
-          )}
-        >
-          {badge.label}
-        </span>
-        <span className="text-xs text-muted-foreground">{originLabel}</span>
-        <span className="text-xs text-muted-foreground-subtle">·</span>
-        <span className="text-xs text-muted-foreground">{when}</span>
-      </div>
-      {run.reason && (
-        <p className="whitespace-pre-wrap break-words text-xs text-muted-foreground">
-          {run.reason}
-        </p>
-      )}
-      {run.executionId &&
-        (onNavigateToExecution ? (
-          <button
-            type="button"
-            onClick={() => onNavigateToExecution(run.executionId)}
-            className={cn(
-              "self-start font-mono text-[0.65rem] text-primary underline-offset-2 hover:underline",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm",
-            )}
-          >
-            {run.executionId}
-          </button>
-        ) : (
-          <span className="self-start font-mono text-[0.65rem] text-muted-foreground">
-            {run.executionId}
-          </span>
-        ))}
-    </li>
-  );
-}
-
-/** Verbatim-label badges for a run outcome, colored by health. */
-function outcomeBadge(outcome: ScheduleRunOutcome): {
-  label: string;
-  className: string;
-} {
-  switch (outcome) {
-    case ScheduleRunOutcome.STARTED:
-      return { label: "Started", className: "bg-info/10 text-info" };
-    case ScheduleRunOutcome.COMPLETED:
-      return { label: "Completed", className: "bg-success/10 text-success" };
-    case ScheduleRunOutcome.REFUSED:
-      return { label: "Refused", className: "bg-warning/10 text-warning" };
-    case ScheduleRunOutcome.TARGET_MISSING:
-      return { label: "Target missing", className: "bg-warning/10 text-warning" };
-    case ScheduleRunOutcome.SKIPPED:
-      return { label: "Skipped", className: "bg-muted text-muted-foreground" };
-    case ScheduleRunOutcome.FAILED:
-      return { label: "Failed", className: "bg-destructive/10 text-destructive" };
-    case ScheduleRunOutcome.TIMED_OUT:
-      return { label: "Timed out", className: "bg-destructive/10 text-destructive" };
-    default:
-      return { label: "Unknown", className: "bg-muted text-muted-foreground" };
-  }
 }
 
 function ReferenceLink({
@@ -821,6 +1409,41 @@ function WarningIcon({ className }: { readonly className?: string }) {
       <path d="M8 1.5 15 14H1L8 1.5Z" />
       <path d="M8 6v4" />
       <path d="M8 12.2v.05" />
+    </svg>
+  );
+}
+
+function PencilIcon({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M11.5 1.5a2.121 2.121 0 0 1 3 3L5 14l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      className="animate-spin"
+      aria-hidden="true"
+    >
+      <path d="M8 2a6 6 0 1 0 6 6" />
     </svg>
   );
 }

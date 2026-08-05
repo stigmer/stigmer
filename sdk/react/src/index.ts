@@ -773,10 +773,11 @@ export type {
 // Schedule — the disabled-vs-paused state derivation, the direct-query
 // list core + workbench adapter (schedules are not search-backed), data
 // hooks (get by reference, paginated list, count), behavior hooks
-// (create via apply, resume, trigger once, owner enable/disable via
-// lossless manifest apply), the cadence model (preset ⇄ cron, no cron
-// parsing — recognition of builder-emitted shapes only), the cadence
-// builder, the creation form, and the detail view
+// (create via apply, resume, trigger once, owner enable/disable and
+// per-field spec edits via lossless manifest apply), the cadence model
+// (preset ⇄ cron, no cron parsing — recognition of builder-emitted
+// shapes only), the cadence builder, the creation form, the tabbed
+// detail view with inline editing, and the paginated run-history table
 export {
   deriveScheduleState,
   formatNextFire,
@@ -789,6 +790,7 @@ export {
   useResumeSchedule,
   useTriggerSchedule,
   useSetScheduleEnabled,
+  useUpdateScheduleSpec,
   createScheduleColumns,
   cadenceToCron,
   cronToCadence,
@@ -801,6 +803,7 @@ export {
   ScheduleRowActions,
   ScheduleDetailView,
   ScheduleIcon,
+  ScheduleRunsTable,
 } from "./schedule/index.js";
 export type {
   ScheduleState,
@@ -823,6 +826,8 @@ export type {
   ScheduleColumnsOptions,
   ScheduleRowActionsProps,
   ScheduleDetailViewProps,
+  ScheduleRunsTableProps,
+  UseUpdateScheduleSpecReturn,
 } from "./schedule/index.js";
 
 // Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, env var form, system env vars, and styled components

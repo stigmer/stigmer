@@ -197,6 +197,65 @@ test.describe("Schedule creation form", () => {
   });
 });
 
+test.describe("Schedule detail tabs and inline editing", () => {
+  test.beforeEach(async ({ page }) => {
+    await pinActiveOrg(page);
+  });
+
+  test("deep-links to the Runs tab and inline-edits the message losslessly", async ({
+    page,
+    stigmerClient,
+  }) => {
+    const seeded = await createTestSchedule(stigmerClient);
+    try {
+      // The ?tab= deep link lands directly on the Runs tab (the
+      // AgentDetailPage precedent, wired for schedules too).
+      await page.goto(
+        `/library/schedules/${SYSTEM_ORG}/${seeded.scheduleSlug}?tab=runs`,
+      );
+      await expect(
+        page.getByRole("tab", { name: "Overview" }),
+      ).toBeVisible({ timeout: 15_000 });
+      // A fresh schedule has an empty fire ledger — stated, not blank.
+      await expect(page.getByText("No runs yet.")).toBeVisible();
+
+      // Overview: the cadence humanizes; the raw cron stays visible.
+      await page.getByRole("tab", { name: "Overview" }).click();
+      await expect(
+        page.getByText("Every day at 09:00 (Asia/Kolkata)"),
+      ).toBeVisible();
+      await expect(page.getByText("0 9 * * *")).toBeVisible();
+
+      // Inline-edit the message: click-to-edit, save, and the view
+      // reflects the new value.
+      await page.getByText("Send today's reminders.").click();
+      await page
+        .getByRole("textbox")
+        .fill("Send this week's reminders.");
+      await page.getByRole("button", { name: "Save" }).click();
+      await expect(
+        page.getByText("Send this week's reminders."),
+      ).toBeVisible({ timeout: 15_000 });
+
+      // Server-side confirmation that the save was the lossless
+      // full-proto re-apply: the edited field changed, nothing else.
+      const after = await stigmerClient.schedule.getByReference({
+        org: SYSTEM_ORG,
+        slug: seeded.scheduleSlug,
+      });
+      expect(
+        after.spec?.target?.case === "agent"
+          ? after.spec.target.value.message
+          : undefined,
+      ).toBe("Send this week's reminders.");
+      expect(after.spec?.cron).toBe("0 9 * * *");
+      expect(after.spec?.enabled).toBe(true);
+    } finally {
+      await seeded.cleanup();
+    }
+  });
+});
+
 test.describe("Disabled-vs-paused rendering", () => {
   test.beforeEach(async ({ page }) => {
     await pinActiveOrg(page);

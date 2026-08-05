@@ -302,6 +302,54 @@ function useTriggerSchedule(): UseTriggerScheduleReturn
 />
 
 
+### useUpdateScheduleSpec
+
+Behavior hook behind the schedule detail view's inline editing: apply
+a single spec mutation losslessly.
+
+The write path is deliberate, and it is NOT the agent detail view's
+input-based one: clone the fetched proto, let the caller mutate the
+spec in place, and re-apply the WHOLE resource through the manifest
+engine (`stigmer.manifest.apply`) — never down-convert to the curated
+`ScheduleInput` shape. The server replaces spec and mutable metadata
+wholesale on update, and `ScheduleInput` cannot express every
+metadata field (tags, description), so the input route would silently
+wipe them. The full-proto route is lossless by construction; the
+server ignores client-provided status, and re-applying never clears a
+platform pause (Resume is the one clearing path — see
+`useResumeSchedule`). Same mechanics as [`useSetScheduleEnabled`](#usesetscheduleenabled),
+generalized from one hardcoded field to any spec edit.
+
+Errors are NOT toasted here: inline editors surface the server's
+message next to the field that was edited (DD-006), and a toast on
+top would say the same thing twice.
+
+**Signature**
+
+```tsx
+function useUpdateScheduleSpec(): UseUpdateScheduleSpecReturn
+```
+
+**Returns** — `UseUpdateScheduleSpecReturn`
+
+<TypeTable
+  type={{
+    error: { type: "Error | null", description: "Error from the last failed apply, or `null` when healthy." },
+    isUpdating: { type: "boolean", description: "`true` while the apply is in flight." },
+    updateSpec: { type: "(schedule: Schedule, mutate: (spec: ScheduleSpec) => void) => Promise<Schedule>", description: "Apply one spec mutation to the schedule. Takes the full fetched schedule (not just an id) because the write re-applies the whole resource. Resolves with the post-apply schedule; the caller refetches or replaces its local copy from it." },
+  }}
+/>
+
+```tsx
+const { updateSpec, isUpdating } = useUpdateScheduleSpec();
+
+await updateSpec(schedule, (spec) => {
+  spec.cron = "0 9 * * 1-5";
+  spec.timeZone = "Asia/Kolkata";
+});
+```
+
+
 ## Components
 
 ### CadenceField
@@ -336,7 +384,9 @@ string with [`cadenceToCron`](#cadencetocron) at submit time.
 
 ### ScheduleDetailView
 
-Self-contained detail view for a Schedule (stigmer/stigmer#352).
+Self-contained detail view for a Schedule (stigmer/stigmer#352),
+split into an Overview tab (definition + status + recent runs) and a
+Runs tab (the full paginated fire ledger).
 
 The view's one non-negotiable is rendering the two stop-levers
 distinctly, each with its inline remedy:
@@ -349,8 +399,9 @@ distinctly, each with its inline remedy:
 
 Trigger ("Run now") starts a real, billable execution and is gated
 behind a confirmation; it is disabled while the schedule cannot fire
-(the banner names the remedy). Edit YAML, Export, and Delete round
-out the action set.
+(the banner names the remedy). With `editable`, the mutable spec
+fields edit inline; Edit YAML, Export, and Delete round out the
+action set.
 
 Handles loading, error, and not-found states automatically.
 Zero Console dependencies — safe for platform builder embedding.
@@ -360,12 +411,17 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
+    activeTab: { type: "string", description: "Controlled active tab (pair with `onTabChange`)." },
+    additionalTabs: { type: "readonly AdditionalTab[]", description: "Consumer-provided extension tabs, appended after the built-ins." },
     className: { type: "string", description: "Additional CSS classes for the root container." },
-    now: { type: "Date", description: "The instant \"next fire\" countdowns are computed against. Injectable for deterministic tests and Scenar fixtures." },
+    defaultTab: { type: "string", description: "Initial tab in uncontrolled mode." },
+    editable: { type: "boolean", description: "Enable inline editing of the schedule's mutable spec fields (cadence, message, environments, run limits). Each field saves independently via a lossless full-resource re-apply (useUpdateScheduleSpec). The server-immutable fields — slug, target agent, target type — never gain an edit affordance." },
+    now: { type: "Date", description: "The instant \"next fire\" countdowns and run timestamps are computed against. Injectable for deterministic tests and Scenar fixtures." },
     onDeleted: { type: "() => void", description: "Called after a successful delete (navigate back to the list)." },
     onNavigateToAgent: { type: "(org: string, slug: string) => void", description: "Called when the user activates the target-agent reference. Navigation is the consumer's concern (DD-004) — the Console pushes a Library route; an embedding host does whatever fits." },
-    onNavigateToExecution: { type: "(executionId: string) => void", description: "Called when the user activates the last-execution reference (`aex_…`). When omitted, the id renders as plain text." },
+    onNavigateToExecution: { type: "(executionId: string) => void", description: "Called when the user activates an execution reference (`aex_…`), from the status row or a run-history row. When omitted, ids render as plain text." },
     onResourceLoad: { type: "(schedule: Schedule) => void", description: "Called when the schedule loads or reloads (e.g. breadcrumb label sync)." },
+    onTabChange: { type: "(tabId: string) => void", description: "Controlled tab change handler (pair with `activeTab`)." },
     org: { type: "string", description: "Organization slug.", required: true },
     slug: { type: "string", description: "Schedule slug.", required: true },
   }}
@@ -433,6 +489,48 @@ so row behavior never diverges between apps (DD-016).
     schedule: { type: "Schedule", description: "The schedule this row represents.", required: true },
   }}
 />
+
+
+### ScheduleRunsTable
+
+Paginated run-history table for a schedule — the fire ledger,
+rendered in full (project DD-017 D-7).
+
+Every fire leaves a row, INCLUDING fires that created no execution (a
+refused launch gate, a missing target agent), carrying the refusing
+gate's copy verbatim. Columns: outcome, origin, fired time (relative,
+with the absolute instant on hover), duration (recorded → completed;
+"—" while a run is in flight or when no run was created), and the
+execution reference.
+
+Owns its data: give it a `scheduleId` and it fetches via
+`useScheduleRuns` with internal page state. To force a refresh
+from outside (e.g. after triggering a manual run), remount with a
+React `key` — the standard reset idiom (DD-014); the remount also
+returns to page 1, where the new run appears.
+
+Handles loading, error, and empty states automatically.
+Zero Console dependencies — safe for platform builder embedding.
+All visual properties flow through `--stgm-*` design tokens.
+
+**Props** — `ScheduleRunsTableProps`
+
+<TypeTable
+  type={{
+    className: { type: "string", description: "Additional CSS classes for the root container." },
+    now: { type: "Date", description: "The instant relative timestamps are computed against. Injectable for deterministic tests and Scenar fixtures." },
+    onNavigateToExecution: { type: "(executionId: string) => void", description: "Called when the user activates a run's execution reference (`aex_…`). When omitted, the id renders as plain text." },
+    pageSize: { type: "number", description: "Runs per page." },
+    scheduleId: { type: "string", description: "ID of the schedule whose run history to show.", required: true },
+  }}
+/>
+
+```tsx
+<ScheduleRunsTable
+  scheduleId={schedule.metadata.id}
+  onNavigateToExecution={(id) => router.push(`/executions/${id}`)}
+/>
+```
 
 
 ## Types

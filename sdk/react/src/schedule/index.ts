@@ -34,6 +34,9 @@ export type { UseTriggerScheduleReturn } from "./useTriggerSchedule.js";
 export { useSetScheduleEnabled } from "./useSetScheduleEnabled.js";
 export type { UseSetScheduleEnabledReturn } from "./useSetScheduleEnabled.js";
 
+export { useUpdateScheduleSpec } from "./useUpdateScheduleSpec.js";
+export type { UseUpdateScheduleSpecReturn } from "./useUpdateScheduleSpec.js";
+
 export { createScheduleColumns } from "./scheduleColumns.js";
 export type { ScheduleColumnsOptions } from "./scheduleColumns.js";
 
@@ -42,6 +45,9 @@ export type { ScheduleRowActionsProps } from "./ScheduleRowActions.js";
 
 export { ScheduleDetailView, ScheduleIcon } from "./ScheduleDetailView.js";
 export type { ScheduleDetailViewProps } from "./ScheduleDetailView.js";
+
+export { ScheduleRunsTable } from "./ScheduleRunsTable.js";
+export type { ScheduleRunsTableProps } from "./ScheduleRunsTable.js";
 
 export {
   cadenceToCron,
