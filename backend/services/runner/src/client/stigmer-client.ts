@@ -49,7 +49,7 @@ import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/work
 import type { Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
 import type { WorkflowInstance } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/api_pb";
-import { PlatformQueryController, GetRunnerScopedTokenInputSchema } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
+import { PlatformQueryController, GetRunnerScopedTokenInputSchema, TokenRenewalSchema } from "@stigmer/protos/ai/stigmer/platform/v1/server_info_pb";
 import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
 import type { ChannelTemplate, MessagingChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { isEmbeddedRunnerToken } from "./token-claims.js";
@@ -94,12 +94,16 @@ export interface RunnerScopedToken {
  * `poolClaimSessionId` is the warm-pool attach exchange: a pool sandbox
  * presenting its pool_sandbox credential for the session it was claimed for
  * (the server authorizes against the claim record, not the caller's FGA
- * relations). The execution arms remain embedded_runner-only.
+ * relations). `renewal` is a live sandbox extending its own credential
+ * before expiry: no id is named because every mint parameter comes from the
+ * presented credential's verified claims (see sandbox-token-renewal.ts).
+ * The execution arms remain embedded_runner-only.
  */
 export type RunnerScopedTokenScope =
   | { agentExecutionId: string }
   | { workflowExecutionId: string }
-  | { poolClaimSessionId: string };
+  | { poolClaimSessionId: string }
+  | { renewal: true };
 
 /**
  * Map the scope union onto the proto oneof init shape. The narrowing chain is
@@ -113,7 +117,10 @@ function toRunnerScopedTokenOneof(scope: RunnerScopedTokenScope) {
   if ("workflowExecutionId" in scope) {
     return { case: "workflowExecutionId", value: scope.workflowExecutionId } as const;
   }
-  return { case: "poolClaim", value: { sessionId: scope.poolClaimSessionId } } as const;
+  if ("poolClaimSessionId" in scope) {
+    return { case: "poolClaim", value: { sessionId: scope.poolClaimSessionId } } as const;
+  }
+  return { case: "renewal", value: create(TokenRenewalSchema) } as const;
 }
 
 /**

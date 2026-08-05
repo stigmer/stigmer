@@ -57,6 +57,11 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_platform_v1_PoolClaim_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_platform_v1_TokenRenewal_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_platform_v1_TokenRenewal_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenOutput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -85,33 +90,36 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
       "\tR\021runnerAccessToken\022\035\n\ntoken_type\030\004 \001(\t" +
       "R\ttokenType\022Q\n&runner_access_token_expir" +
       "es_in_seconds\030\005 \001(\005R!runnerAccessTokenEx" +
-      "piresInSeconds\"\325\001\n\031GetRunnerScopedTokenI" +
+      "piresInSeconds\"\227\002\n\031GetRunnerScopedTokenI" +
       "nput\022.\n\022agent_execution_id\030\001 \001(\tH\000R\020agen" +
       "tExecutionId\0224\n\025workflow_execution_id\030\002 " +
       "\001(\tH\000R\023workflowExecutionId\022B\n\npool_claim" +
       "\030\003 \001(\0132!.ai.stigmer.platform.v1.PoolClai" +
-      "mH\000R\tpoolClaimB\016\n\005scope\022\005\272H\002\010\001\"3\n\tPoolCl" +
-      "aim\022&\n\nsession_id\030\001 \001(\tB\007\272H\004r\002\020\001R\tsessio" +
-      "nId\"\231\001\n\032GetRunnerScopedTokenOutput\022.\n\023ru" +
-      "nner_scoped_token\030\001 \001(\tR\021runnerScopedTok" +
-      "en\022\035\n\ntoken_type\030\002 \001(\tR\ttokenType\022,\n\022exp" +
-      "ires_in_seconds\030\003 \001(\005R\020expiresInSeconds*" +
-      "C\n\rServerEdition\022\036\n\032server_edition_unspe" +
-      "cified\020\000\022\007\n\003oss\020\001\022\t\n\005cloud\020\0022\241\003\n\027Platfor" +
-      "mQueryController\022n\n\rgetServerInfo\022*.ai.s" +
-      "tigmer.platform.v1.GetServerInfoInput\032+." +
-      "ai.stigmer.platform.v1.GetServerInfoOutp" +
-      "ut\"\004\310\270\030\001\022\217\001\n\030getRunnerBootstrapConfig\0225." +
-      "ai.stigmer.platform.v1.GetRunnerBootstra" +
-      "pConfigInput\0326.ai.stigmer.platform.v1.Ge" +
-      "tRunnerBootstrapConfigOutput\"\004\320\270\030\001\022\203\001\n\024g" +
-      "etRunnerScopedToken\0221.ai.stigmer.platfor" +
-      "m.v1.GetRunnerScopedTokenInput\0322.ai.stig" +
-      "mer.platform.v1.GetRunnerScopedTokenOutp" +
-      "ut\"\004\320\270\030\001B\214\001B\017ServerInfoProtoP\001\242\002\003ASP\252\002\026A" +
-      "i.Stigmer.Platform.V1\312\002\026Ai\\Stigmer\\Platf" +
-      "orm\\V1\342\002\"Ai\\Stigmer\\Platform\\V1\\GPBMetad" +
-      "ata\352\002\031Ai::Stigmer::Platform::V1b\006proto3"
+      "mH\000R\tpoolClaim\022@\n\007renewal\030\004 \001(\0132$.ai.sti" +
+      "gmer.platform.v1.TokenRenewalH\000R\007renewal" +
+      "B\016\n\005scope\022\005\272H\002\010\001\"3\n\tPoolClaim\022&\n\nsession" +
+      "_id\030\001 \001(\tB\007\272H\004r\002\020\001R\tsessionId\"\016\n\014TokenRe" +
+      "newal\"\231\001\n\032GetRunnerScopedTokenOutput\022.\n\023" +
+      "runner_scoped_token\030\001 \001(\tR\021runnerScopedT" +
+      "oken\022\035\n\ntoken_type\030\002 \001(\tR\ttokenType\022,\n\022e" +
+      "xpires_in_seconds\030\003 \001(\005R\020expiresInSecond" +
+      "s*C\n\rServerEdition\022\036\n\032server_edition_uns" +
+      "pecified\020\000\022\007\n\003oss\020\001\022\t\n\005cloud\020\0022\241\003\n\027Platf" +
+      "ormQueryController\022n\n\rgetServerInfo\022*.ai" +
+      ".stigmer.platform.v1.GetServerInfoInput\032" +
+      "+.ai.stigmer.platform.v1.GetServerInfoOu" +
+      "tput\"\004\310\270\030\001\022\217\001\n\030getRunnerBootstrapConfig\022" +
+      "5.ai.stigmer.platform.v1.GetRunnerBootst" +
+      "rapConfigInput\0326.ai.stigmer.platform.v1." +
+      "GetRunnerBootstrapConfigOutput\"\004\320\270\030\001\022\203\001\n" +
+      "\024getRunnerScopedToken\0221.ai.stigmer.platf" +
+      "orm.v1.GetRunnerScopedTokenInput\0322.ai.st" +
+      "igmer.platform.v1.GetRunnerScopedTokenOu" +
+      "tput\"\004\320\270\030\001B\214\001B\017ServerInfoProtoP\001\242\002\003ASP\252\002" +
+      "\026Ai.Stigmer.Platform.V1\312\002\026Ai\\Stigmer\\Pla" +
+      "tform\\V1\342\002\"Ai\\Stigmer\\Platform\\V1\\GPBMet" +
+      "adata\352\002\031Ai::Stigmer::Platform::V1b\006proto" +
+      "3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -148,15 +156,21 @@ public final class ServerInfoProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenInput_descriptor,
-        new java.lang.String[] { "AgentExecutionId", "WorkflowExecutionId", "PoolClaim", "Scope", });
+        new java.lang.String[] { "AgentExecutionId", "WorkflowExecutionId", "PoolClaim", "Renewal", "Scope", });
     internal_static_ai_stigmer_platform_v1_PoolClaim_descriptor =
       getDescriptor().getMessageType(5);
     internal_static_ai_stigmer_platform_v1_PoolClaim_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_platform_v1_PoolClaim_descriptor,
         new java.lang.String[] { "SessionId", });
-    internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenOutput_descriptor =
+    internal_static_ai_stigmer_platform_v1_TokenRenewal_descriptor =
       getDescriptor().getMessageType(6);
+    internal_static_ai_stigmer_platform_v1_TokenRenewal_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_platform_v1_TokenRenewal_descriptor,
+        new java.lang.String[] { });
+    internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenOutput_descriptor =
+      getDescriptor().getMessageType(7);
     internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenOutput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_platform_v1_GetRunnerScopedTokenOutput_descriptor,

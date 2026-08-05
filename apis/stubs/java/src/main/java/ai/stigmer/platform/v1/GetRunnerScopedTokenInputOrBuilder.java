@@ -107,5 +107,38 @@ public interface GetRunnerScopedTokenInputOrBuilder extends
    */
   ai.stigmer.platform.v1.PoolClaimOrBuilder getPoolClaimOrBuilder();
 
+  /**
+   * <pre>
+   * Credential renewal — a live sandbox extending its own lifetime.
+   * Presented with the still-valid token_type=sandbox or workflow_sandbox
+   * credential being renewed (not embedded_runner).
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
+   * @return Whether the renewal field is set.
+   */
+  boolean hasRenewal();
+  /**
+   * <pre>
+   * Credential renewal — a live sandbox extending its own lifetime.
+   * Presented with the still-valid token_type=sandbox or workflow_sandbox
+   * credential being renewed (not embedded_runner).
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
+   * @return The renewal.
+   */
+  ai.stigmer.platform.v1.TokenRenewal getRenewal();
+  /**
+   * <pre>
+   * Credential renewal — a live sandbox extending its own lifetime.
+   * Presented with the still-valid token_type=sandbox or workflow_sandbox
+   * credential being renewed (not embedded_runner).
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
+   */
+  ai.stigmer.platform.v1.TokenRenewalOrBuilder getRenewalOrBuilder();
+
   ai.stigmer.platform.v1.GetRunnerScopedTokenInput.ScopeCase getScopeCase();
 }

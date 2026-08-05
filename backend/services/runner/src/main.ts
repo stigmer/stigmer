@@ -213,6 +213,25 @@ async function runPoolMode(
     executionMode: config.mode,
   });
 
+  // Sandbox credential self-renewal (see sandbox-token-renewal.ts). Watches
+  // the env var because manager.updateToken keeps it in lockstep with the
+  // manager's internal ref: a blank member's pool_sandbox token parks the
+  // loop, the claim's updateToken swaps in a renewable session token, and
+  // from then on renewal applies fresh tokens back through the same
+  // updateToken (which also cascades to the proxy-credential coordinator).
+  const { startSandboxTokenRenewal } = await import("./sandbox-token-renewal.js");
+  const { StigmerClient } = await import("./client/stigmer-client.js");
+  const renewalClient = new StigmerClient({
+    endpoint: config.stigmerBackendEndpoint,
+    token: null,
+  });
+  const tokenRenewal = startSandboxTokenRenewal({
+    getToken: () => process.env.STIGMER_TOKEN ?? null,
+    renew: (currentToken) =>
+      renewalClient.getRunnerScopedToken({ renewal: true }, currentToken),
+    applyToken: (token) => manager.updateToken(token),
+  });
+
   let taskQueue: string;
   if (intent.kind === "pool-control") {
     registerPoolMemberContext({
@@ -277,6 +296,7 @@ async function runPoolMode(
       }
       shutdownRequested = true;
       console.warn(`[pool-member] Received ${signal}, shutting down gracefully...`);
+      tokenRenewal.stop();
       void manager.shutdown().then(resolve, (err) => {
         console.error("[pool-member] Shutdown failed:", err);
         resolve();

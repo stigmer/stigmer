@@ -89,11 +89,23 @@ export class LocalArtifactStorage implements ArtifactStorage {
 
 export class ProxyArtifactStorage implements ArtifactStorage {
   private readonly baseUrl: string;
-  private readonly authToken: string;
+  private readonly authTokenSource: ProxyAuthTokenSource;
 
-  constructor(proxyEndpoint: string, authToken: string) {
+  constructor(proxyEndpoint: string, authToken: ProxyAuthTokenSource) {
     this.baseUrl = `${proxyEndpoint.replace(/\/+$/, "")}/v1/proxy/artifacts`;
-    this.authToken = authToken;
+    this.authTokenSource = authToken;
+  }
+
+  /**
+   * Resolve the credential per call rather than pinning the boot token: a
+   * cloud sandbox's control-plane token rotates in place (see
+   * sandbox-token-renewal.ts), and this storage lives for the pod's whole
+   * life — a captured string would silently 401 after the first rotation.
+   */
+  private get authToken(): string {
+    return typeof this.authTokenSource === "string"
+      ? this.authTokenSource
+      : (this.authTokenSource.current ?? "");
   }
 
   async upload(key: string, content: Buffer, contentType?: string): Promise<string> {
@@ -214,12 +226,18 @@ export class ProxyArtifactStorage implements ArtifactStorage {
 
 // ── Factory ──────────────────────────────────────────────────────────
 
+/**
+ * The proxy credential, either fixed (a caller-supplied string) or live (a
+ * shared mutable ref, read per call — the sandbox token-renewal posture).
+ */
+export type ProxyAuthTokenSource = string | { readonly current: string | null };
+
 export interface ArtifactStorageConfig {
   readonly type: ArtifactStorageType;
   readonly localPath: string;
   readonly localServeUrl: string;
   readonly proxyEndpoint: string | null;
-  readonly proxyAuthToken: string | null;
+  readonly proxyAuthToken: ProxyAuthTokenSource | null;
 }
 
 export function loadArtifactStorageConfig(config: Config): ArtifactStorageConfig {
@@ -239,7 +257,11 @@ export function loadArtifactStorageConfig(config: Config): ArtifactStorageConfig
     localPath: process.env.LOCAL_ARTIFACT_PATH ?? "/var/stigmer/artifacts",
     localServeUrl: process.env.LOCAL_ARTIFACT_SERVE_URL ?? "http://localhost:7235",
     proxyEndpoint: type === "proxy" ? (config.proxyEndpoint ?? null) : null,
-    proxyAuthToken: type === "proxy" ? (config.stigmerToken ?? null) : null,
+    // Prefer the live ref: renewal rotates the token in place and uploads
+    // must present the current credential, not the boot one.
+    proxyAuthToken: type === "proxy"
+      ? (config.stigmerTokenRef ?? config.stigmerToken ?? null)
+      : null,
   };
 }
 
@@ -248,10 +270,13 @@ export function createArtifactStorage(cfg: ArtifactStorageConfig): ArtifactStora
     if (!cfg.proxyEndpoint) {
       throw new Error("Proxy artifact storage requires STIGMER_PROXY_ENDPOINT");
     }
-    if (!cfg.proxyAuthToken) {
+    const tokenAtBoot = typeof cfg.proxyAuthToken === "string"
+      ? cfg.proxyAuthToken
+      : cfg.proxyAuthToken?.current;
+    if (!tokenAtBoot) {
       throw new Error("Proxy artifact storage requires STIGMER_TOKEN");
     }
-    return new ProxyArtifactStorage(cfg.proxyEndpoint, cfg.proxyAuthToken);
+    return new ProxyArtifactStorage(cfg.proxyEndpoint, cfg.proxyAuthToken!);
   }
 
   return new LocalArtifactStorage(cfg.localPath, cfg.localServeUrl);

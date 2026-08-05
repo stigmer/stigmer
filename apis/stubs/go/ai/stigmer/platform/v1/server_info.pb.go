@@ -324,6 +324,7 @@ type GetRunnerScopedTokenInput struct {
 	//	*GetRunnerScopedTokenInput_AgentExecutionId
 	//	*GetRunnerScopedTokenInput_WorkflowExecutionId
 	//	*GetRunnerScopedTokenInput_PoolClaim
+	//	*GetRunnerScopedTokenInput_Renewal
 	Scope         isGetRunnerScopedTokenInput_Scope `protobuf_oneof:"scope"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -393,6 +394,15 @@ func (x *GetRunnerScopedTokenInput) GetPoolClaim() *PoolClaim {
 	return nil
 }
 
+func (x *GetRunnerScopedTokenInput) GetRenewal() *TokenRenewal {
+	if x != nil {
+		if x, ok := x.Scope.(*GetRunnerScopedTokenInput_Renewal); ok {
+			return x.Renewal
+		}
+	}
+	return nil
+}
+
 type isGetRunnerScopedTokenInput_Scope interface {
 	isGetRunnerScopedTokenInput_Scope()
 }
@@ -416,11 +426,20 @@ type GetRunnerScopedTokenInput_PoolClaim struct {
 	PoolClaim *PoolClaim `protobuf:"bytes,3,opt,name=pool_claim,json=poolClaim,proto3,oneof"`
 }
 
+type GetRunnerScopedTokenInput_Renewal struct {
+	// Credential renewal — a live sandbox extending its own lifetime.
+	// Presented with the still-valid token_type=sandbox or workflow_sandbox
+	// credential being renewed (not embedded_runner).
+	Renewal *TokenRenewal `protobuf:"bytes,4,opt,name=renewal,proto3,oneof"`
+}
+
 func (*GetRunnerScopedTokenInput_AgentExecutionId) isGetRunnerScopedTokenInput_Scope() {}
 
 func (*GetRunnerScopedTokenInput_WorkflowExecutionId) isGetRunnerScopedTokenInput_Scope() {}
 
 func (*GetRunnerScopedTokenInput_PoolClaim) isGetRunnerScopedTokenInput_Scope() {}
+
+func (*GetRunnerScopedTokenInput_Renewal) isGetRunnerScopedTokenInput_Scope() {}
 
 // Claim exchange for a warm-pool sandbox member.
 //
@@ -481,6 +500,69 @@ func (x *PoolClaim) GetSessionId() string {
 	return ""
 }
 
+// Renewal exchange for a running sandbox's own credential.
+//
+// A sandbox token is minted with a fixed TTL, but the sandbox it serves has
+// no fixed lifetime: an active conversation extends a session sandbox
+// indefinitely, and a long workflow run can outlast any TTL chosen at
+// provisioning (the 2026-08-05 incident: a WhatsApp conversation outlived
+// its 25h token and a user turn died UNAUTHENTICATED). Renewal decouples
+// the two — the runner re-mints on a timer before expiry and applies the
+// fresh token in-process, so credential freshness never requires a pod
+// restart (which would wipe an ephemeral sandbox's workspace).
+//
+// Deliberately empty: every mint parameter (identity, org, session /
+// workflow-execution scope) comes from the presented credential's VERIFIED
+// claims, never from the client, so a renewed token is claim-identical to
+// the one it replaces.
+//
+// @internal
+// Cloud authorizes against the live sandbox record, not FGA (a sandbox
+// token is structurally not an FGA principal — the pool_claim posture): a
+// token_type=sandbox caller requires its session_sandboxes row to exist and
+// not be archived/deleting; a token_type=workflow_sandbox caller requires
+// the same of its workflow_sandboxes row. The record IS the revocation
+// lever: when the lifecycle reconciler reaps the sandbox, renewal dies with
+// it, so a credential's renewable lifetime is exactly its sandbox's
+// lifetime. Minted TTL is the standard sandbox TTL (not window-covering) —
+// renewal is what makes short TTLs sufficient. OSS has no signing key and
+// mints nothing (empty output, presence-based contract).
+type TokenRenewal struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TokenRenewal) Reset() {
+	*x = TokenRenewal{}
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TokenRenewal) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TokenRenewal) ProtoMessage() {}
+
+func (x *TokenRenewal) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TokenRenewal.ProtoReflect.Descriptor instead.
+func (*TokenRenewal) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{6}
+}
+
 // A runner token scoped to one unit of work, or empty when the server cannot
 // mint one.
 //
@@ -509,7 +591,7 @@ type GetRunnerScopedTokenOutput struct {
 
 func (x *GetRunnerScopedTokenOutput) Reset() {
 	*x = GetRunnerScopedTokenOutput{}
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[6]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -521,7 +603,7 @@ func (x *GetRunnerScopedTokenOutput) String() string {
 func (*GetRunnerScopedTokenOutput) ProtoMessage() {}
 
 func (x *GetRunnerScopedTokenOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[6]
+	mi := &file_ai_stigmer_platform_v1_server_info_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -534,7 +616,7 @@ func (x *GetRunnerScopedTokenOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRunnerScopedTokenOutput.ProtoReflect.Descriptor instead.
 func (*GetRunnerScopedTokenOutput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetRunnerScopedTokenOutput) GetRunnerScopedToken() string {
@@ -574,16 +656,18 @@ const file_ai_stigmer_platform_v1_server_info_proto_rawDesc = "" +
 	"\x13runner_access_token\x18\x03 \x01(\tR\x11runnerAccessToken\x12\x1d\n" +
 	"\n" +
 	"token_type\x18\x04 \x01(\tR\ttokenType\x12Q\n" +
-	"&runner_access_token_expires_in_seconds\x18\x05 \x01(\x05R!runnerAccessTokenExpiresInSeconds\"\xd5\x01\n" +
+	"&runner_access_token_expires_in_seconds\x18\x05 \x01(\x05R!runnerAccessTokenExpiresInSeconds\"\x97\x02\n" +
 	"\x19GetRunnerScopedTokenInput\x12.\n" +
 	"\x12agent_execution_id\x18\x01 \x01(\tH\x00R\x10agentExecutionId\x124\n" +
 	"\x15workflow_execution_id\x18\x02 \x01(\tH\x00R\x13workflowExecutionId\x12B\n" +
 	"\n" +
-	"pool_claim\x18\x03 \x01(\v2!.ai.stigmer.platform.v1.PoolClaimH\x00R\tpoolClaimB\x0e\n" +
+	"pool_claim\x18\x03 \x01(\v2!.ai.stigmer.platform.v1.PoolClaimH\x00R\tpoolClaim\x12@\n" +
+	"\arenewal\x18\x04 \x01(\v2$.ai.stigmer.platform.v1.TokenRenewalH\x00R\arenewalB\x0e\n" +
 	"\x05scope\x12\x05\xbaH\x02\b\x01\"3\n" +
 	"\tPoolClaim\x12&\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tsessionId\"\x99\x01\n" +
+	"session_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tsessionId\"\x0e\n" +
+	"\fTokenRenewal\"\x99\x01\n" +
 	"\x1aGetRunnerScopedTokenOutput\x12.\n" +
 	"\x13runner_scoped_token\x18\x01 \x01(\tR\x11runnerScopedToken\x12\x1d\n" +
 	"\n" +
@@ -612,7 +696,7 @@ func file_ai_stigmer_platform_v1_server_info_proto_rawDescGZIP() []byte {
 }
 
 var file_ai_stigmer_platform_v1_server_info_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ai_stigmer_platform_v1_server_info_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_ai_stigmer_platform_v1_server_info_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ai_stigmer_platform_v1_server_info_proto_goTypes = []any{
 	(ServerEdition)(0),                     // 0: ai.stigmer.platform.v1.ServerEdition
 	(*GetServerInfoInput)(nil),             // 1: ai.stigmer.platform.v1.GetServerInfoInput
@@ -621,22 +705,24 @@ var file_ai_stigmer_platform_v1_server_info_proto_goTypes = []any{
 	(*GetRunnerBootstrapConfigOutput)(nil), // 4: ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
 	(*GetRunnerScopedTokenInput)(nil),      // 5: ai.stigmer.platform.v1.GetRunnerScopedTokenInput
 	(*PoolClaim)(nil),                      // 6: ai.stigmer.platform.v1.PoolClaim
-	(*GetRunnerScopedTokenOutput)(nil),     // 7: ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
+	(*TokenRenewal)(nil),                   // 7: ai.stigmer.platform.v1.TokenRenewal
+	(*GetRunnerScopedTokenOutput)(nil),     // 8: ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
 }
 var file_ai_stigmer_platform_v1_server_info_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.platform.v1.GetServerInfoOutput.edition:type_name -> ai.stigmer.platform.v1.ServerEdition
 	6, // 1: ai.stigmer.platform.v1.GetRunnerScopedTokenInput.pool_claim:type_name -> ai.stigmer.platform.v1.PoolClaim
-	1, // 2: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:input_type -> ai.stigmer.platform.v1.GetServerInfoInput
-	3, // 3: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:input_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
-	5, // 4: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:input_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenInput
-	2, // 5: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:output_type -> ai.stigmer.platform.v1.GetServerInfoOutput
-	4, // 6: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:output_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
-	7, // 7: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:output_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	7, // 2: ai.stigmer.platform.v1.GetRunnerScopedTokenInput.renewal:type_name -> ai.stigmer.platform.v1.TokenRenewal
+	1, // 3: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:input_type -> ai.stigmer.platform.v1.GetServerInfoInput
+	3, // 4: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:input_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigInput
+	5, // 5: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:input_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenInput
+	2, // 6: ai.stigmer.platform.v1.PlatformQueryController.getServerInfo:output_type -> ai.stigmer.platform.v1.GetServerInfoOutput
+	4, // 7: ai.stigmer.platform.v1.PlatformQueryController.getRunnerBootstrapConfig:output_type -> ai.stigmer.platform.v1.GetRunnerBootstrapConfigOutput
+	8, // 8: ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken:output_type -> ai.stigmer.platform.v1.GetRunnerScopedTokenOutput
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_platform_v1_server_info_proto_init() }
@@ -648,6 +734,7 @@ func file_ai_stigmer_platform_v1_server_info_proto_init() {
 		(*GetRunnerScopedTokenInput_AgentExecutionId)(nil),
 		(*GetRunnerScopedTokenInput_WorkflowExecutionId)(nil),
 		(*GetRunnerScopedTokenInput_PoolClaim)(nil),
+		(*GetRunnerScopedTokenInput_Renewal)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -655,7 +742,7 @@ func file_ai_stigmer_platform_v1_server_info_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_platform_v1_server_info_proto_rawDesc), len(file_ai_stigmer_platform_v1_server_info_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

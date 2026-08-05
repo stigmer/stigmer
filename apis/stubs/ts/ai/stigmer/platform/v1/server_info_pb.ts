@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/v1/server_info.proto.
  */
 export const file_ai_stigmer_platform_v1_server_info: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCLJAQoeR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0EiEKEHRlbXBvcmFsX2FkZHJlc3MYASABKAlCB7pIBHICEAESIwoSdGVtcG9yYWxfbmFtZXNwYWNlGAIgASgJQge6SARyAhABEhsKE3J1bm5lcl9hY2Nlc3NfdG9rZW4YAyABKAkSEgoKdG9rZW5fdHlwZRgEIAEoCRIuCiZydW5uZXJfYWNjZXNzX3Rva2VuX2V4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBSKjAQoZR2V0UnVubmVyU2NvcGVkVG9rZW5JbnB1dBIcChJhZ2VudF9leGVjdXRpb25faWQYASABKAlIABIfChV3b3JrZmxvd19leGVjdXRpb25faWQYAiABKAlIABI3Cgpwb29sX2NsYWltGAMgASgLMiEuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5Qb29sQ2xhaW1IAEIOCgVzY29wZRIFukgCCAEiKAoJUG9vbENsYWltEhsKCnNlc3Npb25faWQYASABKAlCB7pIBHICEAEiaQoaR2V0UnVubmVyU2NvcGVkVG9rZW5PdXRwdXQSGwoTcnVubmVyX3Njb3BlZF90b2tlbhgBIAEoCRISCgp0b2tlbl90eXBlGAIgASgJEhoKEmV4cGlyZXNfaW5fc2Vjb25kcxgDIAEoBSpDCg1TZXJ2ZXJFZGl0aW9uEh4KGnNlcnZlcl9lZGl0aW9uX3Vuc3BlY2lmaWVkEAASBwoDb3NzEAESCQoFY2xvdWQQAjKhAwoXUGxhdGZvcm1RdWVyeUNvbnRyb2xsZXISbgoNZ2V0U2VydmVySW5mbxIqLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0U2VydmVySW5mb0lucHV0GisuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRTZXJ2ZXJJbmZvT3V0cHV0IgTIuBgBEo8BChhnZXRSdW5uZXJCb290c3RyYXBDb25maWcSNS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFJ1bm5lckJvb3RzdHJhcENvbmZpZ0lucHV0GjYuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJCb290c3RyYXBDb25maWdPdXRwdXQiBNC4GAESgwEKFGdldFJ1bm5lclNjb3BlZFRva2VuEjEuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJTY29wZWRUb2tlbklucHV0GjIuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJTY29wZWRUb2tlbk91dHB1dCIE0LgYAUIRQg9TZXJ2ZXJJbmZvUHJvdG9iBnByb3RvMw", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL3BsYXRmb3JtL3YxL3NlcnZlcl9pbmZvLnByb3RvEhZhaS5zdGlnbWVyLnBsYXRmb3JtLnYxIhQKEkdldFNlcnZlckluZm9JbnB1dCJeChNHZXRTZXJ2ZXJJbmZvT3V0cHV0EjYKB2VkaXRpb24YASABKA4yJS5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLlNlcnZlckVkaXRpb24SDwoHdmVyc2lvbhgCIAEoCSIfCh1HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dCLJAQoeR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0EiEKEHRlbXBvcmFsX2FkZHJlc3MYASABKAlCB7pIBHICEAESIwoSdGVtcG9yYWxfbmFtZXNwYWNlGAIgASgJQge6SARyAhABEhsKE3J1bm5lcl9hY2Nlc3NfdG9rZW4YAyABKAkSEgoKdG9rZW5fdHlwZRgEIAEoCRIuCiZydW5uZXJfYWNjZXNzX3Rva2VuX2V4cGlyZXNfaW5fc2Vjb25kcxgFIAEoBSLcAQoZR2V0UnVubmVyU2NvcGVkVG9rZW5JbnB1dBIcChJhZ2VudF9leGVjdXRpb25faWQYASABKAlIABIfChV3b3JrZmxvd19leGVjdXRpb25faWQYAiABKAlIABI3Cgpwb29sX2NsYWltGAMgASgLMiEuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5Qb29sQ2xhaW1IABI3CgdyZW5ld2FsGAQgASgLMiQuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5Ub2tlblJlbmV3YWxIAEIOCgVzY29wZRIFukgCCAEiKAoJUG9vbENsYWltEhsKCnNlc3Npb25faWQYASABKAlCB7pIBHICEAEiDgoMVG9rZW5SZW5ld2FsImkKGkdldFJ1bm5lclNjb3BlZFRva2VuT3V0cHV0EhsKE3J1bm5lcl9zY29wZWRfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRIaChJleHBpcmVzX2luX3NlY29uZHMYAyABKAUqQwoNU2VydmVyRWRpdGlvbhIeChpzZXJ2ZXJfZWRpdGlvbl91bnNwZWNpZmllZBAAEgcKA29zcxABEgkKBWNsb3VkEAIyoQMKF1BsYXRmb3JtUXVlcnlDb250cm9sbGVyEm4KDWdldFNlcnZlckluZm8SKi5haS5zdGlnbWVyLnBsYXRmb3JtLnYxLkdldFNlcnZlckluZm9JbnB1dBorLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0U2VydmVySW5mb091dHB1dCIEyLgYARKPAQoYZ2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnEjUuYWkuc3RpZ21lci5wbGF0Zm9ybS52MS5HZXRSdW5uZXJCb290c3RyYXBDb25maWdJbnB1dBo2LmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyQm9vdHN0cmFwQ29uZmlnT3V0cHV0IgTQuBgBEoMBChRnZXRSdW5uZXJTY29wZWRUb2tlbhIxLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyU2NvcGVkVG9rZW5JbnB1dBoyLmFpLnN0aWdtZXIucGxhdGZvcm0udjEuR2V0UnVubmVyU2NvcGVkVG9rZW5PdXRwdXQiBNC4GAFCEUIPU2VydmVySW5mb1Byb3RvYgZwcm90bzM", [file_ai_stigmer_commons_rpc_method_options, file_buf_validate_validate]);
 
 /**
  * Empty request — no parameters needed.
@@ -181,6 +181,16 @@ export type GetRunnerScopedTokenInput = Message<"ai.stigmer.platform.v1.GetRunne
      */
     value: PoolClaim;
     case: "poolClaim";
+  } | {
+    /**
+     * Credential renewal — a live sandbox extending its own lifetime.
+     * Presented with the still-valid token_type=sandbox or workflow_sandbox
+     * credential being renewed (not embedded_runner).
+     *
+     * @generated from field: ai.stigmer.platform.v1.TokenRenewal renewal = 4;
+     */
+    value: TokenRenewal;
+    case: "renewal";
   } | { case: undefined; value?: undefined };
 };
 
@@ -224,6 +234,47 @@ export type PoolClaim = Message<"ai.stigmer.platform.v1.PoolClaim"> & {
  */
 export const PoolClaimSchema: GenMessage<PoolClaim> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_platform_v1_server_info, 5);
+
+/**
+ * Renewal exchange for a running sandbox's own credential.
+ *
+ * A sandbox token is minted with a fixed TTL, but the sandbox it serves has
+ * no fixed lifetime: an active conversation extends a session sandbox
+ * indefinitely, and a long workflow run can outlast any TTL chosen at
+ * provisioning (the 2026-08-05 incident: a WhatsApp conversation outlived
+ * its 25h token and a user turn died UNAUTHENTICATED). Renewal decouples
+ * the two — the runner re-mints on a timer before expiry and applies the
+ * fresh token in-process, so credential freshness never requires a pod
+ * restart (which would wipe an ephemeral sandbox's workspace).
+ *
+ * Deliberately empty: every mint parameter (identity, org, session /
+ * workflow-execution scope) comes from the presented credential's VERIFIED
+ * claims, never from the client, so a renewed token is claim-identical to
+ * the one it replaces.
+ *
+ * @internal
+ * Cloud authorizes against the live sandbox record, not FGA (a sandbox
+ * token is structurally not an FGA principal — the pool_claim posture): a
+ * token_type=sandbox caller requires its session_sandboxes row to exist and
+ * not be archived/deleting; a token_type=workflow_sandbox caller requires
+ * the same of its workflow_sandboxes row. The record IS the revocation
+ * lever: when the lifecycle reconciler reaps the sandbox, renewal dies with
+ * it, so a credential's renewable lifetime is exactly its sandbox's
+ * lifetime. Minted TTL is the standard sandbox TTL (not window-covering) —
+ * renewal is what makes short TTLs sufficient. OSS has no signing key and
+ * mints nothing (empty output, presence-based contract).
+ *
+ * @generated from message ai.stigmer.platform.v1.TokenRenewal
+ */
+export type TokenRenewal = Message<"ai.stigmer.platform.v1.TokenRenewal"> & {
+};
+
+/**
+ * Describes the message ai.stigmer.platform.v1.TokenRenewal.
+ * Use `create(TokenRenewalSchema)` to create a new message.
+ */
+export const TokenRenewalSchema: GenMessage<TokenRenewal> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 6);
 
 /**
  * A runner token scoped to one unit of work, or empty when the server cannot
@@ -271,7 +322,7 @@ export type GetRunnerScopedTokenOutput = Message<"ai.stigmer.platform.v1.GetRunn
  * Use `create(GetRunnerScopedTokenOutputSchema)` to create a new message.
  */
 export const GetRunnerScopedTokenOutputSchema: GenMessage<GetRunnerScopedTokenOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_platform_v1_server_info, 6);
+  messageDesc(file_ai_stigmer_platform_v1_server_info, 7);
 
 /**
  * Edition of the Stigmer server binary.
@@ -405,10 +456,12 @@ export const PlatformQueryController: GenService<{
    * credential AND pass the same can_view check getByExecutionId performs on
    * the named execution.
    *
-   * The pool_claim arm is the one exception to the embedded_runner rule: it is
-   * presented by a warm-pool sandbox holding a token_type=pool_sandbox
-   * credential, and is authorized against the pool claim record instead of an
-   * execution (see the arm's own doc).
+   * Two arms are exceptions to the embedded_runner rule, each gated on its
+   * own credential class and authorized against a control-plane record
+   * instead of an execution: pool_claim (token_type=pool_sandbox, authorized
+   * against the pool claim record) and renewal (token_type=sandbox /
+   * workflow_sandbox, authorized against the live sandbox record). See each
+   * arm's own doc.
    *
    * @generated from rpc ai.stigmer.platform.v1.PlatformQueryController.getRunnerScopedToken
    */

@@ -115,6 +115,56 @@ export interface StigmerRunner {
 }
 
 /**
+ * Wire up self-renewal for a static cloud sandbox's control-plane credential
+ * (see sandbox-token-renewal.ts for the model). The applied token reaches
+ * every consumer: activity gRPC clients read {@code tokenRef} per request,
+ * env-reading call sites (call-llm, registry-endpoint) read
+ * {@code process.env.STIGMER_TOKEN} per call, artifact storage resolves the
+ * ref per call, and the two Cursor SDK interceptors are updated directly —
+ * a static runner has no {@code RunnerTokenCoordinator} minting a separate
+ * proxy credential, so its x-stigmer-auth IS this token.
+ */
+async function startStaticSandboxTokenRenewal(
+  config: Config,
+  tokenRef: { current: string | null },
+): Promise<{ stop(): void } | null> {
+  const { isRenewableSandboxToken, startSandboxTokenRenewal } = await import(
+    "./sandbox-token-renewal.js"
+  );
+  // Static mode's credential class never changes (it is baked into the pod's
+  // env), so a non-renewable credential — desktop/OSS/local — never starts
+  // the loop at all.
+  if (!isRenewableSandboxToken(tokenRef.current)) {
+    return null;
+  }
+
+  const { StigmerClient } = await import("./client/stigmer-client.js");
+  const { updateInterceptorToken } = await import(
+    "./activities/execute-cursor/fetch-interceptor.js"
+  );
+  const { updateHttp2InterceptorToken } = await import(
+    "./activities/execute-cursor/http2-interceptor.js"
+  );
+  const client = new StigmerClient({
+    endpoint: config.stigmerBackendEndpoint,
+    token: null,
+    tokenRef,
+  });
+
+  return startSandboxTokenRenewal({
+    getToken: () => tokenRef.current,
+    renew: (currentToken) =>
+      client.getRunnerScopedToken({ renewal: true }, currentToken),
+    applyToken: (token) => {
+      tokenRef.current = token;
+      process.env.STIGMER_TOKEN = token;
+      updateInterceptorToken(token);
+      updateHttp2InterceptorToken(token);
+    },
+  });
+}
+
+/**
  * Create a Stigmer runner ready to poll a Temporal task queue.
  *
  * Handles all internal setup: Cursor SDK fetch interceptor, activity
@@ -198,12 +248,23 @@ export async function createStigmerRunner(
     token: options.stigmerToken,
     stigmerEndpoint: baseConfig.stigmerBackendEndpoint,
   });
+  // The control-plane credential lives in a shared mutable ref (as in manager
+  // mode) so the sandbox-token renewal below can rotate it in-process:
+  // activity clients read the ref per request instead of pinning the boot
+  // token for the pod's whole life.
+  const tokenRef = { current: baseConfig.stigmerToken };
   const config: Config = {
     ...baseConfig,
     temporalAddress: coordinates.temporalAddress,
     temporalNamespace: coordinates.temporalNamespace,
+    stigmerTokenRef: tokenRef,
   };
   markBoot("bootstrap_resolved");
+
+  // Cloud sandbox credential self-renewal (no-op for desktop/OSS/local
+  // credentials — see the helper). Started before the worker so the first
+  // renewal point is scheduled even if the pod boots with a part-used token.
+  const tokenRenewal = await startStaticSandboxTokenRenewal(config, tokenRef);
 
   const { setExecutionContextRef } = await import(
     "./activities/execute-cursor/rejection-capture.js"
@@ -242,6 +303,7 @@ export async function createStigmerRunner(
       console.log("Worker stopped");
     },
     shutdown() {
+      tokenRenewal?.stop();
       worker.shutdown();
     },
   };

@@ -257,10 +257,12 @@ public final class PlatformQueryControllerGrpc {
      * the caller must present a runner-class token_type=embedded_runner
      * credential AND pass the same can_view check getByExecutionId performs on
      * the named execution.
-     * The pool_claim arm is the one exception to the embedded_runner rule: it is
-     * presented by a warm-pool sandbox holding a token_type=pool_sandbox
-     * credential, and is authorized against the pool claim record instead of an
-     * execution (see the arm's own doc).
+     * Two arms are exceptions to the embedded_runner rule, each gated on its
+     * own credential class and authorized against a control-plane record
+     * instead of an execution: pool_claim (token_type=pool_sandbox, authorized
+     * against the pool claim record) and renewal (token_type=sandbox /
+     * workflow_sandbox, authorized against the live sandbox record). See each
+     * arm's own doc.
      * </pre>
      */
     default void getRunnerScopedToken(ai.stigmer.platform.v1.GetRunnerScopedTokenInput request,
@@ -387,10 +389,12 @@ public final class PlatformQueryControllerGrpc {
      * the caller must present a runner-class token_type=embedded_runner
      * credential AND pass the same can_view check getByExecutionId performs on
      * the named execution.
-     * The pool_claim arm is the one exception to the embedded_runner rule: it is
-     * presented by a warm-pool sandbox holding a token_type=pool_sandbox
-     * credential, and is authorized against the pool claim record instead of an
-     * execution (see the arm's own doc).
+     * Two arms are exceptions to the embedded_runner rule, each gated on its
+     * own credential class and authorized against a control-plane record
+     * instead of an execution: pool_claim (token_type=pool_sandbox, authorized
+     * against the pool claim record) and renewal (token_type=sandbox /
+     * workflow_sandbox, authorized against the live sandbox record). See each
+     * arm's own doc.
      * </pre>
      */
     public void getRunnerScopedToken(ai.stigmer.platform.v1.GetRunnerScopedTokenInput request,
@@ -496,10 +500,12 @@ public final class PlatformQueryControllerGrpc {
      * the caller must present a runner-class token_type=embedded_runner
      * credential AND pass the same can_view check getByExecutionId performs on
      * the named execution.
-     * The pool_claim arm is the one exception to the embedded_runner rule: it is
-     * presented by a warm-pool sandbox holding a token_type=pool_sandbox
-     * credential, and is authorized against the pool claim record instead of an
-     * execution (see the arm's own doc).
+     * Two arms are exceptions to the embedded_runner rule, each gated on its
+     * own credential class and authorized against a control-plane record
+     * instead of an execution: pool_claim (token_type=pool_sandbox, authorized
+     * against the pool claim record) and renewal (token_type=sandbox /
+     * workflow_sandbox, authorized against the live sandbox record). See each
+     * arm's own doc.
      * </pre>
      */
     public ai.stigmer.platform.v1.GetRunnerScopedTokenOutput getRunnerScopedToken(ai.stigmer.platform.v1.GetRunnerScopedTokenInput request) throws io.grpc.StatusException {
@@ -604,10 +610,12 @@ public final class PlatformQueryControllerGrpc {
      * the caller must present a runner-class token_type=embedded_runner
      * credential AND pass the same can_view check getByExecutionId performs on
      * the named execution.
-     * The pool_claim arm is the one exception to the embedded_runner rule: it is
-     * presented by a warm-pool sandbox holding a token_type=pool_sandbox
-     * credential, and is authorized against the pool claim record instead of an
-     * execution (see the arm's own doc).
+     * Two arms are exceptions to the embedded_runner rule, each gated on its
+     * own credential class and authorized against a control-plane record
+     * instead of an execution: pool_claim (token_type=pool_sandbox, authorized
+     * against the pool claim record) and renewal (token_type=sandbox /
+     * workflow_sandbox, authorized against the live sandbox record). See each
+     * arm's own doc.
      * </pre>
      */
     public ai.stigmer.platform.v1.GetRunnerScopedTokenOutput getRunnerScopedToken(ai.stigmer.platform.v1.GetRunnerScopedTokenInput request) {
@@ -714,10 +722,12 @@ public final class PlatformQueryControllerGrpc {
      * the caller must present a runner-class token_type=embedded_runner
      * credential AND pass the same can_view check getByExecutionId performs on
      * the named execution.
-     * The pool_claim arm is the one exception to the embedded_runner rule: it is
-     * presented by a warm-pool sandbox holding a token_type=pool_sandbox
-     * credential, and is authorized against the pool claim record instead of an
-     * execution (see the arm's own doc).
+     * Two arms are exceptions to the embedded_runner rule, each gated on its
+     * own credential class and authorized against a control-plane record
+     * instead of an execution: pool_claim (token_type=pool_sandbox, authorized
+     * against the pool claim record) and renewal (token_type=sandbox /
+     * workflow_sandbox, authorized against the live sandbox record). See each
+     * arm's own doc.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.platform.v1.GetRunnerScopedTokenOutput> getRunnerScopedToken(

@@ -61,6 +61,7 @@ private static final long serialVersionUID = 0L;
     AGENT_EXECUTION_ID(1),
     WORKFLOW_EXECUTION_ID(2),
     POOL_CLAIM(3),
+    RENEWAL(4),
     SCOPE_NOT_SET(0);
     private final int value;
     private ScopeCase(int value) {
@@ -81,6 +82,7 @@ private static final long serialVersionUID = 0L;
         case 1: return AGENT_EXECUTION_ID;
         case 2: return WORKFLOW_EXECUTION_ID;
         case 3: return POOL_CLAIM;
+        case 4: return RENEWAL;
         case 0: return SCOPE_NOT_SET;
         default: return null;
       }
@@ -271,6 +273,55 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.platform.v1.PoolClaim.getDefaultInstance();
   }
 
+  public static final int RENEWAL_FIELD_NUMBER = 4;
+  /**
+   * <pre>
+   * Credential renewal — a live sandbox extending its own lifetime.
+   * Presented with the still-valid token_type=sandbox or workflow_sandbox
+   * credential being renewed (not embedded_runner).
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
+   * @return Whether the renewal field is set.
+   */
+  @java.lang.Override
+  public boolean hasRenewal() {
+    return scopeCase_ == 4;
+  }
+  /**
+   * <pre>
+   * Credential renewal — a live sandbox extending its own lifetime.
+   * Presented with the still-valid token_type=sandbox or workflow_sandbox
+   * credential being renewed (not embedded_runner).
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
+   * @return The renewal.
+   */
+  @java.lang.Override
+  public ai.stigmer.platform.v1.TokenRenewal getRenewal() {
+    if (scopeCase_ == 4) {
+       return (ai.stigmer.platform.v1.TokenRenewal) scope_;
+    }
+    return ai.stigmer.platform.v1.TokenRenewal.getDefaultInstance();
+  }
+  /**
+   * <pre>
+   * Credential renewal — a live sandbox extending its own lifetime.
+   * Presented with the still-valid token_type=sandbox or workflow_sandbox
+   * credential being renewed (not embedded_runner).
+   * </pre>
+   *
+   * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.platform.v1.TokenRenewalOrBuilder getRenewalOrBuilder() {
+    if (scopeCase_ == 4) {
+       return (ai.stigmer.platform.v1.TokenRenewal) scope_;
+    }
+    return ai.stigmer.platform.v1.TokenRenewal.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -294,6 +345,9 @@ private static final long serialVersionUID = 0L;
     if (scopeCase_ == 3) {
       output.writeMessage(3, (ai.stigmer.platform.v1.PoolClaim) scope_);
     }
+    if (scopeCase_ == 4) {
+      output.writeMessage(4, (ai.stigmer.platform.v1.TokenRenewal) scope_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -312,6 +366,10 @@ private static final long serialVersionUID = 0L;
     if (scopeCase_ == 3) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(3, (ai.stigmer.platform.v1.PoolClaim) scope_);
+    }
+    if (scopeCase_ == 4) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(4, (ai.stigmer.platform.v1.TokenRenewal) scope_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -342,6 +400,10 @@ private static final long serialVersionUID = 0L;
         if (!getPoolClaim()
             .equals(other.getPoolClaim())) return false;
         break;
+      case 4:
+        if (!getRenewal()
+            .equals(other.getRenewal())) return false;
+        break;
       case 0:
       default:
     }
@@ -368,6 +430,10 @@ private static final long serialVersionUID = 0L;
       case 3:
         hash = (37 * hash) + POOL_CLAIM_FIELD_NUMBER;
         hash = (53 * hash) + getPoolClaim().hashCode();
+        break;
+      case 4:
+        hash = (37 * hash) + RENEWAL_FIELD_NUMBER;
+        hash = (53 * hash) + getRenewal().hashCode();
         break;
       case 0:
       default:
@@ -510,6 +576,9 @@ private static final long serialVersionUID = 0L;
       if (poolClaimBuilder_ != null) {
         poolClaimBuilder_.clear();
       }
+      if (renewalBuilder_ != null) {
+        renewalBuilder_.clear();
+      }
       scopeCase_ = 0;
       scope_ = null;
       return this;
@@ -555,6 +624,10 @@ private static final long serialVersionUID = 0L;
           poolClaimBuilder_ != null) {
         result.scope_ = poolClaimBuilder_.build();
       }
+      if (scopeCase_ == 4 &&
+          renewalBuilder_ != null) {
+        result.scope_ = renewalBuilder_.build();
+      }
     }
 
     @java.lang.Override
@@ -584,6 +657,10 @@ private static final long serialVersionUID = 0L;
         }
         case POOL_CLAIM: {
           mergePoolClaim(other.getPoolClaim());
+          break;
+        }
+        case RENEWAL: {
+          mergeRenewal(other.getRenewal());
           break;
         }
         case SCOPE_NOT_SET: {
@@ -633,6 +710,13 @@ private static final long serialVersionUID = 0L;
               scopeCase_ = 3;
               break;
             } // case 26
+            case 34: {
+              input.readMessage(
+                  internalGetRenewalFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              scopeCase_ = 4;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1097,6 +1181,202 @@ private static final long serialVersionUID = 0L;
       scopeCase_ = 3;
       onChanged();
       return poolClaimBuilder_;
+    }
+
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.platform.v1.TokenRenewal, ai.stigmer.platform.v1.TokenRenewal.Builder, ai.stigmer.platform.v1.TokenRenewalOrBuilder> renewalBuilder_;
+    /**
+     * <pre>
+     * Credential renewal — a live sandbox extending its own lifetime.
+     * Presented with the still-valid token_type=sandbox or workflow_sandbox
+     * credential being renewed (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
+     * @return Whether the renewal field is set.
+     */
+    @java.lang.Override
+    public boolean hasRenewal() {
+      return scopeCase_ == 4;
+    }
+    /**
+     * <pre>
+     * Credential renewal — a live sandbox extending its own lifetime.
+     * Presented with the still-valid token_type=sandbox or workflow_sandbox
+     * credential being renewed (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
+     * @return The renewal.
+     */
+    @java.lang.Override
+    public ai.stigmer.platform.v1.TokenRenewal getRenewal() {
+      if (renewalBuilder_ == null) {
+        if (scopeCase_ == 4) {
+          return (ai.stigmer.platform.v1.TokenRenewal) scope_;
+        }
+        return ai.stigmer.platform.v1.TokenRenewal.getDefaultInstance();
+      } else {
+        if (scopeCase_ == 4) {
+          return renewalBuilder_.getMessage();
+        }
+        return ai.stigmer.platform.v1.TokenRenewal.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * Credential renewal — a live sandbox extending its own lifetime.
+     * Presented with the still-valid token_type=sandbox or workflow_sandbox
+     * credential being renewed (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
+     */
+    public Builder setRenewal(ai.stigmer.platform.v1.TokenRenewal value) {
+      if (renewalBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        scope_ = value;
+        onChanged();
+      } else {
+        renewalBuilder_.setMessage(value);
+      }
+      scopeCase_ = 4;
+      return this;
+    }
+    /**
+     * <pre>
+     * Credential renewal — a live sandbox extending its own lifetime.
+     * Presented with the still-valid token_type=sandbox or workflow_sandbox
+     * credential being renewed (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
+     */
+    public Builder setRenewal(
+        ai.stigmer.platform.v1.TokenRenewal.Builder builderForValue) {
+      if (renewalBuilder_ == null) {
+        scope_ = builderForValue.build();
+        onChanged();
+      } else {
+        renewalBuilder_.setMessage(builderForValue.build());
+      }
+      scopeCase_ = 4;
+      return this;
+    }
+    /**
+     * <pre>
+     * Credential renewal — a live sandbox extending its own lifetime.
+     * Presented with the still-valid token_type=sandbox or workflow_sandbox
+     * credential being renewed (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
+     */
+    public Builder mergeRenewal(ai.stigmer.platform.v1.TokenRenewal value) {
+      if (renewalBuilder_ == null) {
+        if (scopeCase_ == 4 &&
+            scope_ != ai.stigmer.platform.v1.TokenRenewal.getDefaultInstance()) {
+          scope_ = ai.stigmer.platform.v1.TokenRenewal.newBuilder((ai.stigmer.platform.v1.TokenRenewal) scope_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          scope_ = value;
+        }
+        onChanged();
+      } else {
+        if (scopeCase_ == 4) {
+          renewalBuilder_.mergeFrom(value);
+        } else {
+          renewalBuilder_.setMessage(value);
+        }
+      }
+      scopeCase_ = 4;
+      return this;
+    }
+    /**
+     * <pre>
+     * Credential renewal — a live sandbox extending its own lifetime.
+     * Presented with the still-valid token_type=sandbox or workflow_sandbox
+     * credential being renewed (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
+     */
+    public Builder clearRenewal() {
+      if (renewalBuilder_ == null) {
+        if (scopeCase_ == 4) {
+          scopeCase_ = 0;
+          scope_ = null;
+          onChanged();
+        }
+      } else {
+        if (scopeCase_ == 4) {
+          scopeCase_ = 0;
+          scope_ = null;
+        }
+        renewalBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Credential renewal — a live sandbox extending its own lifetime.
+     * Presented with the still-valid token_type=sandbox or workflow_sandbox
+     * credential being renewed (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
+     */
+    public ai.stigmer.platform.v1.TokenRenewal.Builder getRenewalBuilder() {
+      return internalGetRenewalFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Credential renewal — a live sandbox extending its own lifetime.
+     * Presented with the still-valid token_type=sandbox or workflow_sandbox
+     * credential being renewed (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.platform.v1.TokenRenewalOrBuilder getRenewalOrBuilder() {
+      if ((scopeCase_ == 4) && (renewalBuilder_ != null)) {
+        return renewalBuilder_.getMessageOrBuilder();
+      } else {
+        if (scopeCase_ == 4) {
+          return (ai.stigmer.platform.v1.TokenRenewal) scope_;
+        }
+        return ai.stigmer.platform.v1.TokenRenewal.getDefaultInstance();
+      }
+    }
+    /**
+     * <pre>
+     * Credential renewal — a live sandbox extending its own lifetime.
+     * Presented with the still-valid token_type=sandbox or workflow_sandbox
+     * credential being renewed (not embedded_runner).
+     * </pre>
+     *
+     * <code>.ai.stigmer.platform.v1.TokenRenewal renewal = 4 [json_name = "renewal"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.platform.v1.TokenRenewal, ai.stigmer.platform.v1.TokenRenewal.Builder, ai.stigmer.platform.v1.TokenRenewalOrBuilder> 
+        internalGetRenewalFieldBuilder() {
+      if (renewalBuilder_ == null) {
+        if (!(scopeCase_ == 4)) {
+          scope_ = ai.stigmer.platform.v1.TokenRenewal.getDefaultInstance();
+        }
+        renewalBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.platform.v1.TokenRenewal, ai.stigmer.platform.v1.TokenRenewal.Builder, ai.stigmer.platform.v1.TokenRenewalOrBuilder>(
+                (ai.stigmer.platform.v1.TokenRenewal) scope_,
+                getParentForChildren(),
+                isClean());
+        scope_ = null;
+      }
+      scopeCase_ = 4;
+      onChanged();
+      return renewalBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.platform.v1.GetRunnerScopedTokenInput)

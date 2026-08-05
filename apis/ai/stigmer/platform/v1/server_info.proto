@@ -103,10 +103,12 @@ service PlatformQueryController {
   // credential AND pass the same can_view check getByExecutionId performs on
   // the named execution.
   //
-  // The pool_claim arm is the one exception to the embedded_runner rule: it is
-  // presented by a warm-pool sandbox holding a token_type=pool_sandbox
-  // credential, and is authorized against the pool claim record instead of an
-  // execution (see the arm's own doc).
+  // Two arms are exceptions to the embedded_runner rule, each gated on its
+  // own credential class and authorized against a control-plane record
+  // instead of an execution: pool_claim (token_type=pool_sandbox, authorized
+  // against the pool claim record) and renewal (token_type=sandbox /
+  // workflow_sandbox, authorized against the live sandbox record). See each
+  // arm's own doc.
   rpc getRunnerScopedToken(GetRunnerScopedTokenInput) returns (GetRunnerScopedTokenOutput) {
     option (ai.stigmer.commons.rpc.is_skip_authorization) = true;
   }
@@ -184,6 +186,11 @@ message GetRunnerScopedTokenInput {
     // session token of the session it has just been claimed for. Presented
     // with a token_type=pool_sandbox credential (not embedded_runner).
     PoolClaim pool_claim = 3;
+
+    // Credential renewal — a live sandbox extending its own lifetime.
+    // Presented with the still-valid token_type=sandbox or workflow_sandbox
+    // credential being renewed (not embedded_runner).
+    TokenRenewal renewal = 4;
   }
 }
 
@@ -205,6 +212,35 @@ message PoolClaim {
   // receives. Must match the claim recorded by the control plane.
   string session_id = 1 [(buf.validate.field).string.min_len = 1];
 }
+
+// Renewal exchange for a running sandbox's own credential.
+//
+// A sandbox token is minted with a fixed TTL, but the sandbox it serves has
+// no fixed lifetime: an active conversation extends a session sandbox
+// indefinitely, and a long workflow run can outlast any TTL chosen at
+// provisioning (the 2026-08-05 incident: a WhatsApp conversation outlived
+// its 25h token and a user turn died UNAUTHENTICATED). Renewal decouples
+// the two — the runner re-mints on a timer before expiry and applies the
+// fresh token in-process, so credential freshness never requires a pod
+// restart (which would wipe an ephemeral sandbox's workspace).
+//
+// Deliberately empty: every mint parameter (identity, org, session /
+// workflow-execution scope) comes from the presented credential's VERIFIED
+// claims, never from the client, so a renewed token is claim-identical to
+// the one it replaces.
+//
+// @internal
+// Cloud authorizes against the live sandbox record, not FGA (a sandbox
+// token is structurally not an FGA principal — the pool_claim posture): a
+// token_type=sandbox caller requires its session_sandboxes row to exist and
+// not be archived/deleting; a token_type=workflow_sandbox caller requires
+// the same of its workflow_sandboxes row. The record IS the revocation
+// lever: when the lifecycle reconciler reaps the sandbox, renewal dies with
+// it, so a credential's renewable lifetime is exactly its sandbox's
+// lifetime. Minted TTL is the standard sandbox TTL (not window-covering) —
+// renewal is what makes short TTLs sufficient. OSS has no signing key and
+// mints nothing (empty output, presence-based contract).
+message TokenRenewal {}
 
 // A runner token scoped to one unit of work, or empty when the server cannot
 // mint one.
