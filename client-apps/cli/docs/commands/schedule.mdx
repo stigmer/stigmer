@@ -2,17 +2,17 @@ Operate on schedules: fire one immediately, or clear a platform pause.
 
 A schedule runs an agent on a cron, and it can stop firing for two different
 reasons with two different remedies. **Disabled** is the owner's switch
-(`spec.enabled: false` in the manifest) — re-apply with `enabled: true` to
-turn it back on. **Paused** is the platform's failure latch: after repeated
-failed runs the platform pauses the schedule and records the reason on
-status. Applying the manifest never clears a pause; `stigmer schedule
-resume` is the one path that does.
+(`spec.enabled: false` in the manifest) — re-apply with `enabled: true` to turn
+it back on. **Paused** is the platform's failure latch: after repeated failed
+runs the platform pauses the schedule and records the reason on status. Applying
+the manifest never clears a pause; `stigmer schedule resume` is the one path
+that does.
 
-The declarative lifecycle rides the unified verbs: `stigmer apply -f` to
-create or update, `stigmer get schedule` to inspect (including the pause
-reason and failure streak), `stigmer list schedule` to see every schedule's
-enabled/paused state at a glance, and `stigmer delete schedule` to tear one
-down along with its firing clock.
+The declarative lifecycle rides the unified verbs: `stigmer apply -f` to create
+or update, `stigmer get schedule` to inspect (including the pause reason and
+failure streak), `stigmer list schedule` to see every schedule's enabled/paused
+state at a glance, and `stigmer delete schedule` to tear one down along with its
+firing clock.
 
 {/* AUTO_USAGE */}
 
@@ -36,21 +36,30 @@ stigmer list schedule --org my-org
 
 ### Disabled versus paused
 
-| State | Set by | Visible in | Cleared by |
-|-------|--------|------------|------------|
-| Disabled | The owner (`spec.enabled: false`) | `ENABLED` column of `stigmer list schedule` | Re-apply the manifest with `enabled: true` |
-| Paused | The platform, after repeated failed runs | `STATE` column, with the reason in `stigmer get schedule` | `stigmer schedule resume` |
+| State    | Set by                                   | Visible in                                                | Cleared by                                 |
+| -------- | ---------------------------------------- | --------------------------------------------------------- | ------------------------------------------ |
+| Disabled | The owner (`spec.enabled: false`)        | `ENABLED` column of `stigmer list schedule`               | Re-apply the manifest with `enabled: true` |
+| Paused   | The platform, after repeated failed runs | `STATE` column, with the reason in `stigmer get schedule` | `stigmer schedule resume`                  |
 
-A schedule can be enabled by its owner yet paused by the platform at the
-same time — that combination means the schedule is broken, not switched off,
-and resuming it without fixing the failure only restarts the streak.
+A schedule can be enabled by its owner yet paused by the platform at the same
+time — that combination means the schedule is broken, not switched off, and
+resuming it without fixing the failure only restarts the streak.
 
 ### Trigger semantics
 
-`stigmer schedule trigger` fires through the same path as a scheduled tick:
-a disabled or paused schedule refuses to fire, the run counts toward the
-failure streak, and a successful run resets it. Use it to validate a new
-schedule immediately instead of waiting for the next cron boundary.
+`stigmer schedule trigger` fires through the same path as a scheduled tick: a
+disabled or paused schedule refuses to fire, the run counts toward the failure
+streak, and a successful run resets it. Use it to validate a new schedule
+immediately instead of waiting for the next cron boundary.
+
+### Who a scheduled run runs as
+
+A schedule fire does not impersonate its creator — the platform attributes every
+fire (cron or `trigger`) to the org's schedule system account. If the agent
+calls an MCP server that gates tools on
+[caller identity](/docs/guides/integrations/caller-identity-for-mcp-servers#scheduled-runs),
+that server must grant the schedule account explicitly, or scheduled runs stay
+unprivileged.
 
 {/* AUTO_SUBCOMMANDS */}
 
@@ -58,12 +67,12 @@ schedule immediately instead of waiting for the next cron boundary.
 
 ## Related commands
 
-| Command | Description |
-|---------|-------------|
-| [`stigmer apply`](./apply) | Create or update a schedule from a manifest |
-| [`stigmer get schedule`](./get) | Inspect a schedule, including pause reason and failure streak |
-| [`stigmer list schedule`](./list) | List schedules with their enabled/paused state |
-| [`stigmer delete schedule`](./delete) | Delete a schedule and tear down its firing clock |
+| Command                               | Description                                                   |
+| ------------------------------------- | ------------------------------------------------------------- |
+| [`stigmer apply`](./apply)            | Create or update a schedule from a manifest                   |
+| [`stigmer get schedule`](./get)       | Inspect a schedule, including pause reason and failure streak |
+| [`stigmer list schedule`](./list)     | List schedules with their enabled/paused state                |
+| [`stigmer delete schedule`](./delete) | Delete a schedule and tear down its firing clock              |
 
 ## See also
 

@@ -62,6 +62,15 @@ disabled or paused schedule refuses to fire, the run counts toward the failure
 streak, and a successful run resets it. Use it to validate a new schedule
 immediately instead of waiting for the next cron boundary.
 
+### Who a scheduled run runs as
+
+A schedule fire does not impersonate its creator — the platform attributes every
+fire (cron or `trigger`) to the org's schedule system account. If the agent
+calls an MCP server that gates tools on
+[caller identity](/docs/guides/integrations/caller-identity-for-mcp-servers#scheduled-runs),
+that server must grant the schedule account explicitly, or scheduled runs stay
+unprivileged.
+
 ## Subcommands
 
 ### stigmer schedule resume

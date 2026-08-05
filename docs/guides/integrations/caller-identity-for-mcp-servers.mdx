@@ -16,15 +16,43 @@ time. The value never passes through the model, so the model cannot change it.
 
 ## The reserved keys
 
-| Key                             | Value                                                                                                                       |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `STIGMER_CALLER_IDENTITY_KIND`  | What kind of identity this is: `whatsapp_phone`, `slack_user_id`, `stigmer_user` (a console or CLI Session), or `anonymous` |
-| `STIGMER_CALLER_IDENTITY_VALUE` | The identity itself: the WhatsApp wa_id, the Slack user ID, or the Stigmer user's email. Empty for `anonymous`              |
-| `STIGMER_SESSION_ID`            | The Session the identity was resolved for. Empty outside a Session                                                          |
+| Key                             | Value                                                                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STIGMER_CALLER_IDENTITY_KIND`  | What kind of identity this is: `whatsapp_phone`, `slack_user_id`, `stigmer_user` (a console or CLI Session, or a scheduled run on stigmer.ai), or `anonymous` |
+| `STIGMER_CALLER_IDENTITY_VALUE` | The identity itself: the WhatsApp wa_id, the Slack user ID, or the Stigmer user's email. Empty for `anonymous`                                                |
+| `STIGMER_SESSION_ID`            | The Session the identity was resolved for. Empty outside a Session                                                                                            |
 
 The identity comes from the strongest source available: the channel-verified
 sender for channel Sessions, the logged-in Stigmer user for console and CLI
 Sessions, and `anonymous` when neither exists.
+
+## Scheduled runs
+
+A [Schedule](/docs/cli/commands/schedule) fire carries an identity too — but not
+its creator's. A scheduled run is unattended automation: the person who created
+the schedule may change roles or leave the Organization while the cron keeps
+firing, so the platform attributes every fire to a per-org system account by
+design instead of impersonating a person. If your server gates tools on
+identity, scheduled runs stay unprivileged until you grant that account —
+explicitly, the same way you grant any caller.
+
+On stigmer.ai, a scheduled run presents kind `stigmer_user` with the org's
+schedule-account email as the value:
+
+```text
+schedule+{org-slug}@schedule.stigmer.internal
+```
+
+To let scheduled runs call privileged tools, grant that email in your server's
+own access model, compared case-insensitively like any email. The grant covers
+the Organization's scheduled automation as a whole: every schedule in the org
+presents the same identity, whoever created it.
+
+<Callout type="info">
+  Caller identity for scheduled runs requires Stigmer Cloud. On a self-hosted
+  backend, scheduled runs present the `anonymous` identity, so they can list
+  tools but cannot pass an identity-gated call.
+</Callout>
 
 ## Declare the keys and template your headers
 
