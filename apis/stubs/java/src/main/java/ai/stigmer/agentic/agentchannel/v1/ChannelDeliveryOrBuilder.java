@@ -358,5 +358,49 @@ public interface ChannelDeliveryOrBuilder extends
    */
   com.google.protobuf.TimestampOrBuilder getNextAttemptAtOrBuilder();
 
+  /**
+   * <pre>
+   * The reply text as rendered for the external user, recorded when the
+   * delivery reached a terminal status. Empty while pending/delivering, and
+   * on rows terminal before this field existed.
+   *
+   * &#64;internal
+   * channel-conversations DD-004 D-c as amended at T02 Sitting 3 (D1-A):
+   * the conversation timeline renders agent replies from THIS field, never
+   * by re-running ChannelReplyExtractor at read time — the extractor's
+   * error/cancelled/limit copy constants change over releases, and a
+   * re-derivation would attribute today's words to yesterday's send.
+   * Written by the processor on markDelivered AND markFailed (a
+   * dead-lettered reply's text is what a human taking over needs to see);
+   * deliberately not on markRetry, which is non-terminal and re-extracts.
+   * </pre>
+   *
+   * <code>string reply_text = 17 [json_name = "replyText"];</code>
+   * @return The replyText.
+   */
+  java.lang.String getReplyText();
+  /**
+   * <pre>
+   * The reply text as rendered for the external user, recorded when the
+   * delivery reached a terminal status. Empty while pending/delivering, and
+   * on rows terminal before this field existed.
+   *
+   * &#64;internal
+   * channel-conversations DD-004 D-c as amended at T02 Sitting 3 (D1-A):
+   * the conversation timeline renders agent replies from THIS field, never
+   * by re-running ChannelReplyExtractor at read time — the extractor's
+   * error/cancelled/limit copy constants change over releases, and a
+   * re-derivation would attribute today's words to yesterday's send.
+   * Written by the processor on markDelivered AND markFailed (a
+   * dead-lettered reply's text is what a human taking over needs to see);
+   * deliberately not on markRetry, which is non-terminal and re-extracts.
+   * </pre>
+   *
+   * <code>string reply_text = 17 [json_name = "replyText"];</code>
+   * @return The bytes for replyText.
+   */
+  com.google.protobuf.ByteString
+      getReplyTextBytes();
+
   ai.stigmer.agentic.agentchannel.v1.ChannelDelivery.DeliveryContextCase getDeliveryContextCase();
 }

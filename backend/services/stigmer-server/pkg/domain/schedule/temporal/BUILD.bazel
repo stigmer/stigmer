@@ -55,6 +55,7 @@ go_test(
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
         "//apis/stubs/go/ai/stigmer/agentic/schedule/v1:schedule",
+        "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/store",

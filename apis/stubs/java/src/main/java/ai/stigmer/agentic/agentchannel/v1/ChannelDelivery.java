@@ -53,6 +53,7 @@ private static final long serialVersionUID = 0L;
     status_ = 0;
     lastError_ = "";
     idempotencyKey_ = "";
+    replyText_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -784,6 +785,77 @@ private static final long serialVersionUID = 0L;
     return nextAttemptAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : nextAttemptAt_;
   }
 
+  public static final int REPLY_TEXT_FIELD_NUMBER = 17;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object replyText_ = "";
+  /**
+   * <pre>
+   * The reply text as rendered for the external user, recorded when the
+   * delivery reached a terminal status. Empty while pending/delivering, and
+   * on rows terminal before this field existed.
+   *
+   * &#64;internal
+   * channel-conversations DD-004 D-c as amended at T02 Sitting 3 (D1-A):
+   * the conversation timeline renders agent replies from THIS field, never
+   * by re-running ChannelReplyExtractor at read time — the extractor's
+   * error/cancelled/limit copy constants change over releases, and a
+   * re-derivation would attribute today's words to yesterday's send.
+   * Written by the processor on markDelivered AND markFailed (a
+   * dead-lettered reply's text is what a human taking over needs to see);
+   * deliberately not on markRetry, which is non-terminal and re-extracts.
+   * </pre>
+   *
+   * <code>string reply_text = 17 [json_name = "replyText"];</code>
+   * @return The replyText.
+   */
+  @java.lang.Override
+  public java.lang.String getReplyText() {
+    java.lang.Object ref = replyText_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      replyText_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * The reply text as rendered for the external user, recorded when the
+   * delivery reached a terminal status. Empty while pending/delivering, and
+   * on rows terminal before this field existed.
+   *
+   * &#64;internal
+   * channel-conversations DD-004 D-c as amended at T02 Sitting 3 (D1-A):
+   * the conversation timeline renders agent replies from THIS field, never
+   * by re-running ChannelReplyExtractor at read time — the extractor's
+   * error/cancelled/limit copy constants change over releases, and a
+   * re-derivation would attribute today's words to yesterday's send.
+   * Written by the processor on markDelivered AND markFailed (a
+   * dead-lettered reply's text is what a human taking over needs to see);
+   * deliberately not on markRetry, which is non-terminal and re-extracts.
+   * </pre>
+   *
+   * <code>string reply_text = 17 [json_name = "replyText"];</code>
+   * @return The bytes for replyText.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getReplyTextBytes() {
+    java.lang.Object ref = replyText_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      replyText_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -845,6 +917,9 @@ private static final long serialVersionUID = 0L;
     }
     if (deliveryContextCase_ == 16) {
       output.writeMessage(16, (ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext) deliveryContext_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(replyText_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 17, replyText_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -910,6 +985,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(16, (ai.stigmer.agentic.agentchannel.v1.WhatsAppDeliveryContext) deliveryContext_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(replyText_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(17, replyText_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -961,6 +1039,8 @@ private static final long serialVersionUID = 0L;
       if (!getNextAttemptAt()
           .equals(other.getNextAttemptAt())) return false;
     }
+    if (!getReplyText()
+        .equals(other.getReplyText())) return false;
     if (!getDeliveryContextCase().equals(other.getDeliveryContextCase())) return false;
     switch (deliveryContextCase_) {
       case 12:
@@ -1019,6 +1099,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + NEXT_ATTEMPT_AT_FIELD_NUMBER;
       hash = (53 * hash) + getNextAttemptAt().hashCode();
     }
+    hash = (37 * hash) + REPLY_TEXT_FIELD_NUMBER;
+    hash = (53 * hash) + getReplyText().hashCode();
     switch (deliveryContextCase_) {
       case 12:
         hash = (37 * hash) + SLACK_FIELD_NUMBER;
@@ -1217,6 +1299,7 @@ private static final long serialVersionUID = 0L;
         nextAttemptAtBuilder_.dispose();
         nextAttemptAtBuilder_ = null;
       }
+      replyText_ = "";
       deliveryContextCase_ = 0;
       deliveryContext_ = null;
       return this;
@@ -1305,6 +1388,9 @@ private static final long serialVersionUID = 0L;
             : nextAttemptAtBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
+      if (((from_bitField0_ & 0x00010000) != 0)) {
+        result.replyText_ = replyText_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1392,6 +1478,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasNextAttemptAt()) {
         mergeNextAttemptAt(other.getNextAttemptAt());
+      }
+      if (!other.getReplyText().isEmpty()) {
+        replyText_ = other.replyText_;
+        bitField0_ |= 0x00010000;
+        onChanged();
       }
       switch (other.getDeliveryContextCase()) {
         case SLACK: {
@@ -1522,6 +1613,11 @@ private static final long serialVersionUID = 0L;
               deliveryContextCase_ = 16;
               break;
             } // case 130
+            case 138: {
+              replyText_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00010000;
+              break;
+            } // case 138
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3333,6 +3429,158 @@ private static final long serialVersionUID = 0L;
         nextAttemptAt_ = null;
       }
       return nextAttemptAtBuilder_;
+    }
+
+    private java.lang.Object replyText_ = "";
+    /**
+     * <pre>
+     * The reply text as rendered for the external user, recorded when the
+     * delivery reached a terminal status. Empty while pending/delivering, and
+     * on rows terminal before this field existed.
+     *
+     * &#64;internal
+     * channel-conversations DD-004 D-c as amended at T02 Sitting 3 (D1-A):
+     * the conversation timeline renders agent replies from THIS field, never
+     * by re-running ChannelReplyExtractor at read time — the extractor's
+     * error/cancelled/limit copy constants change over releases, and a
+     * re-derivation would attribute today's words to yesterday's send.
+     * Written by the processor on markDelivered AND markFailed (a
+     * dead-lettered reply's text is what a human taking over needs to see);
+     * deliberately not on markRetry, which is non-terminal and re-extracts.
+     * </pre>
+     *
+     * <code>string reply_text = 17 [json_name = "replyText"];</code>
+     * @return The replyText.
+     */
+    public java.lang.String getReplyText() {
+      java.lang.Object ref = replyText_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        replyText_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The reply text as rendered for the external user, recorded when the
+     * delivery reached a terminal status. Empty while pending/delivering, and
+     * on rows terminal before this field existed.
+     *
+     * &#64;internal
+     * channel-conversations DD-004 D-c as amended at T02 Sitting 3 (D1-A):
+     * the conversation timeline renders agent replies from THIS field, never
+     * by re-running ChannelReplyExtractor at read time — the extractor's
+     * error/cancelled/limit copy constants change over releases, and a
+     * re-derivation would attribute today's words to yesterday's send.
+     * Written by the processor on markDelivered AND markFailed (a
+     * dead-lettered reply's text is what a human taking over needs to see);
+     * deliberately not on markRetry, which is non-terminal and re-extracts.
+     * </pre>
+     *
+     * <code>string reply_text = 17 [json_name = "replyText"];</code>
+     * @return The bytes for replyText.
+     */
+    public com.google.protobuf.ByteString
+        getReplyTextBytes() {
+      java.lang.Object ref = replyText_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        replyText_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * The reply text as rendered for the external user, recorded when the
+     * delivery reached a terminal status. Empty while pending/delivering, and
+     * on rows terminal before this field existed.
+     *
+     * &#64;internal
+     * channel-conversations DD-004 D-c as amended at T02 Sitting 3 (D1-A):
+     * the conversation timeline renders agent replies from THIS field, never
+     * by re-running ChannelReplyExtractor at read time — the extractor's
+     * error/cancelled/limit copy constants change over releases, and a
+     * re-derivation would attribute today's words to yesterday's send.
+     * Written by the processor on markDelivered AND markFailed (a
+     * dead-lettered reply's text is what a human taking over needs to see);
+     * deliberately not on markRetry, which is non-terminal and re-extracts.
+     * </pre>
+     *
+     * <code>string reply_text = 17 [json_name = "replyText"];</code>
+     * @param value The replyText to set.
+     * @return This builder for chaining.
+     */
+    public Builder setReplyText(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      replyText_ = value;
+      bitField0_ |= 0x00010000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The reply text as rendered for the external user, recorded when the
+     * delivery reached a terminal status. Empty while pending/delivering, and
+     * on rows terminal before this field existed.
+     *
+     * &#64;internal
+     * channel-conversations DD-004 D-c as amended at T02 Sitting 3 (D1-A):
+     * the conversation timeline renders agent replies from THIS field, never
+     * by re-running ChannelReplyExtractor at read time — the extractor's
+     * error/cancelled/limit copy constants change over releases, and a
+     * re-derivation would attribute today's words to yesterday's send.
+     * Written by the processor on markDelivered AND markFailed (a
+     * dead-lettered reply's text is what a human taking over needs to see);
+     * deliberately not on markRetry, which is non-terminal and re-extracts.
+     * </pre>
+     *
+     * <code>string reply_text = 17 [json_name = "replyText"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearReplyText() {
+      replyText_ = getDefaultInstance().getReplyText();
+      bitField0_ = (bitField0_ & ~0x00010000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The reply text as rendered for the external user, recorded when the
+     * delivery reached a terminal status. Empty while pending/delivering, and
+     * on rows terminal before this field existed.
+     *
+     * &#64;internal
+     * channel-conversations DD-004 D-c as amended at T02 Sitting 3 (D1-A):
+     * the conversation timeline renders agent replies from THIS field, never
+     * by re-running ChannelReplyExtractor at read time — the extractor's
+     * error/cancelled/limit copy constants change over releases, and a
+     * re-derivation would attribute today's words to yesterday's send.
+     * Written by the processor on markDelivered AND markFailed (a
+     * dead-lettered reply's text is what a human taking over needs to see);
+     * deliberately not on markRetry, which is non-terminal and re-extracts.
+     * </pre>
+     *
+     * <code>string reply_text = 17 [json_name = "replyText"];</code>
+     * @param value The bytes for replyText to set.
+     * @return This builder for chaining.
+     */
+    public Builder setReplyTextBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      replyText_ = value;
+      bitField0_ |= 0x00010000;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentchannel.v1.ChannelDelivery)

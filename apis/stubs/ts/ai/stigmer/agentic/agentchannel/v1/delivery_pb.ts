@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/delivery.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_delivery: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2RlbGl2ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIvsECg9DaGFubmVsRGVsaXZlcnkSEwoLZGVsaXZlcnlfaWQYASABKAkSGAoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCRILCgNvcmcYAyABKAkSFAoMZXhlY3V0aW9uX2lkGAQgASgJEhIKCnNlc3Npb25faWQYBSABKAkSGAoQY29udmVyc2F0aW9uX2tleRgGIAEoCRIZChFleHRlcm5hbF91c2VyX2tleRgHIAEoCRJJCgZzdGF0dXMYCCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxEZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgJIAEoBRISCgpsYXN0X2Vycm9yGAogASgJEhcKD2lkZW1wb3RlbmN5X2tleRgLIAEoCRJJCgVzbGFjaxgMIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuU2xhY2tEZWxpdmVyeUNvbnRleHRIABJPCgh3aGF0c2FwcBgQIAEoCzI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuV2hhdHNBcHBEZWxpdmVyeUNvbnRleHRIABIuCgpjcmVhdGVkX2F0GA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GA4gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIzCg9uZXh0X2F0dGVtcHRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQhIKEGRlbGl2ZXJ5X2NvbnRleHQiVQoUU2xhY2tEZWxpdmVyeUNvbnRleHQSEgoKY2hhbm5lbF9pZBgBIAEoCRIRCgl0aHJlYWRfdHMYAiABKAkSFgoOcGxhY2Vob2xkZXJfdHMYAyABKAkiSwoXV2hhdHNBcHBEZWxpdmVyeUNvbnRleHQSFwoPcGhvbmVfbnVtYmVyX2lkGAEgASgJEhcKD3JlY2lwaWVudF93YV9pZBgCIAEoCSp4ChVDaGFubmVsRGVsaXZlcnlTdGF0dXMSJwojY2hhbm5lbF9kZWxpdmVyeV9zdGF0dXNfdW5zcGVjaWZpZWQQABILCgdwZW5kaW5nEAESDgoKZGVsaXZlcmluZxACEg0KCWRlbGl2ZXJlZBADEgoKBmZhaWxlZBAEYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2RlbGl2ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIo8FCg9DaGFubmVsRGVsaXZlcnkSEwoLZGVsaXZlcnlfaWQYASABKAkSGAoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCRILCgNvcmcYAyABKAkSFAoMZXhlY3V0aW9uX2lkGAQgASgJEhIKCnNlc3Npb25faWQYBSABKAkSGAoQY29udmVyc2F0aW9uX2tleRgGIAEoCRIZChFleHRlcm5hbF91c2VyX2tleRgHIAEoCRJJCgZzdGF0dXMYCCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxEZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgJIAEoBRISCgpsYXN0X2Vycm9yGAogASgJEhcKD2lkZW1wb3RlbmN5X2tleRgLIAEoCRJJCgVzbGFjaxgMIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuU2xhY2tEZWxpdmVyeUNvbnRleHRIABJPCgh3aGF0c2FwcBgQIAEoCzI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuV2hhdHNBcHBEZWxpdmVyeUNvbnRleHRIABIuCgpjcmVhdGVkX2F0GA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GA4gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIzCg9uZXh0X2F0dGVtcHRfYXQYDyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCnJlcGx5X3RleHQYESABKAlCEgoQZGVsaXZlcnlfY29udGV4dCJVChRTbGFja0RlbGl2ZXJ5Q29udGV4dBISCgpjaGFubmVsX2lkGAEgASgJEhEKCXRocmVhZF90cxgCIAEoCRIWCg5wbGFjZWhvbGRlcl90cxgDIAEoCSJLChdXaGF0c0FwcERlbGl2ZXJ5Q29udGV4dBIXCg9waG9uZV9udW1iZXJfaWQYASABKAkSFwoPcmVjaXBpZW50X3dhX2lkGAIgASgJKngKFUNoYW5uZWxEZWxpdmVyeVN0YXR1cxInCiNjaGFubmVsX2RlbGl2ZXJ5X3N0YXR1c191bnNwZWNpZmllZBAAEgsKB3BlbmRpbmcQARIOCgpkZWxpdmVyaW5nEAISDQoJZGVsaXZlcmVkEAMSCgoGZmFpbGVkEARiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
  * ChannelDelivery tracks the delivery of one agent reply to one external
@@ -153,6 +153,25 @@ export type ChannelDelivery = Message<"ai.stigmer.agentic.agentchannel.v1.Channe
    * @generated from field: google.protobuf.Timestamp next_attempt_at = 15;
    */
   nextAttemptAt?: Timestamp;
+
+  /**
+   * The reply text as rendered for the external user, recorded when the
+   * delivery reached a terminal status. Empty while pending/delivering, and
+   * on rows terminal before this field existed.
+   *
+   * @internal
+   * channel-conversations DD-004 D-c as amended at T02 Sitting 3 (D1-A):
+   * the conversation timeline renders agent replies from THIS field, never
+   * by re-running ChannelReplyExtractor at read time — the extractor's
+   * error/cancelled/limit copy constants change over releases, and a
+   * re-derivation would attribute today's words to yesterday's send.
+   * Written by the processor on markDelivered AND markFailed (a
+   * dead-lettered reply's text is what a human taking over needs to see);
+   * deliberately not on markRetry, which is non-terminal and re-extracts.
+   *
+   * @generated from field: string reply_text = 17;
+   */
+  replyText: string;
 };
 
 /**

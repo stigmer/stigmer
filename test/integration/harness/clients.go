@@ -58,6 +58,10 @@ type Clients struct {
 	AgentChannelQuery     agentchannelv1.AgentChannelQueryControllerClient
 	ChannelAppCommand     channelappv1.ChannelAppCommandControllerClient
 	ChannelAppQuery       channelappv1.ChannelAppQueryControllerClient
+	// The conversation read surface (channel-conversations T02 Sitting 3):
+	// the console's list + timeline queries. Cloud-only runtime; OSS answers
+	// empty (the discovery-read posture).
+	ChannelConversationQuery agentchannelv1.ChannelConversationQueryControllerClient
 
 	// Datastore services — resource lifecycle plus the slug-addressed
 	// record layer (reach + grants enforced in-handler, not via FGA
@@ -155,6 +159,7 @@ func NewClients(conn grpc.ClientConnInterface) *Clients {
 		AgentChannelQuery:     agentchannelv1.NewAgentChannelQueryControllerClient(conn),
 		ChannelAppCommand:     channelappv1.NewChannelAppCommandControllerClient(conn),
 		ChannelAppQuery:       channelappv1.NewChannelAppQueryControllerClient(conn),
+		ChannelConversationQuery: agentchannelv1.NewChannelConversationQueryControllerClient(conn),
 
 		DatastoreCommand:       datastorev1.NewDatastoreCommandControllerClient(conn),
 		DatastoreQuery:         datastorev1.NewDatastoreQueryControllerClient(conn),

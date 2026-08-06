@@ -139,6 +139,20 @@ type ChannelDelivery struct {
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// Earliest time of the next delivery attempt (backoff schedule).
 	NextAttemptAt *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=next_attempt_at,json=nextAttemptAt,proto3" json:"next_attempt_at,omitempty"`
+	// The reply text as rendered for the external user, recorded when the
+	// delivery reached a terminal status. Empty while pending/delivering, and
+	// on rows terminal before this field existed.
+	//
+	// @internal
+	// channel-conversations DD-004 D-c as amended at T02 Sitting 3 (D1-A):
+	// the conversation timeline renders agent replies from THIS field, never
+	// by re-running ChannelReplyExtractor at read time — the extractor's
+	// error/cancelled/limit copy constants change over releases, and a
+	// re-derivation would attribute today's words to yesterday's send.
+	// Written by the processor on markDelivered AND markFailed (a
+	// dead-lettered reply's text is what a human taking over needs to see);
+	// deliberately not on markRetry, which is non-terminal and re-extracts.
+	ReplyText     string `protobuf:"bytes,17,opt,name=reply_text,json=replyText,proto3" json:"reply_text,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -296,6 +310,13 @@ func (x *ChannelDelivery) GetNextAttemptAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *ChannelDelivery) GetReplyText() string {
+	if x != nil {
+		return x.ReplyText
+	}
+	return ""
+}
+
 type isChannelDelivery_DeliveryContext interface {
 	isChannelDelivery_DeliveryContext()
 }
@@ -451,7 +472,7 @@ var File_ai_stigmer_agentic_agentchannel_v1_delivery_proto protoreflect.FileDesc
 
 const file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc = "" +
 	"\n" +
-	"1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb9\x06\n" +
+	"1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd8\x06\n" +
 	"\x0fChannelDelivery\x12\x1f\n" +
 	"\vdelivery_id\x18\x01 \x01(\tR\n" +
 	"deliveryId\x12(\n" +
@@ -474,7 +495,9 @@ const file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc = "" +
 	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12B\n" +
-	"\x0fnext_attempt_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\rnextAttemptAtB\x12\n" +
+	"\x0fnext_attempt_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\rnextAttemptAt\x12\x1d\n" +
+	"\n" +
+	"reply_text\x18\x11 \x01(\tR\treplyTextB\x12\n" +
 	"\x10delivery_context\"y\n" +
 	"\x14SlackDeliveryContext\x12\x1d\n" +
 	"\n" +
