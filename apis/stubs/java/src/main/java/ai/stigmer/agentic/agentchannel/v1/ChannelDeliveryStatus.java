@@ -12,7 +12,9 @@ package ai.stigmer.agentic.agentchannel.v1;
  * &#64;internal
  * pending -&gt; delivering is the atomic claim (single winner across
  * replicas). delivering -&gt; delivered | pending (retry, with backoff via
- * next_attempt_at) | failed (dead-lettered after max attempts).
+ * next_attempt_at) | failed (dead-lettered after max attempts) |
+ * suppressed (withheld under human control — channel-conversations
+ * DD-005 D-e; terminal, intended behavior, never an alert condition).
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus}
@@ -60,6 +62,22 @@ public enum ChannelDeliveryStatus
    * <code>failed = 4;</code>
    */
   failed(4),
+  /**
+   * <pre>
+   * Withheld because a human held the conversation when the reply came
+   * due; the customer never received it.
+   *
+   * &#64;internal
+   * channel-conversations DD-005 D-e: terminal like delivered/failed,
+   * but intended behavior — a suppressed settle records its own metric
+   * and never feeds the bad-turn alert. The reply text is deliberately
+   * NOT extracted or persisted (the customer never saw any words, and
+   * the timeline's reply lane excludes this status by contract).
+   * </pre>
+   *
+   * <code>suppressed = 5;</code>
+   */
+  suppressed(5),
   UNRECOGNIZED(-1),
   ;
 
@@ -112,6 +130,22 @@ public enum ChannelDeliveryStatus
    * <code>failed = 4;</code>
    */
   public static final int failed_VALUE = 4;
+  /**
+   * <pre>
+   * Withheld because a human held the conversation when the reply came
+   * due; the customer never received it.
+   *
+   * &#64;internal
+   * channel-conversations DD-005 D-e: terminal like delivered/failed,
+   * but intended behavior — a suppressed settle records its own metric
+   * and never feeds the bad-turn alert. The reply text is deliberately
+   * NOT extracted or persisted (the customer never saw any words, and
+   * the timeline's reply lane excludes this status by contract).
+   * </pre>
+   *
+   * <code>suppressed = 5;</code>
+   */
+  public static final int suppressed_VALUE = 5;
 
 
   public final int getNumber() {
@@ -143,6 +177,7 @@ public enum ChannelDeliveryStatus
       case 2: return delivering;
       case 3: return delivered;
       case 4: return failed;
+      case 5: return suppressed;
       default: return null;
     }
   }

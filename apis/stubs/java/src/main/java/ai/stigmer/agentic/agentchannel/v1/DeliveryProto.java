@@ -80,15 +80,15 @@ public final class DeliveryProto extends com.google.protobuf.GeneratedFile {
       "s\030\003 \001(\tR\rplaceholderTs\"i\n\027WhatsAppDelive" +
       "ryContext\022&\n\017phone_number_id\030\001 \001(\tR\rphon" +
       "eNumberId\022&\n\017recipient_wa_id\030\002 \001(\tR\rreci" +
-      "pientWaId*x\n\025ChannelDeliveryStatus\022\'\n#ch" +
-      "annel_delivery_status_unspecified\020\000\022\013\n\007p" +
-      "ending\020\001\022\016\n\ndelivering\020\002\022\r\n\tdelivered\020\003\022" +
-      "\n\n\006failed\020\004B\274\001B\rDeliveryProtoP\001\242\002\004ASAA\252\002" +
-      "\"Ai.Stigmer.Agentic.Agentchannel.V1\312\002\"Ai" +
-      "\\Stigmer\\Agentic\\Agentchannel\\V1\342\002.Ai\\St" +
-      "igmer\\Agentic\\Agentchannel\\V1\\GPBMetadat" +
-      "a\352\002&Ai::Stigmer::Agentic::Agentchannel::" +
-      "V1b\006proto3"
+      "pientWaId*\210\001\n\025ChannelDeliveryStatus\022\'\n#c" +
+      "hannel_delivery_status_unspecified\020\000\022\013\n\007" +
+      "pending\020\001\022\016\n\ndelivering\020\002\022\r\n\tdelivered\020\003" +
+      "\022\n\n\006failed\020\004\022\016\n\nsuppressed\020\005B\274\001B\rDeliver" +
+      "yProtoP\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agentic.Age" +
+      "ntchannel.V1\312\002\"Ai\\Stigmer\\Agentic\\Agentc" +
+      "hannel\\V1\342\002.Ai\\Stigmer\\Agentic\\Agentchan" +
+      "nel\\V1\\GPBMetadata\352\002&Ai::Stigmer::Agenti" +
+      "c::Agentchannel::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

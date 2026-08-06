@@ -27,7 +27,9 @@ const (
 // @internal
 // pending -> delivering is the atomic claim (single winner across
 // replicas). delivering -> delivered | pending (retry, with backoff via
-// next_attempt_at) | failed (dead-lettered after max attempts).
+// next_attempt_at) | failed (dead-lettered after max attempts) |
+// suppressed (withheld under human control — channel-conversations
+// DD-005 D-e; terminal, intended behavior, never an alert condition).
 type ChannelDeliveryStatus int32
 
 const (
@@ -41,6 +43,16 @@ const (
 	ChannelDeliveryStatus_delivered ChannelDeliveryStatus = 3
 	// Dead-lettered after exhausting attempts; last_error records why.
 	ChannelDeliveryStatus_failed ChannelDeliveryStatus = 4
+	// Withheld because a human held the conversation when the reply came
+	// due; the customer never received it.
+	//
+	// @internal
+	// channel-conversations DD-005 D-e: terminal like delivered/failed,
+	// but intended behavior — a suppressed settle records its own metric
+	// and never feeds the bad-turn alert. The reply text is deliberately
+	// NOT extracted or persisted (the customer never saw any words, and
+	// the timeline's reply lane excludes this status by contract).
+	ChannelDeliveryStatus_suppressed ChannelDeliveryStatus = 5
 )
 
 // Enum value maps for ChannelDeliveryStatus.
@@ -51,6 +63,7 @@ var (
 		2: "delivering",
 		3: "delivered",
 		4: "failed",
+		5: "suppressed",
 	}
 	ChannelDeliveryStatus_value = map[string]int32{
 		"channel_delivery_status_unspecified": 0,
@@ -58,6 +71,7 @@ var (
 		"delivering":                          2,
 		"delivered":                           3,
 		"failed":                              4,
+		"suppressed":                          5,
 	}
 )
 
@@ -506,7 +520,7 @@ const file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc = "" +
 	"\x0eplaceholder_ts\x18\x03 \x01(\tR\rplaceholderTs\"i\n" +
 	"\x17WhatsAppDeliveryContext\x12&\n" +
 	"\x0fphone_number_id\x18\x01 \x01(\tR\rphoneNumberId\x12&\n" +
-	"\x0frecipient_wa_id\x18\x02 \x01(\tR\rrecipientWaId*x\n" +
+	"\x0frecipient_wa_id\x18\x02 \x01(\tR\rrecipientWaId*\x88\x01\n" +
 	"\x15ChannelDeliveryStatus\x12'\n" +
 	"#channel_delivery_status_unspecified\x10\x00\x12\v\n" +
 	"\apending\x10\x01\x12\x0e\n" +
@@ -514,7 +528,9 @@ const file_ai_stigmer_agentic_agentchannel_v1_delivery_proto_rawDesc = "" +
 	"delivering\x10\x02\x12\r\n" +
 	"\tdelivered\x10\x03\x12\n" +
 	"\n" +
-	"\x06failed\x10\x04B\xc0\x02\n" +
+	"\x06failed\x10\x04\x12\x0e\n" +
+	"\n" +
+	"suppressed\x10\x05B\xc0\x02\n" +
 	"&com.ai.stigmer.agentic.agentchannel.v1B\rDeliveryProtoP\x01ZZgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
 
 var (

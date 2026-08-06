@@ -91,7 +91,9 @@ message ChannelDelivery {
 // @internal
 // pending -> delivering is the atomic claim (single winner across
 // replicas). delivering -> delivered | pending (retry, with backoff via
-// next_attempt_at) | failed (dead-lettered after max attempts).
+// next_attempt_at) | failed (dead-lettered after max attempts) |
+// suppressed (withheld under human control — channel-conversations
+// DD-005 D-e; terminal, intended behavior, never an alert condition).
 enum ChannelDeliveryStatus {
   // Default value when no status is set.
   channel_delivery_status_unspecified = 0;
@@ -107,6 +109,17 @@ enum ChannelDeliveryStatus {
 
   // Dead-lettered after exhausting attempts; last_error records why.
   failed = 4;
+
+  // Withheld because a human held the conversation when the reply came
+  // due; the customer never received it.
+  //
+  // @internal
+  // channel-conversations DD-005 D-e: terminal like delivered/failed,
+  // but intended behavior — a suppressed settle records its own metric
+  // and never feeds the bad-turn alert. The reply text is deliberately
+  // NOT extracted or persisted (the customer never saw any words, and
+  // the timeline's reply lane excludes this status by contract).
+  suppressed = 5;
 }
 
 // SlackDeliveryContext carries what the Slack deliverer needs to post or

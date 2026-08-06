@@ -100,10 +100,17 @@ func (ChannelReceiptState) EnumDescriptor() ([]byte, []int) {
 // business-initiated send.
 //
 // @internal
-// DD-002 D9: the two calling contexts carry different trust levels, so
+// DD-002 D9: the calling contexts carry different trust levels, so
 // recipient policy is surface-aware — channel-conversation sends are
-// bounded to known senders, operator-authored sends to caps. Stamped by
-// the reach resolver (its single writer) for audit; never caller-supplied.
+// bounded to known senders, operator-authored sends to caps. Stamped
+// server-side for audit, never caller-supplied. Writers, one per value:
+// the reach resolver stamps channel_conversation and operator; the
+// takeover acknowledger stamps platform (channel-conversations DD-005
+// D-d); the conversation reply handler stamps participant
+// (channel-conversations DD-009, amended at T03 Sitting 1). The
+// proactive caps count only channel_conversation and operator rows —
+// platform and participant are reply traffic inside the open service
+// window, outside the proactive levers by design.
 type ChannelOutboundOrigin int32
 
 const (
@@ -115,6 +122,25 @@ const (
 	// The send was authored by an operator (console, CLI, SDK, scheduled
 	// run); any recipient, bounded by caps.
 	ChannelOutboundOrigin_operator ChannelOutboundOrigin = 2
+	// Platform-authored conversation-context copy (e.g. the takeover
+	// acknowledgment), neither the agent's words nor a human's.
+	//
+	// @internal
+	// channel-conversations DD-005 D-d: reply traffic inside the open
+	// service window — exempt from the proactive caps and the proactive
+	// consent lever. Renders as author_platform on the timeline.
+	ChannelOutboundOrigin_platform ChannelOutboundOrigin = 3
+	// A staff member's reply inside a live conversation, sent through the
+	// conversation-scoped reply command.
+	//
+	// @internal
+	// channel-conversations DD-009 (T03 Sitting 1 amendment): distinct
+	// from operator because a console cold-send and a staff reply both
+	// carry an empty session — origin is the only durable discriminator
+	// the cap predicate and the timeline author mapping can key on.
+	// Renders as author_teammate on the timeline. First written by the
+	// reply handler (T03 Sitting 2).
+	ChannelOutboundOrigin_participant ChannelOutboundOrigin = 4
 )
 
 // Enum value maps for ChannelOutboundOrigin.
@@ -123,11 +149,15 @@ var (
 		0: "channel_outbound_origin_unspecified",
 		1: "channel_conversation",
 		2: "operator",
+		3: "platform",
+		4: "participant",
 	}
 	ChannelOutboundOrigin_value = map[string]int32{
 		"channel_outbound_origin_unspecified": 0,
 		"channel_conversation":                1,
 		"operator":                            2,
+		"platform":                            3,
+		"participant":                         4,
 	}
 )
 
@@ -454,11 +484,13 @@ const file_ai_stigmer_agentic_agentchannel_v1_outbound_proto_rawDesc = "" +
 	"\freceipt_sent\x10\x01\x12\x15\n" +
 	"\x11receipt_delivered\x10\x02\x12\x10\n" +
 	"\freceipt_read\x10\x03\x12\x12\n" +
-	"\x0ereceipt_failed\x10\x04*h\n" +
+	"\x0ereceipt_failed\x10\x04*\x87\x01\n" +
 	"\x15ChannelOutboundOrigin\x12'\n" +
 	"#channel_outbound_origin_unspecified\x10\x00\x12\x18\n" +
 	"\x14channel_conversation\x10\x01\x12\f\n" +
-	"\boperator\x10\x02B\xc2\x02\n" +
+	"\boperator\x10\x02\x12\f\n" +
+	"\bplatform\x10\x03\x12\x0f\n" +
+	"\vparticipant\x10\x04B\xc2\x02\n" +
 	"&com.ai.stigmer.agentic.agentchannel.v1B\rOutboundProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
 
 var (

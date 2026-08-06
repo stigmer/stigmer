@@ -1428,7 +1428,7 @@
     },
     {
       "name": "ChannelDeliveryStatus",
-      "description": "ChannelDeliveryStatus is the delivery record lifecycle.\n\n @internal\n pending -\u003e delivering is the atomic claim (single winner across\n replicas). delivering -\u003e delivered | pending (retry, with backoff via\n next_attempt_at) | failed (dead-lettered after max attempts).",
+      "description": "ChannelDeliveryStatus is the delivery record lifecycle.\n\n @internal\n pending -\u003e delivering is the atomic claim (single winner across\n replicas). delivering -\u003e delivered | pending (retry, with backoff via\n next_attempt_at) | failed (dead-lettered after max attempts) |\n suppressed (withheld under human control — channel-conversations\n DD-005 D-e; terminal, intended behavior, never an alert condition).",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus",
       "values": [
         {
@@ -1450,6 +1450,11 @@
           "name": "failed",
           "number": 4,
           "description": "Dead-lettered after exhausting attempts; last_error records why."
+        },
+        {
+          "name": "suppressed",
+          "number": 5,
+          "description": "Withheld because a human held the conversation when the reply came\n due; the customer never received it.\n\n @internal\n channel-conversations DD-005 D-e: terminal like delivered/failed,\n but intended behavior — a suppressed settle records its own metric\n and never feeds the bad-turn alert. The reply text is deliberately\n NOT extracted or persisted (the customer never saw any words, and\n the timeline's reply lane excludes this status by contract)."
         }
       ]
     },
@@ -1482,7 +1487,7 @@
     },
     {
       "name": "ChannelOutboundOrigin",
-      "description": "ChannelOutboundOrigin records which trust context authorized a\n business-initiated send.\n\n @internal\n DD-002 D9: the two calling contexts carry different trust levels, so\n recipient policy is surface-aware — channel-conversation sends are\n bounded to known senders, operator-authored sends to caps. Stamped by\n the reach resolver (its single writer) for audit; never caller-supplied.",
+      "description": "ChannelOutboundOrigin records which trust context authorized a\n business-initiated send.\n\n @internal\n DD-002 D9: the calling contexts carry different trust levels, so\n recipient policy is surface-aware — channel-conversation sends are\n bounded to known senders, operator-authored sends to caps. Stamped\n server-side for audit, never caller-supplied. Writers, one per value:\n the reach resolver stamps channel_conversation and operator; the\n takeover acknowledger stamps platform (channel-conversations DD-005\n D-d); the conversation reply handler stamps participant\n (channel-conversations DD-009, amended at T03 Sitting 1). The\n proactive caps count only channel_conversation and operator rows —\n platform and participant are reply traffic inside the open service\n window, outside the proactive levers by design.",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin",
       "values": [
         {
@@ -1494,6 +1499,16 @@
           "name": "operator",
           "number": 2,
           "description": "The send was authored by an operator (console, CLI, SDK, scheduled\n run); any recipient, bounded by caps."
+        },
+        {
+          "name": "platform",
+          "number": 3,
+          "description": "Platform-authored conversation-context copy (e.g. the takeover\n acknowledgment), neither the agent's words nor a human's.\n\n @internal\n channel-conversations DD-005 D-d: reply traffic inside the open\n service window — exempt from the proactive caps and the proactive\n consent lever. Renders as author_platform on the timeline."
+        },
+        {
+          "name": "participant",
+          "number": 4,
+          "description": "A staff member's reply inside a live conversation, sent through the\n conversation-scoped reply command.\n\n @internal\n channel-conversations DD-009 (T03 Sitting 1 amendment): distinct\n from operator because a console cold-send and a staff reply both\n carry an empty session — origin is the only durable discriminator\n the cap predicate and the timeline author mapping can key on.\n Renders as author_teammate on the timeline. First written by the\n reply handler (T03 Sitting 2)."
         }
       ]
     }

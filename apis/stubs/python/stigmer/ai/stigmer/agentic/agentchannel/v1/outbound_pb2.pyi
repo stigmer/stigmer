@@ -24,6 +24,8 @@ class ChannelOutboundOrigin(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     channel_outbound_origin_unspecified: _ClassVar[ChannelOutboundOrigin]
     channel_conversation: _ClassVar[ChannelOutboundOrigin]
     operator: _ClassVar[ChannelOutboundOrigin]
+    platform: _ClassVar[ChannelOutboundOrigin]
+    participant: _ClassVar[ChannelOutboundOrigin]
 receipt_state_unspecified: ChannelReceiptState
 receipt_sent: ChannelReceiptState
 receipt_delivered: ChannelReceiptState
@@ -32,6 +34,8 @@ receipt_failed: ChannelReceiptState
 channel_outbound_origin_unspecified: ChannelOutboundOrigin
 channel_conversation: ChannelOutboundOrigin
 operator: ChannelOutboundOrigin
+platform: ChannelOutboundOrigin
+participant: ChannelOutboundOrigin
 
 class ChannelOutboundMessage(_message.Message):
     __slots__ = ("outbound_message_id", "agent_channel_id", "org", "session_id", "origin", "recipient", "payload", "status", "attempts", "last_error", "idempotency_key", "provider_message_id", "created_at", "updated_at", "next_attempt_at", "receipt_state", "receipt_detail", "receipt_error_code", "receipt_at")

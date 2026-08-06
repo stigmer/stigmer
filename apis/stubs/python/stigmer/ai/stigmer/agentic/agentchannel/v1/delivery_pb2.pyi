@@ -16,11 +16,13 @@ class ChannelDeliveryStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     delivering: _ClassVar[ChannelDeliveryStatus]
     delivered: _ClassVar[ChannelDeliveryStatus]
     failed: _ClassVar[ChannelDeliveryStatus]
+    suppressed: _ClassVar[ChannelDeliveryStatus]
 channel_delivery_status_unspecified: ChannelDeliveryStatus
 pending: ChannelDeliveryStatus
 delivering: ChannelDeliveryStatus
 delivered: ChannelDeliveryStatus
 failed: ChannelDeliveryStatus
+suppressed: ChannelDeliveryStatus
 
 class ChannelDelivery(_message.Message):
     __slots__ = ("delivery_id", "agent_channel_id", "org", "execution_id", "session_id", "conversation_key", "external_user_key", "status", "attempts", "last_error", "idempotency_key", "slack", "whatsapp", "created_at", "updated_at", "next_attempt_at", "reply_text")

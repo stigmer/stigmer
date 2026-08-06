@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/outbound.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_outbound: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL291dGJvdW5kLnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIosGChZDaGFubmVsT3V0Ym91bmRNZXNzYWdlEhsKE291dGJvdW5kX21lc3NhZ2VfaWQYASABKAkSGAoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCRILCgNvcmcYAyABKAkSEgoKc2Vzc2lvbl9pZBgEIAEoCRJJCgZvcmlnaW4YBSABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxPdXRib3VuZE9yaWdpbhIRCglyZWNpcGllbnQYBiABKAkSSwoHcGF5bG9hZBgHIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbE91dGJvdW5kUGF5bG9hZBJJCgZzdGF0dXMYCCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxEZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgJIAEoBRISCgpsYXN0X2Vycm9yGAogASgJEhcKD2lkZW1wb3RlbmN5X2tleRgLIAEoCRIbChNwcm92aWRlcl9tZXNzYWdlX2lkGAwgASgJEi4KCmNyZWF0ZWRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYDiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKD25leHRfYXR0ZW1wdF9hdBgPIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASTgoNcmVjZWlwdF9zdGF0ZRgQIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbFJlY2VpcHRTdGF0ZRIWCg5yZWNlaXB0X2RldGFpbBgRIAEoCRIaChJyZWNlaXB0X2Vycm9yX2NvZGUYEiABKAUSLgoKcmVjZWlwdF9hdBgTIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAqgwEKE0NoYW5uZWxSZWNlaXB0U3RhdGUSHQoZcmVjZWlwdF9zdGF0ZV91bnNwZWNpZmllZBAAEhAKDHJlY2VpcHRfc2VudBABEhUKEXJlY2VpcHRfZGVsaXZlcmVkEAISEAoMcmVjZWlwdF9yZWFkEAMSEgoOcmVjZWlwdF9mYWlsZWQQBCpoChVDaGFubmVsT3V0Ym91bmRPcmlnaW4SJwojY2hhbm5lbF9vdXRib3VuZF9vcmlnaW5fdW5zcGVjaWZpZWQQABIYChRjaGFubmVsX2NvbnZlcnNhdGlvbhABEgwKCG9wZXJhdG9yEAJiBnByb3RvMw", [file_ai_stigmer_agentic_agentchannel_v1_delivery, file_ai_stigmer_agentic_agentchannel_v1_message_io, file_google_protobuf_timestamp]);
+  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL291dGJvdW5kLnByb3RvEiJhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxIosGChZDaGFubmVsT3V0Ym91bmRNZXNzYWdlEhsKE291dGJvdW5kX21lc3NhZ2VfaWQYASABKAkSGAoQYWdlbnRfY2hhbm5lbF9pZBgCIAEoCRILCgNvcmcYAyABKAkSEgoKc2Vzc2lvbl9pZBgEIAEoCRJJCgZvcmlnaW4YBSABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxPdXRib3VuZE9yaWdpbhIRCglyZWNpcGllbnQYBiABKAkSSwoHcGF5bG9hZBgHIAEoCzI6LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbE91dGJvdW5kUGF5bG9hZBJJCgZzdGF0dXMYCCABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxEZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgJIAEoBRISCgpsYXN0X2Vycm9yGAogASgJEhcKD2lkZW1wb3RlbmN5X2tleRgLIAEoCRIbChNwcm92aWRlcl9tZXNzYWdlX2lkGAwgASgJEi4KCmNyZWF0ZWRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYDiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKD25leHRfYXR0ZW1wdF9hdBgPIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASTgoNcmVjZWlwdF9zdGF0ZRgQIAEoDjI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEuQ2hhbm5lbFJlY2VpcHRTdGF0ZRIWCg5yZWNlaXB0X2RldGFpbBgRIAEoCRIaChJyZWNlaXB0X2Vycm9yX2NvZGUYEiABKAUSLgoKcmVjZWlwdF9hdBgTIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAqgwEKE0NoYW5uZWxSZWNlaXB0U3RhdGUSHQoZcmVjZWlwdF9zdGF0ZV91bnNwZWNpZmllZBAAEhAKDHJlY2VpcHRfc2VudBABEhUKEXJlY2VpcHRfZGVsaXZlcmVkEAISEAoMcmVjZWlwdF9yZWFkEAMSEgoOcmVjZWlwdF9mYWlsZWQQBCqHAQoVQ2hhbm5lbE91dGJvdW5kT3JpZ2luEicKI2NoYW5uZWxfb3V0Ym91bmRfb3JpZ2luX3Vuc3BlY2lmaWVkEAASGAoUY2hhbm5lbF9jb252ZXJzYXRpb24QARIMCghvcGVyYXRvchACEgwKCHBsYXRmb3JtEAMSDwoLcGFydGljaXBhbnQQBGIGcHJvdG8z", [file_ai_stigmer_agentic_agentchannel_v1_delivery, file_ai_stigmer_agentic_agentchannel_v1_message_io, file_google_protobuf_timestamp]);
 
 /**
  * ChannelOutboundMessage tracks the delivery of one business-initiated
@@ -283,10 +283,17 @@ export const ChannelReceiptStateSchema: GenEnum<ChannelReceiptState> = /*@__PURE
  * business-initiated send.
  *
  * @internal
- * DD-002 D9: the two calling contexts carry different trust levels, so
+ * DD-002 D9: the calling contexts carry different trust levels, so
  * recipient policy is surface-aware — channel-conversation sends are
- * bounded to known senders, operator-authored sends to caps. Stamped by
- * the reach resolver (its single writer) for audit; never caller-supplied.
+ * bounded to known senders, operator-authored sends to caps. Stamped
+ * server-side for audit, never caller-supplied. Writers, one per value:
+ * the reach resolver stamps channel_conversation and operator; the
+ * takeover acknowledger stamps platform (channel-conversations DD-005
+ * D-d); the conversation reply handler stamps participant
+ * (channel-conversations DD-009, amended at T03 Sitting 1). The
+ * proactive caps count only channel_conversation and operator rows —
+ * platform and participant are reply traffic inside the open service
+ * window, outside the proactive levers by design.
  *
  * @generated from enum ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
  */
@@ -313,6 +320,35 @@ export enum ChannelOutboundOrigin {
    * @generated from enum value: operator = 2;
    */
   operator = 2,
+
+  /**
+   * Platform-authored conversation-context copy (e.g. the takeover
+   * acknowledgment), neither the agent's words nor a human's.
+   *
+   * @internal
+   * channel-conversations DD-005 D-d: reply traffic inside the open
+   * service window — exempt from the proactive caps and the proactive
+   * consent lever. Renders as author_platform on the timeline.
+   *
+   * @generated from enum value: platform = 3;
+   */
+  platform = 3,
+
+  /**
+   * A staff member's reply inside a live conversation, sent through the
+   * conversation-scoped reply command.
+   *
+   * @internal
+   * channel-conversations DD-009 (T03 Sitting 1 amendment): distinct
+   * from operator because a console cold-send and a staff reply both
+   * carry an empty session — origin is the only durable discriminator
+   * the cap predicate and the timeline author mapping can key on.
+   * Renders as author_teammate on the timeline. First written by the
+   * reply handler (T03 Sitting 2).
+   *
+   * @generated from enum value: participant = 4;
+   */
+  participant = 4,
 }
 
 /**

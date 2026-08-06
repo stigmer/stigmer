@@ -1531,6 +1531,7 @@ ChannelDeliveryStatus is the delivery record lifecycle.
 | `delivering` | Claimed by a delivery worker; provider I/O in flight. |
 | `delivered` | Reply delivered to the provider. |
 | `failed` | Dead-lettered after exhausting attempts; last_error records why. |
+| `suppressed` | Withheld because a human held the conversation when the reply came due; the customer never received it. |
 
 ### ChannelReceiptState
 
@@ -1551,4 +1552,6 @@ ChannelOutboundOrigin records which trust context authorized a business-initiate
 |-------|-------------|
 | `channel_conversation` | The send came from an agent run created by an inbound channel message; the recipient must be a known sender on the channel. |
 | `operator` | The send was authored by an operator (console, CLI, SDK, scheduled run); any recipient, bounded by caps. |
+| `platform` | Platform-authored conversation-context copy (e.g. the takeover acknowledgment), neither the agent's words nor a human's. |
+| `participant` | A staff member's reply inside a live conversation, sent through the conversation-scoped reply command. |
 

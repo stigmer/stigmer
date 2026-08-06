@@ -74,15 +74,15 @@ public final class OutboundProto extends com.google.protobuf.GeneratedFile {
       "ptAt*\203\001\n\023ChannelReceiptState\022\035\n\031receipt_" +
       "state_unspecified\020\000\022\020\n\014receipt_sent\020\001\022\025\n" +
       "\021receipt_delivered\020\002\022\020\n\014receipt_read\020\003\022\022" +
-      "\n\016receipt_failed\020\004*h\n\025ChannelOutboundOri" +
-      "gin\022\'\n#channel_outbound_origin_unspecifi" +
-      "ed\020\000\022\030\n\024channel_conversation\020\001\022\014\n\010operat" +
-      "or\020\002B\274\001B\rOutboundProtoP\001\242\002\004ASAA\252\002\"Ai.Sti" +
-      "gmer.Agentic.Agentchannel.V1\312\002\"Ai\\Stigme" +
-      "r\\Agentic\\Agentchannel\\V1\342\002.Ai\\Stigmer\\A" +
-      "gentic\\Agentchannel\\V1\\GPBMetadata\352\002&Ai:" +
-      ":Stigmer::Agentic::Agentchannel::V1b\006pro" +
-      "to3"
+      "\n\016receipt_failed\020\004*\207\001\n\025ChannelOutboundOr" +
+      "igin\022\'\n#channel_outbound_origin_unspecif" +
+      "ied\020\000\022\030\n\024channel_conversation\020\001\022\014\n\010opera" +
+      "tor\020\002\022\014\n\010platform\020\003\022\017\n\013participant\020\004B\274\001B" +
+      "\rOutboundProtoP\001\242\002\004ASAA\252\002\"Ai.Stigmer.Age" +
+      "ntic.Agentchannel.V1\312\002\"Ai\\Stigmer\\Agenti" +
+      "c\\Agentchannel\\V1\342\002.Ai\\Stigmer\\Agentic\\A" +
+      "gentchannel\\V1\\GPBMetadata\352\002&Ai::Stigmer" +
+      "::Agentic::Agentchannel::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
