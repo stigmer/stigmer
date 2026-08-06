@@ -199,7 +199,8 @@
               "owner",
               "admin",
               "member",
-              "viewer"
+              "viewer",
+              "participant"
             ]
           },
           "description": "The role that will be granted upon redemption.",
@@ -273,6 +274,11 @@
           "name": "viewer",
           "number": 4,
           "description": "Read-only access to the resource."
+        },
+        {
+          "name": "participant",
+          "number": 5,
+          "description": "Conversation participant on an agent channel: may read the channel's\n conversations and speak to its customers as the business (reply, take\n over, hand back, clear attention). Not a channel configurator.\n\n @internal\n channel-conversations DD-010. Grantable only on agent_channel — the\n second kind-scoped role after organization's admin/member; the\n grantable_roles subsetting is the mechanism, not a new one. Team\n usersets ([team#member]) are the named widening the day a team FGA\n type lands."
         }
       ]
     },

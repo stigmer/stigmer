@@ -78,12 +78,13 @@ Schedule schedule = client.schedules().get("sch_01j5q3k7m8r2s4tnz2hfp0q0c3");
 | [`getByAgent`](#getbyagent) | Get all schedules of a specific agent. |
 | [`getByReference`](#getbyreference) | Get a schedule by its organization-scoped reference (org/slug). |
 | [`list`](#list) | List schedules with optional label filtering. |
+| [`listRuns`](#listruns) | List a schedule's run history, newest first. |
 | [`apply`](#apply) | Create or update a schedule. |
 | [`create`](#create) | Create a schedule. |
 | [`update`](#update) | Update an existing schedule. |
 | [`delete`](#delete) | Delete a schedule. |
 | [`resume`](#resume) | Resume a schedule the platform paused after repeated run failures. |
-| [`trigger`](#trigger) | Trigger a schedule to fire once, immediately. |
+| [`trigger`](#trigger) | Trigger a schedule to fire once, immediately, and answer with the run's real outcome. |
 
 ### get
 
@@ -266,6 +267,51 @@ ScheduleList result = client.schedules().list(ListSchedulesRequest.builder()
 **Parameters**: [`ListSchedulesRequest`](#listschedulesrequest)
 
 **Returns**: [`ScheduleList`](#schedulelist)
+
+### listRuns
+
+List a schedule's run history, newest first.
+
+Every fire leaves a row — including fires that created no execution (a refused launch gate, a missing target agent) — with the refusing gate's copy verbatim. This is the surface that explains status.consecutive_failures.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.schedule.listRuns({
+  scheduleId: "...",
+  pageInfo: {},
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.Schedule.ListRuns(ctx, &stigmer.ListScheduleRunsRequest{
+  ScheduleId: "...",
+  PageInfo:   &stigmer.PageInfoInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.schedules.list_runs(ListScheduleRunsRequest(
+    schedule_id="...",
+    page_info=None,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ScheduleRunList result = client.schedules().listRuns(ListScheduleRunsRequest.builder()
+    .scheduleId("...")
+    .pageInfo(null)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListScheduleRunsRequest`](#listschedulerunsrequest)
+
+**Returns**: [`ScheduleRunList`](#schedulerunlist)
 
 ### apply
 
@@ -548,29 +594,31 @@ Schedule schedule = client.schedules().resume(id);
 
 ### trigger
 
-Trigger a schedule to fire once, immediately.
+Trigger a schedule to fire once, immediately, and answer with the run's real outcome.
 
-The manual fire runs through the schedule's own clock, so everything a cron fire does applies: a fresh run is created, status.last_fire_at and status.last_execution_id record it, and its verdict feeds the failure streak (a successful manual fire resets the streak). The fire is asynchronous — the response carries the schedule, and the run appears on status as it starts. A disabled schedule refuses (enable it first); a platform-paused schedule refuses (resume it first).
+The manual fire runs synchronously through the standard execution create pipeline — every launch gate runs — and the result names what happened: the created execution's id, or the refusing gate's own copy verbatim. status.last_fire_at and status.last_execution_id record a started run. Manual fires do NOT feed the failure streak — the streak is the unattended (cron) health signal, and a test fire of a broken schedule must not race its owner to the pause threshold.
+
+A disabled schedule refuses (enable it first). A platform-paused schedule MAY be triggered — a test fire is exactly how an owner verifies a fix before resuming; resume remains the one path that clears the pause.
 
 <SDKTabs>
 <Tab value="TypeScript">
 ```typescript
-const schedule = await stigmer.schedule.trigger(id);
+const scheduleTriggerResult = await stigmer.schedule.trigger(id);
 ```
 </Tab>
 <Tab value="Go">
 ```go
-schedule, err := client.Schedule.Trigger(ctx, id)
+scheduleTriggerResult, err := client.Schedule.Trigger(ctx, id)
 ```
 </Tab>
 <Tab value="Python">
 ```python
-schedule = client.schedules.trigger(id)
+schedule_trigger_result = client.schedules.trigger(id)
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Schedule schedule = client.schedules().trigger(id);
+ScheduleTriggerResult scheduleTriggerResult = client.schedules().trigger(id);
 ```
 </Tab>
 </SDKTabs>
@@ -581,7 +629,7 @@ Schedule schedule = client.schedules().trigger(id);
 |-----------|------|-------------|
 | `id` | `string` | Schedule identifier. |
 
-**Returns**: [`Schedule`](#schedule)
+**Returns**: [`ScheduleTriggerResult`](#scheduletriggerresult)
 
 ## Types
 
@@ -610,6 +658,8 @@ AgentTarget runs an agent with a configured prompt at each fire.
   type={{
     agentRef: { type: "ResourceRef", description: "Reference to the agent this schedule runs.", typeDescriptionLink: "#resourceref", required: true },
     message: { type: "string", description: "Prompt each run starts from." },
+    environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources whose values are provided to this schedule's runs.", typeDescriptionLink: "#resourceref" },
+    runConfig: { type: "ScheduleRunConfigInput", description: "Per-schedule bounds for each run.", typeDescriptionLink: "#schedulerunconfiginput" },
   }}
 />
 
@@ -623,6 +673,31 @@ Generic reference to any API resource by org and slug.
     kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourcekind" },
     slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
     version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### ScheduleRunConfigInput
+
+ScheduleRunConfig bounds the executions a schedule creates.
+
+<TypeTable
+  type={{
+    modelName: { type: "string", description: "The model each run uses." },
+    maxCostUsd: { type: "number", description: "Maximum estimated cost in USD per run." },
+    maxToolRounds: { type: "number", description: "Maximum model-to-tools reasoning cycles per run." },
+  }}
+/>
+
+### ScheduleTriggerResult
+
+Result of manually triggering a schedule.
+
+<TypeTable
+  type={{
+    schedule: { type: "ScheduleInput", description: "The schedule after the fire, status freshly stamped.", typeDescriptionLink: "#scheduleinput" },
+    outcome: { type: "ScheduleRunOutcome", description: "What the fire produced: STARTED, REFUSED, or TARGET_MISSING (the terminal outcomes belong to run history — a manual fire answers at run start).", typeDescriptionLink: "#schedulerunoutcome" },
+    executionId: { type: "string", description: "ID of the created execution." },
+    refusalReason: { type: "string", description: "The refusing launch gate's copy, verbatim." },
   }}
 />
 
@@ -661,6 +736,28 @@ Input for listing schedules within an organization.
   }}
 />
 
+### ListScheduleRunsRequest
+
+Input for listing a schedule's run history.
+
+<TypeTable
+  type={{
+    scheduleId: { type: "string", description: "Schedule whose runs to list.", required: true },
+    pageInfo: { type: "PageInfoInput", description: "Pagination options." },
+  }}
+/>
+
+### ScheduleRunList
+
+Response containing a paginated list of schedule runs, newest first.
+
+<TypeTable
+  type={{
+    totalCount: { type: "number", description: "Total number of recorded runs for the schedule." },
+    items: { type: "ScheduleRunInput[]", description: "Runs in the current page." },
+  }}
+/>
+
 ### Schedule
 
 Schedule runs an agent on a recurring cron schedule.
@@ -689,4 +786,27 @@ ScheduleStatus contains system-managed state for a schedule.
     audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "/docs/sdk/resources/commons#apiresourceaudit" },
   }}
 />
+
+### ScheduleRunOutcome
+
+What one schedule fire produced.
+
+| Value | Description |
+|-------|-------------|
+| `SCHEDULE_RUN_OUTCOME_STARTED` | An execution was created (or idempotently re-found) and is running. |
+| `SCHEDULE_RUN_OUTCOME_REFUSED` | A launch gate refused the run deterministically; reason carries the gate's copy verbatim. |
+| `SCHEDULE_RUN_OUTCOME_TARGET_MISSING` | The schedule's agent_ref no longer resolves. |
+| `SCHEDULE_RUN_OUTCOME_SKIPPED` | The fire no-opped: the row was deleted, disabled, or paused between the fire being recorded and the run starting. |
+| `SCHEDULE_RUN_OUTCOME_COMPLETED` | The tracked run reached EXECUTION_COMPLETED. |
+| `SCHEDULE_RUN_OUTCOME_FAILED` | The tracked run ended terminal-but-not-completed (failed, cancelled, or terminated); reason names the terminal phase. |
+| `SCHEDULE_RUN_OUTCOME_TIMED_OUT` | The tracked run outlived the fire's tracking budget. |
+
+### ScheduleRunOrigin
+
+How a schedule fire was initiated.
+
+| Value | Description |
+|-------|-------------|
+| `SCHEDULE_RUN_ORIGIN_CRON` | The clock fired the schedule on its cron cadence. |
+| `SCHEDULE_RUN_ORIGIN_MANUAL` | A caller fired the schedule through the trigger command. |
 

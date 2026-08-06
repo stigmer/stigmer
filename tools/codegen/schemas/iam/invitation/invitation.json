@@ -16,7 +16,8 @@
           "owner",
           "admin",
           "member",
-          "viewer"
+          "viewer",
+          "participant"
         ]
       },
       "description": "The role granted to the identity account upon redemption.\n Must be a role listed in the organization's grantable_roles.",

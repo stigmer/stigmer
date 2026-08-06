@@ -134,7 +134,8 @@
           "owner",
           "admin",
           "member",
-          "viewer"
+          "viewer",
+          "participant"
         ]
       },
       "description": "The role to grant when auto_grant_on_org is true.\n\n Defaults to viewer when unspecified (iam_role_unspecified). The owner role\n is not permitted — organization ownership must be assigned explicitly.\n\n This field is only meaningful when auto_grant_on_org is true. When\n auto_grant_on_org is false, this field is ignored regardless of its value.\n\n Common configurations:\n   - viewer (default): Users can browse resources but cannot modify them.\n     Org admins upgrade to member or admin when ready.\n   - member: Users can immediately create and modify resources.\n     Appropriate when all authenticated users are trusted collaborators.",
