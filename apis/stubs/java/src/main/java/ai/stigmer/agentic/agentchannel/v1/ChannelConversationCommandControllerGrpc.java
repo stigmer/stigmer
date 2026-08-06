@@ -271,13 +271,20 @@ public final class ChannelConversationCommandControllerGrpc {
      * The message is durably recorded and attempted inline; the outcome
      * reports the truth of the attempt. A staff reply on an agent-held
      * conversation is an implicit takeover: the agent goes quiet until
-     * handBack.
+     * handBack. Replying requires an existing conversation — the customer
+     * must have written first; an unknown conversation answers NOT_FOUND.
      * &#64;internal
-     * channel-conversations DD-009: rides the outbound lane with operator
-     * origin, recipient derived from the conversation key (never an
-     * argument — the origin trap D-a dissolves), exempt from the proactive
-     * caps and the proactive consent lever (D-b/D-c: reply traffic inside
-     * the open service window; the authority bar is the control). The
+     * channel-conversations DD-009: rides the outbound lane with the
+     * participant origin (amended by T03 Sitting 1's A1 — operator cannot
+     * distinguish a staff reply from a console cold-send, so the cap
+     * predicate would have nothing to key on), recipient derived from the
+     * conversation key (never an argument — the origin trap D-a dissolves),
+     * exempt from the proactive caps and the proactive consent lever
+     * (D-b/D-c: reply traffic inside the open service window; the authority
+     * bar is the control). The existing-conversation precondition is T03
+     * Sitting 2's A8, making D-c's "a customer who already wrote to us"
+     * literal: without it, this lane would be an uncapped, lever-free
+     * cold-send reachable below the sendMessage authority bar. The
      * implicit-takeover flip orders before-or-with the send (T03).
      * </pre>
      */
@@ -427,13 +434,20 @@ public final class ChannelConversationCommandControllerGrpc {
      * The message is durably recorded and attempted inline; the outcome
      * reports the truth of the attempt. A staff reply on an agent-held
      * conversation is an implicit takeover: the agent goes quiet until
-     * handBack.
+     * handBack. Replying requires an existing conversation — the customer
+     * must have written first; an unknown conversation answers NOT_FOUND.
      * &#64;internal
-     * channel-conversations DD-009: rides the outbound lane with operator
-     * origin, recipient derived from the conversation key (never an
-     * argument — the origin trap D-a dissolves), exempt from the proactive
-     * caps and the proactive consent lever (D-b/D-c: reply traffic inside
-     * the open service window; the authority bar is the control). The
+     * channel-conversations DD-009: rides the outbound lane with the
+     * participant origin (amended by T03 Sitting 1's A1 — operator cannot
+     * distinguish a staff reply from a console cold-send, so the cap
+     * predicate would have nothing to key on), recipient derived from the
+     * conversation key (never an argument — the origin trap D-a dissolves),
+     * exempt from the proactive caps and the proactive consent lever
+     * (D-b/D-c: reply traffic inside the open service window; the authority
+     * bar is the control). The existing-conversation precondition is T03
+     * Sitting 2's A8, making D-c's "a customer who already wrote to us"
+     * literal: without it, this lane would be an uncapped, lever-free
+     * cold-send reachable below the sendMessage authority bar. The
      * implicit-takeover flip orders before-or-with the send (T03).
      * </pre>
      */
@@ -560,13 +574,20 @@ public final class ChannelConversationCommandControllerGrpc {
      * The message is durably recorded and attempted inline; the outcome
      * reports the truth of the attempt. A staff reply on an agent-held
      * conversation is an implicit takeover: the agent goes quiet until
-     * handBack.
+     * handBack. Replying requires an existing conversation — the customer
+     * must have written first; an unknown conversation answers NOT_FOUND.
      * &#64;internal
-     * channel-conversations DD-009: rides the outbound lane with operator
-     * origin, recipient derived from the conversation key (never an
-     * argument — the origin trap D-a dissolves), exempt from the proactive
-     * caps and the proactive consent lever (D-b/D-c: reply traffic inside
-     * the open service window; the authority bar is the control). The
+     * channel-conversations DD-009: rides the outbound lane with the
+     * participant origin (amended by T03 Sitting 1's A1 — operator cannot
+     * distinguish a staff reply from a console cold-send, so the cap
+     * predicate would have nothing to key on), recipient derived from the
+     * conversation key (never an argument — the origin trap D-a dissolves),
+     * exempt from the proactive caps and the proactive consent lever
+     * (D-b/D-c: reply traffic inside the open service window; the authority
+     * bar is the control). The existing-conversation precondition is T03
+     * Sitting 2's A8, making D-c's "a customer who already wrote to us"
+     * literal: without it, this lane would be an uncapped, lever-free
+     * cold-send reachable below the sendMessage authority bar. The
      * implicit-takeover flip orders before-or-with the send (T03).
      * </pre>
      */
@@ -688,13 +709,20 @@ public final class ChannelConversationCommandControllerGrpc {
      * The message is durably recorded and attempted inline; the outcome
      * reports the truth of the attempt. A staff reply on an agent-held
      * conversation is an implicit takeover: the agent goes quiet until
-     * handBack.
+     * handBack. Replying requires an existing conversation — the customer
+     * must have written first; an unknown conversation answers NOT_FOUND.
      * &#64;internal
-     * channel-conversations DD-009: rides the outbound lane with operator
-     * origin, recipient derived from the conversation key (never an
-     * argument — the origin trap D-a dissolves), exempt from the proactive
-     * caps and the proactive consent lever (D-b/D-c: reply traffic inside
-     * the open service window; the authority bar is the control). The
+     * channel-conversations DD-009: rides the outbound lane with the
+     * participant origin (amended by T03 Sitting 1's A1 — operator cannot
+     * distinguish a staff reply from a console cold-send, so the cap
+     * predicate would have nothing to key on), recipient derived from the
+     * conversation key (never an argument — the origin trap D-a dissolves),
+     * exempt from the proactive caps and the proactive consent lever
+     * (D-b/D-c: reply traffic inside the open service window; the authority
+     * bar is the control). The existing-conversation precondition is T03
+     * Sitting 2's A8, making D-c's "a customer who already wrote to us"
+     * literal: without it, this lane would be an uncapped, lever-free
+     * cold-send reachable below the sendMessage authority bar. The
      * implicit-takeover flip orders before-or-with the send (T03).
      * </pre>
      */
@@ -816,13 +844,20 @@ public final class ChannelConversationCommandControllerGrpc {
      * The message is durably recorded and attempted inline; the outcome
      * reports the truth of the attempt. A staff reply on an agent-held
      * conversation is an implicit takeover: the agent goes quiet until
-     * handBack.
+     * handBack. Replying requires an existing conversation — the customer
+     * must have written first; an unknown conversation answers NOT_FOUND.
      * &#64;internal
-     * channel-conversations DD-009: rides the outbound lane with operator
-     * origin, recipient derived from the conversation key (never an
-     * argument — the origin trap D-a dissolves), exempt from the proactive
-     * caps and the proactive consent lever (D-b/D-c: reply traffic inside
-     * the open service window; the authority bar is the control). The
+     * channel-conversations DD-009: rides the outbound lane with the
+     * participant origin (amended by T03 Sitting 1's A1 — operator cannot
+     * distinguish a staff reply from a console cold-send, so the cap
+     * predicate would have nothing to key on), recipient derived from the
+     * conversation key (never an argument — the origin trap D-a dissolves),
+     * exempt from the proactive caps and the proactive consent lever
+     * (D-b/D-c: reply traffic inside the open service window; the authority
+     * bar is the control). The existing-conversation precondition is T03
+     * Sitting 2's A8, making D-c's "a customer who already wrote to us"
+     * literal: without it, this lane would be an uncapped, lever-free
+     * cold-send reachable below the sendMessage authority bar. The
      * implicit-takeover flip orders before-or-with the send (T03).
      * </pre>
      */

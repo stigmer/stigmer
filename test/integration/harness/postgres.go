@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 
+	tcexec "github.com/testcontainers/testcontainers-go/exec"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
@@ -47,6 +49,30 @@ type AppPostgresContainer struct {
 	Database  string
 	User      string
 	Password  string
+}
+
+// QueryScalar runs one SQL statement via psql inside the container and
+// returns the single value it produces, trimmed (-q -t -A: quiet, tuples
+// only, no alignment). The read twin of the seeders' write-only exec — it
+// keeps the harness free of a Go Postgres driver (the stated design
+// constraint) while letting tests assert durable state the service wrote:
+// webhook event settles, outbound ledger rows, binding counts.
+func (a *AppPostgresContainer) QueryScalar(ctx context.Context, sql string) (string, error) {
+	exitCode, output, err := a.Container.Exec(ctx, []string{
+		"psql", "-U", a.User, "-d", a.Database, "-v", "ON_ERROR_STOP=1",
+		"-q", "-t", "-A", "-c", sql,
+	}, tcexec.Multiplexed())
+	if err != nil {
+		return "", fmt.Errorf("exec psql in app-postgres container: %w", err)
+	}
+	raw, readErr := io.ReadAll(output)
+	if readErr != nil {
+		return "", fmt.Errorf("read psql output: %w", readErr)
+	}
+	if exitCode != 0 {
+		return "", fmt.Errorf("psql exited %d: %s", exitCode, string(raw))
+	}
+	return strings.TrimSpace(string(raw)), nil
 }
 
 // Credentials mirror the application-records-postgres.yaml defaults so

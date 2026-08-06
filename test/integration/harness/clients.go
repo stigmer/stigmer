@@ -62,6 +62,11 @@ type Clients struct {
 	// the console's list + timeline queries. Cloud-only runtime; OSS answers
 	// empty (the discovery-read posture).
 	ChannelConversationQuery agentchannelv1.ChannelConversationQueryControllerClient
+	// The conversation participation commands (channel-conversations T03
+	// Sitting 2): reply/takeOver/handBack live; escalate/clearAttention
+	// answer UNIMPLEMENTED until Sitting 4. Cloud-only runtime; OSS refuses
+	// FAILED_PRECONDITION.
+	ChannelConversationCommand agentchannelv1.ChannelConversationCommandControllerClient
 
 	// Datastore services — resource lifecycle plus the slug-addressed
 	// record layer (reach + grants enforced in-handler, not via FGA
@@ -159,7 +164,8 @@ func NewClients(conn grpc.ClientConnInterface) *Clients {
 		AgentChannelQuery:     agentchannelv1.NewAgentChannelQueryControllerClient(conn),
 		ChannelAppCommand:     channelappv1.NewChannelAppCommandControllerClient(conn),
 		ChannelAppQuery:       channelappv1.NewChannelAppQueryControllerClient(conn),
-		ChannelConversationQuery: agentchannelv1.NewChannelConversationQueryControllerClient(conn),
+		ChannelConversationQuery:   agentchannelv1.NewChannelConversationQueryControllerClient(conn),
+		ChannelConversationCommand: agentchannelv1.NewChannelConversationCommandControllerClient(conn),
 
 		DatastoreCommand:       datastorev1.NewDatastoreCommandControllerClient(conn),
 		DatastoreQuery:         datastorev1.NewDatastoreQueryControllerClient(conn),

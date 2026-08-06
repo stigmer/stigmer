@@ -22,6 +22,10 @@ var (
 	mcpTestServerBinary    string
 	mcpServerStigmerLaunch harness.StigmerMcpLaunch
 	otelShutdown           func(context.Context) error
+	// mockWhatsAppGraph stands in for graph.facebook.com so the WhatsApp
+	// install flow and outbound sends run for real without leaving the
+	// machine (channel-conversations T03 Sitting 2's front-door tests).
+	mockWhatsAppGraph *harness.MockWhatsAppGraph
 )
 
 func TestMain(m *testing.M) {
@@ -66,14 +70,18 @@ func TestMain(m *testing.M) {
 
 	cursorKey := os.Getenv("CURSOR_API_KEY")
 
+	mockWhatsAppGraph = harness.StartMockWhatsAppGraph()
+	defer mockWhatsAppGraph.Close()
+
 	svcCfg := harness.ServiceConfig{
-		JarPath:         jarPath,
-		RedisHost:       testHarness.Redis.Host,
-		RedisPort:       testHarness.Redis.Port,
-		TemporalAddress: testHarness.Temporal.Address(),
-		AnthropicAPIKey: anthropicKey,
-		CursorAPIKey:    cursorKey,
-		LogDir:          logDir,
+		JarPath:              jarPath,
+		RedisHost:            testHarness.Redis.Host,
+		RedisPort:            testHarness.Redis.Port,
+		TemporalAddress:      testHarness.Temporal.Address(),
+		AnthropicAPIKey:      anthropicKey,
+		CursorAPIKey:         cursorKey,
+		WhatsAppGraphBaseURL: mockWhatsAppGraph.BaseURL(),
+		LogDir:               logDir,
 	}
 	if testHarness.OTelEnabled() {
 		svcCfg.OTLPEndpoint = testHarness.Jaeger.OTLPEndpoint

@@ -130,6 +130,14 @@ type ServiceConfig struct {
 	VaultAddr  string
 	VaultToken string
 
+	// WhatsAppGraphBaseURL points the service's Meta Graph API client at a
+	// mock (STIGMER_CHANNELS_WHATSAPP_GRAPH_API_BASE_URL). When set, the
+	// REAL WhatsApp install flow and the REAL outbound delivery engine run
+	// against it — no network dependency on graph.facebook.com. When empty,
+	// the production default applies and any Graph-touching test would
+	// stall on a live HTTP call.
+	WhatsAppGraphBaseURL string
+
 	// LogDir is the directory for the service log file.
 	// If empty, a temporary directory is used.
 	LogDir string
@@ -572,6 +580,12 @@ func buildServiceEnv(cfg ServiceConfig) []string {
 			fmt.Sprintf("OPENFGA_API_URL=%s", cfg.OpenFGAAPIURL),
 			fmt.Sprintf("OPENFGA_STORE_ID=%s", cfg.OpenFGAStoreID),
 			fmt.Sprintf("OPENFGA_MODEL_ID=%s", cfg.OpenFGAModelID),
+		)
+	}
+
+	if cfg.WhatsAppGraphBaseURL != "" {
+		env = append(env,
+			fmt.Sprintf("STIGMER_CHANNELS_WHATSAPP_GRAPH_API_BASE_URL=%s", cfg.WhatsAppGraphBaseURL),
 		)
 	}
 
