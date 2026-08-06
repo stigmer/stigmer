@@ -145,6 +145,11 @@ type BenchmarkResult struct {
 	LatencyMs           int64   `json:"latency_ms"`
 	ExecutionID         string  `json:"execution_id"`
 	RunnerEstimatedCost float64 `json:"runner_estimated_cost_usd"`
+
+	// Transcript carries the per-turn prompts and final assistant replies
+	// for multi-turn runs (benchmark_multiturn.go), so reply quality can be
+	// graded next to the cost numbers. Empty for single-shot cells.
+	Transcript []*TurnTranscript `json:"transcript,omitempty"`
 }
 
 // EffectiveRate returns cost per token in micro-USD, useful for isolating

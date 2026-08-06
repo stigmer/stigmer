@@ -6,10 +6,10 @@ import (
 	"context"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
-	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/require"
@@ -120,12 +120,122 @@ func TestCostBenchmark_MultiTurn(t *testing.T) {
 		t.Run(h.Name, func(t *testing.T) {
 			h.Skip(t, testHarness)
 
-			result := runMultiTurnBenchmark(t, ctx, clients, waiter, h, turns, "")
+			agent := harness.CreateAgent(t, ctx, clients, "bench-multiturn-"+h.Name,
+				"You are a helpful assistant. Remember what the user tells you.")
+
+			result := harness.RunMultiTurnBenchmark(t, ctx, clients, waiter,
+				agent.GetStatus().GetDefaultInstanceId(),
+				h.Harness, h.Name, "multi-turn", turns, "")
 			if result != nil {
 				t.Logf("[multi-turn/%s] total: billable=%d micros, tokens=%d, latency=%dms",
 					h.Name, result.BillableCostMicros, result.TotalTokens, result.LatencyMs)
 			}
 		})
+	}
+}
+
+// --- Scenario: Chat-surface model calibration (same harness, named arms) ---
+//
+// Channel conversations (WhatsApp, Slack) run the Cursor harness with a
+// platform-pinned model (stigmer-cloud
+// `stigmer.channels.execution-profile.model-name`, documented "flipped only
+// from calibration evidence") — this cell IS that evidence, rerunnable for
+// every future model generation. It compares candidate cursor models on the
+// same multi-turn, tool-calling conversation shape a chat surface actually
+// serves, and persists per-turn transcripts so reply quality gets graded
+// next to cost (a cheap model that fumbles tool calls is not cheap).
+//
+// Arms come from BENCHMARK_CHAT_MODELS (comma-separated cursor-registry
+// ids; the FIRST is the ratio baseline). The default pair is the current
+// chat-pin candidates. A pinned id that Cursor re-routes shows up as a
+// model-drift warning in the arm comparison — the same silent-fallback
+// failure mode the production pin has, caught here first.
+
+const chatCalibrationInstructions = `You are a friendly assistant for a small gym, chatting on WhatsApp.
+Keep replies short and warm — one or two sentences, no headings, no
+bullet walls. Use your tools for any lookup or arithmetic instead of
+answering from memory, and confirm what you did after using one.`
+
+func chatCalibrationModels() []string {
+	raw := os.Getenv("BENCHMARK_CHAT_MODELS")
+	if raw == "" {
+		raw = "composer-2.5,claude-haiku-4-5"
+	}
+	var models []string
+	for _, m := range strings.Split(raw, ",") {
+		if trimmed := strings.TrimSpace(m); trimmed != "" {
+			models = append(models, trimmed)
+		}
+	}
+	return models
+}
+
+func TestCostBenchmark_ChatModelCalibration(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	harness.RequireServiceHealthy(t, ctx, clients)
+	waiter := harness.NewAgentExecutionWaiter(clients.AgentExecutionQuery, suiteLogger)
+
+	harness.RequireCursorPrereqs(t, testHarness)
+	if mcpTestServerBinary == "" {
+		t.Skip("test MCP server unavailable — cannot measure tool-schema context overhead")
+	}
+
+	models := chatCalibrationModels()
+	require.GreaterOrEqual(t, len(models), 2, "BENCHMARK_CHAT_MODELS needs at least two arms to compare")
+
+	reps := benchmarkReps(t)
+	t.Logf("Chat model calibration: arms=%v, %d warm repetitions per arm + 1 discarded warmup", models, reps)
+
+	// The MCP fixture is what makes this cell chat-shaped: tool schemas
+	// re-enter the model context on every turn of a cursor conversation,
+	// so an agent without tools would understate every arm equally in
+	// absolute terms but hide how each model behaves when calling them.
+	mcpServer := harness.CreateStdioMcpServer(t, ctx, clients, mcpTestServerBinary)
+
+	agent := harness.CreateAgent(t, ctx, clients, "bench-chat-calibration",
+		chatCalibrationInstructions,
+		harness.WithMcpServerUsage(mcpServer.GetMetadata().GetSlug()))
+
+	// A WhatsApp-shaped script: greeting (no tool), two tool-calling turns,
+	// then a recall turn that only works if conversation history held.
+	turns := []string{
+		"Hi! What can you help me with?",
+		"Use the add tool to total a 1200 and an 800 rupee fee and tell me the amount.",
+		"Now use the echo tool to send back exactly: payment recorded",
+		"Thanks — in one short sentence, what did we just do?",
+	}
+
+	arms := make([]*harness.BenchmarkArm, 0, len(models))
+	for _, model := range models {
+		stat := harness.RunMultiTurnBenchmarkStat(t, ctx, clients, waiter,
+			agent.GetStatus().GetDefaultInstanceId(),
+			sessionv1.Harness_HARNESS_CURSOR, "cursor",
+			"chat-calibration-"+model, turns, model, reps)
+		arms = append(arms, &harness.BenchmarkArm{Name: model, Stat: stat})
+	}
+
+	comp := harness.CompareArms(t, "chat-calibration", arms)
+	if comp == nil {
+		t.Log("WARNING: no arm comparison completed — skipping report generation")
+		return
+	}
+
+	outputDir := testHarness.LogDir()
+	if outputDir == "" {
+		outputDir = ".test-output"
+	}
+
+	report := harness.NewArmReport([]*harness.ArmComparison{comp}, harness.GetGitSHA())
+	reportPath, err := harness.WriteArmReport(outputDir+"/..", report)
+	if err != nil {
+		t.Logf("WARNING: failed to write arm report: %v", err)
+	} else {
+		t.Logf("Chat model calibration report written: %s", reportPath)
 	}
 }
 
@@ -309,81 +419,6 @@ func runScenarioBothHarnesses(t *testing.T, scenario, prompt, nativeModel, curso
 	}
 
 	return native, cursor
-}
-
-func runMultiTurnBenchmark(
-	t *testing.T,
-	ctx context.Context,
-	clients *harness.Clients,
-	waiter *harness.AgentExecutionWaiter,
-	h harness.HarnessConfig,
-	turns []string,
-	modelName string,
-) *harness.BenchmarkResult {
-	t.Helper()
-
-	agentName := "bench-multiturn-" + h.Name
-	agent := harness.CreateAgent(t, ctx, clients, agentName,
-		"You are a helpful assistant. Remember what the user tells you.")
-
-	session := harness.CreateTestSession(t, ctx, clients,
-		agent.GetStatus().GetDefaultInstanceId(), h.Harness)
-	sessionID := session.GetMetadata().GetId()
-
-	var totalLatency int64
-	var lastExecID string
-
-	for i, turn := range turns {
-		var opts []harness.AgentExecutionOption
-		if modelName != "" {
-			opts = append(opts, harness.WithExecutionConfig(&agentexecv1.ExecutionConfig{
-				ModelName: modelName,
-			}))
-		}
-
-		start := time.Now()
-		exec := harness.CreateTestAgentExecution(t, ctx, clients, sessionID, turn, opts...)
-
-		_, err := waiter.WaitForPhase(ctx, exec.GetMetadata().GetId(),
-			agentexecv1.ExecutionPhase_EXECUTION_COMPLETED, 4*time.Minute)
-		totalLatency += time.Since(start).Milliseconds()
-
-		if err != nil {
-			t.Logf("WARNING [multi-turn/%s]: turn %d failed: %v", h.Name, i+1, err)
-			return nil
-		}
-		lastExecID = exec.GetMetadata().GetId()
-	}
-
-	// Aggregate usage from the last execution's report (session-level would be ideal,
-	// but per-execution is sufficient for relative comparison)
-	report, err := harness.WaitForSettledUsageReport(ctx, clients.AgentExecutionQuery, lastExecID)
-	if err != nil {
-		t.Logf("WARNING [multi-turn/%s]: usage report did not settle: %v", h.Name, err)
-		return nil
-	}
-
-	agg := report.GetAggregate()
-
-	var model string
-	if breakdown := report.GetModelBreakdown(); len(breakdown) > 0 {
-		model = breakdown[0].GetModel()
-	}
-
-	return &harness.BenchmarkResult{
-		Harness:             h.Name,
-		Model:               model,
-		InputTokens:         agg.GetInputTokens(),
-		OutputTokens:        agg.GetOutputTokens(),
-		CacheCreationTokens: agg.GetCacheCreationInputTokens(),
-		CacheReadTokens:     agg.GetCacheReadInputTokens(),
-		TotalTokens:         agg.GetInputTokens() + agg.GetOutputTokens() + agg.GetCacheCreationInputTokens() + agg.GetCacheReadInputTokens(),
-		BillableCostMicros:  agg.GetBillableCostMicros(),
-		ProviderCostMicros:  agg.GetProviderCostMicros(),
-		LLMCallCount:        agg.GetLlmCallCount(),
-		LatencyMs:           totalLatency,
-		ExecutionID:         lastExecID,
-	}
 }
 
 // requireBothHarnesses gates the aggregate report on the canonical

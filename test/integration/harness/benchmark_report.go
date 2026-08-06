@@ -77,22 +77,27 @@ func NewBenchmarkReport(comparisons []*BenchmarkComparison, gitSHA string) *Benc
 
 // WriteBenchmarkReport persists the report as timestamped JSON under outputDir.
 func WriteBenchmarkReport(outputDir string, report *BenchmarkReport) (string, error) {
-	dir := filepath.Join(outputDir, benchmarkReportDir)
+	return writeTimestampedJSON(outputDir, benchmarkReportDir, report)
+}
+
+// writeTimestampedJSON persists any report type as timestamped JSON under
+// outputDir/subdir — the shared tail of every report writer in this package.
+func writeTimestampedJSON(outputDir, subdir string, report any) (string, error) {
+	dir := filepath.Join(outputDir, subdir)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", fmt.Errorf("create benchmark report directory: %w", err)
+		return "", fmt.Errorf("create %s directory: %w", subdir, err)
 	}
 
 	ts := time.Now().UTC().Format("2006-01-02-150405")
-	filename := fmt.Sprintf("%s.json", ts)
-	path := filepath.Join(dir, filename)
+	path := filepath.Join(dir, fmt.Sprintf("%s.json", ts))
 
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
-		return "", fmt.Errorf("marshal benchmark report: %w", err)
+		return "", fmt.Errorf("marshal %s report: %w", subdir, err)
 	}
 
 	if err := os.WriteFile(path, data, 0o644); err != nil {
-		return "", fmt.Errorf("write benchmark report: %w", err)
+		return "", fmt.Errorf("write %s report: %w", subdir, err)
 	}
 
 	return path, nil
@@ -248,25 +253,7 @@ func NewCursorModeReport(comparisons []*CursorModeComparison, gitSHA string) *Cu
 
 // WriteCursorModeReport persists the cursor mode report as timestamped JSON.
 func WriteCursorModeReport(outputDir string, report *CursorModeReport) (string, error) {
-	dir := filepath.Join(outputDir, cursorModeReportDir)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", fmt.Errorf("create cursor mode report directory: %w", err)
-	}
-
-	ts := time.Now().UTC().Format("2006-01-02-150405")
-	filename := fmt.Sprintf("%s.json", ts)
-	path := filepath.Join(dir, filename)
-
-	data, err := json.MarshalIndent(report, "", "  ")
-	if err != nil {
-		return "", fmt.Errorf("marshal cursor mode report: %w", err)
-	}
-
-	if err := os.WriteFile(path, data, 0o644); err != nil {
-		return "", fmt.Errorf("write cursor mode report: %w", err)
-	}
-
-	return path, nil
+	return writeTimestampedJSON(outputDir, cursorModeReportDir, report)
 }
 
 // GetGitSHA attempts to read the current git HEAD SHA. Returns empty string
