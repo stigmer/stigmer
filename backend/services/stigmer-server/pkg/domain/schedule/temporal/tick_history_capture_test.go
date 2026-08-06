@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	schedulev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1"
@@ -18,6 +17,7 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
+	"github.com/stretchr/testify/require"
 	enumspb "go.temporal.io/api/enums/v1"
 	historypb "go.temporal.io/api/history/v1"
 	"go.temporal.io/sdk/client"
@@ -234,7 +234,7 @@ func captureSeedSchedule(t *testing.T, st store.Store, id string, enabled bool, 
 			Id: id, Org: "acme", Slug: "capture-" + id, Name: "capture-" + id},
 		Spec: &schedulev1.ScheduleSpec{
 			Cron: "0 9 * * *", TimeZone: "Asia/Kolkata", Enabled: enabled,
-			Target: &schedulev1.ScheduleSpec_Agent{Agent: &schedulev1.AgentTarget{
+			Target: &schedulev1.ScheduleSpec_Agent{Agent: &agentexecutionv1.AgentInvocation{
 				AgentRef: &apiresource.ApiResourceReference{
 					Kind: apiresourcekind.ApiResourceKind_agent, Org: "acme", Slug: "fee-bot"},
 				Message: "Send fee reminders.",

@@ -1,7 +1,7 @@
 {
   "name": "ScheduleSpec",
   "kind": "SCHEDULE_SPEC",
-  "description": "ScheduleSpec defines when a schedule fires and what it runs.\n\n The spec is deliberately small: a cron expression, the IANA time zone\n it is evaluated in, the owner's enablement switch, and the target each\n fire runs. Everything the platform observes about firing lives in\n status — a declarative apply can never clobber it.\n\n @internal\n DD-008 D8 as amended by DD-009: the target oneof is inline (the\n AgentChannelSpec.provider_config shape, C-3) and the agent target\n carries an ApiResourceReference, not a slug string (C-2). Apply-time\n cron validation is purely lexical (C-4) so no cron parser exists in\n either edition; the Temporal server owns calendar/DST semantics (D2).",
+  "description": "ScheduleSpec defines when a schedule fires and what it runs.\n\n The spec is deliberately small: a cron expression, the IANA time zone\n it is evaluated in, the owner's enablement switch, and the target each\n fire runs. Everything the platform observes about firing lives in\n status — a declarative apply can never clobber it.\n\n @internal\n DD-008 D8 as amended by DD-009 and DD-018: the target oneof is inline\n (the AgentChannelSpec.provider_config shape, C-3) and the agent arm is\n the shared AgentInvocation (DD-018 D-3) — the owner-settable subset of\n an agent run, so the schedule speaks the composer's vocabulary instead\n of a schedule-only one. Apply-time cron validation is purely lexical\n (C-4) so no cron parser exists in either edition; the Temporal server\n owns calendar/DST semantics (D2).",
   "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleSpec",
   "protoFile": "apis/ai/stigmer/agentic/schedule/v1/spec.proto",
   "fields": [
@@ -47,9 +47,9 @@
       "protoField": "agent",
       "type": {
         "kind": "message",
-        "messageType": "AgentTarget"
+        "messageType": "AgentInvocation"
       },
-      "description": "Run an agent with a configured prompt.",
+      "description": "Run an agent with a configured prompt at each fire.\n\n @internal\n The shared owner-settable run shape (DD-018 D-3), replacing the\n deleted schedule-only AgentTarget/ScheduleRunConfig pair.\n Schedule-specific invariants enforced in create/update/apply\n handlers of both editions, never on the shared message:\n agent_ref.org must equal metadata.org (the schedule-owning org\n is the billing org for every fire; creation requires can_edit\n on the referenced agent, DD-009 C-6); workspace sources must be\n git_repo (no client is connected at fire time to serve a\n local_path); agent_ref is immutable across updates while\n harness, model, workspace, message, and environments stay\n mutable — every fire builds a fresh session, so nothing\n session-immutable is ever mutated mid-flight. environment_refs\n resolution is unchanged from DD-017 D-2/D-4: claim-driven in\n the execution-context step, org-shared environments only,\n LOWEST merge priority, enforcement solely at runtime\n resolution. run_config clamping is unchanged from DD-017 D-3:\n per-field min(owner, platform) in the run starter.",
       "required": false,
       "oneofGroup": "target"
     }

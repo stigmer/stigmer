@@ -2,10 +2,16 @@
 
 package ai.stigmer.sdk.gen;
 
-import ai.stigmer.agentic.schedule.v1.AgentTarget;
+import ai.stigmer.agentic.agentexecution.v1.AgentInvocation;
+import ai.stigmer.agentic.agentexecution.v1.RunConfig;
 import ai.stigmer.agentic.schedule.v1.Schedule;
-import ai.stigmer.agentic.schedule.v1.ScheduleRunConfig;
 import ai.stigmer.agentic.schedule.v1.ScheduleSpec;
+import ai.stigmer.agentic.session.v1.GitRepoSource;
+import ai.stigmer.agentic.session.v1.GitWriteBackMode;
+import ai.stigmer.agentic.session.v1.Harness;
+import ai.stigmer.agentic.session.v1.LocalPathSource;
+import ai.stigmer.agentic.session.v1.WorkspaceEntry;
+import ai.stigmer.agentic.session.v1.WorkspaceSource;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
@@ -20,7 +26,7 @@ public final class ScheduleInput {
     private final String cron;
     private final String timeZone;
     private final boolean enabled;
-    private final AgentTargetInput agent;
+    private final AgentInvocationInput agent;
 
     private ScheduleInput(Builder builder) {
         this.name = builder.name;
@@ -77,7 +83,7 @@ public final class ScheduleInput {
         private String cron;
         private String timeZone;
         private boolean enabled;
-        private AgentTargetInput agent;
+        private AgentInvocationInput agent;
 
         private Builder() {}
 
@@ -89,33 +95,45 @@ public final class ScheduleInput {
         public Builder cron(String cron) { this.cron = cron; return this; }
         public Builder timeZone(String timeZone) { this.timeZone = timeZone; return this; }
         public Builder enabled(boolean enabled) { this.enabled = enabled; return this; }
-        public Builder agent(AgentTargetInput agent) { this.agent = agent; return this; }
+        public Builder agent(AgentInvocationInput agent) { this.agent = agent; return this; }
 
         public ScheduleInput build() { return new ScheduleInput(this); }
     }
 
-    /** SDK input type for AgentTarget. */
-    public static final class AgentTargetInput {
+    /** SDK input type for AgentInvocation. */
+    public static final class AgentInvocationInput {
         private final ResourceRef agentRef;
         private final String message;
+        private final Harness harness;
+        private final java.util.List<WorkspaceEntryInput> workspaceEntries;
         private final java.util.List<ResourceRef> environmentRefs;
-        private final ScheduleRunConfigInput runConfig;
+        private final RunConfigInput runConfig;
 
-        private AgentTargetInput(Builder builder) {
+        private AgentInvocationInput(Builder builder) {
             this.agentRef = builder.agentRef;
             this.message = builder.message;
+            this.harness = builder.harness;
+            this.workspaceEntries = builder.workspaceEntries;
             this.environmentRefs = builder.environmentRefs;
             this.runConfig = builder.runConfig;
         }
 
-        AgentTarget toProto() {
-            AgentTarget.Builder builder = AgentTarget.newBuilder();
+        AgentInvocation toProto() {
+            AgentInvocation.Builder builder = AgentInvocation.newBuilder();
             if (this.agentRef != null && this.agentRef.hasIdentifier()) {
                 builder.setAgentRef(this.agentRef.toProto().toBuilder()
                     .setKind(ApiResourceKind.agent).build());
             }
             if (this.message != null) {
                 builder.setMessage(this.message);
+            }
+            if (this.harness != null) {
+                builder.setHarness(this.harness);
+            }
+            if (this.workspaceEntries != null) {
+                for (WorkspaceEntryInput item : this.workspaceEntries) {
+                    builder.addWorkspaceEntries(item.toProto());
+                }
             }
             if (this.environmentRefs != null) {
                 for (ResourceRef item : this.environmentRefs) {
@@ -134,34 +152,194 @@ public final class ScheduleInput {
         public static final class Builder {
             private ResourceRef agentRef;
             private String message;
+            private Harness harness;
+            private java.util.List<WorkspaceEntryInput> workspaceEntries;
             private java.util.List<ResourceRef> environmentRefs;
-            private ScheduleRunConfigInput runConfig;
+            private RunConfigInput runConfig;
 
             private Builder() {}
 
             public Builder agentRef(ResourceRef agentRef) { this.agentRef = agentRef; return this; }
             public Builder message(String message) { this.message = message; return this; }
+            public Builder harness(Harness harness) { this.harness = harness; return this; }
+            public Builder workspaceEntries(java.util.List<WorkspaceEntryInput> workspaceEntries) { this.workspaceEntries = workspaceEntries; return this; }
             public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
-            public Builder runConfig(ScheduleRunConfigInput runConfig) { this.runConfig = runConfig; return this; }
+            public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }
 
-            public AgentTargetInput build() { return new AgentTargetInput(this); }
+            public AgentInvocationInput build() { return new AgentInvocationInput(this); }
         }
     }
 
-    /** SDK input type for ScheduleRunConfig. */
-    public static final class ScheduleRunConfigInput {
+    /** SDK input type for WorkspaceEntry. */
+    public static final class WorkspaceEntryInput {
+        private final String name;
+        private final WorkspaceSourceInput source;
+
+        private WorkspaceEntryInput(Builder builder) {
+            this.name = builder.name;
+            this.source = builder.source;
+        }
+
+        WorkspaceEntry toProto() {
+            WorkspaceEntry.Builder builder = WorkspaceEntry.newBuilder();
+            if (this.name != null) {
+                builder.setName(this.name);
+            }
+            if (this.source != null) {
+                builder.setSource(this.source.toProto());
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String name;
+            private WorkspaceSourceInput source;
+
+            private Builder() {}
+
+            public Builder name(String name) { this.name = name; return this; }
+            public Builder source(WorkspaceSourceInput source) { this.source = source; return this; }
+
+            public WorkspaceEntryInput build() { return new WorkspaceEntryInput(this); }
+        }
+    }
+
+    /** SDK input type for WorkspaceSource. */
+    public static final class WorkspaceSourceInput {
+        private final GitRepoSourceInput gitRepo;
+        private final LocalPathSourceInput localPath;
+
+        private WorkspaceSourceInput(Builder builder) {
+            this.gitRepo = builder.gitRepo;
+            this.localPath = builder.localPath;
+        }
+
+        WorkspaceSource toProto() {
+            WorkspaceSource.Builder builder = WorkspaceSource.newBuilder();
+            if (this.gitRepo != null) {
+                builder.setGitRepo(this.gitRepo.toProto());
+            }
+            if (this.localPath != null) {
+                builder.setLocalPath(this.localPath.toProto());
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private GitRepoSourceInput gitRepo;
+            private LocalPathSourceInput localPath;
+
+            private Builder() {}
+
+            public Builder gitRepo(GitRepoSourceInput gitRepo) { this.gitRepo = gitRepo; return this; }
+            public Builder localPath(LocalPathSourceInput localPath) { this.localPath = localPath; return this; }
+
+            public WorkspaceSourceInput build() { return new WorkspaceSourceInput(this); }
+        }
+    }
+
+    /** SDK input type for GitRepoSource. */
+    public static final class GitRepoSourceInput {
+        private final String url;
+        private final String branch;
+        private final String commit;
+        private final int depth;
+        private final GitWriteBackMode writeBackMode;
+
+        private GitRepoSourceInput(Builder builder) {
+            this.url = builder.url;
+            this.branch = builder.branch;
+            this.commit = builder.commit;
+            this.depth = builder.depth;
+            this.writeBackMode = builder.writeBackMode;
+        }
+
+        GitRepoSource toProto() {
+            GitRepoSource.Builder builder = GitRepoSource.newBuilder();
+            if (this.url != null) {
+                builder.setUrl(this.url);
+            }
+            if (this.branch != null) {
+                builder.setBranch(this.branch);
+            }
+            if (this.commit != null) {
+                builder.setCommit(this.commit);
+            }
+            builder.setDepth(this.depth);
+            if (this.writeBackMode != null) {
+                builder.setWriteBackMode(this.writeBackMode);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String url;
+            private String branch;
+            private String commit;
+            private int depth;
+            private GitWriteBackMode writeBackMode;
+
+            private Builder() {}
+
+            public Builder url(String url) { this.url = url; return this; }
+            public Builder branch(String branch) { this.branch = branch; return this; }
+            public Builder commit(String commit) { this.commit = commit; return this; }
+            public Builder depth(int depth) { this.depth = depth; return this; }
+            public Builder writeBackMode(GitWriteBackMode writeBackMode) { this.writeBackMode = writeBackMode; return this; }
+
+            public GitRepoSourceInput build() { return new GitRepoSourceInput(this); }
+        }
+    }
+
+    /** SDK input type for LocalPathSource. */
+    public static final class LocalPathSourceInput {
+        private final String path;
+
+        private LocalPathSourceInput(Builder builder) {
+            this.path = builder.path;
+        }
+
+        LocalPathSource toProto() {
+            LocalPathSource.Builder builder = LocalPathSource.newBuilder();
+            if (this.path != null) {
+                builder.setPath(this.path);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String path;
+
+            private Builder() {}
+
+            public Builder path(String path) { this.path = path; return this; }
+
+            public LocalPathSourceInput build() { return new LocalPathSourceInput(this); }
+        }
+    }
+
+    /** SDK input type for RunConfig. */
+    public static final class RunConfigInput {
         private final String modelName;
         private final double maxCostUsd;
         private final int maxToolRounds;
 
-        private ScheduleRunConfigInput(Builder builder) {
+        private RunConfigInput(Builder builder) {
             this.modelName = builder.modelName;
             this.maxCostUsd = builder.maxCostUsd;
             this.maxToolRounds = builder.maxToolRounds;
         }
 
-        ScheduleRunConfig toProto() {
-            ScheduleRunConfig.Builder builder = ScheduleRunConfig.newBuilder();
+        RunConfig toProto() {
+            RunConfig.Builder builder = RunConfig.newBuilder();
             if (this.modelName != null) {
                 builder.setModelName(this.modelName);
             }
@@ -183,7 +361,7 @@ public final class ScheduleInput {
             public Builder maxCostUsd(double maxCostUsd) { this.maxCostUsd = maxCostUsd; return this; }
             public Builder maxToolRounds(int maxToolRounds) { this.maxToolRounds = maxToolRounds; return this; }
 
-            public ScheduleRunConfigInput build() { return new ScheduleRunConfigInput(this); }
+            public RunConfigInput build() { return new RunConfigInput(this); }
         }
     }
 }

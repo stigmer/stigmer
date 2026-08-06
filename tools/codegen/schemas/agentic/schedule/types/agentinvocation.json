@@ -1,0 +1,92 @@
+{
+  "name": "AgentInvocation",
+  "description": "AgentInvocation is what a caller may ask an agent to do.\n\n It is the owner-settable subset of an agent run — the interactive\n composer's vocabulary (agent, message, harness, workspace,\n environments, run bounds) minus what an unattended surface makes\n structurally impossible. Surfaces that trigger agents on someone's\n behalf (schedules today; workflow agent_call and channels are named\n adopters) embed this message instead of re-deriving the shape.\n\n @internal\n Project DD-018 (whatsapp-proactive-messaging). An ALLOWLIST by\n construction: platform-owned execution fields (approval_mode,\n execution_target, callback_token, harness_state_id,\n activity_task_queue, auto_approve_all, org/labels/subject) cannot\n appear here, so embedding surfaces never need a blocklist validator\n — the rejected alternative was embedding AgentExecutionSpec /\n SessionSpec and validating the illegal fields away. Exclusions,\n each with its reason (DD-018 D-1): runtime_env (plaintext secrets\n in manifests leak; environments are the vehicle), attachments\n (one-shot uploads don't recur), mcp_server_usages/skill_refs (the\n agent blueprint owns its tool set), interaction_mode (Plan mode's\n deliverable is a plan for a human who isn't there), cursor_mode\n (runner-owned constant). Surface-specific constraints live in the\n embedding surface's handlers, never here — e.g. schedules reject\n local_path workspace sources and enforce agent_ref.org ==\n metadata.org.",
+  "protoType": "ai.stigmer.agentic.agentexecution.v1.AgentInvocation",
+  "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/invocation.proto",
+  "fields": [
+    {
+      "name": "AgentRef",
+      "jsonName": "agentRef",
+      "protoField": "agent_ref",
+      "type": {
+        "kind": "message",
+        "messageType": "ApiResourceReference"
+      },
+      "description": "Reference to the agent to run.\n\n @internal\n Embedding surfaces own the referential invariants: the schedule\n requires agent_ref.org == metadata.org (the owning org is the\n billing org for every run) and can_edit on this agent at create\n (DD-009 C-6). Deletion of the agent does not cascade (house\n convention): a dangling reference surfaces at run time as a\n failed start, never as a silent stall.",
+      "required": true,
+      "referenceKind": 40,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Message",
+      "jsonName": "message",
+      "protoField": "message",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Prompt the run starts from.\n\n @internal\n DD-008 D5: the runner injects no current date into any prompt, so\n unattended surfaces compose this message plus a fire-context line.\n The bound applies to the stored prompt, not the composed message.",
+      "required": false,
+      "validation": {
+        "minLength": 1,
+        "maxLength": 8192
+      }
+    },
+    {
+      "name": "Harness",
+      "jsonName": "harness",
+      "protoField": "harness",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.session.v1.Harness",
+        "enumValues": [
+          "HARNESS_NATIVE",
+          "HARNESS_CURSOR"
+        ]
+      },
+      "description": "Execution engine for the run's session. Unspecified inherits the\n embedding surface's platform default.\n\n @internal\n DD-018 D-1: graduates from surface platform config (e.g.\n stigmer.schedules.session-defaults.harness) to the invocation —\n the config demotes from \"the only source\" to \"the default\".\n Verified before deciding: unattended approval semantics are one\n shared contract across both harnesses (approval-policy.ts), so\n owner harness choice changes the engine, never the safety\n posture. cursor_mode stays runner-owned and is deliberately\n absent.",
+      "required": false
+    },
+    {
+      "name": "WorkspaceEntries",
+      "jsonName": "workspaceEntries",
+      "protoField": "workspace_entries",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "WorkspaceEntry"
+        }
+      },
+      "description": "Workspace the run's session operates on. Empty means no workspace.\n\n @internal\n Maps onto SessionSpec.workspace_entries of the session each run\n creates. Unattended surfaces constrain sources in their handlers:\n schedules accept git_repo only (no client is connected at fire\n time to serve a local_path). Credentials (DD-018 D-4): the\n provisioner resolves GITHUB_TOKEN from the merged environment;\n for surfaces with no interactive caller the one supported\n contract is an org-visibility Environment holding GITHUB_TOKEN\n bound via environment_refs — the personal-environment fallback\n resolves as-caller and is structurally closed to synthetic\n accounts. Public repos need no token.",
+      "required": false
+    },
+    {
+      "name": "EnvironmentRefs",
+      "jsonName": "environmentRefs",
+      "protoField": "environment_refs",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "References to Environment resources whose values are provided to\n the runs this invocation creates.\n\n This is how a tool-using agent becomes runnable unattended: bind\n an org-shared environment holding the needed credentials (for\n example an MCP server's shared secret), and the runs receive its\n values at runtime. The agent and its default instance stay\n untouched.\n\n @internal\n The AgentShare/AgentChannel/Schedule environment_refs lineage\n (project DD-017 D-2). Resolution stays with the embedding\n surface's pipeline (CreateExecutionContextStep branch, claim-\n driven, LOWEST merge priority — instance refs and runtime_env\n override on key conflicts). No write-time existence or visibility\n check: enforcement lives solely at runtime resolution, which\n fails closed.",
+      "required": false,
+      "referenceKind": 53
+    },
+    {
+      "name": "RunConfig",
+      "jsonName": "runConfig",
+      "protoField": "run_config",
+      "type": {
+        "kind": "message",
+        "messageType": "RunConfig"
+      },
+      "description": "Per-invocation model choice and run bounds. Unset fields inherit\n the embedding surface's platform execution profile.",
+      "required": false
+    }
+  ]
+}

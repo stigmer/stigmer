@@ -86,6 +86,10 @@ func (s *resolveScheduleDefaultsStep) Execute(ctx *pipeline.RequestContext[*sche
 		return grpclib.InvalidArgumentError("spec.agent.agent_ref.slug is required")
 	}
 
+	if err := validateScheduleWorkspace(spec); err != nil {
+		return err
+	}
+
 	// Empty ref org means same-org; make it absolute before the invariant
 	// compares orgs.
 	refOrg := agentRef.GetOrg()
@@ -116,6 +120,25 @@ func (s *resolveScheduleDefaultsStep) Execute(ctx *pipeline.RequestContext[*sche
 
 	agentRef.Org = refOrg
 
+	return nil
+}
+
+// validateScheduleWorkspace enforces the schedule-specific workspace
+// constraint on the shared AgentInvocation (DD-018 D-3, the surface
+// constraint the shared message deliberately does not carry): every
+// workspace entry must be a git_repo source. A local_path needs a
+// connected client to serve the directory, and a schedule fire has
+// none — refusing at write time beats a deterministic provisioning
+// failure at 3 AM. Copy is cross-edition contract (cloud mirrors it).
+func validateScheduleWorkspace(spec *schedulev1.ScheduleSpec) error {
+	for i, entry := range spec.GetAgent().GetWorkspaceEntries() {
+		if entry.GetSource().GetGitRepo() == nil {
+			return grpclib.InvalidArgumentError(
+				"spec.agent.workspace_entries[%d] must use a git_repo source — a scheduled run has no connected client to serve a local_path",
+				i,
+			)
+		}
+	}
 	return nil
 }
 
@@ -196,6 +219,11 @@ func (s *validateScheduleUpdateStep) Execute(ctx *pipeline.RequestContext[*sched
 		return err
 	}
 	if err := validateScheduleTimeZone(spec.GetTimeZone()); err != nil {
+		return err
+	}
+	// Update replaces the spec wholesale (no defaults resolver), so the
+	// workspace constraint must hold here too.
+	if err := validateScheduleWorkspace(spec); err != nil {
 		return err
 	}
 

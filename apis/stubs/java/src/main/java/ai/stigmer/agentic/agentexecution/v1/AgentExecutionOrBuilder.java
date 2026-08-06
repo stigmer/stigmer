@@ -83,7 +83,11 @@ public interface AgentExecutionOrBuilder extends
   /**
    * <pre>
    * User-provided inputs for this execution.
-   * Contains: session_id, agent_id, message, execution_config, environment_id, credential_overrides
+   * Contains: session_id / session_spec / agent_id (session resolution),
+   * message, execution_config, and runtime_env. Environment bindings are
+   * NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
+   * Environment Flow) or per-execution runtime_env (the Execution Flow);
+   * see the runtime_env field docs in spec.proto.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -93,7 +97,11 @@ public interface AgentExecutionOrBuilder extends
   /**
    * <pre>
    * User-provided inputs for this execution.
-   * Contains: session_id, agent_id, message, execution_config, environment_id, credential_overrides
+   * Contains: session_id / session_spec / agent_id (session resolution),
+   * message, execution_config, and runtime_env. Environment bindings are
+   * NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
+   * Environment Flow) or per-execution runtime_env (the Execution Flow);
+   * see the runtime_env field docs in spec.proto.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec spec = 4 [json_name = "spec"];</code>
@@ -103,7 +111,11 @@ public interface AgentExecutionOrBuilder extends
   /**
    * <pre>
    * User-provided inputs for this execution.
-   * Contains: session_id, agent_id, message, execution_config, environment_id, credential_overrides
+   * Contains: session_id / session_spec / agent_id (session resolution),
+   * message, execution_config, and runtime_env. Environment bindings are
+   * NOT on this spec — they ride AgentInstanceSpec.environment_refs (the
+   * Environment Flow) or per-execution runtime_env (the Execution Flow);
+   * see the runtime_env field docs in spec.proto.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec spec = 4 [json_name = "spec"];</code>

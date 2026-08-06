@@ -663,6 +663,35 @@
       ]
     },
     {
+      "name": "Harness",
+      "description": "Harness identifies the execution engine that processes agent activities\n for a session.\n\n Each harness corresponds to a different Temporal activity type registered\n by the runner daemon. The harness determines:\n - Which tools the agent has access to\n - How conversation state is managed (Stigmer checkpoints vs engine-native)\n - Which LLM models are available\n - Billing tier and cost structure\n\n HARNESS_UNSPECIFIED defaults to HARNESS_NATIVE for backward compatibility.",
+      "protoType": "ai.stigmer.agentic.session.v1.Harness",
+      "values": [
+        {
+          "name": "HARNESS_NATIVE",
+          "number": 1,
+          "description": "Stigmer's native execution engine.\n\n Stigmer-managed checkpoints, custom tools, sandbox isolation,\n pause/resume, and full HITL approval flow."
+        },
+        {
+          "name": "HARNESS_CURSOR",
+          "number": 2,
+          "description": "Cursor SDK execution engine.\n\n Cursor-managed conversation state, Cursor built-in tools + MCP,\n both local and cloud runtimes. Premium billing tier."
+        }
+      ]
+    },
+    {
+      "name": "GitWriteBackMode",
+      "description": "GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.\n\n @internal\n The platform enables write-back by default when credentials are\n available. Users can override this per-session by setting an\n explicit mode. The agent never sees or controls this setting.",
+      "protoType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
+      "values": [
+        {
+          "name": "GIT_WRITE_BACK_BRANCH_AND_PR",
+          "number": 1,
+          "description": "Create a branch and pull request from the agent's file changes after execution completes.\n\n @internal\n The platform automatically detects uncommitted changes via git diff,\n creates a branch (stigmer/{execution_id_short}), commits all changes,\n pushes the branch to the remote, and creates a pull request targeting\n the original branch. The write-back outcome is recorded in\n AgentExecutionStatus.workspace_write_backs."
+        }
+      ]
+    },
+    {
       "name": "ScheduleRunOrigin",
       "description": "How a schedule fire was initiated.",
       "protoType": "ai.stigmer.agentic.schedule.v1.ScheduleRunOrigin",

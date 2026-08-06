@@ -10,8 +10,11 @@ import { renderHook, act } from "@testing-library/react";
 import { useState, type ReactNode } from "react";
 import { create } from "@bufbuild/protobuf";
 import { ScheduleSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
+import { ModelRegistryContext } from "../../models/ModelRegistryContext";
+import type { ModelInfo } from "../../models/registry";
 import { useCreateSchedule } from "../useCreateSchedule";
 import { CadenceField } from "../CadenceField";
 import { ScheduleForm } from "../ScheduleForm";
@@ -292,6 +295,135 @@ describe("ScheduleForm", () => {
         message: "Send today's reminders.",
       },
     });
+  });
+
+  it("submits the budget as runConfig.maxCostUsd, dropping the blank model", async () => {
+    const apply = vi.fn().mockResolvedValue(CREATED);
+    const client = createClient({ apply });
+    const onComplete = vi.fn();
+
+    render(<ScheduleForm org="isc" onComplete={onComplete} />, {
+      wrapper: wrapper(client),
+    });
+
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "daily-fee-reminders" },
+    });
+    fireEvent.change(screen.getByLabelText("Message"), {
+      target: { value: "Send today's reminders." },
+    });
+    await pickAgent();
+    fireEvent.change(screen.getByLabelText(/Budget per run/), {
+      target: { value: "0.50" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Create schedule" }));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
+    const input = apply.mock.calls[0][0];
+    expect(input.agent.runConfig).toEqual({ maxCostUsd: 0.5 });
+    // No model picked: neither a model nor a harness is pinned.
+    expect(input.agent.harness).toBeUndefined();
+  });
+
+  it("submits git workspace entries added through the manual URL input", async () => {
+    const apply = vi.fn().mockResolvedValue(CREATED);
+    const client = createClient({ apply });
+    const onComplete = vi.fn();
+
+    render(<ScheduleForm org="isc" onComplete={onComplete} />, {
+      wrapper: wrapper(client),
+    });
+
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "daily-fee-reminders" },
+    });
+    fireEvent.change(screen.getByLabelText("Message"), {
+      target: { value: "Send today's reminders." },
+    });
+    await pickAgent();
+
+    // No GitHub connection in this client, so the workspace editor's
+    // GitHub action drills into the manual URL panel — no OAuth flow.
+    fireEvent.click(screen.getByRole("button", { name: /Connect GitHub/ }));
+    fireEvent.change(screen.getByLabelText("Git repository URL"), {
+      target: { value: "https://github.com/isc/fee-data.git" },
+    });
+    fireEvent.change(screen.getByLabelText("Branch (optional)"), {
+      target: { value: "main" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Create schedule" }));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
+    const input = apply.mock.calls[0][0];
+    expect(input.agent.workspaceEntries).toEqual([
+      {
+        name: "isc/fee-data",
+        source: {
+          gitRepo: { url: "https://github.com/isc/fee-data.git", branch: "main" },
+        },
+      },
+    ]);
+  });
+
+  it("picking a model pins the engine it belongs to (harness + model travel together)", async () => {
+    const apply = vi.fn().mockResolvedValue(CREATED);
+    const client = createClient({ apply });
+    const onComplete = vi.fn();
+
+    const registryModel: ModelInfo = {
+      modelId: "claude-sonnet-4-6",
+      provider: "anthropic",
+      displayName: "Claude Sonnet 4.6",
+      shortDescription: "Balanced default",
+      speedTier: "balanced",
+      costTier: "standard",
+      harness: "cursor",
+      featured: true,
+    };
+
+    function RegistryWrapper({ children }: { children: ReactNode }) {
+      const Base = wrapper(client);
+      return (
+        <ModelRegistryContext.Provider
+          value={{
+            models: [registryModel],
+            isLoading: false,
+            error: null,
+            refetch: () => {},
+          }}
+        >
+          <Base>{children}</Base>
+        </ModelRegistryContext.Provider>
+      );
+    }
+
+    render(<ScheduleForm org="isc" onComplete={onComplete} />, {
+      wrapper: RegistryWrapper,
+    });
+
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "daily-fee-reminders" },
+    });
+    fireEvent.change(screen.getByLabelText("Message"), {
+      target: { value: "Send today's reminders." },
+    });
+    await pickAgent();
+
+    // Nothing pinned yet: the trigger shows the placeholder.
+    fireEvent.click(screen.getByRole("button", { name: /Platform default/ }));
+    fireEvent.click(
+      await screen.findByRole("option", { name: /Claude Sonnet 4\.6/ }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Create schedule" }));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledWith(CREATED));
+    const input = apply.mock.calls[0][0];
+    expect(input.agent.runConfig).toEqual({ modelName: "claude-sonnet-4-6" });
+    expect(input.agent.harness).toBe(Harness.CURSOR);
   });
 
   it("surfaces the server error verbatim and stays editable", async () => {

@@ -5,15 +5,20 @@ import { cn } from "@stigmer/theme";
 import {
   getUserMessage,
   type ResourceRef,
-  type ScheduleRunConfigInput,
+  type RunConfigInput,
 } from "@stigmer/sdk";
 import type { Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { Popover } from "@base-ui/react/popover";
 import { AgentPicker } from "../agent/AgentPicker.js";
 import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
+import { useGitHubConnection } from "../github/useGitHubConnection.js";
+import { ModelSelector } from "../models/ModelSelector.js";
+import { toProtoHarness, type HarnessOption } from "../models/harness.js";
 import { Switch } from "../switch/Switch.js";
 import { useStigmerPortalContainer } from "../portal-container.js";
+import { useWorkspaceEntries } from "../workspace/useWorkspaceEntries.js";
+import { WorkspaceEditor } from "../workspace/WorkspaceEditor.js";
 import { CadenceField } from "./CadenceField.js";
 import { TimeZoneField, browserTimeZone } from "./TimeZoneField.js";
 import { useCreateSchedule } from "./useCreateSchedule.js";
@@ -39,7 +44,7 @@ export interface ScheduleFormProps {
   readonly className?: string;
 }
 
-/** spec.proto pins AgentTarget.message to 8192 characters. */
+/** invocation.proto pins AgentInvocation.message to 8192 characters. */
 const MESSAGE_MAX_LEN = 8192;
 /** Show the remaining-characters counter once within this margin. */
 const MESSAGE_COUNTER_THRESHOLD = 500;
@@ -47,10 +52,13 @@ const MESSAGE_COUNTER_THRESHOLD = 500;
 /**
  * Single-page form for creating a {@link Schedule}.
  *
- * Collects the four things a user decides about a schedule — which
- * agent, what message, when ({@link CadenceField}, generating the cron
- * expression from human-friendly presets), and whether it starts
- * enabled — then creates it via {@link useCreateSchedule}.
+ * The form speaks the composer's vocabulary (DD-018 D-5): a schedule is
+ * a saved run — which agent, what message, what workspace, which
+ * engine and model, what budget — plus a cadence. It reuses the
+ * composer's own pickers ({@link ModelSelector}, {@link WorkspaceEditor})
+ * so the interactive and scheduled surfaces cannot drift, minus only
+ * what unattended makes impossible (no local folders, no attachments,
+ * no approval-mode choice).
  *
  * Enabled defaults to OFF, deliberately: it matches the proto/YAML
  * default (an omitted `enabled` is false) and the platform's
@@ -90,9 +98,25 @@ export function ScheduleForm({
   const [enabled, setEnabled] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [environmentRefs, setEnvironmentRefs] = useState<ResourceRef[]>([]);
+
+  // Engine & model are one atomic choice: picking a model pins BOTH the
+  // harness and the model (the registry scopes models per harness, so a
+  // model without its harness is meaningless). Empty model = nothing
+  // pinned = the platform defaults apply to both. Browsing harnesses in
+  // the popover without picking a model pins nothing.
   const [modelName, setModelName] = useState("");
-  const [maxCostUsd, setMaxCostUsd] = useState("");
-  const [maxToolRounds, setMaxToolRounds] = useState("");
+  const [modelHarness, setModelHarness] = useState<HarnessOption>("cursor");
+
+  const [budgetUsd, setBudgetUsd] = useState("");
+
+  // Workspace the fresh per-fire session clones — git sources only
+  // (write-time validated server-side: no client is connected at fire
+  // time to serve a local folder). The GitHub repo picker lights up
+  // when the user already has a connection; otherwise the editor's
+  // manual URL+branch input applies, with no OAuth flow forced into
+  // this form.
+  const workspace = useWorkspaceEntries();
+  const gitHub = useGitHubConnection(org);
 
   const trimmedName = name.trim();
   const trimmedMessage = message.trim();
@@ -118,7 +142,7 @@ export function ScheduleForm({
       if (!canSubmit || !agentRef) return;
 
       clearError();
-      const runConfig = buildRunConfig(modelName, maxCostUsd, maxToolRounds);
+      const runConfig = buildRunConfig(modelName, budgetUsd);
       try {
         const schedule = await create({
           name: trimmedName,
@@ -129,6 +153,14 @@ export function ScheduleForm({
           agent: {
             agentRef,
             message: trimmedMessage,
+            // The harness travels with the model it was picked under;
+            // no model means no harness — the platform defaults apply.
+            ...(modelName !== ""
+              ? { harness: toProtoHarness(modelHarness) }
+              : {}),
+            ...(workspace.hasEntries
+              ? { workspaceEntries: workspace.toInput() }
+              : {}),
             ...(environmentRefs.length > 0 ? { environmentRefs } : {}),
             ...(runConfig ? { runConfig } : {}),
           },
@@ -151,8 +183,9 @@ export function ScheduleForm({
       trimmedMessage,
       environmentRefs,
       modelName,
-      maxCostUsd,
-      maxToolRounds,
+      modelHarness,
+      budgetUsd,
+      workspace,
       onComplete,
     ],
   );
@@ -244,6 +277,29 @@ export function ScheduleForm({
         )}
       </div>
 
+      {/* Workspace — what each fire's fresh session operates on
+          (DD-018 D-4). Git sources only; the server refuses local
+          folders at write time because no client is connected when a
+          schedule fires. */}
+      <div className="space-y-1">
+        <span className={labelClasses}>
+          Workspace{" "}
+          <span className="font-normal text-muted-foreground">(optional)</span>
+        </span>
+        <WorkspaceEditor
+          workspace={workspace}
+          gitHubConnection={gitHub.isConnected ? gitHub : undefined}
+          enableGitHub
+          enableLocal={false}
+          disabled={isCreating}
+        />
+        <p className={hintClasses}>
+          Each run clones these repositories fresh. Private repositories need
+          a <code className="font-mono">GITHUB_TOKEN</code> in one of this
+          schedule&rsquo;s environments; public ones need nothing.
+        </p>
+      </div>
+
       {/* Environments — how a tool-using agent becomes schedulable
           (DD-017 D-2). Only org-shared environments resolve for a
           schedule fire, so the picker is filtered to visibility_org —
@@ -279,55 +335,69 @@ export function ScheduleForm({
         />
       </div>
 
-      {/* Run limits — per-schedule bounds, clamped by the platform
-          profile (DD-017 D-3). All optional: unset inherits the
-          platform default. */}
-      <fieldset className="space-y-2" disabled={isCreating}>
-        <legend className={labelClasses}>
-          Run limits{" "}
+      {/* Engine & model — the composer's own picker (DD-018 D-5),
+          replacing the free-text model box whose typos surfaced as
+          fire-time failures. Nothing is pinned until a model is picked. */}
+      <div className="space-y-1">
+        <span className={labelClasses}>
+          Engine &amp; model{" "}
           <span className="font-normal text-muted-foreground">(optional)</span>
-        </legend>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <label className="space-y-1">
-            <span className={hintClasses}>Model</span>
-            <input
-              type="text"
-              value={modelName}
-              onChange={(e) => setModelName(e.target.value)}
-              placeholder="platform default"
-              className={inputClasses}
-            />
-          </label>
-          <label className="space-y-1">
-            <span className={hintClasses}>Max cost / run (USD)</span>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={maxCostUsd}
-              onChange={(e) => setMaxCostUsd(e.target.value)}
-              placeholder="platform default"
-              className={inputClasses}
-            />
-          </label>
-          <label className="space-y-1">
-            <span className={hintClasses}>Max tool rounds</span>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              value={maxToolRounds}
-              onChange={(e) => setMaxToolRounds(e.target.value)}
-              placeholder="platform default"
-              className={inputClasses}
-            />
-          </label>
+        </span>
+        <div className="flex items-center gap-2">
+          <ModelSelector
+            value={modelName}
+            onValueChange={setModelName}
+            initialHarness={modelHarness}
+            onHarnessChange={setModelHarness}
+            placeholderLabel="Platform default"
+            disabled={isCreating}
+          />
+          {modelName !== "" && (
+            <button
+              type="button"
+              onClick={() => setModelName("")}
+              disabled={isCreating}
+              className={cn(
+                "rounded-md px-2 py-1 text-[0.65rem] text-muted-foreground",
+                "hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "disabled:pointer-events-none disabled:opacity-50",
+              )}
+            >
+              Reset to platform default
+            </button>
+          )}
         </div>
         <p className={hintClasses}>
-          The platform caps these; you can lower a limit, never raise it past
-          the platform&rsquo;s ceiling.
+          Runs use the platform&rsquo;s default engine and model unless you
+          pick one here. Picking a model pins the engine it belongs to.
         </p>
-      </fieldset>
+      </div>
+
+      {/* Budget — the one run bound that matters for an unattended
+          surface: nobody is watching a 3 AM fire (DD-018 D-5). Clamped
+          by the platform profile; tool-round bounds stay API-only. */}
+      <div className="space-y-1">
+        <label htmlFor="stgm-new-schedule-budget" className={labelClasses}>
+          Budget per run (USD){" "}
+          <span className="font-normal text-muted-foreground">(optional)</span>
+        </label>
+        <input
+          id="stgm-new-schedule-budget"
+          type="number"
+          min="0"
+          step="any"
+          value={budgetUsd}
+          onChange={(e) => setBudgetUsd(e.target.value)}
+          placeholder="platform default"
+          disabled={isCreating}
+          className={cn(inputClasses, "sm:max-w-48")}
+        />
+        <p className={hintClasses}>
+          Each run stops when it reaches this spend. You can lower the
+          platform&rsquo;s per-run cap, never raise it past the
+          platform&rsquo;s ceiling.
+        </p>
+      </div>
 
       {/* Time zone */}
       <div className="space-y-1">
@@ -414,27 +484,26 @@ const labelClasses = "block text-xs font-medium text-foreground";
 const hintClasses = "text-[0.65rem] text-muted-foreground";
 
 /**
- * Assemble a {@link ScheduleRunConfigInput} from the optional run-limit
- * inputs, or `undefined` when the user left every field blank/zero — an
- * all-empty run_config carries no meaning, and omitting it keeps the
- * schedule on the platform defaults (the server's own "empty = inherit"
- * contract, DD-017 D-3). Non-numeric or negative entries are dropped
- * rather than sent; the proto's `gte = 0` constraint would reject them
- * anyway, and a blank field must not become a zero override.
+ * Assemble a {@link RunConfigInput} from the model choice and budget, or
+ * `undefined` when both are unset — an all-empty run_config carries no
+ * meaning, and omitting it keeps the schedule on the platform defaults
+ * (the server's own "empty = inherit" contract, DD-017 D-3 as carried
+ * into DD-018 D-2). Non-numeric or negative budgets are dropped rather
+ * than sent; the proto's `gte = 0` constraint would reject them anyway,
+ * and a blank field must not become a zero override. `max_tool_rounds`
+ * is deliberately not collected here — an implementation knob, not a
+ * user concept; API-reachable for operators (DD-018 D-5).
  */
 function buildRunConfig(
   modelName: string,
-  maxCostUsd: string,
-  maxToolRounds: string,
-): ScheduleRunConfigInput | undefined {
+  budgetUsd: string,
+): RunConfigInput | undefined {
   const model = modelName.trim();
-  const cost = Number.parseFloat(maxCostUsd);
-  const rounds = Number.parseInt(maxToolRounds, 10);
+  const cost = Number.parseFloat(budgetUsd);
 
-  const config: ScheduleRunConfigInput = {};
+  const config: RunConfigInput = {};
   if (model !== "") config.modelName = model;
   if (Number.isFinite(cost) && cost > 0) config.maxCostUsd = cost;
-  if (Number.isFinite(rounds) && rounds > 0) config.maxToolRounds = rounds;
 
   return Object.keys(config).length > 0 ? config : undefined;
 }

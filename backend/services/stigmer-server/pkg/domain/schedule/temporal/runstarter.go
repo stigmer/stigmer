@@ -79,8 +79,8 @@ type ExecutionCreator interface {
 // retries are sequential, and across fires the nominal time
 // disambiguates — one reminder per fire, by construction.
 type RunStarter struct {
-	store     store.Store
-	config    *Config
+	store      store.Store
+	config     *Config
 	executions ExecutionCreator
 }
 
@@ -256,6 +256,21 @@ func (r *RunStarter) buildExecutionRequest(
 		executionConfig.ModelName = model
 	}
 
+	// The fresh per-fire session speaks the invocation's session half
+	// (DD-018 D-3): harness and workspace come from the owner's spec.
+	// An unspecified harness stays unset — the platform default applies
+	// (OSS: native). Workspace entries are git-only by write-time
+	// validation (validateScheduleWorkspace); credentials, when a repo
+	// is private, ride an org-shared environment holding GITHUB_TOKEN
+	// (DD-018 D-4 — the provisioning-key re-injection seam).
+	sessionSpec := &sessionv1.SessionSpec{
+		Subject:          SessionSubjectPrefix + schedule.GetMetadata().GetSlug(),
+		WorkspaceEntries: schedule.GetSpec().GetAgent().GetWorkspaceEntries(),
+	}
+	if harness := schedule.GetSpec().GetAgent().GetHarness(); harness != sessionv1.Harness_HARNESS_UNSPECIFIED {
+		sessionSpec.Harness = harness
+	}
+
 	return &agentexecutionv1.AgentExecution{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "AgentExecution",
@@ -273,11 +288,9 @@ func (r *RunStarter) buildExecutionRequest(
 			},
 		},
 		Spec: &agentexecutionv1.AgentExecutionSpec{
-			AgentId: agent.GetMetadata().GetId(),
-			Message: ComposeMessage(schedule, nominalFireTime),
-			SessionSpec: &sessionv1.SessionSpec{
-				Subject: SessionSubjectPrefix + schedule.GetMetadata().GetSlug(),
-			},
+			AgentId:         agent.GetMetadata().GetId(),
+			Message:         ComposeMessage(schedule, nominalFireTime),
+			SessionSpec:     sessionSpec,
 			ExecutionConfig: executionConfig,
 		},
 	}

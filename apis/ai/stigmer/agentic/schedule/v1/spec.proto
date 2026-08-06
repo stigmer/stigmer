@@ -2,8 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.schedule.v1;
 
-import "ai/stigmer/commons/apiresource/field_options.proto";
-import "ai/stigmer/commons/apiresource/io.proto";
+import "ai/stigmer/agentic/agentexecution/v1/invocation.proto";
 import "buf/validate/validate.proto";
 
 // ScheduleSpec defines when a schedule fires and what it runs.
@@ -14,11 +13,13 @@ import "buf/validate/validate.proto";
 // status — a declarative apply can never clobber it.
 //
 // @internal
-// DD-008 D8 as amended by DD-009: the target oneof is inline (the
-// AgentChannelSpec.provider_config shape, C-3) and the agent target
-// carries an ApiResourceReference, not a slug string (C-2). Apply-time
-// cron validation is purely lexical (C-4) so no cron parser exists in
-// either edition; the Temporal server owns calendar/DST semantics (D2).
+// DD-008 D8 as amended by DD-009 and DD-018: the target oneof is inline
+// (the AgentChannelSpec.provider_config shape, C-3) and the agent arm is
+// the shared AgentInvocation (DD-018 D-3) — the owner-settable subset of
+// an agent run, so the schedule speaks the composer's vocabulary instead
+// of a schedule-only one. Apply-time cron validation is purely lexical
+// (C-4) so no cron parser exists in either edition; the Temporal server
+// owns calendar/DST semantics (D2).
 message ScheduleSpec {
   // Cron expression in the classic 5-field form (minute, hour,
   // day-of-month, month, day-of-week), evaluated in `time_zone` — for
@@ -78,111 +79,28 @@ message ScheduleSpec {
   oneof target {
     option (buf.validate.oneof).required = true;
 
-    // Run an agent with a configured prompt.
-    AgentTarget agent = 4;
+    // Run an agent with a configured prompt at each fire.
+    //
+    // @internal
+    // The shared owner-settable run shape (DD-018 D-3), replacing the
+    // deleted schedule-only AgentTarget/ScheduleRunConfig pair.
+    // Schedule-specific invariants enforced in create/update/apply
+    // handlers of both editions, never on the shared message:
+    // agent_ref.org must equal metadata.org (the schedule-owning org
+    // is the billing org for every fire; creation requires can_edit
+    // on the referenced agent, DD-009 C-6); workspace sources must be
+    // git_repo (no client is connected at fire time to serve a
+    // local_path); agent_ref is immutable across updates while
+    // harness, model, workspace, message, and environments stay
+    // mutable — every fire builds a fresh session, so nothing
+    // session-immutable is ever mutated mid-flight. environment_refs
+    // resolution is unchanged from DD-017 D-2/D-4: claim-driven in
+    // the execution-context step, org-shared environments only,
+    // LOWEST merge priority, enforcement solely at runtime
+    // resolution. run_config clamping is unchanged from DD-017 D-3:
+    // per-field min(owner, platform) in the run starter.
+    ai.stigmer.agentic.agentexecution.v1.AgentInvocation agent = 4;
 
     // Reserved (additive): WorkflowTarget workflow = 5;
   }
-}
-
-// AgentTarget runs an agent with a configured prompt at each fire.
-message AgentTarget {
-  // Reference to the agent this schedule runs.
-  //
-  // @internal
-  // Invariant (enforced in create/update/apply handlers of both editions,
-  // the AgentChannel/AgentShare Phase A rule): agent_ref.org must equal
-  // metadata.org — the schedule-owning org is the billing org for every
-  // fire. Creation requires can_edit on THIS referenced agent (DD-009
-  // C-6). Agent deletion does not cascade to schedules (house
-  // convention): a dangling reference surfaces at fire time as a failed
-  // tick feeding the auto-pause streak (DD-008 D9), never as a silent
-  // stall.
-  ai.stigmer.commons.apiresource.ApiResourceReference agent_ref = 1 [
-    (ai.stigmer.commons.apiresource.reference_kind) = agent,
-    (buf.validate.field).required = true,
-    (buf.validate.field).cel = {
-      id: "agent_ref.kind"
-      message: "agent_ref must reference a resource with kind=agent"
-      expression: "this.kind == 40"
-    }
-  ];
-
-  // Prompt each run starts from. The platform appends the fire time in
-  // the schedule's time zone so the agent knows "today".
-  //
-  // @internal
-  // DD-008 D5: the runner injects no current date into any prompt, so
-  // the tick composes this message plus a fire-context line. The bound
-  // applies to the stored prompt, not the composed message.
-  string message = 2 [(buf.validate.field).string = {
-    min_len: 1
-    max_len: 8192
-  }];
-
-  // References to Environment resources whose values are provided to
-  // this schedule's runs.
-  //
-  // This is how a tool-using agent becomes schedulable: bind an
-  // org-shared environment holding the needed credentials (for example
-  // an MCP server's shared secret), and scheduled executions receive its
-  // values at runtime. The agent and its default instance stay
-  // untouched.
-  //
-  // @internal
-  // The AgentChannelSpec.environment_refs analog, third application of
-  // the AgentShare precedent (project DD-017 D-2). Deliberately on the
-  // AgentTarget arm, not ScheduleSpec: the future WorkflowTarget arm
-  // resolves environments through its WorkflowInstance and must not
-  // inherit a dead top-level field. Resolved in the schedule's org
-  // through the org-shared environment resolution seam
-  // (EnvironmentRuntimeResolutionService / OrgSharedEnvironmentPolicy):
-  // each referenced environment must be visibility_org in the
-  // schedule's org, or the merge skips it with a diagnostic. Merged at
-  // execution-context build time only, LOWEST priority (instance refs
-  // and runtime_env override on key conflicts). No write-time existence
-  // or visibility check, matching the share and the channel:
-  // enforcement lives solely at runtime resolution, which fails closed.
-  // No audience CEL — the same-org invariant (agent_ref.org ==
-  // metadata.org) already scopes resolution.
-  repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [
-    (ai.stigmer.commons.apiresource.reference_kind) = environment,
-    (buf.validate.field).repeated.items.cel = {
-      id: "environment_refs.kind"
-      message: "environment_refs must reference resources with kind=environment"
-      expression: "this.kind == 53"
-    }
-  ];
-
-  // Per-schedule bounds for each run. Unset fields inherit the
-  // platform's schedule execution profile.
-  //
-  // @internal
-  // Project DD-017 D-3. A deliberate SUBSET of ExecutionConfig: the
-  // full message carries interactive-surface concepts (interaction
-  // mode, build-from-plan, structured output) and the platform-owned
-  // approval_mode — none of which an unattended fire may set. Clamp
-  // semantics live in the run starter, per field: min(owner, platform)
-  // when the platform cap is set; the owner value stands when the
-  // platform cap is unset. The owner can lower spend, never raise it
-  // past the platform profile.
-  ScheduleRunConfig run_config = 4;
-}
-
-// ScheduleRunConfig bounds the executions a schedule creates.
-//
-// Each field mirrors its ExecutionConfig namesake; zero/empty means
-// "inherit the platform default". See AgentTarget.run_config for the
-// subset rationale.
-message ScheduleRunConfig {
-  // The model each run uses. Example: "claude-sonnet-4-6".
-  string model_name = 1;
-
-  // Maximum estimated cost in USD per run. The platform's schedule
-  // execution profile caps this value; the lower bound wins.
-  double max_cost_usd = 2 [(buf.validate.field).double.gte = 0];
-
-  // Maximum model-to-tools reasoning cycles per run. The platform's
-  // schedule execution profile caps this value; the lower bound wins.
-  int32 max_tool_rounds = 3 [(buf.validate.field).int32.gte = 0];
 }

@@ -819,16 +819,18 @@ java.lang.String defaultValue) {
    *
    * Determines whether the Cursor agent runs locally (Agent.create with
    * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-   * at session creation based on workspace entries and never changed —
-   * switching mid-session would lose Cursor-side conversation state.
+   * at session creation and never changed — switching mid-session would
+   * lose Cursor-side conversation state.
    *
    * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
    * harness types.
    *
    * &#64;internal
-   * Set by the cursor-runner on the first execution when cursor_mode is
-   * UNSPECIFIED. The workflow reads it back on subsequent executions to
-   * route to the correct Agent.create / Agent.resume path.
+   * Runner-owned, never user-set (see the CursorMode enum docs): the
+   * cursor-runner stamps it on the first execution when UNSPECIFIED —
+   * always LOCAL while cloud mode is disabled platform-wide. The
+   * workflow reads it back on subsequent executions to route to the
+   * correct Agent.create / Agent.resume path.
    *
    * When UNSPECIFIED on an existing CURSOR session, the runner defaults
    * to LOCAL for backward compatibility.
@@ -846,16 +848,18 @@ java.lang.String defaultValue) {
    *
    * Determines whether the Cursor agent runs locally (Agent.create with
    * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-   * at session creation based on workspace entries and never changed —
-   * switching mid-session would lose Cursor-side conversation state.
+   * at session creation and never changed — switching mid-session would
+   * lose Cursor-side conversation state.
    *
    * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
    * harness types.
    *
    * &#64;internal
-   * Set by the cursor-runner on the first execution when cursor_mode is
-   * UNSPECIFIED. The workflow reads it back on subsequent executions to
-   * route to the correct Agent.create / Agent.resume path.
+   * Runner-owned, never user-set (see the CursorMode enum docs): the
+   * cursor-runner stamps it on the first execution when UNSPECIFIED —
+   * always LOCAL while cloud mode is disabled platform-wide. The
+   * workflow reads it back on subsequent executions to route to the
+   * correct Agent.create / Agent.resume path.
    *
    * When UNSPECIFIED on an existing CURSOR session, the runner defaults
    * to LOCAL for backward compatibility.
@@ -3955,16 +3959,18 @@ java.lang.String defaultValue) {
      *
      * Determines whether the Cursor agent runs locally (Agent.create with
      * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-     * at session creation based on workspace entries and never changed —
-     * switching mid-session would lose Cursor-side conversation state.
+     * at session creation and never changed — switching mid-session would
+     * lose Cursor-side conversation state.
      *
      * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
      * harness types.
      *
      * &#64;internal
-     * Set by the cursor-runner on the first execution when cursor_mode is
-     * UNSPECIFIED. The workflow reads it back on subsequent executions to
-     * route to the correct Agent.create / Agent.resume path.
+     * Runner-owned, never user-set (see the CursorMode enum docs): the
+     * cursor-runner stamps it on the first execution when UNSPECIFIED —
+     * always LOCAL while cloud mode is disabled platform-wide. The
+     * workflow reads it back on subsequent executions to route to the
+     * correct Agent.create / Agent.resume path.
      *
      * When UNSPECIFIED on an existing CURSOR session, the runner defaults
      * to LOCAL for backward compatibility.
@@ -3982,16 +3988,18 @@ java.lang.String defaultValue) {
      *
      * Determines whether the Cursor agent runs locally (Agent.create with
      * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-     * at session creation based on workspace entries and never changed —
-     * switching mid-session would lose Cursor-side conversation state.
+     * at session creation and never changed — switching mid-session would
+     * lose Cursor-side conversation state.
      *
      * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
      * harness types.
      *
      * &#64;internal
-     * Set by the cursor-runner on the first execution when cursor_mode is
-     * UNSPECIFIED. The workflow reads it back on subsequent executions to
-     * route to the correct Agent.create / Agent.resume path.
+     * Runner-owned, never user-set (see the CursorMode enum docs): the
+     * cursor-runner stamps it on the first execution when UNSPECIFIED —
+     * always LOCAL while cloud mode is disabled platform-wide. The
+     * workflow reads it back on subsequent executions to route to the
+     * correct Agent.create / Agent.resume path.
      *
      * When UNSPECIFIED on an existing CURSOR session, the runner defaults
      * to LOCAL for backward compatibility.
@@ -4014,16 +4022,18 @@ java.lang.String defaultValue) {
      *
      * Determines whether the Cursor agent runs locally (Agent.create with
      * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-     * at session creation based on workspace entries and never changed —
-     * switching mid-session would lose Cursor-side conversation state.
+     * at session creation and never changed — switching mid-session would
+     * lose Cursor-side conversation state.
      *
      * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
      * harness types.
      *
      * &#64;internal
-     * Set by the cursor-runner on the first execution when cursor_mode is
-     * UNSPECIFIED. The workflow reads it back on subsequent executions to
-     * route to the correct Agent.create / Agent.resume path.
+     * Runner-owned, never user-set (see the CursorMode enum docs): the
+     * cursor-runner stamps it on the first execution when UNSPECIFIED —
+     * always LOCAL while cloud mode is disabled platform-wide. The
+     * workflow reads it back on subsequent executions to route to the
+     * correct Agent.create / Agent.resume path.
      *
      * When UNSPECIFIED on an existing CURSOR session, the runner defaults
      * to LOCAL for backward compatibility.
@@ -4043,16 +4053,18 @@ java.lang.String defaultValue) {
      *
      * Determines whether the Cursor agent runs locally (Agent.create with
      * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-     * at session creation based on workspace entries and never changed —
-     * switching mid-session would lose Cursor-side conversation state.
+     * at session creation and never changed — switching mid-session would
+     * lose Cursor-side conversation state.
      *
      * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
      * harness types.
      *
      * &#64;internal
-     * Set by the cursor-runner on the first execution when cursor_mode is
-     * UNSPECIFIED. The workflow reads it back on subsequent executions to
-     * route to the correct Agent.create / Agent.resume path.
+     * Runner-owned, never user-set (see the CursorMode enum docs): the
+     * cursor-runner stamps it on the first execution when UNSPECIFIED —
+     * always LOCAL while cloud mode is disabled platform-wide. The
+     * workflow reads it back on subsequent executions to route to the
+     * correct Agent.create / Agent.resume path.
      *
      * When UNSPECIFIED on an existing CURSOR session, the runner defaults
      * to LOCAL for backward compatibility.
@@ -4075,16 +4087,18 @@ java.lang.String defaultValue) {
      *
      * Determines whether the Cursor agent runs locally (Agent.create with
      * local.cwd) or in the cloud (Agent.create with cloud.repos). Set once
-     * at session creation based on workspace entries and never changed —
-     * switching mid-session would lose Cursor-side conversation state.
+     * at session creation and never changed — switching mid-session would
+     * lose Cursor-side conversation state.
      *
      * Only meaningful when harness == HARNESS_CURSOR. Ignored for other
      * harness types.
      *
      * &#64;internal
-     * Set by the cursor-runner on the first execution when cursor_mode is
-     * UNSPECIFIED. The workflow reads it back on subsequent executions to
-     * route to the correct Agent.create / Agent.resume path.
+     * Runner-owned, never user-set (see the CursorMode enum docs): the
+     * cursor-runner stamps it on the first execution when UNSPECIFIED —
+     * always LOCAL while cloud mode is disabled platform-wide. The
+     * workflow reads it back on subsequent executions to route to the
+     * correct Agent.create / Agent.resume path.
      *
      * When UNSPECIFIED on an existing CURSOR session, the runner defaults
      * to LOCAL for backward compatibility.

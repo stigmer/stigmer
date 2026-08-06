@@ -133,7 +133,7 @@
           "CURSOR_MODE_CLOUD"
         ]
       },
-      "description": "Cursor SDK agent mode for this session.\n\n Determines whether the Cursor agent runs locally (Agent.create with\n local.cwd) or in the cloud (Agent.create with cloud.repos). Set once\n at session creation based on workspace entries and never changed —\n switching mid-session would lose Cursor-side conversation state.\n\n Only meaningful when harness == HARNESS_CURSOR. Ignored for other\n harness types.\n\n @internal\n Set by the cursor-runner on the first execution when cursor_mode is\n UNSPECIFIED. The workflow reads it back on subsequent executions to\n route to the correct Agent.create / Agent.resume path.\n\n When UNSPECIFIED on an existing CURSOR session, the runner defaults\n to LOCAL for backward compatibility.",
+      "description": "Cursor SDK agent mode for this session.\n\n Determines whether the Cursor agent runs locally (Agent.create with\n local.cwd) or in the cloud (Agent.create with cloud.repos). Set once\n at session creation and never changed — switching mid-session would\n lose Cursor-side conversation state.\n\n Only meaningful when harness == HARNESS_CURSOR. Ignored for other\n harness types.\n\n @internal\n Runner-owned, never user-set (see the CursorMode enum docs): the\n cursor-runner stamps it on the first execution when UNSPECIFIED —\n always LOCAL while cloud mode is disabled platform-wide. The\n workflow reads it back on subsequent executions to route to the\n correct Agent.create / Agent.resume path.\n\n When UNSPECIFIED on an existing CURSOR session, the runner defaults\n to LOCAL for backward compatibility.",
       "required": false
     },
     {

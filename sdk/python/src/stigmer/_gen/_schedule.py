@@ -14,9 +14,11 @@ from ai.stigmer.agentic.schedule.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
+from ai.stigmer.agentic.agentexecution.v1 import spec_pb2 as agentexecution_spec_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
+from ._agentexecution import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
 
 
 class ScheduleClient:
@@ -107,7 +109,7 @@ class ScheduleInput:
     cron: str = ""
     time_zone: str = ""
     enabled: bool = False
-    agent: AgentTargetInput | None = None
+    agent: AgentInvocationInput | None = None
 
     def _to_proto(self) -> api_pb2.Schedule:
         spec = spec_pb2.ScheduleSpec(
@@ -136,22 +138,27 @@ class ScheduleInput:
 
 
 @dataclass
-class AgentTargetInput:
-    """SDK input type for AgentTarget."""
+class AgentInvocationInput:
+    """SDK input type for AgentInvocation."""
 
     agent_ref: ResourceRef | None
     message: str = ""
+    harness: int = 0
+    workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
     environment_refs: list[ResourceRef] = field(default_factory=list)
-    run_config: ScheduleRunConfigInput | None = None
+    run_config: RunConfigInput | None = None
 
-    def _to_proto(self) -> spec_pb2.AgentTarget:
-        msg = spec_pb2.AgentTarget(
+    def _to_proto(self) -> agentexecution_spec_pb2.AgentInvocation:
+        msg = agentexecution_spec_pb2.AgentInvocation(
             message=self.message,
+            harness=self.harness,
         )
         if self.agent_ref is not None and (self.agent_ref.org or self.agent_ref.slug):
             _ref = self.agent_ref._to_proto()
             _ref.kind = 40
             msg.agent_ref.CopyFrom(_ref)
+        for item in self.workspace_entries:
+            msg.workspace_entries.append(item._to_proto())
         for ref in self.environment_refs:
             _ref = ref._to_proto()
             _ref.kind = 53
@@ -162,15 +169,15 @@ class AgentTargetInput:
 
 
 @dataclass
-class ScheduleRunConfigInput:
-    """SDK input type for ScheduleRunConfig."""
+class RunConfigInput:
+    """SDK input type for RunConfig."""
 
     model_name: str = ""
     max_cost_usd: float = 0.0
     max_tool_rounds: int = 0
 
-    def _to_proto(self) -> spec_pb2.ScheduleRunConfig:
-        msg = spec_pb2.ScheduleRunConfig(
+    def _to_proto(self) -> agentexecution_spec_pb2.RunConfig:
+        msg = agentexecution_spec_pb2.RunConfig(
             model_name=self.model_name,
             max_cost_usd=self.max_cost_usd,
             max_tool_rounds=self.max_tool_rounds,

@@ -7,7 +7,9 @@ import (
 	"testing"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	schedulev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
@@ -26,9 +28,10 @@ import (
 // .ValidateScheduleUpdate in stigmer-cloud; a change on either side must
 // change both.
 const (
-	crossOrgMessage     = "spec.agent.agent_ref.org must match metadata.org — a schedule must live in the referenced agent's organization (%s)"
-	refImmutableMessage = "spec.agent.agent_ref is immutable (schedule runs %s/%s) — create a new schedule to run a different agent"
-	orgRequiredMessage  = "metadata.org is required for a schedule"
+	crossOrgMessage       = "spec.agent.agent_ref.org must match metadata.org — a schedule must live in the referenced agent's organization (%s)"
+	refImmutableMessage   = "spec.agent.agent_ref is immutable (schedule runs %s/%s) — create a new schedule to run a different agent"
+	orgRequiredMessage    = "metadata.org is required for a schedule"
+	localWorkspaceMessage = "must use a git_repo source — a scheduled run has no connected client to serve a local_path"
 )
 
 // contextWithKind simulates the apiresource interceptor, which injects the
@@ -106,7 +109,7 @@ func scheduleFor(agent *agentv1.Agent, name string, enabled bool) *schedulev1.Sc
 			TimeZone: "Asia/Kolkata",
 			Enabled:  enabled,
 			Target: &schedulev1.ScheduleSpec_Agent{
-				Agent: &schedulev1.AgentTarget{
+				Agent: &agentexecutionv1.AgentInvocation{
 					AgentRef: &apiresource.ApiResourceReference{
 						Kind: apiresourcekind.ApiResourceKind_agent,
 						Slug: agent.GetMetadata().GetSlug(),
@@ -218,7 +221,7 @@ func TestScheduleCreate(t *testing.T) {
 				TimeZone: "UTC",
 				Enabled:  true,
 				Target: &schedulev1.ScheduleSpec_Agent{
-					Agent: &schedulev1.AgentTarget{
+					Agent: &agentexecutionv1.AgentInvocation{
 						AgentRef: &apiresource.ApiResourceReference{
 							Kind: apiresourcekind.ApiResourceKind_agent,
 							Slug: "no-such-agent",
@@ -260,6 +263,42 @@ func TestScheduleCreate(t *testing.T) {
 		_, err := tc.schedules.Create(scheduleCtx(), scheduleFor(agent, "dup-schedule", true))
 		if status.Code(err) != codes.AlreadyExists {
 			t.Fatalf("expected ALREADY_EXISTS, got %s (%v)", status.Code(err), err)
+		}
+	})
+
+	t.Run("rejects a local_path workspace source", func(t *testing.T) {
+		// DD-018 D-3: a scheduled run has no connected client to serve a
+		// local directory — the refusal happens at write time, not as a
+		// provisioning failure at fire time.
+		tc := newTestControllers(t)
+		agent := createTestAgent(t, tc, "workspace-guard-agent")
+
+		schedule := scheduleFor(agent, "local-workspace", true)
+		schedule.Spec.GetAgent().WorkspaceEntries = []*sessionv1.WorkspaceEntry{{
+			Name: "scratch",
+			Source: &sessionv1.WorkspaceSource{Source: &sessionv1.WorkspaceSource_LocalPath{
+				LocalPath: &sessionv1.LocalPathSource{Path: "/home/someone/scratch"},
+			}},
+		}}
+
+		_, err := tc.schedules.Create(scheduleCtx(), schedule)
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected INVALID_ARGUMENT for a local_path workspace, got %s (%v)", status.Code(err), err)
+		}
+		if !strings.Contains(err.Error(), localWorkspaceMessage) {
+			t.Errorf("expected the git-only workspace message, got: %v", err)
+		}
+
+		// A git_repo workspace passes the same gate.
+		gitSchedule := scheduleFor(agent, "git-workspace", true)
+		gitSchedule.Spec.GetAgent().WorkspaceEntries = []*sessionv1.WorkspaceEntry{{
+			Name: "docs",
+			Source: &sessionv1.WorkspaceSource{Source: &sessionv1.WorkspaceSource_GitRepo{
+				GitRepo: &sessionv1.GitRepoSource{Url: "https://github.com/test-org/docs.git"},
+			}},
+		}}
+		if _, err := tc.schedules.Create(scheduleCtx(), gitSchedule); err != nil {
+			t.Fatalf("a git_repo workspace must be accepted: %v", err)
 		}
 	})
 }

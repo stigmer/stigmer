@@ -342,7 +342,7 @@ schedule, err := client.Schedule.Apply(ctx, &stigmer.ScheduleInput{
   Cron:     "...",
   TimeZone: "...",
   Enabled:  false,
-  Agent:    &stigmer.AgentTargetInput{},
+  Agent:    &stigmer.AgentInvocationInput{},
 })
 ```
 </Tab>
@@ -411,7 +411,7 @@ schedule, err := client.Schedule.Create(ctx, &stigmer.ScheduleInput{
   Cron:     "...",
   TimeZone: "...",
   Enabled:  false,
-  Agent:    &stigmer.AgentTargetInput{},
+  Agent:    &stigmer.AgentInvocationInput{},
 })
 ```
 </Tab>
@@ -480,7 +480,7 @@ schedule, err := client.Schedule.Update(ctx, &stigmer.ScheduleInput{
   Cron:     "...",
   TimeZone: "...",
   Enabled:  false,
-  Agent:    &stigmer.AgentTargetInput{},
+  Agent:    &stigmer.AgentInvocationInput{},
 })
 ```
 </Tab>
@@ -646,20 +646,22 @@ Input for creating or updating a Schedule.
     cron: { type: "string", description: "Cron expression in the classic 5-field form (minute, hour, day-of-month, month, day-of-week), evaluated in `time_zone` — for example \"0 9 * * *\" for daily at 09:00." },
     timeZone: { type: "string", description: "IANA time zone the cron is evaluated in, e.g. \"Asia/Kolkata\"." },
     enabled: { type: "boolean", description: "Whether the schedule fires." },
-    agent: { type: "AgentTargetInput", description: "Run an agent with a configured prompt.", typeDescriptionLink: "#agenttargetinput" },
+    agent: { type: "AgentInvocationInput", description: "Run an agent with a configured prompt at each fire.", typeDescriptionLink: "#agentinvocationinput" },
   }}
 />
 
-### AgentTargetInput
+### AgentInvocationInput
 
-AgentTarget runs an agent with a configured prompt at each fire.
+AgentInvocation is what a caller may ask an agent to do.
 
 <TypeTable
   type={{
-    agentRef: { type: "ResourceRef", description: "Reference to the agent this schedule runs.", typeDescriptionLink: "#resourceref", required: true },
-    message: { type: "string", description: "Prompt each run starts from." },
-    environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources whose values are provided to this schedule's runs.", typeDescriptionLink: "#resourceref" },
-    runConfig: { type: "ScheduleRunConfigInput", description: "Per-schedule bounds for each run.", typeDescriptionLink: "#schedulerunconfiginput" },
+    agentRef: { type: "ResourceRef", description: "Reference to the agent to run.", typeDescriptionLink: "#resourceref", required: true },
+    message: { type: "string", description: "Prompt the run starts from." },
+    harness: { type: "Harness", description: "Execution engine for the run's session.", typeDescriptionLink: "#harness" },
+    workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace the run's session operates on.", typeDescriptionLink: "#workspaceentryinput" },
+    environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources whose values are provided to the runs this invocation creates.", typeDescriptionLink: "#resourceref" },
+    runConfig: { type: "RunConfigInput", description: "Per-invocation model choice and run bounds.", typeDescriptionLink: "#runconfiginput" },
   }}
 />
 
@@ -676,9 +678,55 @@ Generic reference to any API resource by org and slug.
   }}
 />
 
-### ScheduleRunConfigInput
+### WorkspaceEntryInput
 
-ScheduleRunConfig bounds the executions a schedule creates.
+WorkspaceEntry pairs a WorkspaceSource with a human-readable name, forming an addressable unit within a session's workspace.
+
+<TypeTable
+  type={{
+    name: { type: "string", description: "Short identifier for this workspace entry." },
+    source: { type: "WorkspaceSourceInput", description: "The source that provides this entry's content.", typeDescriptionLink: "#workspacesourceinput", required: true },
+  }}
+/>
+
+### WorkspaceSourceInput
+
+WorkspaceSource defines where the workspace content comes from.
+
+<TypeTable
+  type={{
+    gitRepo: { type: "GitRepoSourceInput", description: "Clone a git repository as the workspace source.", typeDescriptionLink: "#gitreposourceinput" },
+    localPath: { type: "LocalPathSourceInput", description: "Use an existing local directory as the workspace source.", typeDescriptionLink: "#localpathsourceinput" },
+  }}
+/>
+
+### GitRepoSourceInput
+
+GitRepoSource provisions a workspace by cloning a git repository.
+
+<TypeTable
+  type={{
+    url: { type: "string", description: "HTTPS clone URL for the repository.", required: true },
+    branch: { type: "string", description: "Branch to clone." },
+    commit: { type: "string", description: "Commit SHA to checkout after cloning." },
+    depth: { type: "number", description: "Number of commits to include in the clone history." },
+    writeBackMode: { type: "GitWriteBackMode", description: "Controls whether the platform creates a branch and pull request from the agent's file changes.", typeDescriptionLink: "#gitwritebackmode" },
+  }}
+/>
+
+### LocalPathSourceInput
+
+LocalPathSource uses an existing directory on the host filesystem as the workspace.
+
+<TypeTable
+  type={{
+    path: { type: "string", description: "Absolute path to an existing directory on the host filesystem." },
+  }}
+/>
+
+### RunConfigInput
+
+RunConfig is the owner-settable model choice and run bounds.
 
 <TypeTable
   type={{
@@ -800,6 +848,23 @@ What one schedule fire produced.
 | `SCHEDULE_RUN_OUTCOME_COMPLETED` | The tracked run reached EXECUTION_COMPLETED. |
 | `SCHEDULE_RUN_OUTCOME_FAILED` | The tracked run ended terminal-but-not-completed (failed, cancelled, or terminated); reason names the terminal phase. |
 | `SCHEDULE_RUN_OUTCOME_TIMED_OUT` | The tracked run outlived the fire's tracking budget. |
+
+### Harness
+
+Harness identifies the execution engine that processes agent activities for a session.
+
+| Value | Description |
+|-------|-------------|
+| `HARNESS_NATIVE` | Stigmer's native execution engine. |
+| `HARNESS_CURSOR` | Cursor SDK execution engine. |
+
+### GitWriteBackMode
+
+GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.
+
+| Value | Description |
+|-------|-------------|
+| `GIT_WRITE_BACK_BRANCH_AND_PR` | Create a branch and pull request from the agent's file changes after execution completes. |
 
 ### ScheduleRunOrigin
 

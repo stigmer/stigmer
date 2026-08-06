@@ -29,11 +29,14 @@ import type {
 import type { TabItem } from "../tabs/Tabs.js";
 import { useExportResource } from "../library/useExportResource.js";
 import { ScheduleRunOutcome } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
+import type { ScheduleSpec } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
 import {
-  ScheduleRunConfigSchema,
-  type ScheduleRunConfig,
-  type ScheduleSpec,
-} from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
+  RunConfigSchema,
+  type AgentInvocation,
+  type RunConfig,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import {
   cadenceToCron,
   cronToCadence,
@@ -43,6 +46,13 @@ import {
 } from "./cadence.js";
 import { CadenceField } from "./CadenceField.js";
 import { EnvironmentPicker } from "../environment/EnvironmentPicker.js";
+import { ModelSelector } from "../models/ModelSelector.js";
+import {
+  HARNESS_META,
+  fromProtoHarness,
+  toProtoHarness,
+  type HarnessOption,
+} from "../models/harness.js";
 import { deriveScheduleState, formatNextFire } from "./scheduleState.js";
 import {
   ScheduleRunsCompactList,
@@ -80,10 +90,11 @@ export interface ScheduleDetailViewProps {
   readonly onResourceLoad?: (schedule: Schedule) => void;
   /**
    * Enable inline editing of the schedule's mutable spec fields
-   * (cadence, message, environments, run limits). Each field saves
-   * independently via a lossless full-resource re-apply
+   * (cadence, message, environments, engine & model, budget). Each
+   * field saves independently via a lossless full-resource re-apply
    * ({@link useUpdateScheduleSpec}). The server-immutable fields —
-   * slug, target agent, target type — never gain an edit affordance.
+   * slug, target agent, target type — never gain an edit affordance;
+   * workspace edits go through Edit YAML for now.
    * @default false
    */
   readonly editable?: boolean;
@@ -112,7 +123,7 @@ const RUNS_TAB_ID = "runs";
 // owns the full paginated history.
 const RECENT_RUNS_OPTIONS = { pageSize: 5 } as const;
 
-/** spec.proto pins AgentTarget.message to 8192 characters. */
+/** invocation.proto pins AgentInvocation.message to 8192 characters. */
 const MESSAGE_MAX_LEN = 8192;
 
 /**
@@ -568,26 +579,54 @@ export function ScheduleDetailView({
               />
             )}
           </DetailRow>
-          <DetailRow label="Run limits">
+          {/* Workspace is authored in the creation form (or YAML); an
+              inline workspace editor is deliberately deferred — the
+              read view keeps every stored entry visible. */}
+          <DetailRow label="Workspace">
+            <WorkspaceSummary
+              entries={target?.workspaceEntries ?? []}
+            />
+          </DetailRow>
+          <DetailRow label="Engine & model">
             {editable && target ? (
-              <RunLimitsInlineEditor
-                config={target.runConfig}
-                onSave={(config) =>
-                  saveSpecField("run-limits", (s) => {
+              <EngineModelInlineEditor
+                invocation={target}
+                onSave={(harness, modelName) =>
+                  saveSpecField("engine-model", (s) => {
                     if (s.target.case === "agent") {
-                      s.target.value.runConfig = config;
+                      applyEngineModel(s.target.value, harness, modelName);
                     }
                   })
                 }
                 isSaving={isUpdating}
                 error={
-                  saveError?.field === "run-limits"
+                  saveError?.field === "engine-model"
                     ? saveError.message
                     : undefined
                 }
               />
             ) : (
-              <RunLimits config={target?.runConfig} />
+              <EngineModelSummary invocation={target} />
+            )}
+          </DetailRow>
+          <DetailRow label="Budget per run">
+            {editable && target ? (
+              <BudgetInlineEditor
+                config={target.runConfig}
+                onSave={(maxCostUsd) =>
+                  saveSpecField("budget", (s) => {
+                    if (s.target.case === "agent") {
+                      applyBudget(s.target.value, maxCostUsd);
+                    }
+                  })
+                }
+                isSaving={isUpdating}
+                error={
+                  saveError?.field === "budget" ? saveError.message : undefined
+                }
+              />
+            ) : (
+              <BudgetSummary config={target?.runConfig} />
             )}
           </DetailRow>
         </dl>
@@ -952,93 +991,77 @@ function isOrgSharedEnvironment(env: Environment): boolean {
   return env.metadata?.visibility === ApiResourceVisibility.visibility_org;
 }
 
-/** Run-limit edit — blank inherits the platform default (DD-017 D-3). */
-function RunLimitsInlineEditor({
-  config,
+/**
+ * Engine & model edit — the composer's own picker, with the creation
+ * form's atomic semantics (DD-018 D-5): picking a model pins BOTH the
+ * harness and the model (the registry scopes models per harness);
+ * clearing the model unpins both, and the platform defaults apply.
+ */
+function EngineModelInlineEditor({
+  invocation,
   onSave,
   isSaving,
   error,
 }: {
-  readonly config: ScheduleRunConfig | undefined;
-  readonly onSave: (
-    config: ScheduleRunConfig | undefined,
-  ) => Promise<boolean>;
+  readonly invocation: AgentInvocation;
+  readonly onSave: (harness: Harness, modelName: string) => Promise<boolean>;
   readonly isSaving: boolean;
   readonly error?: string;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [modelName, setModelName] = useState("");
-  const [maxCostUsd, setMaxCostUsd] = useState("");
-  const [maxToolRounds, setMaxToolRounds] = useState("");
+  const [harness, setHarness] = useState<HarnessOption>("cursor");
 
   const startEdit = () => {
-    setModelName(config?.modelName ?? "");
-    setMaxCostUsd(config && config.maxCostUsd > 0 ? String(config.maxCostUsd) : "");
-    setMaxToolRounds(
-      config && config.maxToolRounds > 0 ? String(config.maxToolRounds) : "",
+    setModelName(invocation.runConfig?.modelName ?? "");
+    setHarness(
+      invocation.harness !== Harness.UNSPECIFIED
+        ? fromProtoHarness(invocation.harness)
+        : "cursor",
     );
     setIsEditing(true);
   };
 
   if (!isEditing) {
     return (
-      <InlineReadButton onEdit={startEdit} ariaLabel="Edit run limits">
-        <RunLimits config={config} />
+      <InlineReadButton onEdit={startEdit} ariaLabel="Edit engine and model">
+        <EngineModelSummary invocation={invocation} />
       </InlineReadButton>
     );
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <label className="space-y-1">
-          <span className={editorLabelClasses}>Model</span>
-          <input
-            type="text"
-            value={modelName}
-            onChange={(e) => setModelName(e.target.value)}
-            placeholder="platform default"
+      <div className="flex items-center gap-2">
+        <ModelSelector
+          value={modelName}
+          onValueChange={setModelName}
+          initialHarness={harness}
+          onHarnessChange={setHarness}
+          placeholderLabel="Platform default"
+          disabled={isSaving}
+        />
+        {modelName !== "" && (
+          <button
+            type="button"
+            onClick={() => setModelName("")}
             disabled={isSaving}
-            className={editorInputClasses}
-          />
-        </label>
-        <label className="space-y-1">
-          <span className={editorLabelClasses}>Max cost / run (USD)</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={maxCostUsd}
-            onChange={(e) => setMaxCostUsd(e.target.value)}
-            placeholder="platform default"
-            disabled={isSaving}
-            className={editorInputClasses}
-          />
-        </label>
-        <label className="space-y-1">
-          <span className={editorLabelClasses}>Max tool rounds</span>
-          <input
-            type="number"
-            min="0"
-            step="1"
-            value={maxToolRounds}
-            onChange={(e) => setMaxToolRounds(e.target.value)}
-            placeholder="platform default"
-            disabled={isSaving}
-            className={editorInputClasses}
-          />
-        </label>
+            className="rounded-md px-2 py-1 text-[0.65rem] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+          >
+            Reset to platform default
+          </button>
+        )}
       </div>
       <p className="text-[0.65rem] text-muted-foreground">
-        The platform caps these; you can lower a limit, never raise it past
-        the platform&rsquo;s ceiling. Leave a field blank to inherit the
-        platform default.
+        Runs use the platform&rsquo;s default engine and model unless you pick
+        one here. Picking a model pins the engine it belongs to.
       </p>
       <InlineEditActions
         onCancel={() => setIsEditing(false)}
         onSave={async () => {
           const ok = await onSave(
-            buildRunConfigProto(modelName, maxCostUsd, maxToolRounds),
+            modelName !== "" ? toProtoHarness(harness) : Harness.UNSPECIFIED,
+            modelName,
           );
           if (ok) setIsEditing(false);
         }}
@@ -1050,30 +1073,112 @@ function RunLimitsInlineEditor({
   );
 }
 
-/**
- * Assemble the run-limit proto from the editor's inputs, or `undefined`
- * when every field is blank/zero — an all-empty run_config carries no
- * meaning, and clearing it keeps the schedule on the platform defaults
- * (the server's own "empty = inherit" contract, DD-017 D-3). Mirrors
- * the creation form's `buildRunConfig`, producing the proto directly
- * because the save path re-applies the full resource.
- */
-function buildRunConfigProto(
-  modelName: string,
-  maxCostUsd: string,
-  maxToolRounds: string,
-): ScheduleRunConfig | undefined {
-  const model = modelName.trim();
-  const cost = Number.parseFloat(maxCostUsd);
-  const rounds = Number.parseInt(maxToolRounds, 10);
+/** Budget edit — blank inherits the platform default (DD-018 D-2). */
+function BudgetInlineEditor({
+  config,
+  onSave,
+  isSaving,
+  error,
+}: {
+  readonly config: RunConfig | undefined;
+  readonly onSave: (maxCostUsd: number | undefined) => Promise<boolean>;
+  readonly isSaving: boolean;
+  readonly error?: string;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [budgetUsd, setBudgetUsd] = useState("");
 
+  const startEdit = () => {
+    setBudgetUsd(config && config.maxCostUsd > 0 ? String(config.maxCostUsd) : "");
+    setIsEditing(true);
+  };
+
+  if (!isEditing) {
+    return (
+      <InlineReadButton onEdit={startEdit} ariaLabel="Edit budget">
+        <BudgetSummary config={config} />
+      </InlineReadButton>
+    );
+  }
+
+  const cost = Number.parseFloat(budgetUsd);
+  const parsedBudget = Number.isFinite(cost) && cost > 0 ? cost : undefined;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <input
+        type="number"
+        min="0"
+        step="any"
+        aria-label="Budget per run (USD)"
+        value={budgetUsd}
+        onChange={(e) => setBudgetUsd(e.target.value)}
+        placeholder="platform default"
+        disabled={isSaving}
+        className={cn(editorInputClasses, "sm:max-w-48")}
+      />
+      <p className="text-[0.65rem] text-muted-foreground">
+        Each run stops when it reaches this spend. You can lower the
+        platform&rsquo;s per-run cap, never raise it past the
+        platform&rsquo;s ceiling. Blank inherits the platform default.
+      </p>
+      <InlineEditActions
+        onCancel={() => setIsEditing(false)}
+        onSave={async () => {
+          const ok = await onSave(parsedBudget);
+          if (ok) setIsEditing(false);
+        }}
+        isSaving={isSaving}
+        canSave
+        error={error}
+      />
+    </div>
+  );
+}
+
+/**
+ * Write the engine+model choice onto the invocation, preserving the
+ * run-config fields the editor does not own (budget; the API-only tool
+ * rounds), and dropping an all-empty run_config — the proto's "empty =
+ * inherit" contract (DD-017 D-3 as carried into DD-018 D-2).
+ */
+function applyEngineModel(
+  invocation: AgentInvocation,
+  harness: Harness,
+  modelName: string,
+): void {
+  invocation.harness = harness;
+  invocation.runConfig = normalizeRunConfig(
+    modelName,
+    invocation.runConfig?.maxCostUsd ?? 0,
+    invocation.runConfig?.maxToolRounds ?? 0,
+  );
+}
+
+/** Budget twin of {@link applyEngineModel} — writes only the cost cap. */
+function applyBudget(
+  invocation: AgentInvocation,
+  maxCostUsd: number | undefined,
+): void {
+  invocation.runConfig = normalizeRunConfig(
+    invocation.runConfig?.modelName ?? "",
+    maxCostUsd ?? 0,
+    invocation.runConfig?.maxToolRounds ?? 0,
+  );
+}
+
+function normalizeRunConfig(
+  modelName: string,
+  maxCostUsd: number,
+  maxToolRounds: number,
+): RunConfig | undefined {
   const fields: { modelName?: string; maxCostUsd?: number; maxToolRounds?: number } = {};
-  if (model !== "") fields.modelName = model;
-  if (Number.isFinite(cost) && cost > 0) fields.maxCostUsd = cost;
-  if (Number.isFinite(rounds) && rounds > 0) fields.maxToolRounds = rounds;
+  if (modelName.trim() !== "") fields.modelName = modelName.trim();
+  if (maxCostUsd > 0) fields.maxCostUsd = maxCostUsd;
+  if (maxToolRounds > 0) fields.maxToolRounds = maxToolRounds;
 
   return Object.keys(fields).length > 0
-    ? create(ScheduleRunConfigSchema, fields)
+    ? create(RunConfigSchema, fields)
     : undefined;
 }
 
@@ -1263,30 +1368,91 @@ function FailureStreak({ count }: { readonly count: number }) {
 }
 
 // ---------------------------------------------------------------------------
-// Run limits — the per-schedule run_config, or the platform-default note
+// The invocation's run shape — engine+model, budget, workspace summaries
 // ---------------------------------------------------------------------------
 
-function RunLimits({
-  config,
+/** "Cursor · composer-2.5", either half falling back to the platform default. */
+function EngineModelSummary({
+  invocation,
 }: {
-  readonly config: ScheduleRunConfig | undefined;
+  readonly invocation: AgentInvocation | undefined;
 }) {
-  const modelName = config?.modelName ?? "";
-  const maxCostUsd = config?.maxCostUsd ?? 0;
-  const maxToolRounds = config?.maxToolRounds ?? 0;
-  const parts: string[] = [];
-  if (modelName) parts.push(modelName);
-  if (maxCostUsd > 0) parts.push(`≤ $${maxCostUsd.toFixed(2)}/run`);
-  if (maxToolRounds > 0) parts.push(`≤ ${maxToolRounds} tool rounds`);
+  const harness = invocation?.harness ?? Harness.UNSPECIFIED;
+  const modelName = invocation?.runConfig?.modelName ?? "";
 
-  if (parts.length === 0) {
+  if (harness === Harness.UNSPECIFIED && modelName === "") {
     return (
-      <span className="text-sm text-muted-foreground">
-        Platform defaults
-      </span>
+      <span className="text-sm text-muted-foreground">Platform default</span>
     );
   }
+
+  const parts: string[] = [];
+  if (harness !== Harness.UNSPECIFIED) {
+    parts.push(HARNESS_META[fromProtoHarness(harness)].label);
+  }
+  parts.push(modelName !== "" ? modelName : "platform-default model");
   return <span className="text-sm text-foreground">{parts.join(" · ")}</span>;
+}
+
+/** The per-run cost cap, plus the API-only tool-round bound when set. */
+function BudgetSummary({
+  config,
+}: {
+  readonly config: RunConfig | undefined;
+}) {
+  const maxCostUsd = config?.maxCostUsd ?? 0;
+  const maxToolRounds = config?.maxToolRounds ?? 0;
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      {maxCostUsd > 0 ? (
+        <span className="text-sm text-foreground">
+          ≤ ${maxCostUsd.toFixed(2)} per run
+        </span>
+      ) : (
+        <span className="text-sm text-muted-foreground">Platform default</span>
+      )}
+      {/* Reachable through the API only (DD-018 D-5) — rendered when
+          set so nothing the spec stores is hidden. */}
+      {maxToolRounds > 0 && (
+        <span className="text-xs text-muted-foreground">
+          ≤ {maxToolRounds} tool rounds
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** The git workspace each fire clones, or the em-dash when none. */
+function WorkspaceSummary({
+  entries,
+}: {
+  readonly entries: readonly WorkspaceEntry[];
+}) {
+  if (entries.length === 0) {
+    return <span className="text-sm text-muted-foreground">—</span>;
+  }
+  return (
+    <ul className="flex flex-col gap-0.5">
+      {entries.map((entry, i) => {
+        const git =
+          entry.source?.source?.case === "gitRepo"
+            ? entry.source.source.value
+            : undefined;
+        return (
+          <li key={`${entry.name}-${i}`} className="text-xs text-foreground">
+            <span className="font-medium">{entry.name}</span>
+            {git?.url && (
+              <span className="ml-1.5 font-mono text-muted-foreground">
+                {git.url}
+                {git.branch ? `@${git.branch}` : ""}
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 function ReferenceLink({

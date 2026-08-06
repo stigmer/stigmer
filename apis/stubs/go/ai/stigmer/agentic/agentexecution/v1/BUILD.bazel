@@ -11,6 +11,7 @@ go_library(
         "context.pb.go",
         "enum.pb.go",
         "filereview.pb.go",
+        "invocation.pb.go",
         "io.pb.go",
         "message.pb.go",
         "query.pb.go",

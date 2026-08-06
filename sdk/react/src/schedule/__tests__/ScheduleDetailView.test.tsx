@@ -12,6 +12,7 @@ import {
   ScheduleRunOrigin,
 } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { Harness } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { StigmerContext } from "../../context";
 import { FetchCacheContext } from "../../internal/FetchCacheProvider";
 import { ScheduleDetailView } from "../ScheduleDetailView";
@@ -42,6 +43,12 @@ function makeSchedule(overrides?: {
   cron?: string;
   consecutiveFailures?: number;
   environmentRefs?: readonly { org: string; slug: string }[];
+  harness?: Harness;
+  runConfig?: {
+    modelName?: string;
+    maxCostUsd?: number;
+    maxToolRounds?: number;
+  };
 }): Schedule {
   return create(ScheduleSchema, {
     apiVersion: "agentic.stigmer.ai/v1",
@@ -66,6 +73,10 @@ function makeSchedule(overrides?: {
             org: r.org,
             slug: r.slug,
           })),
+          ...(overrides?.harness !== undefined
+            ? { harness: overrides.harness }
+            : {}),
+          ...(overrides?.runConfig ? { runConfig: overrides.runConfig } : {}),
         },
       },
     },
@@ -563,16 +574,18 @@ describe("ScheduleDetailView", () => {
     expect(doc.message.spec?.timeZone).toBe("Asia/Kolkata");
   });
 
-  it("saves edited run limits, producing the proto's empty-inherits shape", async () => {
-    const client = makeClient(makeSchedule());
+  it("saves an edited budget, preserving the model and the API-only tool rounds", async () => {
+    const client = makeClient(
+      makeSchedule({
+        harness: Harness.CURSOR,
+        runConfig: { modelName: "composer-2", maxToolRounds: 15 },
+      }),
+    );
     renderView(client, { editable: true });
 
     await screen.findByRole("heading", { name: "daily-fee-reminders" });
-    fireEvent.click(screen.getByRole("button", { name: "Edit run limits" }));
-    fireEvent.change(screen.getByLabelText("Model"), {
-      target: { value: "gpt-thrift" },
-    });
-    fireEvent.change(screen.getByLabelText("Max cost / run (USD)"), {
+    fireEvent.click(screen.getByRole("button", { name: "Edit budget" }));
+    fireEvent.change(screen.getByLabelText("Budget per run (USD)"), {
       target: { value: "2.5" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -583,10 +596,47 @@ describe("ScheduleDetailView", () => {
       doc.message.spec?.target?.case === "agent"
         ? doc.message.spec.target.value
         : undefined;
-    expect(target?.runConfig?.modelName).toBe("gpt-thrift");
     expect(target?.runConfig?.maxCostUsd).toBe(2.5);
-    // Blank field: not a zero override, just absent (inherit).
-    expect(target?.runConfig?.maxToolRounds).toBe(0);
+    // The budget editor owns exactly one field — everything else the
+    // run config stores survives the save.
+    expect(target?.runConfig?.modelName).toBe("composer-2");
+    expect(target?.runConfig?.maxToolRounds).toBe(15);
+    expect(target?.harness).toBe(Harness.CURSOR);
+  });
+
+  it("resetting engine & model unpins both, preserving the budget", async () => {
+    const client = makeClient(
+      makeSchedule({
+        harness: Harness.CURSOR,
+        runConfig: { modelName: "composer-2", maxCostUsd: 2.5 },
+      }),
+    );
+    renderView(client, { editable: true });
+
+    await screen.findByRole("heading", { name: "daily-fee-reminders" });
+    // The read view names the pinned engine and model.
+    expect(screen.getByText("Cursor · composer-2")).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Edit engine and model" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Reset to platform default" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(client.manifest.apply).toHaveBeenCalledOnce());
+    const doc = client.manifest.apply.mock.calls[0][0] as { message: Schedule };
+    const target =
+      doc.message.spec?.target?.case === "agent"
+        ? doc.message.spec.target.value
+        : undefined;
+    // Model and harness are one atomic choice: unpinning the model
+    // unpins the engine with it (the platform defaults apply again)...
+    expect(target?.harness).toBe(Harness.UNSPECIFIED);
+    expect(target?.runConfig?.modelName).toBe("");
+    // ...while the budget the editor does not own survives.
+    expect(target?.runConfig?.maxCostUsd).toBe(2.5);
   });
 
   it("round-trips environment references with the environment kind stamped", async () => {

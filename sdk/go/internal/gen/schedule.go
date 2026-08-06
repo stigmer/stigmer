@@ -5,7 +5,9 @@ package gen
 import (
 	"context"
 
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
 	schedulev1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/schedule/v1"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/session/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
@@ -90,19 +92,21 @@ type ScheduleInput struct {
 	Cron       string
 	TimeZone   string
 	Enabled    bool
-	Agent      *AgentTargetInput
+	Agent      *AgentInvocationInput
 }
 
-// AgentTargetInput is the SDK input type for AgentTarget.
-type AgentTargetInput struct {
-	AgentRef        ResourceRef
-	Message         string
-	EnvironmentRefs []ResourceRef
-	RunConfig       *ScheduleRunConfigInput
+// AgentInvocationInput is the SDK input type for AgentInvocation.
+type AgentInvocationInput struct {
+	AgentRef         ResourceRef
+	Message          string
+	Harness          sessionv1.Harness
+	WorkspaceEntries []*WorkspaceEntryInput
+	EnvironmentRefs  []ResourceRef
+	RunConfig        *RunConfigInput
 }
 
-// ScheduleRunConfigInput is the SDK input type for ScheduleRunConfig.
-type ScheduleRunConfigInput struct {
+// RunConfigInput is the SDK input type for RunConfig.
+type RunConfigInput struct {
 	ModelName     string
 	MaxCostUsd    float64
 	MaxToolRounds int32
@@ -125,13 +129,17 @@ func (i *ScheduleInput) toProto() *schedulev1.Schedule {
 	resource.Spec.TimeZone = i.TimeZone
 	resource.Spec.Enabled = i.Enabled
 	if i.Agent != nil {
-		m := &schedulev1.AgentTarget{}
+		m := &agentexecutionv1.AgentInvocation{}
 		if i.Agent.AgentRef.Org != "" || i.Agent.AgentRef.Slug != "" {
 			ref := i.Agent.AgentRef.toProto()
 			ref.Kind = apiresourcekind.ApiResourceKind_agent
 			m.AgentRef = ref
 		}
 		m.Message = i.Agent.Message
+		m.Harness = i.Agent.Harness
+		for _, item := range i.Agent.WorkspaceEntries {
+			m.WorkspaceEntries = append(m.WorkspaceEntries, item.toProto())
+		}
 		for _, r := range i.Agent.EnvironmentRefs {
 			ref := r.toProto()
 			ref.Kind = apiresourcekind.ApiResourceKind_environment
@@ -145,8 +153,8 @@ func (i *ScheduleInput) toProto() *schedulev1.Schedule {
 	return resource
 }
 
-func (i *ScheduleRunConfigInput) toProto() *schedulev1.ScheduleRunConfig {
-	return &schedulev1.ScheduleRunConfig{
+func (i *RunConfigInput) toProto() *agentexecutionv1.RunConfig {
+	return &agentexecutionv1.RunConfig{
 		ModelName:     i.ModelName,
 		MaxCostUsd:    i.MaxCostUsd,
 		MaxToolRounds: i.MaxToolRounds,
@@ -171,31 +179,35 @@ func ScheduleInputFromProto(p *schedulev1.Schedule) *ScheduleInput {
 		input.TimeZone = s.GetTimeZone()
 		input.Enabled = s.GetEnabled()
 		if ov := s.GetAgent(); ov != nil {
-			input.Agent = agentTargetInputFromProto(ov)
+			input.Agent = agentInvocationInputFromProto(ov)
 		}
 	}
 	return input
 }
 
-func agentTargetInputFromProto(p *schedulev1.AgentTarget) *AgentTargetInput {
+func agentInvocationInputFromProto(p *agentexecutionv1.AgentInvocation) *AgentInvocationInput {
 	if p == nil {
 		return nil
 	}
-	input := &AgentTargetInput{}
+	input := &AgentInvocationInput{}
 	input.AgentRef = resourceRefFromProto(p.GetAgentRef())
 	input.Message = p.GetMessage()
+	input.Harness = p.GetHarness()
+	for _, item := range p.GetWorkspaceEntries() {
+		input.WorkspaceEntries = append(input.WorkspaceEntries, workspaceEntryInputFromProto(item))
+	}
 	for _, r := range p.GetEnvironmentRefs() {
 		input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
 	}
-	input.RunConfig = scheduleRunConfigInputFromProto(p.GetRunConfig())
+	input.RunConfig = runConfigInputFromProto(p.GetRunConfig())
 	return input
 }
 
-func scheduleRunConfigInputFromProto(p *schedulev1.ScheduleRunConfig) *ScheduleRunConfigInput {
+func runConfigInputFromProto(p *agentexecutionv1.RunConfig) *RunConfigInput {
 	if p == nil {
 		return nil
 	}
-	input := &ScheduleRunConfigInput{}
+	input := &RunConfigInput{}
 	input.ModelName = p.GetModelName()
 	input.MaxCostUsd = p.GetMaxCostUsd()
 	input.MaxToolRounds = p.GetMaxToolRounds()

@@ -5,11 +5,14 @@ import { stripUndefined } from "./proto-utils.js";
 import { type ResourceRef } from "./types.js";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { RunConfigSchema, AgentInvocationSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { ScheduleSchema, type Schedule } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/api_pb";
 import { ScheduleCommandController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/command_pb";
 import { ScheduleIdSchema, ScheduleTriggerResultSchema, GetSchedulesByAgentRequestSchema, ScheduleListSchema, ListSchedulesRequestSchema, ListScheduleRunsRequestSchema, ScheduleRunListSchema, type ScheduleTriggerResult, type GetSchedulesByAgentRequest, type ScheduleList, type ListSchedulesRequest, type ListScheduleRunsRequest, type ScheduleRunList } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/io_pb";
 import { ScheduleQueryController } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/query_pb";
-import { ScheduleSpecSchema, ScheduleRunConfigSchema, AgentTargetSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
+import { ScheduleSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/schedule/v1/spec_pb";
+import { Harness, GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
+import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -102,38 +105,101 @@ export interface ScheduleInput {
   cron?: string;
   timeZone?: string;
   enabled?: boolean;
-  agent?: AgentTargetInput;
+  agent?: AgentInvocationInput;
 }
 
-/** SDK input type for AgentTarget. */
-export interface AgentTargetInput {
+/** SDK input type for AgentInvocation. */
+export interface AgentInvocationInput {
   agentRef: ResourceRef;
   message?: string;
+  harness?: Harness;
+  workspaceEntries?: WorkspaceEntryInput[];
   environmentRefs?: ResourceRef[];
-  runConfig?: ScheduleRunConfigInput;
+  runConfig?: RunConfigInput;
 }
 
-/** SDK input type for ScheduleRunConfig. */
-export interface ScheduleRunConfigInput {
+/** SDK input type for WorkspaceEntry. */
+export interface WorkspaceEntryInput {
+  name?: string;
+  source: WorkspaceSourceInput;
+}
+
+/** SDK input type for WorkspaceSource. */
+export interface WorkspaceSourceInput {
+  gitRepo?: GitRepoSourceInput;
+  localPath?: LocalPathSourceInput;
+}
+
+/** SDK input type for GitRepoSource. */
+export interface GitRepoSourceInput {
+  url: string;
+  branch?: string;
+  commit?: string;
+  depth?: number;
+  writeBackMode?: GitWriteBackMode;
+}
+
+/** SDK input type for LocalPathSource. */
+export interface LocalPathSourceInput {
+  path?: string;
+}
+
+/** SDK input type for RunConfig. */
+export interface RunConfigInput {
   modelName?: string;
   maxCostUsd?: number;
   maxToolRounds?: number;
 }
 
-function buildScheduleRunConfigProto(input: ScheduleRunConfigInput) {
-  return Object.assign(create(ScheduleRunConfigSchema), stripUndefined({
+function buildGitRepoSourceProto(input: GitRepoSourceInput) {
+  return Object.assign(create(GitRepoSourceSchema), stripUndefined({
+    url: input.url,
+    branch: input.branch,
+    commit: input.commit,
+    depth: input.depth,
+    writeBackMode: input.writeBackMode,
+  }));
+}
+
+function buildLocalPathSourceProto(input: LocalPathSourceInput) {
+  return Object.assign(create(LocalPathSourceSchema), stripUndefined({
+    path: input.path,
+  }));
+}
+
+function buildWorkspaceSourceProto(input: WorkspaceSourceInput) {
+  const msg = create(WorkspaceSourceSchema);
+  if (input.gitRepo) {
+    msg.source = { case: "gitRepo", value: buildGitRepoSourceProto(input.gitRepo) };
+  } else if (input.localPath) {
+    msg.source = { case: "localPath", value: buildLocalPathSourceProto(input.localPath) };
+  }
+  return msg;
+}
+
+function buildWorkspaceEntryProto(input: WorkspaceEntryInput) {
+  const msg = create(WorkspaceEntrySchema);
+  if (input.name !== undefined) msg.name = input.name;
+  if (input.source) msg.source = buildWorkspaceSourceProto(input.source);
+  return msg;
+}
+
+function buildRunConfigProto(input: RunConfigInput) {
+  return Object.assign(create(RunConfigSchema), stripUndefined({
     modelName: input.modelName,
     maxCostUsd: input.maxCostUsd,
     maxToolRounds: input.maxToolRounds,
   }));
 }
 
-function buildAgentTargetProto(input: AgentTargetInput) {
-  const msg = create(AgentTargetSchema);
+function buildAgentInvocationProto(input: AgentInvocationInput) {
+  const msg = create(AgentInvocationSchema);
   if (input.agentRef?.slug || input.agentRef?.org) msg.agentRef = create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 });
   if (input.message !== undefined) msg.message = input.message;
+  if (input.harness !== undefined) msg.harness = input.harness;
+  if (input.workspaceEntries) msg.workspaceEntries = input.workspaceEntries.map(buildWorkspaceEntryProto);
   if (input.environmentRefs) msg.environmentRefs = input.environmentRefs.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 53 }));
-  if (input.runConfig) msg.runConfig = buildScheduleRunConfigProto(input.runConfig);
+  if (input.runConfig) msg.runConfig = buildRunConfigProto(input.runConfig);
   return msg;
 }
 
@@ -144,7 +210,7 @@ export function buildScheduleProto(input: ScheduleInput): Schedule {
     enabled: input.enabled,
   }));
   if (input.agent) {
-    spec.target = { case: "agent", value: buildAgentTargetProto(input.agent) };
+    spec.target = { case: "agent", value: buildAgentInvocationProto(input.agent) };
   }
   return Object.assign(create(ScheduleSchema), {
     apiVersion: "agentic.stigmer.ai/v1",

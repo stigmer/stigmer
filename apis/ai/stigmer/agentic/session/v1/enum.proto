@@ -91,19 +91,21 @@ enum ExecutionTarget {
 // CursorMode selects the Cursor SDK agent type for sessions using
 // HARNESS_CURSOR.
 //
-// Determined once at session creation based on workspace entries and never
-// changed mid-session. Switching would lose Cursor-side conversation state
-// because local agents (agent- prefix) and cloud agents (bc- prefix) maintain
+// Determined once at session creation and never changed mid-session.
+// Switching would lose Cursor-side conversation state because local
+// agents (agent- prefix) and cloud agents (bc- prefix) maintain
 // separate, incompatible conversation stores.
 //
 // Ignored when harness is not HARNESS_CURSOR.
 //
 // @internal
-// Mode selection logic (when feature flag STIGMER_CURSOR_CLOUD_MODE_ENABLED
-// is true):
-//   - All workspace entries are GitRepoSource -> CURSOR_MODE_CLOUD
-//   - Any workspace entry is LocalPathSource  -> CURSOR_MODE_LOCAL
-//   - Feature flag disabled                   -> CURSOR_MODE_LOCAL (forced)
+// Runner-owned, never user-set: determineCursorMode() in the cursor
+// runner always returns LOCAL while cloud mode is disabled platform-wide
+// (Cursor cloud agents clone via Cursor's own GitHub App and accept no
+// per-request git credential, so Stigmer provisions the workspace itself
+// and runs a local Cursor agent against it). The former workspace-based
+// selection logic was removed 2026-06-03; STIGMER_CURSOR_CLOUD_MODE_ENABLED
+// still parses into runner config but no longer drives mode selection.
 //
 // When UNSPECIFIED on an existing session, the runner treats it as LOCAL
 // for backward compatibility with sessions created before this field existed.

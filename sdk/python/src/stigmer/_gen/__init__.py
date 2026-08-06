@@ -22,7 +22,7 @@ from ._oauthapp import OAuthAppClient, OAuthAppInput
 from ._organization import OrganizationClient, OrganizationInput
 from ._platformclient import PlatformClientClient, PlatformClientInput
 from ._project import ProjectClient, ProjectInput
-from ._schedule import ScheduleClient, ScheduleInput, AgentTargetInput, ScheduleRunConfigInput
+from ._schedule import ScheduleClient, ScheduleInput, AgentInvocationInput, RunConfigInput
 from ._session import SessionClient, SessionInput
 from ._skill import SkillClient, SkillInput
 from ._workflow import WorkflowClient, WorkflowInput, WorkflowDocumentInput, WorkflowTaskInput, ExportInput, FlowControlInput, WorkflowBudgetInput
@@ -129,8 +129,8 @@ __all__ = [
     "ProjectInput",
     "ScheduleClient",
     "ScheduleInput",
-    "AgentTargetInput",
-    "ScheduleRunConfigInput",
+    "AgentInvocationInput",
+    "RunConfigInput",
     "SessionClient",
     "SessionInput",
     "SkillClient",

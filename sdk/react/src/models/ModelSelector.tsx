@@ -61,6 +61,15 @@ export interface ModelSelectorProps {
   readonly className?: string;
   /** When true, disables the selector. */
   readonly disabled?: boolean;
+  /**
+   * Trigger label shown while `value` is empty, instead of falling back
+   * to the registry's default model. Lets a form distinguish "nothing
+   * pinned — the platform default applies" from an actual selection
+   * (the schedule form's contract: an unset model inherits the
+   * surface's platform default). The harness prefix is hidden while
+   * the placeholder shows, since no engine is pinned either.
+   */
+  readonly placeholderLabel?: string;
 
   /**
    * @deprecated Use {@link onHarnessChange} instead.
@@ -104,6 +113,7 @@ export function ModelSelector({
   compact = false,
   className,
   disabled,
+  placeholderLabel,
 }: ModelSelectorProps) {
   const portalContainer = useStigmerPortalContainer();
 
@@ -265,8 +275,14 @@ export function ModelSelector({
 
   const showShowAllButton = !isSearching && !showAll && featuredModels.length > 0 && featuredModels.length < models.length;
 
-  const triggerLabel = selectedModel?.displayName ?? "Select model";
-  const triggerHarness = !isHarnessLocked ? HARNESS_META[activeHarness].label : undefined;
+  const usingPlaceholder = !value && placeholderLabel !== undefined;
+  const triggerLabel = usingPlaceholder
+    ? placeholderLabel
+    : (selectedModel?.displayName ?? "Select model");
+  const triggerHarness =
+    !isHarnessLocked && !usingPlaceholder
+      ? HARNESS_META[activeHarness].label
+      : undefined;
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>

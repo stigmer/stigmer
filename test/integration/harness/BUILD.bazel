@@ -10,6 +10,7 @@ go_library(
         "assertions.go",
         "auth_helpers.go",
         "benchmark_helpers.go",
+        "benchmark_multiturn.go",
         "benchmark_report.go",
         "benchmark_stats.go",
         "billing_helpers.go",

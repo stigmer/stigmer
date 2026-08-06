@@ -5,14 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	schedulev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/schedule/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -124,7 +125,7 @@ func seedSchedule2(t *testing.T, mutate func(*schedulev1.Schedule)) *schedulev1.
 			Id: "sch_01TEST", Org: "acme", Slug: "fee-reminders", Name: "fee-reminders"},
 		Spec: &schedulev1.ScheduleSpec{
 			Cron: "0 9 * * *", TimeZone: "Asia/Kolkata", Enabled: true,
-			Target: &schedulev1.ScheduleSpec_Agent{Agent: &schedulev1.AgentTarget{
+			Target: &schedulev1.ScheduleSpec_Agent{Agent: &agentexecutionv1.AgentInvocation{
 				AgentRef: &apiresource.ApiResourceReference{
 					Kind: apiresourcekind.ApiResourceKind_agent, Org: "acme", Slug: "fee-bot"},
 				Message: "Send fee reminders.",
@@ -173,11 +174,61 @@ func TestStartRun_ShapesTheUnattendedRun(t *testing.T) {
 	require.EqualValues(t, 20, request.GetSpec().GetExecutionConfig().GetMaxToolRounds())
 	require.InDelta(t, 1.00, request.GetSpec().GetExecutionConfig().GetMaxCostUsd(), 0.001)
 
+	// The invocation's session half defaults to the platform: no owner
+	// harness means unset (native applies), no workspace means none.
+	require.Equal(t, sessionv1.Harness_HARNESS_UNSPECIFIED,
+		request.GetSpec().GetSessionSpec().GetHarness())
+	require.Empty(t, request.GetSpec().GetSessionSpec().GetWorkspaceEntries())
+
 	// The run pointer landed on status.
 	stored := &schedulev1.Schedule{}
 	require.NoError(t, st.GetResource(context.Background(),
 		apiresourcekind.ApiResourceKind_schedule, schedule.GetMetadata().GetId(), stored))
 	require.Equal(t, "aex_01CREATED", stored.GetStatus().GetLastExecutionId())
+}
+
+func TestStartRun_CarriesTheInvocationSessionShape(t *testing.T) {
+	// DD-018 D-3: the owner's harness, workspace, and run_config travel
+	// from the invocation onto the fresh per-fire session and its
+	// execution profile — model replaces the platform value outright,
+	// bounds clamp min(owner, platform).
+	st, creator, starter := newStarterFixture(t)
+	seedAgent(t, st)
+	schedule := seedSchedule2(t, func(s *schedulev1.Schedule) {
+		invocation := s.GetSpec().GetAgent()
+		invocation.Harness = sessionv1.Harness_HARNESS_CURSOR
+		invocation.WorkspaceEntries = []*sessionv1.WorkspaceEntry{{
+			Name: "docs",
+			Source: &sessionv1.WorkspaceSource{Source: &sessionv1.WorkspaceSource_GitRepo{
+				GitRepo: &sessionv1.GitRepoSource{Url: "https://github.com/acme/docs.git"},
+			}},
+		}}
+		invocation.RunConfig = &agentexecutionv1.RunConfig{
+			ModelName: "claude-sonnet-4-6",
+			// Above the platform ceiling (1.00 / 20 in the fixture
+			// config): the platform cap must win.
+			MaxCostUsd:    5.00,
+			MaxToolRounds: 100,
+		}
+	})
+	persistSchedule(t, st, schedule)
+
+	_, err := starter.StartRun(context.Background(), schedule, starterFireTime)
+	require.NoError(t, err)
+
+	sessionSpec := creator.created.GetSpec().GetSessionSpec()
+	require.Equal(t, sessionv1.Harness_HARNESS_CURSOR, sessionSpec.GetHarness(),
+		"the owner's harness choice reaches the session")
+	require.Len(t, sessionSpec.GetWorkspaceEntries(), 1)
+	require.Equal(t, "https://github.com/acme/docs.git",
+		sessionSpec.GetWorkspaceEntries()[0].GetSource().GetGitRepo().GetUrl())
+
+	config := creator.created.GetSpec().GetExecutionConfig()
+	require.Equal(t, "claude-sonnet-4-6", config.GetModelName(),
+		"model replaces the platform value outright — it is the owner's spend")
+	require.InDelta(t, 1.00, config.GetMaxCostUsd(), 0.001,
+		"the owner can lower spend, never raise it past the platform")
+	require.EqualValues(t, 20, config.GetMaxToolRounds())
 }
 
 func TestStartRun_TheClockOwnsItsIdempotency(t *testing.T) {

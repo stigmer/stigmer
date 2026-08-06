@@ -123,30 +123,87 @@ public interface ScheduleSpecOrBuilder extends
 
   /**
    * <pre>
-   * Run an agent with a configured prompt.
+   * Run an agent with a configured prompt at each fire.
+   *
+   * &#64;internal
+   * The shared owner-settable run shape (DD-018 D-3), replacing the
+   * deleted schedule-only AgentTarget/ScheduleRunConfig pair.
+   * Schedule-specific invariants enforced in create/update/apply
+   * handlers of both editions, never on the shared message:
+   * agent_ref.org must equal metadata.org (the schedule-owning org
+   * is the billing org for every fire; creation requires can_edit
+   * on the referenced agent, DD-009 C-6); workspace sources must be
+   * git_repo (no client is connected at fire time to serve a
+   * local_path); agent_ref is immutable across updates while
+   * harness, model, workspace, message, and environments stay
+   * mutable — every fire builds a fresh session, so nothing
+   * session-immutable is ever mutated mid-flight. environment_refs
+   * resolution is unchanged from DD-017 D-2/D-4: claim-driven in
+   * the execution-context step, org-shared environments only,
+   * LOWEST merge priority, enforcement solely at runtime
+   * resolution. run_config clamping is unchanged from DD-017 D-3:
+   * per-field min(owner, platform) in the run starter.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.schedule.v1.AgentTarget agent = 4 [json_name = "agent"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
    * @return Whether the agent field is set.
    */
   boolean hasAgent();
   /**
    * <pre>
-   * Run an agent with a configured prompt.
+   * Run an agent with a configured prompt at each fire.
+   *
+   * &#64;internal
+   * The shared owner-settable run shape (DD-018 D-3), replacing the
+   * deleted schedule-only AgentTarget/ScheduleRunConfig pair.
+   * Schedule-specific invariants enforced in create/update/apply
+   * handlers of both editions, never on the shared message:
+   * agent_ref.org must equal metadata.org (the schedule-owning org
+   * is the billing org for every fire; creation requires can_edit
+   * on the referenced agent, DD-009 C-6); workspace sources must be
+   * git_repo (no client is connected at fire time to serve a
+   * local_path); agent_ref is immutable across updates while
+   * harness, model, workspace, message, and environments stay
+   * mutable — every fire builds a fresh session, so nothing
+   * session-immutable is ever mutated mid-flight. environment_refs
+   * resolution is unchanged from DD-017 D-2/D-4: claim-driven in
+   * the execution-context step, org-shared environments only,
+   * LOWEST merge priority, enforcement solely at runtime
+   * resolution. run_config clamping is unchanged from DD-017 D-3:
+   * per-field min(owner, platform) in the run starter.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.schedule.v1.AgentTarget agent = 4 [json_name = "agent"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
    * @return The agent.
    */
-  ai.stigmer.agentic.schedule.v1.AgentTarget getAgent();
+  ai.stigmer.agentic.agentexecution.v1.AgentInvocation getAgent();
   /**
    * <pre>
-   * Run an agent with a configured prompt.
+   * Run an agent with a configured prompt at each fire.
+   *
+   * &#64;internal
+   * The shared owner-settable run shape (DD-018 D-3), replacing the
+   * deleted schedule-only AgentTarget/ScheduleRunConfig pair.
+   * Schedule-specific invariants enforced in create/update/apply
+   * handlers of both editions, never on the shared message:
+   * agent_ref.org must equal metadata.org (the schedule-owning org
+   * is the billing org for every fire; creation requires can_edit
+   * on the referenced agent, DD-009 C-6); workspace sources must be
+   * git_repo (no client is connected at fire time to serve a
+   * local_path); agent_ref is immutable across updates while
+   * harness, model, workspace, message, and environments stay
+   * mutable — every fire builds a fresh session, so nothing
+   * session-immutable is ever mutated mid-flight. environment_refs
+   * resolution is unchanged from DD-017 D-2/D-4: claim-driven in
+   * the execution-context step, org-shared environments only,
+   * LOWEST merge priority, enforcement solely at runtime
+   * resolution. run_config clamping is unchanged from DD-017 D-3:
+   * per-field min(owner, platform) in the run starter.
    * </pre>
    *
-   * <code>.ai.stigmer.agentic.schedule.v1.AgentTarget agent = 4 [json_name = "agent"];</code>
+   * <code>.ai.stigmer.agentic.agentexecution.v1.AgentInvocation agent = 4 [json_name = "agent"];</code>
    */
-  ai.stigmer.agentic.schedule.v1.AgentTargetOrBuilder getAgentOrBuilder();
+  ai.stigmer.agentic.agentexecution.v1.AgentInvocationOrBuilder getAgentOrBuilder();
 
   ai.stigmer.agentic.schedule.v1.ScheduleSpec.TargetCase getTargetCase();
 }

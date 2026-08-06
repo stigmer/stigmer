@@ -22,12 +22,11 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
-from ai.stigmer.commons.apiresource import field_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_field__options__pb2
-from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
+from ai.stigmer.agentic.agentexecution.v1 import invocation_pb2 as ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_invocation__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/schedule/v1/spec.proto\x12\x1e\x61i.stigmer.agentic.schedule.v1\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\"\xc1\x01\n\x0cScheduleSpec\x12\x1b\n\x04\x63ron\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04\x63ron\x12$\n\ttime_zone\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08timeZone\x12\x18\n\x07\x65nabled\x18\x03 \x01(\x08R\x07\x65nabled\x12\x43\n\x05\x61gent\x18\x04 \x01(\x0b\x32+.ai.stigmer.agentic.schedule.v1.AgentTargetH\x00R\x05\x61gentB\x0f\n\x06target\x12\x05\xbaH\x02\x08\x01\"\x9a\x04\n\x0b\x41gentTarget\x12\xb6\x01\n\tagent_ref\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n\x0e\x61gent_ref.kind\x12\x33\x61gent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\x08\x61gentRef\x12$\n\x07message\x18\x02 \x01(\tB\n\xbaH\x07r\x05\x10\x01\x18\x80@R\x07message\x12\xd9\x01\n\x10\x65nvironment_refs\x18\x03 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n\x15\x65nvironment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0f\x65nvironmentRefs\x12P\n\nrun_config\x18\x04 \x01(\x0b\x32\x31.ai.stigmer.agentic.schedule.v1.ScheduleRunConfigR\trunConfig\"\x95\x01\n\x11ScheduleRunConfig\x12\x1d\n\nmodel_name\x18\x01 \x01(\tR\tmodelName\x12\x30\n\x0cmax_cost_usd\x18\x02 \x01(\x01\x42\x0e\xbaH\x0b\x12\t)\x00\x00\x00\x00\x00\x00\x00\x00R\nmaxCostUsd\x12/\n\x0fmax_tool_rounds\x18\x03 \x01(\x05\x42\x07\xbaH\x04\x1a\x02(\x00R\rmaxToolRoundsB\xcc\x01\n\"com.ai.stigmer.agentic.schedule.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1e\x41i.Stigmer.Agentic.Schedule.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ai/stigmer/agentic/schedule/v1/spec.proto\x12\x1e\x61i.stigmer.agentic.schedule.v1\x1a\x35\x61i/stigmer/agentic/agentexecution/v1/invocation.proto\x1a\x1b\x62uf/validate/validate.proto\"\xcb\x01\n\x0cScheduleSpec\x12\x1b\n\x04\x63ron\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x04\x63ron\x12$\n\ttime_zone\x18\x02 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\x08timeZone\x12\x18\n\x07\x65nabled\x18\x03 \x01(\x08R\x07\x65nabled\x12M\n\x05\x61gent\x18\x04 \x01(\x0b\x32\x35.ai.stigmer.agentic.agentexecution.v1.AgentInvocationH\x00R\x05\x61gentB\x0f\n\x06target\x12\x05\xbaH\x02\x08\x01\x42\xcc\x01\n\"com.ai.stigmer.agentic.schedule.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAS\xaa\x02\x1e\x41i.Stigmer.Agentic.Schedule.V1\xca\x02\x1e\x41i\\Stigmer\\Agentic\\Schedule\\V1\xe2\x02*Ai\\Stigmer\\Agentic\\Schedule\\V1\\GPBMetadata\xea\x02\"Ai::Stigmer::Agentic::Schedule::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -41,20 +40,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SCHEDULESPEC'].fields_by_name['cron']._serialized_options = b'\272H\004r\002\020\001'
   _globals['_SCHEDULESPEC'].fields_by_name['time_zone']._loaded_options = None
   _globals['_SCHEDULESPEC'].fields_by_name['time_zone']._serialized_options = b'\272H\004r\002\020\001'
-  _globals['_AGENTTARGET'].fields_by_name['agent_ref']._loaded_options = None
-  _globals['_AGENTTARGET'].fields_by_name['agent_ref']._serialized_options = b'\272H\\\272\001V\n\016agent_ref.kind\0223agent_ref must reference a resource with kind=agent\032\017this.kind == 40\310\001\001\340\205,('
-  _globals['_AGENTTARGET'].fields_by_name['message']._loaded_options = None
-  _globals['_AGENTTARGET'].fields_by_name['message']._serialized_options = b'\272H\007r\005\020\001\030\200@'
-  _globals['_AGENTTARGET'].fields_by_name['environment_refs']._loaded_options = None
-  _globals['_AGENTTARGET'].fields_by_name['environment_refs']._serialized_options = b'\272Hq\222\001n\"l\272\001i\n\025environment_refs.kind\022?environment_refs must reference resources with kind=environment\032\017this.kind == 53\340\205,5'
-  _globals['_SCHEDULERUNCONFIG'].fields_by_name['max_cost_usd']._loaded_options = None
-  _globals['_SCHEDULERUNCONFIG'].fields_by_name['max_cost_usd']._serialized_options = b'\272H\013\022\t)\000\000\000\000\000\000\000\000'
-  _globals['_SCHEDULERUNCONFIG'].fields_by_name['max_tool_rounds']._loaded_options = None
-  _globals['_SCHEDULERUNCONFIG'].fields_by_name['max_tool_rounds']._serialized_options = b'\272H\004\032\002(\000'
-  _globals['_SCHEDULESPEC']._serialized_start=200
-  _globals['_SCHEDULESPEC']._serialized_end=393
-  _globals['_AGENTTARGET']._serialized_start=396
-  _globals['_AGENTTARGET']._serialized_end=934
-  _globals['_SCHEDULERUNCONFIG']._serialized_start=937
-  _globals['_SCHEDULERUNCONFIG']._serialized_end=1086
+  _globals['_SCHEDULESPEC']._serialized_start=162
+  _globals['_SCHEDULESPEC']._serialized_end=365
 # @@protoc_insertion_point(module_scope)

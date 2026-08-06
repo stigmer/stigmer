@@ -129,7 +129,7 @@ export { type PlatformClientInput } from "./platformclient.js";
 export { ProjectClient } from "./project.js";
 export { type ProjectInput } from "./project.js";
 export { ScheduleClient } from "./schedule.js";
-export { type ScheduleInput, type AgentTargetInput, type ScheduleRunConfigInput } from "./schedule.js";
+export { type ScheduleInput, type AgentInvocationInput, type RunConfigInput } from "./schedule.js";
 export { SessionClient } from "./session.js";
 export { type SessionInput } from "./session.js";
 export { SkillClient } from "./skill.js";

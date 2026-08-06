@@ -51,7 +51,7 @@ func scheduleManifestFor(org, name, agentSlug string) *schedulev1.Schedule {
 			TimeZone: "Asia/Kolkata",
 			Enabled:  true,
 			Target: &schedulev1.ScheduleSpec_Agent{
-				Agent: &schedulev1.AgentTarget{
+				Agent: &agentexecv1.AgentInvocation{
 					AgentRef: &apiresource.ApiResourceReference{
 						Kind: apiresourcekind.ApiResourceKind_agent,
 						Slug: agentSlug,
