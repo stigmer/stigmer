@@ -457,9 +457,13 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      // participant is the conversation-participation role
+      // (channel-conversations DD-010): reply/takeover on the channel's
+      // conversations without config authority. Grantable here only.
       grantable_roles: [
         owner,
-        viewer
+        viewer,
+        participant
       ]
     }
   }];

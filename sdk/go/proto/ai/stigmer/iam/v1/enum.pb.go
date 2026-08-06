@@ -122,6 +122,16 @@ const (
 	// platform operators like can_manage_model_pricing — key material and
 	// per-member spend are platform-internal, never org-visible.
 	IamPermission_can_manage_cursor_accounts IamPermission = 35
+	// Resource-level permission to participate in an agent channel's
+	// conversations: reply to customers as the business, take over and
+	// hand back the control token, and clear the attention flag.
+	//
+	// @internal
+	// channel-conversations DD-010: computed from the participant role on
+	// agent_channel. Deliberately distinct from can_edit — "may talk to
+	// this channel's customers" and "may configure this channel" are
+	// different powers, and the ISC pilot's trainers hold only the first.
+	IamPermission_can_participate IamPermission = 36
 )
 
 // Enum value maps for IamPermission.
@@ -162,6 +172,7 @@ var (
 		33: "can_use_records",
 		34: "can_create_datastore",
 		35: "can_manage_cursor_accounts",
+		36: "can_participate",
 	}
 	IamPermission_value = map[string]int32{
 		"unspecified":                  0,
@@ -199,6 +210,7 @@ var (
 		"can_use_records":              33,
 		"can_create_datastore":         34,
 		"can_manage_cursor_accounts":   35,
+		"can_participate":              36,
 	}
 )
 
@@ -251,6 +263,17 @@ const (
 	IamRole_member IamRole = 3
 	// Read-only access to the resource.
 	IamRole_viewer IamRole = 4
+	// Conversation participant on an agent channel: may read the channel's
+	// conversations and speak to its customers as the business (reply, take
+	// over, hand back, clear attention). Not a channel configurator.
+	//
+	// @internal
+	// channel-conversations DD-010. Grantable only on agent_channel — the
+	// second kind-scoped role after organization's admin/member; the
+	// grantable_roles subsetting is the mechanism, not a new one. Team
+	// usersets ([team#member]) are the named widening the day a team FGA
+	// type lands.
+	IamRole_participant IamRole = 5
 )
 
 // Enum value maps for IamRole.
@@ -261,6 +284,7 @@ var (
 		2: "admin",
 		3: "member",
 		4: "viewer",
+		5: "participant",
 	}
 	IamRole_value = map[string]int32{
 		"iam_role_unspecified": 0,
@@ -268,6 +292,7 @@ var (
 		"admin":                2,
 		"member":               3,
 		"viewer":               4,
+		"participant":          5,
 	}
 )
 
@@ -302,7 +327,7 @@ var File_ai_stigmer_iam_v1_enum_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
-	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xdb\x06\n" +
+	"\x1cai/stigmer/iam/v1/enum.proto\x12\x11ai.stigmer.iam.v1*\xf0\x06\n" +
 	"\rIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\f\n" +
 	"\bcan_view\x10\x01\x12\f\n" +
@@ -340,7 +365,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\x18can_manage_model_pricing\x10 \x12\x13\n" +
 	"\x0fcan_use_records\x10!\x12\x18\n" +
 	"\x14can_create_datastore\x10\"\x12\x1e\n" +
-	"\x1acan_manage_cursor_accounts\x10#*Q\n" +
+	"\x1acan_manage_cursor_accounts\x10#\x12\x13\n" +
+	"\x0fcan_participate\x10$*b\n" +
 	"\aIamRole\x12\x18\n" +
 	"\x14iam_role_unspecified\x10\x00\x12\t\n" +
 	"\x05owner\x10\x01\x12\t\n" +
@@ -348,7 +374,8 @@ const file_ai_stigmer_iam_v1_enum_proto_rawDesc = "" +
 	"\n" +
 	"\x06member\x10\x03\x12\n" +
 	"\n" +
-	"\x06viewer\x10\x04B\xcd\x01\n" +
+	"\x06viewer\x10\x04\x12\x0f\n" +
+	"\vparticipant\x10\x05B\xcd\x01\n" +
 	"\x15com.ai.stigmer.iam.v1B\tEnumProtoP\x01ZBgithub.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/iam/v1;iamv1\xa2\x02\x03ASI\xaa\x02\x11Ai.Stigmer.Iam.V1\xca\x02\x11Ai\\Stigmer\\Iam\\V1\xe2\x02\x1dAi\\Stigmer\\Iam\\V1\\GPBMetadata\xea\x02\x14Ai::Stigmer::Iam::V1b\x06proto3"
 
 var (

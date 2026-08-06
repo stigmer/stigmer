@@ -60,6 +60,23 @@ public enum IamRole
    * <code>viewer = 4;</code>
    */
   viewer(4),
+  /**
+   * <pre>
+   * Conversation participant on an agent channel: may read the channel's
+   * conversations and speak to its customers as the business (reply, take
+   * over, hand back, clear attention). Not a channel configurator.
+   *
+   * &#64;internal
+   * channel-conversations DD-010. Grantable only on agent_channel — the
+   * second kind-scoped role after organization's admin/member; the
+   * grantable_roles subsetting is the mechanism, not a new one. Team
+   * usersets ([team#member]) are the named widening the day a team FGA
+   * type lands.
+   * </pre>
+   *
+   * <code>participant = 5;</code>
+   */
+  participant(5),
   UNRECOGNIZED(-1),
   ;
 
@@ -108,6 +125,23 @@ public enum IamRole
    * <code>viewer = 4;</code>
    */
   public static final int viewer_VALUE = 4;
+  /**
+   * <pre>
+   * Conversation participant on an agent channel: may read the channel's
+   * conversations and speak to its customers as the business (reply, take
+   * over, hand back, clear attention). Not a channel configurator.
+   *
+   * &#64;internal
+   * channel-conversations DD-010. Grantable only on agent_channel — the
+   * second kind-scoped role after organization's admin/member; the
+   * grantable_roles subsetting is the mechanism, not a new one. Team
+   * usersets ([team#member]) are the named widening the day a team FGA
+   * type lands.
+   * </pre>
+   *
+   * <code>participant = 5;</code>
+   */
+  public static final int participant_VALUE = 5;
 
 
   public final int getNumber() {
@@ -139,6 +173,7 @@ public enum IamRole
       case 2: return admin;
       case 3: return member;
       case 4: return viewer;
+      case 5: return participant;
       default: return null;
     }
   }

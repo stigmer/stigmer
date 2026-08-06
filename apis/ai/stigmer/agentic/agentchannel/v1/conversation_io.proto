@@ -1,0 +1,308 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentchannel.v1;
+
+import "ai/stigmer/agentic/agentchannel/v1/delivery.proto";
+import "ai/stigmer/agentic/agentchannel/v1/message_io.proto";
+import "ai/stigmer/agentic/agentchannel/v1/outbound.proto";
+import "ai/stigmer/commons/rpc/pagination.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// ChannelConversation is the durable identity and participation state of
+// one channel conversation: one external customer on one agent channel,
+// spanning sessions.
+//
+// @internal
+// channel-conversations DD-001/DD-003: the Conversation aggregate.
+// Infrastructure aggregate — no kind, no apiVersion (the ChannelDelivery
+// posture) — but WITH a public query/command surface, because the console
+// reads conversations and operates the control token (the
+// ChannelMessageQueryController precedent for channel-scoped public RPCs
+// without a kind). Identity is (agent_channel_id, conversation_key), the
+// same key channel_conversation_binding anchors (DD-013 of
+// agent-channel-integrations); the binding stays a separate aggregate (the
+// session pointer) and never carries participation state. Field ownership
+// is single-writer per DD-003 D-c; last_activity_at is the documented
+// commutative-max exception.
+message ChannelConversation {
+  // AgentChannel connection this conversation belongs to.
+  string agent_channel_id = 1;
+
+  // Provider-neutral conversation key (WhatsApp: the customer's wa_id).
+  string conversation_key = 2;
+
+  // Organization that owns the channel.
+  //
+  // @internal
+  // Denormalized from the channel (its metadata.org) so the org-wide
+  // list never joins — the schedule_fire.org precedent.
+  string org = 3;
+
+  // Who may speak to the customer right now. Defaults to the agent.
+  ConversationControl control = 4;
+
+  // Identity account holding control when control is control_human.
+  string controlled_by = 5;
+
+  // When control last changed hands.
+  google.protobuf.Timestamp control_changed_at = 6;
+
+  // True when the conversation is flagged for human attention.
+  //
+  // @internal
+  // DD-008 D-e: a projection of the latest escalation event, updated by
+  // the participation writer in the same motion that appends the event.
+  // Orthogonal to control (DD-002 D-a #4): takeover clears it, handback
+  // never touches it.
+  bool needs_attention = 7;
+
+  // Why the conversation needs attention, in the escalating agent's words.
+  string attention_reason = 8;
+
+  // When the attention flag last changed.
+  google.protobuf.Timestamp attention_changed_at = 9;
+
+  // Customer display name as the provider reports it (WhatsApp:
+  // contacts[].profile.name). Empty until an inbound message carries one.
+  string display_name = 10;
+
+  // When the customer last sent a message.
+  google.protobuf.Timestamp last_customer_message_at = 11;
+
+  // When anything last happened on the conversation, across all lanes.
+  google.protobuf.Timestamp last_activity_at = 12;
+}
+
+// ConversationControl names who may speak to the customer on a
+// conversation's public lane.
+//
+// @internal
+// channel-conversations DD-002 (lane x control): exactly one holder at a
+// time; transitions are CAS-guarded through the participation writer
+// (DD-007 D-f). Values carry the control_ prefix — proto3 enum values are
+// package-scoped and bare names invite collisions (the receipt_ precedent).
+enum ConversationControl {
+  // Default value when no control state is set.
+  conversation_control_unspecified = 0;
+
+  // The agent serves the conversation (the default for every conversation).
+  control_agent = 1;
+
+  // A human holds the conversation; the agent is quiet until handback.
+  control_human = 2;
+}
+
+// ConversationLane distinguishes customer-visible items from internal ones.
+//
+// @internal
+// channel-conversations DD-002: every timeline item has a lane. lane_internal
+// is reserved now and first written when internal notes ship (a T03
+// v1-stretch decision); escalation events land there in T03.
+enum ConversationLane {
+  // Default value when no lane is set.
+  conversation_lane_unspecified = 0;
+
+  // The customer sees this item (their message, a delivered reply, a send).
+  lane_public = 1;
+
+  // Org-internal item (escalations, notes); the customer never sees it.
+  lane_internal = 2;
+}
+
+// ConversationItemAuthor names who authored a timeline item.
+enum ConversationItemAuthor {
+  // Default value when no author is set.
+  conversation_item_author_unspecified = 0;
+
+  // The external customer.
+  author_customer = 1;
+
+  // The serving agent.
+  author_agent = 2;
+
+  // An org human replying as the business.
+  author_teammate = 3;
+
+  // Platform-authored conversation copy (e.g. the takeover
+  // acknowledgment), neither the agent's words nor a teammate's.
+  //
+  // @internal
+  // channel-conversations DD-005 D-d: acknowledgment rows carry the
+  // platform outbound origin (lands in T03); rendering them as the agent
+  // would be a lie. The value exists from day one so the item vocabulary
+  // never needs a patch when the first platform row appears.
+  author_platform = 4;
+}
+
+// ConversationTimelineItem is one entry in a conversation's timeline.
+//
+// @internal
+// channel-conversations DD-004: computed on read by stitching three
+// stores — inbound webhook events, reply deliveries (rendered from the
+// same extraction the delivery posted, never from execution transcripts),
+// and the outbound ledger. item_id is source-prefixed ("wa:", "dl:",
+// "ob:", later "nt:"), which makes cross-store collisions structurally
+// impossible and gives cursors a total order without a synthetic sequence.
+message ConversationTimelineItem {
+  // Stable, opaque item identifier.
+  string item_id = 1;
+
+  // Which lane the item is on.
+  ConversationLane lane = 2;
+
+  // Who authored the item.
+  ConversationItemAuthor author = 3;
+
+  // Identity account id of the authoring teammate. Empty unless author
+  // is author_teammate.
+  string authored_by = 4;
+
+  // Rendered text body. Empty when the item has no text (see
+  // provider_message_type).
+  string text = 5;
+
+  // The provider's verbatim message type for inbound items ("text",
+  // "image", "audio", "document", ...). Empty on outbound items in v1.
+  //
+  // @internal
+  // channel-conversations DD-004 amendment (T02 planning): non-text
+  // inbound is ignored by the reply pipeline today
+  // (WhatsAppInboundEventProcessor marks "non_text:<type>"), but the
+  // customer still sent it — a handoff timeline that hides it fails the
+  // product. Verbatim pass-through, never re-encoded (the DD-004 S-6
+  // posture); the UI renders known kinds as placeholders. Media content
+  // retrieval is a named non-goal of this slice.
+  string provider_message_type = 6;
+
+  // When the item happened (the source's own event instant).
+  google.protobuf.Timestamp at = 7;
+
+  // Our send attempt's lifecycle, for outbound items (delivery rows and
+  // outbound-ledger rows share the vocabulary). Unset on inbound items.
+  ChannelDeliveryStatus delivery_status = 8;
+
+  // The provider's receipt report, for outbound-ledger items. A second
+  // axis beside delivery_status — never collapsed into it.
+  ChannelReceiptState receipt_state = 9;
+
+  // Which trust context authorized an outbound-ledger item's send.
+  ChannelOutboundOrigin origin = 10;
+}
+
+// Input for listing an organization's channel conversations.
+message ListChannelConversationsInput {
+  // Organization whose conversations to list.
+  string org = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 63
+  ];
+
+  // Optional filter: only conversations on this agent channel.
+  string agent_channel_id = 2 [(buf.validate.field).string.max_len = 128];
+
+  // Pagination options. Conversations are returned newest activity first.
+  ai.stigmer.commons.rpc.PageInfo page_info = 3;
+}
+
+// ChannelConversationList contains a page of channel conversations,
+// newest activity first.
+message ChannelConversationList {
+  // Total number of conversations matching the filter.
+  int32 total_count = 1;
+
+  // Conversations in the current page.
+  repeated ChannelConversation items = 2;
+}
+
+// Input for reading one conversation's timeline.
+message GetConversationTimelineInput {
+  // AgentChannel the conversation belongs to.
+  string agent_channel_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 128
+  ];
+
+  // Conversation key within the channel (WhatsApp: the customer's wa_id).
+  string conversation_key = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 128
+  ];
+
+  // Maximum number of items to return per page. Server may return fewer.
+  int32 page_size = 3;
+
+  // Opaque cursor from a previous response. Empty for the newest page.
+  string page_token = 4;
+}
+
+// ConversationTimeline contains one page of a conversation's timeline,
+// newest first.
+//
+// @internal
+// Cursor pagination, not PageInfo, deliberately (DD-004 D-b): the
+// timeline is stitched across three stores at read time, so an offset is
+// neither cheap nor stable while new items land; the cursor encodes
+// (instant, item_id). No total_count for the same reason — a
+// cross-store count would be a second full stitch pretending to be a
+// number.
+message ConversationTimeline {
+  // Timeline items in the current page, newest first.
+  repeated ConversationTimelineItem items = 1;
+
+  // Cursor for the next (older) page. Empty when no more items exist.
+  string next_page_token = 2;
+}
+
+// Input for the conversation control commands (takeOver, handBack,
+// clearAttention).
+message ConversationControlInput {
+  // AgentChannel the conversation belongs to.
+  string agent_channel_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 128
+  ];
+
+  // Conversation key within the channel (WhatsApp: the customer's wa_id).
+  string conversation_key = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 128
+  ];
+}
+
+// Input for replying to a conversation as the business.
+//
+// @internal
+// channel-conversations DD-009 D-a: conversation-scoped by design — the
+// operator addresses a conversation they are looking at, never types a
+// recipient, and the handler derives the recipient from the conversation
+// key. This seam (not the cold-send lane) is where staff-reply semantics
+// live: implicit takeover orders the control flip before-or-with the send
+// (T03), and staff replies are exempt from the proactive caps (DD-009 D-c).
+message ReplyToConversationInput {
+  // AgentChannel the conversation belongs to.
+  string agent_channel_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 128
+  ];
+
+  // Conversation key within the channel (WhatsApp: the customer's wa_id).
+  string conversation_key = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 128
+  ];
+
+  // Typed message content (the outbound payload vocabulary, shared with
+  // sendMessage — one payload contract, no twin).
+  ChannelOutboundPayload payload = 3 [(buf.validate.field).required = true];
+}
+
+// Input for flagging a conversation for human attention.
+message EscalateConversationInput {
+  // Why the agent is escalating, in the agent's own words. Becomes the
+  // conversation's attention_reason and the escalation event's content.
+  string reason = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 1024
+  ];
+}

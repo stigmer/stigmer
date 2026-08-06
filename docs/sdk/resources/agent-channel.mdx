@@ -93,16 +93,23 @@ AgentChannel agentChannel = client.agentChannels().get("ach_01j5q3k7m8r2s4tnz2hf
 | [`get`](#get) | Get a single agent channel by ID. |
 | [`getByAgent`](#getbyagent) | Get all channels of a specific agent. |
 | [`getByReference`](#getbyreference) | Get an agent channel by its organization-scoped reference (org/slug). |
+| [`getTimeline`](#gettimeline) | Get one conversation's timeline, newest first, cursor-paged. |
 | [`list`](#list) | List agent channels with optional label filtering. |
+| [`listConversations`](#listconversations) | List an organization's channel conversations, newest activity first. |
 | [`listMessagingChannels`](#listmessagingchannels) | List the agent channels the caller can send business-initiated messages on. |
 | [`listTemplates`](#listtemplates) | List the message templates available on an agent channel. |
 | [`apply`](#apply) | Create or update an agent channel. |
 | [`create`](#create) | Create an agent channel. |
 | [`update`](#update) | Update an existing agent channel. |
 | [`delete`](#delete) | Delete an agent channel. |
+| [`clearAttention`](#clearattention) | Clear a conversation's needs-attention flag without taking it over. |
 | [`completeInstall`](#completeinstall) | Complete the provider install flow for an agent channel. |
+| [`escalate`](#escalate) | Flag this conversation for human attention. |
+| [`handBack`](#handback) | Hand a conversation back to the agent, restoring automatic replies. |
 | [`initiateInstall`](#initiateinstall) | Start the provider install flow for an agent channel. |
+| [`reply`](#reply) | Reply to a conversation as the business, through the same number the agent serves. |
 | [`sendMessage`](#sendmessage) | Send a business-initiated message to a recipient on an agent channel. |
+| [`takeOver`](#takeover) | Take over a conversation: the agent goes quiet until handBack. |
 
 ### get
 
@@ -239,6 +246,59 @@ AgentChannel agentChannel = client.agentChannels().getByReference(ApiResourceRef
 
 **Returns**: [`AgentChannel`](#agentchannel)
 
+### getTimeline
+
+Get one conversation's timeline, newest first, cursor-paged.
+
+The timeline contains customer-visible items only: inbound customer messages (including non-text kinds the platform cannot render), delivered agent replies, and operator or platform sends. Execution internals never appear.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const conversationTimeline = await stigmer.agentChannel.getTimeline({
+  agentChannelId: "...",
+  conversationKey: "...",
+  pageSize: 0,
+  pageToken: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+conversationTimeline, err := client.AgentChannel.GetTimeline(ctx, &stigmer.GetConversationTimelineInput{
+  AgentChannelId:  "...",
+  ConversationKey: "...",
+  PageSize:        0,
+  PageToken:       "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+conversation_timeline = client.agent_channels.get_timeline(GetConversationTimelineInput(
+    agent_channel_id="...",
+    conversation_key="...",
+    page_size=0,
+    page_token="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ConversationTimeline conversationTimeline = client.agentChannels().getTimeline(GetConversationTimelineInput.builder()
+    .agentChannelId("...")
+    .conversationKey("...")
+    .pageSize(0)
+    .pageToken("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetConversationTimelineInput`](#getconversationtimelineinput)
+
+**Returns**: [`ConversationTimeline`](#conversationtimeline)
+
 ### list
 
 List agent channels with optional label filtering.
@@ -285,6 +345,55 @@ AgentChannelList result = client.agentChannels().list(ListAgentChannelsRequest.b
 **Parameters**: [`ListAgentChannelsRequest`](#listagentchannelsrequest)
 
 **Returns**: [`AgentChannelList`](#agentchannellist)
+
+### listConversations
+
+List an organization's channel conversations, newest activity first.
+
+Returns conversations across all of the org's channels the caller can view, optionally filtered to one channel. Entries carry participation state and the customer's display name.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.agentChannel.listConversations({
+  org: "...",
+  agentChannelId: "...",
+  pageInfo: {},
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+result, err := client.AgentChannel.ListConversations(ctx, &stigmer.ListChannelConversationsInput{
+  Org:            "...",
+  AgentChannelId: "...",
+  PageInfo:       &stigmer.PageInfoInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.agent_channels.list_conversations(ListChannelConversationsInput(
+    org="...",
+    agent_channel_id="...",
+    page_info=None,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ChannelConversationList result = client.agentChannels().listConversations(ListChannelConversationsInput.builder()
+    .org("...")
+    .agentChannelId("...")
+    .pageInfo(null)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ListChannelConversationsInput`](#listchannelconversationsinput)
+
+**Returns**: [`ChannelConversationList`](#channelconversationlist)
 
 ### listMessagingChannels
 
@@ -646,6 +755,51 @@ AgentChannel agentChannel = client.agentChannels().delete(id);
 
 **Returns**: [`AgentChannel`](#agentchannel)
 
+### clearAttention
+
+Clear a conversation's needs-attention flag without taking it over.
+
+The false-alarm dismissal: an escalation that needs no reply is cleared in place, never via a take-over-and-hand-back dance.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const channelConversation = await stigmer.agentChannel.clearAttention({
+  agentChannelId: "...",
+  conversationKey: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+channelConversation, err := client.AgentChannel.ClearAttention(ctx, &stigmer.ConversationControlInput{
+  AgentChannelId:  "...",
+  ConversationKey: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+channel_conversation = client.agent_channels.clear_attention(ConversationControlInput(
+    agent_channel_id="...",
+    conversation_key="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ChannelConversation channelConversation = client.agentChannels().clearAttention(ConversationControlInput.builder()
+    .agentChannelId("...")
+    .conversationKey("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ConversationControlInput`](#conversationcontrolinput)
+
+**Returns**: [`ChannelConversation`](#channelconversation)
+
 ### completeInstall
 
 Complete the provider install flow for an agent channel.
@@ -701,6 +855,92 @@ AgentChannel agentChannel = client.agentChannels().completeInstall(CompleteChann
 
 **Returns**: [`AgentChannel`](#agentchannel)
 
+### escalate
+
+Flag this conversation for human attention.
+
+Non-blocking: the agent keeps serving while the flag summons humans. Repeated escalation is harmless; the latest reason wins.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const channelConversation = await stigmer.agentChannel.escalate({
+  reason: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+channelConversation, err := client.AgentChannel.Escalate(ctx, &stigmer.EscalateConversationInput{
+  Reason: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+channel_conversation = client.agent_channels.escalate(EscalateConversationInput(
+    reason="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ChannelConversation channelConversation = client.agentChannels().escalate(EscalateConversationInput.builder()
+    .reason("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`EscalateConversationInput`](#escalateconversationinput)
+
+**Returns**: [`ChannelConversation`](#channelconversation)
+
+### handBack
+
+Hand a conversation back to the agent, restoring automatic replies.
+
+The agent re-enters with the conversation context it missed while the human held control.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const channelConversation = await stigmer.agentChannel.handBack({
+  agentChannelId: "...",
+  conversationKey: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+channelConversation, err := client.AgentChannel.HandBack(ctx, &stigmer.ConversationControlInput{
+  AgentChannelId:  "...",
+  ConversationKey: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+channel_conversation = client.agent_channels.hand_back(ConversationControlInput(
+    agent_channel_id="...",
+    conversation_key="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ChannelConversation channelConversation = client.agentChannels().handBack(ConversationControlInput.builder()
+    .agentChannelId("...")
+    .conversationKey("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ConversationControlInput`](#conversationcontrolinput)
+
+**Returns**: [`ChannelConversation`](#channelconversation)
+
 ### initiateInstall
 
 Start the provider install flow for an agent channel.
@@ -745,6 +985,55 @@ InitiateChannelInstallOutput initiateChannelInstallOutput = client.agentChannels
 **Parameters**: [`InitiateChannelInstallInput`](#initiatechannelinstallinput)
 
 **Returns**: [`InitiateChannelInstallOutput`](#initiatechannelinstalloutput)
+
+### reply
+
+Reply to a conversation as the business, through the same number the agent serves.
+
+The message is durably recorded and attempted inline; the outcome reports the truth of the attempt. A staff reply on an agent-held conversation is an implicit takeover: the agent goes quiet until handBack.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const sendChannelMessageOutput = await stigmer.agentChannel.reply({
+  agentChannelId: "...",
+  conversationKey: "...",
+  payload: {},
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+sendChannelMessageOutput, err := client.AgentChannel.Reply(ctx, &stigmer.ReplyToConversationInput{
+  AgentChannelId:  "...",
+  ConversationKey: "...",
+  Payload:         &stigmer.ChannelOutboundPayloadInput{},
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+send_channel_message_output = client.agent_channels.reply(ReplyToConversationInput(
+    agent_channel_id="...",
+    conversation_key="...",
+    payload=None,
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+SendChannelMessageOutput sendChannelMessageOutput = client.agentChannels().reply(ReplyToConversationInput.builder()
+    .agentChannelId("...")
+    .conversationKey("...")
+    .payload(null)
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ReplyToConversationInput`](#replytoconversationinput)
+
+**Returns**: [`SendChannelMessageOutput`](#sendchannelmessageoutput)
 
 ### sendMessage
 
@@ -798,6 +1087,51 @@ SendChannelMessageOutput sendChannelMessageOutput = client.agentChannels().sendM
 **Parameters**: [`SendChannelMessageInput`](#sendchannelmessageinput)
 
 **Returns**: [`SendChannelMessageOutput`](#sendchannelmessageoutput)
+
+### takeOver
+
+Take over a conversation: the agent goes quiet until handBack.
+
+Taking over also clears the needs-attention flag — the human arriving is the answer to an escalation.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const channelConversation = await stigmer.agentChannel.takeOver({
+  agentChannelId: "...",
+  conversationKey: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+channelConversation, err := client.AgentChannel.TakeOver(ctx, &stigmer.ConversationControlInput{
+  AgentChannelId:  "...",
+  ConversationKey: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+channel_conversation = client.agent_channels.take_over(ConversationControlInput(
+    agent_channel_id="...",
+    conversation_key="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ChannelConversation channelConversation = client.agentChannels().takeOver(ConversationControlInput.builder()
+    .agentChannelId("...")
+    .conversationKey("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`ConversationControlInput`](#conversationcontrolinput)
+
+**Returns**: [`ChannelConversation`](#channelconversation)
 
 ## Types
 
@@ -882,16 +1216,15 @@ Input for completing a provider install flow.
   }}
 />
 
-### SendChannelMessageInput
+### ReplyToConversationInput
 
-Input for sending a business-initiated message on an agent channel.
+Input for replying to a conversation as the business.
 
 <TypeTable
   type={{
-    channel: { type: "string", description: "AgentChannel slug to send through, resolved within `org`." },
-    org: { type: "string", description: "Organization the channel belongs to." },
-    recipient: { type: "string", description: "External recipient key on the channel's provider (WhatsApp: the recipient's wa_id)." },
-    payload: { type: "ChannelOutboundPayloadInput", description: "Typed message content.", required: true },
+    agentChannelId: { type: "string", description: "AgentChannel the conversation belongs to." },
+    conversationKey: { type: "string", description: "Conversation key within the channel (WhatsApp: the customer's wa_id)." },
+    payload: { type: "ChannelOutboundPayloadInput", description: "Typed message content (the outbound payload vocabulary, shared with sendMessage — one payload contract, no twin).", required: true },
   }}
 />
 
@@ -905,6 +1238,108 @@ Output of the send-message RPC: the truthful outcome of the inline delivery atte
     outboundMessageId: { type: "string", description: "Platform id of the durable outbound record (audit handle)." },
     providerMessageId: { type: "string", description: "Provider message id when accepted (WhatsApp: wamid)." },
     detail: { type: "string", description: "Honest, agent-readable detail for queued/refused outcomes." },
+  }}
+/>
+
+### ConversationControlInput
+
+Input for the conversation control commands (takeOver, handBack, clearAttention).
+
+<TypeTable
+  type={{
+    agentChannelId: { type: "string", description: "AgentChannel the conversation belongs to." },
+    conversationKey: { type: "string", description: "Conversation key within the channel (WhatsApp: the customer's wa_id)." },
+  }}
+/>
+
+### ChannelConversation
+
+ChannelConversation is the durable identity and participation state of one channel conversation: one external customer on one agent channel, spanning sessions.
+
+<TypeTable
+  type={{
+    agentChannelId: { type: "string", description: "AgentChannel connection this conversation belongs to." },
+    conversationKey: { type: "string", description: "Provider-neutral conversation key (WhatsApp: the customer's wa_id)." },
+    org: { type: "string", description: "Organization that owns the channel." },
+    control: { type: "ConversationControl", description: "Who may speak to the customer right now.", typeDescriptionLink: "#conversationcontrol" },
+    controlledBy: { type: "string", description: "Identity account holding control when control is control_human." },
+    controlChangedAt: { type: "string", description: "When control last changed hands." },
+    needsAttention: { type: "boolean", description: "True when the conversation is flagged for human attention." },
+    attentionReason: { type: "string", description: "Why the conversation needs attention, in the escalating agent's words." },
+    attentionChangedAt: { type: "string", description: "When the attention flag last changed." },
+    displayName: { type: "string", description: "Customer display name as the provider reports it (WhatsApp: contacts[].profile.name)." },
+    lastCustomerMessageAt: { type: "string", description: "When the customer last sent a message." },
+    lastActivityAt: { type: "string", description: "When anything last happened on the conversation, across all lanes." },
+  }}
+/>
+
+### EscalateConversationInput
+
+Input for flagging a conversation for human attention.
+
+<TypeTable
+  type={{
+    reason: { type: "string", description: "Why the agent is escalating, in the agent's own words." },
+  }}
+/>
+
+### ListChannelConversationsInput
+
+Input for listing an organization's channel conversations.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization whose conversations to list." },
+    agentChannelId: { type: "string", description: "Optional filter: only conversations on this agent channel." },
+    pageInfo: { type: "PageInfoInput", description: "Pagination options." },
+  }}
+/>
+
+### ChannelConversationList
+
+ChannelConversationList contains a page of channel conversations, newest activity first.
+
+<TypeTable
+  type={{
+    totalCount: { type: "number", description: "Total number of conversations matching the filter." },
+    items: { type: "ChannelConversationInput[]", description: "Conversations in the current page." },
+  }}
+/>
+
+### GetConversationTimelineInput
+
+Input for reading one conversation's timeline.
+
+<TypeTable
+  type={{
+    agentChannelId: { type: "string", description: "AgentChannel the conversation belongs to." },
+    conversationKey: { type: "string", description: "Conversation key within the channel (WhatsApp: the customer's wa_id)." },
+    pageSize: { type: "number", description: "Maximum number of items to return per page." },
+    pageToken: { type: "string", description: "Opaque cursor from a previous response." },
+  }}
+/>
+
+### ConversationTimeline
+
+ConversationTimeline contains one page of a conversation's timeline, newest first.
+
+<TypeTable
+  type={{
+    items: { type: "ConversationTimelineItemInput[]", description: "Timeline items in the current page, newest first." },
+    nextPageToken: { type: "string", description: "Cursor for the next (older) page." },
+  }}
+/>
+
+### SendChannelMessageInput
+
+Input for sending a business-initiated message on an agent channel.
+
+<TypeTable
+  type={{
+    channel: { type: "string", description: "AgentChannel slug to send through, resolved within `org`." },
+    org: { type: "string", description: "Organization the channel belongs to." },
+    recipient: { type: "string", description: "External recipient key on the channel's provider (WhatsApp: the recipient's wa_id)." },
+    payload: { type: "ChannelOutboundPayloadInput", description: "Typed message content.", required: true },
   }}
 />
 
@@ -1047,6 +1482,15 @@ ChannelSendOutcome reports what happened to a business-initiated message on the 
 | `queued` | Transient failure; the platform retries in the background. |
 | `refused` | Terminal refusal; detail says why (caps, recipient policy, provider policy such as an expired 24-hour window). |
 
+### ConversationControl
+
+ConversationControl names who may speak to the customer on a conversation's public lane.
+
+| Value | Description |
+|-------|-------------|
+| `control_agent` | The agent serves the conversation (the default for every conversation). |
+| `control_human` | A human holds the conversation; the agent is quiet until handback. |
+
 ### AgentChannelInstallState
 
 AgentChannelInstallState tracks the provider install lifecycle.
@@ -1056,4 +1500,55 @@ AgentChannelInstallState tracks the provider install lifecycle.
 | `pending_install` | The channel exists but the provider install has not completed. |
 | `installed` | The provider install completed; credentials are stored and the channel serves traffic while spec.enabled is true. |
 | `revoked` | The provider revoked the installation (e.g. the Slack app was uninstalled from the workspace or tokens were revoked). |
+
+### ConversationLane
+
+ConversationLane distinguishes customer-visible items from internal ones.
+
+| Value | Description |
+|-------|-------------|
+| `lane_public` | The customer sees this item (their message, a delivered reply, a send). |
+| `lane_internal` | Org-internal item (escalations, notes); the customer never sees it. |
+
+### ConversationItemAuthor
+
+ConversationItemAuthor names who authored a timeline item.
+
+| Value | Description |
+|-------|-------------|
+| `author_customer` | The external customer. |
+| `author_agent` | The serving agent. |
+| `author_teammate` | An org human replying as the business. |
+| `author_platform` | Platform-authored conversation copy (e.g. the takeover acknowledgment), neither the agent's words nor a teammate's. |
+
+### ChannelDeliveryStatus
+
+ChannelDeliveryStatus is the delivery record lifecycle.
+
+| Value | Description |
+|-------|-------------|
+| `pending` | Awaiting the execution's terminal phase, or awaiting (re)claim. |
+| `delivering` | Claimed by a delivery worker; provider I/O in flight. |
+| `delivered` | Reply delivered to the provider. |
+| `failed` | Dead-lettered after exhausting attempts; last_error records why. |
+
+### ChannelReceiptState
+
+ChannelReceiptState is the provider-reported delivery progress of an accepted outbound message, as learned from delivery receipts.
+
+| Value | Description |
+|-------|-------------|
+| `receipt_sent` | The provider accepted the message into its delivery queue. |
+| `receipt_delivered` | The message reached the recipient's device. |
+| `receipt_read` | The recipient viewed the message (or played it, for voice). |
+| `receipt_failed` | The provider could not deliver the message; receipt_detail and receipt_error_code carry the provider's verdict. |
+
+### ChannelOutboundOrigin
+
+ChannelOutboundOrigin records which trust context authorized a business-initiated send.
+
+| Value | Description |
+|-------|-------------|
+| `channel_conversation` | The send came from an agent run created by an inbound channel message; the recipient must be a known sender on the channel. |
+| `operator` | The send was authored by an operator (console, CLI, SDK, scheduled run); any recipient, bounded by caps. |
 

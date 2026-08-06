@@ -13,18 +13,22 @@ import (
 
 // AgentChannelClient provides operations on agentchannel resources.
 type AgentChannelClient struct {
-	command               agentchannelv1.AgentChannelCommandControllerClient
-	channelMessageCommand agentchannelv1.ChannelMessageCommandControllerClient
-	channelMessageQuery   agentchannelv1.ChannelMessageQueryControllerClient
-	query                 agentchannelv1.AgentChannelQueryControllerClient
+	command                    agentchannelv1.AgentChannelCommandControllerClient
+	channelConversationCommand agentchannelv1.ChannelConversationCommandControllerClient
+	channelConversationQuery   agentchannelv1.ChannelConversationQueryControllerClient
+	channelMessageCommand      agentchannelv1.ChannelMessageCommandControllerClient
+	channelMessageQuery        agentchannelv1.ChannelMessageQueryControllerClient
+	query                      agentchannelv1.AgentChannelQueryControllerClient
 }
 
 func NewAgentChannelClient(conn grpc.ClientConnInterface) *AgentChannelClient {
 	return &AgentChannelClient{
-		command:               agentchannelv1.NewAgentChannelCommandControllerClient(conn),
-		channelMessageCommand: agentchannelv1.NewChannelMessageCommandControllerClient(conn),
-		channelMessageQuery:   agentchannelv1.NewChannelMessageQueryControllerClient(conn),
-		query:                 agentchannelv1.NewAgentChannelQueryControllerClient(conn),
+		command:                    agentchannelv1.NewAgentChannelCommandControllerClient(conn),
+		channelConversationCommand: agentchannelv1.NewChannelConversationCommandControllerClient(conn),
+		channelConversationQuery:   agentchannelv1.NewChannelConversationQueryControllerClient(conn),
+		channelMessageCommand:      agentchannelv1.NewChannelMessageCommandControllerClient(conn),
+		channelMessageQuery:        agentchannelv1.NewChannelMessageQueryControllerClient(conn),
+		query:                      agentchannelv1.NewAgentChannelQueryControllerClient(conn),
 	}
 }
 
@@ -55,6 +59,41 @@ func (a *AgentChannelClient) CompleteInstall(ctx context.Context, input *agentch
 
 func (a *AgentChannelClient) Delete(ctx context.Context, id string) (*agentchannelv1.AgentChannel, error) {
 	resp, err := a.command.Delete(ctx, &agentchannelv1.AgentChannelId{Value: id})
+	return resp, wrapErr(err)
+}
+
+func (a *AgentChannelClient) Reply(ctx context.Context, input *agentchannelv1.ReplyToConversationInput) (*agentchannelv1.SendChannelMessageOutput, error) {
+	resp, err := a.channelConversationCommand.Reply(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (a *AgentChannelClient) TakeOver(ctx context.Context, input *agentchannelv1.ConversationControlInput) (*agentchannelv1.ChannelConversation, error) {
+	resp, err := a.channelConversationCommand.TakeOver(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (a *AgentChannelClient) HandBack(ctx context.Context, input *agentchannelv1.ConversationControlInput) (*agentchannelv1.ChannelConversation, error) {
+	resp, err := a.channelConversationCommand.HandBack(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (a *AgentChannelClient) ClearAttention(ctx context.Context, input *agentchannelv1.ConversationControlInput) (*agentchannelv1.ChannelConversation, error) {
+	resp, err := a.channelConversationCommand.ClearAttention(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (a *AgentChannelClient) Escalate(ctx context.Context, input *agentchannelv1.EscalateConversationInput) (*agentchannelv1.ChannelConversation, error) {
+	resp, err := a.channelConversationCommand.Escalate(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (a *AgentChannelClient) ListConversations(ctx context.Context, input *agentchannelv1.ListChannelConversationsInput) (*agentchannelv1.ChannelConversationList, error) {
+	resp, err := a.channelConversationQuery.ListConversations(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (a *AgentChannelClient) GetTimeline(ctx context.Context, input *agentchannelv1.GetConversationTimelineInput) (*agentchannelv1.ConversationTimeline, error) {
+	resp, err := a.channelConversationQuery.GetTimeline(ctx, input)
 	return resp, wrapErr(err)
 }
 

@@ -41,6 +41,7 @@ class IamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     can_use_records: _ClassVar[IamPermission]
     can_create_datastore: _ClassVar[IamPermission]
     can_manage_cursor_accounts: _ClassVar[IamPermission]
+    can_participate: _ClassVar[IamPermission]
 
 class IamRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -49,6 +50,7 @@ class IamRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     admin: _ClassVar[IamRole]
     member: _ClassVar[IamRole]
     viewer: _ClassVar[IamRole]
+    participant: _ClassVar[IamRole]
 unspecified: IamPermission
 can_view: IamPermission
 can_edit: IamPermission
@@ -84,8 +86,10 @@ can_manage_model_pricing: IamPermission
 can_use_records: IamPermission
 can_create_datastore: IamPermission
 can_manage_cursor_accounts: IamPermission
+can_participate: IamPermission
 iam_role_unspecified: IamRole
 owner: IamRole
 admin: IamRole
 member: IamRole
 viewer: IamRole
+participant: IamRole

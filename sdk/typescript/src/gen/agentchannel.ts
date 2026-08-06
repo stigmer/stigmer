@@ -7,9 +7,12 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentChannelSchema, type AgentChannel } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/api_pb";
 import { AgentChannelCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/command_pb";
+import { ChannelConversationCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_command_pb";
+import { ReplyToConversationInputSchema, ConversationControlInputSchema, ChannelConversationSchema, EscalateConversationInputSchema, ListChannelConversationsInputSchema, ChannelConversationListSchema, GetConversationTimelineInputSchema, ConversationTimelineSchema, type ReplyToConversationInput, type ConversationControlInput, type ChannelConversation, type EscalateConversationInput, type ListChannelConversationsInput, type ChannelConversationList, type GetConversationTimelineInput, type ConversationTimeline } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+import { ChannelConversationQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_query_pb";
 import { AgentChannelIdSchema, InitiateChannelInstallInputSchema, InitiateChannelInstallOutputSchema, CompleteChannelInstallInputSchema, GetAgentChannelsByAgentRequestSchema, AgentChannelListSchema, ListAgentChannelsRequestSchema, type InitiateChannelInstallInput, type InitiateChannelInstallOutput, type CompleteChannelInstallInput, type GetAgentChannelsByAgentRequest, type AgentChannelList, type ListAgentChannelsRequest } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/io_pb";
 import { ChannelMessageCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_command_pb";
-import { SendChannelMessageInputSchema, SendChannelMessageOutputSchema, ListChannelTemplatesInputSchema, ChannelTemplatesSchema, ListMessagingChannelsInputSchema, MessagingChannelsSchema, type SendChannelMessageInput, type SendChannelMessageOutput, type ListChannelTemplatesInput, type ChannelTemplates, type ListMessagingChannelsInput, type MessagingChannels } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
+import { SendChannelMessageOutputSchema, SendChannelMessageInputSchema, ListChannelTemplatesInputSchema, ChannelTemplatesSchema, ListMessagingChannelsInputSchema, MessagingChannelsSchema, type SendChannelMessageOutput, type SendChannelMessageInput, type ListChannelTemplatesInput, type ChannelTemplates, type ListMessagingChannelsInput, type MessagingChannels } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
 import { AgentChannelSpecSchema, SlackChannelConfigSchema, WhatsAppChannelConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/spec_pb";
@@ -21,12 +24,16 @@ import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/ap
 /** Provides operations on agentchannel resources. */
 export class AgentChannelClient {
   private readonly command: Client<typeof AgentChannelCommandController>;
+  private readonly channelConversationCommand: Client<typeof ChannelConversationCommandController>;
+  private readonly channelConversationQuery: Client<typeof ChannelConversationQueryController>;
   private readonly channelMessageCommand: Client<typeof ChannelMessageCommandController>;
   private readonly channelMessageQuery: Client<typeof ChannelMessageQueryController>;
   private readonly query: Client<typeof AgentChannelQueryController>;
 
   constructor(transport: Transport) {
     this.command = createClient(AgentChannelCommandController, transport);
+    this.channelConversationCommand = createClient(ChannelConversationCommandController, transport);
+    this.channelConversationQuery = createClient(ChannelConversationQueryController, transport);
     this.channelMessageCommand = createClient(ChannelMessageCommandController, transport);
     this.channelMessageQuery = createClient(ChannelMessageQueryController, transport);
     this.query = createClient(AgentChannelQueryController, transport);
@@ -65,6 +72,48 @@ export class AgentChannelClient {
   async delete(id: string): Promise<AgentChannel> {
     try {
       return await this.command.delete(create(AgentChannelIdSchema, { value: id }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async reply(input: ReplyToConversationInput): Promise<SendChannelMessageOutput> {
+    try {
+      return await this.channelConversationCommand.reply(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async takeOver(input: ConversationControlInput): Promise<ChannelConversation> {
+    try {
+      return await this.channelConversationCommand.takeOver(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async handBack(input: ConversationControlInput): Promise<ChannelConversation> {
+    try {
+      return await this.channelConversationCommand.handBack(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async clearAttention(input: ConversationControlInput): Promise<ChannelConversation> {
+    try {
+      return await this.channelConversationCommand.clearAttention(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async escalate(input: EscalateConversationInput): Promise<ChannelConversation> {
+    try {
+      return await this.channelConversationCommand.escalate(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async listConversations(input: ListChannelConversationsInput): Promise<ChannelConversationList> {
+    try {
+      return await this.channelConversationQuery.listConversations(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async getTimeline(input: GetConversationTimelineInput): Promise<ConversationTimeline> {
+    try {
+      return await this.channelConversationQuery.getTimeline(input);
     } catch (e) { throw wrapError(e); }
   }
 

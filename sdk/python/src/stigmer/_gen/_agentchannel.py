@@ -7,11 +7,14 @@ from dataclasses import dataclass, field
 import grpc
 
 from ai.stigmer.agentic.agentchannel.v1 import api_pb2
+from ai.stigmer.agentic.agentchannel.v1 import conversation_command_pb2_grpc
+from ai.stigmer.agentic.agentchannel.v1 import conversation_query_pb2_grpc
 from ai.stigmer.agentic.agentchannel.v1 import message_command_pb2_grpc
 from ai.stigmer.agentic.agentchannel.v1 import message_query_pb2_grpc
 from ai.stigmer.agentic.agentchannel.v1 import command_pb2_grpc
 from ai.stigmer.agentic.agentchannel.v1 import query_pb2_grpc
 from ai.stigmer.agentic.agentchannel.v1 import io_pb2
+from ai.stigmer.agentic.agentchannel.v1 import conversation_io_pb2
 from ai.stigmer.agentic.agentchannel.v1 import message_io_pb2
 from ai.stigmer.agentic.agentchannel.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
@@ -27,6 +30,8 @@ class AgentChannelClient:
 
     def __init__(self, channel: grpc.Channel) -> None:
         self._command = command_pb2_grpc.AgentChannelCommandControllerStub(channel)
+        self._channelConversationCommand = conversation_command_pb2_grpc.ChannelConversationCommandControllerStub(channel)
+        self._channelConversationQuery = conversation_query_pb2_grpc.ChannelConversationQueryControllerStub(channel)
         self._channelMessageCommand = message_command_pb2_grpc.ChannelMessageCommandControllerStub(channel)
         self._channelMessageQuery = message_query_pb2_grpc.ChannelMessageQueryControllerStub(channel)
         self._query = query_pb2_grpc.AgentChannelQueryControllerStub(channel)
@@ -64,6 +69,48 @@ class AgentChannelClient:
     def delete(self, id: str) -> api_pb2.AgentChannel:
         try:
             return self._command.delete(io_pb2.AgentChannelId(value=id))
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def reply(self, input: conversation_io_pb2.ReplyToConversationInput) -> message_io_pb2.SendChannelMessageOutput:
+        try:
+            return self._channelConversationCommand.reply(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def take_over(self, input: conversation_io_pb2.ConversationControlInput) -> conversation_io_pb2.ChannelConversation:
+        try:
+            return self._channelConversationCommand.takeOver(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def hand_back(self, input: conversation_io_pb2.ConversationControlInput) -> conversation_io_pb2.ChannelConversation:
+        try:
+            return self._channelConversationCommand.handBack(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def clear_attention(self, input: conversation_io_pb2.ConversationControlInput) -> conversation_io_pb2.ChannelConversation:
+        try:
+            return self._channelConversationCommand.clearAttention(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def escalate(self, input: conversation_io_pb2.EscalateConversationInput) -> conversation_io_pb2.ChannelConversation:
+        try:
+            return self._channelConversationCommand.escalate(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list_conversations(self, input: conversation_io_pb2.ListChannelConversationsInput) -> conversation_io_pb2.ChannelConversationList:
+        try:
+            return self._channelConversationQuery.listConversations(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def get_timeline(self, input: conversation_io_pb2.GetConversationTimelineInput) -> conversation_io_pb2.ConversationTimeline:
+        try:
+            return self._channelConversationQuery.getTimeline(input)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

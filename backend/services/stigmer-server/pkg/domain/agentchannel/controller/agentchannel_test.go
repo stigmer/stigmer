@@ -1198,3 +1198,146 @@ func TestChannelMessageController_CloudOnlyPosture(t *testing.T) {
 		}
 	})
 }
+
+// TestChannelConversationController_CloudOnlyPosture pins the
+// conversation surface's OSS contract (channel-conversations DD-003
+// D-f): queries answer EMPTY (the listMessagingChannels discovery
+// posture — the cloud channel runtime that materializes conversations
+// does not run here, so "none" is the honest answer) and every command
+// refuses with FAILED_PRECONDITION and the documented copy. Input
+// validation runs first so the INVALID_ARGUMENT contract matches the
+// cloud edition's.
+func TestChannelConversationController_CloudOnlyPosture(t *testing.T) {
+	cc := NewChannelConversationController()
+
+	controlInput := &agentchannelv1.ConversationControlInput{
+		AgentChannelId:  "ach-123",
+		ConversationKey: "15551234567",
+	}
+
+	t.Run("listConversations answers with an empty list, never a refusal", func(t *testing.T) {
+		res, err := cc.ListConversations(channelCtx(),
+			&agentchannelv1.ListChannelConversationsInput{Org: "acme"})
+		if err != nil {
+			t.Fatalf("expected the empty-list answer, got error: %v", err)
+		}
+		if len(res.GetItems()) != 0 {
+			t.Errorf("OSS materializes no conversations; expected zero items, got %d",
+				len(res.GetItems()))
+		}
+	})
+
+	t.Run("getTimeline answers with an empty timeline, never a refusal", func(t *testing.T) {
+		res, err := cc.GetTimeline(channelCtx(),
+			&agentchannelv1.GetConversationTimelineInput{
+				AgentChannelId:  "ach-123",
+				ConversationKey: "15551234567",
+			})
+		if err != nil {
+			t.Fatalf("expected the empty-timeline answer, got error: %v", err)
+		}
+		if len(res.GetItems()) != 0 {
+			t.Errorf("expected zero timeline items, got %d", len(res.GetItems()))
+		}
+		if res.GetNextPageToken() != "" {
+			t.Errorf("an empty timeline must not offer a next page, got %q",
+				res.GetNextPageToken())
+		}
+	})
+
+	t.Run("every command refuses with FAILED_PRECONDITION and the documented copy", func(t *testing.T) {
+		commands := []struct {
+			name string
+			call func() error
+		}{
+			{"reply", func() error {
+				_, err := cc.Reply(channelCtx(), &agentchannelv1.ReplyToConversationInput{
+					AgentChannelId:  "ach-123",
+					ConversationKey: "15551234567",
+					Payload: &agentchannelv1.ChannelOutboundPayload{
+						Kind: &agentchannelv1.ChannelOutboundPayload_Text{
+							Text: &agentchannelv1.TextPayload{Body: "on my way"},
+						},
+					},
+				})
+				return err
+			}},
+			{"takeOver", func() error {
+				_, err := cc.TakeOver(channelCtx(), controlInput)
+				return err
+			}},
+			{"handBack", func() error {
+				_, err := cc.HandBack(channelCtx(), controlInput)
+				return err
+			}},
+			{"clearAttention", func() error {
+				_, err := cc.ClearAttention(channelCtx(), controlInput)
+				return err
+			}},
+			{"escalate", func() error {
+				_, err := cc.Escalate(channelCtx(), &agentchannelv1.EscalateConversationInput{
+					Reason: "the member is asking about a refund I cannot process",
+				})
+				return err
+			}},
+		}
+		for _, c := range commands {
+			err := c.call()
+			if status.Code(err) != codes.FailedPrecondition {
+				t.Errorf("%s: expected FAILED_PRECONDITION, got %s (%v)",
+					c.name, status.Code(err), err)
+				continue
+			}
+			if got := status.Convert(err).Message(); got != conversationParticipationUnavailableMessage {
+				t.Errorf("%s refusal must carry the documented copy, got %q", c.name, got)
+			}
+		}
+	})
+
+	t.Run("contract violations are INVALID_ARGUMENT before the refusal", func(t *testing.T) {
+		cases := []struct {
+			name string
+			call func() error
+		}{
+			{"listConversations without org", func() error {
+				_, err := cc.ListConversations(channelCtx(),
+					&agentchannelv1.ListChannelConversationsInput{})
+				return err
+			}},
+			{"getTimeline without conversation key", func() error {
+				_, err := cc.GetTimeline(channelCtx(),
+					&agentchannelv1.GetConversationTimelineInput{AgentChannelId: "ach-123"})
+				return err
+			}},
+			{"takeOver without channel id", func() error {
+				_, err := cc.TakeOver(channelCtx(),
+					&agentchannelv1.ConversationControlInput{ConversationKey: "15551234567"})
+				return err
+			}},
+			{"reply without payload", func() error {
+				_, err := cc.Reply(channelCtx(), &agentchannelv1.ReplyToConversationInput{
+					AgentChannelId:  "ach-123",
+					ConversationKey: "15551234567",
+				})
+				return err
+			}},
+			{"escalate without reason", func() error {
+				_, err := cc.Escalate(channelCtx(),
+					&agentchannelv1.EscalateConversationInput{})
+				return err
+			}},
+			{"escalate with an over-budget reason", func() error {
+				_, err := cc.Escalate(channelCtx(), &agentchannelv1.EscalateConversationInput{
+					Reason: strings.Repeat("x", 1025),
+				})
+				return err
+			}},
+		}
+		for _, c := range cases {
+			if err := c.call(); status.Code(err) != codes.InvalidArgument {
+				t.Errorf("%s: expected INVALID_ARGUMENT, got %s (%v)",
+					c.name, status.Code(err), err)
+			}
+		}
+	})
+}

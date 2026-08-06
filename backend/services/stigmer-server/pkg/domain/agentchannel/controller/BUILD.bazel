@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "agentchannel_controller.go",
         "apply.go",
+        "conversation.go",
         "create.go",
         "delete.go",
         "get.go",

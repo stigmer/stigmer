@@ -59,6 +59,76 @@
       ]
     },
     {
+      "name": "ChannelConversationCommandController",
+      "role": "channelConversationCommand",
+      "protoFile": "ai/stigmer/agentic/agentchannel/v1/conversation_command.proto",
+      "methods": [
+        {
+          "name": "Reply",
+          "inputType": "ReplyToConversationInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput",
+          "outputType": "SendChannelMessageOutput",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.SendChannelMessageOutput",
+          "description": "Reply to a conversation as the business, through the same number the\n agent serves.\n\n The message is durably recorded and attempted inline; the outcome\n reports the truth of the attempt. A staff reply on an agent-held\n conversation is an implicit takeover: the agent goes quiet until\n handBack.\n\n @internal\n channel-conversations DD-009: rides the outbound lane with operator\n origin, recipient derived from the conversation key (never an\n argument — the origin trap D-a dissolves), exempt from the proactive\n caps and the proactive consent lever (D-b/D-c: reply traffic inside\n the open service window; the authority bar is the control). The\n implicit-takeover flip orders before-or-with the send (T03)."
+        },
+        {
+          "name": "TakeOver",
+          "inputType": "ConversationControlInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ConversationControlInput",
+          "outputType": "ChannelConversation",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversation",
+          "description": "Take over a conversation: the agent goes quiet until handBack.\n\n Taking over also clears the needs-attention flag — the human arriving\n is the answer to an escalation.\n\n @internal\n channel-conversations DD-005 (the suppression this arms), DD-007 D-f\n (CAS WHERE control='agent'; two concurrent attempts resolve to one\n winner, the loser receives the fresh state), DD-008 D-f (attention\n cleared on takeover)."
+        },
+        {
+          "name": "HandBack",
+          "inputType": "ConversationControlInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ConversationControlInput",
+          "outputType": "ChannelConversation",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversation",
+          "description": "Hand a conversation back to the agent, restoring automatic replies.\n\n The agent re-enters with the conversation context it missed while the\n human held control.\n\n @internal\n channel-conversations DD-007: CAS WHERE control='human'; any holder\n of can_participate may hand back, not only the takeover holder (v1\n single attention pool). Handback never touches the attention flag\n (DD-002 D-a #4). The missed-context digest is composed lazily at the\n next turn from the agent_witnessed_through watermark, not here."
+        },
+        {
+          "name": "ClearAttention",
+          "inputType": "ConversationControlInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ConversationControlInput",
+          "outputType": "ChannelConversation",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversation",
+          "description": "Clear a conversation's needs-attention flag without taking it over.\n\n The false-alarm dismissal: an escalation that needs no reply is\n cleared in place, never via a take-over-and-hand-back dance.\n\n @internal\n channel-conversations DD-008 D-f. Control is untouched; the clear is\n recorded on the conversation's event history through the\n participation writer."
+        },
+        {
+          "name": "Escalate",
+          "inputType": "EscalateConversationInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.EscalateConversationInput",
+          "outputType": "ChannelConversation",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversation",
+          "description": "Flag this conversation for human attention.\n\n Non-blocking: the agent keeps serving while the flag summons humans.\n Repeated escalation is harmless; the latest reason wins.\n\n @internal\n channel-conversations DD-008: agent-audience only — session-bound\n sandbox tokens; the conversation identity derives server-side from\n the session's channel labels (never caller-supplied, the DD-003\n identity doctrine), so the input carries only the reason. Appends an\n internal-lane escalation event and updates the row projection through\n the participation writer, idempotently. Approval-free by construction\n (unattended surfaces skip gated tools — a gated escalation would\n never fire). Cloud-first runtime; OSS refuses FAILED_PRECONDITION."
+        }
+      ]
+    },
+    {
+      "name": "ChannelConversationQueryController",
+      "role": "channelConversationQuery",
+      "protoFile": "ai/stigmer/agentic/agentchannel/v1/conversation_query.proto",
+      "methods": [
+        {
+          "name": "ListConversations",
+          "inputType": "ListChannelConversationsInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput",
+          "outputType": "ChannelConversationList",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversationList",
+          "description": "List an organization's channel conversations, newest activity first.\n\n Returns conversations across all of the org's channels the caller can\n view, optionally filtered to one channel. Entries carry participation\n state and the customer's display name.\n\n @internal\n Org-wide read: no single object to authorize, so authorization is\n in-handler — an FGA ListObjects over agent_channel#can_view scopes\n the scan (the listByChannel two-stage precedent; DD-010 D-b). A\n caller who can view no channel receives an empty list, never an\n error. OSS answers empty (cloud-only runtime)."
+        },
+        {
+          "name": "GetTimeline",
+          "inputType": "GetConversationTimelineInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput",
+          "outputType": "ConversationTimeline",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ConversationTimeline",
+          "description": "Get one conversation's timeline, newest first, cursor-paged.\n\n The timeline contains customer-visible items only: inbound customer\n messages (including non-text kinds the platform cannot render),\n delivered agent replies, and operator or platform sends. Execution\n internals never appear.\n\n @internal\n channel-conversations DD-004: stitched on read from the webhook\n event store, the delivery store (via the same last-AI-message\n extraction the delivery posted — never execution transcripts), and\n the outbound ledger; internal-lane events join as the fourth source\n in T03. Authorization is declarative on the channel: conversations\n carry no per-conversation FGA tuples (DD-003 D-a) — the channel is\n the trust boundary."
+        }
+      ]
+    },
+    {
       "name": "ChannelMessageCommandController",
       "role": "channelMessageCommand",
       "protoFile": "ai/stigmer/agentic/agentchannel/v1/message_command.proto",
@@ -244,45 +314,33 @@
       ]
     },
     {
-      "name": "SendChannelMessageInput",
-      "description": "Input for sending a business-initiated message on an agent channel.\n\n @internal\n proactive-messaging DD-002 D4, amended: channel + org are separate\n fields (the FindRecordsRequest slug/org precedent), never a\n slug-or-id union. Dispatch mirrors the datastore record surface:\n session-bound runner credentials leave both empty and the server\n derives them from the session's serving channel; direct principals\n (console, CLI, SDK) set them. Ambiguity — the caller's agent has more\n than one proactive-enabled channel and no channel is named — is an\n INVALID_ARGUMENT whose detail lists the candidates (D7).",
-      "protoType": "ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput",
-      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/message_io.proto",
+      "name": "ReplyToConversationInput",
+      "description": "Input for replying to a conversation as the business.\n\n @internal\n channel-conversations DD-009 D-a: conversation-scoped by design — the\n operator addresses a conversation they are looking at, never types a\n recipient, and the handler derives the recipient from the conversation\n key. This seam (not the cold-send lane) is where staff-reply semantics\n live: implicit takeover orders the control flip before-or-with the send\n (T03), and staff replies are exempt from the proactive caps (DD-009 D-c).",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
       "fields": [
         {
-          "name": "Channel",
-          "jsonName": "channel",
-          "protoField": "channel",
+          "name": "AgentChannelId",
+          "jsonName": "agentChannelId",
+          "protoField": "agent_channel_id",
           "type": {
             "kind": "string"
           },
-          "description": "AgentChannel slug to send through, resolved within `org`. Optional\n when the caller's agent has exactly one proactive-enabled channel.",
+          "description": "AgentChannel the conversation belongs to.",
           "required": false,
           "validation": {
-            "maxLength": 63
+            "minLength": 1,
+            "maxLength": 128
           }
         },
         {
-          "name": "Org",
-          "jsonName": "org",
-          "protoField": "org",
+          "name": "ConversationKey",
+          "jsonName": "conversationKey",
+          "protoField": "conversation_key",
           "type": {
             "kind": "string"
           },
-          "description": "Organization the channel belongs to. Direct callers set it; unset\n resolves from the caller's context.",
-          "required": false,
-          "validation": {
-            "maxLength": 63
-          }
-        },
-        {
-          "name": "Recipient",
-          "jsonName": "recipient",
-          "protoField": "recipient",
-          "type": {
-            "kind": "string"
-          },
-          "description": "External recipient key on the channel's provider (WhatsApp: the\n recipient's wa_id).",
+          "description": "Conversation key within the channel (WhatsApp: the customer's wa_id).",
           "required": false,
           "validation": {
             "minLength": 1,
@@ -297,7 +355,7 @@
             "kind": "message",
             "messageType": "ChannelOutboundPayload"
           },
-          "description": "Typed message content.",
+          "description": "Typed message content (the outbound payload vocabulary, shared with\n sendMessage — one payload contract, no twin).",
           "required": true,
           "validation": {
             "required": true
@@ -356,6 +414,425 @@
           },
           "description": "Honest, agent-readable detail for queued/refused outcomes.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "ConversationControlInput",
+      "description": "Input for the conversation control commands (takeOver, handBack,\n clearAttention).",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ConversationControlInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
+      "fields": [
+        {
+          "name": "AgentChannelId",
+          "jsonName": "agentChannelId",
+          "protoField": "agent_channel_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "AgentChannel the conversation belongs to.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "ConversationKey",
+          "jsonName": "conversationKey",
+          "protoField": "conversation_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Conversation key within the channel (WhatsApp: the customer's wa_id).",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      ]
+    },
+    {
+      "name": "ChannelConversation",
+      "description": "ChannelConversation is the durable identity and participation state of\n one channel conversation: one external customer on one agent channel,\n spanning sessions.\n\n @internal\n channel-conversations DD-001/DD-003: the Conversation aggregate.\n Infrastructure aggregate — no kind, no apiVersion (the ChannelDelivery\n posture) — but WITH a public query/command surface, because the console\n reads conversations and operates the control token (the\n ChannelMessageQueryController precedent for channel-scoped public RPCs\n without a kind). Identity is (agent_channel_id, conversation_key), the\n same key channel_conversation_binding anchors (DD-013 of\n agent-channel-integrations); the binding stays a separate aggregate (the\n session pointer) and never carries participation state. Field ownership\n is single-writer per DD-003 D-c; last_activity_at is the documented\n commutative-max exception.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversation",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
+      "fields": [
+        {
+          "name": "AgentChannelId",
+          "jsonName": "agentChannelId",
+          "protoField": "agent_channel_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "AgentChannel connection this conversation belongs to.",
+          "required": false
+        },
+        {
+          "name": "ConversationKey",
+          "jsonName": "conversationKey",
+          "protoField": "conversation_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Provider-neutral conversation key (WhatsApp: the customer's wa_id).",
+          "required": false
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the channel.\n\n @internal\n Denormalized from the channel (its metadata.org) so the org-wide\n list never joins — the schedule_fire.org precedent.",
+          "required": false
+        },
+        {
+          "name": "Control",
+          "jsonName": "control",
+          "protoField": "control",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentchannel.v1.ConversationControl",
+            "enumValues": [
+              "control_agent",
+              "control_human"
+            ]
+          },
+          "description": "Who may speak to the customer right now. Defaults to the agent.",
+          "required": false
+        },
+        {
+          "name": "ControlledBy",
+          "jsonName": "controlledBy",
+          "protoField": "controlled_by",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Identity account holding control when control is control_human.",
+          "required": false
+        },
+        {
+          "name": "ControlChangedAt",
+          "jsonName": "controlChangedAt",
+          "protoField": "control_changed_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When control last changed hands.",
+          "required": false
+        },
+        {
+          "name": "NeedsAttention",
+          "jsonName": "needsAttention",
+          "protoField": "needs_attention",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "True when the conversation is flagged for human attention.\n\n @internal\n DD-008 D-e: a projection of the latest escalation event, updated by\n the participation writer in the same motion that appends the event.\n Orthogonal to control (DD-002 D-a #4): takeover clears it, handback\n never touches it.",
+          "required": false
+        },
+        {
+          "name": "AttentionReason",
+          "jsonName": "attentionReason",
+          "protoField": "attention_reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Why the conversation needs attention, in the escalating agent's words.",
+          "required": false
+        },
+        {
+          "name": "AttentionChangedAt",
+          "jsonName": "attentionChangedAt",
+          "protoField": "attention_changed_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the attention flag last changed.",
+          "required": false
+        },
+        {
+          "name": "DisplayName",
+          "jsonName": "displayName",
+          "protoField": "display_name",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Customer display name as the provider reports it (WhatsApp:\n contacts[].profile.name). Empty until an inbound message carries one.",
+          "required": false
+        },
+        {
+          "name": "LastCustomerMessageAt",
+          "jsonName": "lastCustomerMessageAt",
+          "protoField": "last_customer_message_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When the customer last sent a message.",
+          "required": false
+        },
+        {
+          "name": "LastActivityAt",
+          "jsonName": "lastActivityAt",
+          "protoField": "last_activity_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When anything last happened on the conversation, across all lanes.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "EscalateConversationInput",
+      "description": "Input for flagging a conversation for human attention.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.EscalateConversationInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
+      "fields": [
+        {
+          "name": "Reason",
+          "jsonName": "reason",
+          "protoField": "reason",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Why the agent is escalating, in the agent's own words. Becomes the\n conversation's attention_reason and the escalation event's content.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 1024
+          }
+        }
+      ]
+    },
+    {
+      "name": "ListChannelConversationsInput",
+      "description": "Input for listing an organization's channel conversations.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization whose conversations to list.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 63
+          }
+        },
+        {
+          "name": "AgentChannelId",
+          "jsonName": "agentChannelId",
+          "protoField": "agent_channel_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Optional filter: only conversations on this agent channel.",
+          "required": false,
+          "validation": {
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "PageInfo",
+          "jsonName": "pageInfo",
+          "protoField": "page_info",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination options. Conversations are returned newest activity first.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ChannelConversationList",
+      "description": "ChannelConversationList contains a page of channel conversations,\n newest activity first.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversationList",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
+      "fields": [
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of conversations matching the filter.",
+          "required": false
+        },
+        {
+          "name": "Items",
+          "jsonName": "items",
+          "protoField": "items",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ChannelConversation"
+            }
+          },
+          "description": "Conversations in the current page.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetConversationTimelineInput",
+      "description": "Input for reading one conversation's timeline.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
+      "fields": [
+        {
+          "name": "AgentChannelId",
+          "jsonName": "agentChannelId",
+          "protoField": "agent_channel_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "AgentChannel the conversation belongs to.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "ConversationKey",
+          "jsonName": "conversationKey",
+          "protoField": "conversation_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Conversation key within the channel (WhatsApp: the customer's wa_id).",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "PageSize",
+          "jsonName": "pageSize",
+          "protoField": "page_size",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Maximum number of items to return per page. Server may return fewer.",
+          "required": false
+        },
+        {
+          "name": "PageToken",
+          "jsonName": "pageToken",
+          "protoField": "page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Opaque cursor from a previous response. Empty for the newest page.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ConversationTimeline",
+      "description": "ConversationTimeline contains one page of a conversation's timeline,\n newest first.\n\n @internal\n Cursor pagination, not PageInfo, deliberately (DD-004 D-b): the\n timeline is stitched across three stores at read time, so an offset is\n neither cheap nor stable while new items land; the cursor encodes\n (instant, item_id). No total_count for the same reason — a\n cross-store count would be a second full stitch pretending to be a\n number.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ConversationTimeline",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
+      "fields": [
+        {
+          "name": "Items",
+          "jsonName": "items",
+          "protoField": "items",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ConversationTimelineItem"
+            }
+          },
+          "description": "Timeline items in the current page, newest first.",
+          "required": false
+        },
+        {
+          "name": "NextPageToken",
+          "jsonName": "nextPageToken",
+          "protoField": "next_page_token",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Cursor for the next (older) page. Empty when no more items exist.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SendChannelMessageInput",
+      "description": "Input for sending a business-initiated message on an agent channel.\n\n @internal\n proactive-messaging DD-002 D4, amended: channel + org are separate\n fields (the FindRecordsRequest slug/org precedent), never a\n slug-or-id union. Dispatch mirrors the datastore record surface:\n session-bound runner credentials leave both empty and the server\n derives them from the session's serving channel; direct principals\n (console, CLI, SDK) set them. Ambiguity — the caller's agent has more\n than one proactive-enabled channel and no channel is named — is an\n INVALID_ARGUMENT whose detail lists the candidates (D7).",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/message_io.proto",
+      "fields": [
+        {
+          "name": "Channel",
+          "jsonName": "channel",
+          "protoField": "channel",
+          "type": {
+            "kind": "string"
+          },
+          "description": "AgentChannel slug to send through, resolved within `org`. Optional\n when the caller's agent has exactly one proactive-enabled channel.",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization the channel belongs to. Direct callers set it; unset\n resolves from the caller's context.",
+          "required": false,
+          "validation": {
+            "maxLength": 63
+          }
+        },
+        {
+          "name": "Recipient",
+          "jsonName": "recipient",
+          "protoField": "recipient",
+          "type": {
+            "kind": "string"
+          },
+          "description": "External recipient key on the channel's provider (WhatsApp: the\n recipient's wa_id).",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "Payload",
+          "jsonName": "payload",
+          "protoField": "payload",
+          "type": {
+            "kind": "message",
+            "messageType": "ChannelOutboundPayload"
+          },
+          "description": "Typed message content.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
         }
       ]
     },
@@ -693,6 +1170,23 @@
       ]
     },
     {
+      "name": "ConversationControl",
+      "description": "ConversationControl names who may speak to the customer on a\n conversation's public lane.\n\n @internal\n channel-conversations DD-002 (lane x control): exactly one holder at a\n time; transitions are CAS-guarded through the participation writer\n (DD-007 D-f). Values carry the control_ prefix — proto3 enum values are\n package-scoped and bare names invite collisions (the receipt_ precedent).",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ConversationControl",
+      "values": [
+        {
+          "name": "control_agent",
+          "number": 1,
+          "description": "The agent serves the conversation (the default for every conversation)."
+        },
+        {
+          "name": "control_human",
+          "number": 2,
+          "description": "A human holds the conversation; the agent is quiet until handback."
+        }
+      ]
+    },
+    {
       "name": "ApiResourceKind",
       "description": "API resource kinds for Stigmer.",
       "protoType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
@@ -885,6 +1379,121 @@
           "name": "visibility_platform",
           "number": 4,
           "description": "All members of all organizations managed by the owning org's\n IdentityProvider can access (read and execute) this resource.\n\n \"Platform\" here means an external platform that operates Stigmer orgs\n on behalf of its own customers (see ManagementMode.platform_managed) —\n NOT the Stigmer platform singleton used by\n AUTHORIZATION_SCOPE_TYPE_PLATFORM.\n\n This is the \"private catalog\" primitive for multi-tenant consumers:\n a platform (e.g. Planton) authors blueprints (agents, skills, MCP\n servers, workflows) in its own org and shares them with every child\n org it manages, without exposing them publicly. Child orgs created\n later gain access automatically. Instances, sessions, executions and\n environments are never platform-visible — each child org instantiates\n the shared blueprint inside its own tenant boundary.\n\n Only valid for blueprint kinds with supports_platform: true, and only\n when the owning org owns at least one IdentityProvider.\n\n FGA tuple: resource#platform_viewer@identity_provider:\u003cidp\u003e#platform_user"
+        }
+      ]
+    },
+    {
+      "name": "ConversationLane",
+      "description": "ConversationLane distinguishes customer-visible items from internal ones.\n\n @internal\n channel-conversations DD-002: every timeline item has a lane. lane_internal\n is reserved now and first written when internal notes ship (a T03\n v1-stretch decision); escalation events land there in T03.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ConversationLane",
+      "values": [
+        {
+          "name": "lane_public",
+          "number": 1,
+          "description": "The customer sees this item (their message, a delivered reply, a send)."
+        },
+        {
+          "name": "lane_internal",
+          "number": 2,
+          "description": "Org-internal item (escalations, notes); the customer never sees it."
+        }
+      ]
+    },
+    {
+      "name": "ConversationItemAuthor",
+      "description": "ConversationItemAuthor names who authored a timeline item.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ConversationItemAuthor",
+      "values": [
+        {
+          "name": "author_customer",
+          "number": 1,
+          "description": "The external customer."
+        },
+        {
+          "name": "author_agent",
+          "number": 2,
+          "description": "The serving agent."
+        },
+        {
+          "name": "author_teammate",
+          "number": 3,
+          "description": "An org human replying as the business."
+        },
+        {
+          "name": "author_platform",
+          "number": 4,
+          "description": "Platform-authored conversation copy (e.g. the takeover\n acknowledgment), neither the agent's words nor a teammate's.\n\n @internal\n channel-conversations DD-005 D-d: acknowledgment rows carry the\n platform outbound origin (lands in T03); rendering them as the agent\n would be a lie. The value exists from day one so the item vocabulary\n never needs a patch when the first platform row appears."
+        }
+      ]
+    },
+    {
+      "name": "ChannelDeliveryStatus",
+      "description": "ChannelDeliveryStatus is the delivery record lifecycle.\n\n @internal\n pending -\u003e delivering is the atomic claim (single winner across\n replicas). delivering -\u003e delivered | pending (retry, with backoff via\n next_attempt_at) | failed (dead-lettered after max attempts).",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus",
+      "values": [
+        {
+          "name": "pending",
+          "number": 1,
+          "description": "Awaiting the execution's terminal phase, or awaiting (re)claim."
+        },
+        {
+          "name": "delivering",
+          "number": 2,
+          "description": "Claimed by a delivery worker; provider I/O in flight."
+        },
+        {
+          "name": "delivered",
+          "number": 3,
+          "description": "Reply delivered to the provider."
+        },
+        {
+          "name": "failed",
+          "number": 4,
+          "description": "Dead-lettered after exhausting attempts; last_error records why."
+        }
+      ]
+    },
+    {
+      "name": "ChannelReceiptState",
+      "description": "ChannelReceiptState is the provider-reported delivery progress of an\n accepted outbound message, as learned from delivery receipts.\n\n @internal\n DD-016 D6. Provider-neutral four-state vocabulary; WhatsApp's fifth\n value `played` (voice playback) maps to receipt_read (DD-016 D8), and\n the raw webhook payload retains the verbatim value. Values carry the\n receipt_ prefix because proto3 enum values are package-scoped —\n `delivered` and `failed` are taken by ChannelDeliveryStatus — which is\n also a feature: the send-attempt axis and the receipt axis can never\n be confused on the wire. Enum numbers are IDENTITY only; the stamp's\n monotonic ordering lives in an explicit rank map in the handler, so a\n future value cannot silently mis-rank.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState",
+      "values": [
+        {
+          "name": "receipt_sent",
+          "number": 1,
+          "description": "The provider accepted the message into its delivery queue."
+        },
+        {
+          "name": "receipt_delivered",
+          "number": 2,
+          "description": "The message reached the recipient's device."
+        },
+        {
+          "name": "receipt_read",
+          "number": 3,
+          "description": "The recipient viewed the message (or played it, for voice)."
+        },
+        {
+          "name": "receipt_failed",
+          "number": 4,
+          "description": "The provider could not deliver the message; receipt_detail and\n receipt_error_code carry the provider's verdict."
+        }
+      ]
+    },
+    {
+      "name": "ChannelOutboundOrigin",
+      "description": "ChannelOutboundOrigin records which trust context authorized a\n business-initiated send.\n\n @internal\n DD-002 D9: the two calling contexts carry different trust levels, so\n recipient policy is surface-aware — channel-conversation sends are\n bounded to known senders, operator-authored sends to caps. Stamped by\n the reach resolver (its single writer) for audit; never caller-supplied.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin",
+      "values": [
+        {
+          "name": "channel_conversation",
+          "number": 1,
+          "description": "The send came from an agent run created by an inbound channel\n message; the recipient must be a known sender on the channel."
+        },
+        {
+          "name": "operator",
+          "number": 2,
+          "description": "The send was authored by an operator (console, CLI, SDK, scheduled\n run); any recipient, bounded by caps."
         }
       ]
     }

@@ -7,17 +7,27 @@ import ai.stigmer.agentic.agentchannel.v1.AgentChannelCommandControllerGrpc;
 import ai.stigmer.agentic.agentchannel.v1.AgentChannelId;
 import ai.stigmer.agentic.agentchannel.v1.AgentChannelList;
 import ai.stigmer.agentic.agentchannel.v1.AgentChannelQueryControllerGrpc;
+import ai.stigmer.agentic.agentchannel.v1.ChannelConversation;
+import ai.stigmer.agentic.agentchannel.v1.ChannelConversationCommandControllerGrpc;
+import ai.stigmer.agentic.agentchannel.v1.ChannelConversationList;
+import ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryControllerGrpc;
 import ai.stigmer.agentic.agentchannel.v1.ChannelMessageCommandControllerGrpc;
 import ai.stigmer.agentic.agentchannel.v1.ChannelMessageQueryControllerGrpc;
 import ai.stigmer.agentic.agentchannel.v1.ChannelTemplates;
 import ai.stigmer.agentic.agentchannel.v1.CompleteChannelInstallInput;
+import ai.stigmer.agentic.agentchannel.v1.ConversationControlInput;
+import ai.stigmer.agentic.agentchannel.v1.ConversationTimeline;
+import ai.stigmer.agentic.agentchannel.v1.EscalateConversationInput;
 import ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest;
+import ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput;
 import ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput;
 import ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput;
 import ai.stigmer.agentic.agentchannel.v1.ListAgentChannelsRequest;
+import ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput;
 import ai.stigmer.agentic.agentchannel.v1.ListChannelTemplatesInput;
 import ai.stigmer.agentic.agentchannel.v1.ListMessagingChannelsInput;
 import ai.stigmer.agentic.agentchannel.v1.MessagingChannels;
+import ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput;
 import ai.stigmer.agentic.agentchannel.v1.SendChannelMessageInput;
 import ai.stigmer.agentic.agentchannel.v1.SendChannelMessageOutput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
@@ -27,12 +37,16 @@ import io.grpc.StatusRuntimeException;
 /** Provides operations on agentchannel resources. */
 public final class AgentChannelClient {
     private final AgentChannelCommandControllerGrpc.AgentChannelCommandControllerBlockingStub command;
+    private final ChannelConversationCommandControllerGrpc.ChannelConversationCommandControllerBlockingStub channelConversationCommand;
+    private final ChannelConversationQueryControllerGrpc.ChannelConversationQueryControllerBlockingStub channelConversationQuery;
     private final ChannelMessageCommandControllerGrpc.ChannelMessageCommandControllerBlockingStub channelMessageCommand;
     private final ChannelMessageQueryControllerGrpc.ChannelMessageQueryControllerBlockingStub channelMessageQuery;
     private final AgentChannelQueryControllerGrpc.AgentChannelQueryControllerBlockingStub query;
 
     AgentChannelClient(Channel channel) {
         this.command = AgentChannelCommandControllerGrpc.newBlockingStub(channel);
+        this.channelConversationCommand = ChannelConversationCommandControllerGrpc.newBlockingStub(channel);
+        this.channelConversationQuery = ChannelConversationQueryControllerGrpc.newBlockingStub(channel);
         this.channelMessageCommand = ChannelMessageCommandControllerGrpc.newBlockingStub(channel);
         this.channelMessageQuery = ChannelMessageQueryControllerGrpc.newBlockingStub(channel);
         this.query = AgentChannelQueryControllerGrpc.newBlockingStub(channel);
@@ -71,6 +85,48 @@ public final class AgentChannelClient {
     public AgentChannel delete(String id) {
         try {
             return command.delete(AgentChannelId.newBuilder().setValue(id).build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public SendChannelMessageOutput reply(ReplyToConversationInput input) {
+        try {
+            return channelConversationCommand.reply(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ChannelConversation takeOver(ConversationControlInput input) {
+        try {
+            return channelConversationCommand.takeOver(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ChannelConversation handBack(ConversationControlInput input) {
+        try {
+            return channelConversationCommand.handBack(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ChannelConversation clearAttention(ConversationControlInput input) {
+        try {
+            return channelConversationCommand.clearAttention(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ChannelConversation escalate(EscalateConversationInput input) {
+        try {
+            return channelConversationCommand.escalate(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ChannelConversationList listConversations(ListChannelConversationsInput input) {
+        try {
+            return channelConversationQuery.listConversations(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ConversationTimeline getTimeline(GetConversationTimelineInput input) {
+        try {
+            return channelConversationQuery.getTimeline(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

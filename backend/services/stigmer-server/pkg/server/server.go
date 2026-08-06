@@ -358,6 +358,15 @@ func Run() error {
 
 	log.Info().Msg("Registered ChannelMessage controllers")
 
+	// Create and register ChannelConversation controller — the
+	// conversation participation surface (cloud-only runtime; queries
+	// answer empty, commands refuse with FAILED_PRECONDITION).
+	channelConversationController := agentchannelcontroller.NewChannelConversationController()
+	agentchannelv1.RegisterChannelConversationQueryControllerServer(grpcServer, channelConversationController)
+	agentchannelv1.RegisterChannelConversationCommandControllerServer(grpcServer, channelConversationController)
+
+	log.Info().Msg("Registered ChannelConversation controllers")
+
 	// Create and register ChannelApp controller (BYO channel apps, T04
 	// item 2) — shares the Environment/OAuthApp encryption service.
 	channelAppController := channelappcontroller.NewChannelAppController(store, secretService)

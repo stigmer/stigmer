@@ -273,6 +273,22 @@ public enum IamPermission
    * <code>can_manage_cursor_accounts = 35;</code>
    */
   can_manage_cursor_accounts(35),
+  /**
+   * <pre>
+   * Resource-level permission to participate in an agent channel's
+   * conversations: reply to customers as the business, take over and
+   * hand back the control token, and clear the attention flag.
+   *
+   * &#64;internal
+   * channel-conversations DD-010: computed from the participant role on
+   * agent_channel. Deliberately distinct from can_edit — "may talk to
+   * this channel's customers" and "may configure this channel" are
+   * different powers, and the ISC pilot's trainers hold only the first.
+   * </pre>
+   *
+   * <code>can_participate = 36;</code>
+   */
+  can_participate(36),
   UNRECOGNIZED(-1),
   ;
 
@@ -533,6 +549,22 @@ public enum IamPermission
    * <code>can_manage_cursor_accounts = 35;</code>
    */
   public static final int can_manage_cursor_accounts_VALUE = 35;
+  /**
+   * <pre>
+   * Resource-level permission to participate in an agent channel's
+   * conversations: reply to customers as the business, take over and
+   * hand back the control token, and clear the attention flag.
+   *
+   * &#64;internal
+   * channel-conversations DD-010: computed from the participant role on
+   * agent_channel. Deliberately distinct from can_edit — "may talk to
+   * this channel's customers" and "may configure this channel" are
+   * different powers, and the ISC pilot's trainers hold only the first.
+   * </pre>
+   *
+   * <code>can_participate = 36;</code>
+   */
+  public static final int can_participate_VALUE = 36;
 
 
   public final int getNumber() {
@@ -594,6 +626,7 @@ public enum IamPermission
       case 33: return can_use_records;
       case 34: return can_create_datastore;
       case 35: return can_manage_cursor_accounts;
+      case 36: return can_participate;
       default: return null;
     }
   }
