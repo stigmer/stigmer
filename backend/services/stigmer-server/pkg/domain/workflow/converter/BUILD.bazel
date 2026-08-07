@@ -27,6 +27,8 @@ go_test(
     embed = [":converter"],
     deps = [
         "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "@in_gopkg_yaml_v3//:yaml_v3",
         "@org_golang_google_protobuf//types/known/structpb",
     ],

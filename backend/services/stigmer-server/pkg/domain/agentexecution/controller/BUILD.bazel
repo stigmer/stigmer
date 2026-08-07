@@ -88,6 +88,7 @@ go_test(
     name = "controller_test",
     srcs = [
         "agentexecution_controller_test.go",
+        "create_execution_context_workflow_refs_test.go",
         "create_session_bootstrap_test.go",
         "create_target_resolution_test.go",
         "get_artifact_content_test.go",
@@ -110,6 +111,7 @@ go_test(
         "//apis/stubs/go/ai/stigmer/agentic/agent/v1:agent",
         "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
         "//apis/stubs/go/ai/stigmer/agentic/session/v1:session",
+        "//apis/stubs/go/ai/stigmer/agentic/workflow/v1:workflow",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//backend/libs/go/grpc/interceptors/apiresource",
@@ -129,5 +131,6 @@ go_test(
         "@org_golang_google_grpc//metadata",
         "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//types/known/structpb",
     ],
 )
