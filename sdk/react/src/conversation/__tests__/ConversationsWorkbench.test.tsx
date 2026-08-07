@@ -289,6 +289,37 @@ describe("ConversationsWorkbench", () => {
     }
   });
 
+  it("resets the composer draft when switching conversations (F-22)", async () => {
+    // The detail column is keyed by conversation identity (DD-014), so a
+    // switch REMOUNTS it — a half-typed reply to customer A must never
+    // sit in the box one Enter away from being sent to customer B. This
+    // is the remount's observable contract: remove the key and this
+    // fails.
+    const user = userEvent.setup();
+    const other = { agentChannelId: "ach_wa", conversationKey: "15550009999" };
+    const client = createMockStigmer({
+      listConversations: vi.fn().mockResolvedValue({
+        items: [row(), row({ conversationKey: other.conversationKey, displayName: "Sam" })],
+        totalCount: 2,
+      }),
+    });
+    const { rerender } = render(
+      <ConversationsWorkbench org="acme" selected={SELECTED} onSelectionChange={vi.fn()} />,
+      { wrapper: wrapper(client) },
+    );
+    const input = await screen.findByLabelText("Reply to the customer");
+
+    await user.type(input, "half-typed reply meant for Pat");
+    expect((input as HTMLTextAreaElement).value).toBe("half-typed reply meant for Pat");
+
+    rerender(
+      <ConversationsWorkbench org="acme" selected={other} onSelectionChange={vi.fn()} />,
+    );
+
+    const freshInput = await screen.findByLabelText("Reply to the customer");
+    expect((freshInput as HTMLTextAreaElement).value).toBe("");
+  });
+
   it("disables the composer on Slack with the honest reason", async () => {
     const client = createMockStigmer({
       list: vi.fn().mockResolvedValue({ items: [slackChannel()], totalCount: 1 }),

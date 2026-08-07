@@ -22,6 +22,29 @@ function Harness() {
   );
 }
 
+/**
+ * The conversation-timeline shape (channel-conversations F-09): the content
+ * wrapper legitimately sits inside a loading branch, so it does NOT exist on
+ * the first render — the hook must attach its ResizeObserver whenever the
+ * wrapper appears, not only at mount.
+ */
+function LateContentHarness({ showContent }: { readonly showContent: boolean }) {
+  const result = useAutoScroll();
+  latestResult = result;
+  return (
+    <div ref={result.scrollRef} data-testid="scroller">
+      {showContent ? (
+        <div ref={result.contentRef} data-testid="content">
+          <p>Hello</p>
+        </div>
+      ) : (
+        <div data-testid="skeleton" />
+      )}
+      <div ref={result.sentinelRef} data-testid="sentinel" />
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Observer mocks
 // ---------------------------------------------------------------------------
@@ -124,6 +147,30 @@ describe("useAutoScroll", () => {
   it("observes content with ResizeObserver on mount", () => {
     render(<Harness />);
     expect(roObserve).toHaveBeenCalledWith(screen.getByTestId("content"));
+  });
+
+  it("observes content that mounts after the first render (F-09: loading-branch consumers)", () => {
+    const { rerender } = render(<LateContentHarness showContent={false} />);
+    expect(roObserve).not.toHaveBeenCalled();
+
+    // The async first fill: the skeleton gives way to real content.
+    rerender(<LateContentHarness showContent />);
+    expect(roObserve).toHaveBeenCalledWith(screen.getByTestId("content"));
+  });
+
+  it("disconnects and re-observes across content unmount/remount round-trips", () => {
+    const { rerender } = render(<LateContentHarness showContent />);
+    expect(roObserve).toHaveBeenCalledTimes(1);
+
+    // Back to a loading state (e.g. an identity switch resets the data
+    // hook): the observer must let go of the dead node…
+    rerender(<LateContentHarness showContent={false} />);
+    expect(roDisconnect).toHaveBeenCalled();
+
+    // …and adopt the replacement when content returns.
+    rerender(<LateContentHarness showContent />);
+    expect(roObserve).toHaveBeenCalledTimes(2);
+    expect(roObserve).toHaveBeenLastCalledWith(screen.getByTestId("content"));
   });
 
   it("configures IO with 80px bottom root margin", () => {

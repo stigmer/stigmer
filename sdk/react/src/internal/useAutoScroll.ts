@@ -11,12 +11,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const NEAR_BOTTOM_MARGIN_PX = 80;
 
 export interface UseAutoScrollReturn {
-  /** Attach to the scrollable container. */
+  /** Attach to the scrollable container. Must be mounted from the first render. */
   readonly scrollRef: React.RefObject<HTMLDivElement | null>;
-  /** Attach to a zero-height div as the last child of the scroll container. */
+  /**
+   * Attach to a zero-height div as the last child of the scroll container.
+   * Must be mounted from the first render.
+   */
   readonly sentinelRef: React.RefObject<HTMLDivElement | null>;
-  /** Attach to a wrapper div around the thread content (ResizeObserver target). */
-  readonly contentRef: React.RefObject<HTMLDivElement | null>;
+  /**
+   * Attach to a wrapper div around the thread content (ResizeObserver
+   * target). MAY mount late or round-trip through unmount — a callback
+   * ref, so consumers whose content sits inside a loading branch (the
+   * conversation timeline) are observed the moment the wrapper appears.
+   */
+  readonly contentRef: React.RefCallback<HTMLDivElement>;
   /** True when the thread auto-scrolls to follow new content. */
   readonly isFollowing: boolean;
   /** Scroll to the latest content and re-engage follow mode. */
@@ -39,12 +47,24 @@ export interface UseAutoScrollReturn {
  * detects height growth and triggers rAF-batched scroll writes when
  * in the Following state.
  *
+ * Ref contract (asymmetric on purpose): the scroller and sentinel must
+ * exist from the first render — every thread renders its scroll pane
+ * unconditionally, and the observers that need them attach once at
+ * mount. The CONTENT wrapper may appear later or round-trip through
+ * unmount: chat threads legitimately render a loading skeleton first
+ * (the conversation timeline does), so `contentRef` is a callback ref
+ * that owns the ResizeObserver's lifecycle — React hands it the node on
+ * attach and `null` on detach, so the observer follows the wrapper
+ * wherever it goes, with no render cost. Attaching only at mount
+ * shipped channel-conversations F-09: a late-mounting wrapper was never
+ * observed, so every conversation opened at its oldest message and
+ * nothing ever scrolled the view.
+ *
  * @internal Not part of the public API.
  */
 export function useAutoScroll(): UseAutoScrollReturn {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const contentRef = useRef<HTMLDivElement | null>(null);
 
   const [isFollowing, setIsFollowing] = useState(true);
   const isFollowingRef = useRef(true);
@@ -86,9 +106,18 @@ export function useAutoScroll(): UseAutoScrollReturn {
   }, []);
 
   // --- ResizeObserver: scroll on content height growth while following ---
-  useEffect(() => {
-    const content = contentRef.current;
-    if (!content || !scrollRef.current) return;
+  // Lifecycle lives in the callback ref (not a run-once effect): the
+  // observer must adopt a wrapper that mounts after a loading branch and
+  // let go of one that unmounts — including on component unmount, where
+  // React also calls the ref with null. Its initial delivery on observe()
+  // doubles as the first-fill bottom pin. The scroller is read lazily at
+  // fire time (deliveries are async, after every commit's refs are set).
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const contentRef = useCallback((node: HTMLDivElement | null) => {
+    resizeObserverRef.current?.disconnect();
+    resizeObserverRef.current = null;
+    cancelAnimationFrame(rafIdRef.current);
+    if (!node) return;
 
     const ro = new ResizeObserver(() => {
       if (!isFollowingRef.current) return;
@@ -98,13 +127,8 @@ export function useAutoScroll(): UseAutoScrollReturn {
         if (el) el.scrollTop = el.scrollHeight;
       });
     });
-
-    ro.observe(content);
-
-    return () => {
-      ro.disconnect();
-      cancelAnimationFrame(rafIdRef.current);
-    };
+    ro.observe(node);
+    resizeObserverRef.current = ro;
   }, []);
 
   const jumpToLatest = useCallback(() => {

@@ -179,7 +179,18 @@ export function ConversationsWorkbench({
           />
         </div>
       ) : (
-        <div className="flex min-w-0 flex-1 flex-col">
+        // Keyed by conversation identity (DD-014: `key` remounts are the
+        // clean-reset pattern): every open starts a fresh detail column, so
+        // auto-scroll opens following at the newest message and the
+        // composer's draft and notice can never travel from one customer's
+        // conversation into another's (F-22). The data hooks live above
+        // this column, so the remount refetches nothing; the inbox pane
+        // stays outside it so its scroll position and filter survive.
+        // Channel ids never contain ":", so the joined key is unambiguous.
+        <div
+          key={`${selected.agentChannelId}:${selected.conversationKey}`}
+          className="flex min-w-0 flex-1 flex-col"
+        >
           <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
             <div className="min-w-0">
               <h2 className="truncate text-sm font-semibold text-foreground">
