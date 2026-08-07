@@ -144,6 +144,35 @@ describe("ConversationListPane", () => {
     ).toBeDefined();
   });
 
+  it("uses the house tooltip for the attention badge and no native titles anywhere (F-18)", () => {
+    const { container } = render(
+      <ConversationListPane
+        {...baseProps()}
+        conversations={[
+          conversation({
+            displayName: "Pat with a very long name that will truncate",
+            needsAttention: true,
+            attentionReason: "refund I cannot process",
+          }),
+        ]}
+      />,
+    );
+
+    // The truncation title on the row label is deliberately dropped
+    // (the full name renders in the open conversation's header), and
+    // the badge's reason moved to the house tooltip — so NO native
+    // title remains on the pane.
+    expect(container.querySelector("[title]")).toBeNull();
+    // The badge keeps its screen-reader name.
+    expect(
+      screen.getByText("Needs attention: refund I cannot process"),
+    ).toBeDefined();
+    // The tooltip trigger must not nest a button inside the row button
+    // or add a tab stop.
+    expect(container.querySelectorAll("button button")).toHaveLength(0);
+    expect(container.querySelectorAll("[tabindex]")).toHaveLength(0);
+  });
+
   it("marks a human-held conversation", () => {
     render(
       <ConversationListPane

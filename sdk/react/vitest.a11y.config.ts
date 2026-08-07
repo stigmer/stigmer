@@ -28,6 +28,14 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     include: ["src/**/*.a11y.test.tsx", "src/**/*.layout.test.tsx"],
+    // One file at a time: these tests measure REAL layout, paint, rAF
+    // timing, and (since the F-18 tooltip suite) real pointer movement.
+    // Parallel files in one headless Chromium contend for the same
+    // compositor and starve each other's ResizeObserver/rAF delivery —
+    // measured locally as scroll-pin tests failing in whichever file ran
+    // beside a heavy neighbor, all green in isolation. The suite is
+    // seconds long; determinism buys more than parallelism here.
+    fileParallelism: false,
     browser: {
       enabled: true,
       provider: "playwright",

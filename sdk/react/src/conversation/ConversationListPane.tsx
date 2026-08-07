@@ -15,6 +15,12 @@ import { channelProviderOf } from "../channel/providers.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../internal/tooltip.js";
+import {
   conversationContactOf,
   conversationLabelOf,
 } from "./conversationPresentation.js";
@@ -150,28 +156,32 @@ export function ConversationListPane({
           )
         ) : (
           <>
-            <ul className="space-y-0.5">
-              {conversations.map((conversation) => (
-                <ConversationRow
-                  key={`${conversation.agentChannelId}:${conversation.conversationKey}`}
-                  conversation={conversation}
-                  label={conversationLabelOf(
-                    conversation,
-                    providerById.get(conversation.agentChannelId)?.id ?? null,
-                  )}
-                  contact={conversationContactOf(
-                    conversation,
-                    providerById.get(conversation.agentChannelId)?.id ?? null,
-                  )}
-                  isSelected={
-                    selected?.agentChannelId === conversation.agentChannelId &&
-                    selected?.conversationKey === conversation.conversationKey
-                  }
-                  onSelect={onSelect}
-                  now={now}
-                />
-              ))}
-            </ul>
+            {/* One context-only provider arms every row's attention
+                tooltip (the WorkspaceSidebar recents-list precedent). */}
+            <TooltipProvider>
+              <ul className="space-y-0.5">
+                {conversations.map((conversation) => (
+                  <ConversationRow
+                    key={`${conversation.agentChannelId}:${conversation.conversationKey}`}
+                    conversation={conversation}
+                    label={conversationLabelOf(
+                      conversation,
+                      providerById.get(conversation.agentChannelId)?.id ?? null,
+                    )}
+                    contact={conversationContactOf(
+                      conversation,
+                      providerById.get(conversation.agentChannelId)?.id ?? null,
+                    )}
+                    isSelected={
+                      selected?.agentChannelId === conversation.agentChannelId &&
+                      selected?.conversationKey === conversation.conversationKey
+                    }
+                    onSelect={onSelect}
+                    now={now}
+                  />
+                ))}
+              </ul>
+            </TooltipProvider>
             {hasMore && (
               <div className="flex justify-center py-2">
                 <Button
@@ -229,24 +239,33 @@ const ConversationRow = memo(function ConversationRow({
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <p className="truncate text-sm font-medium text-foreground" title={label}>
-              {label}
-            </p>
+            {/* No truncation title on the label (F-18): the full name
+                renders in the open conversation's header, so a native
+                tooltip here added noise without adding reach. */}
+            <p className="truncate text-sm font-medium text-foreground">{label}</p>
             {conversation.needsAttention && (
-              <span
-                className="shrink-0"
-                title={conversation.attentionReason || "Needs attention"}
-              >
-                <TriangleAlert
-                  aria-hidden="true"
-                  className="size-3.5 text-destructive"
-                />
-                <span className="sr-only">
-                  {conversation.attentionReason
-                    ? `Needs attention: ${conversation.attentionReason}`
-                    : "Needs attention"}
-                </span>
-              </span>
+              // The reason rides the house tooltip (F-18). The trigger
+              // renders as a span — it sits INSIDE the row button, so a
+              // default (button) trigger would nest buttons — and stays
+              // out of the tab order; the sr-only text remains the
+              // accessible name. The full reason is also always visible
+              // in the open conversation's attention banner.
+              <Tooltip>
+                <TooltipTrigger render={<span className="shrink-0" />}>
+                  <TriangleAlert
+                    aria-hidden="true"
+                    className="size-3.5 text-destructive"
+                  />
+                  <span className="sr-only">
+                    {conversation.attentionReason
+                      ? `Needs attention: ${conversation.attentionReason}`
+                      : "Needs attention"}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  {conversation.attentionReason || "Needs attention"}
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
           {contact !== null && (

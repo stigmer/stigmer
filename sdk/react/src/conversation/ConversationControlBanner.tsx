@@ -153,23 +153,31 @@ export function ConversationControlBanner({
             {pendingCommands.has("handBack") ? "Handing back…" : "Hand back to agent"}
           </Button>
         ) : (
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() =>
-              void takeOver().catch(() => {
-                // Recorded in commandErrors and rendered below.
-              })
-            }
-            disabled={!supportsStaffReplies || pendingCommands.has("takeOver")}
-            title={
-              supportsStaffReplies
-                ? undefined
-                : "This channel's provider has no send lane for staff messages yet — a takeover would silence the agent with no way to reply."
-            }
-          >
-            {pendingCommands.has("takeOver") ? "Taking over…" : "Take over"}
-          </Button>
+          <div className="flex items-center gap-2">
+            {!supportsStaffReplies && (
+              // Visible text, never a native title (F-18): a disabled
+              // Button swallows hover (disabled:pointer-events-none) and
+              // leaves the tab order, so a title on it is unreachable by
+              // every input method. Kept short — the composer's own
+              // notice already explains the missing staff reply lane.
+              <span className="text-xs text-muted-foreground">
+                This channel&apos;s provider has no staff send lane yet — a
+                takeover would silence the agent with no way to reply.
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() =>
+                void takeOver().catch(() => {
+                  // Recorded in commandErrors and rendered below.
+                })
+              }
+              disabled={!supportsStaffReplies || pendingCommands.has("takeOver")}
+            >
+              {pendingCommands.has("takeOver") ? "Taking over…" : "Take over"}
+            </Button>
+          </div>
         )}
       </div>
 

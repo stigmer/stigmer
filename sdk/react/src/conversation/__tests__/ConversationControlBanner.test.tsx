@@ -157,12 +157,19 @@ describe("ConversationControlBanner", () => {
     expect(screen.getByRole("button", { name: "Hand back to agent" })).toBeDefined();
   });
 
-  it("disables takeover on senderless providers with the reason", () => {
-    render(<ConversationControlBanner {...baseProps()} supportsStaffReplies={false} />);
+  it("disables takeover on senderless providers with the reason VISIBLE (F-18)", () => {
+    const { container } = render(
+      <ConversationControlBanner {...baseProps()} supportsStaffReplies={false} />,
+    );
 
     const button = screen.getByRole("button", { name: "Take over" });
     expect(button.hasAttribute("disabled")).toBe(true);
-    expect(button.getAttribute("title")).toMatch(/no send lane for staff messages/);
+    // The reason must be visible text, never a native title: a disabled
+    // Button swallows hover (disabled:pointer-events-none) and leaves
+    // the tab order, so a title there is unreachable by EVERY input
+    // method — mouse, keyboard, and touch alike.
+    expect(screen.getByText(/no staff send lane/)).toBeDefined();
+    expect(container.querySelector("[title]")).toBeNull();
   });
 
   it("renders a command failure verbatim beside the controls", () => {

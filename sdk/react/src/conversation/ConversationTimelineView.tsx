@@ -10,6 +10,12 @@ import { channelProviderOf, type ChannelProviderId } from "../channel/providers.
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
 import { JumpToLatestButton } from "../internal/JumpToLatestButton.js";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../internal/tooltip.js";
 import { useAutoScroll } from "../internal/useAutoScroll.js";
 import {
   authorKindOf,
@@ -82,72 +88,76 @@ export function ConversationTimelineView({
   const showsCustomerMessages = descriptor?.timelineIncludesCustomerMessages ?? true;
 
   return (
-    <div
-      aria-label="Conversation timeline"
-      className={cn("relative flex min-h-0 flex-1 flex-col", className)}
-    >
+    // The provider is context-only (no DOM node); one per view arms
+    // every status-glyph tooltip below (the WorkspaceSidebar precedent).
+    <TooltipProvider>
       <div
-        ref={scrollRef}
-        className="min-h-0 flex-1 overflow-y-auto [overflow-anchor:none] px-4 py-3"
+        aria-label="Conversation timeline"
+        className={cn("relative flex min-h-0 flex-1 flex-col", className)}
       >
-        {!showsCustomerMessages && descriptor && (
-          <div className="mb-3 flex items-start gap-2 rounded-md border border-border bg-muted-faint px-3 py-2 text-xs text-muted-foreground">
-            <Info aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
-            <p>
-              Customer messages on {descriptor.label} channels aren&apos;t shown
-              here yet — this thread has replies, sends, and internal events only.
-            </p>
-          </div>
-        )}
+        <div
+          ref={scrollRef}
+          className="min-h-0 flex-1 overflow-y-auto [overflow-anchor:none] px-4 py-3"
+        >
+          {!showsCustomerMessages && descriptor && (
+            <div className="mb-3 flex items-start gap-2 rounded-md border border-border bg-muted-faint px-3 py-2 text-xs text-muted-foreground">
+              <Info aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+              <p>
+                Customer messages on {descriptor.label} channels aren&apos;t shown
+                here yet — this thread has replies, sends, and internal events only.
+              </p>
+            </div>
+          )}
 
-        {isLoading ? (
-          <TimelineSkeleton />
-        ) : error ? (
-          <p className="px-2 py-6 text-center text-sm text-destructive">
-            {getUserMessage(error)}
-          </p>
-        ) : items.length === 0 ? (
-          <EmptyState
-            variant="first-use"
-            icon={<MessageSquare className="size-8" />}
-            title="No messages yet"
-            description="The conversation's messages appear here as they happen."
-          />
-        ) : (
-          <div ref={contentRef}>
-            {hasOlder && (
-              <div className="flex justify-center pb-2">
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  onClick={loadOlder}
-                  disabled={isLoadingOlder}
-                >
-                  {isLoadingOlder ? "Loading…" : "Load earlier messages"}
-                </Button>
-              </div>
-            )}
-            {days.map((day) => (
-              <div key={day.label}>
-                <div
-                  className="my-2 text-center text-xs text-muted-foreground-faint"
-                  role="separator"
-                >
-                  {day.label}
+          {isLoading ? (
+            <TimelineSkeleton />
+          ) : error ? (
+            <p className="px-2 py-6 text-center text-sm text-destructive">
+              {getUserMessage(error)}
+            </p>
+          ) : items.length === 0 ? (
+            <EmptyState
+              variant="first-use"
+              icon={<MessageSquare className="size-8" />}
+              title="No messages yet"
+              description="The conversation's messages appear here as they happen."
+            />
+          ) : (
+            <div ref={contentRef}>
+              {hasOlder && (
+                <div className="flex justify-center pb-2">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={loadOlder}
+                    disabled={isLoadingOlder}
+                  >
+                    {isLoadingOlder ? "Loading…" : "Load earlier messages"}
+                  </Button>
                 </div>
-                <ul className="space-y-1.5">
-                  {day.items.map((item) => (
-                    <TimelineItemRow key={item.itemId} item={item} />
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        )}
-        <div ref={sentinelRef} aria-hidden="true" />
+              )}
+              {days.map((day) => (
+                <div key={day.label}>
+                  <div
+                    className="my-2 text-center text-xs text-muted-foreground-faint"
+                    role="separator"
+                  >
+                    {day.label}
+                  </div>
+                  <ul className="space-y-1.5">
+                    {day.items.map((item) => (
+                      <TimelineItemRow key={item.itemId} item={item} />
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+          <div ref={sentinelRef} aria-hidden="true" />
+        </div>
+        <JumpToLatestButton visible={!isFollowing} onClick={jumpToLatest} />
       </div>
-      <JumpToLatestButton visible={!isFollowing} onClick={jumpToLatest} />
-    </div>
+    </TooltipProvider>
   );
 }
 
@@ -199,6 +209,34 @@ const TimelineItemRow = memo(function TimelineItemRow({
 });
 
 /**
+ * A footer status glyph with its explanation on the house tooltip
+ * (F-18, replacing native `title` — OS-delayed, imprecise, invisible to
+ * keyboard and touch). The trigger renders as a plain `<span>` and is
+ * deliberately NOT focusable: these sit inside every bubble's footer,
+ * so focusable triggers would add several tab stops per message. Their
+ * accessible name stays the visible or `sr-only` text; the tooltip is
+ * the visual description only.
+ */
+function StatusHint({
+  hint,
+  className,
+  children,
+}: {
+  readonly hint: string;
+  readonly className?: string;
+  readonly children: React.ReactNode;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={<span className={className} />}>
+        {children}
+      </TooltipTrigger>
+      <TooltipContent side="top">{hint}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/**
  * The bubble footer: the item's instant plus, for outbound items, the
  * two status axes — our attempt and the provider's receipt, never
  * collapsed into one glyph.
@@ -216,25 +254,28 @@ function ItemFooter({ item }: { readonly item: ConversationTimelineItem }) {
     <p className="mt-1 flex items-center justify-end gap-1 text-xs text-muted-foreground-faint">
       <span>{time}</span>
       {attempt === "failed" && (
-        <span className="flex items-center gap-0.5 text-destructive" title="The platform could not deliver this message">
+        <StatusHint
+          hint="The platform could not deliver this message"
+          className="flex items-center gap-0.5 text-destructive"
+        >
           <TriangleAlert aria-hidden="true" className="size-3" />
           Not delivered
-        </span>
+        </StatusHint>
       )}
       {attempt === "suppressed" && (
-        <span
+        <StatusHint
+          hint="Withheld because a human had the conversation when it came due"
           className="flex items-center gap-0.5"
-          title="Withheld because a human had the conversation when it came due"
         >
           <Ban aria-hidden="true" className="size-3" />
           Held
-        </span>
+        </StatusHint>
       )}
       {(attempt === "pending" || attempt === "delivering") && (
-        <span className="flex items-center gap-0.5" title="Sending">
+        <StatusHint hint="Sending" className="flex items-center gap-0.5">
           <Clock aria-hidden="true" className="size-3" />
           <span className="sr-only">Sending</span>
-        </span>
+        </StatusHint>
       )}
       {attempt === "delivered" && <ReceiptTicks item={item} />}
     </p>
@@ -251,37 +292,37 @@ function ReceiptTicks({ item }: { readonly item: ConversationTimelineItem }) {
   const receipt = receiptOf(item);
   if (receipt === "failed") {
     return (
-      <span
+      <StatusHint
+        hint="The provider accepted this message but could not deliver it"
         className="flex items-center gap-0.5 text-destructive"
-        title="The provider accepted this message but could not deliver it"
       >
         <TriangleAlert aria-hidden="true" className="size-3" />
         Delivery failed
-      </span>
+      </StatusHint>
     );
   }
   if (receipt === "read") {
     return (
-      <span title="Read by the customer" className="text-primary">
+      <StatusHint hint="Read by the customer" className="text-primary">
         <CheckCheck aria-hidden="true" className="size-3.5" />
         <span className="sr-only">Read</span>
-      </span>
+      </StatusHint>
     );
   }
   if (receipt === "delivered") {
     return (
-      <span title="Delivered to the customer's device">
+      <StatusHint hint="Delivered to the customer's device">
         <CheckCheck aria-hidden="true" className="size-3.5" />
         <span className="sr-only">Delivered</span>
-      </span>
+      </StatusHint>
     );
   }
   // Handed to the provider; no (further) receipt yet.
   return (
-    <span title="Sent">
+    <StatusHint hint="Sent">
       <Check aria-hidden="true" className="size-3.5" />
       <span className="sr-only">Sent</span>
-    </span>
+    </StatusHint>
   );
 }
 

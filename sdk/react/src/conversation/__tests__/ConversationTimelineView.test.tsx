@@ -173,6 +173,77 @@ describe("ConversationTimelineView", () => {
     expect(screen.getByText("Read")).toBeDefined();
   });
 
+  it("explains status glyphs with tooltips, never native titles, and adds no tab stops (F-18)", () => {
+    // Every footer status variant at once: failed, suppressed, sending,
+    // and the three receipt ticks (sent / delivered / read) plus the
+    // receipt-failed arm.
+    const { container } = render(
+      <ConversationTimelineView
+        {...baseProps()}
+        items={[
+          item("dl:1", {
+            author: ConversationItemAuthor.author_agent,
+            text: "failed send",
+            deliveryStatus: ChannelDeliveryStatus.failed,
+          }),
+          item("ob:2", {
+            author: ConversationItemAuthor.author_agent,
+            text: "held send",
+            deliveryStatus: ChannelDeliveryStatus.suppressed,
+          }),
+          item("ob:3", {
+            author: ConversationItemAuthor.author_teammate,
+            text: "sending now",
+            deliveryStatus: ChannelDeliveryStatus.pending,
+          }),
+          item("ob:4", {
+            author: ConversationItemAuthor.author_teammate,
+            text: "sent",
+            deliveryStatus: ChannelDeliveryStatus.delivered,
+          }),
+          item("ob:5", {
+            author: ConversationItemAuthor.author_teammate,
+            text: "delivered",
+            deliveryStatus: ChannelDeliveryStatus.delivered,
+            receiptState: ChannelReceiptState.receipt_delivered,
+          }),
+          item("ob:6", {
+            author: ConversationItemAuthor.author_teammate,
+            text: "read",
+            deliveryStatus: ChannelDeliveryStatus.delivered,
+            receiptState: ChannelReceiptState.receipt_read,
+          }),
+          item("ob:7", {
+            author: ConversationItemAuthor.author_teammate,
+            text: "receipt failed",
+            deliveryStatus: ChannelDeliveryStatus.delivered,
+            receiptState: ChannelReceiptState.receipt_failed,
+          }),
+        ]}
+      />,
+    );
+
+    // Native titles are gone — OS-delayed, imprecise, keyboard- and
+    // touch-invisible. The house tooltip replaced them.
+    expect(container.querySelector("[title]")).toBeNull();
+    // The screen-reader names survive the change (name stays the
+    // sr-only/visible text; the tooltip is only the visual description).
+    expect(screen.getByText("Sending")).toBeDefined();
+    expect(screen.getByText("Sent")).toBeDefined();
+    expect(screen.getByText("Delivered")).toBeDefined();
+    expect(screen.getByText("Read")).toBeDefined();
+    expect(screen.getByText("Not delivered")).toBeDefined();
+    expect(screen.getByText("Held")).toBeDefined();
+    expect(screen.getByText("Delivery failed")).toBeDefined();
+    // Zero new tab stops: seven focusable glyphs per screen of messages
+    // would be an accessibility regression dressed as a fix. Nothing
+    // inside a message row may be focusable — the Jump-to-latest
+    // affordance (which manages its own tabIndex) lives outside the
+    // rows and stays the surface's only interactive element.
+    expect(container.querySelectorAll("li [tabindex]")).toHaveLength(0);
+    expect(container.querySelectorAll("li button")).toHaveLength(0);
+  });
+
   it("renders internal-lane events as system rows the customer never saw", () => {
     render(
       <ConversationTimelineView
