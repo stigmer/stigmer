@@ -77,6 +77,20 @@ describe("ConversationComposer", () => {
     expect((input as HTMLTextAreaElement).value).toBe("");
   });
 
+  it("shows the spinner and blocks input while a reply is in flight (F-05)", () => {
+    render(<ConversationComposer onSend={vi.fn()} isSending={true} disabledReason={null} />);
+
+    const button = screen.getByRole("button", { name: "Send reply" });
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+    expect(button.textContent).toContain("Sending…");
+    // The house in-flight glyph (the session composer's pattern): the
+    // static Send icon must not render while the reply is in flight.
+    expect(button.querySelector("svg.animate-spin")).not.toBeNull();
+    expect(
+      (screen.getByLabelText("Reply to the customer") as HTMLTextAreaElement).disabled,
+    ).toBe(true);
+  });
+
   it("keeps the draft and renders a thrown failure", async () => {
     const user = userEvent.setup();
     const onSend = vi

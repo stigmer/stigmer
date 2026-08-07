@@ -7,6 +7,7 @@ import { getUserMessage } from "@stigmer/sdk";
 import { ChannelSendOutcome } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import type { SendChannelMessageOutput } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { Button } from "../button/Button.js";
+import { SpinnerIcon } from "../composer/icons.js";
 import { useComposer } from "../composer/useComposer.js";
 
 /** Props for {@link ConversationComposer}. */
@@ -116,7 +117,10 @@ export function ConversationComposer({
           disabled={!composer.canSubmit || isSending}
           aria-label="Send reply"
         >
-          <Send aria-hidden="true" className="size-4" />
+          {/* The house in-flight glyph (the session composer's pattern):
+              the spinner replaces the Send icon so the button itself
+              reports progress, not just its label. */}
+          {isSending ? <SpinnerIcon /> : <Send aria-hidden="true" className="size-4" />}
           {isSending ? "Sending…" : "Send"}
         </Button>
       </div>

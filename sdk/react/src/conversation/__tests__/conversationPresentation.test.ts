@@ -17,6 +17,7 @@ import {
   conversationLabelOf,
   inboundPlaceholderOf,
   isInternalItem,
+  outboundItemIdOf,
   receiptOf,
   sendAttemptOf,
 } from "../conversationPresentation";
@@ -43,6 +44,12 @@ describe("isInternalItem", () => {
     expect(isInternalItem(item({ lane: ConversationLane.lane_internal }))).toBe(true);
     expect(isInternalItem(item({ lane: ConversationLane.lane_public }))).toBe(false);
     expect(isInternalItem(item({}))).toBe(false);
+  });
+});
+
+describe("outboundItemIdOf", () => {
+  it("names the timeline item an accepted staff reply appears under (the ob: namespace)", () => {
+    expect(outboundItemIdOf("obm_1")).toBe("ob:obm_1");
   });
 });
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { MessagesSquare } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import type { ChannelConversation } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+import { ChannelSendOutcome } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_io_pb";
 import { channelProviderOf } from "../channel/providers.js";
 import { useOrgAgentChannelList } from "../channel/useOrgAgentChannelList.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
@@ -17,6 +18,7 @@ import {
   conversationContactOf,
   conversationLabelOf,
   isInternalItem,
+  outboundItemIdOf,
 } from "./conversationPresentation.js";
 import { useConversation } from "./useConversation.js";
 import { useConversationList } from "./useConversationList.js";
@@ -126,17 +128,55 @@ export function ConversationsWorkbench({
     [onSelectionChange],
   );
 
+  // F-05: an accepted reply's ledger item is only visible once the next
+  // timeline read answers, so the composer's busy state must span
+  // click-to-visible, not end at the RPC. The settling record names the
+  // item the reply output promised (`ob:<outbound_message_id>`) and the
+  // selection it belongs to — carrying the selection makes stale state
+  // from a previously open conversation structurally inert (the derived
+  // id is null there) instead of needing a reset effect.
+  const [replySettling, setReplySettling] = useState<{
+    readonly selectionKey: string;
+    readonly itemId: string;
+  } | null>(null);
+  const selectionKey = selected
+    ? `${selected.agentChannelId}:${selected.conversationKey}`
+    : "";
+  const settlingItemId =
+    replySettling !== null && replySettling.selectionKey === selectionKey
+      ? replySettling.itemId
+      : null;
+  useEffect(() => {
+    if (settlingItemId === null) return;
+    if (timeline.items.some((item) => item.itemId === settlingItemId)) {
+      setReplySettling(null);
+    }
+  }, [timeline.items, settlingItemId]);
+
   const handleSend = useCallback(
     async (text: string) => {
       const output = await participation.reply(text);
       // The ledger row is committed before reply answers, so one head
       // refresh renders the REAL item (with its true status) — the SDK
       // never fabricates an optimistic item that might misstate what
-      // the provider did.
+      // the provider did. Until that item lands, the composer stays
+      // busy; even if this refetch fails, the head poll delivers the
+      // item and clears the hold. A refusal never settles: it restores
+      // the draft for editing, and holding the composer busy would
+      // fight the correction its notice asks for.
+      if (
+        output.outcome !== ChannelSendOutcome.refused &&
+        output.outboundMessageId !== ""
+      ) {
+        setReplySettling({
+          selectionKey,
+          itemId: outboundItemIdOf(output.outboundMessageId),
+        });
+      }
       timeline.refetch();
       return output;
     },
-    [participation.reply, timeline.refetch],
+    [participation.reply, timeline.refetch, selectionKey],
   );
 
   const detailLabel = detail.conversation
@@ -241,7 +281,9 @@ export function ConversationsWorkbench({
 
           <ConversationComposer
             onSend={handleSend}
-            isSending={participation.pendingCommands.has("reply")}
+            isSending={
+              participation.pendingCommands.has("reply") || settlingItemId !== null
+            }
             disabledReason={composerDisabledReason}
           />
         </div>

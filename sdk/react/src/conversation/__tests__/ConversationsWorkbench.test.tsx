@@ -202,6 +202,98 @@ describe("ConversationsWorkbench", () => {
     );
   });
 
+  it("keeps the composer busy after a reply until the sent item is on screen (F-05)", async () => {
+    const user = userEvent.setup();
+    const initialItems = [customerItem("wa:1", "where is my order?")];
+    let releaseRefetch!: (page: {
+      items: readonly unknown[];
+      nextPageToken: string;
+    }) => void;
+    const getTimeline = vi
+      .fn()
+      // Initial load, then the post-reply refetch held open under test
+      // control, then a default for any later poll tick.
+      .mockResolvedValueOnce({ items: initialItems, nextPageToken: "" })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            releaseRefetch = resolve;
+          }),
+      )
+      .mockResolvedValue({ items: initialItems, nextPageToken: "" });
+    const client = createMockStigmer({ getTimeline });
+    render(
+      <ConversationsWorkbench org="acme" selected={SELECTED} onSelectionChange={vi.fn()} />,
+      { wrapper: wrapper(client) },
+    );
+    const input = await screen.findByLabelText("Reply to the customer");
+
+    await user.type(input, "on my way{Enter}");
+
+    // The post-reply refetch firing proves the reply COMMAND fully
+    // settled; flush its state commits. The reply's ledger item is
+    // still in flight, so the composer must STILL be busy — an idle
+    // button over an emptied box with the message nowhere on screen is
+    // exactly the F-05 dead interval.
+    await waitFor(() => expect(getTimeline).toHaveBeenCalledTimes(2));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    const sendButton = screen.getByRole("button", { name: "Send reply" });
+    expect(sendButton.textContent).toContain("Sending…");
+    expect((sendButton as HTMLButtonElement).disabled).toBe(true);
+
+    // The refetch answers with the real ledger item (ob:<id>, the id
+    // the reply output promised) — busy clears only now.
+    releaseRefetch({
+      items: [
+        publicItem(
+          "ob:obm_1",
+          ConversationItemAuthor.author_teammate,
+          "2026-08-07T10:06:00Z",
+          "on my way",
+        ),
+        ...initialItems,
+      ],
+      nextPageToken: "",
+    });
+    await waitFor(() => expect(screen.getByText("on my way")).toBeDefined());
+    await waitFor(() => {
+      const btn = screen.getByRole("button", { name: "Send reply" });
+      expect(btn.textContent).not.toContain("Sending…");
+    });
+  });
+
+  it("frees the composer immediately on a refused reply — the draft needs editing, not a wait (F-05)", async () => {
+    const user = userEvent.setup();
+    const client = createMockStigmer({
+      reply: vi.fn().mockResolvedValue(
+        create(SendChannelMessageOutputSchema, {
+          outcome: ChannelSendOutcome.refused,
+          detail: "the 24-hour service window is closed",
+        }),
+      ),
+    });
+    render(
+      <ConversationsWorkbench org="acme" selected={SELECTED} onSelectionChange={vi.fn()} />,
+      { wrapper: wrapper(client) },
+    );
+    const input = await screen.findByLabelText("Reply to the customer");
+
+    await user.type(input, "did this arrive?{Enter}");
+
+    await waitFor(() =>
+      expect(screen.getByText("the 24-hour service window is closed")).toBeDefined(),
+    );
+    // Refusal restores the draft for editing — holding the composer
+    // busy would fight the correction the notice is asking for.
+    expect((input as HTMLTextAreaElement).value).toBe("did this arrive?");
+    const sendButton = screen.getByRole("button", { name: "Send reply" });
+    expect(sendButton.textContent).not.toContain("Sending…");
+    expect((sendButton as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("arms the handback confirm from a customer message that arrives on a poll tick (F-16, DD-007 D-e)", async () => {
     // The composed guard path: timeline poll → head upsert →
     // unansweredCustomer → confirm. The banner-level guard is pinned in

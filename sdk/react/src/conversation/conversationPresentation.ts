@@ -186,6 +186,18 @@ export function conversationContactOf(
 }
 
 /**
+ * The timeline item id an accepted staff reply appears under: the
+ * outbound ledger's `ob:` namespace over the reply output's
+ * `outbound_message_id` — the contract
+ * `useConversationParticipation.reply` documents ("the item will
+ * appear on the timeline as `ob:<that id>`"). The workbench's
+ * post-send busy state watches for exactly this id (F-05).
+ */
+export function outboundItemIdOf(outboundMessageId: string): string {
+  return `ob:${outboundMessageId}`;
+}
+
+/**
  * Newest-first timeline order: `(at, item_id)` descending — the exact
  * comparator the server pages with, so client-side merges can never
  * disagree with server pages about order.
