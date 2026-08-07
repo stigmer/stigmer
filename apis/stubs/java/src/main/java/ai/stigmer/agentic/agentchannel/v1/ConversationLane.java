@@ -11,8 +11,8 @@ package ai.stigmer.agentic.agentchannel.v1;
  *
  * &#64;internal
  * channel-conversations DD-002: every timeline item has a lane. lane_internal
- * is reserved now and first written when internal notes ship (a T03
- * v1-stretch decision); escalation events land there in T03.
+ * carries the internal event store's items — escalations and attention clears
+ * since T03 Sitting 4, notes when their writer lands (the v1-stretch decision).
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.agentchannel.v1.ConversationLane}

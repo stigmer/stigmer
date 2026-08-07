@@ -990,7 +990,7 @@ InitiateChannelInstallOutput initiateChannelInstallOutput = client.agentChannels
 
 Reply to a conversation as the business, through the same number the agent serves.
 
-The message is durably recorded and attempted inline; the outcome reports the truth of the attempt. A staff reply on an agent-held conversation is an implicit takeover: the agent goes quiet until handBack.
+The message is durably recorded and attempted inline; the outcome reports the truth of the attempt. A staff reply on an agent-held conversation is an implicit takeover: the agent goes quiet until handBack. Replying requires an existing conversation — the customer must have written first; an unknown conversation answers NOT_FOUND.
 
 <SDKTabs>
 <Tab value="TypeScript">

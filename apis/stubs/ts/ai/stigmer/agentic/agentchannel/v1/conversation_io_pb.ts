@@ -151,12 +151,13 @@ export const ChannelConversationSchema: GenMessage<ChannelConversation> = /*@__P
  * ConversationTimelineItem is one entry in a conversation's timeline.
  *
  * @internal
- * channel-conversations DD-004: computed on read by stitching three
+ * channel-conversations DD-004: computed on read by stitching four
  * stores — inbound webhook events, reply deliveries (rendered from the
  * same extraction the delivery posted, never from execution transcripts),
- * and the outbound ledger. item_id is source-prefixed ("wa:", "dl:",
- * "ob:", later "nt:"), which makes cross-store collisions structurally
- * impossible and gives cursors a total order without a synthetic sequence.
+ * the outbound ledger, and the internal-lane event store (joined at T03
+ * Sitting 4). item_id is source-prefixed ("wa:", "dl:", "ob:", "ev:"),
+ * which makes cross-store collisions structurally impossible and gives
+ * cursors a total order without a synthetic sequence.
  *
  * @generated from message ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem
  */
@@ -537,8 +538,8 @@ export const ConversationControlSchema: GenEnum<ConversationControl> = /*@__PURE
  *
  * @internal
  * channel-conversations DD-002: every timeline item has a lane. lane_internal
- * is reserved now and first written when internal notes ship (a T03
- * v1-stretch decision); escalation events land there in T03.
+ * carries the internal event store's items — escalations and attention clears
+ * since T03 Sitting 4, notes when their writer lands (the v1-stretch decision).
  *
  * @generated from enum ai.stigmer.agentic.agentchannel.v1.ConversationLane
  */

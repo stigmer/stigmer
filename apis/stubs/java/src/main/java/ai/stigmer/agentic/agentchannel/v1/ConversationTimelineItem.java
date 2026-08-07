@@ -10,12 +10,13 @@ package ai.stigmer.agentic.agentchannel.v1;
  * ConversationTimelineItem is one entry in a conversation's timeline.
  *
  * &#64;internal
- * channel-conversations DD-004: computed on read by stitching three
+ * channel-conversations DD-004: computed on read by stitching four
  * stores — inbound webhook events, reply deliveries (rendered from the
  * same extraction the delivery posted, never from execution transcripts),
- * and the outbound ledger. item_id is source-prefixed ("wa:", "dl:",
- * "ob:", later "nt:"), which makes cross-store collisions structurally
- * impossible and gives cursors a total order without a synthetic sequence.
+ * the outbound ledger, and the internal-lane event store (joined at T03
+ * Sitting 4). item_id is source-prefixed ("wa:", "dl:", "ob:", "ev:"),
+ * which makes cross-store collisions structurally impossible and gives
+ * cursors a total order without a synthetic sequence.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem}
@@ -711,12 +712,13 @@ private static final long serialVersionUID = 0L;
    * ConversationTimelineItem is one entry in a conversation's timeline.
    *
    * &#64;internal
-   * channel-conversations DD-004: computed on read by stitching three
+   * channel-conversations DD-004: computed on read by stitching four
    * stores — inbound webhook events, reply deliveries (rendered from the
    * same extraction the delivery posted, never from execution transcripts),
-   * and the outbound ledger. item_id is source-prefixed ("wa:", "dl:",
-   * "ob:", later "nt:"), which makes cross-store collisions structurally
-   * impossible and gives cursors a total order without a synthetic sequence.
+   * the outbound ledger, and the internal-lane event store (joined at T03
+   * Sitting 4). item_id is source-prefixed ("wa:", "dl:", "ob:", "ev:"),
+   * which makes cross-store collisions structurally impossible and gives
+   * cursors a total order without a synthetic sequence.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem}

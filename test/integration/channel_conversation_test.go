@@ -10,7 +10,9 @@ import (
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentchannelv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentchannel/v1"
+	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	channelappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/channelapp/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	iampolicyv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1"
@@ -774,6 +776,219 @@ func TestChannelConversation_StaffReplyDeliversThroughTheFrontDoor(t *testing.T)
 		}
 	}
 	assert.Equal(t, 1, teammateItems, "the staff reply is teammate-authored on the timeline")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The escalation ingest (T03 Sitting 4)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// TestChannelConversation_EscalationLifecycleFrontDoor walks the whole
+// attention lifecycle through the real front door (DD-008): a customer
+// webhook creates the session and conversation, the AGENT'S OWN sandbox
+// credential escalates (identity derived server-side from the session's
+// labels — the input carries only the reason), repeated escalation is
+// idempotent with the latest reason winning and history accumulating, the
+// escalation renders on the timeline as an internal-lane agent-authored
+// item, clearAttention dismisses in place without touching control, and a
+// takeover answers a fresh escalation by clearing it in the same motion
+// (A12) — every projection change leaving its event behind.
+func TestChannelConversation_EscalationLifecycleFrontDoor(t *testing.T) {
+	requireVisibilityHarness(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	agent := harness.CreateAgent(t, ctx, clients, "test-conv-escalation",
+		"You are a test agent for the escalation lifecycle.")
+	fx := applyWhatsAppChannel(t, ctx, clients, agent,
+		"conv-escalation-"+agent.GetMetadata().GetSlug())
+
+	installed, err := clients.AgentChannelCommand.InitiateInstall(ctx,
+		&agentchannelv1.InitiateChannelInstallInput{ResourceId: fx.ChannelID})
+	require.NoError(t, err)
+	require.True(t, installed.GetCompleted())
+
+	// The customer writes in on an AGENT-HELD conversation: the routed turn
+	// creates the session (labels stamped server-side), the binding, and
+	// upserts the conversation row — no seeder, the true front door.
+	const customer = "15550008888"
+	status, err := harness.PostWhatsAppWebhook(ctx, testHarness.Service.HTTPAddress(),
+		fx.ChannelAppID, fx.AppSecret,
+		harness.WhatsAppInboundTextPayload(fx.PhoneNumberID, customer,
+			"wamid.ESCALATE1", "Noor", "I need help with a refund"))
+	require.NoError(t, err)
+	require.Equal(t, 200, status)
+
+	// The broker's binding row carries the session id — the same identity
+	// the production sandbox token would be minted for.
+	var sessionID string
+	require.Eventually(t, func() bool {
+		id, queryErr := testHarness.AppPostgres.QueryScalar(ctx, fmt.Sprintf(
+			`SELECT session_id FROM s_agentic.channel_conversation_binding
+			  WHERE agent_channel_id = '%s' AND conversation_key = '%s'`,
+			fx.ChannelID, customer))
+		sessionID = id
+		return queryErr == nil && sessionID != ""
+	}, 30*time.Second, 250*time.Millisecond,
+		"the routed turn must create the session binding")
+
+	// The agent's credential: a session-scoped sandbox token, exactly what
+	// SandboxTokenService injects into the provisioned sandbox.
+	sandboxToken, err := harness.MintSandboxToken(harness.OwnerAccountID, sessionID)
+	require.NoError(t, err)
+	agentClients := harness.NewClients(harness.GRPCConnWithBearer(t,
+		testHarness.Service.GRPCAddress(), sandboxToken))
+
+	// The agent escalates. Note what the input does NOT carry: no channel
+	// id, no conversation key — the DD-003 identity doctrine, end to end.
+	flagged, err := agentClients.ChannelConversationCommand.Escalate(ctx,
+		&agentchannelv1.EscalateConversationInput{Reason: "customer needs a refund decision"})
+	require.NoError(t, err, "the channel session's own credential escalates")
+	assert.True(t, flagged.GetNeedsAttention())
+	assert.Equal(t, "customer needs a refund decision", flagged.GetAttentionReason())
+	assert.Equal(t, agentchannelv1.ConversationControl_control_agent, flagged.GetControl(),
+		"escalate-and-continue: the agent keeps serving (DD-008 D-a)")
+
+	// Repeated escalation: idempotent, latest reason wins, history grows.
+	flagged, err = agentClients.ChannelConversationCommand.Escalate(ctx,
+		&agentchannelv1.EscalateConversationInput{Reason: "customer is getting upset"})
+	require.NoError(t, err, "repeated escalation is harmless (DD-008 D-b)")
+	assert.Equal(t, "customer is getting upset", flagged.GetAttentionReason())
+	requireEventCount(t, ctx, fx.ChannelID, customer, "escalation", 2)
+
+	// The event's actor is the SESSION (A11) — the durable agent-side
+	// identity the token actually carries, never a guessed execution.
+	actor, err := testHarness.AppPostgres.QueryScalar(ctx, fmt.Sprintf(
+		`SELECT DISTINCT actor FROM s_agentic.channel_conversation_event
+		  WHERE agent_channel_id = '%s' AND conversation_key = '%s'
+		    AND kind = 'escalation'`, fx.ChannelID, customer))
+	require.NoError(t, err)
+	assert.Equal(t, sessionID, actor)
+
+	// The timeline carries the escalation on the INTERNAL lane, agent-
+	// authored — the fourth source (DD-004 D-a), with the customer's own
+	// message on the public lane beside it.
+	timeline, err := clients.ChannelConversationQuery.GetTimeline(ctx,
+		&agentchannelv1.GetConversationTimelineInput{
+			AgentChannelId:  fx.ChannelID,
+			ConversationKey: customer,
+		})
+	require.NoError(t, err)
+	internalItems := 0
+	for _, item := range timeline.GetItems() {
+		if item.GetLane() == agentchannelv1.ConversationLane_lane_internal {
+			internalItems++
+			assert.Equal(t, agentchannelv1.ConversationItemAuthor_author_agent,
+				item.GetAuthor(), "an escalation is the agent's own act")
+			assert.Empty(t, item.GetAuthoredBy(),
+				"a session actor never masquerades as a teammate identity")
+		}
+	}
+	assert.Equal(t, 2, internalItems, "both escalations are timeline history")
+
+	// The false-alarm dismissal: attention clears in place, control never
+	// moves, and the clear leaves its own event (DD-008 D-f).
+	controlInput := &agentchannelv1.ConversationControlInput{
+		AgentChannelId:  fx.ChannelID,
+		ConversationKey: customer,
+	}
+	dismissed, err := clients.ChannelConversationCommand.ClearAttention(ctx, controlInput)
+	require.NoError(t, err, "owner clearAttention should succeed (owner ⊆ participant)")
+	assert.False(t, dismissed.GetNeedsAttention())
+	assert.Empty(t, dismissed.GetAttentionReason(), "the row shows current state; history keeps the words")
+	assert.Equal(t, agentchannelv1.ConversationControl_control_agent, dismissed.GetControl())
+	requireEventCount(t, ctx, fx.ChannelID, customer, "attention_cleared", 1)
+
+	// A second dismissal is idempotent success — and appends NOTHING (the
+	// guarded-clear rule: a projection that changed nothing owes no history).
+	dismissed, err = clients.ChannelConversationCommand.ClearAttention(ctx, controlInput)
+	require.NoError(t, err, "clearing an already-clear conversation is an answer")
+	assert.False(t, dismissed.GetNeedsAttention())
+	requireEventCount(t, ctx, fx.ChannelID, customer, "attention_cleared", 1)
+
+	// A fresh escalation answered by a TAKEOVER: the arriving human clears
+	// the flag in the same atomic motion as the CAS (A12 / DD-008 D-f).
+	_, err = agentClients.ChannelConversationCommand.Escalate(ctx,
+		&agentchannelv1.EscalateConversationInput{Reason: "still stuck"})
+	require.NoError(t, err)
+	held, err := clients.ChannelConversationCommand.TakeOver(ctx, controlInput)
+	require.NoError(t, err)
+	assert.Equal(t, agentchannelv1.ConversationControl_control_human, held.GetControl())
+	assert.False(t, held.GetNeedsAttention(), "the human arrived — the escalation is answered")
+	requireEventCount(t, ctx, fx.ChannelID, customer, "attention_cleared", 2)
+}
+
+// TestChannelConversation_EscalateRefusesNonConversationCallers pins the
+// agent-audience boundary (DD-008 D-d): escalate trusts ONLY a session-
+// scoped sandbox credential whose session carries the server-stamped
+// channel labels. Direct principals, broken chains, and healthy console
+// sessions are each refused with their own honest answer — these are the
+// tests that fail if the reach is ever weakened or bypassed.
+func TestChannelConversation_EscalateRefusesNonConversationCallers(t *testing.T) {
+	requireVisibilityHarness(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	input := &agentchannelv1.EscalateConversationInput{Reason: "should never land"}
+
+	// A direct human principal is refused: humans escalate by taking the
+	// conversation over, never by borrowing the agent's ingest.
+	_, err := clients.ChannelConversationCommand.Escalate(ctx, input)
+	requireStatusCode(t, err, codes.PermissionDenied)
+
+	// A sandbox credential whose session does not exist: a broken chain.
+	ghostToken, err := harness.MintSandboxToken(harness.OwnerAccountID, "ses_does_not_exist")
+	require.NoError(t, err)
+	ghost := harness.NewClients(harness.GRPCConnWithBearer(t,
+		testHarness.Service.GRPCAddress(), ghostToken))
+	_, err = ghost.ChannelConversationCommand.Escalate(ctx, input)
+	requireStatusCode(t, err, codes.PermissionDenied)
+
+	// A HEALTHY console session of a real agent — no channel labels, so
+	// there is genuinely nothing to escalate: FAILED_PRECONDITION, the
+	// honest structural answer the model can adapt to (stop calling the
+	// tool), never an authority error.
+	agent := harness.CreateAgent(t, ctx, clients, "test-conv-escalate-console",
+		"You are a test agent for the console-session escalate refusal.")
+	instance, err := clients.AgentInstanceCommand.Create(ctx, &agentinstancev1.AgentInstance{
+		ApiVersion: harness.TestAPIVersion,
+		Kind:       "AgentInstance",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: "conv-escalate-console-inst",
+			Org:  agent.GetMetadata().GetOrg(),
+		},
+		Spec: &agentinstancev1.AgentInstanceSpec{AgentId: agent.GetMetadata().GetId()},
+	})
+	require.NoError(t, err)
+	session := harness.CreateTestSession(t, ctx, clients,
+		instance.GetMetadata().GetId(), sessionv1.Harness_HARNESS_NATIVE)
+	consoleToken, err := harness.MintSandboxToken(
+		harness.OwnerAccountID, session.GetMetadata().GetId())
+	require.NoError(t, err)
+	console := harness.NewClients(harness.GRPCConnWithBearer(t,
+		testHarness.Service.GRPCAddress(), consoleToken))
+	_, err = console.ChannelConversationCommand.Escalate(ctx, input)
+	requireStatusCode(t, err, codes.FailedPrecondition)
+}
+
+// requireEventCount polls until the conversation's internal-lane event
+// store holds exactly want rows of the given kind — escalation writes are
+// transactional but the assertion reads through a separate connection, so
+// polling keeps the test calm without ever sleeping blind.
+func requireEventCount(t *testing.T, ctx context.Context,
+	channelID, conversationKey, kind string, want int) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		count, err := testHarness.AppPostgres.QueryScalar(ctx, fmt.Sprintf(
+			`SELECT count(*) FROM s_agentic.channel_conversation_event
+			  WHERE agent_channel_id = '%s' AND conversation_key = '%s'
+			    AND kind = '%s'`, channelID, conversationKey, kind))
+		return err == nil && count == fmt.Sprintf("%d", want)
+	}, 15*time.Second, 250*time.Millisecond,
+		"expected %d %s event(s) for conversation %s", want, kind, conversationKey)
 }
 
 // requireEventIgnoredAsTakeover polls until one webhook event settles as
