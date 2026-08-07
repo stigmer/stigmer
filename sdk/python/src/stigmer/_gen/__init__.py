@@ -4,7 +4,7 @@ from ._bidi import BidiStream
 from ._client import GeneratedClient
 from ._agent import AgentClient, AgentInput, McpServerUsageInput, ToolApprovalOverrideInput, SubAgentInput, McpAccessInput, EnvVarDeclarationInput, DatastoreUsageInput
 from ._agentchannel import AgentChannelClient, AgentChannelInput, SlackChannelConfigInput, WhatsAppChannelConfigInput, RunConfigInput
-from ._agentexecution import AgentExecutionClient, AgentExecutionInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput
+from ._agentexecution import AgentExecutionClient, AgentExecutionInput, SessionSpecInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, ExecutionConfigInput, ContextManagementConfigInput, AttachmentInput, ConversationCatchupInput
 from ._agentinstance import AgentInstanceClient, AgentInstanceInput
 from ._agentshare import AgentShareClient, AgentShareInput, AgentShareMessagesInput
 from ._apikey import ApiKeyClient, ApiKeyInput
@@ -72,6 +72,7 @@ __all__ = [
     "ExecutionConfigInput",
     "ContextManagementConfigInput",
     "AttachmentInput",
+    "ConversationCatchupInput",
     "AgentInstanceClient",
     "AgentInstanceInput",
     "AgentShareClient",

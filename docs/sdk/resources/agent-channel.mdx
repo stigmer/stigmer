@@ -496,6 +496,7 @@ const agentChannel = await stigmer.agentChannel.apply({
   environmentRefs: [],
   appRef: {},
   proactiveMessagingEnabled: false,
+  runConfig: {},
 });
 ```
 </Tab>
@@ -513,6 +514,7 @@ agentChannel, err := client.AgentChannel.Apply(ctx, &stigmer.AgentChannelInput{
   EnvironmentRefs:           []stigmer.ResourceRef{},
   AppRef:                    &stigmer.ResourceRef{},
   ProactiveMessagingEnabled: false,
+  RunConfig:                 &stigmer.RunConfigInput{},
 })
 ```
 </Tab>
@@ -530,6 +532,7 @@ agent_channel = client.agent_channels.apply(AgentChannelInput(
     environment_refs=[],
     app_ref=None,
     proactive_messaging_enabled=False,
+    run_config=None,
 ))
 ```
 </Tab>
@@ -547,6 +550,7 @@ AgentChannel agentChannel = client.agentChannels().apply(AgentChannelInput.build
     .environmentRefs(List.of())
     .appRef(null)
     .proactiveMessagingEnabled(false)
+    .runConfig(null)
     .build());
 ```
 </Tab>
@@ -577,6 +581,7 @@ const agentChannel = await stigmer.agentChannel.create({
   environmentRefs: [],
   appRef: {},
   proactiveMessagingEnabled: false,
+  runConfig: {},
 });
 ```
 </Tab>
@@ -594,6 +599,7 @@ agentChannel, err := client.AgentChannel.Create(ctx, &stigmer.AgentChannelInput{
   EnvironmentRefs:           []stigmer.ResourceRef{},
   AppRef:                    &stigmer.ResourceRef{},
   ProactiveMessagingEnabled: false,
+  RunConfig:                 &stigmer.RunConfigInput{},
 })
 ```
 </Tab>
@@ -611,6 +617,7 @@ agent_channel = client.agent_channels.create(AgentChannelInput(
     environment_refs=[],
     app_ref=None,
     proactive_messaging_enabled=False,
+    run_config=None,
 ))
 ```
 </Tab>
@@ -628,6 +635,7 @@ AgentChannel agentChannel = client.agentChannels().create(AgentChannelInput.buil
     .environmentRefs(List.of())
     .appRef(null)
     .proactiveMessagingEnabled(false)
+    .runConfig(null)
     .build());
 ```
 </Tab>
@@ -658,6 +666,7 @@ const agentChannel = await stigmer.agentChannel.update({
   environmentRefs: [],
   appRef: {},
   proactiveMessagingEnabled: false,
+  runConfig: {},
 });
 ```
 </Tab>
@@ -675,6 +684,7 @@ agentChannel, err := client.AgentChannel.Update(ctx, &stigmer.AgentChannelInput{
   EnvironmentRefs:           []stigmer.ResourceRef{},
   AppRef:                    &stigmer.ResourceRef{},
   ProactiveMessagingEnabled: false,
+  RunConfig:                 &stigmer.RunConfigInput{},
 })
 ```
 </Tab>
@@ -692,6 +702,7 @@ agent_channel = client.agent_channels.update(AgentChannelInput(
     environment_refs=[],
     app_ref=None,
     proactive_messaging_enabled=False,
+    run_config=None,
 ))
 ```
 </Tab>
@@ -709,6 +720,7 @@ AgentChannel agentChannel = client.agentChannels().update(AgentChannelInput.buil
     .environmentRefs(List.of())
     .appRef(null)
     .proactiveMessagingEnabled(false)
+    .runConfig(null)
     .build());
 ```
 </Tab>
@@ -1152,6 +1164,7 @@ Input for creating or updating an Agent Channel.
     environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources whose values are provided to conversations on this channel.", typeDescriptionLink: "#resourceref" },
     appRef: { type: "ResourceRef", description: "Reference to the ChannelApp this channel installs through.", typeDescriptionLink: "#resourceref" },
     proactiveMessagingEnabled: { type: "boolean", description: "Whether the serving agent may send business-initiated (proactive) messages on this channel." },
+    runConfig: { type: "RunConfigInput", description: "Per-turn model choice and run bounds for conversations on this channel, overriding the platform's channel execution profile.", typeDescriptionLink: "#runconfiginput" },
   }}
 />
 
@@ -1179,6 +1192,19 @@ WhatsAppChannelConfig selects WhatsApp as the channel provider and names the Wha
 <TypeTable
   type={{
     phoneNumberId: { type: "string", description: "Phone number ID of the WhatsApp Business number this channel serves, from Meta's WhatsApp Manager (API Setup), e.g. \"106540352242922\"." },
+  }}
+/>
+
+### RunConfigInput
+
+RunConfig is the owner-settable model choice and run bounds.
+
+<TypeTable
+  type={{
+    modelName: { type: "string", description: "The model each run uses." },
+    maxCostUsd: { type: "number", description: "Maximum estimated cost in USD per run." },
+    maxToolRounds: { type: "number", description: "Maximum model-to-tools reasoning cycles per run." },
+    serviceTier: { type: "ServiceTier", description: "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
   }}
 />
 
@@ -1500,6 +1526,15 @@ AgentChannelInstallState tracks the provider install lifecycle.
 | `pending_install` | The channel exists but the provider install has not completed. |
 | `installed` | The provider install completed; credentials are stored and the channel serves traffic while spec.enabled is true. |
 | `revoked` | The provider revoked the installation (e.g. the Slack app was uninstalled from the workspace or tokens were revoked). |
+
+### ServiceTier
+
+ServiceTier selects the provider-side speed/service tier for an execution's model calls.
+
+| Value | Description |
+|-------|-------------|
+| `SERVICE_TIER_STANDARD` | Standard tier: the model's base-priced configuration, requested explicitly. |
+| `SERVICE_TIER_FAST` | Fast tier: the model's fast variant, billed at the registry's fast variant rates. |
 
 ### ConversationLane
 

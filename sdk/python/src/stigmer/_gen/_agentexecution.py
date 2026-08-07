@@ -191,6 +191,7 @@ class AgentExecutionInput:
     workspace_file_refs: list[str] = field(default_factory=list)
     activity_task_queue: str = ""
     supersedes_execution_id: str = ""
+    conversation_catchup: ConversationCatchupInput | None = None
 
     def _to_proto(self) -> api_pb2.AgentExecution:
         spec = spec_pb2.AgentExecutionSpec(
@@ -215,6 +216,8 @@ class AgentExecutionInput:
             spec.attachments.append(item._to_proto())
         if self.workspace_file_refs:
             spec.workspace_file_refs.extend(self.workspace_file_refs)
+        if self.conversation_catchup is not None:
+            spec.conversation_catchup.CopyFrom(self.conversation_catchup._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -409,5 +412,21 @@ class AttachmentInput:
             extract=self.extract,
             local_path=self.local_path,
         )
+        return msg
+
+
+@dataclass
+class ConversationCatchupInput:
+    """SDK input type for ConversationCatchup."""
+
+    digest: str = ""
+    window_end: str = ""
+
+    def _to_proto(self) -> spec_pb2.ConversationCatchup:
+        msg = spec_pb2.ConversationCatchup(
+            digest=self.digest,
+        )
+        if self.window_end:
+            msg.window_end.FromJsonString(self.window_end)
         return msg
 

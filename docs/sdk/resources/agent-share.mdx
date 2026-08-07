@@ -381,6 +381,7 @@ const agentShare = await stigmer.agentShare.apply({
   allowedOrigins: [],
   messages: {},
   environmentRefs: [],
+  runConfig: {},
 });
 ```
 </Tab>
@@ -397,6 +398,7 @@ agentShare, err := client.AgentShare.Apply(ctx, &stigmer.AgentShareInput{
   AllowedOrigins:  []string{},
   Messages:        &stigmer.AgentShareMessagesInput{},
   EnvironmentRefs: []stigmer.ResourceRef{},
+  RunConfig:       &stigmer.RunConfigInput{},
 })
 ```
 </Tab>
@@ -413,6 +415,7 @@ agent_share = client.agent_shares.apply(AgentShareInput(
     allowed_origins=[],
     messages=None,
     environment_refs=[],
+    run_config=None,
 ))
 ```
 </Tab>
@@ -429,6 +432,7 @@ AgentShare agentShare = client.agentShares().apply(AgentShareInput.builder()
     .allowedOrigins(List.of())
     .messages(null)
     .environmentRefs(List.of())
+    .runConfig(null)
     .build());
 ```
 </Tab>
@@ -458,6 +462,7 @@ const agentShare = await stigmer.agentShare.create({
   allowedOrigins: [],
   messages: {},
   environmentRefs: [],
+  runConfig: {},
 });
 ```
 </Tab>
@@ -474,6 +479,7 @@ agentShare, err := client.AgentShare.Create(ctx, &stigmer.AgentShareInput{
   AllowedOrigins:  []string{},
   Messages:        &stigmer.AgentShareMessagesInput{},
   EnvironmentRefs: []stigmer.ResourceRef{},
+  RunConfig:       &stigmer.RunConfigInput{},
 })
 ```
 </Tab>
@@ -490,6 +496,7 @@ agent_share = client.agent_shares.create(AgentShareInput(
     allowed_origins=[],
     messages=None,
     environment_refs=[],
+    run_config=None,
 ))
 ```
 </Tab>
@@ -506,6 +513,7 @@ AgentShare agentShare = client.agentShares().create(AgentShareInput.builder()
     .allowedOrigins(List.of())
     .messages(null)
     .environmentRefs(List.of())
+    .runConfig(null)
     .build());
 ```
 </Tab>
@@ -535,6 +543,7 @@ const agentShare = await stigmer.agentShare.update({
   allowedOrigins: [],
   messages: {},
   environmentRefs: [],
+  runConfig: {},
 });
 ```
 </Tab>
@@ -551,6 +560,7 @@ agentShare, err := client.AgentShare.Update(ctx, &stigmer.AgentShareInput{
   AllowedOrigins:  []string{},
   Messages:        &stigmer.AgentShareMessagesInput{},
   EnvironmentRefs: []stigmer.ResourceRef{},
+  RunConfig:       &stigmer.RunConfigInput{},
 })
 ```
 </Tab>
@@ -567,6 +577,7 @@ agent_share = client.agent_shares.update(AgentShareInput(
     allowed_origins=[],
     messages=None,
     environment_refs=[],
+    run_config=None,
 ))
 ```
 </Tab>
@@ -583,6 +594,7 @@ AgentShare agentShare = client.agentShares().update(AgentShareInput.builder()
     .allowedOrigins(List.of())
     .messages(null)
     .environmentRefs(List.of())
+    .runConfig(null)
     .build());
 ```
 </Tab>
@@ -690,6 +702,7 @@ Input for creating or updating an Agent Share.
     allowedOrigins: { type: "string[]", description: "Origins permitted to embed this share's chat widget." },
     messages: { type: "AgentShareMessagesInput", description: "Owner-customizable copy shown to visitors when a launch-gate limit refuses their message.", typeDescriptionLink: "#agentsharemessagesinput" },
     environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources whose values are provided to guest conversations on this share.", typeDescriptionLink: "#resourceref" },
+    runConfig: { type: "RunConfigInput", description: "Per-turn model choice and run bounds for guest conversations on this share, overriding the platform's guest execution profile.", typeDescriptionLink: "#runconfiginput" },
   }}
 />
 
@@ -715,6 +728,19 @@ AgentShareMessages holds owner-customizable visitor-facing copy for shared-agent
     rateLimited: { type: "string", description: "Shown when a visitor or the org exceeds the message rate limit." },
     unavailable: { type: "string", description: "Shown when the share cannot serve the conversation — the org's credits are exhausted or the agent's tools are not ready (fails closed)." },
     conversationEnded: { type: "string", description: "Shown when a conversation hits its turn limit or inactivity timeout." },
+  }}
+/>
+
+### RunConfigInput
+
+RunConfig is the owner-settable model choice and run bounds.
+
+<TypeTable
+  type={{
+    modelName: { type: "string", description: "The model each run uses." },
+    maxCostUsd: { type: "number", description: "Maximum estimated cost in USD per run." },
+    maxToolRounds: { type: "number", description: "Maximum model-to-tools reasoning cycles per run." },
+    serviceTier: { type: "ServiceTier", description: "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.", typeDescriptionLink: "#servicetier" },
   }}
 />
 
@@ -824,4 +850,13 @@ AgentShareAudience selects who can chat over a share's hosted link.
 |-------|-------------|
 | `agent_share_audience_public` | Anyone with the link can chat — no Stigmer account required. |
 | `agent_share_audience_org` | Only signed-in members of the sharing organization can chat. |
+
+### ServiceTier
+
+ServiceTier selects the provider-side speed/service tier for an execution's model calls.
+
+| Value | Description |
+|-------|-------------|
+| `SERVICE_TIER_STANDARD` | Standard tier: the model's base-priced configuration, requested explicitly. |
+| `SERVICE_TIER_FAST` | Fast tier: the model's fast variant, billed at the registry's fast variant rates. |
 

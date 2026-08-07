@@ -519,3 +519,82 @@ describe("formatImplementPlanSection", () => {
     expect(prompt).toBe(USER_MESSAGE);
   });
 });
+
+describe("conversation catchup (cloud DD-006, T03 Sitting 3)", () => {
+  const DIGEST =
+    "Customer: where is my order?\nTeammate: I've refunded you in full.";
+
+  it("prefixes the catchup on a RESUMED turn — handback lands mid-session, the case the metadata lane cannot reach", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "resumed_successfully"),
+        conversationCatchup: DIGEST,
+      }),
+    );
+
+    expect(prompt.startsWith("<conversation_catchup>")).toBe(true);
+    expect(prompt).toContain(DIGEST);
+    expect(prompt.endsWith(USER_MESSAGE)).toBe(true);
+  });
+
+  it("orders a resumed turn's prefixes directives-first, catchup last — context sits closest to the task", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "resumed_successfully"),
+        interactionMode: InteractionMode.PLAN,
+        conversationCatchup: DIGEST,
+      }),
+    );
+
+    expect(prompt.indexOf("<interaction_mode>"))
+      .toBeLessThan(prompt.indexOf("<conversation_catchup>"));
+    expect(prompt.indexOf("<conversation_catchup>"))
+      .toBeLessThan(prompt.indexOf(USER_MESSAGE));
+  });
+
+  it("carries the catchup on the first execution too, AFTER the bridge (DD-007 D-d: bridge first, catchup second)", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "created_first_execution"),
+        contextBridge: "User: hi\nAssistant: hello",
+        conversationCatchup: DIGEST,
+      }),
+    );
+
+    expect(prompt).toContain("<conversation_catchup>");
+    expect(prompt.indexOf("<previous_conversation_context>"))
+      .toBeLessThan(prompt.indexOf("<conversation_catchup>"));
+    // Still CONTEXT: the approval protocol keeps its pinned
+    // last-before-task slot.
+    expect(prompt.indexOf("<conversation_catchup>"))
+      .toBeLessThan(prompt.indexOf("<tool_approval_protocol>"));
+  });
+
+  it("never reaches a HITL reinvocation — the same turn's original prompt already carried it", () => {
+    const decisions = new Map([["call-1", ApprovalAction.APPROVE]]);
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "resumed_successfully"),
+        approvalDecisions: decisions,
+        pendingApprovals: [
+          create(PendingApprovalSchema, { toolCallId: "call-1", message: "Write file: a.txt" }),
+        ],
+        conversationCatchup: DIGEST,
+      }),
+    );
+
+    expect(prompt).not.toContain("<conversation_catchup>");
+    expect(prompt).not.toContain(DIGEST);
+  });
+
+  it("a resumed turn without a catchup stays the bare user message — most turns carry none", () => {
+    const prompt = buildPrompt(
+      input({
+        resolution: resolution("local", "resumed_successfully"),
+        conversationCatchup: undefined,
+      }),
+    );
+
+    expect(prompt).toBe(USER_MESSAGE);
+  });
+});

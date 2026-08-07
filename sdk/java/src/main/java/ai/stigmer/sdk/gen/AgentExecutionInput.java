@@ -9,6 +9,7 @@ import ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec;
 import ai.stigmer.agentic.agentexecution.v1.ApprovalMode;
 import ai.stigmer.agentic.agentexecution.v1.Attachment;
 import ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig;
+import ai.stigmer.agentic.agentexecution.v1.ConversationCatchup;
 import ai.stigmer.agentic.agentexecution.v1.ExecutionConfig;
 import ai.stigmer.agentic.agentexecution.v1.InteractionMode;
 import ai.stigmer.agentic.agentexecution.v1.ServiceTier;
@@ -26,6 +27,7 @@ import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import com.google.protobuf.Struct;
+import com.google.protobuf.Timestamp;
 
 /** Input for creating/updating a AgentExecution. */
 public final class AgentExecutionInput {
@@ -47,6 +49,7 @@ public final class AgentExecutionInput {
     private final java.util.List<String> workspaceFileRefs;
     private final String activityTaskQueue;
     private final String supersedesExecutionId;
+    private final ConversationCatchupInput conversationCatchup;
 
     private AgentExecutionInput(Builder builder) {
         this.name = builder.name;
@@ -67,6 +70,7 @@ public final class AgentExecutionInput {
         this.workspaceFileRefs = builder.workspaceFileRefs;
         this.activityTaskQueue = builder.activityTaskQueue;
         this.supersedesExecutionId = builder.supersedesExecutionId;
+        this.conversationCatchup = builder.conversationCatchup;
     }
 
     AgentExecution toProto() {
@@ -115,6 +119,9 @@ public final class AgentExecutionInput {
         if (this.supersedesExecutionId != null) {
             spec.setSupersedesExecutionId(this.supersedesExecutionId);
         }
+        if (this.conversationCatchup != null) {
+            spec.setConversationCatchup(this.conversationCatchup.toProto());
+        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
@@ -156,6 +163,7 @@ public final class AgentExecutionInput {
         private java.util.List<String> workspaceFileRefs;
         private String activityTaskQueue;
         private String supersedesExecutionId;
+        private ConversationCatchupInput conversationCatchup;
 
         private Builder() {}
 
@@ -177,6 +185,7 @@ public final class AgentExecutionInput {
         public Builder workspaceFileRefs(java.util.List<String> workspaceFileRefs) { this.workspaceFileRefs = workspaceFileRefs; return this; }
         public Builder activityTaskQueue(String activityTaskQueue) { this.activityTaskQueue = activityTaskQueue; return this; }
         public Builder supersedesExecutionId(String supersedesExecutionId) { this.supersedesExecutionId = supersedesExecutionId; return this; }
+        public Builder conversationCatchup(ConversationCatchupInput conversationCatchup) { this.conversationCatchup = conversationCatchup; return this; }
 
         public AgentExecutionInput build() { return new AgentExecutionInput(this); }
     }
@@ -710,6 +719,46 @@ public final class AgentExecutionInput {
             public Builder localPath(String localPath) { this.localPath = localPath; return this; }
 
             public AttachmentInput build() { return new AttachmentInput(this); }
+        }
+    }
+
+    /** SDK input type for ConversationCatchup. */
+    public static final class ConversationCatchupInput {
+        private final String digest;
+        private final String windowEnd;
+
+        private ConversationCatchupInput(Builder builder) {
+            this.digest = builder.digest;
+            this.windowEnd = builder.windowEnd;
+        }
+
+        ConversationCatchup toProto() {
+            ConversationCatchup.Builder builder = ConversationCatchup.newBuilder();
+            if (this.digest != null) {
+                builder.setDigest(this.digest);
+            }
+            if (this.windowEnd != null && !this.windowEnd.isEmpty()) {
+                java.time.Instant instant = java.time.Instant.parse(this.windowEnd);
+                builder.setWindowEnd(com.google.protobuf.Timestamp.newBuilder()
+                    .setSeconds(instant.getEpochSecond())
+                    .setNanos(instant.getNano())
+                    .build());
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String digest;
+            private String windowEnd;
+
+            private Builder() {}
+
+            public Builder digest(String digest) { this.digest = digest; return this; }
+            public Builder windowEnd(String windowEnd) { this.windowEnd = windowEnd; return this; }
+
+            public ConversationCatchupInput build() { return new ConversationCatchupInput(this); }
         }
     }
 }

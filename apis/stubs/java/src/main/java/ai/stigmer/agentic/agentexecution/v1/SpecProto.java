@@ -51,6 +51,11 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentexecution_v1_Attachment_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentexecution_v1_ConversationCatchup_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentexecution_v1_ConversationCatchup_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -67,73 +72,80 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "cutioncontext/v1/spec.proto\032(ai/stigmer/" +
       "agentic/session/v1/spec.proto\032\033buf/valid" +
       "ate/validate.proto\032\034google/protobuf/stru" +
-      "ct.proto\"\252\n\n\022AgentExecutionSpec\022\035\n\nsessi" +
-      "on_id\030\001 \001(\tR\tsessionId\022\031\n\010agent_id\030\002 \001(\t" +
-      "R\007agentId\022M\n\014session_spec\030\r \001(\0132*.ai.sti" +
-      "gmer.agentic.session.v1.SessionSpecR\013ses" +
-      "sionSpec\022!\n\007message\030\003 \001(\tB\007\272H\004r\002\020\001R\007mess" +
-      "age\022`\n\020execution_config\030\004 \001(\01325.ai.stigm" +
-      "er.agentic.agentexecution.v1.ExecutionCo" +
-      "nfigR\017executionConfig\022i\n\013runtime_env\030\005 \003" +
-      "(\0132H.ai.stigmer.agentic.agentexecution.v" +
-      "1.AgentExecutionSpec.RuntimeEnvEntryR\nru" +
-      "ntimeEnv\022%\n\016callback_token\030\006 \001(\014R\rcallba" +
-      "ckToken\022(\n\020auto_approve_all\030\007 \001(\010R\016autoA" +
-      "pproveAll\022,\n\022parent_workflow_id\030\010 \001(\tR\020p" +
-      "arentWorkflowId\022R\n\013attachments\030\t \003(\01320.a" +
-      "i.stigmer.agentic.agentexecution.v1.Atta" +
-      "chmentR\013attachments\022.\n\023workspace_file_re" +
-      "fs\030\n \003(\tR\021workspaceFileRefs\022.\n\023activity_" +
-      "task_queue\030\013 \001(\tR\021activityTaskQueue\0226\n\027s" +
-      "upersedes_execution_id\030\014 \001(\tR\025supersedes" +
-      "ExecutionId\032u\n\017RuntimeEnvEntry\022\020\n\003key\030\001 " +
-      "\001(\tR\003key\022L\n\005value\030\002 \001(\01326.ai.stigmer.age" +
-      "ntic.executioncontext.v1.ExecutionValueR" +
-      "\005value:\0028\001:\270\003\272H\264\003\032\313\001\n!agent_execution.se" +
-      "ssion_exclusive\022rsession_id and session_" +
-      "spec are mutually exclusive \342\200\224 referenc" +
-      "e an existing session or define a new on" +
-      "e, not both\0322!(this.session_id != \'\' && " +
-      "has(this.session_spec))\032\343\001\n*agent_execut" +
-      "ion.session_spec_harness_state\022psession_" +
-      "spec.harness_state_id must be empty \342\200\224 " +
-      "harness state is created by the runner a" +
-      "fter the first execution\032C!has(this.sess" +
-      "ion_spec) || this.session_spec.harness_s" +
-      "tate_id == \'\'\"\305\005\n\017ExecutionConfig\022\035\n\nmod" +
-      "el_name\030\001 \001(\tR\tmodelName\022l\n\022context_mana" +
-      "gement\030\002 \001(\0132=.ai.stigmer.agentic.agente" +
-      "xecution.v1.ContextManagementConfigR\021con" +
-      "textManagement\022&\n\017max_tool_rounds\030\003 \001(\005R" +
-      "\rmaxToolRounds\0221\n\025max_tool_result_chars\030" +
-      "\004 \001(\005R\022maxToolResultChars\022 \n\014max_cost_us" +
-      "d\030\005 \001(\001R\nmaxCostUsd\022j\n\020interaction_mode\030" +
-      "\006 \001(\01625.ai.stigmer.agentic.agentexecutio" +
-      "n.v1.InteractionModeB\010\272H\005\202\001\002\020\001R\017interact" +
-      "ionMode\022Q\n\030structured_output_schema\030\007 \001(" +
-      "\0132\027.google.protobuf.StructR\026structuredOu" +
-      "tputSchema\022&\n\017build_from_plan\030\010 \001(\010R\rbui" +
-      "ldFromPlan\022a\n\rapproval_mode\030\t \001(\01622.ai.s" +
-      "tigmer.agentic.agentexecution.v1.Approva" +
-      "lModeB\010\272H\005\202\001\002\020\001R\014approvalMode\022^\n\014service" +
-      "_tier\030\n \001(\01621.ai.stigmer.agentic.agentex" +
-      "ecution.v1.ServiceTierB\010\272H\005\202\001\002\020\001R\013servic" +
-      "eTier\"\314\001\n\027ContextManagementConfig\0223\n\025dis" +
-      "able_summarization\030\001 \001(\010R\024disableSummari" +
-      "zation\022A\n\030custom_trigger_threshold\030\002 \001(\005" +
-      "B\007\272H\004\032\002(\000R\026customTriggerThreshold\0229\n\024cus" +
-      "tom_target_tokens\030\003 \001(\005B\007\272H\004\032\002(\000R\022custom" +
-      "TargetTokens\"\326\001\n\nAttachment\022#\n\010filename\030" +
-      "\001 \001(\tB\007\272H\004r\002\020\001R\010filename\022(\n\013storage_key\030" +
-      "\002 \001(\tB\007\272H\004r\002\020\001R\nstorageKey\022\035\n\nmount_path" +
-      "\030\003 \001(\tR\tmountPath\022!\n\014content_type\030\004 \001(\tR" +
-      "\013contentType\022\030\n\007extract\030\005 \001(\010R\007extract\022\035" +
-      "\n\nlocal_path\030\006 \001(\tR\tlocalPathB\300\001B\tSpecPr" +
-      "otoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Agente" +
-      "xecution.V1\312\002$Ai\\Stigmer\\Agentic\\Agentex" +
-      "ecution\\V1\342\0020Ai\\Stigmer\\Agentic\\Agentexe" +
-      "cution\\V1\\GPBMetadata\352\002(Ai::Stigmer::Age" +
-      "ntic::Agentexecution::V1b\006proto3"
+      "ct.proto\032\037google/protobuf/timestamp.prot" +
+      "o\"\230\013\n\022AgentExecutionSpec\022\035\n\nsession_id\030\001" +
+      " \001(\tR\tsessionId\022\031\n\010agent_id\030\002 \001(\tR\007agent" +
+      "Id\022M\n\014session_spec\030\r \001(\0132*.ai.stigmer.ag" +
+      "entic.session.v1.SessionSpecR\013sessionSpe" +
+      "c\022!\n\007message\030\003 \001(\tB\007\272H\004r\002\020\001R\007message\022`\n\020" +
+      "execution_config\030\004 \001(\01325.ai.stigmer.agen" +
+      "tic.agentexecution.v1.ExecutionConfigR\017e" +
+      "xecutionConfig\022i\n\013runtime_env\030\005 \003(\0132H.ai" +
+      ".stigmer.agentic.agentexecution.v1.Agent" +
+      "ExecutionSpec.RuntimeEnvEntryR\nruntimeEn" +
+      "v\022%\n\016callback_token\030\006 \001(\014R\rcallbackToken" +
+      "\022(\n\020auto_approve_all\030\007 \001(\010R\016autoApproveA" +
+      "ll\022,\n\022parent_workflow_id\030\010 \001(\tR\020parentWo" +
+      "rkflowId\022R\n\013attachments\030\t \003(\01320.ai.stigm" +
+      "er.agentic.agentexecution.v1.AttachmentR" +
+      "\013attachments\022.\n\023workspace_file_refs\030\n \003(" +
+      "\tR\021workspaceFileRefs\022.\n\023activity_task_qu" +
+      "eue\030\013 \001(\tR\021activityTaskQueue\0226\n\027supersed" +
+      "es_execution_id\030\014 \001(\tR\025supersedesExecuti" +
+      "onId\022l\n\024conversation_catchup\030\016 \001(\01329.ai." +
+      "stigmer.agentic.agentexecution.v1.Conver" +
+      "sationCatchupR\023conversationCatchup\032u\n\017Ru" +
+      "ntimeEnvEntry\022\020\n\003key\030\001 \001(\tR\003key\022L\n\005value" +
+      "\030\002 \001(\01326.ai.stigmer.agentic.executioncon" +
+      "text.v1.ExecutionValueR\005value:\0028\001:\270\003\272H\264\003" +
+      "\032\313\001\n!agent_execution.session_exclusive\022r" +
+      "session_id and session_spec are mutually" +
+      " exclusive \342\200\224 reference an existing ses" +
+      "sion or define a new one, not both\0322!(th" +
+      "is.session_id != \'\' && has(this.session_" +
+      "spec))\032\343\001\n*agent_execution.session_spec_" +
+      "harness_state\022psession_spec.harness_stat" +
+      "e_id must be empty \342\200\224 harness state is " +
+      "created by the runner after the first ex" +
+      "ecution\032C!has(this.session_spec) || this" +
+      ".session_spec.harness_state_id == \'\'\"\305\005\n" +
+      "\017ExecutionConfig\022\035\n\nmodel_name\030\001 \001(\tR\tmo" +
+      "delName\022l\n\022context_management\030\002 \001(\0132=.ai" +
+      ".stigmer.agentic.agentexecution.v1.Conte" +
+      "xtManagementConfigR\021contextManagement\022&\n" +
+      "\017max_tool_rounds\030\003 \001(\005R\rmaxToolRounds\0221\n" +
+      "\025max_tool_result_chars\030\004 \001(\005R\022maxToolRes" +
+      "ultChars\022 \n\014max_cost_usd\030\005 \001(\001R\nmaxCostU" +
+      "sd\022j\n\020interaction_mode\030\006 \001(\01625.ai.stigme" +
+      "r.agentic.agentexecution.v1.InteractionM" +
+      "odeB\010\272H\005\202\001\002\020\001R\017interactionMode\022Q\n\030struct" +
+      "ured_output_schema\030\007 \001(\0132\027.google.protob" +
+      "uf.StructR\026structuredOutputSchema\022&\n\017bui" +
+      "ld_from_plan\030\010 \001(\010R\rbuildFromPlan\022a\n\rapp" +
+      "roval_mode\030\t \001(\01622.ai.stigmer.agentic.ag" +
+      "entexecution.v1.ApprovalModeB\010\272H\005\202\001\002\020\001R\014" +
+      "approvalMode\022^\n\014service_tier\030\n \001(\01621.ai." +
+      "stigmer.agentic.agentexecution.v1.Servic" +
+      "eTierB\010\272H\005\202\001\002\020\001R\013serviceTier\"\314\001\n\027Context" +
+      "ManagementConfig\0223\n\025disable_summarizatio" +
+      "n\030\001 \001(\010R\024disableSummarization\022A\n\030custom_" +
+      "trigger_threshold\030\002 \001(\005B\007\272H\004\032\002(\000R\026custom" +
+      "TriggerThreshold\0229\n\024custom_target_tokens" +
+      "\030\003 \001(\005B\007\272H\004\032\002(\000R\022customTargetTokens\"\326\001\n\n" +
+      "Attachment\022#\n\010filename\030\001 \001(\tB\007\272H\004r\002\020\001R\010f" +
+      "ilename\022(\n\013storage_key\030\002 \001(\tB\007\272H\004r\002\020\001R\ns" +
+      "torageKey\022\035\n\nmount_path\030\003 \001(\tR\tmountPath" +
+      "\022!\n\014content_type\030\004 \001(\tR\013contentType\022\030\n\007e" +
+      "xtract\030\005 \001(\010R\007extract\022\035\n\nlocal_path\030\006 \001(" +
+      "\tR\tlocalPath\"h\n\023ConversationCatchup\022\026\n\006d" +
+      "igest\030\001 \001(\tR\006digest\0229\n\nwindow_end\030\002 \001(\0132" +
+      "\032.google.protobuf.TimestampR\twindowEndB\300" +
+      "\001B\tSpecProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agent" +
+      "ic.Agentexecution.V1\312\002$Ai\\Stigmer\\Agenti" +
+      "c\\Agentexecution\\V1\342\0020Ai\\Stigmer\\Agentic" +
+      "\\Agentexecution\\V1\\GPBMetadata\352\002(Ai::Sti" +
+      "gmer::Agentic::Agentexecution::V1b\006proto" +
+      "3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -143,13 +155,14 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
           ai.stigmer.agentic.session.v1.SpecProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
           com.google.protobuf.StructProto.getDescriptor(),
+          com.google.protobuf.TimestampProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionSpec_descriptor =
       getDescriptor().getMessageType(0);
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionSpec_descriptor,
-        new java.lang.String[] { "SessionId", "AgentId", "SessionSpec", "Message", "ExecutionConfig", "RuntimeEnv", "CallbackToken", "AutoApproveAll", "ParentWorkflowId", "Attachments", "WorkspaceFileRefs", "ActivityTaskQueue", "SupersedesExecutionId", });
+        new java.lang.String[] { "SessionId", "AgentId", "SessionSpec", "Message", "ExecutionConfig", "RuntimeEnv", "CallbackToken", "AutoApproveAll", "ParentWorkflowId", "Attachments", "WorkspaceFileRefs", "ActivityTaskQueue", "SupersedesExecutionId", "ConversationCatchup", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionSpec_RuntimeEnvEntry_descriptor =
       internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_agentexecution_v1_AgentExecutionSpec_RuntimeEnvEntry_fieldAccessorTable = new
@@ -174,12 +187,19 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_Attachment_descriptor,
         new java.lang.String[] { "Filename", "StorageKey", "MountPath", "ContentType", "Extract", "LocalPath", });
+    internal_static_ai_stigmer_agentic_agentexecution_v1_ConversationCatchup_descriptor =
+      getDescriptor().getMessageType(4);
+    internal_static_ai_stigmer_agentic_agentexecution_v1_ConversationCatchup_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentexecution_v1_ConversationCatchup_descriptor,
+        new java.lang.String[] { "Digest", "WindowEnd", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.executioncontext.v1.SpecProto.getDescriptor();
     ai.stigmer.agentic.session.v1.SpecProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.StructProto.getDescriptor();
+    com.google.protobuf.TimestampProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(build.buf.validate.ValidateProto.field);

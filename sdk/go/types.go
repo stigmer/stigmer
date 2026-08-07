@@ -53,6 +53,7 @@ type LocalPathSourceInput = gen.LocalPathSourceInput
 type ExecutionConfigInput = gen.ExecutionConfigInput
 type ContextManagementConfigInput = gen.ContextManagementConfigInput
 type AttachmentInput = gen.AttachmentInput
+type ConversationCatchupInput = gen.ConversationCatchupInput
 type AgentInstanceInput = gen.AgentInstanceInput
 type AgentShareInput = gen.AgentShareInput
 type AgentShareMessagesInput = gen.AgentShareMessagesInput

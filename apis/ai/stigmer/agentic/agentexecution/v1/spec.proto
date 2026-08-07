@@ -7,6 +7,7 @@ import "ai/stigmer/agentic/executioncontext/v1/spec.proto";
 import "ai/stigmer/agentic/session/v1/spec.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
 
 // AgentExecutionSpec contains only user-provided inputs for triggering an execution.
 // All execution results and state live in AgentExecutionStatus (in api.proto).
@@ -326,6 +327,25 @@ message AgentExecutionSpec {
   //
   // @since Edit-and-Resubmit In Place (stigmer/stigmer#181)
   string supersedes_execution_id = 12;
+
+  // Conversation events the agent has not yet seen, composed by the platform
+  // for this turn (optional).
+  //
+  // Set on live channel-conversation turns (WhatsApp, Slack): when a human
+  // teammate handled the conversation or messages otherwise landed while the
+  // agent was not watching, the digest carries what happened so the agent
+  // re-enters informed. Absent on every other execution surface.
+  //
+  // @internal
+  // Composed per turn by the cloud channel runtime — ChannelSessionBroker
+  // over the DD-004 timeline stitch, windowed by the conversation's
+  // agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
+  // The OSS server never sets it. The runner prepends the framed digest to
+  // the turn's user message on both harnesses (A27) and must never read
+  // window_end. Top-level rather than inside ExecutionConfig by design:
+  // conversation content must not vanish with the execution-profile
+  // kill-switch (DD-006 D-a).
+  ConversationCatchup conversation_catchup = 14;
 }
 
 // Configuration that can be applied at execution time.
@@ -660,4 +680,37 @@ message Attachment {
   // the attached file.  storage_key remains required -- the upload still
   // happens for execution history and replay support.
   string local_path = 6;
+}
+
+// ConversationCatchup carries the channel-conversation events an agent
+// missed, composed fresh for one execution.
+//
+// @internal
+// Present on EVERY channel turn — even with an empty digest — so window_end
+// can advance the conversation's agent_witnessed_through watermark when the
+// turn settles (channel-conversations DD-006 as amended by T03 Sitting 3,
+// A21). Content is composed in the cloud; presentation (preamble, framing,
+// prompt placement) is owned by the OSS runner's shared/conversation-catchup
+// module — the DD-013 content/presentation split.
+message ConversationCatchup {
+  // Plain-text digest of what the agent missed, oldest first; empty when
+  // nothing was missed.
+  //
+  // @internal
+  // Bare content lines ("Customer: ..." / "Teammate: ..." / "System: ..." /
+  // "You escalated: ..." / "Note: ..."), no model-facing framing — the
+  // runner owns the preamble and the prompt placement. Blank means "inject
+  // nothing" (the shared-module blank-is-absent convention).
+  string digest = 1;
+
+  // The timeline instant this digest conveys through.
+  //
+  // @internal
+  // Cloud bookkeeping, NEVER read by the runner. The delivery settle path
+  // advances the conversation's agent_witnessed_through watermark to this
+  // instant when the execution COMPLETED and the settle won (DD-007 D-b as
+  // sharpened by A26). Set on every channel turn, digest or not (A21); its
+  // value is the broker's compose instant, which is strictly later than the
+  // turn's own inbound message (A24).
+  google.protobuf.Timestamp window_end = 2;
 }

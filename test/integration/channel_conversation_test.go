@@ -5,11 +5,13 @@ package integration
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
 	agentchannelv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentchannel/v1"
+	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
 	channelappv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/channelapp/v1"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
@@ -972,6 +974,154 @@ func TestChannelConversation_EscalateRefusesNonConversationCallers(t *testing.T)
 		testHarness.Service.GRPCAddress(), consoleToken))
 	_, err = console.ChannelConversationCommand.Escalate(ctx, input)
 	requireStatusCode(t, err, codes.FailedPrecondition)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The catchup injection (T03 Sitting 3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// TestChannelConversation_CatchupDigestAfterHandback is the handback story
+// end to end (DD-006/DD-007): the agent goes quiet under a takeover, the
+// customer and a teammate talk, and the first post-handback turn's execution
+// carries a conversation_catchup digest with EXACTLY the missed episode —
+// the suppressed customer messages, the platform acknowledgment the customer
+// saw, and the teammate's reply, oldest first — while the turn's OWN message
+// is excluded by identity (A22: digesting it back as "do not answer this"
+// would contradict the turn itself) and turn 1's already-answered input sits
+// below the row's seed watermark (DD-007 D-c). window_end is stamped on
+// every turn (A21); the watermark's settle-time ADVANCE is pinned at the
+// unit and contract layers, where a completed execution can be staged — no
+// runner completes executions in this harness.
+func TestChannelConversation_CatchupDigestAfterHandback(t *testing.T) {
+	requireVisibilityHarness(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	agent := harness.CreateAgent(t, ctx, clients, "test-conv-catchup",
+		"You are a test agent for the catchup digest.")
+	fx := applyWhatsAppChannel(t, ctx, clients, agent,
+		"conv-catchup-"+agent.GetMetadata().GetSlug())
+
+	installed, err := clients.AgentChannelCommand.InitiateInstall(ctx,
+		&agentchannelv1.InitiateChannelInstallInput{ResourceId: fx.ChannelID})
+	require.NoError(t, err)
+	require.True(t, installed.GetCompleted())
+
+	// Turn 1: the customer opens the conversation on an agent-held row —
+	// the true front door creates the session, binding, conversation row,
+	// and the first execution (which no runner ever completes here).
+	const customer = "15550009999"
+	postCustomerMessage := func(wamid, text string) {
+		status, postErr := harness.PostWhatsAppWebhook(ctx,
+			testHarness.Service.HTTPAddress(), fx.ChannelAppID, fx.AppSecret,
+			harness.WhatsAppInboundTextPayload(fx.PhoneNumberID, customer,
+				wamid, "Noor", text))
+		require.NoError(t, postErr)
+		require.Equal(t, 200, status)
+	}
+	postCustomerMessage("wamid.CATCHUP1", "I need help with my order")
+	requireDeliveryCount(t, ctx, fx.ChannelID, 1)
+
+	// The human takes over; the agent goes quiet.
+	controlInput := &agentchannelv1.ConversationControlInput{
+		AgentChannelId:  fx.ChannelID,
+		ConversationKey: customer,
+	}
+	_, err = clients.ChannelConversationCommand.TakeOver(ctx, controlInput)
+	require.NoError(t, err)
+
+	// The missed episode: a suppressed customer message (which triggers the
+	// one platform acknowledgment), a teammate reply, and one more
+	// suppressed customer message answered only by the human.
+	postCustomerMessage("wamid.CATCHUP2", "are you still there?")
+	requireEventIgnoredAsTakeover(t, ctx, fx.ChannelAppID, "wamid.CATCHUP2")
+	require.Eventually(t, func() bool {
+		count, queryErr := testHarness.AppPostgres.QueryScalar(ctx, fmt.Sprintf(
+			`SELECT count(*) FROM s_agentic.channel_outbound_message
+			  WHERE agent_channel_id = '%s' AND origin = 'platform' AND status = 'delivered'`,
+			fx.ChannelID))
+		return queryErr == nil && count == "1"
+	}, 30*time.Second, 250*time.Millisecond,
+		"the takeover acknowledgment must deliver before the digest can carry it")
+
+	_, err = clients.ChannelConversationCommand.Reply(ctx,
+		&agentchannelv1.ReplyToConversationInput{
+			AgentChannelId:  fx.ChannelID,
+			ConversationKey: customer,
+			Payload: &agentchannelv1.ChannelOutboundPayload{
+				Kind: &agentchannelv1.ChannelOutboundPayload_Text{
+					Text: &agentchannelv1.TextPayload{Body: "Hi, this is Sam — refund issued."},
+				},
+			},
+		})
+	require.NoError(t, err, "the teammate replies during the takeover")
+
+	postCustomerMessage("wamid.CATCHUP3", "thank you Sam")
+	requireEventIgnoredAsTakeover(t, ctx, fx.ChannelAppID, "wamid.CATCHUP3")
+
+	// Handback, then the customer speaks again: the first post-handback
+	// turn — the moment the whole feature exists for.
+	_, err = clients.ChannelConversationCommand.HandBack(ctx, controlInput)
+	require.NoError(t, err)
+	postCustomerMessage("wamid.CATCHUP4", "one more thing about shipping")
+	requireDeliveryCount(t, ctx, fx.ChannelID, 2)
+
+	// The post-handback execution's spec carries the digest. The delivery
+	// store is hybrid JSONB (V12): createdAt lives inside data, ISO-8601
+	// TEXT whose lexicographic order is fine minutes apart.
+	executionID, err := testHarness.AppPostgres.QueryScalar(ctx, fmt.Sprintf(
+		`SELECT execution_id FROM s_agentic.channel_delivery
+		  WHERE agent_channel_id = '%s'
+		  ORDER BY data #>> '{createdAt}' DESC LIMIT 1`, fx.ChannelID))
+	require.NoError(t, err)
+	execution, err := clients.AgentExecutionQuery.Get(ctx,
+		&agentexecv1.AgentExecutionId{Value: executionID})
+	require.NoError(t, err)
+
+	catchup := execution.GetSpec().GetConversationCatchup()
+	require.NotNil(t, catchup, "every channel turn carries its catchup (A21)")
+	assert.Positive(t, catchup.GetWindowEnd().GetSeconds(),
+		"window_end is stamped even when nothing else is — the watermark's advance target")
+
+	digest := catchup.GetDigest()
+	// The human episode, in the register the composer owns — and in
+	// reading order (oldest first), so the agent replays it as it happened.
+	assert.Contains(t, digest, "Customer: are you still there?")
+	assert.Contains(t, digest, "System: ",
+		"the acknowledgment the customer saw rides the digest (A25)")
+	assert.Contains(t, digest, "Teammate: Hi, this is Sam — refund issued.")
+	assert.Contains(t, digest, "Customer: thank you Sam")
+	assert.Less(t,
+		strings.Index(digest, "Customer: are you still there?"),
+		strings.Index(digest, "Teammate: Hi, this is Sam"),
+		"oldest first: the customer's plea precedes the teammate's answer")
+	assert.Less(t,
+		strings.Index(digest, "Teammate: Hi, this is Sam"),
+		strings.Index(digest, "Customer: thank you Sam"))
+	// Turn 1's message is NOT missed history: the organic row seeds the
+	// watermark at its own creation instant (DD-007 D-c), and message 1 —
+	// which predates the row and was turn 1's own input — sits below it.
+	assert.NotContains(t, digest, "I need help with my order",
+		"a turn's own answered input never re-conveys (DD-007 D-c)")
+	// The one message the digest must NEVER carry: this turn's own input.
+	assert.NotContains(t, digest, "one more thing about shipping",
+		"the turn's own message is excluded by identity (A22)")
+}
+
+// requireDeliveryCount polls until the channel has exactly want delivery
+// rows — the durable proof that a routed turn created its execution (the
+// same-motion insert), without depending on a runner ever picking it up.
+func requireDeliveryCount(t *testing.T, ctx context.Context, channelID string, want int) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		count, err := testHarness.AppPostgres.QueryScalar(ctx, fmt.Sprintf(
+			`SELECT count(*) FROM s_agentic.channel_delivery
+			  WHERE agent_channel_id = '%s'`, channelID))
+		return err == nil && count == fmt.Sprintf("%d", want)
+	}, 30*time.Second, 250*time.Millisecond,
+		"expected %d channel delivery row(s) for channel %s", want, channelID)
 }
 
 // requireEventCount polls until the conversation's internal-lane event

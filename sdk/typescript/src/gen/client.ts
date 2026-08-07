@@ -93,7 +93,7 @@ export { type AgentInput, type McpServerUsageInput, type ToolApprovalOverrideInp
 export { AgentChannelClient } from "./agentchannel.js";
 export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput, type RunConfigInput } from "./agentchannel.js";
 export { AgentExecutionClient } from "./agentexecution.js";
-export { type AgentExecutionInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type ExecutionConfigInput, type ContextManagementConfigInput, type AttachmentInput } from "./agentexecution.js";
+export { type AgentExecutionInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type ExecutionConfigInput, type ContextManagementConfigInput, type AttachmentInput, type ConversationCatchupInput } from "./agentexecution.js";
 export { AgentInstanceClient } from "./agentinstance.js";
 export { type AgentInstanceInput } from "./agentinstance.js";
 export { AgentShareClient } from "./agentshare.js";

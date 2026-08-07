@@ -48,6 +48,7 @@ import { MessageAccumulator, cancelInProgressSubAgentProtos, collapseRedundantTo
 import { utcTimestamp, persistStatus, reportSetupProgress, slimStatus } from "../../shared/status.js";
 import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";
 import { readContextBridge } from "../../shared/context-bridge.js";
+import { readConversationCatchup } from "../../shared/conversation-catchup.js";
 import { readSenderIdentity } from "../../shared/sender-identity.js";
 import {
   injectCallerIdentityEnv,
@@ -83,7 +84,7 @@ import { buildCursorSubAgentDefinitions } from "./subagent-config.js";
 import { resolveSkills } from "./skill-resolver.js";
 import { removeStigmerSymlink } from "../../shared/workspace/stigmer-link.js";
 import { resolveAttachments } from "./attachment-resolver.js";
-import { buildEnhancedPrompt, buildReinvocationPrompt, formatInteractionModePrefix, formatImplementPlanSection } from "./prompt-builder.js";
+import { buildEnhancedPrompt, buildReinvocationPrompt, formatConversationCatchupSection, formatInteractionModePrefix, formatImplementPlanSection } from "./prompt-builder.js";
 import { installHitlGate, removeHitlGate } from "./workspace-setup.js";
 import { ensureHitlDir } from "../../shared/workspace/platform-dir.js";
 import {
@@ -1100,6 +1101,7 @@ async function executeCursorInner(
       contextBridge: readContextBridge(blueprint.sessionSpec.metadata),
       senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
       sessionContext: readSessionContext(blueprint.sessionSpec.metadata),
+      conversationCatchup: readConversationCatchup(spec.conversationCatchup),
     });
 
     // Phase 10a: Inject structured output instruction for Cursor harness
@@ -1735,9 +1737,15 @@ async function executeCursorInner(
             attachmentPaths,
             pendingApprovals: adjudicatedApprovals,
             interactionMode,
+            // buildFromPlan was silently dropped here until T03 Sitting 3 —
+            // a build turn that hit handle recovery lost its directive. The
+            // fresh prompt must carry every per-turn directive the original
+            // did.
+            buildFromPlan,
             contextBridge: readContextBridge(blueprint.sessionSpec.metadata),
             senderIdentity: readSenderIdentity(blueprint.sessionSpec.metadata),
             sessionContext: readSessionContext(blueprint.sessionSpec.metadata),
+            conversationCatchup: readConversationCatchup(spec.conversationCatchup),
           });
 
           console.log(
@@ -2334,6 +2342,18 @@ export interface BuildPromptInput {
    * turn.
    */
   sessionContext?: string;
+  /**
+   * Conversation catchup from the execution spec's `conversation_catchup`
+   * (cloud DD-006): what happened on the channel conversation that the
+   * agent has not seen. PER-TURN, so unlike the three standing values
+   * above it rides BOTH prompt paths — the enhanced prompt and a resumed
+   * turn's prefix (the `interaction_mode` shape). Handback lands
+   * mid-session on a resumed agent: the resumed path is the one that
+   * matters. Once delivered, the digest persists in the agent's own
+   * conversation store; the next turn's field is composed fresh and is
+   * usually blank.
+   */
+  conversationCatchup?: string;
 }
 
 /**
@@ -2365,6 +2385,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     attachmentPaths,
     interactionMode,
     buildFromPlan,
+    conversationCatchup,
   } = input;
 
   const isHitlReinvocation = approvalDecisions !== undefined && approvalDecisions.size > 0;
@@ -2382,15 +2403,22 @@ export function buildPrompt(input: BuildPromptInput): string {
 
   // A successfully resumed agent carries its own conversation context via the
   // SDK's native store — send the raw user message with no preamble. The
-  // exceptions are the per-EXECUTION directives, which never inherit from the
+  // exceptions are the per-EXECUTION values, which never inherit from the
   // session's first turn: the interaction-mode prefix (a follow-up can switch
   // Agent→Plan mid-session, and for Cursor the prompt is the only plan-mode
-  // enforcement) and the implement-plan directive (the build turn is usually
-  // a follow-up on a resumed agent).
+  // enforcement), the implement-plan directive (the build turn is usually a
+  // follow-up on a resumed agent), and the conversation catchup (handback
+  // ALWAYS lands mid-session on a resumed agent — this prefix is the property
+  // the metadata lane structurally cannot deliver, cloud DD-006). Catchup
+  // last: it is context, and context sits closest to the task (the enhanced
+  // prompt's own ordering doctrine).
   if (resolution.reason === "resumed_successfully") {
     const prefixes = [
       formatInteractionModePrefix(interactionMode),
       formatImplementPlanSection(buildFromPlan, attachmentPaths),
+      conversationCatchup !== undefined
+        ? formatConversationCatchupSection(conversationCatchup)
+        : undefined,
     ].filter((p): p is string => p !== undefined);
     return prefixes.length > 0
       ? [...prefixes, userMessage].join("\n\n")
@@ -2415,6 +2443,7 @@ export function buildPrompt(input: BuildPromptInput): string {
     contextBridge: input.contextBridge,
     senderIdentity: input.senderIdentity,
     sessionContext: input.sessionContext,
+    conversationCatchup,
   });
 }
 

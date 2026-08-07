@@ -1,8 +1,11 @@
+import datetime
+
 from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as _spec_pb2
 from ai.stigmer.agentic.session.v1 import spec_pb2 as _spec_pb2_1
 from buf.validate import validate_pb2 as _validate_pb2
 from google.protobuf import struct_pb2 as _struct_pb2
+from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
@@ -12,7 +15,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentExecutionSpec(_message.Message):
-    __slots__ = ("session_id", "agent_id", "session_spec", "message", "execution_config", "runtime_env", "callback_token", "auto_approve_all", "parent_workflow_id", "attachments", "workspace_file_refs", "activity_task_queue", "supersedes_execution_id")
+    __slots__ = ("session_id", "agent_id", "session_spec", "message", "execution_config", "runtime_env", "callback_token", "auto_approve_all", "parent_workflow_id", "attachments", "workspace_file_refs", "activity_task_queue", "supersedes_execution_id", "conversation_catchup")
     class RuntimeEnvEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -33,6 +36,7 @@ class AgentExecutionSpec(_message.Message):
     WORKSPACE_FILE_REFS_FIELD_NUMBER: _ClassVar[int]
     ACTIVITY_TASK_QUEUE_FIELD_NUMBER: _ClassVar[int]
     SUPERSEDES_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    CONVERSATION_CATCHUP_FIELD_NUMBER: _ClassVar[int]
     session_id: str
     agent_id: str
     session_spec: _spec_pb2_1.SessionSpec
@@ -46,7 +50,8 @@ class AgentExecutionSpec(_message.Message):
     workspace_file_refs: _containers.RepeatedScalarFieldContainer[str]
     activity_task_queue: str
     supersedes_execution_id: str
-    def __init__(self, session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., session_spec: _Optional[_Union[_spec_pb2_1.SessionSpec, _Mapping]] = ..., message: _Optional[str] = ..., execution_config: _Optional[_Union[ExecutionConfig, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., callback_token: _Optional[bytes] = ..., auto_approve_all: bool = ..., parent_workflow_id: _Optional[str] = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., activity_task_queue: _Optional[str] = ..., supersedes_execution_id: _Optional[str] = ...) -> None: ...
+    conversation_catchup: ConversationCatchup
+    def __init__(self, session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., session_spec: _Optional[_Union[_spec_pb2_1.SessionSpec, _Mapping]] = ..., message: _Optional[str] = ..., execution_config: _Optional[_Union[ExecutionConfig, _Mapping]] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ..., callback_token: _Optional[bytes] = ..., auto_approve_all: bool = ..., parent_workflow_id: _Optional[str] = ..., attachments: _Optional[_Iterable[_Union[Attachment, _Mapping]]] = ..., workspace_file_refs: _Optional[_Iterable[str]] = ..., activity_task_queue: _Optional[str] = ..., supersedes_execution_id: _Optional[str] = ..., conversation_catchup: _Optional[_Union[ConversationCatchup, _Mapping]] = ...) -> None: ...
 
 class ExecutionConfig(_message.Message):
     __slots__ = ("model_name", "context_management", "max_tool_rounds", "max_tool_result_chars", "max_cost_usd", "interaction_mode", "structured_output_schema", "build_from_plan", "approval_mode", "service_tier")
@@ -97,3 +102,11 @@ class Attachment(_message.Message):
     extract: bool
     local_path: str
     def __init__(self, filename: _Optional[str] = ..., storage_key: _Optional[str] = ..., mount_path: _Optional[str] = ..., content_type: _Optional[str] = ..., extract: bool = ..., local_path: _Optional[str] = ...) -> None: ...
+
+class ConversationCatchup(_message.Message):
+    __slots__ = ("digest", "window_end")
+    DIGEST_FIELD_NUMBER: _ClassVar[int]
+    WINDOW_END_FIELD_NUMBER: _ClassVar[int]
+    digest: str
+    window_end: _timestamp_pb2.Timestamp
+    def __init__(self, digest: _Optional[str] = ..., window_end: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...

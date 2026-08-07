@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { buildEnhancedSystemPrompt } from "../prompt-builder.js";
+import { buildEnhancedSystemPrompt, composeUserMessage } from "../prompt-builder.js";
 import { PLAN_MODE_DIRECTIVE } from "../../../shared/plan-mode-prompt.js";
 import { SourceType } from "../../../shared/workspace/types.js";
 import type { ProvisionResult } from "../../../shared/workspace/types.js";
@@ -406,5 +406,43 @@ describe("buildEnhancedSystemPrompt", () => {
       expect(prompt).toContain("to-do list");
       expect(prompt).toContain("break the plan into");
     });
+  });
+});
+
+describe("composeUserMessage (conversation catchup, cloud DD-006 / A27)", () => {
+  const MESSAGE = "where is my order?";
+  const DIGEST =
+    "Customer: I want a refund\nTeammate: I've refunded you in full.";
+
+  it("prepends the framed catchup to the turn's user message — history durability rides the checkpointer, not the rebuilt system prompt", () => {
+    const composed = composeUserMessage(MESSAGE, DIGEST);
+
+    expect(composed.endsWith(MESSAGE)).toBe(true);
+    expect(composed).toContain(DIGEST);
+    expect(composed).toContain("you have not seen");
+    expect(composed.indexOf(DIGEST)).toBeLessThan(composed.indexOf(MESSAGE));
+  });
+
+  it("separates the catchup from the customer's message with a horizontal rule", () => {
+    expect(composeUserMessage(MESSAGE, DIGEST)).toContain("\n\n---\n\n");
+  });
+
+  it("leaves the message untouched when there is no catchup — most turns carry none", () => {
+    expect(composeUserMessage(MESSAGE, undefined)).toBe(MESSAGE);
+  });
+
+  it("never renders in the system prompt — the rebuilt-per-invocation lane would forget the digest one turn later", () => {
+    const prompt = buildEnhancedSystemPrompt({
+      instructions: "Test",
+      provisionResults: [],
+      containerRoot: "",
+      skillsPromptSection: "",
+      workspaceFileRefs: [],
+      workspaceRoot: "/workspace",
+      injectedFiles: [],
+    });
+
+    expect(prompt).not.toContain("Conversation catchup");
+    expect(prompt).not.toContain("you have not seen");
   });
 });

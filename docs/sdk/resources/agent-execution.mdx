@@ -630,6 +630,7 @@ const agentExecution = await stigmer.agentExecution.create({
   workspaceFileRefs: [],
   activityTaskQueue: "...",
   supersedesExecutionId: "...",
+  conversationCatchup: {},
 });
 ```
 </Tab>
@@ -653,6 +654,7 @@ agentExecution, err := client.AgentExecution.Create(ctx, &stigmer.AgentExecution
   WorkspaceFileRefs:     []string{},
   ActivityTaskQueue:     "...",
   SupersedesExecutionId: "...",
+  ConversationCatchup:   &stigmer.ConversationCatchupInput{},
 })
 ```
 </Tab>
@@ -676,6 +678,7 @@ agent_execution = client.agent_executions.create(AgentExecutionInput(
     workspace_file_refs=[],
     activity_task_queue="...",
     supersedes_execution_id="...",
+    conversation_catchup=None,
 ))
 ```
 </Tab>
@@ -699,6 +702,7 @@ AgentExecution agentExecution = client.agentExecutions().create(AgentExecutionIn
     .workspaceFileRefs(List.of())
     .activityTaskQueue("...")
     .supersedesExecutionId("...")
+    .conversationCatchup(null)
     .build());
 ```
 </Tab>
@@ -733,6 +737,7 @@ const agentExecution = await stigmer.agentExecution.update({
   workspaceFileRefs: [],
   activityTaskQueue: "...",
   supersedesExecutionId: "...",
+  conversationCatchup: {},
 });
 ```
 </Tab>
@@ -756,6 +761,7 @@ agentExecution, err := client.AgentExecution.Update(ctx, &stigmer.AgentExecution
   WorkspaceFileRefs:     []string{},
   ActivityTaskQueue:     "...",
   SupersedesExecutionId: "...",
+  ConversationCatchup:   &stigmer.ConversationCatchupInput{},
 })
 ```
 </Tab>
@@ -779,6 +785,7 @@ agent_execution = client.agent_executions.update(AgentExecutionInput(
     workspace_file_refs=[],
     activity_task_queue="...",
     supersedes_execution_id="...",
+    conversation_catchup=None,
 ))
 ```
 </Tab>
@@ -802,6 +809,7 @@ AgentExecution agentExecution = client.agentExecutions().update(AgentExecutionIn
     .workspaceFileRefs(List.of())
     .activityTaskQueue("...")
     .supersedesExecutionId("...")
+    .conversationCatchup(null)
     .build());
 ```
 </Tab>
@@ -1300,6 +1308,7 @@ Input for creating or updating an Agent Execution.
     workspaceFileRefs: { type: "string[]", description: "Workspace-relative file paths the user wants the agent to focus on." },
     activityTaskQueue: { type: "string", description: "Explicit Temporal task queue override for activity routing." },
     supersedesExecutionId: { type: "string", description: "ID of the execution this one supersedes via edit-and-resubmit (optional)." },
+    conversationCatchup: { type: "ConversationCatchupInput", description: "Conversation events the agent has not yet seen, composed by the platform for this turn (optional).", typeDescriptionLink: "#conversationcatchupinput" },
   }}
 />
 
@@ -1460,6 +1469,17 @@ Attachment represents a file attached to an agent execution.
     contentType: { type: "string", description: "MIME type for content negotiation (optional)." },
     extract: { type: "boolean", description: "When true, the attachment is a zip archive that should be extracted at mount_path rather than written as a single file." },
     localPath: { type: "string", description: "Absolute filesystem path to the original file on the CLI host (optional)." },
+  }}
+/>
+
+### ConversationCatchupInput
+
+ConversationCatchup carries the channel-conversation events an agent missed, composed fresh for one execution.
+
+<TypeTable
+  type={{
+    digest: { type: "string", description: "Plain-text digest of what the agent missed, oldest first; empty when nothing was missed." },
+    windowEnd: { type: "string", description: "The timeline instant this digest conveys through." },
   }}
 />
 

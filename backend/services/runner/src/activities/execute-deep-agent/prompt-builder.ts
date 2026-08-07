@@ -11,6 +11,7 @@ import { InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecuti
 import type { ProvisionResult, GitMetadata } from "../../shared/workspace/types.js";
 import { SourceType } from "../../shared/workspace/types.js";
 import { formatContextBridgeText } from "../../shared/context-bridge.js";
+import { formatConversationCatchupText } from "../../shared/conversation-catchup.js";
 import {
   formatSenderIdentityText,
   type SenderIdentity,
@@ -241,9 +242,28 @@ export function buildEnhancedSystemPrompt(input: PromptBuilderInput): string {
   return prompt;
 }
 
+/**
+ * Compose the turn's USER MESSAGE for the graph invocation: the framed
+ * conversation catchup (cloud DD-006), when present, prepended to the
+ * customer's message. In the user message and never the system prompt (A27):
+ * the system prompt is rebuilt per invocation and would forget the digest one
+ * turn later, while a message enters the checkpointer with the turn and
+ * persists in history — the same durability the cursor harness gets from its
+ * prompt prefix. The caller's `spec.message` is never mutated; the prepend
+ * exists only in the graph input.
+ */
+export function composeUserMessage(
+  message: string,
+  conversationCatchup: string | undefined,
+): string {
+  return conversationCatchup
+    ? `${formatConversationCatchupText(conversationCatchup)}\n\n---\n\n${message}`
+    : message;
+}
+
 function buildWorkspacePromptSection(
-  provisionResults: ProvisionResult[],
-  containerRoot: string,
+    provisionResults: ProvisionResult[],
+    containerRoot: string,
 ): string {
   if (provisionResults.length === 0) return "";
 

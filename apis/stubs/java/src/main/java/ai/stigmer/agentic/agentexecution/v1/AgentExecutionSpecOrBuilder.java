@@ -848,4 +848,79 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
    */
   com.google.protobuf.ByteString
       getSupersedesExecutionIdBytes();
+
+  /**
+   * <pre>
+   * Conversation events the agent has not yet seen, composed by the platform
+   * for this turn (optional).
+   *
+   * Set on live channel-conversation turns (WhatsApp, Slack): when a human
+   * teammate handled the conversation or messages otherwise landed while the
+   * agent was not watching, the digest carries what happened so the agent
+   * re-enters informed. Absent on every other execution surface.
+   *
+   * &#64;internal
+   * Composed per turn by the cloud channel runtime — ChannelSessionBroker
+   * over the DD-004 timeline stitch, windowed by the conversation's
+   * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
+   * The OSS server never sets it. The runner prepends the framed digest to
+   * the turn's user message on both harnesses (A27) and must never read
+   * window_end. Top-level rather than inside ExecutionConfig by design:
+   * conversation content must not vanish with the execution-profile
+   * kill-switch (DD-006 D-a).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
+   * @return Whether the conversationCatchup field is set.
+   */
+  boolean hasConversationCatchup();
+  /**
+   * <pre>
+   * Conversation events the agent has not yet seen, composed by the platform
+   * for this turn (optional).
+   *
+   * Set on live channel-conversation turns (WhatsApp, Slack): when a human
+   * teammate handled the conversation or messages otherwise landed while the
+   * agent was not watching, the digest carries what happened so the agent
+   * re-enters informed. Absent on every other execution surface.
+   *
+   * &#64;internal
+   * Composed per turn by the cloud channel runtime — ChannelSessionBroker
+   * over the DD-004 timeline stitch, windowed by the conversation's
+   * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
+   * The OSS server never sets it. The runner prepends the framed digest to
+   * the turn's user message on both harnesses (A27) and must never read
+   * window_end. Top-level rather than inside ExecutionConfig by design:
+   * conversation content must not vanish with the execution-profile
+   * kill-switch (DD-006 D-a).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
+   * @return The conversationCatchup.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ConversationCatchup getConversationCatchup();
+  /**
+   * <pre>
+   * Conversation events the agent has not yet seen, composed by the platform
+   * for this turn (optional).
+   *
+   * Set on live channel-conversation turns (WhatsApp, Slack): when a human
+   * teammate handled the conversation or messages otherwise landed while the
+   * agent was not watching, the digest carries what happened so the agent
+   * re-enters informed. Absent on every other execution surface.
+   *
+   * &#64;internal
+   * Composed per turn by the cloud channel runtime — ChannelSessionBroker
+   * over the DD-004 timeline stitch, windowed by the conversation's
+   * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
+   * The OSS server never sets it. The runner prepends the framed digest to
+   * the turn's user message on both harnesses (A27) and must never read
+   * window_end. Top-level rather than inside ExecutionConfig by design:
+   * conversation content must not vanish with the execution-profile
+   * kill-switch (DD-006 D-a).
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14 [json_name = "conversationCatchup"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.ConversationCatchupOrBuilder getConversationCatchupOrBuilder();
 }

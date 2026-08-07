@@ -11,14 +11,15 @@ import { file_ai_stigmer_agentic_executioncontext_v1_spec } from "../../executio
 import type { SessionSpec } from "../../session/v1/spec_pb.js";
 import { file_ai_stigmer_agentic_session_v1_spec } from "../../session/v1/spec_pb.js";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb.js";
-import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_struct, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { JsonObject, Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/agentexecution/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvc3BlYy5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxItwIChJBZ2VudEV4ZWN1dGlvblNwZWMSEgoKc2Vzc2lvbl9pZBgBIAEoCRIQCghhZ2VudF9pZBgCIAEoCRJACgxzZXNzaW9uX3NwZWMYDSABKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYxIYCgdtZXNzYWdlGAMgASgJQge6SARyAhABEk8KEGV4ZWN1dGlvbl9jb25maWcYBCABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRXhlY3V0aW9uQ29uZmlnEl0KC3J1bnRpbWVfZW52GAUgAygLMkguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3BlYy5SdW50aW1lRW52RW50cnkSFgoOY2FsbGJhY2tfdG9rZW4YBiABKAwSGAoQYXV0b19hcHByb3ZlX2FsbBgHIAEoCBIaChJwYXJlbnRfd29ya2Zsb3dfaWQYCCABKAkSRQoLYXR0YWNobWVudHMYCSADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXR0YWNobWVudBIbChN3b3Jrc3BhY2VfZmlsZV9yZWZzGAogAygJEhsKE2FjdGl2aXR5X3Rhc2tfcXVldWUYCyABKAkSHwoXc3VwZXJzZWRlc19leGVjdXRpb25faWQYDCABKAkaaQoPUnVudGltZUVudkVudHJ5EgsKA2tleRgBIAEoCRJFCgV2YWx1ZRgCIAEoCzI2LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvblZhbHVlOgI4ATq4A7pItAMaywEKIWFnZW50X2V4ZWN1dGlvbi5zZXNzaW9uX2V4Y2x1c2l2ZRJyc2Vzc2lvbl9pZCBhbmQgc2Vzc2lvbl9zcGVjIGFyZSBtdXR1YWxseSBleGNsdXNpdmUg4oCUIHJlZmVyZW5jZSBhbiBleGlzdGluZyBzZXNzaW9uIG9yIGRlZmluZSBhIG5ldyBvbmUsIG5vdCBib3RoGjIhKHRoaXMuc2Vzc2lvbl9pZCAhPSAnJyAmJiBoYXModGhpcy5zZXNzaW9uX3NwZWMpKRrjAQoqYWdlbnRfZXhlY3V0aW9uLnNlc3Npb25fc3BlY19oYXJuZXNzX3N0YXRlEnBzZXNzaW9uX3NwZWMuaGFybmVzc19zdGF0ZV9pZCBtdXN0IGJlIGVtcHR5IOKAlCBoYXJuZXNzIHN0YXRlIGlzIGNyZWF0ZWQgYnkgdGhlIHJ1bm5lciBhZnRlciB0aGUgZmlyc3QgZXhlY3V0aW9uGkMhaGFzKHRoaXMuc2Vzc2lvbl9zcGVjKSB8fCB0aGlzLnNlc3Npb25fc3BlYy5oYXJuZXNzX3N0YXRlX2lkID09ICcnIqUECg9FeGVjdXRpb25Db25maWcSEgoKbW9kZWxfbmFtZRgBIAEoCRJZChJjb250ZXh0X21hbmFnZW1lbnQYAiABKAsyPS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ29udGV4dE1hbmFnZW1lbnRDb25maWcSFwoPbWF4X3Rvb2xfcm91bmRzGAMgASgFEh0KFW1heF90b29sX3Jlc3VsdF9jaGFycxgEIAEoBRIUCgxtYXhfY29zdF91c2QYBSABKAESWQoQaW50ZXJhY3Rpb25fbW9kZRgGIAEoDjI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5JbnRlcmFjdGlvbk1vZGVCCLpIBYIBAhABEjkKGHN0cnVjdHVyZWRfb3V0cHV0X3NjaGVtYRgHIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFwoPYnVpbGRfZnJvbV9wbGFuGAggASgIElMKDWFwcHJvdmFsX21vZGUYCSABKA4yMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXBwcm92YWxNb2RlQgi6SAWCAQIQARJRCgxzZXJ2aWNlX3RpZXIYCiABKA4yMS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU2VydmljZVRpZXJCCLpIBYIBAhABIooBChdDb250ZXh0TWFuYWdlbWVudENvbmZpZxIdChVkaXNhYmxlX3N1bW1hcml6YXRpb24YASABKAgSKQoYY3VzdG9tX3RyaWdnZXJfdGhyZXNob2xkGAIgASgFQge6SAQaAigAEiUKFGN1c3RvbV90YXJnZXRfdG9rZW5zGAMgASgFQge6SAQaAigAIpQBCgpBdHRhY2htZW50EhkKCGZpbGVuYW1lGAEgASgJQge6SARyAhABEhwKC3N0b3JhZ2Vfa2V5GAIgASgJQge6SARyAhABEhIKCm1vdW50X3BhdGgYAyABKAkSFAoMY29udGVudF90eXBlGAQgASgJEg8KB2V4dHJhY3QYBSABKAgSEgoKbG9jYWxfcGF0aBgGIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_executioncontext_v1_spec, file_ai_stigmer_agentic_session_v1_spec, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvc3BlYy5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIrUJChJBZ2VudEV4ZWN1dGlvblNwZWMSEgoKc2Vzc2lvbl9pZBgBIAEoCRIQCghhZ2VudF9pZBgCIAEoCRJACgxzZXNzaW9uX3NwZWMYDSABKAsyKi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uU3BlYxIYCgdtZXNzYWdlGAMgASgJQge6SARyAhABEk8KEGV4ZWN1dGlvbl9jb25maWcYBCABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRXhlY3V0aW9uQ29uZmlnEl0KC3J1bnRpbWVfZW52GAUgAygLMkguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3BlYy5SdW50aW1lRW52RW50cnkSFgoOY2FsbGJhY2tfdG9rZW4YBiABKAwSGAoQYXV0b19hcHByb3ZlX2FsbBgHIAEoCBIaChJwYXJlbnRfd29ya2Zsb3dfaWQYCCABKAkSRQoLYXR0YWNobWVudHMYCSADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQXR0YWNobWVudBIbChN3b3Jrc3BhY2VfZmlsZV9yZWZzGAogAygJEhsKE2FjdGl2aXR5X3Rhc2tfcXVldWUYCyABKAkSHwoXc3VwZXJzZWRlc19leGVjdXRpb25faWQYDCABKAkSVwoUY29udmVyc2F0aW9uX2NhdGNodXAYDiABKAsyOS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQ29udmVyc2F0aW9uQ2F0Y2h1cBppCg9SdW50aW1lRW52RW50cnkSCwoDa2V5GAEgASgJEkUKBXZhbHVlGAIgASgLMjYuYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEuRXhlY3V0aW9uVmFsdWU6AjgBOrgDuki0AxrLAQohYWdlbnRfZXhlY3V0aW9uLnNlc3Npb25fZXhjbHVzaXZlEnJzZXNzaW9uX2lkIGFuZCBzZXNzaW9uX3NwZWMgYXJlIG11dHVhbGx5IGV4Y2x1c2l2ZSDigJQgcmVmZXJlbmNlIGFuIGV4aXN0aW5nIHNlc3Npb24gb3IgZGVmaW5lIGEgbmV3IG9uZSwgbm90IGJvdGgaMiEodGhpcy5zZXNzaW9uX2lkICE9ICcnICYmIGhhcyh0aGlzLnNlc3Npb25fc3BlYykpGuMBCiphZ2VudF9leGVjdXRpb24uc2Vzc2lvbl9zcGVjX2hhcm5lc3Nfc3RhdGUScHNlc3Npb25fc3BlYy5oYXJuZXNzX3N0YXRlX2lkIG11c3QgYmUgZW1wdHkg4oCUIGhhcm5lc3Mgc3RhdGUgaXMgY3JlYXRlZCBieSB0aGUgcnVubmVyIGFmdGVyIHRoZSBmaXJzdCBleGVjdXRpb24aQyFoYXModGhpcy5zZXNzaW9uX3NwZWMpIHx8IHRoaXMuc2Vzc2lvbl9zcGVjLmhhcm5lc3Nfc3RhdGVfaWQgPT0gJycipQQKD0V4ZWN1dGlvbkNvbmZpZxISCgptb2RlbF9uYW1lGAEgASgJElkKEmNvbnRleHRfbWFuYWdlbWVudBgCIAEoCzI9LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db250ZXh0TWFuYWdlbWVudENvbmZpZxIXCg9tYXhfdG9vbF9yb3VuZHMYAyABKAUSHQoVbWF4X3Rvb2xfcmVzdWx0X2NoYXJzGAQgASgFEhQKDG1heF9jb3N0X3VzZBgFIAEoARJZChBpbnRlcmFjdGlvbl9tb2RlGAYgASgOMjUuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkludGVyYWN0aW9uTW9kZUIIukgFggECEAESOQoYc3RydWN0dXJlZF9vdXRwdXRfc2NoZW1hGAcgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIXCg9idWlsZF9mcm9tX3BsYW4YCCABKAgSUwoNYXBwcm92YWxfbW9kZRgJIAEoDjIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbE1vZGVCCLpIBYIBAhABElEKDHNlcnZpY2VfdGllchgKIAEoDjIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TZXJ2aWNlVGllckIIukgFggECEAEiigEKF0NvbnRleHRNYW5hZ2VtZW50Q29uZmlnEh0KFWRpc2FibGVfc3VtbWFyaXphdGlvbhgBIAEoCBIpChhjdXN0b21fdHJpZ2dlcl90aHJlc2hvbGQYAiABKAVCB7pIBBoCKAASJQoUY3VzdG9tX3RhcmdldF90b2tlbnMYAyABKAVCB7pIBBoCKAAilAEKCkF0dGFjaG1lbnQSGQoIZmlsZW5hbWUYASABKAlCB7pIBHICEAESHAoLc3RvcmFnZV9rZXkYAiABKAlCB7pIBHICEAESEgoKbW91bnRfcGF0aBgDIAEoCRIUCgxjb250ZW50X3R5cGUYBCABKAkSDwoHZXh0cmFjdBgFIAEoCBISCgpsb2NhbF9wYXRoGAYgASgJIlUKE0NvbnZlcnNhdGlvbkNhdGNodXASDgoGZGlnZXN0GAEgASgJEi4KCndpbmRvd19lbmQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_executioncontext_v1_spec, file_ai_stigmer_agentic_session_v1_spec, file_buf_validate_validate, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * AgentExecutionSpec contains only user-provided inputs for triggering an execution.
@@ -343,6 +344,29 @@ export type AgentExecutionSpec = Message<"ai.stigmer.agentic.agentexecution.v1.A
    * @generated from field: string supersedes_execution_id = 12;
    */
   supersedesExecutionId: string;
+
+  /**
+   * Conversation events the agent has not yet seen, composed by the platform
+   * for this turn (optional).
+   *
+   * Set on live channel-conversation turns (WhatsApp, Slack): when a human
+   * teammate handled the conversation or messages otherwise landed while the
+   * agent was not watching, the digest carries what happened so the agent
+   * re-enters informed. Absent on every other execution surface.
+   *
+   * @internal
+   * Composed per turn by the cloud channel runtime — ChannelSessionBroker
+   * over the DD-004 timeline stitch, windowed by the conversation's
+   * agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
+   * The OSS server never sets it. The runner prepends the framed digest to
+   * the turn's user message on both harnesses (A27) and must never read
+   * window_end. Top-level rather than inside ExecutionConfig by design:
+   * conversation content must not vanish with the execution-profile
+   * kill-switch (DD-006 D-a).
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup conversation_catchup = 14;
+   */
+  conversationCatchup?: ConversationCatchup;
 };
 
 /**
@@ -746,4 +770,56 @@ export type Attachment = Message<"ai.stigmer.agentic.agentexecution.v1.Attachmen
  */
 export const AttachmentSchema: GenMessage<Attachment> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_spec, 3);
+
+/**
+ * ConversationCatchup carries the channel-conversation events an agent
+ * missed, composed fresh for one execution.
+ *
+ * @internal
+ * Present on EVERY channel turn — even with an empty digest — so window_end
+ * can advance the conversation's agent_witnessed_through watermark when the
+ * turn settles (channel-conversations DD-006 as amended by T03 Sitting 3,
+ * A21). Content is composed in the cloud; presentation (preamble, framing,
+ * prompt placement) is owned by the OSS runner's shared/conversation-catchup
+ * module — the DD-013 content/presentation split.
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.ConversationCatchup
+ */
+export type ConversationCatchup = Message<"ai.stigmer.agentic.agentexecution.v1.ConversationCatchup"> & {
+  /**
+   * Plain-text digest of what the agent missed, oldest first; empty when
+   * nothing was missed.
+   *
+   * @internal
+   * Bare content lines ("Customer: ..." / "Teammate: ..." / "System: ..." /
+   * "You escalated: ..." / "Note: ..."), no model-facing framing — the
+   * runner owns the preamble and the prompt placement. Blank means "inject
+   * nothing" (the shared-module blank-is-absent convention).
+   *
+   * @generated from field: string digest = 1;
+   */
+  digest: string;
+
+  /**
+   * The timeline instant this digest conveys through.
+   *
+   * @internal
+   * Cloud bookkeeping, NEVER read by the runner. The delivery settle path
+   * advances the conversation's agent_witnessed_through watermark to this
+   * instant when the execution COMPLETED and the settle won (DD-007 D-b as
+   * sharpened by A26). Set on every channel turn, digest or not (A21); its
+   * value is the broker's compose instant, which is strictly later than the
+   * turn's own inbound message (A24).
+   *
+   * @generated from field: google.protobuf.Timestamp window_end = 2;
+   */
+  windowEnd?: Timestamp;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.ConversationCatchup.
+ * Use `create(ConversationCatchupSchema)` to create a new message.
+ */
+export const ConversationCatchupSchema: GenMessage<ConversationCatchup> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_spec, 4);
 

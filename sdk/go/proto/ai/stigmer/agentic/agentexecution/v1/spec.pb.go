@@ -13,6 +13,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -286,8 +287,26 @@ type AgentExecutionSpec struct {
 	//
 	// @since Edit-and-Resubmit In Place (stigmer/stigmer#181)
 	SupersedesExecutionId string `protobuf:"bytes,12,opt,name=supersedes_execution_id,json=supersedesExecutionId,proto3" json:"supersedes_execution_id,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// Conversation events the agent has not yet seen, composed by the platform
+	// for this turn (optional).
+	//
+	// Set on live channel-conversation turns (WhatsApp, Slack): when a human
+	// teammate handled the conversation or messages otherwise landed while the
+	// agent was not watching, the digest carries what happened so the agent
+	// re-enters informed. Absent on every other execution surface.
+	//
+	// @internal
+	// Composed per turn by the cloud channel runtime — ChannelSessionBroker
+	// over the DD-004 timeline stitch, windowed by the conversation's
+	// agent_witnessed_through watermark (channel-conversations DD-006/DD-007).
+	// The OSS server never sets it. The runner prepends the framed digest to
+	// the turn's user message on both harnesses (A27) and must never read
+	// window_end. Top-level rather than inside ExecutionConfig by design:
+	// conversation content must not vanish with the execution-profile
+	// kill-switch (DD-006 D-a).
+	ConversationCatchup *ConversationCatchup `protobuf:"bytes,14,opt,name=conversation_catchup,json=conversationCatchup,proto3" json:"conversation_catchup,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *AgentExecutionSpec) Reset() {
@@ -409,6 +428,13 @@ func (x *AgentExecutionSpec) GetSupersedesExecutionId() string {
 		return x.SupersedesExecutionId
 	}
 	return ""
+}
+
+func (x *AgentExecutionSpec) GetConversationCatchup() *ConversationCatchup {
+	if x != nil {
+		return x.ConversationCatchup
+	}
+	return nil
 }
 
 // Configuration that can be applied at execution time.
@@ -916,12 +942,90 @@ func (x *Attachment) GetLocalPath() string {
 	return ""
 }
 
+// ConversationCatchup carries the channel-conversation events an agent
+// missed, composed fresh for one execution.
+//
+// @internal
+// Present on EVERY channel turn — even with an empty digest — so window_end
+// can advance the conversation's agent_witnessed_through watermark when the
+// turn settles (channel-conversations DD-006 as amended by T03 Sitting 3,
+// A21). Content is composed in the cloud; presentation (preamble, framing,
+// prompt placement) is owned by the OSS runner's shared/conversation-catchup
+// module — the DD-013 content/presentation split.
+type ConversationCatchup struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Plain-text digest of what the agent missed, oldest first; empty when
+	// nothing was missed.
+	//
+	// @internal
+	// Bare content lines ("Customer: ..." / "Teammate: ..." / "System: ..." /
+	// "You escalated: ..." / "Note: ..."), no model-facing framing — the
+	// runner owns the preamble and the prompt placement. Blank means "inject
+	// nothing" (the shared-module blank-is-absent convention).
+	Digest string `protobuf:"bytes,1,opt,name=digest,proto3" json:"digest,omitempty"`
+	// The timeline instant this digest conveys through.
+	//
+	// @internal
+	// Cloud bookkeeping, NEVER read by the runner. The delivery settle path
+	// advances the conversation's agent_witnessed_through watermark to this
+	// instant when the execution COMPLETED and the settle won (DD-007 D-b as
+	// sharpened by A26). Set on every channel turn, digest or not (A21); its
+	// value is the broker's compose instant, which is strictly later than the
+	// turn's own inbound message (A24).
+	WindowEnd     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=window_end,json=windowEnd,proto3" json:"window_end,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConversationCatchup) Reset() {
+	*x = ConversationCatchup{}
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConversationCatchup) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConversationCatchup) ProtoMessage() {}
+
+func (x *ConversationCatchup) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConversationCatchup.ProtoReflect.Descriptor instead.
+func (*ConversationCatchup) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ConversationCatchup) GetDigest() string {
+	if x != nil {
+		return x.Digest
+	}
+	return ""
+}
+
+func (x *ConversationCatchup) GetWindowEnd() *timestamppb.Timestamp {
+	if x != nil {
+		return x.WindowEnd
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xaa\n" +
-	"\n" +
+	"/ai/stigmer/agentic/agentexecution/v1/spec.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a1ai/stigmer/agentic/executioncontext/v1/spec.proto\x1a(ai/stigmer/agentic/session/v1/spec.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x98\v\n" +
 	"\x12AgentExecutionSpec\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x19\n" +
@@ -938,7 +1042,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\x13workspace_file_refs\x18\n" +
 	" \x03(\tR\x11workspaceFileRefs\x12.\n" +
 	"\x13activity_task_queue\x18\v \x01(\tR\x11activityTaskQueue\x126\n" +
-	"\x17supersedes_execution_id\x18\f \x01(\tR\x15supersedesExecutionId\x1au\n" +
+	"\x17supersedes_execution_id\x18\f \x01(\tR\x15supersedesExecutionId\x12l\n" +
+	"\x14conversation_catchup\x18\x0e \x01(\v29.ai.stigmer.agentic.agentexecution.v1.ConversationCatchupR\x13conversationCatchup\x1au\n" +
 	"\x0fRuntimeEnvEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12L\n" +
 	"\x05value\x18\x02 \x01(\v26.ai.stigmer.agentic.executioncontext.v1.ExecutionValueR\x05value:\x028\x01:\xb8\x03\xbaH\xb4\x03\x1a\xcb\x01\n" +
@@ -972,7 +1077,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc = "" +
 	"\fcontent_type\x18\x04 \x01(\tR\vcontentType\x12\x18\n" +
 	"\aextract\x18\x05 \x01(\bR\aextract\x12\x1d\n" +
 	"\n" +
-	"local_path\x18\x06 \x01(\tR\tlocalPathB\xcc\x02\n" +
+	"local_path\x18\x06 \x01(\tR\tlocalPath\"h\n" +
+	"\x13ConversationCatchup\x12\x16\n" +
+	"\x06digest\x18\x01 \x01(\tR\x06digest\x129\n" +
+	"\n" +
+	"window_end\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\twindowEndB\xcc\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\tSpecProtoP\x01Z`github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -987,36 +1096,40 @@ func file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_goTypes = []any{
 	(*AgentExecutionSpec)(nil),      // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec
 	(*ExecutionConfig)(nil),         // 1: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
 	(*ContextManagementConfig)(nil), // 2: ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
 	(*Attachment)(nil),              // 3: ai.stigmer.agentic.agentexecution.v1.Attachment
-	nil,                             // 4: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
-	(*v1.SessionSpec)(nil),          // 5: ai.stigmer.agentic.session.v1.SessionSpec
-	(InteractionMode)(0),            // 6: ai.stigmer.agentic.agentexecution.v1.InteractionMode
-	(*structpb.Struct)(nil),         // 7: google.protobuf.Struct
-	(ApprovalMode)(0),               // 8: ai.stigmer.agentic.agentexecution.v1.ApprovalMode
-	(ServiceTier)(0),                // 9: ai.stigmer.agentic.agentexecution.v1.ServiceTier
-	(*v11.ExecutionValue)(nil),      // 10: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	(*ConversationCatchup)(nil),     // 4: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup
+	nil,                             // 5: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
+	(*v1.SessionSpec)(nil),          // 6: ai.stigmer.agentic.session.v1.SessionSpec
+	(InteractionMode)(0),            // 7: ai.stigmer.agentic.agentexecution.v1.InteractionMode
+	(*structpb.Struct)(nil),         // 8: google.protobuf.Struct
+	(ApprovalMode)(0),               // 9: ai.stigmer.agentic.agentexecution.v1.ApprovalMode
+	(ServiceTier)(0),                // 10: ai.stigmer.agentic.agentexecution.v1.ServiceTier
+	(*timestamppb.Timestamp)(nil),   // 11: google.protobuf.Timestamp
+	(*v11.ExecutionValue)(nil),      // 12: ai.stigmer.agentic.executioncontext.v1.ExecutionValue
 }
 var file_ai_stigmer_agentic_agentexecution_v1_spec_proto_depIdxs = []int32{
-	5,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
+	6,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.session_spec:type_name -> ai.stigmer.agentic.session.v1.SessionSpec
 	1,  // 1: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.execution_config:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionConfig
-	4,  // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.runtime_env:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
+	5,  // 2: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.runtime_env:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry
 	3,  // 3: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.attachments:type_name -> ai.stigmer.agentic.agentexecution.v1.Attachment
-	2,  // 4: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
-	6,  // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.interaction_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.InteractionMode
-	7,  // 6: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.structured_output_schema:type_name -> google.protobuf.Struct
-	8,  // 7: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.approval_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalMode
-	9,  // 8: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.service_tier:type_name -> ai.stigmer.agentic.agentexecution.v1.ServiceTier
-	10, // 9: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	4,  // 4: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.conversation_catchup:type_name -> ai.stigmer.agentic.agentexecution.v1.ConversationCatchup
+	2,  // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.context_management:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextManagementConfig
+	7,  // 6: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.interaction_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.InteractionMode
+	8,  // 7: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.structured_output_schema:type_name -> google.protobuf.Struct
+	9,  // 8: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.approval_mode:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalMode
+	10, // 9: ai.stigmer.agentic.agentexecution.v1.ExecutionConfig.service_tier:type_name -> ai.stigmer.agentic.agentexecution.v1.ServiceTier
+	11, // 10: ai.stigmer.agentic.agentexecution.v1.ConversationCatchup.window_end:type_name -> google.protobuf.Timestamp
+	12, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpec.RuntimeEnvEntry.value:type_name -> ai.stigmer.agentic.executioncontext.v1.ExecutionValue
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() }
@@ -1031,7 +1144,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_spec_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

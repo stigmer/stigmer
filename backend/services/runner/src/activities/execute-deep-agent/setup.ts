@@ -25,6 +25,7 @@ import type { StigmerClient } from "../../client/stigmer-client.js";
 import { TimingRecorder, emitTimingLog } from "../../shared/cold-start-timing.js";
 import { createCheckpointer } from "../../shared/checkpointer/factory.js";
 import { readContextBridge } from "../../shared/context-bridge.js";
+import { readConversationCatchup } from "../../shared/conversation-catchup.js";
 import { readSenderIdentity } from "../../shared/sender-identity.js";
 import {
   injectCallerIdentityEnv,
@@ -64,7 +65,7 @@ import { resolveSessionWorkspaceRoot } from "../../shared/workspace/session-root
 import { buildWorkspaceFileTree } from "../../shared/workspace/file-tree.js";
 import { reportSetupProgress } from "../../shared/status.js";
 import { resolveEnvironment, type EnvironmentResult } from "./environment.js";
-import { buildEnhancedSystemPrompt } from "./prompt-builder.js";
+import { buildEnhancedSystemPrompt, composeUserMessage } from "./prompt-builder.js";
 import { buildMiddlewareStack } from "../../middleware/index.js";
 import type { GracefulStopMiddleware } from "../../middleware/index.js";
 import { createThinkTool, createWebFetchTool, resolveGuardPosture } from "../../tools/index.js";
@@ -773,8 +774,13 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
       ...(isPlanMode ? { permissions: planModePermissions } : {}),
     } as Parameters<typeof createDeepAgent>[0]);
 
-    // Step 11: Prepare invocation input and config
-    let userMessage = execution.spec!.message;
+    // Step 11: Prepare invocation input and config. The conversation catchup
+    // (cloud DD-006) rides the USER MESSAGE, not the system prompt — see
+    // composeUserMessage for the durability rationale (A27).
+    let userMessage = composeUserMessage(
+      execution.spec!.message,
+      readConversationCatchup(execution.spec!.conversationCatchup),
+    );
     if (outputSchema) {
       userMessage += `\n\n---\nIMPORTANT: When your analysis is complete, provide your findings as structured output matching the required schema. The system will capture your structured response automatically.`;
     }

@@ -153,6 +153,17 @@
       },
       "description": "ID of the execution this one supersedes via edit-and-resubmit (optional).\n\n When a user stops an in-flight turn, edits the message, and resubmits,\n the client sets this field on the NEW execution to point at the stopped\n one. Chat-thread consumers hide the superseded execution so the edited\n message replaces the original in place; history surfaces (CLI, execution\n lists) keep showing the full record.\n\n Empty means this execution is not an edit of another turn.\n\n @internal\n\n The link always lives on the successor — the superseded record is never\n mutated (append-only execution log, single writer). Chained edits form a\n chain of links (A \u003c- B \u003c- C), each persisted on its own successor.\n\n Display-level semantics only: the runner does NOT rewind model context.\n Conversation history lives in an opaque session-keyed store (LangGraph\n checkpoint thread / Cursor SDK agent store) that is resumed as-is, so the\n superseded turn's partial messages remain visible to the model. Do not\n build features that assume the runner skips superseded turns.\n\n @since Edit-and-Resubmit In Place (stigmer/stigmer#181)",
       "required": false
+    },
+    {
+      "name": "ConversationCatchup",
+      "jsonName": "conversationCatchup",
+      "protoField": "conversation_catchup",
+      "type": {
+        "kind": "message",
+        "messageType": "ConversationCatchup"
+      },
+      "description": "Conversation events the agent has not yet seen, composed by the platform\n for this turn (optional).\n\n Set on live channel-conversation turns (WhatsApp, Slack): when a human\n teammate handled the conversation or messages otherwise landed while the\n agent was not watching, the digest carries what happened so the agent\n re-enters informed. Absent on every other execution surface.\n\n @internal\n Composed per turn by the cloud channel runtime — ChannelSessionBroker\n over the DD-004 timeline stitch, windowed by the conversation's\n agent_witnessed_through watermark (channel-conversations DD-006/DD-007).\n The OSS server never sets it. The runner prepends the framed digest to\n the turn's user message on both harnesses (A27) and must never read\n window_end. Top-level rather than inside ExecutionConfig by design:\n conversation content must not vanish with the execution-profile\n kill-switch (DD-006 D-a).",
+      "required": false
     }
   ]
 }

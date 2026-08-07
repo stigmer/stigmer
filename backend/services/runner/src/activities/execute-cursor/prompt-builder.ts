@@ -21,6 +21,7 @@ import type { DatastoreUsage, SubAgent } from "@stigmer/protos/ai/stigmer/agenti
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction, InteractionMode } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { formatContextBridgeText } from "../../shared/context-bridge.js";
+import { formatConversationCatchupText } from "../../shared/conversation-catchup.js";
 import { formatDatastoresSection } from "../../shared/datastore-attachment.js";
 import {
   formatChannelTemplatesSection,
@@ -107,6 +108,16 @@ export interface EnhancedPromptOptions {
    * store — the context is constant for the session's lifetime.
    */
   sessionContext?: string;
+  /**
+   * Conversation catchup (cloud DD-006): what happened on the channel
+   * conversation that the agent has not seen, read from the execution
+   * spec's `conversation_catchup`. PER-TURN, unlike the three standing
+   * siblings above: it rides BOTH prompt paths — this enhanced prompt and
+   * a resumed turn's prefix (the `interaction_mode` shape) — because
+   * handback lands mid-session on a resumed agent, the exact case the
+   * metadata lane cannot reach.
+   */
+  conversationCatchup?: string;
 }
 
 /**
@@ -198,6 +209,14 @@ export function buildEnhancedPrompt(options: EnhancedPromptOptions): string {
   // is an INSTRUCTION and must outweigh everything, including this bridge).
   if (options.contextBridge) {
     sections.push(formatContextBridgeSection(options.contextBridge));
+  }
+
+  // Catchup after the bridge (DD-007 D-d: bridge first, catchup second) —
+  // the bridge carries the pre-takeover conversation, the catchup the human
+  // episode, strictly newer by construction; recency puts it closer to the
+  // task.
+  if (options.conversationCatchup) {
+    sections.push(formatConversationCatchupSection(options.conversationCatchup));
   }
 
   // Always last before the task: the platform's tool-approval protocol. Placed
@@ -343,6 +362,10 @@ export function formatSenderIdentitySection(identity: SenderIdentity): string {
 
 export function formatSessionContextSection(context: string): string {
   return `<session_context>\n${formatSessionContextText(context)}\n</session_context>`;
+}
+
+export function formatConversationCatchupSection(digest: string): string {
+  return `<conversation_catchup>\n${formatConversationCatchupText(digest)}\n</conversation_catchup>`;
 }
 
 export function formatSkillsSection(skills: SkillMetadata[]): string {

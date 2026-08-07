@@ -5,6 +5,7 @@ package gen
 import (
 	"context"
 	"io"
+	"time"
 
 	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/executioncontext/v1"
@@ -13,6 +14,7 @@ import (
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // AgentExecutionClient provides operations on agentexecution resources.
@@ -182,6 +184,7 @@ type AgentExecutionInput struct {
 	WorkspaceFileRefs     []string
 	ActivityTaskQueue     string
 	SupersedesExecutionId string
+	ConversationCatchup   *ConversationCatchupInput
 }
 
 // SessionSpecInput is the SDK input type for SessionSpec.
@@ -256,6 +259,12 @@ type AttachmentInput struct {
 	LocalPath   string
 }
 
+// ConversationCatchupInput is the SDK input type for ConversationCatchup.
+type ConversationCatchupInput struct {
+	Digest    string
+	WindowEnd string
+}
+
 func (i *AgentExecutionInput) toProto() *agentexecutionv1.AgentExecution {
 	resource := &agentexecutionv1.AgentExecution{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -293,6 +302,9 @@ func (i *AgentExecutionInput) toProto() *agentexecutionv1.AgentExecution {
 	resource.Spec.WorkspaceFileRefs = i.WorkspaceFileRefs
 	resource.Spec.ActivityTaskQueue = i.ActivityTaskQueue
 	resource.Spec.SupersedesExecutionId = i.SupersedesExecutionId
+	if i.ConversationCatchup != nil {
+		resource.Spec.ConversationCatchup = i.ConversationCatchup.toProto()
+	}
 	return resource
 }
 
@@ -389,6 +401,17 @@ func (i *AttachmentInput) toProto() *agentexecutionv1.Attachment {
 	}
 }
 
+func (i *ConversationCatchupInput) toProto() *agentexecutionv1.ConversationCatchup {
+	p := &agentexecutionv1.ConversationCatchup{}
+	p.Digest = i.Digest
+	if i.WindowEnd != "" {
+		if t, err := time.Parse(time.RFC3339, i.WindowEnd); err == nil {
+			p.WindowEnd = timestamppb.New(t)
+		}
+	}
+	return p
+}
+
 // AgentExecutionInputFromProto creates a AgentExecutionInput from a proto AgentExecution resource.
 func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExecutionInput {
 	if p == nil {
@@ -423,6 +446,7 @@ func AgentExecutionInputFromProto(p *agentexecutionv1.AgentExecution) *AgentExec
 		input.WorkspaceFileRefs = s.GetWorkspaceFileRefs()
 		input.ActivityTaskQueue = s.GetActivityTaskQueue()
 		input.SupersedesExecutionId = s.GetSupersedesExecutionId()
+		input.ConversationCatchup = conversationCatchupInputFromProto(s.GetConversationCatchup())
 	}
 	return input
 }
@@ -536,5 +560,17 @@ func attachmentInputFromProto(p *agentexecutionv1.Attachment) *AttachmentInput {
 	input.ContentType = p.GetContentType()
 	input.Extract = p.GetExtract()
 	input.LocalPath = p.GetLocalPath()
+	return input
+}
+
+func conversationCatchupInputFromProto(p *agentexecutionv1.ConversationCatchup) *ConversationCatchupInput {
+	if p == nil {
+		return nil
+	}
+	input := &ConversationCatchupInput{}
+	input.Digest = p.GetDigest()
+	if ts := p.GetWindowEnd(); ts != nil {
+		input.WindowEnd = ts.AsTime().Format(time.RFC3339)
+	}
 	return input
 }
