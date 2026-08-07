@@ -34,6 +34,7 @@ private static final long serialVersionUID = 0L;
   private ListChannelConversationsInput() {
     org_ = "";
     agentChannelId_ = "";
+    filter_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -187,6 +188,34 @@ private static final long serialVersionUID = 0L;
     return pageInfo_ == null ? ai.stigmer.commons.rpc.PageInfo.getDefaultInstance() : pageInfo_;
   }
 
+  public static final int FILTER_FIELD_NUMBER = 4;
+  private int filter_ = 0;
+  /**
+   * <pre>
+   * Optional filter: narrow the list to a server-evaluated predicate.
+   * Unspecified lists every conversation on the authorized channels.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter filter = 4 [json_name = "filter"];</code>
+   * @return The enum numeric value on the wire for filter.
+   */
+  @java.lang.Override public int getFilterValue() {
+    return filter_;
+  }
+  /**
+   * <pre>
+   * Optional filter: narrow the list to a server-evaluated predicate.
+   * Unspecified lists every conversation on the authorized channels.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter filter = 4 [json_name = "filter"];</code>
+   * @return The filter.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter getFilter() {
+    ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter result = ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter.forNumber(filter_);
+    return result == null ? ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -210,6 +239,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(3, getPageInfo());
     }
+    if (filter_ != ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter.channel_conversation_list_filter_unspecified.getNumber()) {
+      output.writeEnum(4, filter_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -228,6 +260,10 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(3, getPageInfo());
+    }
+    if (filter_ != ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter.channel_conversation_list_filter_unspecified.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(4, filter_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -253,6 +289,7 @@ private static final long serialVersionUID = 0L;
       if (!getPageInfo()
           .equals(other.getPageInfo())) return false;
     }
+    if (filter_ != other.filter_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -272,6 +309,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + PAGE_INFO_FIELD_NUMBER;
       hash = (53 * hash) + getPageInfo().hashCode();
     }
+    hash = (37 * hash) + FILTER_FIELD_NUMBER;
+    hash = (53 * hash) + filter_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -420,6 +459,7 @@ private static final long serialVersionUID = 0L;
         pageInfoBuilder_.dispose();
         pageInfoBuilder_ = null;
       }
+      filter_ = 0;
       return this;
     }
 
@@ -466,6 +506,9 @@ private static final long serialVersionUID = 0L;
             : pageInfoBuilder_.build();
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.filter_ = filter_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -493,6 +536,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasPageInfo()) {
         mergePageInfo(other.getPageInfo());
+      }
+      if (other.filter_ != 0) {
+        setFilterValue(other.getFilterValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -537,6 +583,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 26
+            case 32: {
+              filter_ = input.readEnum();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 32
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -893,6 +944,83 @@ private static final long serialVersionUID = 0L;
         pageInfo_ = null;
       }
       return pageInfoBuilder_;
+    }
+
+    private int filter_ = 0;
+    /**
+     * <pre>
+     * Optional filter: narrow the list to a server-evaluated predicate.
+     * Unspecified lists every conversation on the authorized channels.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter filter = 4 [json_name = "filter"];</code>
+     * @return The enum numeric value on the wire for filter.
+     */
+    @java.lang.Override public int getFilterValue() {
+      return filter_;
+    }
+    /**
+     * <pre>
+     * Optional filter: narrow the list to a server-evaluated predicate.
+     * Unspecified lists every conversation on the authorized channels.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter filter = 4 [json_name = "filter"];</code>
+     * @param value The enum numeric value on the wire for filter to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setFilterValue(int value) {
+      filter_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Optional filter: narrow the list to a server-evaluated predicate.
+     * Unspecified lists every conversation on the authorized channels.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter filter = 4 [json_name = "filter"];</code>
+     * @return The filter.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter getFilter() {
+      ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter result = ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter.forNumber(filter_);
+      return result == null ? ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Optional filter: narrow the list to a server-evaluated predicate.
+     * Unspecified lists every conversation on the authorized channels.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter filter = 4 [json_name = "filter"];</code>
+     * @param value The filter to set.
+     * @return This builder for chaining.
+     */
+    public Builder setFilter(ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000008;
+      filter_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Optional filter: narrow the list to a server-evaluated predicate.
+     * Unspecified lists every conversation on the authorized channels.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter filter = 4 [json_name = "filter"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearFilter() {
+      bitField0_ = (bitField0_ & ~0x00000008);
+      filter_ = 0;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput)

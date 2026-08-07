@@ -282,4 +282,29 @@ public interface ChannelConversationOrBuilder extends
    * <code>.google.protobuf.Timestamp last_activity_at = 12 [json_name = "lastActivityAt"];</code>
    */
   com.google.protobuf.TimestampOrBuilder getLastActivityAtOrBuilder();
+
+  /**
+   * <pre>
+   * True when the customer's last message has not yet received a real
+   * answer — from the agent or from a teammate.
+   *
+   * &#64;internal
+   * channel-conversations DD-011 D-b/D-c: derived on read from
+   * last_customer_message_at vs the server-side last_answered_at fact
+   * column — never stored, so no boolean exists to drift. Only real
+   * answers stamp the fact (an agent turn delivered with Outcome.OK; a
+   * participant-origin staff reply at its Delivered settle); apology,
+   * cancellation, and limit copy, the platform acknowledgment, operator
+   * sends, and escalations never count. Ties go to answered. The raw
+   * instant stays server-side deliberately: carrying the derived boolean
+   * keeps the NULL-and-compare rule in one place instead of re-implemented
+   * per client, and "waiting since" already rides field 11. proto3
+   * default (false) degrades to the pre-T05 surface in both skew
+   * directions.
+   * </pre>
+   *
+   * <code>bool awaiting_reply = 13 [json_name = "awaitingReply"];</code>
+   * @return The awaitingReply.
+   */
+  boolean getAwaitingReply();
 }

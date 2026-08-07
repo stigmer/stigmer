@@ -405,6 +405,7 @@ const result = await stigmer.agentChannel.listConversations({
   org: "...",
   agentChannelId: "...",
   pageInfo: {},
+  filter: "...",
 });
 ```
 </Tab>
@@ -414,6 +415,7 @@ result, err := client.AgentChannel.ListConversations(ctx, &stigmer.ListChannelCo
   Org:            "...",
   AgentChannelId: "...",
   PageInfo:       &stigmer.PageInfoInput{},
+  Filter:         "...",
 })
 ```
 </Tab>
@@ -423,6 +425,7 @@ result = client.agent_channels.list_conversations(ListChannelConversationsInput(
     org="...",
     agent_channel_id="...",
     page_info=None,
+    filter="...",
 ))
 ```
 </Tab>
@@ -432,6 +435,7 @@ ChannelConversationList result = client.agentChannels().listConversations(ListCh
     .org("...")
     .agentChannelId("...")
     .pageInfo(null)
+    .filter("...")
     .build());
 ```
 </Tab>
@@ -1342,6 +1346,7 @@ ChannelConversation is the durable identity and participation state of one chann
     displayName: { type: "string", description: "Customer display name as the provider reports it (WhatsApp: contacts[].profile.name)." },
     lastCustomerMessageAt: { type: "string", description: "When the customer last sent a message." },
     lastActivityAt: { type: "string", description: "When anything last happened on the conversation, across all lanes." },
+    awaitingReply: { type: "boolean", description: "True when the customer's last message has not yet received a real answer — from the agent or from a teammate." },
   }}
 />
 
@@ -1364,6 +1369,7 @@ Input for listing an organization's channel conversations.
     org: { type: "string", description: "Organization whose conversations to list." },
     agentChannelId: { type: "string", description: "Optional filter: only conversations on this agent channel." },
     pageInfo: { type: "PageInfoInput", description: "Pagination options." },
+    filter: { type: "ChannelConversationListFilter", description: "Optional filter: narrow the list to a server-evaluated predicate.", typeDescriptionLink: "#channelconversationlistfilter" },
   }}
 />
 
@@ -1573,6 +1579,14 @@ ConversationControl names who may speak to the customer on a conversation's publ
 |-------|-------------|
 | `control_agent` | The agent serves the conversation (the default for every conversation). |
 | `control_human` | A human holds the conversation; the agent is quiet until handback. |
+
+### ChannelConversationListFilter
+
+ChannelConversationListFilter names the server-evaluated predicates the conversation list can be narrowed to.
+
+| Value | Description |
+|-------|-------------|
+| `filter_wants_human` | Conversations where a human action is wanted: flagged for attention, or human-held with the customer's last message still unanswered (needs_attention OR (awaiting_reply AND control_human)). |
 
 ### AgentChannelInstallState
 

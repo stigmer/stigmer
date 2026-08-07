@@ -76,4 +76,25 @@ public interface ListChannelConversationsInputOrBuilder extends
    * <code>.ai.stigmer.commons.rpc.PageInfo page_info = 3 [json_name = "pageInfo"];</code>
    */
   ai.stigmer.commons.rpc.PageInfoOrBuilder getPageInfoOrBuilder();
+
+  /**
+   * <pre>
+   * Optional filter: narrow the list to a server-evaluated predicate.
+   * Unspecified lists every conversation on the authorized channels.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter filter = 4 [json_name = "filter"];</code>
+   * @return The enum numeric value on the wire for filter.
+   */
+  int getFilterValue();
+  /**
+   * <pre>
+   * Optional filter: narrow the list to a server-evaluated predicate.
+   * Unspecified lists every conversation on the authorized channels.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter filter = 4 [json_name = "filter"];</code>
+   * @return The filter.
+   */
+  ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter getFilter();
 }

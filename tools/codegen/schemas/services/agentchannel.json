@@ -591,6 +591,16 @@
           },
           "description": "When anything last happened on the conversation, across all lanes.",
           "required": false
+        },
+        {
+          "name": "AwaitingReply",
+          "jsonName": "awaitingReply",
+          "protoField": "awaiting_reply",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "True when the customer's last message has not yet received a real\n answer — from the agent or from a teammate.\n\n @internal\n channel-conversations DD-011 D-b/D-c: derived on read from\n last_customer_message_at vs the server-side last_answered_at fact\n column — never stored, so no boolean exists to drift. Only real\n answers stamp the fact (an agent turn delivered with Outcome.OK; a\n participant-origin staff reply at its Delivered settle); apology,\n cancellation, and limit copy, the platform acknowledgment, operator\n sends, and escalations never count. Ties go to answered. The raw\n instant stays server-side deliberately: carrying the derived boolean\n keeps the NULL-and-compare rule in one place instead of re-implemented\n per client, and \"waiting since\" already rides field 11. proto3\n default (false) degrades to the pre-T05 surface in both skew\n directions.",
+          "required": false
         }
       ]
     },
@@ -658,6 +668,20 @@
             "messageType": "PageInfo"
           },
           "description": "Pagination options. Conversations are returned newest activity first.",
+          "required": false
+        },
+        {
+          "name": "Filter",
+          "jsonName": "filter",
+          "protoField": "filter",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter",
+            "enumValues": [
+              "filter_wants_human"
+            ]
+          },
+          "description": "Optional filter: narrow the list to a server-evaluated predicate.\n Unspecified lists every conversation on the authorized channels.",
           "required": false
         }
       ]
@@ -1227,6 +1251,18 @@
           "name": "control_human",
           "number": 2,
           "description": "A human holds the conversation; the agent is quiet until handback."
+        }
+      ]
+    },
+    {
+      "name": "ChannelConversationListFilter",
+      "description": "ChannelConversationListFilter names the server-evaluated predicates the\n conversation list can be narrowed to.\n\n @internal\n channel-conversations DD-011 D-f/D-g: filter_wants_human expresses\n EXACTLY the nav badge's union, and the badge count is the filtered\n list's total_count — one predicate in one handler, so the count and the\n list it opens can never disagree. Server-side deliberately (T04 D1's\n standing objection): a client-side tab over one fetched page would\n silently lie across pages. Values carry the filter_ prefix — proto3\n enum values are package-scoped (the control_ precedent).",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter",
+      "values": [
+        {
+          "name": "filter_wants_human",
+          "number": 1,
+          "description": "Conversations where a human action is wanted: flagged for attention,\n or human-held with the customer's last message still unanswered\n (needs_attention OR (awaiting_reply AND control_human))."
         }
       ]
     },

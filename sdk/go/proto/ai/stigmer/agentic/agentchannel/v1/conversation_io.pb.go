@@ -210,6 +210,67 @@ func (ConversationItemAuthor) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescGZIP(), []int{2}
 }
 
+// ChannelConversationListFilter names the server-evaluated predicates the
+// conversation list can be narrowed to.
+//
+// @internal
+// channel-conversations DD-011 D-f/D-g: filter_wants_human expresses
+// EXACTLY the nav badge's union, and the badge count is the filtered
+// list's total_count — one predicate in one handler, so the count and the
+// list it opens can never disagree. Server-side deliberately (T04 D1's
+// standing objection): a client-side tab over one fetched page would
+// silently lie across pages. Values carry the filter_ prefix — proto3
+// enum values are package-scoped (the control_ precedent).
+type ChannelConversationListFilter int32
+
+const (
+	// Default value: no filter.
+	ChannelConversationListFilter_channel_conversation_list_filter_unspecified ChannelConversationListFilter = 0
+	// Conversations where a human action is wanted: flagged for attention,
+	// or human-held with the customer's last message still unanswered
+	// (needs_attention OR (awaiting_reply AND control_human)).
+	ChannelConversationListFilter_filter_wants_human ChannelConversationListFilter = 1
+)
+
+// Enum value maps for ChannelConversationListFilter.
+var (
+	ChannelConversationListFilter_name = map[int32]string{
+		0: "channel_conversation_list_filter_unspecified",
+		1: "filter_wants_human",
+	}
+	ChannelConversationListFilter_value = map[string]int32{
+		"channel_conversation_list_filter_unspecified": 0,
+		"filter_wants_human":                           1,
+	}
+)
+
+func (x ChannelConversationListFilter) Enum() *ChannelConversationListFilter {
+	p := new(ChannelConversationListFilter)
+	*p = x
+	return p
+}
+
+func (x ChannelConversationListFilter) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ChannelConversationListFilter) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_enumTypes[3].Descriptor()
+}
+
+func (ChannelConversationListFilter) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_enumTypes[3]
+}
+
+func (x ChannelConversationListFilter) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ChannelConversationListFilter.Descriptor instead.
+func (ChannelConversationListFilter) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescGZIP(), []int{3}
+}
+
 // ChannelConversation is the durable identity and participation state of
 // one channel conversation: one external customer on one agent channel,
 // spanning sessions.
@@ -263,8 +324,25 @@ type ChannelConversation struct {
 	LastCustomerMessageAt *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=last_customer_message_at,json=lastCustomerMessageAt,proto3" json:"last_customer_message_at,omitempty"`
 	// When anything last happened on the conversation, across all lanes.
 	LastActivityAt *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=last_activity_at,json=lastActivityAt,proto3" json:"last_activity_at,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// True when the customer's last message has not yet received a real
+	// answer — from the agent or from a teammate.
+	//
+	// @internal
+	// channel-conversations DD-011 D-b/D-c: derived on read from
+	// last_customer_message_at vs the server-side last_answered_at fact
+	// column — never stored, so no boolean exists to drift. Only real
+	// answers stamp the fact (an agent turn delivered with Outcome.OK; a
+	// participant-origin staff reply at its Delivered settle); apology,
+	// cancellation, and limit copy, the platform acknowledgment, operator
+	// sends, and escalations never count. Ties go to answered. The raw
+	// instant stays server-side deliberately: carrying the derived boolean
+	// keeps the NULL-and-compare rule in one place instead of re-implemented
+	// per client, and "waiting since" already rides field 11. proto3
+	// default (false) degrades to the pre-T05 surface in both skew
+	// directions.
+	AwaitingReply bool `protobuf:"varint,13,opt,name=awaiting_reply,json=awaitingReply,proto3" json:"awaiting_reply,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ChannelConversation) Reset() {
@@ -379,6 +457,13 @@ func (x *ChannelConversation) GetLastActivityAt() *timestamppb.Timestamp {
 		return x.LastActivityAt
 	}
 	return nil
+}
+
+func (x *ChannelConversation) GetAwaitingReply() bool {
+	if x != nil {
+		return x.AwaitingReply
+	}
+	return false
 }
 
 // ConversationTimelineItem is one entry in a conversation's timeline.
@@ -539,7 +624,10 @@ type ListChannelConversationsInput struct {
 	// Optional filter: only conversations on this agent channel.
 	AgentChannelId string `protobuf:"bytes,2,opt,name=agent_channel_id,json=agentChannelId,proto3" json:"agent_channel_id,omitempty"`
 	// Pagination options. Conversations are returned newest activity first.
-	PageInfo      *rpc.PageInfo `protobuf:"bytes,3,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
+	PageInfo *rpc.PageInfo `protobuf:"bytes,3,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
+	// Optional filter: narrow the list to a server-evaluated predicate.
+	// Unspecified lists every conversation on the authorized channels.
+	Filter        ChannelConversationListFilter `protobuf:"varint,4,opt,name=filter,proto3,enum=ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter" json:"filter,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -593,6 +681,13 @@ func (x *ListChannelConversationsInput) GetPageInfo() *rpc.PageInfo {
 		return x.PageInfo
 	}
 	return nil
+}
+
+func (x *ListChannelConversationsInput) GetFilter() ChannelConversationListFilter {
+	if x != nil {
+		return x.Filter
+	}
+	return ChannelConversationListFilter_channel_conversation_list_filter_unspecified
 }
 
 // ChannelConversationList contains a page of channel conversations,
@@ -1023,7 +1118,7 @@ var File_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto protoreflect.F
 
 const file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDesc = "" +
 	"\n" +
-	"8ai/stigmer/agentic/agentchannel/v1/conversation_io.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x1a3ai/stigmer/agentic/agentchannel/v1/message_io.proto\x1a1ai/stigmer/agentic/agentchannel/v1/outbound.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9e\x05\n" +
+	"8ai/stigmer/agentic/agentchannel/v1/conversation_io.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a1ai/stigmer/agentic/agentchannel/v1/delivery.proto\x1a3ai/stigmer/agentic/agentchannel/v1/message_io.proto\x1a1ai/stigmer/agentic/agentchannel/v1/outbound.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc5\x05\n" +
 	"\x13ChannelConversation\x12(\n" +
 	"\x10agent_channel_id\x18\x01 \x01(\tR\x0eagentChannelId\x12)\n" +
 	"\x10conversation_key\x18\x02 \x01(\tR\x0fconversationKey\x12\x10\n" +
@@ -1037,7 +1132,8 @@ const file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDesc = ""
 	"\fdisplay_name\x18\n" +
 	" \x01(\tR\vdisplayName\x12S\n" +
 	"\x18last_customer_message_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\x15lastCustomerMessageAt\x12D\n" +
-	"\x10last_activity_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\x0elastActivityAt\"\xfb\x04\n" +
+	"\x10last_activity_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\x0elastActivityAt\x12%\n" +
+	"\x0eawaiting_reply\x18\r \x01(\bR\rawaitingReply\"\xfb\x04\n" +
 	"\x18ConversationTimelineItem\x12\x17\n" +
 	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12H\n" +
 	"\x04lane\x18\x02 \x01(\x0e24.ai.stigmer.agentic.agentchannel.v1.ConversationLaneR\x04lane\x12R\n" +
@@ -1050,11 +1146,12 @@ const file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDesc = ""
 	"\x0fdelivery_status\x18\b \x01(\x0e29.ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatusR\x0edeliveryStatus\x12\\\n" +
 	"\rreceipt_state\x18\t \x01(\x0e27.ai.stigmer.agentic.agentchannel.v1.ChannelReceiptStateR\freceiptState\x12Q\n" +
 	"\x06origin\x18\n" +
-	" \x01(\x0e29.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOriginR\x06origin\"\xaf\x01\n" +
+	" \x01(\x0e29.ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOriginR\x06origin\"\x8a\x02\n" +
 	"\x1dListChannelConversationsInput\x12\x1b\n" +
 	"\x03org\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x03org\x122\n" +
 	"\x10agent_channel_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\x0eagentChannelId\x12=\n" +
-	"\tpage_info\x18\x03 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\"\x89\x01\n" +
+	"\tpage_info\x18\x03 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\x12Y\n" +
+	"\x06filter\x18\x04 \x01(\x0e2A.ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilterR\x06filter\"\x89\x01\n" +
 	"\x17ChannelConversationList\x12\x1f\n" +
 	"\vtotal_count\x18\x01 \x01(\x05R\n" +
 	"totalCount\x12M\n" +
@@ -1102,7 +1199,10 @@ const file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDesc = ""
 	"\x0fauthor_customer\x10\x01\x12\x10\n" +
 	"\fauthor_agent\x10\x02\x12\x13\n" +
 	"\x0fauthor_teammate\x10\x03\x12\x13\n" +
-	"\x0fauthor_platform\x10\x04B\xc8\x02\n" +
+	"\x0fauthor_platform\x10\x04*i\n" +
+	"\x1dChannelConversationListFilter\x120\n" +
+	",channel_conversation_list_filter_unspecified\x10\x00\x12\x16\n" +
+	"\x12filter_wants_human\x10\x01B\xc8\x02\n" +
 	"&com.ai.stigmer.agentic.agentchannel.v1B\x13ConversationIoProtoP\x01Z\\github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1;agentchannelv1\xa2\x02\x04ASAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3"
 
 var (
@@ -1117,50 +1217,52 @@ func file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescGZIP()
 	return file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
 var file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_goTypes = []any{
 	(ConversationControl)(0),              // 0: ai.stigmer.agentic.agentchannel.v1.ConversationControl
 	(ConversationLane)(0),                 // 1: ai.stigmer.agentic.agentchannel.v1.ConversationLane
 	(ConversationItemAuthor)(0),           // 2: ai.stigmer.agentic.agentchannel.v1.ConversationItemAuthor
-	(*ChannelConversation)(nil),           // 3: ai.stigmer.agentic.agentchannel.v1.ChannelConversation
-	(*ConversationTimelineItem)(nil),      // 4: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem
-	(*ListChannelConversationsInput)(nil), // 5: ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput
-	(*ChannelConversationList)(nil),       // 6: ai.stigmer.agentic.agentchannel.v1.ChannelConversationList
-	(*GetChannelConversationInput)(nil),   // 7: ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput
-	(*GetConversationTimelineInput)(nil),  // 8: ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput
-	(*ConversationTimeline)(nil),          // 9: ai.stigmer.agentic.agentchannel.v1.ConversationTimeline
-	(*ConversationControlInput)(nil),      // 10: ai.stigmer.agentic.agentchannel.v1.ConversationControlInput
-	(*ReplyToConversationInput)(nil),      // 11: ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput
-	(*EscalateConversationInput)(nil),     // 12: ai.stigmer.agentic.agentchannel.v1.EscalateConversationInput
-	(*timestamppb.Timestamp)(nil),         // 13: google.protobuf.Timestamp
-	(ChannelDeliveryStatus)(0),            // 14: ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
-	(ChannelReceiptState)(0),              // 15: ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState
-	(ChannelOutboundOrigin)(0),            // 16: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
-	(*rpc.PageInfo)(nil),                  // 17: ai.stigmer.commons.rpc.PageInfo
-	(*ChannelOutboundPayload)(nil),        // 18: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
+	(ChannelConversationListFilter)(0),    // 3: ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter
+	(*ChannelConversation)(nil),           // 4: ai.stigmer.agentic.agentchannel.v1.ChannelConversation
+	(*ConversationTimelineItem)(nil),      // 5: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem
+	(*ListChannelConversationsInput)(nil), // 6: ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput
+	(*ChannelConversationList)(nil),       // 7: ai.stigmer.agentic.agentchannel.v1.ChannelConversationList
+	(*GetChannelConversationInput)(nil),   // 8: ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput
+	(*GetConversationTimelineInput)(nil),  // 9: ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput
+	(*ConversationTimeline)(nil),          // 10: ai.stigmer.agentic.agentchannel.v1.ConversationTimeline
+	(*ConversationControlInput)(nil),      // 11: ai.stigmer.agentic.agentchannel.v1.ConversationControlInput
+	(*ReplyToConversationInput)(nil),      // 12: ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput
+	(*EscalateConversationInput)(nil),     // 13: ai.stigmer.agentic.agentchannel.v1.EscalateConversationInput
+	(*timestamppb.Timestamp)(nil),         // 14: google.protobuf.Timestamp
+	(ChannelDeliveryStatus)(0),            // 15: ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
+	(ChannelReceiptState)(0),              // 16: ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState
+	(ChannelOutboundOrigin)(0),            // 17: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
+	(*rpc.PageInfo)(nil),                  // 18: ai.stigmer.commons.rpc.PageInfo
+	(*ChannelOutboundPayload)(nil),        // 19: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
 }
 var file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.control:type_name -> ai.stigmer.agentic.agentchannel.v1.ConversationControl
-	13, // 1: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.control_changed_at:type_name -> google.protobuf.Timestamp
-	13, // 2: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.attention_changed_at:type_name -> google.protobuf.Timestamp
-	13, // 3: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.last_customer_message_at:type_name -> google.protobuf.Timestamp
-	13, // 4: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.last_activity_at:type_name -> google.protobuf.Timestamp
+	14, // 1: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.control_changed_at:type_name -> google.protobuf.Timestamp
+	14, // 2: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.attention_changed_at:type_name -> google.protobuf.Timestamp
+	14, // 3: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.last_customer_message_at:type_name -> google.protobuf.Timestamp
+	14, // 4: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.last_activity_at:type_name -> google.protobuf.Timestamp
 	1,  // 5: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.lane:type_name -> ai.stigmer.agentic.agentchannel.v1.ConversationLane
 	2,  // 6: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.author:type_name -> ai.stigmer.agentic.agentchannel.v1.ConversationItemAuthor
-	13, // 7: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.at:type_name -> google.protobuf.Timestamp
-	14, // 8: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.delivery_status:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
-	15, // 9: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.receipt_state:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState
-	16, // 10: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.origin:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
-	17, // 11: ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	3,  // 12: ai.stigmer.agentic.agentchannel.v1.ChannelConversationList.items:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelConversation
-	4,  // 13: ai.stigmer.agentic.agentchannel.v1.ConversationTimeline.items:type_name -> ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem
-	18, // 14: ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput.payload:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
-	15, // [15:15] is the sub-list for method output_type
-	15, // [15:15] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	14, // 7: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.at:type_name -> google.protobuf.Timestamp
+	15, // 8: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.delivery_status:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
+	16, // 9: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.receipt_state:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState
+	17, // 10: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.origin:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
+	18, // 11: ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	3,  // 12: ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput.filter:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelConversationListFilter
+	4,  // 13: ai.stigmer.agentic.agentchannel.v1.ChannelConversationList.items:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelConversation
+	5,  // 14: ai.stigmer.agentic.agentchannel.v1.ConversationTimeline.items:type_name -> ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem
+	19, // 15: ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput.payload:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_init() }
@@ -1176,7 +1278,7 @@ func file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDesc), len(file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDesc)),
-			NumEnums:      3,
+			NumEnums:      4,
 			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,

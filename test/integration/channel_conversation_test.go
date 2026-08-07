@@ -1182,6 +1182,195 @@ func TestChannelConversation_CatchupDigestAfterHandback(t *testing.T) {
 		"the turn's own message is excluded by identity (A22)")
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// The awaiting-reply fact and the wants-human filter (T05 Sitting 1)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// TestChannelConversation_AwaitingReplyLifecycleFrontDoor walks the
+// awaiting-reply fact (DD-011) through the real front door: a customer
+// message opens the question, escalation never answers it, a staff reply
+// settles it (the participant-origin stamp at the outbound engine's
+// delivered settle), a suppressed message during the takeover reopens it —
+// F-13's exact case, and the proof that the admission gate's UNCONDITIONAL
+// activity upsert reaches the customer clock even when the turn never
+// routes — and the wants-human filter tracks the badge union
+// (needs_attention OR (awaiting AND human-held)) through every transition,
+// with total_count agreeing at each step (D-f/D-g: the count and the list
+// are one predicate in one read).
+//
+// The AGENT lane's arms — a delivered OK turn stamps answered, a failed
+// turn's apology copy deliberately does not — are pinned at the processor
+// unit tests and the app-pg contract suite instead: no runner completes
+// executions in this harness, so an agent delivery can never settle here
+// (the watermark precedent above).
+func TestChannelConversation_AwaitingReplyLifecycleFrontDoor(t *testing.T) {
+	requireVisibilityHarness(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	agent := harness.CreateAgent(t, ctx, clients, "test-conv-awaiting",
+		"You are a test agent for the awaiting-reply lifecycle.")
+	fx := applyWhatsAppChannel(t, ctx, clients, agent,
+		"conv-awaiting-"+agent.GetMetadata().GetSlug())
+	org := agent.GetMetadata().GetOrg()
+
+	installed, err := clients.AgentChannelCommand.InitiateInstall(ctx,
+		&agentchannelv1.InitiateChannelInstallInput{ResourceId: fx.ChannelID})
+	require.NoError(t, err)
+	require.True(t, installed.GetCompleted())
+
+	getConversation := func() *agentchannelv1.ChannelConversation {
+		row, getErr := clients.ChannelConversationQuery.GetConversation(ctx,
+			&agentchannelv1.GetChannelConversationInput{
+				AgentChannelId:  fx.ChannelID,
+				ConversationKey: customerAwaiting,
+			})
+		require.NoError(t, getErr)
+		return row
+	}
+	wantsHuman := func() *agentchannelv1.ChannelConversationList {
+		list, listErr := clients.ChannelConversationQuery.ListConversations(ctx,
+			&agentchannelv1.ListChannelConversationsInput{
+				Org:            org,
+				AgentChannelId: fx.ChannelID,
+				Filter:         agentchannelv1.ChannelConversationListFilter_filter_wants_human,
+			})
+		require.NoError(t, listErr)
+		return list
+	}
+
+	// 1. The customer writes in on the agent-held conversation. The routed
+	// turn materializes the row; no runner answers, so the question stays
+	// open: awaiting on the wire, in both the single read and the list.
+	status, err := harness.PostWhatsAppWebhook(ctx, testHarness.Service.HTTPAddress(),
+		fx.ChannelAppID, fx.AppSecret,
+		harness.WhatsAppInboundTextPayload(fx.PhoneNumberID, customerAwaiting,
+			"wamid.AWAITLIFE1", "Noor", "do you open on Sundays?"))
+	require.NoError(t, err)
+	require.Equal(t, 200, status)
+	require.Eventually(t, func() bool {
+		_, getErr := clients.ChannelConversationQuery.GetConversation(ctx,
+			&agentchannelv1.GetChannelConversationInput{
+				AgentChannelId:  fx.ChannelID,
+				ConversationKey: customerAwaiting,
+			})
+		return getErr == nil
+	}, 30*time.Second, 250*time.Millisecond, "the routed turn materializes the row")
+	assert.True(t, getConversation().GetAwaitingReply(),
+		"a never-answered customer message is awaiting")
+
+	list, err := clients.ChannelConversationQuery.ListConversations(ctx,
+		&agentchannelv1.ListChannelConversationsInput{
+			Org: org, AgentChannelId: fx.ChannelID})
+	require.NoError(t, err)
+	require.Equal(t, int32(1), list.GetTotalCount())
+	assert.True(t, list.GetItems()[0].GetAwaitingReply(),
+		"the list carries the same derived fact as the single read")
+
+	// Awaiting-while-AGENT-held is deliberately outside the badge union
+	// (D-f: the agent is about to answer; paging the org would be noise).
+	assert.Zero(t, wantsHuman().GetTotalCount(),
+		"agent-held awaiting is not a wants-human conversation")
+
+	// 2. The agent escalates — attention is raised, but an escalation is
+	// never an answer: awaiting is UNCHANGED, and the attention arm alone
+	// pulls the conversation into the badge union.
+	var sessionID string
+	require.Eventually(t, func() bool {
+		id, queryErr := testHarness.AppPostgres.QueryScalar(ctx, fmt.Sprintf(
+			`SELECT session_id FROM s_agentic.channel_conversation_binding
+			  WHERE agent_channel_id = '%s' AND conversation_key = '%s'`,
+			fx.ChannelID, customerAwaiting))
+		sessionID = id
+		return queryErr == nil && sessionID != ""
+	}, 30*time.Second, 250*time.Millisecond, "the routed turn creates the binding")
+	sandboxToken, err := harness.MintSandboxToken(harness.OwnerAccountID, sessionID)
+	require.NoError(t, err)
+	agentClients := harness.NewClients(harness.GRPCConnWithBearer(t,
+		testHarness.Service.GRPCAddress(), sandboxToken))
+	flagged, err := agentClients.ChannelConversationCommand.Escalate(ctx,
+		&agentchannelv1.EscalateConversationInput{Reason: "needs a human decision"})
+	require.NoError(t, err)
+	assert.True(t, flagged.GetNeedsAttention())
+	assert.True(t, flagged.GetAwaitingReply(),
+		"escalation raises attention but never answers the customer (DD-011 D-b)")
+	filtered := wantsHuman()
+	require.Equal(t, int32(1), filtered.GetTotalCount(),
+		"the attention arm pulls the conversation into the badge union")
+	assert.Equal(t, customerAwaiting, filtered.GetItems()[0].GetConversationKey())
+
+	// 3. A staff member replies — the implicit takeover (which clears the
+	// attention flag, A12) and the participant-origin delivered settle
+	// stamping the answer: the question closes and the union empties.
+	answer, err := clients.ChannelConversationCommand.Reply(ctx,
+		&agentchannelv1.ReplyToConversationInput{
+			AgentChannelId:  fx.ChannelID,
+			ConversationKey: customerAwaiting,
+			Payload: &agentchannelv1.ChannelOutboundPayload{
+				Kind: &agentchannelv1.ChannelOutboundPayload_Text{
+					Text: &agentchannelv1.TextPayload{Body: "Yes — 8am to 2pm on Sundays."},
+				},
+			},
+		})
+	require.NoError(t, err)
+	require.Equal(t, agentchannelv1.ChannelSendOutcome_accepted, answer.GetOutcome())
+
+	require.Eventually(t, func() bool {
+		row := getConversation()
+		return !row.GetAwaitingReply() &&
+			row.GetControl() == agentchannelv1.ConversationControl_control_human
+	}, 15*time.Second, 250*time.Millisecond,
+		"a delivered staff reply answers the customer and holds the conversation")
+	assert.False(t, getConversation().GetNeedsAttention(),
+		"the arriving human IS the escalation's answer (A12)")
+	assert.Zero(t, wantsHuman().GetTotalCount(),
+		"answered and attended: nothing wants a human")
+
+	// 4. The customer writes back DURING the takeover. The turn is
+	// suppressed (the staff reply consumed the acknowledgment claim — A10,
+	// so suppression is silent), but the admission gate's unconditional
+	// upsert still advances the customer clock: the customer is waiting on
+	// a HUMAN now, which is exactly what the badge union exists to page —
+	// F-13, end to end.
+	status, err = harness.PostWhatsAppWebhook(ctx, testHarness.Service.HTTPAddress(),
+		fx.ChannelAppID, fx.AppSecret,
+		harness.WhatsAppInboundTextPayload(fx.PhoneNumberID, customerAwaiting,
+			"wamid.AWAITLIFE2", "Noor", "and on public holidays?"))
+	require.NoError(t, err)
+	require.Equal(t, 200, status)
+	requireEventIgnoredAsTakeover(t, ctx, fx.ChannelAppID, "wamid.AWAITLIFE2")
+
+	require.Eventually(t, func() bool {
+		return getConversation().GetAwaitingReply()
+	}, 15*time.Second, 250*time.Millisecond,
+		"a suppressed customer message still reopens awaiting — the clock is unconditional")
+	filtered = wantsHuman()
+	require.Equal(t, int32(1), filtered.GetTotalCount(),
+		"human-held and awaiting: the conversation wants its human")
+	assert.True(t, filtered.GetItems()[0].GetAwaitingReply())
+
+	// 5. Handback returns the conversation to the agent. The customer is
+	// STILL awaiting (nobody answered the holiday question), but the union
+	// deliberately releases it: the agent will answer the next routed turn.
+	handedBack, err := clients.ChannelConversationCommand.HandBack(ctx,
+		&agentchannelv1.ConversationControlInput{
+			AgentChannelId:  fx.ChannelID,
+			ConversationKey: customerAwaiting,
+		})
+	require.NoError(t, err)
+	require.Equal(t, agentchannelv1.ConversationControl_control_agent,
+		handedBack.GetControl())
+	assert.True(t, handedBack.GetAwaitingReply(),
+		"handback changes who answers, not whether an answer is owed")
+	assert.Zero(t, wantsHuman().GetTotalCount(),
+		"agent-held again: the union releases it even though awaiting holds")
+}
+
+// customerAwaiting is the awaiting-lifecycle test's customer wa_id.
+const customerAwaiting = "15550009999"
+
 // requireDeliveryCount polls until the channel has exactly want delivery
 // rows — the durable proof that a routed turn created its execution (the
 // same-motion insert), without depending on a runner ever picking it up.

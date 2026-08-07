@@ -34,6 +34,11 @@ class ConversationItemAuthor(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     author_agent: _ClassVar[ConversationItemAuthor]
     author_teammate: _ClassVar[ConversationItemAuthor]
     author_platform: _ClassVar[ConversationItemAuthor]
+
+class ChannelConversationListFilter(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    channel_conversation_list_filter_unspecified: _ClassVar[ChannelConversationListFilter]
+    filter_wants_human: _ClassVar[ChannelConversationListFilter]
 conversation_control_unspecified: ConversationControl
 control_agent: ConversationControl
 control_human: ConversationControl
@@ -45,9 +50,11 @@ author_customer: ConversationItemAuthor
 author_agent: ConversationItemAuthor
 author_teammate: ConversationItemAuthor
 author_platform: ConversationItemAuthor
+channel_conversation_list_filter_unspecified: ChannelConversationListFilter
+filter_wants_human: ChannelConversationListFilter
 
 class ChannelConversation(_message.Message):
-    __slots__ = ("agent_channel_id", "conversation_key", "org", "control", "controlled_by", "control_changed_at", "needs_attention", "attention_reason", "attention_changed_at", "display_name", "last_customer_message_at", "last_activity_at")
+    __slots__ = ("agent_channel_id", "conversation_key", "org", "control", "controlled_by", "control_changed_at", "needs_attention", "attention_reason", "attention_changed_at", "display_name", "last_customer_message_at", "last_activity_at", "awaiting_reply")
     AGENT_CHANNEL_ID_FIELD_NUMBER: _ClassVar[int]
     CONVERSATION_KEY_FIELD_NUMBER: _ClassVar[int]
     ORG_FIELD_NUMBER: _ClassVar[int]
@@ -60,6 +67,7 @@ class ChannelConversation(_message.Message):
     DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
     LAST_CUSTOMER_MESSAGE_AT_FIELD_NUMBER: _ClassVar[int]
     LAST_ACTIVITY_AT_FIELD_NUMBER: _ClassVar[int]
+    AWAITING_REPLY_FIELD_NUMBER: _ClassVar[int]
     agent_channel_id: str
     conversation_key: str
     org: str
@@ -72,7 +80,8 @@ class ChannelConversation(_message.Message):
     display_name: str
     last_customer_message_at: _timestamp_pb2.Timestamp
     last_activity_at: _timestamp_pb2.Timestamp
-    def __init__(self, agent_channel_id: _Optional[str] = ..., conversation_key: _Optional[str] = ..., org: _Optional[str] = ..., control: _Optional[_Union[ConversationControl, str]] = ..., controlled_by: _Optional[str] = ..., control_changed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., needs_attention: bool = ..., attention_reason: _Optional[str] = ..., attention_changed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., display_name: _Optional[str] = ..., last_customer_message_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., last_activity_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    awaiting_reply: bool
+    def __init__(self, agent_channel_id: _Optional[str] = ..., conversation_key: _Optional[str] = ..., org: _Optional[str] = ..., control: _Optional[_Union[ConversationControl, str]] = ..., controlled_by: _Optional[str] = ..., control_changed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., needs_attention: bool = ..., attention_reason: _Optional[str] = ..., attention_changed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., display_name: _Optional[str] = ..., last_customer_message_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., last_activity_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., awaiting_reply: bool = ...) -> None: ...
 
 class ConversationTimelineItem(_message.Message):
     __slots__ = ("item_id", "lane", "author", "authored_by", "text", "provider_message_type", "at", "delivery_status", "receipt_state", "origin")
@@ -99,14 +108,16 @@ class ConversationTimelineItem(_message.Message):
     def __init__(self, item_id: _Optional[str] = ..., lane: _Optional[_Union[ConversationLane, str]] = ..., author: _Optional[_Union[ConversationItemAuthor, str]] = ..., authored_by: _Optional[str] = ..., text: _Optional[str] = ..., provider_message_type: _Optional[str] = ..., at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., delivery_status: _Optional[_Union[_delivery_pb2.ChannelDeliveryStatus, str]] = ..., receipt_state: _Optional[_Union[_outbound_pb2.ChannelReceiptState, str]] = ..., origin: _Optional[_Union[_outbound_pb2.ChannelOutboundOrigin, str]] = ...) -> None: ...
 
 class ListChannelConversationsInput(_message.Message):
-    __slots__ = ("org", "agent_channel_id", "page_info")
+    __slots__ = ("org", "agent_channel_id", "page_info", "filter")
     ORG_FIELD_NUMBER: _ClassVar[int]
     AGENT_CHANNEL_ID_FIELD_NUMBER: _ClassVar[int]
     PAGE_INFO_FIELD_NUMBER: _ClassVar[int]
+    FILTER_FIELD_NUMBER: _ClassVar[int]
     org: str
     agent_channel_id: str
     page_info: _pagination_pb2.PageInfo
-    def __init__(self, org: _Optional[str] = ..., agent_channel_id: _Optional[str] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ...) -> None: ...
+    filter: ChannelConversationListFilter
+    def __init__(self, org: _Optional[str] = ..., agent_channel_id: _Optional[str] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ..., filter: _Optional[_Union[ChannelConversationListFilter, str]] = ...) -> None: ...
 
 class ChannelConversationList(_message.Message):
     __slots__ = ("total_count", "items")

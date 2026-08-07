@@ -566,6 +566,36 @@ private static final long serialVersionUID = 0L;
     return lastActivityAt_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : lastActivityAt_;
   }
 
+  public static final int AWAITING_REPLY_FIELD_NUMBER = 13;
+  private boolean awaitingReply_ = false;
+  /**
+   * <pre>
+   * True when the customer's last message has not yet received a real
+   * answer — from the agent or from a teammate.
+   *
+   * &#64;internal
+   * channel-conversations DD-011 D-b/D-c: derived on read from
+   * last_customer_message_at vs the server-side last_answered_at fact
+   * column — never stored, so no boolean exists to drift. Only real
+   * answers stamp the fact (an agent turn delivered with Outcome.OK; a
+   * participant-origin staff reply at its Delivered settle); apology,
+   * cancellation, and limit copy, the platform acknowledgment, operator
+   * sends, and escalations never count. Ties go to answered. The raw
+   * instant stays server-side deliberately: carrying the derived boolean
+   * keeps the NULL-and-compare rule in one place instead of re-implemented
+   * per client, and "waiting since" already rides field 11. proto3
+   * default (false) degrades to the pre-T05 surface in both skew
+   * directions.
+   * </pre>
+   *
+   * <code>bool awaiting_reply = 13 [json_name = "awaitingReply"];</code>
+   * @return The awaitingReply.
+   */
+  @java.lang.Override
+  public boolean getAwaitingReply() {
+    return awaitingReply_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -615,6 +645,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000008) != 0)) {
       output.writeMessage(12, getLastActivityAt());
+    }
+    if (awaitingReply_ != false) {
+      output.writeBool(13, awaitingReply_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -667,6 +700,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(12, getLastActivityAt());
     }
+    if (awaitingReply_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(13, awaitingReply_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -717,6 +754,8 @@ private static final long serialVersionUID = 0L;
       if (!getLastActivityAt()
           .equals(other.getLastActivityAt())) return false;
     }
+    if (getAwaitingReply()
+        != other.getAwaitingReply()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -761,6 +800,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + LAST_ACTIVITY_AT_FIELD_NUMBER;
       hash = (53 * hash) + getLastActivityAt().hashCode();
     }
+    hash = (37 * hash) + AWAITING_REPLY_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getAwaitingReply());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -948,6 +990,7 @@ private static final long serialVersionUID = 0L;
         lastActivityAtBuilder_.dispose();
         lastActivityAtBuilder_ = null;
       }
+      awaitingReply_ = false;
       return this;
     }
 
@@ -1030,6 +1073,9 @@ private static final long serialVersionUID = 0L;
             : lastActivityAtBuilder_.build();
         to_bitField0_ |= 0x00000008;
       }
+      if (((from_bitField0_ & 0x00001000) != 0)) {
+        result.awaitingReply_ = awaitingReply_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1092,6 +1138,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasLastActivityAt()) {
         mergeLastActivityAt(other.getLastActivityAt());
+      }
+      if (other.getAwaitingReply() != false) {
+        setAwaitingReply(other.getAwaitingReply());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1187,6 +1236,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000800;
               break;
             } // case 98
+            case 104: {
+              awaitingReply_ = input.readBool();
+              bitField0_ |= 0x00001000;
+              break;
+            } // case 104
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2541,6 +2595,95 @@ private static final long serialVersionUID = 0L;
         lastActivityAt_ = null;
       }
       return lastActivityAtBuilder_;
+    }
+
+    private boolean awaitingReply_ ;
+    /**
+     * <pre>
+     * True when the customer's last message has not yet received a real
+     * answer — from the agent or from a teammate.
+     *
+     * &#64;internal
+     * channel-conversations DD-011 D-b/D-c: derived on read from
+     * last_customer_message_at vs the server-side last_answered_at fact
+     * column — never stored, so no boolean exists to drift. Only real
+     * answers stamp the fact (an agent turn delivered with Outcome.OK; a
+     * participant-origin staff reply at its Delivered settle); apology,
+     * cancellation, and limit copy, the platform acknowledgment, operator
+     * sends, and escalations never count. Ties go to answered. The raw
+     * instant stays server-side deliberately: carrying the derived boolean
+     * keeps the NULL-and-compare rule in one place instead of re-implemented
+     * per client, and "waiting since" already rides field 11. proto3
+     * default (false) degrades to the pre-T05 surface in both skew
+     * directions.
+     * </pre>
+     *
+     * <code>bool awaiting_reply = 13 [json_name = "awaitingReply"];</code>
+     * @return The awaitingReply.
+     */
+    @java.lang.Override
+    public boolean getAwaitingReply() {
+      return awaitingReply_;
+    }
+    /**
+     * <pre>
+     * True when the customer's last message has not yet received a real
+     * answer — from the agent or from a teammate.
+     *
+     * &#64;internal
+     * channel-conversations DD-011 D-b/D-c: derived on read from
+     * last_customer_message_at vs the server-side last_answered_at fact
+     * column — never stored, so no boolean exists to drift. Only real
+     * answers stamp the fact (an agent turn delivered with Outcome.OK; a
+     * participant-origin staff reply at its Delivered settle); apology,
+     * cancellation, and limit copy, the platform acknowledgment, operator
+     * sends, and escalations never count. Ties go to answered. The raw
+     * instant stays server-side deliberately: carrying the derived boolean
+     * keeps the NULL-and-compare rule in one place instead of re-implemented
+     * per client, and "waiting since" already rides field 11. proto3
+     * default (false) degrades to the pre-T05 surface in both skew
+     * directions.
+     * </pre>
+     *
+     * <code>bool awaiting_reply = 13 [json_name = "awaitingReply"];</code>
+     * @param value The awaitingReply to set.
+     * @return This builder for chaining.
+     */
+    public Builder setAwaitingReply(boolean value) {
+
+      awaitingReply_ = value;
+      bitField0_ |= 0x00001000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * True when the customer's last message has not yet received a real
+     * answer — from the agent or from a teammate.
+     *
+     * &#64;internal
+     * channel-conversations DD-011 D-b/D-c: derived on read from
+     * last_customer_message_at vs the server-side last_answered_at fact
+     * column — never stored, so no boolean exists to drift. Only real
+     * answers stamp the fact (an agent turn delivered with Outcome.OK; a
+     * participant-origin staff reply at its Delivered settle); apology,
+     * cancellation, and limit copy, the platform acknowledgment, operator
+     * sends, and escalations never count. Ties go to answered. The raw
+     * instant stays server-side deliberately: carrying the derived boolean
+     * keeps the NULL-and-compare rule in one place instead of re-implemented
+     * per client, and "waiting since" already rides field 11. proto3
+     * default (false) degrades to the pre-T05 surface in both skew
+     * directions.
+     * </pre>
+     *
+     * <code>bool awaiting_reply = 13 [json_name = "awaitingReply"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearAwaitingReply() {
+      bitField0_ = (bitField0_ & ~0x00001000);
+      awaitingReply_ = false;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentchannel.v1.ChannelConversation)

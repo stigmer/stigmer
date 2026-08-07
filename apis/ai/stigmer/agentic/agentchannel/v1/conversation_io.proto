@@ -72,6 +72,24 @@ message ChannelConversation {
 
   // When anything last happened on the conversation, across all lanes.
   google.protobuf.Timestamp last_activity_at = 12;
+
+  // True when the customer's last message has not yet received a real
+  // answer — from the agent or from a teammate.
+  //
+  // @internal
+  // channel-conversations DD-011 D-b/D-c: derived on read from
+  // last_customer_message_at vs the server-side last_answered_at fact
+  // column — never stored, so no boolean exists to drift. Only real
+  // answers stamp the fact (an agent turn delivered with Outcome.OK; a
+  // participant-origin staff reply at its Delivered settle); apology,
+  // cancellation, and limit copy, the platform acknowledgment, operator
+  // sends, and escalations never count. Ties go to answered. The raw
+  // instant stays server-side deliberately: carrying the derived boolean
+  // keeps the NULL-and-compare rule in one place instead of re-implemented
+  // per client, and "waiting since" already rides field 11. proto3
+  // default (false) degrades to the pre-T05 surface in both skew
+  // directions.
+  bool awaiting_reply = 13;
 }
 
 // ConversationControl names who may speak to the customer on a
@@ -204,6 +222,31 @@ message ListChannelConversationsInput {
 
   // Pagination options. Conversations are returned newest activity first.
   ai.stigmer.commons.rpc.PageInfo page_info = 3;
+
+  // Optional filter: narrow the list to a server-evaluated predicate.
+  // Unspecified lists every conversation on the authorized channels.
+  ChannelConversationListFilter filter = 4;
+}
+
+// ChannelConversationListFilter names the server-evaluated predicates the
+// conversation list can be narrowed to.
+//
+// @internal
+// channel-conversations DD-011 D-f/D-g: filter_wants_human expresses
+// EXACTLY the nav badge's union, and the badge count is the filtered
+// list's total_count — one predicate in one handler, so the count and the
+// list it opens can never disagree. Server-side deliberately (T04 D1's
+// standing objection): a client-side tab over one fetched page would
+// silently lie across pages. Values carry the filter_ prefix — proto3
+// enum values are package-scoped (the control_ precedent).
+enum ChannelConversationListFilter {
+  // Default value: no filter.
+  channel_conversation_list_filter_unspecified = 0;
+
+  // Conversations where a human action is wanted: flagged for attention,
+  // or human-held with the customer's last message still unanswered
+  // (needs_attention OR (awaiting_reply AND control_human)).
+  filter_wants_human = 1;
 }
 
 // ChannelConversationList contains a page of channel conversations,
