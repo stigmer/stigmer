@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agentshare.v1;
 
+import "ai/stigmer/agentic/agentexecution/v1/invocation.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
@@ -27,6 +28,11 @@ message AgentShareSpec {
     id: "agent_share.environment_refs_public_only"
     message: "environment_refs can only be set on public-audience shares"
     expression: "this.audience != 2 || this.environment_refs.size() == 0"
+  };
+  option (buf.validate.message).cel = {
+    id: "agent_share.run_config_public_only"
+    message: "run_config can only be set on public-audience shares"
+    expression: "this.audience != 2 || !has(this.run_config)"
   };
 
   // Reference to the agent this share distributes.
@@ -148,6 +154,29 @@ message AgentShareSpec {
       expression: "this.kind == 53"
     }
   ];
+
+  // Per-turn model choice and run bounds for guest conversations on this
+  // share, overriding the platform's guest execution profile.
+  //
+  // Unset fields inherit the platform default. model_name replaces the
+  // platform model outright, while max_cost_usd and max_tool_rounds can
+  // only lower the platform caps — a share owner can reduce what one
+  // guest turn may spend, never raise it past the platform profile.
+  // Valid on public-audience shares only.
+  //
+  // @internal
+  // DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+  // OWNER's stored config, not the guest's: the guest scope step still
+  // discards caller-supplied execution_config unconditionally, then
+  // merges this field — loaded server-side from the share — over the
+  // platform guest profile (GuestAgentExecutionCreateScopeStep, the
+  // promise recorded on GuestExecutionProfileProperties). The trust
+  // posture is unchanged. Org-audience shares reject the field via the
+  // message-level CEL rule for the same reason as environment_refs:
+  // member sessions carry no share linkage, so it would be stored but
+  // silently never applied. Enforcement is cloud-only — guest runtime
+  // is a cloud concept; OSS stores and echoes the field.
+  ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7;
 }
 
 // AgentShareAudience selects who can chat over a share's hosted link.

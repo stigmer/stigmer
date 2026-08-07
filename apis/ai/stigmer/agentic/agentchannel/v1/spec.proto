@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agentchannel.v1;
 
+import "ai/stigmer/agentic/agentexecution/v1/invocation.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "buf/validate/validate.proto";
@@ -140,6 +141,27 @@ message AgentChannelSpec {
   // this flag set — an agent with no proactive channel never sees the
   // tool.
   bool proactive_messaging_enabled = 7;
+
+  // Per-turn model choice and run bounds for conversations on this
+  // channel, overriding the platform's channel execution profile.
+  //
+  // Unset fields inherit the platform default. model_name replaces the
+  // platform model outright, while max_cost_usd and max_tool_rounds can
+  // only lower the platform caps — a channel owner can reduce what one
+  // turn may spend, never raise it past the platform profile.
+  //
+  // @internal
+  // Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+  // owner-settable run shape (stigmer/stigmer#360), embedded directly —
+  // never a ChannelRunConfig mirror, mirroring being the drift mechanism
+  // the shared message exists to end. Merged at the single broker write
+  // site (ChannelSessionBroker — the promise recorded on
+  // ChannelExecutionProfileProperties), per field: bounds clamp
+  // min(owner, platform), model replaces outright, service_tier stamps
+  // when set (validated fail-closed at execution create), approval_mode
+  // stays platform-owned. Runtime enforcement is cloud-only — OSS has
+  // no channel serving runtime and stores/echoes the field.
+  ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8;
 }
 
 // SlackChannelConfig selects Slack as the channel provider.

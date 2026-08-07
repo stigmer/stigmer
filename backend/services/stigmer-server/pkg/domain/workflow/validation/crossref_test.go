@@ -233,3 +233,92 @@ func TestValidateTaskConfigRequiredFields_AgentCallRunConfigBounds(t *testing.T)
 		}
 	})
 }
+
+// The workflow surface accepts git_repo workspace sources only (no client
+// is connected to serve a local_path when a task fires) and mirrors
+// GitRepoSource's https-only proto CEL, unreachable at Layer 1 through the
+// Struct envelope. Error strings are pinned in lockstep with the cloud
+// Java validator.
+func TestValidateTaskConfigRequiredFields_AgentCallWorkspaceEntries(t *testing.T) {
+	makeSpec := func(entries []interface{}) *workflowv1.WorkflowSpec {
+		return &workflowv1.WorkflowSpec{
+			Tasks: []*workflowv1.WorkflowTask{
+				makeTask("review", workflowv1.WorkflowTaskKind_agent_call, map[string]interface{}{
+					"agent":             "test-agent",
+					"message":           "test message",
+					"workspace_entries": entries,
+				}),
+			},
+		}
+	}
+
+	t.Run("git https entry passes", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec([]interface{}{
+			map[string]interface{}{
+				"name": "app",
+				"source": map[string]interface{}{
+					"git_repo": map[string]interface{}{"url": "https://github.com/acme/app"},
+				},
+			},
+		}))
+		if len(errors) != 0 {
+			t.Errorf("expected no errors, got %v", errors)
+		}
+	})
+
+	t.Run("local_path source is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec([]interface{}{
+			map[string]interface{}{
+				"source": map[string]interface{}{
+					"local_path": map[string]interface{}{"path": "/home/me/repo"},
+				},
+			},
+		}))
+		want := "task 'review' (agent_call): workspace_entries[0] must use a git_repo source — no client is connected to serve a local_path when a workflow task fires"
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	t.Run("missing source is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec([]interface{}{
+			map[string]interface{}{"name": "app"},
+		}))
+		want := "task 'review' (agent_call): workspace_entries[0] requires a source"
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	t.Run("ssh url is rejected", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec([]interface{}{
+			map[string]interface{}{
+				"source": map[string]interface{}{
+					"git_repo": map[string]interface{}{"url": "git@github.com:acme/app.git"},
+				},
+			},
+		}))
+		want := "task 'review' (agent_call): workspace_entries[0] url must use HTTPS (e.g. https://github.com/org/repo). SSH URLs are not supported."
+		if len(errors) != 1 || errors[0] != want {
+			t.Errorf("expected [%q], got %v", want, errors)
+		}
+	})
+
+	t.Run("second entry's index is reported", func(t *testing.T) {
+		errors := ValidateTaskConfigRequiredFields(makeSpec([]interface{}{
+			map[string]interface{}{
+				"source": map[string]interface{}{
+					"git_repo": map[string]interface{}{"url": "https://github.com/acme/app"},
+				},
+			},
+			map[string]interface{}{
+				"source": map[string]interface{}{
+					"local_path": map[string]interface{}{"path": "/tmp/x"},
+				},
+			},
+		}))
+		if len(errors) != 1 || !strings.Contains(errors[0], "workspace_entries[1]") {
+			t.Errorf("expected one error naming workspace_entries[1], got %v", errors)
+		}
+	})
+}

@@ -548,6 +548,80 @@ do:
       );
     });
 
+    it("parses git workspace entries", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - invoke:
+      call: agent
+      with:
+        agent: reviewer
+        message: Review
+        workspace_entries:
+          - name: app
+            source:
+              git_repo:
+                url: https://github.com/acme/app
+                branch: main
+          - source:
+              git_repo:
+                url: https://github.com/acme/lib
+`;
+      const model = loadWorkflowFromYaml(yaml);
+      const task = model.do[0].task;
+      expect(task.kind).toBe("call:agent");
+      if (task.kind === "call:agent") {
+        const entries = task.with.workspace_entries;
+        expect(entries).toHaveLength(2);
+        expect(entries?.[0].name).toBe("app");
+        expect(entries?.[0].source.git_repo.url).toBe("https://github.com/acme/app");
+        expect(entries?.[0].source.git_repo.branch).toBe("main");
+        expect(entries?.[1].name).toBeUndefined();
+        expect(entries?.[1].source.git_repo.branch).toBeUndefined();
+      }
+    });
+
+    it("rejects a workspace entry without a git url", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - invoke:
+      call: agent
+      with:
+        agent: reviewer
+        message: Review
+        workspace_entries:
+          - source:
+              local_path:
+                path: /home/me/repo
+`;
+      expect(() => loadWorkflowFromYaml(yaml)).toThrow(
+        "call:agent 'workspace_entries[0]' requires 'source.git_repo.url'",
+      );
+    });
+
+    it("rejects a non-list workspace_entries", () => {
+      const yaml = `
+document:
+  dsl: '1.0.0'
+  name: test
+do:
+  - invoke:
+      call: agent
+      with:
+        agent: reviewer
+        message: Review
+        workspace_entries: "https://github.com/acme/app"
+`;
+      expect(() => loadWorkflowFromYaml(yaml)).toThrow(
+        "call:agent 'workspace_entries' must be a list",
+      );
+    });
+
     it("rejects a non-mapping run_config", () => {
       const yaml = `
 document:

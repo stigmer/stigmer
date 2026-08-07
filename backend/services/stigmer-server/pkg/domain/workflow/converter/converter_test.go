@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	tasksv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1/tasks"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/protobuf/types/known/structpb"
 	"gopkg.in/yaml.v3"
 )
@@ -345,6 +347,44 @@ func TestProtoToYAML_AgentCallEmissionContract(t *testing.T) {
 	if !reflect.DeepEqual(reviewTask["with"], expectedWith) {
 		t.Errorf("agent_call with-block diverges from the pinned emission contract.\ngot:  %#v\nwant: %#v",
 			reviewTask["with"], expectedWith)
+	}
+}
+
+// TestUnmarshalTaskConfig_EnvironmentRefKindDefault verifies the DSL
+// normalizer: an environment_refs item that omits kind unmarshals with
+// kind=environment — the field can reference nothing else, so requiring
+// authors to spell it would be ceremony.
+func TestUnmarshalTaskConfig_EnvironmentRefKindDefault(t *testing.T) {
+	config, _ := structpb.NewStruct(map[string]interface{}{
+		"agent":   "triage",
+		"message": "classify",
+		"environment_refs": []interface{}{
+			map[string]interface{}{"slug": "shared-secrets"},
+			map[string]interface{}{"org": "acme", "slug": "other", "kind": "environment"},
+		},
+	})
+
+	msg, err := UnmarshalTaskConfigPublic(workflowv1.WorkflowTaskKind_agent_call, config)
+	if err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+	cfg, ok := msg.(*tasksv1.AgentCallTaskConfig)
+	if !ok {
+		t.Fatalf("expected AgentCallTaskConfig, got %T", msg)
+	}
+	if len(cfg.GetEnvironmentRefs()) != 2 {
+		t.Fatalf("expected 2 environment refs, got %d", len(cfg.GetEnvironmentRefs()))
+	}
+	for i, ref := range cfg.GetEnvironmentRefs() {
+		if ref.GetKind() != apiresourcekind.ApiResourceKind_environment {
+			t.Errorf("environment_refs[%d].kind = %v, want environment", i, ref.GetKind())
+		}
+	}
+	if cfg.GetEnvironmentRefs()[0].GetSlug() != "shared-secrets" {
+		t.Errorf("environment_refs[0].slug = %q, want shared-secrets", cfg.GetEnvironmentRefs()[0].GetSlug())
+	}
+	if cfg.GetEnvironmentRefs()[1].GetOrg() != "acme" {
+		t.Errorf("environment_refs[1].org = %q, want acme", cfg.GetEnvironmentRefs()[1].GetOrg())
 	}
 }
 

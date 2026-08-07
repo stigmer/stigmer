@@ -365,6 +365,79 @@ describe("callAgentAction", () => {
     });
   });
 
+  describe("workspace entries and workflow provenance (#358 Phase 2)", () => {
+    it("maps git workspace entries onto the created session's spec", async () => {
+      await expect(
+        callAgentAction(
+          {
+            agent: "my-agent",
+            message: "Hello",
+            workspace_entries: [
+              { name: "app", source: { git_repo: { url: "https://github.com/acme/app", branch: "main" } } },
+              { source: { git_repo: { url: "https://github.com/acme/lib" } } },
+            ],
+          },
+          { __stigmer_org_id: "test-org" },
+          "wfl_parent",
+        ),
+      ).rejects.toThrow("CompleteAsyncError");
+
+      const session = mockCreateSession.mock.calls[0][0];
+      const entries = session.spec.workspaceEntries;
+      expect(entries).toHaveLength(2);
+      expect(entries[0].name).toBe("app");
+      expect(entries[0].source.source.case).toBe("gitRepo");
+      expect(entries[0].source.source.value.url).toBe("https://github.com/acme/app");
+      expect(entries[0].source.source.value.branch).toBe("main");
+      expect(entries[1].source.source.value.url).toBe("https://github.com/acme/lib");
+    });
+
+    it("creates sessions without workspace entries when none are configured", async () => {
+      await expect(
+        callAgentAction(
+          { agent: "my-agent", message: "Hello" },
+          { __stigmer_org_id: "test-org" },
+          "wfl_parent",
+        ),
+      ).rejects.toThrow("CompleteAsyncError");
+
+      const session = mockCreateSession.mock.calls[0][0];
+      expect(session.spec.workspaceEntries).toHaveLength(0);
+    });
+
+    it("stamps workflow provenance labels the server keys environment resolution on", async () => {
+      await expect(
+        callAgentAction(
+          {
+            agent: "my-agent",
+            message: "Hello",
+            __wfExecId: "wex_prov1",
+            __taskName: "triage",
+          } as any,
+          { __stigmer_org_id: "test-org" },
+          "wfl_parent",
+        ),
+      ).rejects.toThrow("CompleteAsyncError");
+
+      const execution = mockCreateAgentExecution.mock.calls[0][0];
+      expect(execution.metadata.labels["stigmer.ai/workflow-execution-id"]).toBe("wex_prov1");
+      expect(execution.metadata.labels["stigmer.ai/workflow-task"]).toBe("triage");
+    });
+
+    it("stamps no provenance labels without workflow context", async () => {
+      await expect(
+        callAgentAction(
+          { agent: "my-agent", message: "Hello" },
+          { __stigmer_org_id: "test-org" },
+          "wfl_parent",
+        ),
+      ).rejects.toThrow("CompleteAsyncError");
+
+      const execution = mockCreateAgentExecution.mock.calls[0][0];
+      expect(Object.keys(execution.metadata.labels ?? {})).toHaveLength(0);
+    });
+  });
+
   describe("env secret marking", () => {
     it("preserves the agent-declared secret flag when a task env override supplies the value", async () => {
       // The agent declares API_TOKEN as secret. A task-level env override

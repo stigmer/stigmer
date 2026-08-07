@@ -7,6 +7,7 @@ import (
 	"time"
 
 	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
 	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
@@ -45,6 +46,17 @@ func TestWorkflowAgentCall_RunConfigReachesExecution(t *testing.T) {
 		"run_config": map[string]any{
 			"max_cost_usd":    0.5,
 			"max_tool_rounds": 15,
+		},
+		"workspace_entries": []any{
+			map[string]any{
+				"name": "app",
+				"source": map[string]any{
+					"git_repo": map[string]any{
+						"url":    "https://github.com/octocat/Hello-World",
+						"branch": "master",
+					},
+				},
+			},
 		},
 	})
 	require.NoError(t, err)
@@ -120,4 +132,25 @@ func TestWorkflowAgentCall_RunConfigReachesExecution(t *testing.T) {
 			"this is the field the runner's cost guards enforce")
 	assert.Equal(t, int32(15), execConfig.GetMaxToolRounds(),
 		"run_config.max_tool_rounds must land on ExecutionConfig.max_tool_rounds")
+
+	// Phase 2: workflow provenance labels — the key the server's
+	// environment-resolution branch reads (gated on the runner caller
+	// identity in cloud).
+	labels := childExec.GetMetadata().GetLabels()
+	assert.Equal(t, executionID, labels["stigmer.ai/workflow-execution-id"],
+		"child execution must carry the workflow-execution provenance label")
+	assert.Equal(t, "callAgent", labels["stigmer.ai/workflow-task"],
+		"child execution must carry the workflow-task provenance label")
+
+	// Phase 2: workspace entries land on the child session's spec — the
+	// shared WorkspaceEntry vocabulary flowing task config → session.
+	session, err := clients.SessionQuery.Get(ctx,
+		&sessionv1.SessionId{Value: childExec.GetSpec().GetSessionId()})
+	require.NoError(t, err, "child session should be fetchable by ID")
+	entries := session.GetSpec().GetWorkspaceEntries()
+	require.Len(t, entries, 1, "session must carry the task's workspace entry")
+	assert.Equal(t, "app", entries[0].GetName())
+	assert.Equal(t, "https://github.com/octocat/Hello-World",
+		entries[0].GetSource().GetGitRepo().GetUrl())
+	assert.Equal(t, "master", entries[0].GetSource().GetGitRepo().GetBranch())
 }

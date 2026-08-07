@@ -81,6 +81,87 @@ describe("AgentCallForm", () => {
     });
   });
 
+  it("renders workspace entries and edits the git url in place", () => {
+    const onFieldChange = vi.fn();
+    const node = makeNode(WorkflowTaskKind.agent_call, {
+      agent: "x",
+      message: "y",
+      workspace_entries: [
+        { name: "app", source: { git_repo: { url: "https://github.com/acme/app", branch: "main" } } },
+      ],
+    });
+    render(<AgentCallForm node={node} onFieldChange={onFieldChange} />);
+
+    const url = screen.getByTestId("agent-call-workspace-url-0") as HTMLInputElement;
+    expect(url.value).toBe("https://github.com/acme/app");
+
+    fireEvent.change(url, { target: { value: "https://github.com/acme/other" } });
+    expect(onFieldChange).toHaveBeenCalledWith("workspace_entries", [
+      { name: "app", source: { git_repo: { url: "https://github.com/acme/other", branch: "main" } } },
+    ]);
+  });
+
+  it("adds a workspace entry row", () => {
+    const onFieldChange = vi.fn();
+    const node = makeNode(WorkflowTaskKind.agent_call, { agent: "x", message: "y" });
+    render(<AgentCallForm node={node} onFieldChange={onFieldChange} />);
+
+    fireEvent.click(screen.getByTestId("agent-call-workspace-add"));
+    expect(onFieldChange).toHaveBeenCalledWith("workspace_entries", [
+      { source: { git_repo: { url: "" } } },
+    ]);
+  });
+
+  it("emits undefined when the last workspace entry is removed", () => {
+    const onFieldChange = vi.fn();
+    const node = makeNode(WorkflowTaskKind.agent_call, {
+      agent: "x",
+      message: "y",
+      workspace_entries: [
+        { source: { git_repo: { url: "https://github.com/acme/app" } } },
+      ],
+    });
+    render(<AgentCallForm node={node} onFieldChange={onFieldChange} />);
+
+    fireEvent.click(screen.getByLabelText("Remove workspace entry 1"));
+    expect(onFieldChange).toHaveBeenCalledWith("workspace_entries", undefined);
+  });
+
+  it("edits environment references as org/slug rows with empty-org omitted", () => {
+    const onFieldChange = vi.fn();
+    const node = makeNode(WorkflowTaskKind.agent_call, {
+      agent: "x",
+      message: "y",
+      environment_refs: [{ slug: "shared-secrets" }],
+    });
+    render(<AgentCallForm node={node} onFieldChange={onFieldChange} />);
+
+    const slug = screen.getByTestId("agent-call-envref-slug-0") as HTMLInputElement;
+    expect(slug.value).toBe("shared-secrets");
+
+    fireEvent.change(slug, { target: { value: "other-secrets" } });
+    // Empty org stays omitted — an empty string must not become a stored
+    // org override (relative refs resolve to the workflow's own org).
+    expect(onFieldChange).toHaveBeenCalledWith("environment_refs", [
+      { slug: "other-secrets" },
+    ]);
+  });
+
+  it("adds and removes environment reference rows", () => {
+    const onFieldChange = vi.fn();
+    const node = makeNode(WorkflowTaskKind.agent_call, {
+      agent: "x",
+      message: "y",
+      environment_refs: [{ slug: "a" }, { org: "acme", slug: "b" }],
+    });
+    render(<AgentCallForm node={node} onFieldChange={onFieldChange} />);
+
+    fireEvent.click(screen.getByLabelText("Remove environment reference 1"));
+    expect(onFieldChange).toHaveBeenCalledWith("environment_refs", [
+      { org: "acme", slug: "b" },
+    ]);
+  });
+
   it("shows structured output section when output is present", () => {
     const node = makeNode(WorkflowTaskKind.agent_call, {
       agent: "x",
