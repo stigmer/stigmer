@@ -44,7 +44,12 @@ import {
   formatChannelTemplatesSection,
   synthesizeChannelAttachment,
 } from "../../shared/channel-attachment.js";
+import {
+  readChannelConversationId,
+  synthesizeConversationAttachment,
+} from "../../shared/conversation-attachment.js";
 import { injectSynthesizedAttachment } from "../../shared/synthesized-attachment.js";
+import { shouldConnectMcp } from "./mcp-gate.js";
 import { WorkspaceProvisioner } from "../../shared/workspace/provisioner.js";
 import { LocalWorkspaceBackend } from "../../shared/workspace/local-backend.js";
 import type { WorkspaceBackend, ProvisionResult } from "../../shared/workspace/types.js";
@@ -361,8 +366,18 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
     // answer — no tool, no section, execution unharmed.
     const channelMessaging = await discoverChannelMessaging(client, exchangedRunnerToken);
 
+    // The conversation-attachment decision (DD-008 D-c): the channel-id
+    // session label, stamped server-side on every channel session — a
+    // free, synchronous read, so no hoisted discovery needed.
+    const conversationChannelId = readChannelConversationId(session.metadata?.labels);
+
     let resolvedMcpServers: Awaited<ReturnType<typeof resolveMcpServers>> | null = null;
-    if (mcpServerUsages.length > 0 || datastoreUsages.length > 0 || channelMessaging.length > 0) {
+    if (shouldConnectMcp({
+      mcpServerUsageCount: mcpServerUsages.length,
+      datastoreUsageCount: datastoreUsages.length,
+      channelMessagingCount: channelMessaging.length,
+      conversationChannelId,
+    })) {
       await reportSetupProgress(client, executionId, "Connecting tools…");
       const transportPosture = resolveMcpTransportPosture(config.mode);
       // The MCP-bound env map (and ONLY it) carries the reserved
@@ -423,6 +438,21 @@ export async function performSetup(deps: SetupDependencies): Promise<SetupResult
             backfilledServers, attachment, "channel messaging",
           );
         }
+      }
+
+      // The conversation participation attachment (DD-008 D-c) — the
+      // third sibling, same after-backfill rule. HTTP-only: synthesize
+      // answers undefined with no bridge endpoint by design (see
+      // shared/conversation-attachment.ts).
+      const conversationAttachment = synthesizeConversationAttachment(conversationChannelId, {
+        bridgeEndpoint: config.mcpBridgeEndpoint,
+        credential: attachmentCredential,
+        backendEndpoint: config.stigmerBackendEndpoint,
+      });
+      if (conversationAttachment) {
+        backfilledServers = injectSynthesizedAttachment(
+          backfilledServers, conversationAttachment, "conversation participation",
+        );
       }
       resolvedMcpServers = { resolvedServers: backfilledServers };
       timing.mark("backfill_mcp");

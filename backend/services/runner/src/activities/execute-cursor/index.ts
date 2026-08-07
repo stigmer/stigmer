@@ -69,6 +69,10 @@ import {
   discoverChannelMessaging,
   synthesizeChannelAttachment,
 } from "../../shared/channel-attachment.js";
+import {
+  readChannelConversationId,
+  synthesizeConversationAttachment,
+} from "../../shared/conversation-attachment.js";
 import { injectSynthesizedAttachment } from "../../shared/synthesized-attachment.js";
 import { mergeApprovalPolicies } from "./approval-policy.js";
 import { deriveActiveLeases, isUnattendedApprovalMode } from "../../shared/approval-policy.js";
@@ -684,6 +688,31 @@ async function executeCursorInner(
           cursorConfig: toCursorMcpConfig(resolvedServers),
         };
       }
+    }
+
+    // Phase 4a4: Synthesize the conversation participation attachment
+    // (channel-conversations DD-008 D-c) — the third sibling. The
+    // channel-id session label IS the attachment decision (stamped
+    // server-side on every channel session; a free local read, unlike
+    // the channels discovery RPC above). HTTP-only: synthesize answers
+    // undefined with no bridge endpoint by design (see
+    // shared/conversation-attachment.ts).
+    const conversationAttachment = synthesizeConversationAttachment(
+      readChannelConversationId(session.metadata?.labels),
+      {
+        bridgeEndpoint: config.mcpBridgeEndpoint,
+        credential: attachmentCredential,
+        backendEndpoint: config.stigmerBackendEndpoint,
+      },
+    );
+    if (conversationAttachment) {
+      const resolvedServers = injectSynthesizedAttachment(
+        mcpResolution.resolvedServers, conversationAttachment, "conversation participation",
+      );
+      mcpResolution = {
+        resolvedServers,
+        cursorConfig: toCursorMcpConfig(resolvedServers),
+      };
     }
     const mcpConfig = mcpResolution.cursorConfig;
 

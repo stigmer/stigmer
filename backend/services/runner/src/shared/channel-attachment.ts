@@ -47,7 +47,9 @@ import { grpcTarget, type SynthesizedAttachmentOptions } from "./synthesized-att
 /**
  * The synthesized attachment's slug. Reserved: a user McpServer with
  * this slug is shadowed by the synthesized attachment, with a warning.
- * Pinned cross-repo by the mcp-server integration test (the
+ * Runner-internal (the resolved-server name and shadow key — the
+ * mcp-server never sees it); pinned by this module's test. The ROUTE
+ * below is the cross-repo string, pinned on both sides (the
  * TOOL_CALL_LIMIT precedent).
  */
 export const CHANNEL_ATTACHMENT_SLUG = "stigmer-channels";

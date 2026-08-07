@@ -3,9 +3,9 @@
  * discovery with the never-throw failure posture, both connection
  * shapes, the structural approval-freedom the datastore attachment
  * pinned before it, and the prompt section's filter/order/cap rules
- * (DD-006 D6). The cross-repo pinned strings (slug, route, roster) are
- * guarded here and in the mcp-server integration test — the
- * TOOL_CALL_LIMIT precedent.
+ * (DD-006 D6). The route is the cross-repo string, guarded here and in
+ * the mcp-server integration test (the TOOL_CALL_LIMIT precedent); the
+ * slug and roster are runner-internal and guarded here alone.
  */
 
 import { describe, expect, it, vi } from "vitest";
