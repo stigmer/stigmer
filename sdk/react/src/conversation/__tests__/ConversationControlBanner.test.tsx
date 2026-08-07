@@ -84,6 +84,22 @@ describe("ConversationControlBanner", () => {
     expect(screen.getByText(/A teammate has this conversation/)).toBeDefined();
   });
 
+  it("never claims a teammate holds it when the host passed no identity (F-01)", () => {
+    // Identity omitted: the holder may be the viewer themself, so the
+    // only honest statement is that a human holds it.
+    render(
+      <ConversationControlBanner
+        {...baseProps()}
+        conversation={conversation(ConversationControl.control_human, "idt_someone")}
+      />,
+    );
+    expect(
+      screen.getByText(/This conversation is with a human/),
+    ).toBeDefined();
+    expect(screen.queryByText(/A teammate has this conversation/)).toBeNull();
+    expect(screen.queryByText(/You have this conversation/)).toBeNull();
+  });
+
   it("hands back directly when the customer's last message is answered", async () => {
     const user = userEvent.setup();
     const p = participation();

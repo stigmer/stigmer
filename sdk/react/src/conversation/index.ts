@@ -47,6 +47,7 @@ export type {
 export {
   authorKindOf,
   compareTimelineItemsNewestFirst,
+  conversationContactOf,
   conversationLabelOf,
   inboundPlaceholderOf,
   isInternalItem,

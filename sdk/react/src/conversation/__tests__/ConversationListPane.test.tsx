@@ -90,6 +90,41 @@ describe("ConversationListPane", () => {
     expect(screen.getByText("15550001111")).toBeDefined();
   });
 
+  it("keeps the number visible under a display name — and never twice (F-17)", () => {
+    // A display name wins the row title, so the call-back path renders
+    // as the muted sub-line. When the number IS the title (no display
+    // name), no sub-line repeats it — pinned by the fallback test above
+    // rendering exactly one occurrence.
+    render(
+      <ConversationListPane
+        {...baseProps()}
+        conversations={[conversation({ displayName: "Pat" })]}
+      />,
+    );
+
+    expect(screen.getByText("Pat")).toBeDefined();
+    expect(screen.getByText("15550001111")).toBeDefined();
+  });
+
+  it("shows no contact sub-line for Slack threads — a timestamp is not an address", () => {
+    render(
+      <ConversationListPane
+        {...baseProps()}
+        channels={[slackChannel("ach_sl", "eng-help")]}
+        conversations={[
+          conversation({
+            agentChannelId: "ach_sl",
+            conversationKey: "1723012345.678900",
+            displayName: "deploy question",
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("deploy question")).toBeDefined();
+    expect(screen.queryByText("1723012345.678900")).toBeNull();
+  });
+
   it("badges attention with the escalating agent's reason", () => {
     render(
       <ConversationListPane

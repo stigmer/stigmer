@@ -34,9 +34,12 @@ export interface ConversationControlBannerProps {
   readonly supportsStaffReplies: boolean;
   /**
    * The signed-in staff member's identity account id, when the host
-   * knows it — lets the banner say "You have this conversation" instead
-   * of the generic teammate copy. Optional: the SDK never assumes a
-   * host's auth state.
+   * knows it — lets the banner attribute a human hold: "You have this
+   * conversation" when it matches, "A teammate has this conversation"
+   * when it differs. When omitted the banner only states that a human
+   * holds it — the holder may be the viewer themself, so "a teammate"
+   * would be a guess. Optional: the SDK never assumes a host's auth
+   * state.
    */
   readonly currentIdentityAccountId?: string;
   /** Additional classes for the banner container. */
@@ -97,7 +100,13 @@ export function ConversationControlBanner({
               <User aria-hidden="true" className="size-4 text-muted-foreground" />
               {heldByMe
                 ? "You have this conversation — the agent is quiet until you hand it back."
-                : "A teammate has this conversation — the agent is quiet until handback."}
+                : currentIdentityAccountId !== undefined
+                  ? "A teammate has this conversation — the agent is quiet until handback."
+                  : // Without the host's identity the holder may be the
+                    // viewer themself — claiming "a teammate" would be a
+                    // guess. State only what the row proves: a human
+                    // holds it (channel-conversations F-01).
+                    "This conversation is with a human — the agent is quiet until handback."}
             </>
           ) : (
             <>

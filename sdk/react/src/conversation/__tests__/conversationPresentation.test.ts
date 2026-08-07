@@ -13,6 +13,7 @@ import { ChannelReceiptState } from "@stigmer/protos/ai/stigmer/agentic/agentcha
 import {
   authorKindOf,
   compareTimelineItemsNewestFirst,
+  conversationContactOf,
   conversationLabelOf,
   inboundPlaceholderOf,
   isInternalItem,
@@ -127,6 +128,35 @@ describe("conversationLabelOf", () => {
       conversationKey: "1723012345.678900",
     });
     expect(conversationLabelOf(conversation, "slack")).toBe("Slack thread");
+  });
+});
+
+describe("conversationContactOf", () => {
+  it("surfaces the WhatsApp number a display name would otherwise hide (F-17)", () => {
+    const conversation = create(ChannelConversationSchema, {
+      conversationKey: "15550001111",
+      displayName: "Pat",
+    });
+    // Verbatim wire value — no fabricated "+" prefix.
+    expect(conversationContactOf(conversation, "whatsapp")).toBe("15550001111");
+  });
+
+  it("adds nothing when the label already shows the key", () => {
+    const conversation = create(ChannelConversationSchema, {
+      conversationKey: "15550001111",
+    });
+    expect(conversationContactOf(conversation, "whatsapp")).toBeNull();
+  });
+
+  it("answers null for keys that are not reachable addresses", () => {
+    const slackThread = create(ChannelConversationSchema, {
+      conversationKey: "1723012345.678900",
+      displayName: "deploy question",
+    });
+    expect(conversationContactOf(slackThread, "slack")).toBeNull();
+    // An unknown provider shows nothing rather than guessing that its
+    // key is an address.
+    expect(conversationContactOf(slackThread, null)).toBeNull();
   });
 });
 

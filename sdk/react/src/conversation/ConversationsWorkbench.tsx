@@ -14,6 +14,7 @@ import { ConversationListPane, type ConversationIdentity } from "./ConversationL
 import { ConversationTimelineView } from "./ConversationTimelineView.js";
 import {
   authorKindOf,
+  conversationContactOf,
   conversationLabelOf,
   isInternalItem,
 } from "./conversationPresentation.js";
@@ -141,6 +142,11 @@ export function ConversationsWorkbench({
   const detailLabel = detail.conversation
     ? conversationLabelOf(detail.conversation, descriptor?.id ?? null)
     : selected?.conversationKey ?? "";
+  // The customer's reachable address (e.g. the WhatsApp number a display
+  // name hides) — the call-back path belongs beside the channel name.
+  const detailContact = detail.conversation
+    ? conversationContactOf(detail.conversation, descriptor?.id ?? null)
+    : null;
 
   return (
     <div
@@ -179,9 +185,16 @@ export function ConversationsWorkbench({
               <h2 className="truncate text-sm font-semibold text-foreground">
                 {detailLabel}
               </h2>
-              {selectedChannel && (
+              {(detailContact !== null || selectedChannel) && (
                 <p className="truncate text-xs text-muted-foreground">
-                  {selectedChannel.metadata?.name || selectedChannel.metadata?.slug}
+                  {[
+                    detailContact,
+                    selectedChannel
+                      ? selectedChannel.metadata?.name || selectedChannel.metadata?.slug
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               )}
             </div>

@@ -160,6 +160,32 @@ export function conversationLabelOf(
 }
 
 /**
+ * The customer's reachable address, when the label hides it: the fact a
+ * staffer needs to call or message the customer outside the platform.
+ *
+ * Provider-aware like {@link conversationLabelOf}, because conversation
+ * keys are not uniformly addresses: WhatsApp's key IS the customer's
+ * phone number (the wa_id), and when a display name wins the label slot
+ * that number would otherwise appear nowhere on the surface. Slack's
+ * key is a thread timestamp — not a way to reach anyone — so there is
+ * nothing to show. Unknown providers show nothing rather than guess.
+ *
+ * Returns `null` when the label already shows the key (no display
+ * name), so the same fact never renders twice. The key returns
+ * verbatim — no fabricated `+` prefix: the wire value is the truth this
+ * module reports, and formatting belongs to hosts that know their
+ * display rules.
+ */
+export function conversationContactOf(
+  conversation: ChannelConversation,
+  provider: ChannelProviderId | null,
+): string | null {
+  if (provider !== "whatsapp") return null;
+  if (conversation.displayName === "") return null;
+  return conversation.conversationKey;
+}
+
+/**
  * Newest-first timeline order: `(at, item_id)` descending — the exact
  * comparator the server pages with, so client-side merges can never
  * disagree with server pages about order.

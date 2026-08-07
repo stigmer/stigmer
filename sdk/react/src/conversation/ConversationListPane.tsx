@@ -14,7 +14,10 @@ import { formatRelativeTime } from "../activity/format-relative-time.js";
 import { channelProviderOf } from "../channel/providers.js";
 import { Button } from "../button/Button.js";
 import { EmptyState } from "../empty-state/EmptyState.js";
-import { conversationLabelOf } from "./conversationPresentation.js";
+import {
+  conversationContactOf,
+  conversationLabelOf,
+} from "./conversationPresentation.js";
 
 /** The (channel, key) pair identifying one conversation. */
 export interface ConversationIdentity {
@@ -156,6 +159,10 @@ export function ConversationListPane({
                     conversation,
                     providerById.get(conversation.agentChannelId)?.id ?? null,
                   )}
+                  contact={conversationContactOf(
+                    conversation,
+                    providerById.get(conversation.agentChannelId)?.id ?? null,
+                  )}
                   isSelected={
                     selected?.agentChannelId === conversation.agentChannelId &&
                     selected?.conversationKey === conversation.conversationKey
@@ -187,12 +194,18 @@ export function ConversationListPane({
 const ConversationRow = memo(function ConversationRow({
   conversation,
   label,
+  contact,
   isSelected,
   onSelect,
   now,
 }: {
   readonly conversation: ChannelConversation;
   readonly label: string;
+  /**
+   * The customer's reachable address when the label hides it
+   * (`conversationContactOf`) — `null` when the label already shows it.
+   */
+  readonly contact: string | null;
   readonly isSelected: boolean;
   readonly onSelect: (conversation: ChannelConversation) => void;
   readonly now?: Date;
@@ -236,6 +249,11 @@ const ConversationRow = memo(function ConversationRow({
               </span>
             )}
           </div>
+          {contact !== null && (
+            <p className="mt-0.5 truncate text-xs text-muted-foreground-faint">
+              {contact}
+            </p>
+          )}
           {humanHeld && (
             <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
               <User aria-hidden="true" className="size-3" />

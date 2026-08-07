@@ -1373,6 +1373,7 @@ export {
   useConversationParticipation,
   authorKindOf,
   compareTimelineItemsNewestFirst,
+  conversationContactOf,
   conversationLabelOf,
   inboundPlaceholderOf,
   isInternalItem,

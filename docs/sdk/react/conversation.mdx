@@ -257,7 +257,7 @@ control that caused them.
   type={{
     className: { type: "string", description: "Additional classes for the banner container." },
     conversation: { type: "ChannelConversation", description: "The conversation's fresh participation state.", required: true },
-    currentIdentityAccountId: { type: "string", description: "The signed-in staff member's identity account id, when the host knows it — lets the banner say \"You have this conversation\" instead of the generic teammate copy. Optional: the SDK never assumes a host's auth state." },
+    currentIdentityAccountId: { type: "string", description: "The signed-in staff member's identity account id, when the host knows it — lets the banner attribute a human hold: \"You have this conversation\" when it matches, \"A teammate has this conversation\" when it differs. When omitted the banner only states that a human holds it — the holder may be the viewer themself, so \"a teammate\" would be a guess. Optional: the SDK never assumes a host's auth state." },
     participation: { type: "UseConversationParticipationReturn", description: "The participation commands (from `useConversationParticipation`).", required: true, typeDescriptionLink: "#useconversationparticipationreturn" },
     supportsStaffReplies: { type: "boolean", description: "Whether the channel's provider has a staff send lane. Senderless providers disable takeover with the reason — a takeover there would silence the agent while no human reply could reach the customer, which is exactly what the server refuses.", required: true },
     unansweredCustomer: { type: "boolean", description: "`true` when the newest customer-visible item is an unanswered customer message — computed from the timeline read. Arms the handback confirm guard (channel-conversations DD-007 D-e): handing back runs NO turn, so the agent stays quiet until the customer next speaks, and the unanswered state must be unmissable.", required: true },
@@ -402,6 +402,29 @@ Who authored a timeline item, in render vocabulary.
 ### ConversationCommand
 
 The four staff-facing participation commands.
+
+
+### conversationContactOf
+
+The customer's reachable address, when the label hides it: the fact a
+staffer needs to call or message the customer outside the platform.
+
+Provider-aware like [`conversationLabelOf`](#conversationlabelof), because conversation
+keys are not uniformly addresses: WhatsApp's key IS the customer's
+phone number (the wa_id), and when a display name wins the label slot
+that number would otherwise appear nowhere on the surface. Slack's
+key is a thread timestamp — not a way to reach anyone — so there is
+nothing to show. Unknown providers show nothing rather than guess.
+
+Returns `null` when the label already shows the key (no display
+name), so the same fact never renders twice. The key returns
+verbatim — no fabricated `+` prefix: the wire value is the truth this
+module reports, and formatting belongs to hosts that know their
+display rules.
+
+```tsx
+function conversationContactOf(conversation: ChannelConversation, provider: ChannelProviderId | null): string | null
+```
 
 
 ### ConversationIdentity

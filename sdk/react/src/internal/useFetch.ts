@@ -182,18 +182,29 @@ export function useFetch<T>(
     };
   }, [...deps, fetchKey]);
 
+  // The two effects below use `fetchFn` only as an enabled/disabled
+  // signal — they trigger fetches through `refetch()`, and the fetch
+  // effect above already closes over the current render's `fetchFn`.
+  // Keying them on this boolean instead of on `fetchFn` itself is
+  // load-bearing: consumers pass inline closures (referentially new
+  // every render), so an identity dep tears the interval down on every
+  // render — and under any co-mounted faster render source the timer
+  // never completes a period and the consumer never polls at all
+  // (channel-conversations F-14; pinned by the render-pressure tests).
+  const fetchEnabled = fetchFn !== null;
+
   const refetchInterval = options?.refetchInterval;
   useEffect(() => {
-    if (!refetchInterval || refetchInterval <= 0 || !fetchFn) return;
+    if (!refetchInterval || refetchInterval <= 0 || !fetchEnabled) return;
     const id = setInterval(() => {
       if (!isFetchingRef.current) refetch();
     }, refetchInterval);
     return () => clearInterval(id);
-  }, [refetchInterval, fetchFn, refetch]);
+  }, [refetchInterval, fetchEnabled, refetch]);
 
   const refetchOnWindowFocus = options?.refetchOnWindowFocus;
   useEffect(() => {
-    if (!refetchOnWindowFocus || !fetchFn) return;
+    if (!refetchOnWindowFocus || !fetchEnabled) return;
     if (typeof window === "undefined") return;
     const onActive = () => {
       if (!isFetchingRef.current) refetch();
@@ -207,7 +218,7 @@ export function useFetch<T>(
       window.removeEventListener("focus", onActive);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [refetchOnWindowFocus, fetchFn, refetch]);
+  }, [refetchOnWindowFocus, fetchEnabled, refetch]);
 
   const isLoading = isFetching && !hasDataRef.current;
   const isRefetching = isFetching && hasDataRef.current;
