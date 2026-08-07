@@ -173,6 +173,9 @@ func TestStartRun_ShapesTheUnattendedRun(t *testing.T) {
 		"a gated tool with no approver would park the run forever — unattended is correctness")
 	require.EqualValues(t, 20, request.GetSpec().GetExecutionConfig().GetMaxToolRounds())
 	require.InDelta(t, 1.00, request.GetSpec().GetExecutionConfig().GetMaxCostUsd(), 0.001)
+	require.Equal(t, agentexecutionv1.ServiceTier_SERVICE_TIER_UNSPECIFIED,
+		request.GetSpec().GetExecutionConfig().GetServiceTier(),
+		"no owner tier means unset — the runner resolves STANDARD, never the provider default")
 
 	// The invocation's session half defaults to the platform: no owner
 	// harness means unset (native applies), no workspace means none.
@@ -209,6 +212,7 @@ func TestStartRun_CarriesTheInvocationSessionShape(t *testing.T) {
 			// config): the platform cap must win.
 			MaxCostUsd:    5.00,
 			MaxToolRounds: 100,
+			ServiceTier:   agentexecutionv1.ServiceTier_SERVICE_TIER_FAST,
 		}
 	})
 	persistSchedule(t, st, schedule)
@@ -229,6 +233,8 @@ func TestStartRun_CarriesTheInvocationSessionShape(t *testing.T) {
 	require.InDelta(t, 1.00, config.GetMaxCostUsd(), 0.001,
 		"the owner can lower spend, never raise it past the platform")
 	require.EqualValues(t, 20, config.GetMaxToolRounds())
+	require.Equal(t, agentexecutionv1.ServiceTier_SERVICE_TIER_FAST, config.GetServiceTier(),
+		"the owner's stored tier is honored, not silently dropped (#357 write-time validation owns coherence)")
 }
 
 func TestStartRun_TheClockOwnsItsIdempotency(t *testing.T) {

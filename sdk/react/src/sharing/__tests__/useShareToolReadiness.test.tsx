@@ -34,6 +34,7 @@ function makeDraft(overrides?: {
     allowedOrigins: [],
     messages: { rateLimited: "", unavailable: "", conversationEnded: "" },
     environmentRefs: overrides?.environmentRefs ?? [],
+    runConfig: undefined,
   };
 }
 

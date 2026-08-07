@@ -94,6 +94,7 @@ type AgentShareInput struct {
 	AllowedOrigins  []string
 	Messages        *AgentShareMessagesInput
 	EnvironmentRefs []ResourceRef
+	RunConfig       *RunConfigInput
 }
 
 // AgentShareMessagesInput is the SDK input type for AgentShareMessages.
@@ -132,6 +133,9 @@ func (i *AgentShareInput) toProto() *agentsharev1.AgentShare {
 		ref.Kind = apiresourcekind.ApiResourceKind_environment
 		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, ref)
 	}
+	if i.RunConfig != nil {
+		resource.Spec.RunConfig = i.RunConfig.toProto()
+	}
 	return resource
 }
 
@@ -165,6 +169,7 @@ func AgentShareInputFromProto(p *agentsharev1.AgentShare) *AgentShareInput {
 		for _, r := range s.GetEnvironmentRefs() {
 			input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
 		}
+		input.RunConfig = runConfigInputFromProto(s.GetRunConfig())
 	}
 	return input
 }

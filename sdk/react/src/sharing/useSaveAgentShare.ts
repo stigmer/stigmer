@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareAudience } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/spec_pb";
-import type { ResourceRef } from "@stigmer/sdk";
+import type { ResourceRef, RunConfigInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks.js";
 import { toError } from "../internal/toError.js";
 
@@ -57,6 +57,15 @@ export interface AgentShareDraft {
    * sessions carry no share linkage in Phase A — decision 011 addendum).
    */
   readonly environmentRefs: readonly ResourceRef[];
+  /**
+   * The owner's per-share execution override (model / cost cap / tool
+   * rounds / service tier), merged over the platform guest profile at
+   * run time — stigmer/stigmer#360. The console does not edit it (yet):
+   * it rides through every save opaquely so a toggle never wipes an
+   * override set via the CLI or API. Public-audience only (the same
+   * proto CEL rule as environmentRefs, for the same reason).
+   */
+  readonly runConfig: RunConfigInput | undefined;
 }
 
 /**
@@ -103,6 +112,14 @@ export function draftFromShare(share: AgentShare | null): AgentShareDraft {
       org: ref.org,
       slug: ref.slug,
     })),
+    runConfig: spec?.runConfig
+      ? {
+          modelName: spec.runConfig.modelName,
+          maxCostUsd: spec.runConfig.maxCostUsd,
+          maxToolRounds: spec.runConfig.maxToolRounds,
+          serviceTier: spec.runConfig.serviceTier,
+        }
+      : undefined,
   };
 }
 
@@ -229,6 +246,7 @@ export function useSaveAgentShare(
             org: ref.org,
             slug: ref.slug,
           })),
+          runConfig: draft.runConfig,
         });
       } catch (err) {
         setError(toError(err));

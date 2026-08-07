@@ -382,5 +382,86 @@ public interface AgentChannelSpecOrBuilder extends
    */
   boolean getProactiveMessagingEnabled();
 
+  /**
+   * <pre>
+   * Per-turn model choice and run bounds for conversations on this
+   * channel, overriding the platform's channel execution profile.
+   *
+   * Unset fields inherit the platform default. model_name replaces the
+   * platform model outright, while max_cost_usd and max_tool_rounds can
+   * only lower the platform caps — a channel owner can reduce what one
+   * turn may spend, never raise it past the platform profile.
+   *
+   * &#64;internal
+   * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+   * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+   * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+   * the shared message exists to end. Merged at the single broker write
+   * site (ChannelSessionBroker — the promise recorded on
+   * ChannelExecutionProfileProperties), per field: bounds clamp
+   * min(owner, platform), model replaces outright, service_tier stamps
+   * when set (validated fail-closed at execution create), approval_mode
+   * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+   * no channel serving runtime and stores/echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
+   * @return Whether the runConfig field is set.
+   */
+  boolean hasRunConfig();
+  /**
+   * <pre>
+   * Per-turn model choice and run bounds for conversations on this
+   * channel, overriding the platform's channel execution profile.
+   *
+   * Unset fields inherit the platform default. model_name replaces the
+   * platform model outright, while max_cost_usd and max_tool_rounds can
+   * only lower the platform caps — a channel owner can reduce what one
+   * turn may spend, never raise it past the platform profile.
+   *
+   * &#64;internal
+   * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+   * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+   * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+   * the shared message exists to end. Merged at the single broker write
+   * site (ChannelSessionBroker — the promise recorded on
+   * ChannelExecutionProfileProperties), per field: bounds clamp
+   * min(owner, platform), model replaces outright, service_tier stamps
+   * when set (validated fail-closed at execution create), approval_mode
+   * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+   * no channel serving runtime and stores/echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
+   * @return The runConfig.
+   */
+  ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig();
+  /**
+   * <pre>
+   * Per-turn model choice and run bounds for conversations on this
+   * channel, overriding the platform's channel execution profile.
+   *
+   * Unset fields inherit the platform default. model_name replaces the
+   * platform model outright, while max_cost_usd and max_tool_rounds can
+   * only lower the platform caps — a channel owner can reduce what one
+   * turn may spend, never raise it past the platform profile.
+   *
+   * &#64;internal
+   * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+   * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+   * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+   * the shared message exists to end. Merged at the single broker write
+   * site (ChannelSessionBroker — the promise recorded on
+   * ChannelExecutionProfileProperties), per field: bounds clamp
+   * min(owner, platform), model replaces outright, service_tier stamps
+   * when set (validated fail-closed at execution create), approval_mode
+   * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+   * no channel serving runtime and stores/echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder();
+
   ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.ProviderConfigCase getProviderConfigCase();
 }

@@ -4,10 +4,12 @@ package integration
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
 	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	agentexecv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	agentsharev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentshare/v1"
 	"github.com/stigmer/stigmer/test/integration/harness"
 	"github.com/stretchr/testify/assert"
@@ -262,4 +264,45 @@ func TestAgentShare_ApplyOmittingAudienceResetsToPublic(t *testing.T) {
 	})
 	assert.NoError(t, err,
 		"after the audience reset, the share must be publicly resolvable again")
+}
+
+// TestAgentShare_RunConfigRejectedOnOrgAudience pins the proto CEL rule
+// added with run_config (stigmer/stigmer#360): an org-audience share must
+// refuse the field at write time, because member sessions carry no share
+// linkage — a stored run_config there would silently never apply, the exact
+// anti-pattern the shared RunConfig exists to end. Mirrors the
+// environment_refs rule for the same reason.
+func TestAgentShare_RunConfigRejectedOnOrgAudience(t *testing.T) {
+	require.NotNil(t, grpcConn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+
+	agent := harness.CreateAgent(t, ctx, clients, "test-share-run-config-audience",
+		"You are a test agent for run_config audience verification.")
+
+	// Public audience (the default): run_config is accepted and round-trips.
+	withRunConfig := shareFor(agent, true)
+	withRunConfig.Spec.RunConfig = &agentexecv1.RunConfig{
+		ModelName:  "gpt-5-mini",
+		MaxCostUsd: 0.25,
+	}
+	applied := applyShare(t, ctx, clients, withRunConfig)
+	assert.Equal(t, "gpt-5-mini", applied.GetSpec().GetRunConfig().GetModelName(),
+		"a public-audience share's run_config must round-trip through apply")
+
+	// Org audience: the same field is refused at the write boundary.
+	orgShare := shareFor(agent, true)
+	orgShare.Spec.Audience = agentsharev1.AgentShareAudience_agent_share_audience_org
+	orgShare.Spec.RunConfig = &agentexecv1.RunConfig{ModelName: "gpt-5-mini"}
+	_, err := clients.AgentShareCommand.Apply(ctx, orgShare)
+	require.Error(t, err, "run_config on an org-audience share must be refused at write time")
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	assert.Equal(t, codes.InvalidArgument, st.Code(),
+		"the CEL refusal must surface as INVALID_ARGUMENT, got %s", st.Code())
+	assert.True(t, strings.Contains(st.Message(), "run_config can only be set on public-audience shares"),
+		"the refusal must name the rule; got: %s", st.Message())
 }

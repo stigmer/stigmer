@@ -22,12 +22,13 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.agentic.agentexecution.v1 import invocation_pb2 as ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_invocation__pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_field__options__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\"\x8b\x07\n\x10\x41gentChannelSpec\x12\xb6\x01\n\tagent_ref\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n\x0e\x61gent_ref.kind\x12\x33\x61gent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\x08\x61gentRef\x12\x18\n\x07\x65nabled\x18\x02 \x01(\x08R\x07\x65nabled\x12N\n\x05slack\x18\x03 \x01(\x0b\x32\x36.ai.stigmer.agentic.agentchannel.v1.SlackChannelConfigH\x00R\x05slack\x12W\n\x08whatsapp\x18\x06 \x01(\x0b\x32\x39.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfigH\x00R\x08whatsapp\x12\xd9\x01\n\x10\x65nvironment_refs\x18\x04 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n\x15\x65nvironment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0f\x65nvironmentRefs\x12\xc4\x01\n\x07\x61pp_ref\x18\x05 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBu\xbaHn\xba\x01k\n\x0c\x61pp_ref.kind\x12\x37\x61pp_ref must reference a resource with kind=channel_app\x1a\"this.slug == \'\' || this.kind == 48\xe0\x85,0R\x06\x61ppRef\x12>\n\x1bproactive_messaging_enabled\x18\x07 \x01(\x08R\x19proactiveMessagingEnabledB\x18\n\x0fprovider_config\x12\x05\xbaH\x02\x08\x01\"\x14\n\x12SlackChannelConfig\"H\n\x15WhatsAppChannelConfig\x12/\n\x0fphone_number_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\rphoneNumberIdB\xe0\x01\n&com.ai.stigmer.agentic.agentchannel.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a\x35\x61i/stigmer/agentic/agentexecution/v1/invocation.proto\x1a\x32\x61i/stigmer/commons/apiresource/field_options.proto\x1a\'ai/stigmer/commons/apiresource/io.proto\x1a\x1b\x62uf/validate/validate.proto\"\xdb\x07\n\x10\x41gentChannelSpec\x12\xb6\x01\n\tagent_ref\x18\x01 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n\x0e\x61gent_ref.kind\x12\x33\x61gent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\x08\x61gentRef\x12\x18\n\x07\x65nabled\x18\x02 \x01(\x08R\x07\x65nabled\x12N\n\x05slack\x18\x03 \x01(\x0b\x32\x36.ai.stigmer.agentic.agentchannel.v1.SlackChannelConfigH\x00R\x05slack\x12W\n\x08whatsapp\x18\x06 \x01(\x0b\x32\x39.ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfigH\x00R\x08whatsapp\x12\xd9\x01\n\x10\x65nvironment_refs\x18\x04 \x03(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBx\xbaHq\x92\x01n\"l\xba\x01i\n\x15\x65nvironment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0f\x65nvironmentRefs\x12\xc4\x01\n\x07\x61pp_ref\x18\x05 \x01(\x0b\x32\x34.ai.stigmer.commons.apiresource.ApiResourceReferenceBu\xbaHn\xba\x01k\n\x0c\x61pp_ref.kind\x12\x37\x61pp_ref must reference a resource with kind=channel_app\x1a\"this.slug == \'\' || this.kind == 48\xe0\x85,0R\x06\x61ppRef\x12>\n\x1bproactive_messaging_enabled\x18\x07 \x01(\x08R\x19proactiveMessagingEnabled\x12N\n\nrun_config\x18\x08 \x01(\x0b\x32/.ai.stigmer.agentic.agentexecution.v1.RunConfigR\trunConfigB\x18\n\x0fprovider_config\x12\x05\xbaH\x02\x08\x01\"\x14\n\x12SlackChannelConfig\"H\n\x15WhatsAppChannelConfig\x12/\n\x0fphone_number_id\x18\x01 \x01(\tB\x07\xbaH\x04r\x02\x10\x01R\rphoneNumberIdB\xe0\x01\n&com.ai.stigmer.agentic.agentchannel.v1B\tSpecProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02\"Ai.Stigmer.Agentic.Agentchannel.V1\xca\x02\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\xe2\x02.Ai\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Agentic::Agentchannel::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -45,10 +46,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_AGENTCHANNELSPEC'].fields_by_name['app_ref']._serialized_options = b'\272Hn\272\001k\n\014app_ref.kind\0227app_ref must reference a resource with kind=channel_app\032\"this.slug == \'\' || this.kind == 48\340\205,0'
   _globals['_WHATSAPPCHANNELCONFIG'].fields_by_name['phone_number_id']._loaded_options = None
   _globals['_WHATSAPPCHANNELCONFIG'].fields_by_name['phone_number_id']._serialized_options = b'\272H\004r\002\020\001'
-  _globals['_AGENTCHANNELSPEC']._serialized_start=208
-  _globals['_AGENTCHANNELSPEC']._serialized_end=1115
-  _globals['_SLACKCHANNELCONFIG']._serialized_start=1117
-  _globals['_SLACKCHANNELCONFIG']._serialized_end=1137
-  _globals['_WHATSAPPCHANNELCONFIG']._serialized_start=1139
-  _globals['_WHATSAPPCHANNELCONFIG']._serialized_end=1211
+  _globals['_AGENTCHANNELSPEC']._serialized_start=263
+  _globals['_AGENTCHANNELSPEC']._serialized_end=1250
+  _globals['_SLACKCHANNELCONFIG']._serialized_start=1252
+  _globals['_SLACKCHANNELCONFIG']._serialized_end=1272
+  _globals['_WHATSAPPCHANNELCONFIG']._serialized_start=1274
+  _globals['_WHATSAPPCHANNELCONFIG']._serialized_end=1346
 # @@protoc_insertion_point(module_scope)

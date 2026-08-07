@@ -6,6 +6,8 @@ import ai.stigmer.agentic.agentchannel.v1.AgentChannel;
 import ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec;
 import ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig;
 import ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig;
+import ai.stigmer.agentic.agentexecution.v1.RunConfig;
+import ai.stigmer.agentic.agentexecution.v1.ServiceTier;
 import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 import ai.stigmer.commons.apiresource.ApiResourceVisibility;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
@@ -24,6 +26,7 @@ public final class AgentChannelInput {
     private final java.util.List<ResourceRef> environmentRefs;
     private final ResourceRef appRef;
     private final boolean proactiveMessagingEnabled;
+    private final RunConfigInput runConfig;
 
     private AgentChannelInput(Builder builder) {
         this.name = builder.name;
@@ -38,6 +41,7 @@ public final class AgentChannelInput {
         this.environmentRefs = builder.environmentRefs;
         this.appRef = builder.appRef;
         this.proactiveMessagingEnabled = builder.proactiveMessagingEnabled;
+        this.runConfig = builder.runConfig;
     }
 
     AgentChannel toProto() {
@@ -64,6 +68,9 @@ public final class AgentChannelInput {
                 .setKind(ApiResourceKind.channel_app).build());
         }
         spec.setProactiveMessagingEnabled(this.proactiveMessagingEnabled);
+        if (this.runConfig != null) {
+            spec.setRunConfig(this.runConfig.toProto());
+        }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
@@ -99,6 +106,7 @@ public final class AgentChannelInput {
         private java.util.List<ResourceRef> environmentRefs;
         private ResourceRef appRef;
         private boolean proactiveMessagingEnabled;
+        private RunConfigInput runConfig;
 
         private Builder() {}
 
@@ -114,6 +122,7 @@ public final class AgentChannelInput {
         public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
         public Builder appRef(ResourceRef appRef) { this.appRef = appRef; return this; }
         public Builder proactiveMessagingEnabled(boolean proactiveMessagingEnabled) { this.proactiveMessagingEnabled = proactiveMessagingEnabled; return this; }
+        public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }
 
         public AgentChannelInput build() { return new AgentChannelInput(this); }
     }
@@ -166,6 +175,52 @@ public final class AgentChannelInput {
             public Builder phoneNumberId(String phoneNumberId) { this.phoneNumberId = phoneNumberId; return this; }
 
             public WhatsAppChannelConfigInput build() { return new WhatsAppChannelConfigInput(this); }
+        }
+    }
+
+    /** SDK input type for RunConfig. */
+    public static final class RunConfigInput {
+        private final String modelName;
+        private final double maxCostUsd;
+        private final int maxToolRounds;
+        private final ServiceTier serviceTier;
+
+        private RunConfigInput(Builder builder) {
+            this.modelName = builder.modelName;
+            this.maxCostUsd = builder.maxCostUsd;
+            this.maxToolRounds = builder.maxToolRounds;
+            this.serviceTier = builder.serviceTier;
+        }
+
+        RunConfig toProto() {
+            RunConfig.Builder builder = RunConfig.newBuilder();
+            if (this.modelName != null) {
+                builder.setModelName(this.modelName);
+            }
+            builder.setMaxCostUsd(this.maxCostUsd);
+            builder.setMaxToolRounds(this.maxToolRounds);
+            if (this.serviceTier != null) {
+                builder.setServiceTier(this.serviceTier);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String modelName;
+            private double maxCostUsd;
+            private int maxToolRounds;
+            private ServiceTier serviceTier;
+
+            private Builder() {}
+
+            public Builder modelName(String modelName) { this.modelName = modelName; return this; }
+            public Builder maxCostUsd(double maxCostUsd) { this.maxCostUsd = maxCostUsd; return this; }
+            public Builder maxToolRounds(int maxToolRounds) { this.maxToolRounds = maxToolRounds; return this; }
+            public Builder serviceTier(ServiceTier serviceTier) { this.serviceTier = serviceTier; return this; }
+
+            public RunConfigInput build() { return new RunConfigInput(this); }
         }
     }
 }

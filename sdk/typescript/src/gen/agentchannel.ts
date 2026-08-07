@@ -16,6 +16,8 @@ import { SendChannelMessageOutputSchema, SendChannelMessageInputSchema, ListChan
 import { ChannelMessageQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/message_query_pb";
 import { AgentChannelQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/query_pb";
 import { AgentChannelSpecSchema, SlackChannelConfigSchema, WhatsAppChannelConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/spec_pb";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -174,6 +176,7 @@ export interface AgentChannelInput {
   environmentRefs?: ResourceRef[];
   appRef?: ResourceRef;
   proactiveMessagingEnabled?: boolean;
+  runConfig?: RunConfigInput;
 }
 
 /** SDK input type for SlackChannelConfig. */
@@ -183,6 +186,14 @@ export interface SlackChannelConfigInput {
 /** SDK input type for WhatsAppChannelConfig. */
 export interface WhatsAppChannelConfigInput {
   phoneNumberId?: string;
+}
+
+/** SDK input type for RunConfig. */
+export interface RunConfigInput {
+  modelName?: string;
+  maxCostUsd?: number;
+  maxToolRounds?: number;
+  serviceTier?: ServiceTier;
 }
 
 function buildSlackChannelConfigProto(input: SlackChannelConfigInput) {
@@ -196,16 +207,27 @@ function buildWhatsAppChannelConfigProto(input: WhatsAppChannelConfigInput) {
   }));
 }
 
+function buildRunConfigProto(input: RunConfigInput) {
+  return Object.assign(create(RunConfigSchema), stripUndefined({
+    modelName: input.modelName,
+    maxCostUsd: input.maxCostUsd,
+    maxToolRounds: input.maxToolRounds,
+    serviceTier: input.serviceTier,
+  }));
+}
+
 export function buildAgentChannelProto(input: AgentChannelInput): AgentChannel {
   const agentRef = (input.agentRef?.slug || input.agentRef?.org) ? create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 }) : undefined;
   const environmentRefs = input.environmentRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 53 }));
   const appRef = (input.appRef?.slug || input.appRef?.org) ? create(ApiResourceReferenceSchema, { ...input.appRef, kind: 48 }) : undefined;
+  const runConfig = input.runConfig ? buildRunConfigProto(input.runConfig) : undefined;
   const spec = Object.assign(create(AgentChannelSpecSchema), stripUndefined({
     agentRef,
     enabled: input.enabled,
     environmentRefs,
     appRef,
     proactiveMessagingEnabled: input.proactiveMessagingEnabled,
+    runConfig,
   }));
   if (input.slack) {
     spec.providerConfig = { case: "slack", value: buildSlackChannelConfigProto(input.slack) };

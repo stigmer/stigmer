@@ -124,6 +124,32 @@ describe("agentChannelToInput", () => {
     expect(input).not.toHaveProperty("appRef");
   });
 
+  it("carries run_config — the toggle must never wipe an API-set execution override", () => {
+    const channel = makeChannel({
+      spec: {
+        agentRef: { org: "acme", slug: "support-agent" },
+        enabled: true,
+        providerConfig: { case: "slack", value: {} },
+        // Set via CLI/API (stigmer/stigmer#360); no console surface edits
+        // it, so it must ride through the full-input rebuild opaquely.
+        runConfig: { modelName: "gpt-5-mini", maxCostUsd: 0.25, maxToolRounds: 8 },
+      },
+    });
+
+    const input = agentChannelToInput(channel);
+    expect(input.runConfig).toEqual({
+      modelName: "gpt-5-mini",
+      maxCostUsd: 0.25,
+      maxToolRounds: 8,
+      serviceTier: undefined,
+    });
+  });
+
+  it("omits runConfig entirely when the channel carries none", () => {
+    const input = agentChannelToInput(makeChannel());
+    expect(input).not.toHaveProperty("runConfig");
+  });
+
   it("omits the slack marker when the provider config is absent", () => {
     const channel = makeChannel({
       spec: {

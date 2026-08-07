@@ -91,7 +91,7 @@ export class GeneratedClient {
 export { AgentClient } from "./agent.js";
 export { type AgentInput, type McpServerUsageInput, type ToolApprovalOverrideInput, type SubAgentInput, type McpAccessInput, type EnvVarDeclarationInput, type DatastoreUsageInput } from "./agent.js";
 export { AgentChannelClient } from "./agentchannel.js";
-export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput } from "./agentchannel.js";
+export { type AgentChannelInput, type SlackChannelConfigInput, type WhatsAppChannelConfigInput, type RunConfigInput } from "./agentchannel.js";
 export { AgentExecutionClient } from "./agentexecution.js";
 export { type AgentExecutionInput, type SessionSpecInput, type WorkspaceEntryInput, type WorkspaceSourceInput, type GitRepoSourceInput, type LocalPathSourceInput, type ExecutionConfigInput, type ContextManagementConfigInput, type AttachmentInput } from "./agentexecution.js";
 export { AgentInstanceClient } from "./agentinstance.js";
@@ -129,7 +129,7 @@ export { type PlatformClientInput } from "./platformclient.js";
 export { ProjectClient } from "./project.js";
 export { type ProjectInput } from "./project.js";
 export { ScheduleClient } from "./schedule.js";
-export { type ScheduleInput, type AgentInvocationInput, type RunConfigInput } from "./schedule.js";
+export { type ScheduleInput, type AgentInvocationInput } from "./schedule.js";
 export { SessionClient } from "./session.js";
 export { type SessionInput } from "./session.js";
 export { SkillClient } from "./skill.js";

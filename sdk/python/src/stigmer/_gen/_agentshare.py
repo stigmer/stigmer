@@ -17,6 +17,7 @@ from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
+from ._agentchannel import RunConfigInput
 
 
 class AgentShareClient:
@@ -112,6 +113,7 @@ class AgentShareInput:
     allowed_origins: list[str] = field(default_factory=list)
     messages: AgentShareMessagesInput | None = None
     environment_refs: list[ResourceRef] = field(default_factory=list)
+    run_config: RunConfigInput | None = None
 
     def _to_proto(self) -> api_pb2.AgentShare:
         spec = spec_pb2.AgentShareSpec(
@@ -130,6 +132,8 @@ class AgentShareInput:
             _ref = ref._to_proto()
             _ref.kind = 53
             spec.environment_refs.append(_ref)
+        if self.run_config is not None:
+            spec.run_config.CopyFrom(self.run_config._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,

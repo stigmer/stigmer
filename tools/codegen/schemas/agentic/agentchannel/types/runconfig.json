@@ -1,0 +1,53 @@
+{
+  "name": "RunConfig",
+  "description": "RunConfig is the owner-settable model choice and run bounds.\n\n Each field mirrors its ExecutionConfig namesake; zero/empty means\n \"inherit the surface's platform default\". Embeddable on its own:\n surfaces that derive agent and message elsewhere (a channel's\n conversations, for example) carry just this message.\n\n @internal\n Project DD-018 D-2, factored from schedule DD-017 D-3's\n ScheduleRunConfig so no surface mints another copy (chat-surface\n DD-001 embeds this instead of a ChannelRunConfig mirror). A\n deliberate SUBSET of ExecutionConfig: the full message carries\n interactive-surface concepts (interaction_mode, build_from_plan,\n structured_output_schema) and the platform-owned approval_mode —\n none of which a caller-facing override may set. Clamp semantics\n live in each surface's run starter, per field: model_name replaces\n the platform value outright (the owner's spend, cheaper OR\n pricier); the bounds clamp min(owner, platform) when the platform\n cap is set, owner value stands when it is unset. The owner can\n lower spend, never raise it past the platform profile.",
+  "protoType": "ai.stigmer.agentic.agentexecution.v1.RunConfig",
+  "protoFile": "apis/ai/stigmer/agentic/agentexecution/v1/invocation.proto",
+  "fields": [
+    {
+      "name": "ModelName",
+      "jsonName": "modelName",
+      "protoField": "model_name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "The model each run uses. Example: \"claude-sonnet-4-6\".",
+      "required": false
+    },
+    {
+      "name": "MaxCostUsd",
+      "jsonName": "maxCostUsd",
+      "protoField": "max_cost_usd",
+      "type": {
+        "kind": "double"
+      },
+      "description": "Maximum estimated cost in USD per run. The surface's platform\n execution profile caps this value; the lower bound wins.",
+      "required": false
+    },
+    {
+      "name": "MaxToolRounds",
+      "jsonName": "maxToolRounds",
+      "protoField": "max_tool_rounds",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Maximum model-to-tools reasoning cycles per run. The surface's\n platform execution profile caps this value; the lower bound wins.\n\n @internal\n An implementation knob, not a user concept: API-reachable for\n operators, deliberately absent from creation forms (DD-018 D-5).",
+      "required": false
+    },
+    {
+      "name": "ServiceTier",
+      "jsonName": "serviceTier",
+      "protoField": "service_tier",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.agentexecution.v1.ServiceTier",
+        "enumValues": [
+          "SERVICE_TIER_STANDARD",
+          "SERVICE_TIER_FAST"
+        ]
+      },
+      "description": "Service tier for each run's model calls: standard (the default) or fast, where fast bills at the model's fast-tier rates and requires a model that offers one.\n\n In workflow YAML the shorthand spellings \"standard\"/\"fast\" are\n accepted alongside the canonical enum names.\n\n Mirrors ExecutionConfig.service_tier: UNSPECIFIED inherits the\n surface's platform default, which itself resolves to STANDARD —\n never the provider account default. FAST requires model_name\n (here or from the platform profile) to name a model with a\n registry fast pricing variant; validated fail-closed at create.",
+      "required": false
+    }
+  ]
+}

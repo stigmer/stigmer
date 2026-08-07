@@ -1383,6 +1383,23 @@
       ]
     },
     {
+      "name": "ServiceTier",
+      "description": "ServiceTier selects the provider-side speed/service tier for an execution's\n model calls.\n\n Providers spell this differently — Cursor exposes per-model \"fast\" variants\n at higher per-token rates, Anthropic and OpenAI expose service tiers — but\n the platform semantic is uniform: the tier is a deterministic, user-selected\n attribute validated against the model registry at create time. A tier is\n selectable for a model only when the registry prices it\n (pricingVariants.\u003ctier\u003e), so a selected tier is always billable.\n\n The load-bearing rule: UNSPECIFIED resolves to SERVICE_TIER_STANDARD — never\n the provider account default. The runner always sends the provider an\n explicit variant selection, so an out-of-band account setting can never\n silently change what an execution pays (stigmer/stigmer#357).\n\n @internal\n Resolution of UNSPECIFIED → STANDARD happens exactly once, in the runner's\n translation layer; every upstream layer preserves the caller's raw value so\n \"user explicitly chose standard\" stays distinguishable from \"platform\n default\". v1 supports the Cursor harness only: FAST on a model without a\n registry fast variant is refused at create time (INVALID_ARGUMENT), which\n also covers native-harness models since only cursor-harness registry entries\n carry fast variants today. Native (Anthropic/OpenAI) service-tier mapping is\n a tracked follow-up.",
+      "protoType": "ai.stigmer.agentic.agentexecution.v1.ServiceTier",
+      "values": [
+        {
+          "name": "SERVICE_TIER_STANDARD",
+          "number": 1,
+          "description": "Standard tier: the model's base-priced configuration, requested\n explicitly.\n\n @internal\n For the Cursor harness the runner pins every price-bearing variant\n parameter to its base value (fast=false, and thinking=false where the\n parameter exists); price-neutral parameters (e.g. effort) follow the\n catalog default variant. Confirmed against the billing ledger 2026-08-06:\n explicit base params bill base wire ids on create AND resume (see\n stigmer-cloud _projects/2026-08/20260806.04.model-service-tier)."
+        },
+        {
+          "name": "SERVICE_TIER_FAST",
+          "number": 2,
+          "description": "Fast tier: the model's fast variant, billed at the registry's fast\n variant rates.\n\n Valid only for models whose registry entry declares a fast pricing\n variant; refused at execution create otherwise."
+        }
+      ]
+    },
+    {
       "name": "ConversationLane",
       "description": "ConversationLane distinguishes customer-visible items from internal ones.\n\n @internal\n channel-conversations DD-002: every timeline item has a lane. lane_internal\n carries the internal event store's items — escalations and attention clears\n since T03 Sitting 4, notes when their writer lands (the v1-stretch decision).",
       "protoType": "ai.stigmer.agentic.agentchannel.v1.ConversationLane",

@@ -255,6 +255,15 @@ func (r *RunStarter) buildExecutionRequest(
 	if model := strings.TrimSpace(runConfig.GetModelName()); model != "" {
 		executionConfig.ModelName = model
 	}
+	// service_tier stamps when the owner set one — there is no platform
+	// tier knob (unset resolves to STANDARD in the runner, never the
+	// provider account default). Tier-model coherence was validated
+	// fail-closed at execution create (#357); mirrors the cloud
+	// RunConfigMergePolicy so a schedule's stored tier is honored, not
+	// silently dropped.
+	if tier := runConfig.GetServiceTier(); tier != agentexecutionv1.ServiceTier_SERVICE_TIER_UNSPECIFIED {
+		executionConfig.ServiceTier = tier
+	}
 
 	// The fresh per-fire session speaks the invocation's session half
 	// (DD-018 D-3): harness and workspace come from the owner's spec.

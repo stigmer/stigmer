@@ -6,6 +6,7 @@ import type { AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v
 import type { AgentShareInput } from "@stigmer/sdk";
 import { StigmerContext } from "../../context";
 import {
+  draftFromShare,
   sharingAudienceFromProto,
   useSaveAgentShare,
   type AgentShareDraft,
@@ -50,6 +51,7 @@ const FULL_DRAFT: AgentShareDraft = {
     conversationEnded: "This conversation has ended.",
   },
   environmentRefs: [{ org: "acme", slug: "github-org-shared" }],
+  runConfig: { modelName: "gpt-5-mini", maxCostUsd: 0.25 },
 };
 
 describe("useSaveAgentShare", () => {
@@ -88,6 +90,7 @@ describe("useSaveAgentShare", () => {
     expect(input.environmentRefs).toEqual([
       { org: "acme", slug: "github-org-shared" },
     ]);
+    expect(input.runConfig).toEqual({ modelName: "gpt-5-mini", maxCostUsd: 0.25 });
   });
 
   it("keeps the existing share's identity when editing (a renamed share is never forked)", async () => {
@@ -123,7 +126,15 @@ describe("useSaveAgentShare", () => {
 
     await act(() =>
       result.current.save(
-        { ...FULL_DRAFT, enabled: false, audience: "org", environmentRefs: [] },
+        // An org-audience share carries no environmentRefs or runConfig
+        // (both are public-audience-only by the proto CEL rules).
+        {
+          ...FULL_DRAFT,
+          enabled: false,
+          audience: "org",
+          environmentRefs: [],
+          runConfig: undefined,
+        },
         null,
       ),
     );
@@ -136,6 +147,49 @@ describe("useSaveAgentShare", () => {
     expect(input.allowedOrigins).toEqual(FULL_DRAFT.allowedOrigins);
     expect(input.messages?.rateLimited).toBe(FULL_DRAFT.messages.rateLimited);
     expect(input.audience).toBe(AgentShareAudience.org);
+  });
+
+  it("a pause/resume toggle built from draftFromShare carries run_config (never wipes an API-set override)", async () => {
+    const apply = vi.fn().mockResolvedValue({});
+    const client = createMockStigmer({ apply });
+    // A share whose run_config was set via CLI/API — the console list's
+    // toggle rebuilds the full spec from draftFromShare, so the override
+    // must ride through even though no console surface edits it.
+    const share = {
+      metadata: { id: "ash_1", org: "acme", slug: "support-agent", name: "Support Agent" },
+      spec: {
+        enabled: true,
+        allowedOrigins: ["https://example.com"],
+        environmentRefs: [],
+        runConfig: { modelName: "gpt-5-mini", maxCostUsd: 0.25, maxToolRounds: 8 },
+      },
+    } as unknown as AgentShare;
+
+    const { result } = renderHook(() => useSaveAgentShare(AGENT), {
+      wrapper: wrapper(client),
+    });
+
+    await act(() =>
+      result.current.save({ ...draftFromShare(share), enabled: false }, share),
+    );
+
+    const input = apply.mock.calls[0][0] as AgentShareInput;
+    expect(input.enabled).toBe(false);
+    expect(input.runConfig).toEqual({
+      modelName: "gpt-5-mini",
+      maxCostUsd: 0.25,
+      maxToolRounds: 8,
+      serviceTier: undefined,
+    });
+  });
+
+  it("draftFromShare leaves run_config undefined when the share carries none", () => {
+    expect(draftFromShare(null).runConfig).toBeUndefined();
+    const bare = {
+      metadata: { id: "ash_2", org: "acme", slug: "bare" },
+      spec: { enabled: true },
+    } as AgentShare;
+    expect(draftFromShare(bare).runConfig).toBeUndefined();
   });
 
   it("maps the audience union to the proto enum, writing public explicitly", async () => {

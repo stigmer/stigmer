@@ -105,14 +105,6 @@ type AgentInvocationInput struct {
 	RunConfig        *RunConfigInput
 }
 
-// RunConfigInput is the SDK input type for RunConfig.
-type RunConfigInput struct {
-	ModelName     string
-	MaxCostUsd    float64
-	MaxToolRounds int32
-	ServiceTier   agentexecutionv1.ServiceTier
-}
-
 func (i *ScheduleInput) toProto() *schedulev1.Schedule {
 	resource := &schedulev1.Schedule{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -154,15 +146,6 @@ func (i *ScheduleInput) toProto() *schedulev1.Schedule {
 	return resource
 }
 
-func (i *RunConfigInput) toProto() *agentexecutionv1.RunConfig {
-	return &agentexecutionv1.RunConfig{
-		ModelName:     i.ModelName,
-		MaxCostUsd:    i.MaxCostUsd,
-		MaxToolRounds: i.MaxToolRounds,
-		ServiceTier:   i.ServiceTier,
-	}
-}
-
 // ScheduleInputFromProto creates a ScheduleInput from a proto Schedule resource.
 func ScheduleInputFromProto(p *schedulev1.Schedule) *ScheduleInput {
 	if p == nil {
@@ -202,17 +185,5 @@ func agentInvocationInputFromProto(p *agentexecutionv1.AgentInvocation) *AgentIn
 		input.EnvironmentRefs = append(input.EnvironmentRefs, resourceRefFromProto(r))
 	}
 	input.RunConfig = runConfigInputFromProto(p.GetRunConfig())
-	return input
-}
-
-func runConfigInputFromProto(p *agentexecutionv1.RunConfig) *RunConfigInput {
-	if p == nil {
-		return nil
-	}
-	input := &RunConfigInput{}
-	input.ModelName = p.GetModelName()
-	input.MaxCostUsd = p.GetMaxCostUsd()
-	input.MaxToolRounds = p.GetMaxToolRounds()
-	input.ServiceTier = p.GetServiceTier()
 	return input
 }

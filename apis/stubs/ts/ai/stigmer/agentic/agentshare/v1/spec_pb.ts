@@ -4,6 +4,8 @@
 
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { RunConfig } from "../../agentexecution/v1/invocation_pb.js";
+import { file_ai_stigmer_agentic_agentexecution_v1_invocation } from "../../agentexecution/v1/invocation_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
 import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -14,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentshare/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentshare_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MSKHCAoOQWdlbnRTaGFyZVNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRgoIYXVkaWVuY2UYAyABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlQXVkaWVuY2USsAIKD2FsbG93ZWRfb3JpZ2lucxgEIAMoCUKWArpIkgKSAY4CECAiiQK6AYUCChZhbGxvd2VkX29yaWdpbnMuZm9ybWF0Em5hbGxvd2VkX29yaWdpbnMgZW50cmllcyBtdXN0IGJlIGV4YWN0IHdlYiBvcmlnaW5zIGxpa2UgaHR0cHM6Ly9leGFtcGxlLmNvbSAobm8gcGF0aCwgcXVlcnksIG9yIHRyYWlsaW5nIHNsYXNoKRp7dGhpcy5tYXRjaGVzKCdeaHR0cHM/Oi8vW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8oXFwuW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8pKig6WzAtOV17MSw1fSk/JCcpEkYKCG1lc3NhZ2VzGAUgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZU1lc3NhZ2VzEsgBChBlbnZpcm9ubWVudF9yZWZzGAYgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQni6SHGSAW4ibLoBaQoVZW52aXJvbm1lbnRfcmVmcy5raW5kEj9lbnZpcm9ubWVudF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9ZW52aXJvbm1lbnQaD3RoaXMua2luZCA9PSA1M+CFLDU6pgG6SKIBGp8BCihhZ2VudF9zaGFyZS5lbnZpcm9ubWVudF9yZWZzX3B1YmxpY19vbmx5EjplbnZpcm9ubWVudF9yZWZzIGNhbiBvbmx5IGJlIHNldCBvbiBwdWJsaWMtYXVkaWVuY2Ugc2hhcmVzGjd0aGlzLmF1ZGllbmNlICE9IDIgfHwgdGhpcy5lbnZpcm9ubWVudF9yZWZzLnNpemUoKSA9PSAwInkKEkFnZW50U2hhcmVNZXNzYWdlcxIeCgxyYXRlX2xpbWl0ZWQYASABKAlCCLpIBXIDGKwCEh0KC3VuYXZhaWxhYmxlGAIgASgJQgi6SAVyAxisAhIkChJjb252ZXJzYXRpb25fZW5kZWQYAyABKAlCCLpIBXIDGKwCKnkKEkFnZW50U2hhcmVBdWRpZW5jZRIkCiBhZ2VudF9zaGFyZV9hdWRpZW5jZV91bnNwZWNpZmllZBAAEh8KG2FnZW50X3NoYXJlX2F1ZGllbmNlX3B1YmxpYxABEhwKGGFnZW50X3NoYXJlX2F1ZGllbmNlX29yZxACYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CithaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRzaGFyZS92MS9zcGVjLnByb3RvEiBhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MSLWCQoOQWdlbnRTaGFyZVNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRgoIYXVkaWVuY2UYAyABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRzaGFyZS52MS5BZ2VudFNoYXJlQXVkaWVuY2USsAIKD2FsbG93ZWRfb3JpZ2lucxgEIAMoCUKWArpIkgKSAY4CECAiiQK6AYUCChZhbGxvd2VkX29yaWdpbnMuZm9ybWF0Em5hbGxvd2VkX29yaWdpbnMgZW50cmllcyBtdXN0IGJlIGV4YWN0IHdlYiBvcmlnaW5zIGxpa2UgaHR0cHM6Ly9leGFtcGxlLmNvbSAobm8gcGF0aCwgcXVlcnksIG9yIHRyYWlsaW5nIHNsYXNoKRp7dGhpcy5tYXRjaGVzKCdeaHR0cHM/Oi8vW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8oXFwuW0EtWmEtejAtOV0oW0EtWmEtejAtOS1dKltBLVphLXowLTldKT8pKig6WzAtOV17MSw1fSk/JCcpEkYKCG1lc3NhZ2VzGAUgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50c2hhcmUudjEuQWdlbnRTaGFyZU1lc3NhZ2VzEsgBChBlbnZpcm9ubWVudF9yZWZzGAYgAygLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQni6SHGSAW4ibLoBaQoVZW52aXJvbm1lbnRfcmVmcy5raW5kEj9lbnZpcm9ubWVudF9yZWZzIG11c3QgcmVmZXJlbmNlIHJlc291cmNlcyB3aXRoIGtpbmQ9ZW52aXJvbm1lbnQaD3RoaXMua2luZCA9PSA1M+CFLDUSQwoKcnVuX2NvbmZpZxgHIAEoCzIvLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5SdW5Db25maWc6sAK6SKwCGp8BCihhZ2VudF9zaGFyZS5lbnZpcm9ubWVudF9yZWZzX3B1YmxpY19vbmx5EjplbnZpcm9ubWVudF9yZWZzIGNhbiBvbmx5IGJlIHNldCBvbiBwdWJsaWMtYXVkaWVuY2Ugc2hhcmVzGjd0aGlzLmF1ZGllbmNlICE9IDIgfHwgdGhpcy5lbnZpcm9ubWVudF9yZWZzLnNpemUoKSA9PSAwGocBCiJhZ2VudF9zaGFyZS5ydW5fY29uZmlnX3B1YmxpY19vbmx5EjRydW5fY29uZmlnIGNhbiBvbmx5IGJlIHNldCBvbiBwdWJsaWMtYXVkaWVuY2Ugc2hhcmVzGit0aGlzLmF1ZGllbmNlICE9IDIgfHwgIWhhcyh0aGlzLnJ1bl9jb25maWcpInkKEkFnZW50U2hhcmVNZXNzYWdlcxIeCgxyYXRlX2xpbWl0ZWQYASABKAlCCLpIBXIDGKwCEh0KC3VuYXZhaWxhYmxlGAIgASgJQgi6SAVyAxisAhIkChJjb252ZXJzYXRpb25fZW5kZWQYAyABKAlCCLpIBXIDGKwCKnkKEkFnZW50U2hhcmVBdWRpZW5jZRIkCiBhZ2VudF9zaGFyZV9hdWRpZW5jZV91bnNwZWNpZmllZBAAEh8KG2FnZW50X3NoYXJlX2F1ZGllbmNlX3B1YmxpYxABEhwKGGFnZW50X3NoYXJlX2F1ZGllbmNlX29yZxACYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_invocation, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentShareSpec defines the configurable properties of an agent share.
@@ -158,6 +160,33 @@ export type AgentShareSpec = Message<"ai.stigmer.agentic.agentshare.v1.AgentShar
    * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 6;
    */
   environmentRefs: ApiResourceReference[];
+
+  /**
+   * Per-turn model choice and run bounds for guest conversations on this
+   * share, overriding the platform's guest execution profile.
+   *
+   * Unset fields inherit the platform default. model_name replaces the
+   * platform model outright, while max_cost_usd and max_tool_rounds can
+   * only lower the platform caps — a share owner can reduce what one
+   * guest turn may spend, never raise it past the platform profile.
+   * Valid on public-audience shares only.
+   *
+   * @internal
+   * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+   * OWNER's stored config, not the guest's: the guest scope step still
+   * discards caller-supplied execution_config unconditionally, then
+   * merges this field — loaded server-side from the share — over the
+   * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+   * promise recorded on GuestExecutionProfileProperties). The trust
+   * posture is unchanged. Org-audience shares reject the field via the
+   * message-level CEL rule for the same reason as environment_refs:
+   * member sessions carry no share linkage, so it would be stored but
+   * silently never applied. Enforcement is cloud-only — guest runtime
+   * is a cloud concept; OSS stores and echoes the field.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7;
+   */
+  runConfig?: RunConfig;
 };
 
 /**

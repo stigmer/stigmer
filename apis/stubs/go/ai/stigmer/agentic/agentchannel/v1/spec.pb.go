@@ -8,6 +8,7 @@ package agentchannelv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -128,8 +129,28 @@ type AgentChannelSpec struct {
 	// this flag set — an agent with no proactive channel never sees the
 	// tool.
 	ProactiveMessagingEnabled bool `protobuf:"varint,7,opt,name=proactive_messaging_enabled,json=proactiveMessagingEnabled,proto3" json:"proactive_messaging_enabled,omitempty"`
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	// Per-turn model choice and run bounds for conversations on this
+	// channel, overriding the platform's channel execution profile.
+	//
+	// Unset fields inherit the platform default. model_name replaces the
+	// platform model outright, while max_cost_usd and max_tool_rounds can
+	// only lower the platform caps — a channel owner can reduce what one
+	// turn may spend, never raise it past the platform profile.
+	//
+	// @internal
+	// Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+	// owner-settable run shape (stigmer/stigmer#360), embedded directly —
+	// never a ChannelRunConfig mirror, mirroring being the drift mechanism
+	// the shared message exists to end. Merged at the single broker write
+	// site (ChannelSessionBroker — the promise recorded on
+	// ChannelExecutionProfileProperties), per field: bounds clamp
+	// min(owner, platform), model replaces outright, service_tier stamps
+	// when set (validated fail-closed at execution create), approval_mode
+	// stays platform-owned. Runtime enforcement is cloud-only — OSS has
+	// no channel serving runtime and stores/echoes the field.
+	RunConfig     *v1.RunConfig `protobuf:"bytes,8,opt,name=run_config,json=runConfig,proto3" json:"run_config,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AgentChannelSpec) Reset() {
@@ -220,6 +241,13 @@ func (x *AgentChannelSpec) GetProactiveMessagingEnabled() bool {
 		return x.ProactiveMessagingEnabled
 	}
 	return false
+}
+
+func (x *AgentChannelSpec) GetRunConfig() *v1.RunConfig {
+	if x != nil {
+		return x.RunConfig
+	}
+	return nil
 }
 
 type isAgentChannelSpec_ProviderConfig interface {
@@ -357,7 +385,7 @@ var File_ai_stigmer_agentic_agentchannel_v1_spec_proto protoreflect.FileDescript
 
 const file_ai_stigmer_agentic_agentchannel_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\x8b\a\n" +
+	"-ai/stigmer/agentic/agentchannel/v1/spec.proto\x12\"ai.stigmer.agentic.agentchannel.v1\x1a5ai/stigmer/agentic/agentexecution/v1/invocation.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xdb\a\n" +
 	"\x10AgentChannelSpec\x12\xb6\x01\n" +
 	"\tagent_ref\x18\x01 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBc\xbaH\\\xba\x01V\n" +
 	"\x0eagent_ref.kind\x123agent_ref must reference a resource with kind=agent\x1a\x0fthis.kind == 40\xc8\x01\x01\xe0\x85,(R\bagentRef\x12\x18\n" +
@@ -368,7 +396,9 @@ const file_ai_stigmer_agentic_agentchannel_v1_spec_proto_rawDesc = "" +
 	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53\xe0\x85,5R\x0fenvironmentRefs\x12\xc4\x01\n" +
 	"\aapp_ref\x18\x05 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBu\xbaHn\xba\x01k\n" +
 	"\fapp_ref.kind\x127app_ref must reference a resource with kind=channel_app\x1a\"this.slug == '' || this.kind == 48\xe0\x85,0R\x06appRef\x12>\n" +
-	"\x1bproactive_messaging_enabled\x18\a \x01(\bR\x19proactiveMessagingEnabledB\x18\n" +
+	"\x1bproactive_messaging_enabled\x18\a \x01(\bR\x19proactiveMessagingEnabled\x12N\n" +
+	"\n" +
+	"run_config\x18\b \x01(\v2/.ai.stigmer.agentic.agentexecution.v1.RunConfigR\trunConfigB\x18\n" +
 	"\x0fprovider_config\x12\x05\xbaH\x02\b\x01\"\x14\n" +
 	"\x12SlackChannelConfig\"H\n" +
 	"\x15WhatsAppChannelConfig\x12/\n" +
@@ -393,6 +423,7 @@ var file_ai_stigmer_agentic_agentchannel_v1_spec_proto_goTypes = []any{
 	(*SlackChannelConfig)(nil),               // 1: ai.stigmer.agentic.agentchannel.v1.SlackChannelConfig
 	(*WhatsAppChannelConfig)(nil),            // 2: ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig
 	(*apiresource.ApiResourceReference)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceReference
+	(*v1.RunConfig)(nil),                     // 4: ai.stigmer.agentic.agentexecution.v1.RunConfig
 }
 var file_ai_stigmer_agentic_agentchannel_v1_spec_proto_depIdxs = []int32{
 	3, // 0: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.agent_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
@@ -400,11 +431,12 @@ var file_ai_stigmer_agentic_agentchannel_v1_spec_proto_depIdxs = []int32{
 	2, // 2: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.whatsapp:type_name -> ai.stigmer.agentic.agentchannel.v1.WhatsAppChannelConfig
 	3, // 3: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	3, // 4: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.app_ref:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	4, // 5: ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec.run_config:type_name -> ai.stigmer.agentic.agentexecution.v1.RunConfig
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentchannel_v1_spec_proto_init() }

@@ -1,3 +1,4 @@
+from ai.stigmer.agentic.agentexecution.v1 import invocation_pb2 as _invocation_pb2
 from ai.stigmer.commons.apiresource import field_options_pb2 as _field_options_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as _io_pb2
 from buf.validate import validate_pb2 as _validate_pb2
@@ -10,7 +11,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class AgentChannelSpec(_message.Message):
-    __slots__ = ("agent_ref", "enabled", "slack", "whatsapp", "environment_refs", "app_ref", "proactive_messaging_enabled")
+    __slots__ = ("agent_ref", "enabled", "slack", "whatsapp", "environment_refs", "app_ref", "proactive_messaging_enabled", "run_config")
     AGENT_REF_FIELD_NUMBER: _ClassVar[int]
     ENABLED_FIELD_NUMBER: _ClassVar[int]
     SLACK_FIELD_NUMBER: _ClassVar[int]
@@ -18,6 +19,7 @@ class AgentChannelSpec(_message.Message):
     ENVIRONMENT_REFS_FIELD_NUMBER: _ClassVar[int]
     APP_REF_FIELD_NUMBER: _ClassVar[int]
     PROACTIVE_MESSAGING_ENABLED_FIELD_NUMBER: _ClassVar[int]
+    RUN_CONFIG_FIELD_NUMBER: _ClassVar[int]
     agent_ref: _io_pb2.ApiResourceReference
     enabled: bool
     slack: SlackChannelConfig
@@ -25,7 +27,8 @@ class AgentChannelSpec(_message.Message):
     environment_refs: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
     app_ref: _io_pb2.ApiResourceReference
     proactive_messaging_enabled: bool
-    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., enabled: bool = ..., slack: _Optional[_Union[SlackChannelConfig, _Mapping]] = ..., whatsapp: _Optional[_Union[WhatsAppChannelConfig, _Mapping]] = ..., environment_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., app_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., proactive_messaging_enabled: bool = ...) -> None: ...
+    run_config: _invocation_pb2.RunConfig
+    def __init__(self, agent_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., enabled: bool = ..., slack: _Optional[_Union[SlackChannelConfig, _Mapping]] = ..., whatsapp: _Optional[_Union[WhatsAppChannelConfig, _Mapping]] = ..., environment_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ..., app_ref: _Optional[_Union[_io_pb2.ApiResourceReference, _Mapping]] = ..., proactive_messaging_enabled: bool = ..., run_config: _Optional[_Union[_invocation_pb2.RunConfig, _Mapping]] = ...) -> None: ...
 
 class SlackChannelConfig(_message.Message):
     __slots__ = ()

@@ -86,6 +86,17 @@
       "description": "References to Environment resources whose values are provided to guest\n conversations on this share.\n\n This is how a tool-using agent becomes chattable over a share link:\n bind an org-shared environment holding the needed credentials (for\n example a read-only API token), and guest executions receive its\n values at runtime. The agent and its default instance stay untouched.\n Valid on public-audience shares only.\n\n @internal\n Resolved in the share's org through the org-shared environment\n resolution seam (EnvironmentRuntimeResolutionService /\n OrgSharedEnvironmentPolicy — decision 006): each referenced environment\n must be visibility_org in the share's org, or the merge skips it with\n a diagnostic. Merged at guest execution-context build time only —\n never bound to the agent's system-managed default instance, which is\n recreated empty on lifecycle events and shared by every org member's\n casual chat (decision 011). Org-audience shares reject this field via\n the message-level CEL rule: member sessions carry no share linkage in\n Phase A, so bound credentials would silently never apply.",
       "required": false,
       "referenceKind": 53
+    },
+    {
+      "name": "RunConfig",
+      "jsonName": "runConfig",
+      "protoField": "run_config",
+      "type": {
+        "kind": "message",
+        "messageType": "RunConfig"
+      },
+      "description": "Per-turn model choice and run bounds for guest conversations on this\n share, overriding the platform's guest execution profile.\n\n Unset fields inherit the platform default. model_name replaces the\n platform model outright, while max_cost_usd and max_tool_rounds can\n only lower the platform caps — a share owner can reduce what one\n guest turn may spend, never raise it past the platform profile.\n Valid on public-audience shares only.\n\n @internal\n DD-018 D-2's second embedder (stigmer/stigmer#360). This is the\n OWNER's stored config, not the guest's: the guest scope step still\n discards caller-supplied execution_config unconditionally, then\n merges this field — loaded server-side from the share — over the\n platform guest profile (GuestAgentExecutionCreateScopeStep, the\n promise recorded on GuestExecutionProfileProperties). The trust\n posture is unchanged. Org-audience shares reject the field via the\n message-level CEL rule for the same reason as environment_refs:\n member sessions carry no share linkage, so it would be stored but\n silently never applied. Enforcement is cloud-only — guest runtime\n is a cloud concept; OSS stores and echoes the field.",
+      "required": false
     }
   ]
 }

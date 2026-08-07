@@ -2,6 +2,8 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.agentexecution.v1.RunConfig;
+import ai.stigmer.agentic.agentexecution.v1.ServiceTier;
 import ai.stigmer.agentic.agentshare.v1.AgentShare;
 import ai.stigmer.agentic.agentshare.v1.AgentShareAudience;
 import ai.stigmer.agentic.agentshare.v1.AgentShareMessages;
@@ -23,6 +25,7 @@ public final class AgentShareInput {
     private final java.util.List<String> allowedOrigins;
     private final AgentShareMessagesInput messages;
     private final java.util.List<ResourceRef> environmentRefs;
+    private final RunConfigInput runConfig;
 
     private AgentShareInput(Builder builder) {
         this.name = builder.name;
@@ -36,6 +39,7 @@ public final class AgentShareInput {
         this.allowedOrigins = builder.allowedOrigins;
         this.messages = builder.messages;
         this.environmentRefs = builder.environmentRefs;
+        this.runConfig = builder.runConfig;
     }
 
     AgentShare toProto() {
@@ -59,6 +63,9 @@ public final class AgentShareInput {
                 spec.addEnvironmentRefs(item.toProto().toBuilder()
                     .setKind(ApiResourceKind.environment).build());
             }
+        }
+        if (this.runConfig != null) {
+            spec.setRunConfig(this.runConfig.toProto());
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
@@ -94,6 +101,7 @@ public final class AgentShareInput {
         private java.util.List<String> allowedOrigins;
         private AgentShareMessagesInput messages;
         private java.util.List<ResourceRef> environmentRefs;
+        private RunConfigInput runConfig;
 
         private Builder() {}
 
@@ -108,6 +116,7 @@ public final class AgentShareInput {
         public Builder allowedOrigins(java.util.List<String> allowedOrigins) { this.allowedOrigins = allowedOrigins; return this; }
         public Builder messages(AgentShareMessagesInput messages) { this.messages = messages; return this; }
         public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
+        public Builder runConfig(RunConfigInput runConfig) { this.runConfig = runConfig; return this; }
 
         public AgentShareInput build() { return new AgentShareInput(this); }
     }
@@ -152,6 +161,52 @@ public final class AgentShareInput {
             public Builder conversationEnded(String conversationEnded) { this.conversationEnded = conversationEnded; return this; }
 
             public AgentShareMessagesInput build() { return new AgentShareMessagesInput(this); }
+        }
+    }
+
+    /** SDK input type for RunConfig. */
+    public static final class RunConfigInput {
+        private final String modelName;
+        private final double maxCostUsd;
+        private final int maxToolRounds;
+        private final ServiceTier serviceTier;
+
+        private RunConfigInput(Builder builder) {
+            this.modelName = builder.modelName;
+            this.maxCostUsd = builder.maxCostUsd;
+            this.maxToolRounds = builder.maxToolRounds;
+            this.serviceTier = builder.serviceTier;
+        }
+
+        RunConfig toProto() {
+            RunConfig.Builder builder = RunConfig.newBuilder();
+            if (this.modelName != null) {
+                builder.setModelName(this.modelName);
+            }
+            builder.setMaxCostUsd(this.maxCostUsd);
+            builder.setMaxToolRounds(this.maxToolRounds);
+            if (this.serviceTier != null) {
+                builder.setServiceTier(this.serviceTier);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String modelName;
+            private double maxCostUsd;
+            private int maxToolRounds;
+            private ServiceTier serviceTier;
+
+            private Builder() {}
+
+            public Builder modelName(String modelName) { this.modelName = modelName; return this; }
+            public Builder maxCostUsd(double maxCostUsd) { this.maxCostUsd = maxCostUsd; return this; }
+            public Builder maxToolRounds(int maxToolRounds) { this.maxToolRounds = maxToolRounds; return this; }
+            public Builder serviceTier(ServiceTier serviceTier) { this.serviceTier = serviceTier; return this; }
+
+            public RunConfigInput build() { return new RunConfigInput(this); }
         }
     }
 }

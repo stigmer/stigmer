@@ -20,6 +20,7 @@ from ai.stigmer.agentic.agentchannel.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
+from ai.stigmer.agentic.agentexecution.v1 import spec_pb2 as agentexecution_spec_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
@@ -175,6 +176,7 @@ class AgentChannelInput:
     environment_refs: list[ResourceRef] = field(default_factory=list)
     app_ref: ResourceRef | None = None
     proactive_messaging_enabled: bool = False
+    run_config: RunConfigInput | None = None
 
     def _to_proto(self) -> api_pb2.AgentChannel:
         spec = spec_pb2.AgentChannelSpec(
@@ -197,6 +199,8 @@ class AgentChannelInput:
             _ref = self.app_ref._to_proto()
             _ref.kind = 48
             spec.app_ref.CopyFrom(_ref)
+        if self.run_config is not None:
+            spec.run_config.CopyFrom(self.run_config._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
@@ -234,6 +238,25 @@ class WhatsAppChannelConfigInput:
     def _to_proto(self) -> spec_pb2.WhatsAppChannelConfig:
         msg = spec_pb2.WhatsAppChannelConfig(
             phone_number_id=self.phone_number_id,
+        )
+        return msg
+
+
+@dataclass
+class RunConfigInput:
+    """SDK input type for RunConfig."""
+
+    model_name: str = ""
+    max_cost_usd: float = 0.0
+    max_tool_rounds: int = 0
+    service_tier: int = 0
+
+    def _to_proto(self) -> agentexecution_spec_pb2.RunConfig:
+        msg = agentexecution_spec_pb2.RunConfig(
+            model_name=self.model_name,
+            max_cost_usd=self.max_cost_usd,
+            max_tool_rounds=self.max_tool_rounds,
+            service_tier=self.service_tier,
         )
         return msg
 

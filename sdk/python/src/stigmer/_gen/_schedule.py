@@ -18,6 +18,7 @@ from ai.stigmer.agentic.agentexecution.v1 import spec_pb2 as agentexecution_spec
 
 from ._errors import wrap_error
 from ._types import ResourceRef
+from ._agentchannel import RunConfigInput
 from ._agentexecution import GitRepoSourceInput, LocalPathSourceInput, WorkspaceEntryInput, WorkspaceSourceInput
 
 
@@ -165,24 +166,5 @@ class AgentInvocationInput:
             msg.environment_refs.append(_ref)
         if self.run_config is not None:
             msg.run_config.CopyFrom(self.run_config._to_proto())
-        return msg
-
-
-@dataclass
-class RunConfigInput:
-    """SDK input type for RunConfig."""
-
-    model_name: str = ""
-    max_cost_usd: float = 0.0
-    max_tool_rounds: int = 0
-    service_tier: int = 0
-
-    def _to_proto(self) -> agentexecution_spec_pb2.RunConfig:
-        msg = agentexecution_spec_pb2.RunConfig(
-            model_name=self.model_name,
-            max_cost_usd=self.max_cost_usd,
-            max_tool_rounds=self.max_tool_rounds,
-            service_tier=self.service_tier,
-        )
         return msg
 

@@ -5,6 +5,8 @@ import { stripUndefined } from "./proto-utils.js";
 import { type ResourceRef } from "./types.js";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { ServiceTier } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { RunConfigSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/invocation_pb";
 import { AgentShareSchema, type AgentShare } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/api_pb";
 import { AgentShareCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/command_pb";
 import { AgentShareIdSchema, RotateShareLinkInputSchema, GetAgentSharesByAgentRequestSchema, AgentShareListSchema, ListAgentSharesRequestSchema, GetSharedProfileRequestSchema, SharedAgentProfileSchema, type RotateShareLinkInput, type GetAgentSharesByAgentRequest, type AgentShareList, type ListAgentSharesRequest, type GetSharedProfileRequest, type SharedAgentProfile } from "@stigmer/protos/ai/stigmer/agentic/agentshare/v1/io_pb";
@@ -105,6 +107,7 @@ export interface AgentShareInput {
   allowedOrigins?: string[];
   messages?: AgentShareMessagesInput;
   environmentRefs?: ResourceRef[];
+  runConfig?: RunConfigInput;
 }
 
 /** SDK input type for AgentShareMessages. */
@@ -112,6 +115,14 @@ export interface AgentShareMessagesInput {
   rateLimited?: string;
   unavailable?: string;
   conversationEnded?: string;
+}
+
+/** SDK input type for RunConfig. */
+export interface RunConfigInput {
+  modelName?: string;
+  maxCostUsd?: number;
+  maxToolRounds?: number;
+  serviceTier?: ServiceTier;
 }
 
 function buildAgentShareMessagesProto(input: AgentShareMessagesInput) {
@@ -122,10 +133,20 @@ function buildAgentShareMessagesProto(input: AgentShareMessagesInput) {
   }));
 }
 
+function buildRunConfigProto(input: RunConfigInput) {
+  return Object.assign(create(RunConfigSchema), stripUndefined({
+    modelName: input.modelName,
+    maxCostUsd: input.maxCostUsd,
+    maxToolRounds: input.maxToolRounds,
+    serviceTier: input.serviceTier,
+  }));
+}
+
 export function buildAgentShareProto(input: AgentShareInput): AgentShare {
   const agentRef = (input.agentRef?.slug || input.agentRef?.org) ? create(ApiResourceReferenceSchema, { ...input.agentRef, kind: 40 }) : undefined;
   const messages = input.messages ? buildAgentShareMessagesProto(input.messages) : undefined;
   const environmentRefs = input.environmentRefs?.map(r => create(ApiResourceReferenceSchema, { ...r, kind: 53 }));
+  const runConfig = input.runConfig ? buildRunConfigProto(input.runConfig) : undefined;
   return Object.assign(create(AgentShareSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "AgentShare",
@@ -143,6 +164,7 @@ export function buildAgentShareProto(input: AgentShareInput): AgentShare {
       allowedOrigins: input.allowedOrigins,
       messages,
       environmentRefs,
+      runConfig,
     })),
   }) as AgentShare;
 }

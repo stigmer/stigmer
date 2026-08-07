@@ -23,10 +23,11 @@ import { toError } from "../internal/toError.js";
  * carries its declared `phone_number_id`. Dropping the arm is never an
  * option — the provider oneof is immutable server-side, so a save
  * without it would be refused outright. The channel's bound tool
- * credentials (`environment_refs`) and its channel-app binding
- * (`app_ref`) carry over too — apply semantics would otherwise silently
- * unbind them on every toggle (and an installed channel's app_ref is
- * frozen server-side, so dropping it would refuse the save outright).
+ * credentials (`environment_refs`), its channel-app binding
+ * (`app_ref`), and its per-channel execution override (`run_config`)
+ * carry over too — apply semantics would otherwise silently unbind
+ * them on every toggle (and an installed channel's app_ref is frozen
+ * server-side, so dropping it would refuse the save outright).
  */
 export function agentChannelToInput(channel: AgentChannel): AgentChannelInput {
   const metadata = channel.metadata;
@@ -63,6 +64,19 @@ export function agentChannelToInput(channel: AgentChannel): AgentChannelInput {
             org: ref.org,
             slug: ref.slug,
           })),
+        }
+      : {}),
+    // The console does not edit run_config (yet) — it rides through
+    // opaquely so a settings save or pause/resume toggle never wipes an
+    // override set via the CLI or API.
+    ...(spec?.runConfig
+      ? {
+          runConfig: {
+            modelName: spec.runConfig.modelName,
+            maxCostUsd: spec.runConfig.maxCostUsd,
+            maxToolRounds: spec.runConfig.maxToolRounds,
+            serviceTier: spec.runConfig.serviceTier,
+          },
         }
       : {}),
   };

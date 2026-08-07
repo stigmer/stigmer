@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { RunConfig } from "../../agentexecution/v1/invocation_pb.js";
+import { file_ai_stigmer_agentic_agentexecution_v1_invocation } from "../../agentexecution/v1/invocation_pb.js";
 import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb.js";
 import type { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb.js";
@@ -14,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentchannel/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEiswYKEEFnZW50Q2hhbm5lbFNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRwoFc2xhY2sYAyABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLlNsYWNrQ2hhbm5lbENvbmZpZ0gAEk0KCHdoYXRzYXBwGAYgASgLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5XaGF0c0FwcENoYW5uZWxDb25maWdIABLIAQoQZW52aXJvbm1lbnRfcmVmcxgEIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ4ukhxkgFuImy6AWkKFWVudmlyb25tZW50X3JlZnMua2luZBI/ZW52aXJvbm1lbnRfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPWVudmlyb25tZW50Gg90aGlzLmtpbmQgPT0gNTPghSw1ErwBCgdhcHBfcmVmGAUgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQnW6SG66AWsKDGFwcF9yZWYua2luZBI3YXBwX3JlZiBtdXN0IHJlZmVyZW5jZSBhIHJlc291cmNlIHdpdGgga2luZD1jaGFubmVsX2FwcBoidGhpcy5zbHVnID09ICcnIHx8IHRoaXMua2luZCA9PSA0OOCFLDASIwobcHJvYWN0aXZlX21lc3NhZ2luZ19lbmFibGVkGAcgASgIQhgKD3Byb3ZpZGVyX2NvbmZpZxIFukgCCAEiFAoSU2xhY2tDaGFubmVsQ29uZmlnIjkKFVdoYXRzQXBwQ2hhbm5lbENvbmZpZxIgCg9waG9uZV9udW1iZXJfaWQYASABKAlCB7pIBHICEAFiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGNoYW5uZWwudjEi+AYKEEFnZW50Q2hhbm5lbFNwZWMSrAEKCWFnZW50X3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJjukhcugFWCg5hZ2VudF9yZWYua2luZBIzYWdlbnRfcmVmIG11c3QgcmVmZXJlbmNlIGEgcmVzb3VyY2Ugd2l0aCBraW5kPWFnZW50Gg90aGlzLmtpbmQgPT0gNDDIAQHghSwoEg8KB2VuYWJsZWQYAiABKAgSRwoFc2xhY2sYAyABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLlNsYWNrQ2hhbm5lbENvbmZpZ0gAEk0KCHdoYXRzYXBwGAYgASgLMjkuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5XaGF0c0FwcENoYW5uZWxDb25maWdIABLIAQoQZW52aXJvbm1lbnRfcmVmcxgEIAMoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUJ4ukhxkgFuImy6AWkKFWVudmlyb25tZW50X3JlZnMua2luZBI/ZW52aXJvbm1lbnRfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPWVudmlyb25tZW50Gg90aGlzLmtpbmQgPT0gNTPghSw1ErwBCgdhcHBfcmVmGAUgASgLMjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlQnW6SG66AWsKDGFwcF9yZWYua2luZBI3YXBwX3JlZiBtdXN0IHJlZmVyZW5jZSBhIHJlc291cmNlIHdpdGgga2luZD1jaGFubmVsX2FwcBoidGhpcy5zbHVnID09ICcnIHx8IHRoaXMua2luZCA9PSA0OOCFLDASIwobcHJvYWN0aXZlX21lc3NhZ2luZ19lbmFibGVkGAcgASgIEkMKCnJ1bl9jb25maWcYCCABKAsyLy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUnVuQ29uZmlnQhgKD3Byb3ZpZGVyX2NvbmZpZxIFukgCCAEiFAoSU2xhY2tDaGFubmVsQ29uZmlnIjkKFVdoYXRzQXBwQ2hhbm5lbENvbmZpZxIgCg9waG9uZV9udW1iZXJfaWQYASABKAlCB7pIBHICEAFiBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_invocation, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * AgentChannelSpec defines the configurable properties of an agent channel.
@@ -164,6 +166,31 @@ export type AgentChannelSpec = Message<"ai.stigmer.agentic.agentchannel.v1.Agent
    * @generated from field: bool proactive_messaging_enabled = 7;
    */
   proactiveMessagingEnabled: boolean;
+
+  /**
+   * Per-turn model choice and run bounds for conversations on this
+   * channel, overriding the platform's channel execution profile.
+   *
+   * Unset fields inherit the platform default. model_name replaces the
+   * platform model outright, while max_cost_usd and max_tool_rounds can
+   * only lower the platform caps — a channel owner can reduce what one
+   * turn may spend, never raise it past the platform profile.
+   *
+   * @internal
+   * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+   * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+   * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+   * the shared message exists to end. Merged at the single broker write
+   * site (ChannelSessionBroker — the promise recorded on
+   * ChannelExecutionProfileProperties), per field: bounds clamp
+   * min(owner, platform), model replaces outright, service_tier stamps
+   * when set (validated fail-closed at execution create), approval_mode
+   * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+   * no channel serving runtime and stores/echoes the field.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8;
+   */
+  runConfig?: RunConfig;
 };
 
 /**

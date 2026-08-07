@@ -447,4 +447,91 @@ public interface AgentShareSpecOrBuilder extends
    */
   ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Per-turn model choice and run bounds for guest conversations on this
+   * share, overriding the platform's guest execution profile.
+   *
+   * Unset fields inherit the platform default. model_name replaces the
+   * platform model outright, while max_cost_usd and max_tool_rounds can
+   * only lower the platform caps — a share owner can reduce what one
+   * guest turn may spend, never raise it past the platform profile.
+   * Valid on public-audience shares only.
+   *
+   * &#64;internal
+   * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+   * OWNER's stored config, not the guest's: the guest scope step still
+   * discards caller-supplied execution_config unconditionally, then
+   * merges this field — loaded server-side from the share — over the
+   * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+   * promise recorded on GuestExecutionProfileProperties). The trust
+   * posture is unchanged. Org-audience shares reject the field via the
+   * message-level CEL rule for the same reason as environment_refs:
+   * member sessions carry no share linkage, so it would be stored but
+   * silently never applied. Enforcement is cloud-only — guest runtime
+   * is a cloud concept; OSS stores and echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+   * @return Whether the runConfig field is set.
+   */
+  boolean hasRunConfig();
+  /**
+   * <pre>
+   * Per-turn model choice and run bounds for guest conversations on this
+   * share, overriding the platform's guest execution profile.
+   *
+   * Unset fields inherit the platform default. model_name replaces the
+   * platform model outright, while max_cost_usd and max_tool_rounds can
+   * only lower the platform caps — a share owner can reduce what one
+   * guest turn may spend, never raise it past the platform profile.
+   * Valid on public-audience shares only.
+   *
+   * &#64;internal
+   * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+   * OWNER's stored config, not the guest's: the guest scope step still
+   * discards caller-supplied execution_config unconditionally, then
+   * merges this field — loaded server-side from the share — over the
+   * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+   * promise recorded on GuestExecutionProfileProperties). The trust
+   * posture is unchanged. Org-audience shares reject the field via the
+   * message-level CEL rule for the same reason as environment_refs:
+   * member sessions carry no share linkage, so it would be stored but
+   * silently never applied. Enforcement is cloud-only — guest runtime
+   * is a cloud concept; OSS stores and echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+   * @return The runConfig.
+   */
+  ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig();
+  /**
+   * <pre>
+   * Per-turn model choice and run bounds for guest conversations on this
+   * share, overriding the platform's guest execution profile.
+   *
+   * Unset fields inherit the platform default. model_name replaces the
+   * platform model outright, while max_cost_usd and max_tool_rounds can
+   * only lower the platform caps — a share owner can reduce what one
+   * guest turn may spend, never raise it past the platform profile.
+   * Valid on public-audience shares only.
+   *
+   * &#64;internal
+   * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+   * OWNER's stored config, not the guest's: the guest scope step still
+   * discards caller-supplied execution_config unconditionally, then
+   * merges this field — loaded server-side from the share — over the
+   * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+   * promise recorded on GuestExecutionProfileProperties). The trust
+   * posture is unchanged. Org-audience shares reject the field via the
+   * message-level CEL rule for the same reason as environment_refs:
+   * member sessions carry no share linkage, so it would be stored but
+   * silently never applied. Enforcement is cloud-only — guest runtime
+   * is a cloud concept; OSS stores and echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder();
 }

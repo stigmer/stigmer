@@ -6,6 +6,7 @@ import (
 	"context"
 
 	agentchannelv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentchannel/v1"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/agentic/agentexecution/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/sdk/go/v3/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
@@ -147,6 +148,7 @@ type AgentChannelInput struct {
 	EnvironmentRefs           []ResourceRef
 	AppRef                    ResourceRef
 	ProactiveMessagingEnabled bool
+	RunConfig                 *RunConfigInput
 }
 
 // SlackChannelConfigInput is the SDK input type for SlackChannelConfig.
@@ -156,6 +158,14 @@ type SlackChannelConfigInput struct {
 // WhatsAppChannelConfigInput is the SDK input type for WhatsAppChannelConfig.
 type WhatsAppChannelConfigInput struct {
 	PhoneNumberId string
+}
+
+// RunConfigInput is the SDK input type for RunConfig.
+type RunConfigInput struct {
+	ModelName     string
+	MaxCostUsd    float64
+	MaxToolRounds int32
+	ServiceTier   agentexecutionv1.ServiceTier
 }
 
 func (i *AgentChannelInput) toProto() *agentchannelv1.AgentChannel {
@@ -197,7 +207,19 @@ func (i *AgentChannelInput) toProto() *agentchannelv1.AgentChannel {
 		resource.Spec.AppRef = ref
 	}
 	resource.Spec.ProactiveMessagingEnabled = i.ProactiveMessagingEnabled
+	if i.RunConfig != nil {
+		resource.Spec.RunConfig = i.RunConfig.toProto()
+	}
 	return resource
+}
+
+func (i *RunConfigInput) toProto() *agentexecutionv1.RunConfig {
+	return &agentexecutionv1.RunConfig{
+		ModelName:     i.ModelName,
+		MaxCostUsd:    i.MaxCostUsd,
+		MaxToolRounds: i.MaxToolRounds,
+		ServiceTier:   i.ServiceTier,
+	}
 }
 
 // AgentChannelInputFromProto creates a AgentChannelInput from a proto AgentChannel resource.
@@ -221,6 +243,7 @@ func AgentChannelInputFromProto(p *agentchannelv1.AgentChannel) *AgentChannelInp
 		}
 		input.AppRef = resourceRefFromProto(s.GetAppRef())
 		input.ProactiveMessagingEnabled = s.GetProactiveMessagingEnabled()
+		input.RunConfig = runConfigInputFromProto(s.GetRunConfig())
 		if ov := s.GetSlack(); ov != nil {
 			input.Slack = slackChannelConfigInputFromProto(ov)
 		}
@@ -245,5 +268,17 @@ func whatsAppChannelConfigInputFromProto(p *agentchannelv1.WhatsAppChannelConfig
 	}
 	input := &WhatsAppChannelConfigInput{}
 	input.PhoneNumberId = p.GetPhoneNumberId()
+	return input
+}
+
+func runConfigInputFromProto(p *agentexecutionv1.RunConfig) *RunConfigInput {
+	if p == nil {
+		return nil
+	}
+	input := &RunConfigInput{}
+	input.ModelName = p.GetModelName()
+	input.MaxCostUsd = p.GetMaxCostUsd()
+	input.MaxToolRounds = p.GetMaxToolRounds()
+	input.ServiceTier = p.GetServiceTier()
 	return input
 }

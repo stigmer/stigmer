@@ -491,6 +491,64 @@ func TestGuestToken_Denials(t *testing.T) {
 	assert.Equal(t, codes.NotFound, st.Code())
 }
 
+// TestGuestToken_ShareRunConfigBoundsExecutions proves the share owner's
+// run_config (stigmer/stigmer#360) reaches guest executions merged CLAMPED
+// over the platform guest profile (defaults: 10 rounds, $0.50): the owner's
+// model replaces the platform value outright, an owner cost cap ABOVE the
+// platform ceiling is clamped down to it, and an owner round bound BELOW
+// the ceiling stands. The guest's own execution_config remains discarded —
+// the owner's stored config is a different principal.
+func TestGuestToken_ShareRunConfigBoundsExecutions(t *testing.T) {
+	requireGuestPrereqs(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	agent := createSharedAgent(t, ctx, clients, "test-guest-run-config")
+	org := agent.GetMetadata().GetOrg()
+	slug := agent.GetMetadata().GetSlug()
+
+	withRunConfig := shareFor(agent, true)
+	withRunConfig.Spec.RunConfig = &agentexecv1.RunConfig{
+		ModelName:     "gpt-5-mini",
+		MaxCostUsd:    5.00, // above the platform ceiling: the ceiling must win
+		MaxToolRounds: 3,    // below the platform ceiling: the owner's bound stands
+	}
+	applyShare(t, ctx, clients, withRunConfig)
+
+	minted := mintGuestToken(t, ctx, clients, org, slug, "")
+	guest := guestClients(t, minted.GetAccessToken())
+
+	session, err := guestCreateSession(t, ctx, guest, agent, "run-config")
+	require.NoError(t, err, "guest session create should succeed on a shared agent")
+
+	// The guest also tries to smuggle its own config — it must be
+	// discarded wholesale, never merged (the pre-#360 trust boundary).
+	exec, err := guest.AgentExecutionCommand.Create(ctx, &agentexecv1.AgentExecution{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "AgentExecution",
+		Metadata:   &apiresource.ApiResourceMetadata{Name: "guest-exec-run-config"},
+		Spec: &agentexecv1.AgentExecutionSpec{
+			SessionId: session.GetMetadata().GetId(),
+			Message:   "hello",
+			ExecutionConfig: &agentexecv1.ExecutionConfig{
+				MaxCostUsd: 999,
+				ModelName:  "most-expensive-model",
+			},
+		},
+	})
+	require.NoError(t, err, "guest execution create should succeed")
+
+	config := exec.GetSpec().GetExecutionConfig()
+	assert.Equal(t, "gpt-5-mini", config.GetModelName(),
+		"the share OWNER's model must replace the platform value (and the guest's smuggled model must be discarded)")
+	assert.InDelta(t, 0.50, config.GetMaxCostUsd(), 0.001,
+		"an owner cost cap above the platform ceiling must clamp down to it — the owner can lower spend, never raise it")
+	assert.EqualValues(t, 3, config.GetMaxToolRounds(),
+		"an owner round bound below the platform ceiling must stand")
+}
+
 // guestCreateExecution creates an execution as the guest in an existing
 // session. Deliberately leaves metadata.org empty: the backend forces it.
 func guestCreateExecution(ctx context.Context, guest *harness.Clients, sessionID, message string) (*agentexecv1.AgentExecution, error) {

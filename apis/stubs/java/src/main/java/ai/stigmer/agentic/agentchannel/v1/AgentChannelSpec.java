@@ -563,6 +563,98 @@ private static final long serialVersionUID = 0L;
     return proactiveMessagingEnabled_;
   }
 
+  public static final int RUN_CONFIG_FIELD_NUMBER = 8;
+  private ai.stigmer.agentic.agentexecution.v1.RunConfig runConfig_;
+  /**
+   * <pre>
+   * Per-turn model choice and run bounds for conversations on this
+   * channel, overriding the platform's channel execution profile.
+   *
+   * Unset fields inherit the platform default. model_name replaces the
+   * platform model outright, while max_cost_usd and max_tool_rounds can
+   * only lower the platform caps — a channel owner can reduce what one
+   * turn may spend, never raise it past the platform profile.
+   *
+   * &#64;internal
+   * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+   * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+   * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+   * the shared message exists to end. Merged at the single broker write
+   * site (ChannelSessionBroker — the promise recorded on
+   * ChannelExecutionProfileProperties), per field: bounds clamp
+   * min(owner, platform), model replaces outright, service_tier stamps
+   * when set (validated fail-closed at execution create), approval_mode
+   * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+   * no channel serving runtime and stores/echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
+   * @return Whether the runConfig field is set.
+   */
+  @java.lang.Override
+  public boolean hasRunConfig() {
+    return ((bitField0_ & 0x00000004) != 0);
+  }
+  /**
+   * <pre>
+   * Per-turn model choice and run bounds for conversations on this
+   * channel, overriding the platform's channel execution profile.
+   *
+   * Unset fields inherit the platform default. model_name replaces the
+   * platform model outright, while max_cost_usd and max_tool_rounds can
+   * only lower the platform caps — a channel owner can reduce what one
+   * turn may spend, never raise it past the platform profile.
+   *
+   * &#64;internal
+   * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+   * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+   * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+   * the shared message exists to end. Merged at the single broker write
+   * site (ChannelSessionBroker — the promise recorded on
+   * ChannelExecutionProfileProperties), per field: bounds clamp
+   * min(owner, platform), model replaces outright, service_tier stamps
+   * when set (validated fail-closed at execution create), approval_mode
+   * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+   * no channel serving runtime and stores/echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
+   * @return The runConfig.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig() {
+    return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+  }
+  /**
+   * <pre>
+   * Per-turn model choice and run bounds for conversations on this
+   * channel, overriding the platform's channel execution profile.
+   *
+   * Unset fields inherit the platform default. model_name replaces the
+   * platform model outright, while max_cost_usd and max_tool_rounds can
+   * only lower the platform caps — a channel owner can reduce what one
+   * turn may spend, never raise it past the platform profile.
+   *
+   * &#64;internal
+   * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+   * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+   * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+   * the shared message exists to end. Merged at the single broker write
+   * site (ChannelSessionBroker — the promise recorded on
+   * ChannelExecutionProfileProperties), per field: bounds clamp
+   * min(owner, platform), model replaces outright, service_tier stamps
+   * when set (validated fail-closed at execution create), approval_mode
+   * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+   * no channel serving runtime and stores/echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
+    return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -597,6 +689,9 @@ private static final long serialVersionUID = 0L;
     }
     if (proactiveMessagingEnabled_ != false) {
       output.writeBool(7, proactiveMessagingEnabled_);
+    }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      output.writeMessage(8, getRunConfig());
     }
     getUnknownFields().writeTo(output);
   }
@@ -640,6 +735,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(7, proactiveMessagingEnabled_);
     }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(8, getRunConfig());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -671,6 +770,11 @@ private static final long serialVersionUID = 0L;
     }
     if (getProactiveMessagingEnabled()
         != other.getProactiveMessagingEnabled()) return false;
+    if (hasRunConfig() != other.hasRunConfig()) return false;
+    if (hasRunConfig()) {
+      if (!getRunConfig()
+          .equals(other.getRunConfig())) return false;
+    }
     if (!getProviderConfigCase().equals(other.getProviderConfigCase())) return false;
     switch (providerConfigCase_) {
       case 3:
@@ -713,6 +817,10 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + PROACTIVE_MESSAGING_ENABLED_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getProactiveMessagingEnabled());
+    if (hasRunConfig()) {
+      hash = (37 * hash) + RUN_CONFIG_FIELD_NUMBER;
+      hash = (53 * hash) + getRunConfig().hashCode();
+    }
     switch (providerConfigCase_) {
       case 3:
         hash = (37 * hash) + SLACK_FIELD_NUMBER;
@@ -876,6 +984,7 @@ private static final long serialVersionUID = 0L;
         internalGetAgentRefFieldBuilder();
         internalGetEnvironmentRefsFieldBuilder();
         internalGetAppRefFieldBuilder();
+        internalGetRunConfigFieldBuilder();
       }
     }
     @java.lang.Override
@@ -907,6 +1016,11 @@ private static final long serialVersionUID = 0L;
         appRefBuilder_ = null;
       }
       proactiveMessagingEnabled_ = false;
+      runConfig_ = null;
+      if (runConfigBuilder_ != null) {
+        runConfigBuilder_.dispose();
+        runConfigBuilder_ = null;
+      }
       providerConfigCase_ = 0;
       providerConfig_ = null;
       return this;
@@ -975,6 +1089,12 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000040) != 0)) {
         result.proactiveMessagingEnabled_ = proactiveMessagingEnabled_;
       }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.runConfig_ = runConfigBuilder_ == null
+            ? runConfig_
+            : runConfigBuilder_.build();
+        to_bitField0_ |= 0x00000004;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1040,6 +1160,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getProactiveMessagingEnabled() != false) {
         setProactiveMessagingEnabled(other.getProactiveMessagingEnabled());
+      }
+      if (other.hasRunConfig()) {
+        mergeRunConfig(other.getRunConfig());
       }
       switch (other.getProviderConfigCase()) {
         case SLACK: {
@@ -1131,6 +1254,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 56
+            case 66: {
+              input.readMessage(
+                  internalGetRunConfigFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2897,6 +3027,325 @@ private static final long serialVersionUID = 0L;
       proactiveMessagingEnabled_ = false;
       onChanged();
       return this;
+    }
+
+    private ai.stigmer.agentic.agentexecution.v1.RunConfig runConfig_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder> runConfigBuilder_;
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for conversations on this
+     * channel, overriding the platform's channel execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a channel owner can reduce what one
+     * turn may spend, never raise it past the platform profile.
+     *
+     * &#64;internal
+     * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+     * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+     * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+     * the shared message exists to end. Merged at the single broker write
+     * site (ChannelSessionBroker — the promise recorded on
+     * ChannelExecutionProfileProperties), per field: bounds clamp
+     * min(owner, platform), model replaces outright, service_tier stamps
+     * when set (validated fail-closed at execution create), approval_mode
+     * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+     * no channel serving runtime and stores/echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
+     * @return Whether the runConfig field is set.
+     */
+    public boolean hasRunConfig() {
+      return ((bitField0_ & 0x00000080) != 0);
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for conversations on this
+     * channel, overriding the platform's channel execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a channel owner can reduce what one
+     * turn may spend, never raise it past the platform profile.
+     *
+     * &#64;internal
+     * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+     * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+     * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+     * the shared message exists to end. Merged at the single broker write
+     * site (ChannelSessionBroker — the promise recorded on
+     * ChannelExecutionProfileProperties), per field: bounds clamp
+     * min(owner, platform), model replaces outright, service_tier stamps
+     * when set (validated fail-closed at execution create), approval_mode
+     * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+     * no channel serving runtime and stores/echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
+     * @return The runConfig.
+     */
+    public ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig() {
+      if (runConfigBuilder_ == null) {
+        return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+      } else {
+        return runConfigBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for conversations on this
+     * channel, overriding the platform's channel execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a channel owner can reduce what one
+     * turn may spend, never raise it past the platform profile.
+     *
+     * &#64;internal
+     * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+     * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+     * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+     * the shared message exists to end. Merged at the single broker write
+     * site (ChannelSessionBroker — the promise recorded on
+     * ChannelExecutionProfileProperties), per field: bounds clamp
+     * min(owner, platform), model replaces outright, service_tier stamps
+     * when set (validated fail-closed at execution create), approval_mode
+     * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+     * no channel serving runtime and stores/echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
+     */
+    public Builder setRunConfig(ai.stigmer.agentic.agentexecution.v1.RunConfig value) {
+      if (runConfigBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        runConfig_ = value;
+      } else {
+        runConfigBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for conversations on this
+     * channel, overriding the platform's channel execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a channel owner can reduce what one
+     * turn may spend, never raise it past the platform profile.
+     *
+     * &#64;internal
+     * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+     * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+     * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+     * the shared message exists to end. Merged at the single broker write
+     * site (ChannelSessionBroker — the promise recorded on
+     * ChannelExecutionProfileProperties), per field: bounds clamp
+     * min(owner, platform), model replaces outright, service_tier stamps
+     * when set (validated fail-closed at execution create), approval_mode
+     * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+     * no channel serving runtime and stores/echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
+     */
+    public Builder setRunConfig(
+        ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder builderForValue) {
+      if (runConfigBuilder_ == null) {
+        runConfig_ = builderForValue.build();
+      } else {
+        runConfigBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for conversations on this
+     * channel, overriding the platform's channel execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a channel owner can reduce what one
+     * turn may spend, never raise it past the platform profile.
+     *
+     * &#64;internal
+     * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+     * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+     * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+     * the shared message exists to end. Merged at the single broker write
+     * site (ChannelSessionBroker — the promise recorded on
+     * ChannelExecutionProfileProperties), per field: bounds clamp
+     * min(owner, platform), model replaces outright, service_tier stamps
+     * when set (validated fail-closed at execution create), approval_mode
+     * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+     * no channel serving runtime and stores/echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
+     */
+    public Builder mergeRunConfig(ai.stigmer.agentic.agentexecution.v1.RunConfig value) {
+      if (runConfigBuilder_ == null) {
+        if (((bitField0_ & 0x00000080) != 0) &&
+          runConfig_ != null &&
+          runConfig_ != ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance()) {
+          getRunConfigBuilder().mergeFrom(value);
+        } else {
+          runConfig_ = value;
+        }
+      } else {
+        runConfigBuilder_.mergeFrom(value);
+      }
+      if (runConfig_ != null) {
+        bitField0_ |= 0x00000080;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for conversations on this
+     * channel, overriding the platform's channel execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a channel owner can reduce what one
+     * turn may spend, never raise it past the platform profile.
+     *
+     * &#64;internal
+     * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+     * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+     * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+     * the shared message exists to end. Merged at the single broker write
+     * site (ChannelSessionBroker — the promise recorded on
+     * ChannelExecutionProfileProperties), per field: bounds clamp
+     * min(owner, platform), model replaces outright, service_tier stamps
+     * when set (validated fail-closed at execution create), approval_mode
+     * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+     * no channel serving runtime and stores/echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
+     */
+    public Builder clearRunConfig() {
+      bitField0_ = (bitField0_ & ~0x00000080);
+      runConfig_ = null;
+      if (runConfigBuilder_ != null) {
+        runConfigBuilder_.dispose();
+        runConfigBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for conversations on this
+     * channel, overriding the platform's channel execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a channel owner can reduce what one
+     * turn may spend, never raise it past the platform profile.
+     *
+     * &#64;internal
+     * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+     * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+     * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+     * the shared message exists to end. Merged at the single broker write
+     * site (ChannelSessionBroker — the promise recorded on
+     * ChannelExecutionProfileProperties), per field: bounds clamp
+     * min(owner, platform), model replaces outright, service_tier stamps
+     * when set (validated fail-closed at execution create), approval_mode
+     * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+     * no channel serving runtime and stores/echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder getRunConfigBuilder() {
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return internalGetRunConfigFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for conversations on this
+     * channel, overriding the platform's channel execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a channel owner can reduce what one
+     * turn may spend, never raise it past the platform profile.
+     *
+     * &#64;internal
+     * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+     * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+     * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+     * the shared message exists to end. Merged at the single broker write
+     * site (ChannelSessionBroker — the promise recorded on
+     * ChannelExecutionProfileProperties), per field: bounds clamp
+     * min(owner, platform), model replaces outright, service_tier stamps
+     * when set (validated fail-closed at execution create), approval_mode
+     * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+     * no channel serving runtime and stores/echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
+      if (runConfigBuilder_ != null) {
+        return runConfigBuilder_.getMessageOrBuilder();
+      } else {
+        return runConfig_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+      }
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for conversations on this
+     * channel, overriding the platform's channel execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a channel owner can reduce what one
+     * turn may spend, never raise it past the platform profile.
+     *
+     * &#64;internal
+     * Chat-surface DD-001 D1 as amended by DD-018 D-2: the shared
+     * owner-settable run shape (stigmer/stigmer#360), embedded directly —
+     * never a ChannelRunConfig mirror, mirroring being the drift mechanism
+     * the shared message exists to end. Merged at the single broker write
+     * site (ChannelSessionBroker — the promise recorded on
+     * ChannelExecutionProfileProperties), per field: bounds clamp
+     * min(owner, platform), model replaces outright, service_tier stamps
+     * when set (validated fail-closed at execution create), approval_mode
+     * stays platform-owned. Runtime enforcement is cloud-only — OSS has
+     * no channel serving runtime and stores/echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 8 [json_name = "runConfig"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder> 
+        internalGetRunConfigFieldBuilder() {
+      if (runConfigBuilder_ == null) {
+        runConfigBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder>(
+                getRunConfig(),
+                getParentForChildren(),
+                isClean());
+        runConfig_ = null;
+      }
+      return runConfigBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentchannel.v1.AgentChannelSpec)

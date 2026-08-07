@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"go/ast"
 	"go/format"
+	"go/parser"
+	"go/token"
 	"os"
 	"path/filepath"
 	"sort"
@@ -459,6 +462,66 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 
 	subPkgImports := collectSubPackageImports(schema)
 
+	// The body is rendered BEFORE the import block so cross-package imports
+	// can be emitted only when the body actually names them. Cross-package
+	// helper types (a nested message from another proto package, e.g.
+	// agentexecution's RunConfig) are emitted once per Go package via
+	// globalEmitted, so a second resource embedding the same message
+	// references only the already-emitted helpers and never names the
+	// foreign alias itself — a structurally-derived import there is unused
+	// and fails the build.
+	var bodyBuf bytes.Buffer
+	fmt.Fprintf(&bodyBuf, "// %s provides operations on %s resources.\n", cfg.clientName, schema.Resource)
+	fmt.Fprintf(&bodyBuf, "type %s struct {\n", cfg.clientName)
+	for _, svc := range schema.Services {
+		fmt.Fprintf(&bodyBuf, "\t%s %s.%sClient\n", svc.Role, alias, svc.Name)
+	}
+	if needsSearch {
+		bodyBuf.WriteString("\tsearch searchv1.SearchServiceClient\n")
+	}
+	bodyBuf.WriteString("}\n\n")
+
+	fmt.Fprintf(&bodyBuf, "func New%s(conn grpc.ClientConnInterface) *%s {\n", cfg.clientName, cfg.clientName)
+	fmt.Fprintf(&bodyBuf, "\treturn &%s{\n", cfg.clientName)
+	for _, svc := range schema.Services {
+		fmt.Fprintf(&bodyBuf, "\t\t%s: %s.New%sClient(conn),\n", svc.Role, alias, svc.Name)
+	}
+	if needsSearch {
+		bodyBuf.WriteString("\t\tsearch: searchv1.NewSearchServiceClient(conn),\n")
+	}
+	bodyBuf.WriteString("\t}\n}\n\n")
+
+	for _, svc := range schema.Services {
+		for _, m := range svc.Methods {
+			if searchListSupersedesMethod(schema, &m) {
+				continue
+			}
+			generateMethod(&bodyBuf, &m, &svc, schema, cfg, alias, hasInputType)
+			if m.ServerStreaming {
+				genInfo.streamTypes = append(genInfo.streamTypes, cfg.protoResType+m.Name+"Stream")
+			}
+		}
+	}
+
+	if needsSearch {
+		generateSearchList(&bodyBuf, schema, cfg)
+	}
+
+	if specSchema != nil {
+		inputTypes := generateInputTypesV2(&bodyBuf, schema, cfg, specSchema, typeMap, alias, needsExecutionContext, globalEmitted)
+		genInfo.inputTypes = inputTypes
+
+		generateFromProto(&bodyBuf, schema, cfg, specSchema, specTypes, typeMap, alias, globalEmitted)
+		genInfo.fromProto = &fromProtoFuncInfo{
+			funcName:   cfg.inputPrefix + "InputFromProto",
+			protoAlias: alias,
+			protoPath:  importPath,
+			protoType:  cfg.protoResType,
+			inputType:  cfg.inputPrefix + "Input",
+		}
+	}
+	bodyAliases, bodyParsed := usedPackageAliases(bodyBuf.Bytes())
+
 	buf.WriteString("import (\n")
 	buf.WriteString("\t\"context\"\n")
 	if needsIO {
@@ -482,7 +545,11 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	if len(enumImports) > 0 {
 		var enumAliases []string
 		for a := range enumImports {
-			if a != alias {
+			// Usage-driven for the same reason as crossPkgImports below: a
+			// shared nested type carrying a foreign enum (RunConfig's
+			// ServiceTier) is emitted once per Go package, so only the
+			// resource that won the dedup names the enum's package.
+			if a != alias && (!bodyParsed || bodyAliases[a]) {
 				enumAliases = append(enumAliases, a)
 			}
 		}
@@ -510,7 +577,13 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	if len(crossPkgImports) > 0 {
 		aliases := make([]string, 0, len(crossPkgImports))
 		for a := range crossPkgImports {
-			aliases = append(aliases, a)
+			// Usage-driven, unlike every flag above: crossPkgImports is
+			// derived structurally from the spec, but whether this file
+			// NAMES the foreign package depends on which resource won the
+			// globalEmitted dedup for the shared helper.
+			if !bodyParsed || bodyAliases[a] {
+				aliases = append(aliases, a)
+			}
 		}
 		sort.Strings(aliases)
 		for _, a := range aliases {
@@ -529,61 +602,41 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	buf.WriteString("\t\"google.golang.org/grpc\"\n")
 	buf.WriteString(")\n\n")
 
-	fmt.Fprintf(&buf, "// %s provides operations on %s resources.\n", cfg.clientName, schema.Resource)
-	fmt.Fprintf(&buf, "type %s struct {\n", cfg.clientName)
-	for _, svc := range schema.Services {
-		fmt.Fprintf(&buf, "\t%s %s.%sClient\n", svc.Role, alias, svc.Name)
-	}
-	if needsSearch {
-		buf.WriteString("\tsearch searchv1.SearchServiceClient\n")
-	}
-	buf.WriteString("}\n\n")
-
-	fmt.Fprintf(&buf, "func New%s(conn grpc.ClientConnInterface) *%s {\n", cfg.clientName, cfg.clientName)
-	fmt.Fprintf(&buf, "\treturn &%s{\n", cfg.clientName)
-	for _, svc := range schema.Services {
-		fmt.Fprintf(&buf, "\t\t%s: %s.New%sClient(conn),\n", svc.Role, alias, svc.Name)
-	}
-	if needsSearch {
-		buf.WriteString("\t\tsearch: searchv1.NewSearchServiceClient(conn),\n")
-	}
-	buf.WriteString("\t}\n}\n\n")
-
-	for _, svc := range schema.Services {
-		for _, m := range svc.Methods {
-			if searchListSupersedesMethod(schema, &m) {
-				continue
-			}
-			generateMethod(&buf, &m, &svc, schema, cfg, alias, hasInputType)
-			if m.ServerStreaming {
-				genInfo.streamTypes = append(genInfo.streamTypes, cfg.protoResType+m.Name+"Stream")
-			}
-		}
-	}
-
-	if needsSearch {
-		generateSearchList(&buf, schema, cfg)
-	}
-
-	if specSchema != nil {
-		inputTypes := generateInputTypesV2(&buf, schema, cfg, specSchema, typeMap, alias, needsExecutionContext, globalEmitted)
-		genInfo.inputTypes = inputTypes
-
-		generateFromProto(&buf, schema, cfg, specSchema, specTypes, typeMap, alias, globalEmitted)
-		genInfo.fromProto = &fromProtoFuncInfo{
-			funcName:   cfg.inputPrefix + "InputFromProto",
-			protoAlias: alias,
-			protoPath:  importPath,
-			protoType:  cfg.protoResType,
-			inputType:  cfg.inputPrefix + "Input",
-		}
-	}
+	buf.Write(bodyBuf.Bytes())
 
 	formatted, err := format.Source(buf.Bytes())
 	if err != nil {
 		return buf.Bytes(), genInfo, fmt.Errorf("gofmt failed: %w\ngenerated:\n%s", err, buf.String())
 	}
 	return formatted, genInfo, nil
+}
+
+// usedPackageAliases reports which package qualifiers a rendered body
+// actually names — the `pkg` of every `pkg.Symbol` selector. The second
+// return is false when the body could not be parsed.
+//
+// Parsing rather than string-matching so a doc comment mentioning a foreign
+// type cannot pin an import the code never uses. On a parse failure callers
+// fall back to emitting every structurally-derived import: that is the
+// pre-existing behavior, and the format.Source call downstream reports the
+// real syntax error instead of this helper masking it as a missing import.
+func usedPackageAliases(body []byte) (map[string]bool, bool) {
+	// The body is a fragment; a synthetic package clause makes it a file.
+	src := append([]byte("package gen\n"), body...)
+	file, err := parser.ParseFile(token.NewFileSet(), "body.go", src, parser.SkipObjectResolution)
+	if err != nil {
+		return nil, false
+	}
+	used := make(map[string]bool)
+	ast.Inspect(file, func(n ast.Node) bool {
+		if sel, ok := n.(*ast.SelectorExpr); ok {
+			if ident, ok := sel.X.(*ast.Ident); ok {
+				used[ident.Name] = true
+			}
+		}
+		return true
+	})
+	return used, true
 }
 
 // =========================================================================

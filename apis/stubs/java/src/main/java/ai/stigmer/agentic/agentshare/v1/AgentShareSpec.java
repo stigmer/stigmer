@@ -573,6 +573,104 @@ private static final long serialVersionUID = 0L;
     return environmentRefs_.get(index);
   }
 
+  public static final int RUN_CONFIG_FIELD_NUMBER = 7;
+  private ai.stigmer.agentic.agentexecution.v1.RunConfig runConfig_;
+  /**
+   * <pre>
+   * Per-turn model choice and run bounds for guest conversations on this
+   * share, overriding the platform's guest execution profile.
+   *
+   * Unset fields inherit the platform default. model_name replaces the
+   * platform model outright, while max_cost_usd and max_tool_rounds can
+   * only lower the platform caps — a share owner can reduce what one
+   * guest turn may spend, never raise it past the platform profile.
+   * Valid on public-audience shares only.
+   *
+   * &#64;internal
+   * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+   * OWNER's stored config, not the guest's: the guest scope step still
+   * discards caller-supplied execution_config unconditionally, then
+   * merges this field — loaded server-side from the share — over the
+   * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+   * promise recorded on GuestExecutionProfileProperties). The trust
+   * posture is unchanged. Org-audience shares reject the field via the
+   * message-level CEL rule for the same reason as environment_refs:
+   * member sessions carry no share linkage, so it would be stored but
+   * silently never applied. Enforcement is cloud-only — guest runtime
+   * is a cloud concept; OSS stores and echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+   * @return Whether the runConfig field is set.
+   */
+  @java.lang.Override
+  public boolean hasRunConfig() {
+    return ((bitField0_ & 0x00000004) != 0);
+  }
+  /**
+   * <pre>
+   * Per-turn model choice and run bounds for guest conversations on this
+   * share, overriding the platform's guest execution profile.
+   *
+   * Unset fields inherit the platform default. model_name replaces the
+   * platform model outright, while max_cost_usd and max_tool_rounds can
+   * only lower the platform caps — a share owner can reduce what one
+   * guest turn may spend, never raise it past the platform profile.
+   * Valid on public-audience shares only.
+   *
+   * &#64;internal
+   * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+   * OWNER's stored config, not the guest's: the guest scope step still
+   * discards caller-supplied execution_config unconditionally, then
+   * merges this field — loaded server-side from the share — over the
+   * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+   * promise recorded on GuestExecutionProfileProperties). The trust
+   * posture is unchanged. Org-audience shares reject the field via the
+   * message-level CEL rule for the same reason as environment_refs:
+   * member sessions carry no share linkage, so it would be stored but
+   * silently never applied. Enforcement is cloud-only — guest runtime
+   * is a cloud concept; OSS stores and echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+   * @return The runConfig.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig() {
+    return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+  }
+  /**
+   * <pre>
+   * Per-turn model choice and run bounds for guest conversations on this
+   * share, overriding the platform's guest execution profile.
+   *
+   * Unset fields inherit the platform default. model_name replaces the
+   * platform model outright, while max_cost_usd and max_tool_rounds can
+   * only lower the platform caps — a share owner can reduce what one
+   * guest turn may spend, never raise it past the platform profile.
+   * Valid on public-audience shares only.
+   *
+   * &#64;internal
+   * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+   * OWNER's stored config, not the guest's: the guest scope step still
+   * discards caller-supplied execution_config unconditionally, then
+   * merges this field — loaded server-side from the share — over the
+   * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+   * promise recorded on GuestExecutionProfileProperties). The trust
+   * posture is unchanged. Org-audience shares reject the field via the
+   * message-level CEL rule for the same reason as environment_refs:
+   * member sessions carry no share linkage, so it would be stored but
+   * silently never applied. Enforcement is cloud-only — guest runtime
+   * is a cloud concept; OSS stores and echoes the field.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
+    return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -604,6 +702,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < environmentRefs_.size(); i++) {
       output.writeMessage(6, environmentRefs_.get(i));
+    }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      output.writeMessage(7, getRunConfig());
     }
     getUnknownFields().writeTo(output);
   }
@@ -647,6 +748,10 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
+    if (((bitField0_ & 0x00000004) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(7, getRunConfig());
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -679,6 +784,11 @@ private static final long serialVersionUID = 0L;
     }
     if (!getEnvironmentRefsList()
         .equals(other.getEnvironmentRefsList())) return false;
+    if (hasRunConfig() != other.hasRunConfig()) return false;
+    if (hasRunConfig()) {
+      if (!getRunConfig()
+          .equals(other.getRunConfig())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -710,6 +820,10 @@ private static final long serialVersionUID = 0L;
     if (getEnvironmentRefsCount() > 0) {
       hash = (37 * hash) + ENVIRONMENT_REFS_FIELD_NUMBER;
       hash = (53 * hash) + getEnvironmentRefsList().hashCode();
+    }
+    if (hasRunConfig()) {
+      hash = (37 * hash) + RUN_CONFIG_FIELD_NUMBER;
+      hash = (53 * hash) + getRunConfig().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -863,6 +977,7 @@ private static final long serialVersionUID = 0L;
         internalGetAgentRefFieldBuilder();
         internalGetMessagesFieldBuilder();
         internalGetEnvironmentRefsFieldBuilder();
+        internalGetRunConfigFieldBuilder();
       }
     }
     @java.lang.Override
@@ -890,6 +1005,11 @@ private static final long serialVersionUID = 0L;
         environmentRefsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000020);
+      runConfig_ = null;
+      if (runConfigBuilder_ != null) {
+        runConfigBuilder_.dispose();
+        runConfigBuilder_ = null;
+      }
       return this;
     }
 
@@ -959,6 +1079,12 @@ private static final long serialVersionUID = 0L;
             : messagesBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
+      if (((from_bitField0_ & 0x00000040) != 0)) {
+        result.runConfig_ = runConfigBuilder_ == null
+            ? runConfig_
+            : runConfigBuilder_.build();
+        to_bitField0_ |= 0x00000004;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1021,6 +1147,9 @@ private static final long serialVersionUID = 0L;
             environmentRefsBuilder_.addAllMessages(other.environmentRefs_);
           }
         }
+      }
+      if (other.hasRunConfig()) {
+        mergeRunConfig(other.getRunConfig());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1090,6 +1219,13 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 50
+            case 58: {
+              input.readMessage(
+                  internalGetRunConfigFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00000040;
+              break;
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2803,6 +2939,343 @@ private static final long serialVersionUID = 0L;
         environmentRefs_ = null;
       }
       return environmentRefsBuilder_;
+    }
+
+    private ai.stigmer.agentic.agentexecution.v1.RunConfig runConfig_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder> runConfigBuilder_;
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for guest conversations on this
+     * share, overriding the platform's guest execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a share owner can reduce what one
+     * guest turn may spend, never raise it past the platform profile.
+     * Valid on public-audience shares only.
+     *
+     * &#64;internal
+     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+     * OWNER's stored config, not the guest's: the guest scope step still
+     * discards caller-supplied execution_config unconditionally, then
+     * merges this field — loaded server-side from the share — over the
+     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+     * promise recorded on GuestExecutionProfileProperties). The trust
+     * posture is unchanged. Org-audience shares reject the field via the
+     * message-level CEL rule for the same reason as environment_refs:
+     * member sessions carry no share linkage, so it would be stored but
+     * silently never applied. Enforcement is cloud-only — guest runtime
+     * is a cloud concept; OSS stores and echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     * @return Whether the runConfig field is set.
+     */
+    public boolean hasRunConfig() {
+      return ((bitField0_ & 0x00000040) != 0);
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for guest conversations on this
+     * share, overriding the platform's guest execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a share owner can reduce what one
+     * guest turn may spend, never raise it past the platform profile.
+     * Valid on public-audience shares only.
+     *
+     * &#64;internal
+     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+     * OWNER's stored config, not the guest's: the guest scope step still
+     * discards caller-supplied execution_config unconditionally, then
+     * merges this field — loaded server-side from the share — over the
+     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+     * promise recorded on GuestExecutionProfileProperties). The trust
+     * posture is unchanged. Org-audience shares reject the field via the
+     * message-level CEL rule for the same reason as environment_refs:
+     * member sessions carry no share linkage, so it would be stored but
+     * silently never applied. Enforcement is cloud-only — guest runtime
+     * is a cloud concept; OSS stores and echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     * @return The runConfig.
+     */
+    public ai.stigmer.agentic.agentexecution.v1.RunConfig getRunConfig() {
+      if (runConfigBuilder_ == null) {
+        return runConfig_ == null ? ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+      } else {
+        return runConfigBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for guest conversations on this
+     * share, overriding the platform's guest execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a share owner can reduce what one
+     * guest turn may spend, never raise it past the platform profile.
+     * Valid on public-audience shares only.
+     *
+     * &#64;internal
+     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+     * OWNER's stored config, not the guest's: the guest scope step still
+     * discards caller-supplied execution_config unconditionally, then
+     * merges this field — loaded server-side from the share — over the
+     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+     * promise recorded on GuestExecutionProfileProperties). The trust
+     * posture is unchanged. Org-audience shares reject the field via the
+     * message-level CEL rule for the same reason as environment_refs:
+     * member sessions carry no share linkage, so it would be stored but
+     * silently never applied. Enforcement is cloud-only — guest runtime
+     * is a cloud concept; OSS stores and echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     */
+    public Builder setRunConfig(ai.stigmer.agentic.agentexecution.v1.RunConfig value) {
+      if (runConfigBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        runConfig_ = value;
+      } else {
+        runConfigBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for guest conversations on this
+     * share, overriding the platform's guest execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a share owner can reduce what one
+     * guest turn may spend, never raise it past the platform profile.
+     * Valid on public-audience shares only.
+     *
+     * &#64;internal
+     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+     * OWNER's stored config, not the guest's: the guest scope step still
+     * discards caller-supplied execution_config unconditionally, then
+     * merges this field — loaded server-side from the share — over the
+     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+     * promise recorded on GuestExecutionProfileProperties). The trust
+     * posture is unchanged. Org-audience shares reject the field via the
+     * message-level CEL rule for the same reason as environment_refs:
+     * member sessions carry no share linkage, so it would be stored but
+     * silently never applied. Enforcement is cloud-only — guest runtime
+     * is a cloud concept; OSS stores and echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     */
+    public Builder setRunConfig(
+        ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder builderForValue) {
+      if (runConfigBuilder_ == null) {
+        runConfig_ = builderForValue.build();
+      } else {
+        runConfigBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for guest conversations on this
+     * share, overriding the platform's guest execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a share owner can reduce what one
+     * guest turn may spend, never raise it past the platform profile.
+     * Valid on public-audience shares only.
+     *
+     * &#64;internal
+     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+     * OWNER's stored config, not the guest's: the guest scope step still
+     * discards caller-supplied execution_config unconditionally, then
+     * merges this field — loaded server-side from the share — over the
+     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+     * promise recorded on GuestExecutionProfileProperties). The trust
+     * posture is unchanged. Org-audience shares reject the field via the
+     * message-level CEL rule for the same reason as environment_refs:
+     * member sessions carry no share linkage, so it would be stored but
+     * silently never applied. Enforcement is cloud-only — guest runtime
+     * is a cloud concept; OSS stores and echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     */
+    public Builder mergeRunConfig(ai.stigmer.agentic.agentexecution.v1.RunConfig value) {
+      if (runConfigBuilder_ == null) {
+        if (((bitField0_ & 0x00000040) != 0) &&
+          runConfig_ != null &&
+          runConfig_ != ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance()) {
+          getRunConfigBuilder().mergeFrom(value);
+        } else {
+          runConfig_ = value;
+        }
+      } else {
+        runConfigBuilder_.mergeFrom(value);
+      }
+      if (runConfig_ != null) {
+        bitField0_ |= 0x00000040;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for guest conversations on this
+     * share, overriding the platform's guest execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a share owner can reduce what one
+     * guest turn may spend, never raise it past the platform profile.
+     * Valid on public-audience shares only.
+     *
+     * &#64;internal
+     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+     * OWNER's stored config, not the guest's: the guest scope step still
+     * discards caller-supplied execution_config unconditionally, then
+     * merges this field — loaded server-side from the share — over the
+     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+     * promise recorded on GuestExecutionProfileProperties). The trust
+     * posture is unchanged. Org-audience shares reject the field via the
+     * message-level CEL rule for the same reason as environment_refs:
+     * member sessions carry no share linkage, so it would be stored but
+     * silently never applied. Enforcement is cloud-only — guest runtime
+     * is a cloud concept; OSS stores and echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     */
+    public Builder clearRunConfig() {
+      bitField0_ = (bitField0_ & ~0x00000040);
+      runConfig_ = null;
+      if (runConfigBuilder_ != null) {
+        runConfigBuilder_.dispose();
+        runConfigBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for guest conversations on this
+     * share, overriding the platform's guest execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a share owner can reduce what one
+     * guest turn may spend, never raise it past the platform profile.
+     * Valid on public-audience shares only.
+     *
+     * &#64;internal
+     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+     * OWNER's stored config, not the guest's: the guest scope step still
+     * discards caller-supplied execution_config unconditionally, then
+     * merges this field — loaded server-side from the share — over the
+     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+     * promise recorded on GuestExecutionProfileProperties). The trust
+     * posture is unchanged. Org-audience shares reject the field via the
+     * message-level CEL rule for the same reason as environment_refs:
+     * member sessions carry no share linkage, so it would be stored but
+     * silently never applied. Enforcement is cloud-only — guest runtime
+     * is a cloud concept; OSS stores and echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder getRunConfigBuilder() {
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return internalGetRunConfigFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for guest conversations on this
+     * share, overriding the platform's guest execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a share owner can reduce what one
+     * guest turn may spend, never raise it past the platform profile.
+     * Valid on public-audience shares only.
+     *
+     * &#64;internal
+     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+     * OWNER's stored config, not the guest's: the guest scope step still
+     * discards caller-supplied execution_config unconditionally, then
+     * merges this field — loaded server-side from the share — over the
+     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+     * promise recorded on GuestExecutionProfileProperties). The trust
+     * posture is unchanged. Org-audience shares reject the field via the
+     * message-level CEL rule for the same reason as environment_refs:
+     * member sessions carry no share linkage, so it would be stored but
+     * silently never applied. Enforcement is cloud-only — guest runtime
+     * is a cloud concept; OSS stores and echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder getRunConfigOrBuilder() {
+      if (runConfigBuilder_ != null) {
+        return runConfigBuilder_.getMessageOrBuilder();
+      } else {
+        return runConfig_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.RunConfig.getDefaultInstance() : runConfig_;
+      }
+    }
+    /**
+     * <pre>
+     * Per-turn model choice and run bounds for guest conversations on this
+     * share, overriding the platform's guest execution profile.
+     *
+     * Unset fields inherit the platform default. model_name replaces the
+     * platform model outright, while max_cost_usd and max_tool_rounds can
+     * only lower the platform caps — a share owner can reduce what one
+     * guest turn may spend, never raise it past the platform profile.
+     * Valid on public-audience shares only.
+     *
+     * &#64;internal
+     * DD-018 D-2's second embedder (stigmer/stigmer#360). This is the
+     * OWNER's stored config, not the guest's: the guest scope step still
+     * discards caller-supplied execution_config unconditionally, then
+     * merges this field — loaded server-side from the share — over the
+     * platform guest profile (GuestAgentExecutionCreateScopeStep, the
+     * promise recorded on GuestExecutionProfileProperties). The trust
+     * posture is unchanged. Org-audience shares reject the field via the
+     * message-level CEL rule for the same reason as environment_refs:
+     * member sessions carry no share linkage, so it would be stored but
+     * silently never applied. Enforcement is cloud-only — guest runtime
+     * is a cloud concept; OSS stores and echoes the field.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.RunConfig run_config = 7 [json_name = "runConfig"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder> 
+        internalGetRunConfigFieldBuilder() {
+      if (runConfigBuilder_ == null) {
+        runConfigBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.RunConfig, ai.stigmer.agentic.agentexecution.v1.RunConfig.Builder, ai.stigmer.agentic.agentexecution.v1.RunConfigOrBuilder>(
+                getRunConfig(),
+                getParentForChildren(),
+                isClean());
+        runConfig_ = null;
+      }
+      return runConfigBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentshare.v1.AgentShareSpec)
