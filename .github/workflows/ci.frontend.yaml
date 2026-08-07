@@ -29,6 +29,11 @@ on:
       # includes mcp-server — so its changes can break this workflow too.
       - "mcp-server/**"
       - "apis/stubs/ts/**"
+      # The web routing gate (run by `make verify-web` in the verify job)
+      # judges client-apps/web/nginx.conf; editing the gate alone must
+      # still run this workflow.
+      - "scripts/verify-static-export-routes.mjs"
+      - "scripts/verify-static-export-routes.test.mjs"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/ci.frontend.yaml"
@@ -46,6 +51,8 @@ on:
       - "client-apps/cli/**"
       - "mcp-server/**"
       - "apis/stubs/ts/**"
+      - "scripts/verify-static-export-routes.mjs"
+      - "scripts/verify-static-export-routes.test.mjs"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/ci.frontend.yaml"

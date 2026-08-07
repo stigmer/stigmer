@@ -8,6 +8,19 @@ import { isAuthGate } from "../../helpers/auth-gate";
 // front-door integration suite (test/integration/channel_conversation_test.go),
 // which fakes the WhatsApp provider — never here, where it would send real
 // messages and flake on live state.
+//
+// The two run modes pin DIFFERENT layers, stated here so neither is
+// mistaken for the other:
+//
+// - Local (`next dev`): the app layer — the workbench renders, a deep link
+//   restores the selection. The dev server resolves dynamic routes natively,
+//   so the static-export placeholder mechanism never engages here.
+// - Deployed (STIGMER_E2E_BASE_URL): the serving layer — nginx must answer
+//   a cold deep link with the conversations placeholder document, not the
+//   home page (the channel-conversations F-12 blank-page failure). That is
+//   decidable from the raw document before any login, so it runs against
+//   the auth-gated production deployment where the app-layer assertions
+//   cannot (they bail at the auth gate, by design).
 
 /**
  * Settle the page without a fixed sleep: the route is ready when either the
@@ -105,5 +118,30 @@ test.describe("Conversations page", () => {
     await page.goBack();
     await waitForConversationsSettled(page);
     await expect(page.getByText("Select a conversation")).toBeVisible();
+  });
+
+  test("a cold deep link is served the placeholder document, not the home page", async ({
+    request,
+  }) => {
+    test.skip(
+      !process.env.STIGMER_E2E_BASE_URL,
+      "serving-layer check: static-export placeholders only exist behind nginx, not `next dev`",
+    );
+
+    // Raw document fetches — no page, no auth. The static export bakes the
+    // literal `__placeholder__` into a dynamic route's document (its
+    // embedded route data), and the home page contains none, so the marker
+    // decides which document nginx actually served.
+    const deepLink = await request.get(
+      "/conversations/chan-e2e-smoke/%2B15550100",
+    );
+    expect(deepLink.ok()).toBe(true);
+    expect(await deepLink.text()).toContain("__placeholder__");
+
+    // Guards the discriminator itself: if the home document ever carried
+    // the marker, the assertion above could pass vacuously.
+    const home = await request.get("/");
+    expect(home.ok()).toBe(true);
+    expect(await home.text()).not.toContain("__placeholder__");
   });
 });

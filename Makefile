@@ -544,7 +544,10 @@ typecheck-web: ## Typecheck web console, SDK, and React SDK
 	npm run typecheck -w @stigmer/sdk
 	npm run typecheck -w @stigmer/react
 
-verify-web: lint-web typecheck-web ## Lint + typecheck web (~30s)
+verify-web-routing: ## Verify every web route resolves through nginx.conf's static-export rules
+	node scripts/verify-static-export-routes.mjs
+
+verify-web: lint-web typecheck-web verify-web-routing ## Lint + typecheck + routing gate for web (~30s)
 
 test-web: ## Run web console component tests (Vitest)
 	npm run test -w client-apps/web
@@ -732,6 +735,10 @@ check-node: ## check bucket: npm typecheck/lint/build/test (web, react, sdk, des
 	npm run typecheck -w desktop
 	npm run lint -w desktop
 	npm run build -w client-apps/web
+	# Runs after the web build on purpose: with a fresh out/ present, the
+	# routing gate also cross-checks its derived export set against the
+	# real artifact (hermetic mode elsewhere).
+	node scripts/verify-static-export-routes.mjs
 	npm run test -w client-apps/web
 	npm run test -w desktop
 	cd $(RUNNER_DIR) && npm run typecheck
