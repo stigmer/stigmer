@@ -24,6 +24,7 @@ import { registerAgentResources } from "./domains/agents/resources.js";
 import { registerAgentTools } from "./domains/agents/tools.js";
 import { registerChannelTools } from "./domains/channels/tools.js";
 import type { BackendTarget } from "./domains/client.js";
+import { registerConversationTools } from "./domains/conversation/tools.js";
 import { registerDatastoreResources } from "./domains/datastores/resources.js";
 import { registerDatastoreTools } from "./domains/datastores/tools.js";
 import { registerEnvironmentResources } from "./domains/environments/resources.js";
@@ -96,6 +97,31 @@ export function createChannelsServer(target: BackendTarget): McpServer {
   const server = new McpServer({ name: "mcp-server-stigmer-channels", version: SERVER_VERSION });
   const tools = registerChannelTools(server, target);
   log.info("tools registered (channels roster)", { count: tools.length, tools });
+  return server;
+}
+
+/**
+ * Build a conversation-only MCP server: escalate_to_human with the
+ * agent-facing argument surface, and nothing else (channel-conversations
+ * DD-008 D-c / A14 — the channels-roster pattern). This is the roster
+ * the runner-synthesized conversation attachment connects to; the
+ * structural guarantee mirrors the channels roster's.
+ *
+ * HTTP-only by design — served on the /conversation route, with NO
+ * stdio roster value: escalate is cloud-only (OSS refuses
+ * FAILED_PRECONDITION) AND session-token-only (the reach derives
+ * identity from a session-scoped sandbox credential, which only the
+ * bridge's per-request Bearer can carry — a stdio child's startup API
+ * key never could), so a stdio shape would be a tool that can only
+ * fail. Honest absence instead.
+ */
+export function createConversationServer(target: BackendTarget): McpServer {
+  const server = new McpServer({
+    name: "mcp-server-stigmer-conversation",
+    version: SERVER_VERSION,
+  });
+  const tools = registerConversationTools(server, target);
+  log.info("tools registered (conversation roster)", { count: tools.length, tools });
   return server;
 }
 
@@ -191,10 +217,14 @@ export const RECORDS_ROUTE = "/records";
 /** HTTP route serving the channels-only roster (DD-006 D8). */
 export const CHANNELS_ROUTE = "/channels";
 
+/** HTTP route serving the conversation-only roster (channel-conversations A14). */
+export const CONVERSATION_ROUTE = "/conversation";
+
 /**
  * The standard HTTP route dispatch: the full roster on {@link FULL_ROUTE},
  * the records-only roster on {@link RECORDS_ROUTE}, the channels-only
- * roster on {@link CHANNELS_ROUTE} — and NOTHING anywhere else.
+ * roster on {@link CHANNELS_ROUTE}, the conversation-only roster on
+ * {@link CONVERSATION_ROUTE} — and NOTHING anywhere else.
  *
  * The closed route table is load-bearing, not tidiness. This dispatch
  * once fell through to the full roster for any unrecognized path, and a
@@ -211,6 +241,7 @@ export function routedServerFactory(target: BackendTarget): RouteServerFactory {
     if (path === FULL_ROUTE) return createServer(target);
     if (path === RECORDS_ROUTE) return createRecordsServer(target);
     if (path === CHANNELS_ROUTE) return createChannelsServer(target);
+    if (path === CONVERSATION_ROUTE) return createConversationServer(target);
     return undefined;
   };
 }

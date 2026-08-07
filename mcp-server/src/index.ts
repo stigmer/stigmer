@@ -18,7 +18,17 @@ import type { BackendTarget } from "./domains/client.js";
 
 export type { Config, OAuthConfig, Roster, Transport } from "./config.js";
 export { loadConfigFromEnv, validateConfig } from "./config.js";
-export { createServer, createRecordsServer, RECORDS_ROUTE, SERVER_VERSION } from "./server.js";
+export {
+  CHANNELS_ROUTE,
+  CONVERSATION_ROUTE,
+  createChannelsServer,
+  createConversationServer,
+  createRecordsServer,
+  createServer,
+  FULL_ROUTE,
+  RECORDS_ROUTE,
+  SERVER_VERSION,
+} from "./server.js";
 
 /** Returns a Config populated from environment variables (no validation). */
 export function defaultConfig(): Config {

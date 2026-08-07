@@ -174,6 +174,7 @@ describe("HTTP route dispatch (the closed route table)", () => {
     ["/", "mcp-server-stigmer"],
     ["/records", "mcp-server-stigmer-records"],
     ["/channels", "mcp-server-stigmer-channels"],
+    ["/conversation", "mcp-server-stigmer-conversation"],
   ])("serves the %s roster as %s", async (path, serverName) => {
     const res = await initialize(path);
     expect(res.status).toBe(200);
