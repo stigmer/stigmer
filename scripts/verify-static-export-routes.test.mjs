@@ -19,8 +19,9 @@ import {
 // ---------------------------------------------------------------------------
 
 /**
- * The dynamic-route fallback shape shipped by client-apps/web/nginx.conf
- * (comments and cache headers stripped — the resolver ignores both).
+ * The serving shape shipped by client-apps/web/nginx.conf (comments and
+ * cache headers stripped — the resolver ignores both): the probe chain,
+ * trailing-slash canonicalization, and the honest not-found posture.
  */
 const PROBE_CONFIG = `
 server {
@@ -28,24 +29,31 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    error_page 404 /404.html;
+    absolute_redirect off;
+
     location ^~ /_next/static/ {
     }
     location = /index.html {
+    }
+
+    location ~ ^(.+)/$ {
+        return 301 $1$is_args$args;
     }
 
     location ~ ^(.+)/([^/]+)/[^/]+$ {
         try_files $uri $uri.html $uri/
                   $1/$2/__placeholder__.html
                   $1/__placeholder__/__placeholder__.html
-                  /index.html;
+                  =404;
     }
 
     location ~ ^(.+)/[^/]+$ {
-        try_files $uri $uri.html $uri/ $1/__placeholder__.html /index.html;
+        try_files $uri $uri.html $uri/ $1/__placeholder__.html =404;
     }
 
     location / {
-        try_files $uri $uri.html $uri/ /index.html;
+        try_files $uri $uri.html $uri/ =404;
     }
 }
 `;
@@ -81,6 +89,7 @@ server {
 /** A miniature export set exercising every route shape the app has. */
 const FILES = new Set([
   "/index.html",
+  "/404.html",
   "/conversations.html",
   "/login.html",
   "/settings/billing.html",
@@ -154,8 +163,21 @@ test("existing files always win over placeholder candidates", () => {
   );
 });
 
-test("unknown URLs fall through to /index.html", () => {
-  assert.equal(resolveProbe("/no/such/route/anywhere"), "/index.html");
+test("unknown URLs serve the real 404 page, never the blank app shell", () => {
+  assert.equal(resolveProbe("/no-such-route"), "/404.html");
+  assert.equal(resolveProbe("/no/such-route"), "/404.html");
+  assert.equal(resolveProbe("/no/such/route/anywhere"), "/404.html");
+});
+
+test("trailing-slash URLs canonicalize to the same document (301 followed)", () => {
+  assert.equal(resolveProbe("/login/"), "/login.html");
+  assert.equal(resolveProbe("/settings/billing/"), "/settings/billing.html");
+  assert.equal(
+    resolveProbe("/conversations/ach_01kz/919912850490/"),
+    "/conversations/__placeholder__/__placeholder__.html",
+  );
+  // The root has no slashless twin and must keep serving the shell.
+  assert.equal(resolveProbe("/"), "/index.html");
 });
 
 test("^~ prefix locations win over regex blocks (asset serving)", () => {
@@ -204,9 +226,31 @@ test("refuses unmodelled location directives", () => {
   assert.throws(
     () =>
       buildServerModel(
-        parseNginxConfig(`server { location / { return 301 /x; } }`),
+        parseNginxConfig(`server { location / { rewrite ^/a$ /b last; } }`),
       ),
-    /does not model.*return/s,
+    /does not model.*rewrite/s,
+  );
+});
+
+test("models redirect returns but refuses non-redirect return forms", () => {
+  const model = buildServerModel(
+    parseNginxConfig(`server { location ~ ^(.+)/$ { return 301 $1; } }`),
+  );
+  assert.equal(model.locations[0].redirect.code, 301);
+  // A bare status return has no target document to follow.
+  assert.throws(
+    () => buildServerModel(parseNginxConfig(`server { location / { return 404; } }`)),
+    /does not model.*return form/s,
+  );
+  // try_files + return in one location has subtle evaluation order.
+  assert.throws(
+    () =>
+      buildServerModel(
+        parseNginxConfig(
+          `server { location / { try_files $uri =404; return 301 /x; } }`,
+        ),
+      ),
+    /does not model.*both try_files and return/s,
   );
 });
 
@@ -218,12 +262,31 @@ test("refuses unmodelled try_files variables and code fallbacks", () => {
       ),
     /does not model.*\$document_root/s,
   );
+  // Only a FINAL =404 is modelled: other codes, and codes mid-list
+  // (which nginx would treat as file candidates), are refused.
   assert.throws(
     () =>
       buildServerModel(
-        parseNginxConfig(`server { location / { try_files $uri =404; } }`),
+        parseNginxConfig(`server { location / { try_files $uri =403; } }`),
+      ),
+    /does not model.*=403/s,
+  );
+  assert.throws(
+    () =>
+      buildServerModel(
+        parseNginxConfig(`server { location / { try_files =404 $uri; } }`),
       ),
     /does not model.*=404/s,
+  );
+});
+
+test("refuses unmodelled error_page forms", () => {
+  assert.throws(
+    () =>
+      buildServerModel(
+        parseNginxConfig(`server { error_page 500 502 /50x.html; }`),
+      ),
+    /does not model.*error_page/s,
   );
 });
 
@@ -292,11 +355,17 @@ test("verifyRoutes passes the probe config and fails the historical one, naming 
     const routes = enumerateRoutes(dir);
     assert.deepEqual(verifyRoutes(routes, probeModel), []);
 
+    // The historical config carried all three defects this gate now
+    // asserts against: the guessed-shape blank page (F-12), unknown
+    // URLs serving the shell, and trailing-slash URLs falling through.
     const historical = buildServerModel(parseNginxConfig(HISTORICAL_CONFIG));
     const failures = verifyRoutes(routes, historical);
-    assert.equal(failures.length, 1);
-    assert.match(failures[0], /conversations\/\[channelId\]\/\[key\]/);
-    assert.match(failures[0], /blank-page failure/);
+    assert.equal(failures.length, 3);
+    const joined = failures.join("\n");
+    assert.match(joined, /conversations\/\[channelId\]\/\[key\]/);
+    assert.match(joined, /blank-page failure/);
+    assert.match(joined, /not-found posture/);
+    assert.match(joined, /trailing-slash posture/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

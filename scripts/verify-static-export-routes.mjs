@@ -37,12 +37,18 @@
  *     cross-checked against it in both directions, so the derivation
  *     itself is validated whenever the artifact is available.
  *
- * The model was validated once against real nginx (the production image
- * over a synthesized export tree; see the T06 Sitting 2b task record in
- * stigmer-cloud). Its semantics: exact locations, then ^~ prefix locations,
- * then regex locations in declaration order, then the longest plain prefix;
+ * The model was validated against real nginx (the production image over a
+ * synthesized export tree; T06 Sitting 2b task record in stigmer-cloud,
+ * re-validated in Sitting 2c when redirects and the error page landed).
+ * Its semantics: exact locations, then ^~ prefix locations, then regex
+ * locations in declaration order, then the longest plain prefix;
  * try_files checks all-but-last args as files (trailing `/` means
- * directory) and treats the last as an internal redirect.
+ * directory) and treats the last as an internal redirect, except a final
+ * `=404`, which resolves through the server's `error_page`; a
+ * `return 30x <target>` location is followed to the destination document.
+ * Beyond per-route resolution, the gate asserts two standing postures:
+ * unknown URLs never serve the blank app shell, and trailing-slash URLs
+ * reach the same document as their canonical form.
  *
  * Usage:
  *   node scripts/verify-static-export-routes.mjs
@@ -197,8 +203,27 @@ export function parseNginxConfig(source) {
 /** try_files variables the resolution model understands. */
 const KNOWN_VARIABLES = new Set(["uri", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
 
-/** Directives that cannot affect which file a request resolves to. */
-const INERT_SERVER_DIRECTIVES = new Set(["listen", "root"]);
+/**
+ * `return` codes the model follows as redirects. Anything else (e.g. a
+ * bare status return) is refused until the model learns its semantics.
+ */
+const REDIRECT_CODES = new Set(["301", "302", "307", "308"]);
+
+/**
+ * Query-string variables allowed in `return` targets. The model resolves
+ * PATHS (query strings never affect which file serves), so these
+ * substitute to the empty string — they exist in the config so real
+ * nginx carries the query through the redirect.
+ */
+const QUERY_VARIABLES = new Set(["is_args", "args"]);
+
+/**
+ * Directives that cannot affect which FILE a request resolves to.
+ * `absolute_redirect` shapes the Location header's form (relative vs
+ * absolute-with-listen-port — load-bearing behind the ingress), never
+ * the destination document this model answers for.
+ */
+const INERT_SERVER_DIRECTIVES = new Set(["listen", "root", "absolute_redirect"]);
 const INERT_LOCATION_DIRECTIVES = new Set(["add_header"]);
 
 const refuse = (message) => {
@@ -219,7 +244,7 @@ export function buildServerModel(nodes) {
     refuse(`expected exactly one top-level server block`);
   }
 
-  const model = { indexFile: "index.html", locations: [] };
+  const model = { indexFile: "index.html", locations: [], errorPage: null };
 
   for (const directive of servers[0].block) {
     if (directive.name === "location") {
@@ -227,6 +252,19 @@ export function buildServerModel(nodes) {
     } else if (directive.name === "index") {
       if (directive.args.length !== 1) refuse(`multi-argument index directive`);
       model.indexFile = directive.args[0];
+    } else if (directive.name === "error_page") {
+      // Exactly the `error_page 404 /uri;` shape: one code, one URI
+      // (nginx serves that document WITH the error status). Multi-code
+      // forms, `=` response-code overrides, and named locations change
+      // the semantics and are refused until modelled.
+      if (
+        directive.args.length !== 2 ||
+        directive.args[0] !== "404" ||
+        !directive.args[1].startsWith("/")
+      ) {
+        refuse(`error_page form "${directive.args.join(" ")}"`);
+      }
+      model.errorPage = { code: 404, uri: directive.args[1] };
     } else if (!INERT_SERVER_DIRECTIVES.has(directive.name)) {
       refuse(`server-level directive "${directive.name}"`);
     }
@@ -245,20 +283,44 @@ function parseLocation(directive) {
   }
 
   let tryFiles = null;
+  let redirect = null;
   for (const inner of directive.block ?? []) {
     if (inner.name === "try_files") {
-      for (const arg of inner.args) {
+      inner.args.forEach((arg, index) => {
         for (const [, variable] of arg.matchAll(/\$(\w+)/g)) {
           if (!KNOWN_VARIABLES.has(variable)) {
             refuse(`try_files variable "$${variable}"`);
           }
         }
-        if (arg.startsWith("=")) refuse(`try_files code fallback "${arg}"`);
-      }
+        if (arg.startsWith("=")) {
+          // `=404` is modelled ONLY as the final argument, resolving
+          // through the server's error_page. Any other code — or a code
+          // mid-list, which nginx would ignore — is refused.
+          if (arg !== "=404" || index !== inner.args.length - 1) {
+            refuse(`try_files code fallback "${arg}" (only a final =404 is modelled)`);
+          }
+        }
+      });
       tryFiles = inner.args;
+    } else if (inner.name === "return") {
+      // Exactly the `return <redirect-code> <target>;` shape; the model
+      // follows it to the document a browser would end up with. Bare
+      // status returns and response bodies are different semantics.
+      if (inner.args.length !== 2 || !REDIRECT_CODES.has(inner.args[0])) {
+        refuse(`return form "${inner.args.join(" ")}"`);
+      }
+      for (const [, variable] of inner.args[1].matchAll(/\$(\w+)/g)) {
+        if (!KNOWN_VARIABLES.has(variable) && !QUERY_VARIABLES.has(variable)) {
+          refuse(`return target variable "$${variable}"`);
+        }
+      }
+      redirect = { code: Number(inner.args[0]), target: inner.args[1] };
     } else if (!INERT_LOCATION_DIRECTIVES.has(inner.name)) {
       refuse(`location-level directive "${inner.name}"`);
     }
+  }
+  if (tryFiles && redirect) {
+    refuse(`location with both try_files and return (evaluation order is subtle)`);
   }
 
   return {
@@ -266,6 +328,7 @@ function parseLocation(directive) {
     pattern,
     regex: modifier === "~" ? new RegExp(pattern) : null,
     tryFiles,
+    redirect,
   };
 }
 
@@ -275,7 +338,14 @@ function parseLocation(directive) {
 
 /**
  * Resolve a request URI against the server model and a file set, returning
- * the file path served or `null` (no file — a 404/403 in production).
+ * the file path the browser ends up with, or `null` (no file and no
+ * error page — a bare 404/403 in production).
+ *
+ * Redirect locations (`return 301 …`) are followed to their destination
+ * document; a final `=404` resolves through the server's `error_page`
+ * (nginx serves that document WITH the error status — status codes are
+ * nginx semantics the one-time real-nginx validation pins, while this
+ * model answers "which document?").
  *
  * @param model  From {@link buildServerModel}.
  * @param uri    Decoded request path (no query string).
@@ -289,8 +359,35 @@ export function resolveRequest(model, uri, files, depth = 0) {
   const directories = directoriesOf(files);
   const location = matchLocation(model, uri);
   const serveFile = (path) => (files.has(path) ? path : null);
+  const serveErrorPage = () =>
+    model.errorPage
+      ? resolveRequest(model, model.errorPage.uri, files, depth + 1)
+      : null;
 
   if (!location) return serveFile(uri);
+
+  const captures = location.regex ? uri.match(location.regex) : null;
+  const substitute = (arg) =>
+    arg.replace(/\$(\w+)/g, (whole, variable) => {
+      if (variable === "uri") return uri;
+      // The model resolves paths without query strings, so the
+      // query-carrying variables are empty here.
+      if (QUERY_VARIABLES.has(variable)) return "";
+      const value = captures?.[Number(variable)];
+      if (value === undefined) {
+        throw new Error(
+          `"${arg}" references $${variable} but location "${location.pattern}" ` +
+            `produced no such capture for "${uri}"`,
+        );
+      }
+      return value;
+    });
+
+  if (location.redirect) {
+    // The browser re-requests the target; model that as a fresh
+    // resolution (the depth guard catches redirect loops).
+    return resolveRequest(model, substitute(location.redirect.target), files, depth + 1);
+  }
 
   if (!location.tryFiles) {
     if (files.has(uri)) return uri;
@@ -305,20 +402,6 @@ export function resolveRequest(model, uri, files, depth = 0) {
     }
     return null;
   }
-
-  const captures = location.regex ? uri.match(location.regex) : null;
-  const substitute = (arg) =>
-    arg.replace(/\$(\w+)/g, (whole, variable) => {
-      if (variable === "uri") return uri;
-      const value = captures?.[Number(variable)];
-      if (value === undefined) {
-        throw new Error(
-          `try_files references $${variable} but location "${location.pattern}" ` +
-            `produced no such capture for "${uri}"`,
-        );
-      }
-      return value;
-    });
 
   const args = location.tryFiles;
   for (const arg of args.slice(0, -1)) {
@@ -336,8 +419,11 @@ export function resolveRequest(model, uri, files, depth = 0) {
       return candidate;
     }
   }
-  // Last argument is an internal redirect, re-entering location matching.
-  return resolveRequest(model, substitute(args[args.length - 1]), files, depth + 1);
+  // The last argument: `=404` resolves through error_page; anything else
+  // is an internal redirect re-entering location matching.
+  const last = args[args.length - 1];
+  if (last === "=404") return serveErrorPage();
+  return resolveRequest(model, substitute(last), files, depth + 1);
 }
 
 function matchLocation(model, uri) {
@@ -361,7 +447,11 @@ function matchLocation(model, uri) {
 }
 
 function directoriesOf(files) {
-  const dirs = new Set();
+  // The export root always exists as a directory, so "/" must resolve
+  // through the `$uri/` candidate and the index directive (this was
+  // masked while every chain ended in an /index.html fallback; the
+  // =404 ending exposed it).
+  const dirs = new Set(["/"]);
   for (const file of files) {
     let path = file;
     for (;;) {
@@ -375,9 +465,16 @@ function directoriesOf(files) {
   return dirs;
 }
 
-const stripTrailingSlash = (path) =>
-  path.endsWith("/") ? path.slice(0, -1) : path;
-const joinUri = (base, name) => `${stripTrailingSlash(base)}/${name}`;
+/** Strip trailing slashes down to a canonical dir path ("/" stays "/"). */
+const stripTrailingSlash = (path) => {
+  let result = path;
+  while (result.length > 1 && result.endsWith("/")) result = result.slice(0, -1);
+  return result;
+};
+const joinUri = (base, name) => {
+  const dir = stripTrailingSlash(base);
+  return dir === "/" ? `/${name}` : `${dir}/${name}`;
+};
 
 // ---------------------------------------------------------------------------
 // The gate
@@ -406,12 +503,15 @@ export function verifyRoutes(routes, model) {
 
   // The export set the routes imply: every page's .html plus its .txt RSC
   // payload sibling (requests for those must keep resolving via $uri).
+  // Next.js static export also always emits a root 404 document; the
+  // cross-check verifies it against the real artifact.
   const files = new Set();
   for (const route of routes) {
     const html = exportFileOf(route);
     files.add(html);
     files.add(html.replace(/\.html$/, ".txt"));
   }
+  if (model.errorPage) files.add(model.errorPage.uri);
 
   for (const route of routes) {
     const url = representativeUrlOf(route);
@@ -435,6 +535,61 @@ export function verifyRoutes(routes, model) {
     }
   }
 
+  // Not-found posture: an unknown URL must NEVER serve the app shell —
+  // /index.html deliberately renders nothing, so the shell under a 200
+  // is a blank page that reports success. With an error_page declared,
+  // the export's real not-found document must serve instead. One
+  // coalesced failure names the offenders.
+  const unknownUrls = ["/zz-no-such-route", "/zz-no/zz-such", "/zz-no/zz-such/zz-route"];
+  const notFoundOffenders = [];
+  for (const url of unknownUrls) {
+    let served;
+    try {
+      served = resolveRequest(model, url, files);
+    } catch (error) {
+      failures.push(`not-found posture: resolution error on "${url}" — ${error.message}`);
+      continue;
+    }
+    const expectedNotFound = model.errorPage ? model.errorPage.uri : null;
+    if (served === "/index.html" || (model.errorPage && served !== expectedNotFound)) {
+      notFoundOffenders.push(`"${url}" → ${served ?? "nothing"}`);
+    }
+  }
+  if (notFoundOffenders.length > 0) {
+    failures.push(
+      `not-found posture: unknown URLs must serve the real not-found page, ` +
+        `never the blank app shell — ${notFoundOffenders.join(", ")}. ` +
+        `Declare \`error_page 404 /404.html;\` and end the try_files chains ` +
+        `in =404 (client-apps/web/nginx.conf).`,
+    );
+  }
+
+  // Trailing-slash posture: `/x/` must end at the same document as `/x`
+  // (the export writes sibling .html files, never directory indexes, so
+  // without canonicalization a trailing-slash deep link misses every
+  // probe candidate). One coalesced failure names the offenders.
+  const slashOffenders = [];
+  for (const route of routes) {
+    if (route.segments.length === 0) continue; // "/" has no slashless twin
+    const url = `${representativeUrlOf(route)}/`;
+    let served;
+    try {
+      served = resolveRequest(model, url, files);
+    } catch {
+      slashOffenders.push(url);
+      continue;
+    }
+    if (served !== exportFileOf(route)) slashOffenders.push(url);
+  }
+  if (slashOffenders.length > 0) {
+    failures.push(
+      `trailing-slash posture: ${slashOffenders.length} route(s) do not reach ` +
+        `their document with a trailing slash (e.g. "${slashOffenders[0]}"). ` +
+        `Canonicalize with \`location ~ ^(.+)/$ { return 301 $1; }\` ` +
+        `(client-apps/web/nginx.conf).`,
+    );
+  }
+
   return failures;
 }
 
@@ -444,9 +599,19 @@ export function verifyRoutes(routes, model) {
  * a stale build is reported with the rebuild remedy rather than guessed
  * around.
  */
-export function crossCheckExport(routes, exportDir) {
+export function crossCheckExport(routes, exportDir, model = null) {
   const failures = [];
   const derived = new Set(routes.map(exportFileOf));
+
+  // The error page the serving rules point at must really exist in the
+  // artifact — Next.js emits /404.html for static exports today, and
+  // this is where we would learn if that ever stops being true.
+  if (model?.errorPage && !existsSync(join(exportDir, model.errorPage.uri.slice(1)))) {
+    failures.push(
+      `nginx.conf's error_page ${model.errorPage.uri} is missing from ` +
+        `${relative(root, exportDir)}`,
+    );
+  }
 
   for (const file of derived) {
     if (!existsSync(join(exportDir, file.slice(1)))) {
@@ -495,7 +660,7 @@ function main() {
 
   const hasExport =
     existsSync(EXPORT_DIR) && statSync(EXPORT_DIR).isDirectory();
-  if (hasExport) failures.push(...crossCheckExport(routes, EXPORT_DIR));
+  if (hasExport) failures.push(...crossCheckExport(routes, EXPORT_DIR, model));
 
   const dynamicCount = routes.filter((r) =>
     r.segments.some((s) => s.dynamic),
