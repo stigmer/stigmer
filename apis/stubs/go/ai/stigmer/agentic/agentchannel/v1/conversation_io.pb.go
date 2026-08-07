@@ -651,6 +651,61 @@ func (x *ChannelConversationList) GetItems() []*ChannelConversation {
 	return nil
 }
 
+// Input for reading one conversation's identity and participation state.
+type GetChannelConversationInput struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// AgentChannel the conversation belongs to.
+	AgentChannelId string `protobuf:"bytes,1,opt,name=agent_channel_id,json=agentChannelId,proto3" json:"agent_channel_id,omitempty"`
+	// Conversation key within the channel (WhatsApp: the customer's wa_id).
+	ConversationKey string `protobuf:"bytes,2,opt,name=conversation_key,json=conversationKey,proto3" json:"conversation_key,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GetChannelConversationInput) Reset() {
+	*x = GetChannelConversationInput{}
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetChannelConversationInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetChannelConversationInput) ProtoMessage() {}
+
+func (x *GetChannelConversationInput) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetChannelConversationInput.ProtoReflect.Descriptor instead.
+func (*GetChannelConversationInput) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetChannelConversationInput) GetAgentChannelId() string {
+	if x != nil {
+		return x.AgentChannelId
+	}
+	return ""
+}
+
+func (x *GetChannelConversationInput) GetConversationKey() string {
+	if x != nil {
+		return x.ConversationKey
+	}
+	return ""
+}
+
 // Input for reading one conversation's timeline.
 type GetConversationTimelineInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -668,7 +723,7 @@ type GetConversationTimelineInput struct {
 
 func (x *GetConversationTimelineInput) Reset() {
 	*x = GetConversationTimelineInput{}
-	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -680,7 +735,7 @@ func (x *GetConversationTimelineInput) String() string {
 func (*GetConversationTimelineInput) ProtoMessage() {}
 
 func (x *GetConversationTimelineInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[4]
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -693,7 +748,7 @@ func (x *GetConversationTimelineInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConversationTimelineInput.ProtoReflect.Descriptor instead.
 func (*GetConversationTimelineInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescGZIP(), []int{4}
+	return file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetConversationTimelineInput) GetAgentChannelId() string {
@@ -746,7 +801,7 @@ type ConversationTimeline struct {
 
 func (x *ConversationTimeline) Reset() {
 	*x = ConversationTimeline{}
-	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -758,7 +813,7 @@ func (x *ConversationTimeline) String() string {
 func (*ConversationTimeline) ProtoMessage() {}
 
 func (x *ConversationTimeline) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[5]
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -771,7 +826,7 @@ func (x *ConversationTimeline) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationTimeline.ProtoReflect.Descriptor instead.
 func (*ConversationTimeline) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescGZIP(), []int{5}
+	return file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ConversationTimeline) GetItems() []*ConversationTimelineItem {
@@ -802,7 +857,7 @@ type ConversationControlInput struct {
 
 func (x *ConversationControlInput) Reset() {
 	*x = ConversationControlInput{}
-	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -814,7 +869,7 @@ func (x *ConversationControlInput) String() string {
 func (*ConversationControlInput) ProtoMessage() {}
 
 func (x *ConversationControlInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[6]
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -827,7 +882,7 @@ func (x *ConversationControlInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationControlInput.ProtoReflect.Descriptor instead.
 func (*ConversationControlInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescGZIP(), []int{6}
+	return file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ConversationControlInput) GetAgentChannelId() string {
@@ -868,7 +923,7 @@ type ReplyToConversationInput struct {
 
 func (x *ReplyToConversationInput) Reset() {
 	*x = ReplyToConversationInput{}
-	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -880,7 +935,7 @@ func (x *ReplyToConversationInput) String() string {
 func (*ReplyToConversationInput) ProtoMessage() {}
 
 func (x *ReplyToConversationInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[7]
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -893,7 +948,7 @@ func (x *ReplyToConversationInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReplyToConversationInput.ProtoReflect.Descriptor instead.
 func (*ReplyToConversationInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ReplyToConversationInput) GetAgentChannelId() string {
@@ -929,7 +984,7 @@ type EscalateConversationInput struct {
 
 func (x *EscalateConversationInput) Reset() {
 	*x = EscalateConversationInput{}
-	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -941,7 +996,7 @@ func (x *EscalateConversationInput) String() string {
 func (*EscalateConversationInput) ProtoMessage() {}
 
 func (x *EscalateConversationInput) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[8]
+	mi := &file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -954,7 +1009,7 @@ func (x *EscalateConversationInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EscalateConversationInput.ProtoReflect.Descriptor instead.
 func (*EscalateConversationInput) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescGZIP(), []int{8}
+	return file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *EscalateConversationInput) GetReason() string {
@@ -1003,7 +1058,12 @@ const file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDesc = ""
 	"\x17ChannelConversationList\x12\x1f\n" +
 	"\vtotal_count\x18\x01 \x01(\x05R\n" +
 	"totalCount\x12M\n" +
-	"\x05items\x18\x02 \x03(\v27.ai.stigmer.agentic.agentchannel.v1.ChannelConversationR\x05items\"\xc7\x01\n" +
+	"\x05items\x18\x02 \x03(\v27.ai.stigmer.agentic.agentchannel.v1.ChannelConversationR\x05items\"\x8a\x01\n" +
+	"\x1bGetChannelConversationInput\x124\n" +
+	"\x10agent_channel_id\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x0eagentChannelId\x125\n" +
+	"\x10conversation_key\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x0fconversationKey\"\xc7\x01\n" +
 	"\x1cGetConversationTimelineInput\x124\n" +
 	"\x10agent_channel_id\x18\x01 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x0eagentChannelId\x125\n" +
@@ -1058,7 +1118,7 @@ func file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDescGZIP()
 }
 
 var file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_goTypes = []any{
 	(ConversationControl)(0),              // 0: ai.stigmer.agentic.agentchannel.v1.ConversationControl
 	(ConversationLane)(0),                 // 1: ai.stigmer.agentic.agentchannel.v1.ConversationLane
@@ -1067,34 +1127,35 @@ var file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_goTypes = []an
 	(*ConversationTimelineItem)(nil),      // 4: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem
 	(*ListChannelConversationsInput)(nil), // 5: ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput
 	(*ChannelConversationList)(nil),       // 6: ai.stigmer.agentic.agentchannel.v1.ChannelConversationList
-	(*GetConversationTimelineInput)(nil),  // 7: ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput
-	(*ConversationTimeline)(nil),          // 8: ai.stigmer.agentic.agentchannel.v1.ConversationTimeline
-	(*ConversationControlInput)(nil),      // 9: ai.stigmer.agentic.agentchannel.v1.ConversationControlInput
-	(*ReplyToConversationInput)(nil),      // 10: ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput
-	(*EscalateConversationInput)(nil),     // 11: ai.stigmer.agentic.agentchannel.v1.EscalateConversationInput
-	(*timestamppb.Timestamp)(nil),         // 12: google.protobuf.Timestamp
-	(ChannelDeliveryStatus)(0),            // 13: ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
-	(ChannelReceiptState)(0),              // 14: ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState
-	(ChannelOutboundOrigin)(0),            // 15: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
-	(*rpc.PageInfo)(nil),                  // 16: ai.stigmer.commons.rpc.PageInfo
-	(*ChannelOutboundPayload)(nil),        // 17: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
+	(*GetChannelConversationInput)(nil),   // 7: ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput
+	(*GetConversationTimelineInput)(nil),  // 8: ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput
+	(*ConversationTimeline)(nil),          // 9: ai.stigmer.agentic.agentchannel.v1.ConversationTimeline
+	(*ConversationControlInput)(nil),      // 10: ai.stigmer.agentic.agentchannel.v1.ConversationControlInput
+	(*ReplyToConversationInput)(nil),      // 11: ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput
+	(*EscalateConversationInput)(nil),     // 12: ai.stigmer.agentic.agentchannel.v1.EscalateConversationInput
+	(*timestamppb.Timestamp)(nil),         // 13: google.protobuf.Timestamp
+	(ChannelDeliveryStatus)(0),            // 14: ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
+	(ChannelReceiptState)(0),              // 15: ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState
+	(ChannelOutboundOrigin)(0),            // 16: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
+	(*rpc.PageInfo)(nil),                  // 17: ai.stigmer.commons.rpc.PageInfo
+	(*ChannelOutboundPayload)(nil),        // 18: ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
 }
 var file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_depIdxs = []int32{
 	0,  // 0: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.control:type_name -> ai.stigmer.agentic.agentchannel.v1.ConversationControl
-	12, // 1: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.control_changed_at:type_name -> google.protobuf.Timestamp
-	12, // 2: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.attention_changed_at:type_name -> google.protobuf.Timestamp
-	12, // 3: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.last_customer_message_at:type_name -> google.protobuf.Timestamp
-	12, // 4: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.last_activity_at:type_name -> google.protobuf.Timestamp
+	13, // 1: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.control_changed_at:type_name -> google.protobuf.Timestamp
+	13, // 2: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.attention_changed_at:type_name -> google.protobuf.Timestamp
+	13, // 3: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.last_customer_message_at:type_name -> google.protobuf.Timestamp
+	13, // 4: ai.stigmer.agentic.agentchannel.v1.ChannelConversation.last_activity_at:type_name -> google.protobuf.Timestamp
 	1,  // 5: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.lane:type_name -> ai.stigmer.agentic.agentchannel.v1.ConversationLane
 	2,  // 6: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.author:type_name -> ai.stigmer.agentic.agentchannel.v1.ConversationItemAuthor
-	12, // 7: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.at:type_name -> google.protobuf.Timestamp
-	13, // 8: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.delivery_status:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
-	14, // 9: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.receipt_state:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState
-	15, // 10: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.origin:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
-	16, // 11: ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	13, // 7: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.at:type_name -> google.protobuf.Timestamp
+	14, // 8: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.delivery_status:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelDeliveryStatus
+	15, // 9: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.receipt_state:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelReceiptState
+	16, // 10: ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem.origin:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundOrigin
+	17, // 11: ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
 	3,  // 12: ai.stigmer.agentic.agentchannel.v1.ChannelConversationList.items:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelConversation
 	4,  // 13: ai.stigmer.agentic.agentchannel.v1.ConversationTimeline.items:type_name -> ai.stigmer.agentic.agentchannel.v1.ConversationTimelineItem
-	17, // 14: ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput.payload:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
+	18, // 14: ai.stigmer.agentic.agentchannel.v1.ReplyToConversationInput.payload:type_name -> ai.stigmer.agentic.agentchannel.v1.ChannelOutboundPayload
 	15, // [15:15] is the sub-list for method output_type
 	15, // [15:15] is the sub-list for method input_type
 	15, // [15:15] is the sub-list for extension type_name
@@ -1116,7 +1177,7 @@ func file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDesc), len(file_ai_stigmer_agentic_agentchannel_v1_conversation_io_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

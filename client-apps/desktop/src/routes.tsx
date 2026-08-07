@@ -37,6 +37,7 @@ const SkillNewPage = lazy(() => import("./pages/library/SkillNewPage"));
 const McpServerNewPage = lazy(() => import("./pages/library/McpServerNewPage"));
 const ScheduleNewPage = lazy(() => import("./pages/library/ScheduleNewPage"));
 const DashboardPage = lazy(() => import("./pages/dashboard/DashboardPage"));
+const ConversationsPage = lazy(() => import("./pages/conversations/ConversationsPage"));
 const WorkflowListPage = lazy(() => import("./pages/workflow/WorkflowListPage"));
 const WorkflowNewPage = lazy(() => import("./pages/workflow/WorkflowNewPage"));
 const WorkflowDetailPage = lazy(() => import("./pages/workflow/WorkflowDetailPage"));
@@ -83,6 +84,22 @@ const routes: RouteObject[] = [
         element: (
           <LazyPage>
             <DashboardPage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "conversations",
+        element: (
+          <LazyPage>
+            <ConversationsPage />
+          </LazyPage>
+        ),
+      },
+      {
+        path: "conversations/:channelId/:key",
+        element: (
+          <LazyPage>
+            <ConversationsPage />
           </LazyPage>
         ),
       },

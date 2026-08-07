@@ -110,13 +110,14 @@ function baseProps() {
 }
 
 describe("WorkspaceSidebar — primary navigation", () => {
-  it("renders the three primary rows through renderLink with stable ids and hrefs", () => {
+  it("renders the four primary rows through renderLink with stable ids and hrefs", () => {
     const { container } = renderSidebar(<WorkspaceSidebar {...baseProps()} />);
 
     const row = (id: string) =>
       container.querySelector<HTMLAnchorElement>(`[data-row-id="${id}"]`);
     expect(row("new-session")?.getAttribute("href")).toBe("/");
     expect(row("dashboard")?.getAttribute("href")).toBe("/dashboard");
+    expect(row("conversations")?.getAttribute("href")).toBe("/conversations");
     expect(row("library")?.getAttribute("href")).toBe("/library");
   });
 

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ChannelConversationList, ConversationTimeline, GetConversationTimelineInput, ListChannelConversationsInput } from "./conversation_io_pbjs";
+import { ChannelConversation, ChannelConversationList, ConversationTimeline, GetChannelConversationInput, GetConversationTimelineInput, ListChannelConversationsInput } from "./conversation_io_pbjs";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -46,6 +46,40 @@ export const ChannelConversationQueryController = {
       name: "listConversations",
       I: ListChannelConversationsInput,
       O: ChannelConversationList,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get one conversation's identity and participation state.
+     *
+     * The single-row read behind a conversation detail view: who holds
+     * control, whether the conversation needs attention and why, the
+     * customer's display name, and the activity clocks. Answers NOT_FOUND
+     * until the customer's first message creates the conversation.
+     *
+     * @internal
+     * channel-conversations T04: the get sibling of listConversations, so
+     * a deep-linked console view or an embedded conversation surface never
+     * reconstructs one row by scanning list pages — and the open
+     * conversation can poll its own participation state instead of riding
+     * the list's slower refresh. Authorization is declarative on the
+     * channel, exactly getTimeline's shape (DD-003 D-a: conversations
+     * carry no per-conversation FGA tuples — the channel is the trust
+     * boundary). NOT_FOUND deliberately covers the timeline-without-row
+     * case (a proactive cold-send the customer never answered): getTimeline
+     * may serve items while this read refuses, the same "the customer
+     * wrote first" asymmetry reply's existing-conversation precondition
+     * enforces (T03 Sitting 2's A8) — consoles render that as "controls
+     * unlock when the customer writes", not as an error. OSS answers
+     * NOT_FOUND unconditionally: this edition never materializes
+     * conversations (cloud-only runtime), and a single-row get cannot
+     * answer "empty" the way the sibling discovery reads do.
+     *
+     * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.getConversation
+     */
+    getConversation: {
+      name: "getConversation",
+      I: GetChannelConversationInput,
+      O: ChannelConversation,
       kind: MethodKind.Unary,
     },
     /**

@@ -1356,6 +1356,62 @@ export type {
   ChannelTemplatesDialogProps,
 } from "./channel/index.js";
 
+// Conversation — the channel conversation surface (channel-conversations
+// T04): the org-wide list, one conversation's row and timeline, the
+// participation commands (reply / takeOver / handBack / clearAttention),
+// and the pure render vocabulary shared by every conversation view.
+export {
+  ConversationsWorkbench,
+  ConversationListPane,
+  ConversationTimelineView,
+  ConversationControlBanner,
+  ConversationAttentionBanner,
+  ConversationComposer,
+  useConversation,
+  useConversationList,
+  useConversationTimeline,
+  useConversationParticipation,
+  authorKindOf,
+  compareTimelineItemsNewestFirst,
+  conversationLabelOf,
+  inboundPlaceholderOf,
+  isInternalItem,
+  receiptOf,
+  sendAttemptOf,
+  CONVERSATION_DETAIL_POLL_INTERVAL_MS,
+  CONVERSATION_LIST_POLL_INTERVAL_MS,
+} from "./conversation/index.js";
+export type {
+  ConversationsWorkbenchProps,
+  ConversationIdentity,
+  ConversationListPaneProps,
+  ConversationTimelineViewProps,
+  ConversationControlBannerProps,
+  ConversationAttentionBannerProps,
+  ConversationComposerProps,
+  UseConversationOptions,
+  UseConversationReturn,
+  UseConversationListOptions,
+  UseConversationListReturn,
+  UseConversationTimelineOptions,
+  UseConversationTimelineReturn,
+  ConversationCommand,
+  UseConversationParticipationOptions,
+  UseConversationParticipationReturn,
+  ConversationAuthorKind,
+  ReceiptKind,
+  SendAttemptKind,
+} from "./conversation/index.js";
+// Wire types the conversation hooks answer with (DD-007: generated types
+// are the source of truth — re-exported for consumer convenience).
+export {
+  ConversationControl,
+} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+export type {
+  ChannelConversation,
+  ConversationTimelineItem,
+} from "@stigmer/protos/ai/stigmer/agentic/agentchannel/v1/conversation_io_pb";
+
 // Error — structured error display with classification, retry, and contextual guidance
 export { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "./error/index.js";
 export type { ErrorMessageProps, SecretFlowErrorGuideProps } from "./error/index.js";

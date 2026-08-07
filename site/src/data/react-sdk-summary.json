@@ -78,6 +78,13 @@
       "components": 1
     },
     {
+      "slug": "conversation",
+      "title": "conversation",
+      "description": "",
+      "hooks": 4,
+      "components": 6
+    },
+    {
       "slug": "dashboard",
       "title": "Dashboard",
       "description": "Hooks for dashboard metrics, activity feeds, and analytics data.",

@@ -57,6 +57,37 @@ public final class ChannelConversationQueryControllerGrpc {
     return getListConversationsMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput,
+      ai.stigmer.agentic.agentchannel.v1.ChannelConversation> getGetConversationMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getConversation",
+      requestType = ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput.class,
+      responseType = ai.stigmer.agentic.agentchannel.v1.ChannelConversation.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput,
+      ai.stigmer.agentic.agentchannel.v1.ChannelConversation> getGetConversationMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput, ai.stigmer.agentic.agentchannel.v1.ChannelConversation> getGetConversationMethod;
+    if ((getGetConversationMethod = ChannelConversationQueryControllerGrpc.getGetConversationMethod) == null) {
+      synchronized (ChannelConversationQueryControllerGrpc.class) {
+        if ((getGetConversationMethod = ChannelConversationQueryControllerGrpc.getGetConversationMethod) == null) {
+          ChannelConversationQueryControllerGrpc.getGetConversationMethod = getGetConversationMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput, ai.stigmer.agentic.agentchannel.v1.ChannelConversation>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getConversation"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentchannel.v1.ChannelConversation.getDefaultInstance()))
+              .setSchemaDescriptor(new ChannelConversationQueryControllerMethodDescriptorSupplier("getConversation"))
+              .build();
+        }
+      }
+    }
+    return getGetConversationMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput,
       ai.stigmer.agentic.agentchannel.v1.ConversationTimeline> getGetTimelineMethod;
 
@@ -186,6 +217,37 @@ public final class ChannelConversationQueryControllerGrpc {
 
     /**
      * <pre>
+     * Get one conversation's identity and participation state.
+     * The single-row read behind a conversation detail view: who holds
+     * control, whether the conversation needs attention and why, the
+     * customer's display name, and the activity clocks. Answers NOT_FOUND
+     * until the customer's first message creates the conversation.
+     * &#64;internal
+     * channel-conversations T04: the get sibling of listConversations, so
+     * a deep-linked console view or an embedded conversation surface never
+     * reconstructs one row by scanning list pages — and the open
+     * conversation can poll its own participation state instead of riding
+     * the list's slower refresh. Authorization is declarative on the
+     * channel, exactly getTimeline's shape (DD-003 D-a: conversations
+     * carry no per-conversation FGA tuples — the channel is the trust
+     * boundary). NOT_FOUND deliberately covers the timeline-without-row
+     * case (a proactive cold-send the customer never answered): getTimeline
+     * may serve items while this read refuses, the same "the customer
+     * wrote first" asymmetry reply's existing-conversation precondition
+     * enforces (T03 Sitting 2's A8) — consoles render that as "controls
+     * unlock when the customer writes", not as an error. OSS answers
+     * NOT_FOUND unconditionally: this edition never materializes
+     * conversations (cloud-only runtime), and a single-row get cannot
+     * answer "empty" the way the sibling discovery reads do.
+     * </pre>
+     */
+    default void getConversation(ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ChannelConversation> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetConversationMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Get one conversation's timeline, newest first, cursor-paged.
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
@@ -284,6 +346,38 @@ public final class ChannelConversationQueryControllerGrpc {
 
     /**
      * <pre>
+     * Get one conversation's identity and participation state.
+     * The single-row read behind a conversation detail view: who holds
+     * control, whether the conversation needs attention and why, the
+     * customer's display name, and the activity clocks. Answers NOT_FOUND
+     * until the customer's first message creates the conversation.
+     * &#64;internal
+     * channel-conversations T04: the get sibling of listConversations, so
+     * a deep-linked console view or an embedded conversation surface never
+     * reconstructs one row by scanning list pages — and the open
+     * conversation can poll its own participation state instead of riding
+     * the list's slower refresh. Authorization is declarative on the
+     * channel, exactly getTimeline's shape (DD-003 D-a: conversations
+     * carry no per-conversation FGA tuples — the channel is the trust
+     * boundary). NOT_FOUND deliberately covers the timeline-without-row
+     * case (a proactive cold-send the customer never answered): getTimeline
+     * may serve items while this read refuses, the same "the customer
+     * wrote first" asymmetry reply's existing-conversation precondition
+     * enforces (T03 Sitting 2's A8) — consoles render that as "controls
+     * unlock when the customer writes", not as an error. OSS answers
+     * NOT_FOUND unconditionally: this edition never materializes
+     * conversations (cloud-only runtime), and a single-row get cannot
+     * answer "empty" the way the sibling discovery reads do.
+     * </pre>
+     */
+    public void getConversation(ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ChannelConversation> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetConversationMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Get one conversation's timeline, newest first, cursor-paged.
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
@@ -357,6 +451,37 @@ public final class ChannelConversationQueryControllerGrpc {
 
     /**
      * <pre>
+     * Get one conversation's identity and participation state.
+     * The single-row read behind a conversation detail view: who holds
+     * control, whether the conversation needs attention and why, the
+     * customer's display name, and the activity clocks. Answers NOT_FOUND
+     * until the customer's first message creates the conversation.
+     * &#64;internal
+     * channel-conversations T04: the get sibling of listConversations, so
+     * a deep-linked console view or an embedded conversation surface never
+     * reconstructs one row by scanning list pages — and the open
+     * conversation can poll its own participation state instead of riding
+     * the list's slower refresh. Authorization is declarative on the
+     * channel, exactly getTimeline's shape (DD-003 D-a: conversations
+     * carry no per-conversation FGA tuples — the channel is the trust
+     * boundary). NOT_FOUND deliberately covers the timeline-without-row
+     * case (a proactive cold-send the customer never answered): getTimeline
+     * may serve items while this read refuses, the same "the customer
+     * wrote first" asymmetry reply's existing-conversation precondition
+     * enforces (T03 Sitting 2's A8) — consoles render that as "controls
+     * unlock when the customer writes", not as an error. OSS answers
+     * NOT_FOUND unconditionally: this edition never materializes
+     * conversations (cloud-only runtime), and a single-row get cannot
+     * answer "empty" the way the sibling discovery reads do.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentchannel.v1.ChannelConversation getConversation(ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetConversationMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Get one conversation's timeline, newest first, cursor-paged.
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
@@ -425,6 +550,37 @@ public final class ChannelConversationQueryControllerGrpc {
     public ai.stigmer.agentic.agentchannel.v1.ChannelConversationList listConversations(ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getListConversationsMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get one conversation's identity and participation state.
+     * The single-row read behind a conversation detail view: who holds
+     * control, whether the conversation needs attention and why, the
+     * customer's display name, and the activity clocks. Answers NOT_FOUND
+     * until the customer's first message creates the conversation.
+     * &#64;internal
+     * channel-conversations T04: the get sibling of listConversations, so
+     * a deep-linked console view or an embedded conversation surface never
+     * reconstructs one row by scanning list pages — and the open
+     * conversation can poll its own participation state instead of riding
+     * the list's slower refresh. Authorization is declarative on the
+     * channel, exactly getTimeline's shape (DD-003 D-a: conversations
+     * carry no per-conversation FGA tuples — the channel is the trust
+     * boundary). NOT_FOUND deliberately covers the timeline-without-row
+     * case (a proactive cold-send the customer never answered): getTimeline
+     * may serve items while this read refuses, the same "the customer
+     * wrote first" asymmetry reply's existing-conversation precondition
+     * enforces (T03 Sitting 2's A8) — consoles render that as "controls
+     * unlock when the customer writes", not as an error. OSS answers
+     * NOT_FOUND unconditionally: this edition never materializes
+     * conversations (cloud-only runtime), and a single-row get cannot
+     * answer "empty" the way the sibling discovery reads do.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentchannel.v1.ChannelConversation getConversation(ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetConversationMethod(), getCallOptions(), request);
     }
 
     /**
@@ -502,6 +658,38 @@ public final class ChannelConversationQueryControllerGrpc {
 
     /**
      * <pre>
+     * Get one conversation's identity and participation state.
+     * The single-row read behind a conversation detail view: who holds
+     * control, whether the conversation needs attention and why, the
+     * customer's display name, and the activity clocks. Answers NOT_FOUND
+     * until the customer's first message creates the conversation.
+     * &#64;internal
+     * channel-conversations T04: the get sibling of listConversations, so
+     * a deep-linked console view or an embedded conversation surface never
+     * reconstructs one row by scanning list pages — and the open
+     * conversation can poll its own participation state instead of riding
+     * the list's slower refresh. Authorization is declarative on the
+     * channel, exactly getTimeline's shape (DD-003 D-a: conversations
+     * carry no per-conversation FGA tuples — the channel is the trust
+     * boundary). NOT_FOUND deliberately covers the timeline-without-row
+     * case (a proactive cold-send the customer never answered): getTimeline
+     * may serve items while this read refuses, the same "the customer
+     * wrote first" asymmetry reply's existing-conversation precondition
+     * enforces (T03 Sitting 2's A8) — consoles render that as "controls
+     * unlock when the customer writes", not as an error. OSS answers
+     * NOT_FOUND unconditionally: this edition never materializes
+     * conversations (cloud-only runtime), and a single-row get cannot
+     * answer "empty" the way the sibling discovery reads do.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentchannel.v1.ChannelConversation> getConversation(
+        ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetConversationMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Get one conversation's timeline, newest first, cursor-paged.
      * The timeline contains customer-visible items only: inbound customer
      * messages (including non-text kinds the platform cannot render),
@@ -525,7 +713,8 @@ public final class ChannelConversationQueryControllerGrpc {
   }
 
   private static final int METHODID_LIST_CONVERSATIONS = 0;
-  private static final int METHODID_GET_TIMELINE = 1;
+  private static final int METHODID_GET_CONVERSATION = 1;
+  private static final int METHODID_GET_TIMELINE = 2;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -547,6 +736,10 @@ public final class ChannelConversationQueryControllerGrpc {
         case METHODID_LIST_CONVERSATIONS:
           serviceImpl.listConversations((ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ChannelConversationList>) responseObserver);
+          break;
+        case METHODID_GET_CONVERSATION:
+          serviceImpl.getConversation((ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentchannel.v1.ChannelConversation>) responseObserver);
           break;
         case METHODID_GET_TIMELINE:
           serviceImpl.getTimeline((ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput) request,
@@ -577,6 +770,13 @@ public final class ChannelConversationQueryControllerGrpc {
               ai.stigmer.agentic.agentchannel.v1.ListChannelConversationsInput,
               ai.stigmer.agentic.agentchannel.v1.ChannelConversationList>(
                 service, METHODID_LIST_CONVERSATIONS)))
+        .addMethod(
+          getGetConversationMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput,
+              ai.stigmer.agentic.agentchannel.v1.ChannelConversation>(
+                service, METHODID_GET_CONVERSATION)))
         .addMethod(
           getGetTimelineMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -633,6 +833,7 @@ public final class ChannelConversationQueryControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new ChannelConversationQueryControllerFileDescriptorSupplier())
               .addMethod(getListConversationsMethod())
+              .addMethod(getGetConversationMethod())
               .addMethod(getGetTimelineMethod())
               .build();
         }

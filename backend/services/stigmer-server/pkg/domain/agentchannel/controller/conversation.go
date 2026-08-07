@@ -26,8 +26,11 @@ const conversationParticipationUnavailableMessage = "conversation participation 
 // a conversation list is a discovery-shaped read whose truthful OSS
 // answer is "none" (the ListMessagingChannels precedent — conversations
 // are created by the cloud channel runtime, which does not run here),
-// while every command asks to DO a cloud-only thing. As in message.go,
-// there is deliberately no load-then-NOT_FOUND: probing local stores for
+// while every command asks to DO a cloud-only thing. The single-row
+// getConversation is the one read that cannot answer "empty" — it
+// answers NOT_FOUND unconditionally, which is the same truth ("no such
+// conversation") the empty list tells. As in message.go, there is
+// deliberately no load-then-NOT_FOUND: probing local stores for
 // channels this edition never materializes conversations for would
 // create an edition divergence, not prevent one. Input validation still
 // runs so the INVALID_ARGUMENT contract matches the cloud edition's.
@@ -52,6 +55,20 @@ func (c *ChannelConversationController) ListConversations(
 		return nil, grpclib.InvalidArgumentError("%v", err)
 	}
 	return &agentchannelv1.ChannelConversationList{}, nil
+}
+
+// GetConversation answers NOT_FOUND unconditionally — the single-row
+// variant of the discovery-read posture (see the type comment): this
+// edition never materializes conversations, so "no such conversation"
+// is the truthful answer for every key, with no local probing.
+func (c *ChannelConversationController) GetConversation(
+	ctx context.Context,
+	input *agentchannelv1.GetChannelConversationInput,
+) (*agentchannelv1.ChannelConversation, error) {
+	if err := grpclib.SharedValidator().Validate(input); err != nil {
+		return nil, grpclib.InvalidArgumentError("%v", err)
+	}
+	return nil, grpclib.NotFoundError("channel conversation", input.GetConversationKey())
 }
 
 // GetTimeline answers with an EMPTY timeline — the discovery-read

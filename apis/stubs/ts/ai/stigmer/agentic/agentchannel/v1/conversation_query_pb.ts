@@ -4,7 +4,7 @@
 
 import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ChannelConversationListSchema, ConversationTimelineSchema, GetConversationTimelineInputSchema, ListChannelConversationsInputSchema } from "./conversation_io_pb.js";
+import type { ChannelConversationListSchema, ChannelConversationSchema, ConversationTimelineSchema, GetChannelConversationInputSchema, GetConversationTimelineInputSchema, ListChannelConversationsInputSchema } from "./conversation_io_pb.js";
 import { file_ai_stigmer_agentic_agentchannel_v1_conversation_io } from "./conversation_io_pb.js";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb.js";
 import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc/method_options_pb.js";
@@ -13,7 +13,7 @@ import { file_ai_stigmer_commons_rpc_method_options } from "../../../commons/rpc
  * Describes the file ai/stigmer/agentic/agentchannel/v1/conversation_query.proto.
  */
 export const file_ai_stigmer_agentic_agentchannel_v1_conversation_query: GenFile = /*@__PURE__*/
-  fileDesc("CjthaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2NvbnZlcnNhdGlvbl9xdWVyeS5wcm90bxIiYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MTKiAwoiQ2hhbm5lbENvbnZlcnNhdGlvblF1ZXJ5Q29udHJvbGxlchKZAQoRbGlzdENvbnZlcnNhdGlvbnMSQS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkxpc3RDaGFubmVsQ29udmVyc2F0aW9uc0lucHV0GjsuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsQ29udmVyc2F0aW9uTGlzdCIE0LgYARLZAQoLZ2V0VGltZWxpbmUSQC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkdldENvbnZlcnNhdGlvblRpbWVsaW5lSW5wdXQaOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbnZlcnNhdGlvblRpbWVsaW5lIk7CuBhKCAEQLyIQYWdlbnRfY2hhbm5lbF9pZCoydW5hdXRob3JpemVkIHRvIHZpZXcgY29udmVyc2F0aW9ucyBvbiB0aGlzIGNoYW5uZWwaBKD/Ky9iBnByb3RvMw", [file_ai_stigmer_agentic_agentchannel_v1_conversation_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
+  fileDesc("CjthaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRjaGFubmVsL3YxL2NvbnZlcnNhdGlvbl9xdWVyeS5wcm90bxIiYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MTKABQoiQ2hhbm5lbENvbnZlcnNhdGlvblF1ZXJ5Q29udHJvbGxlchKZAQoRbGlzdENvbnZlcnNhdGlvbnMSQS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkxpc3RDaGFubmVsQ29udmVyc2F0aW9uc0lucHV0GjsuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5DaGFubmVsQ29udmVyc2F0aW9uTGlzdCIE0LgYARLbAQoPZ2V0Q29udmVyc2F0aW9uEj8uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50Y2hhbm5lbC52MS5HZXRDaGFubmVsQ29udmVyc2F0aW9uSW5wdXQaNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNoYW5uZWxDb252ZXJzYXRpb24iTsK4GEoIARAvIhBhZ2VudF9jaGFubmVsX2lkKjJ1bmF1dGhvcml6ZWQgdG8gdmlldyBjb252ZXJzYXRpb25zIG9uIHRoaXMgY2hhbm5lbBLZAQoLZ2V0VGltZWxpbmUSQC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkdldENvbnZlcnNhdGlvblRpbWVsaW5lSW5wdXQaOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRjaGFubmVsLnYxLkNvbnZlcnNhdGlvblRpbWVsaW5lIk7CuBhKCAEQLyIQYWdlbnRfY2hhbm5lbF9pZCoydW5hdXRob3JpemVkIHRvIHZpZXcgY29udmVyc2F0aW9ucyBvbiB0aGlzIGNoYW5uZWwaBKD/Ky9iBnByb3RvMw", [file_ai_stigmer_agentic_agentchannel_v1_conversation_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_rpc_method_options]);
 
 /**
  * ChannelConversationQueryController serves the console's conversation
@@ -53,6 +53,39 @@ export const ChannelConversationQueryController: GenService<{
     methodKind: "unary";
     input: typeof ListChannelConversationsInputSchema;
     output: typeof ChannelConversationListSchema;
+  },
+  /**
+   * Get one conversation's identity and participation state.
+   *
+   * The single-row read behind a conversation detail view: who holds
+   * control, whether the conversation needs attention and why, the
+   * customer's display name, and the activity clocks. Answers NOT_FOUND
+   * until the customer's first message creates the conversation.
+   *
+   * @internal
+   * channel-conversations T04: the get sibling of listConversations, so
+   * a deep-linked console view or an embedded conversation surface never
+   * reconstructs one row by scanning list pages — and the open
+   * conversation can poll its own participation state instead of riding
+   * the list's slower refresh. Authorization is declarative on the
+   * channel, exactly getTimeline's shape (DD-003 D-a: conversations
+   * carry no per-conversation FGA tuples — the channel is the trust
+   * boundary). NOT_FOUND deliberately covers the timeline-without-row
+   * case (a proactive cold-send the customer never answered): getTimeline
+   * may serve items while this read refuses, the same "the customer
+   * wrote first" asymmetry reply's existing-conversation precondition
+   * enforces (T03 Sitting 2's A8) — consoles render that as "controls
+   * unlock when the customer writes", not as an error. OSS answers
+   * NOT_FOUND unconditionally: this edition never materializes
+   * conversations (cloud-only runtime), and a single-row get cannot
+   * answer "empty" the way the sibling discovery reads do.
+   *
+   * @generated from rpc ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController.getConversation
+   */
+  getConversation: {
+    methodKind: "unary";
+    input: typeof GetChannelConversationInputSchema;
+    output: typeof ChannelConversationSchema;
   },
   /**
    * Get one conversation's timeline, newest first, cursor-paged.

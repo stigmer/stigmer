@@ -101,6 +101,78 @@ func TestChannelConversation_TimelineAuthorization(t *testing.T) {
 		"denial must be PERMISSION_DENIED or NOT_FOUND, got: %v", err)
 }
 
+// TestChannelConversation_GetConversation pins the single-row read
+// (channel-conversations T04): a seeded conversation answers its fresh
+// participation state, the SAME unseeded key splits deliberately across the
+// two reads — getTimeline an empty page, getConversation NOT_FOUND (the
+// cold-send asymmetry: stores can hold timeline items before any row
+// exists, and consoles render the split as "controls unlock when the
+// customer writes") — and a stranger is denied, the negative that fails if
+// the authorize step is ever dropped from this pipeline.
+func TestChannelConversation_GetConversation(t *testing.T) {
+	requireVisibilityHarness(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	clients := harness.NewClients(grpcConn)
+	agent := harness.CreateAgent(t, ctx, clients, "test-conv-get",
+		"You are a test agent for the conversation single-row read.")
+	channelID := applyWhatsAppChannel(t, ctx, clients, agent,
+		"conv-get-"+agent.GetMetadata().GetSlug()).ChannelID
+
+	// The asymmetry, pinned on one unseeded key: reads may be empty,
+	// a get refuses (DD-003 D-a vs the reply-lane A8 doctrine).
+	timeline, err := clients.ChannelConversationQuery.GetTimeline(ctx,
+		&agentchannelv1.GetConversationTimelineInput{
+			AgentChannelId:  channelID,
+			ConversationKey: "15550007777",
+		})
+	require.NoError(t, err, "getTimeline on an unknown key is an empty page")
+	assert.Empty(t, timeline.GetItems())
+	_, err = clients.ChannelConversationQuery.GetConversation(ctx,
+		&agentchannelv1.GetChannelConversationInput{
+			AgentChannelId:  channelID,
+			ConversationKey: "15550007777",
+		})
+	requireStatusCode(t, err, codes.NotFound)
+
+	seeder := harness.NewChannelConversationSeeder(testHarness.AppPostgres)
+	require.NoError(t, seeder.SeedConversation(ctx, harness.SeedConversationInput{
+		AgentChannelID:  channelID,
+		ConversationKey: "15550007777",
+		Org:             agent.GetMetadata().GetOrg(),
+		DisplayName:     "Mina",
+		LastActivityAt:  time.Now(),
+	}))
+
+	row, err := clients.ChannelConversationQuery.GetConversation(ctx,
+		&agentchannelv1.GetChannelConversationInput{
+			AgentChannelId:  channelID,
+			ConversationKey: "15550007777",
+		})
+	require.NoError(t, err, "owner getConversation should succeed")
+	assert.Equal(t, channelID, row.GetAgentChannelId())
+	assert.Equal(t, "15550007777", row.GetConversationKey())
+	assert.Equal(t, "Mina", row.GetDisplayName())
+	assert.Equal(t, agentchannelv1.ConversationControl_control_agent, row.GetControl(),
+		"every conversation defaults to agent control")
+	assert.False(t, row.GetNeedsAttention())
+
+	// The stranger is denied — the declarative can_view config is metadata
+	// only; this fails if the authorize step is dropped from the handler.
+	actors := newVisibilityActors(t, ctx)
+	stranger := actors.Stranger()
+	_, err = stranger.Clients.ChannelConversationQuery.GetConversation(ctx,
+		&agentchannelv1.GetChannelConversationInput{
+			AgentChannelId:  channelID,
+			ConversationKey: "15550007777",
+		})
+	require.Error(t, err, "a caller without can_view must be refused")
+	require.True(t, isAccessDenied(err),
+		"denial must be PERMISSION_DENIED or NOT_FOUND, got: %v", err)
+}
+
 // TestChannelConversation_ListScopesToAuthorizedChannels pins the
 // listConversations gate with real rows on the other side of it: the org's
 // conversations exist, the owner sees them, and a stranger receives an EMPTY

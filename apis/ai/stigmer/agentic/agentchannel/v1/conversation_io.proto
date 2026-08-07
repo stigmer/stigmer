@@ -216,6 +216,21 @@ message ChannelConversationList {
   repeated ChannelConversation items = 2;
 }
 
+// Input for reading one conversation's identity and participation state.
+message GetChannelConversationInput {
+  // AgentChannel the conversation belongs to.
+  string agent_channel_id = 1 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 128
+  ];
+
+  // Conversation key within the channel (WhatsApp: the customer's wa_id).
+  string conversation_key = 2 [
+    (buf.validate.field).string.min_len = 1,
+    (buf.validate.field).string.max_len = 128
+  ];
+}
+
 // Input for reading one conversation's timeline.
 message GetConversationTimelineInput {
   // AgentChannel the conversation belongs to.

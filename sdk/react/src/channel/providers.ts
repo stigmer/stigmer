@@ -55,6 +55,29 @@ export interface ChannelProviderDescriptor {
    * there one day.
    */
   readonly supportsMessageTemplates: boolean;
+  /**
+   * Whether staff can reply into and take over live conversations on
+   * this provider. Mirrors the server's `ProactiveMessageSender`
+   * registry — the same registry behind `reply`/`takeOver` refusing
+   * senderless providers with FAILED_PRECONDITION ("this channel's
+   * provider has no send lane for staff messages").
+   *
+   * Unlike templates, `false` here renders as DISABLED-with-explanation
+   * rather than hidden: the send lane is a planned capability (the
+   * suppression doors are already wired provider-blind server-side), so
+   * the affordance should say why it is off, not pretend it cannot
+   * exist. The server refusal stays the authoritative backstop.
+   */
+  readonly supportsStaffReplies: boolean;
+  /**
+   * Whether the conversation timeline includes the CUSTOMER's own
+   * messages on this provider. Mirrors the cloud stitcher's inbound
+   * sources: WhatsApp inbound rides a per-conversation event store;
+   * Slack's inbound lane has no timeline source yet, so its timeline
+   * shows only replies, sends, and internal events. Consumers render an
+   * honest notice instead of a silently one-sided thread.
+   */
+  readonly timelineIncludesCustomerMessages: boolean;
 }
 
 /**
@@ -73,6 +96,8 @@ export const CHANNEL_PROVIDERS: readonly ChannelProviderDescriptor[] = [
     Icon: SlackMarkIcon,
     installStyle: "redirect",
     supportsMessageTemplates: false,
+    supportsStaffReplies: false,
+    timelineIncludesCustomerMessages: false,
   },
   {
     id: "whatsapp",
@@ -80,6 +105,8 @@ export const CHANNEL_PROVIDERS: readonly ChannelProviderDescriptor[] = [
     Icon: WhatsAppMarkIcon,
     installStyle: "direct",
     supportsMessageTemplates: true,
+    supportsStaffReplies: true,
+    timelineIncludesCustomerMessages: true,
   },
 ];
 

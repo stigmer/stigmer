@@ -119,6 +119,14 @@
           "description": "List an organization's channel conversations, newest activity first.\n\n Returns conversations across all of the org's channels the caller can\n view, optionally filtered to one channel. Entries carry participation\n state and the customer's display name.\n\n @internal\n Org-wide read: no single object to authorize, so authorization is\n in-handler — an FGA ListObjects over agent_channel#can_view scopes\n the scan (the listByChannel two-stage precedent; DD-010 D-b). A\n caller who can view no channel receives an empty list, never an\n error. OSS answers empty (cloud-only runtime)."
         },
         {
+          "name": "GetConversation",
+          "inputType": "GetChannelConversationInput",
+          "inputFullType": "ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput",
+          "outputType": "ChannelConversation",
+          "outputFullType": "ai.stigmer.agentic.agentchannel.v1.ChannelConversation",
+          "description": "Get one conversation's identity and participation state.\n\n The single-row read behind a conversation detail view: who holds\n control, whether the conversation needs attention and why, the\n customer's display name, and the activity clocks. Answers NOT_FOUND\n until the customer's first message creates the conversation.\n\n @internal\n channel-conversations T04: the get sibling of listConversations, so\n a deep-linked console view or an embedded conversation surface never\n reconstructs one row by scanning list pages — and the open\n conversation can poll its own participation state instead of riding\n the list's slower refresh. Authorization is declarative on the\n channel, exactly getTimeline's shape (DD-003 D-a: conversations\n carry no per-conversation FGA tuples — the channel is the trust\n boundary). NOT_FOUND deliberately covers the timeline-without-row\n case (a proactive cold-send the customer never answered): getTimeline\n may serve items while this read refuses, the same \"the customer\n wrote first\" asymmetry reply's existing-conversation precondition\n enforces (T03 Sitting 2's A8) — consoles render that as \"controls\n unlock when the customer writes\", not as an error. OSS answers\n NOT_FOUND unconditionally: this edition never materializes\n conversations (cloud-only runtime), and a single-row get cannot\n answer \"empty\" the way the sibling discovery reads do."
+        },
+        {
           "name": "GetTimeline",
           "inputType": "GetConversationTimelineInput",
           "inputFullType": "ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput",
@@ -683,6 +691,42 @@
           },
           "description": "Conversations in the current page.",
           "required": false
+        }
+      ]
+    },
+    {
+      "name": "GetChannelConversationInput",
+      "description": "Input for reading one conversation's identity and participation state.",
+      "protoType": "ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput",
+      "protoFile": "apis/ai/stigmer/agentic/agentchannel/v1/conversation_io.proto",
+      "fields": [
+        {
+          "name": "AgentChannelId",
+          "jsonName": "agentChannelId",
+          "protoField": "agent_channel_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "AgentChannel the conversation belongs to.",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        {
+          "name": "ConversationKey",
+          "jsonName": "conversationKey",
+          "protoField": "conversation_key",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Conversation key within the channel (WhatsApp: the customer's wa_id).",
+          "required": false,
+          "validation": {
+            "minLength": 1,
+            "maxLength": 128
+          }
         }
       ]
     },

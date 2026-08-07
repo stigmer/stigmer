@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Library,
   MessageSquare,
+  MessagesSquare,
   Workflow,
   type LucideIcon,
 } from "lucide-react";
@@ -29,7 +30,11 @@ import type { RenderSidebarLink } from "./types.js";
 // ---------------------------------------------------------------------------
 
 /** Primary navigation destinations in the workspace sidebar. */
-export type WorkspaceNavId = "new-session" | "dashboard" | "library";
+export type WorkspaceNavId =
+  | "new-session"
+  | "dashboard"
+  | "conversations"
+  | "library";
 
 /**
  * Recent-activity data for the sidebar's Recents section — the return
@@ -85,8 +90,8 @@ export interface WorkspaceSidebarProps {
 
 /**
  * The console's workspace-zone sidebar: org switcher, primary navigation
- * (New Session / Dashboard / Library), time-bucketed recent activity,
- * and a user footer.
+ * (New Session / Dashboard / Conversations / Library), time-bucketed
+ * recent activity, and a user footer.
  *
  * This is the same component the Stigmer web console and desktop app
  * render — hosts differ only in what they return from `renderLink`
@@ -152,6 +157,17 @@ export function WorkspaceSidebar({
         label="Dashboard"
         icon={LayoutDashboard}
         active={activeNav === "dashboard"}
+        renderLink={renderLink}
+      />
+      {/* MessagesSquare, deliberately not MessageSquare — the singular
+          mark is the session glyph in Recents, and the two areas must
+          not read as one. */}
+      <PrimaryNavRow
+        id="conversations"
+        href="/conversations"
+        label="Conversations"
+        icon={MessagesSquare}
+        active={activeNav === "conversations"}
         renderLink={renderLink}
       />
       <PrimaryNavRow

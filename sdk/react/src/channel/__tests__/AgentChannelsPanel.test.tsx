@@ -419,12 +419,12 @@ describe("AgentChannelsPanel", () => {
     expect(screen.queryByRole("switch")).toBeNull();
     expect(screen.queryByRole("button", { name: /connect to slack/i })).toBeNull();
 
-    // The card menu still renders: Conversations is a viewer-level action
+    // The card menu still renders: Sessions is a viewer-level action
     // (everyone who sees the card holds can_view on the channel — the same
-    // bar as viewing its conversations, DD-012). Mutation items stay
+    // bar as viewing its sessions, DD-012). Mutation items stay
     // permission-gated and absent.
     fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
-    expect(screen.getByRole("menuitem", { name: /conversations/i })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: /sessions/i })).toBeTruthy();
     expect(screen.queryByRole("menuitem", { name: /tool credentials/i })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: /disconnect/i })).toBeNull();
   });
@@ -655,7 +655,7 @@ describe("AgentChannelsPanel", () => {
     // Slack has no template concept: hidden, not disabled — a disabled
     // item would imply the capability might one day exist there.
     expect(
-      await screen.findByRole("menuitem", { name: /conversations/i }),
+      await screen.findByRole("menuitem", { name: /sessions/i }),
     ).toBeTruthy();
     expect(screen.queryByRole("menuitem", { name: "Templates" })).toBeNull();
   });
@@ -681,7 +681,7 @@ describe("AgentChannelsPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: /actions for/i }));
 
     expect(
-      await screen.findByRole("menuitem", { name: /conversations/i }),
+      await screen.findByRole("menuitem", { name: /sessions/i }),
     ).toBeTruthy();
     expect(screen.queryByRole("menuitem", { name: "Templates" })).toBeNull();
   });

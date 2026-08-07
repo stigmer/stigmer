@@ -109,6 +109,12 @@ class AgentChannelClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_conversation(self, input: conversation_io_pb2.GetChannelConversationInput) -> conversation_io_pb2.ChannelConversation:
+        try:
+            return self._channelConversationQuery.getConversation(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get_timeline(self, input: conversation_io_pb2.GetConversationTimelineInput) -> conversation_io_pb2.ConversationTimeline:
         try:
             return self._channelConversationQuery.getTimeline(input)

@@ -73,6 +73,8 @@ export function Sidebar() {
 
   const isDashboardActive =
     !isSessionZone && location.pathname.startsWith("/dashboard");
+  const isConversationsActive =
+    !isSessionZone && location.pathname.startsWith("/conversations");
   const isLibraryActive =
     !isSessionZone && location.pathname.startsWith("/library");
   const activeNav: WorkspaceNavId | null =
@@ -80,9 +82,11 @@ export function Sidebar() {
       ? "new-session"
       : isDashboardActive
         ? "dashboard"
-        : isLibraryActive
-          ? "library"
-          : null;
+        : isConversationsActive
+          ? "conversations"
+          : isLibraryActive
+            ? "library"
+            : null;
 
   const renderLink = useCallback(
     ({

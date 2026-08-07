@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	ChannelConversationQueryController_ListConversations_FullMethodName = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/listConversations"
+	ChannelConversationQueryController_GetConversation_FullMethodName   = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getConversation"
 	ChannelConversationQueryController_GetTimeline_FullMethodName       = "/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getTimeline"
 )
 
@@ -54,6 +55,31 @@ type ChannelConversationQueryControllerClient interface {
 	// caller who can view no channel receives an empty list, never an
 	// error. OSS answers empty (cloud-only runtime).
 	ListConversations(ctx context.Context, in *ListChannelConversationsInput, opts ...grpc.CallOption) (*ChannelConversationList, error)
+	// Get one conversation's identity and participation state.
+	//
+	// The single-row read behind a conversation detail view: who holds
+	// control, whether the conversation needs attention and why, the
+	// customer's display name, and the activity clocks. Answers NOT_FOUND
+	// until the customer's first message creates the conversation.
+	//
+	// @internal
+	// channel-conversations T04: the get sibling of listConversations, so
+	// a deep-linked console view or an embedded conversation surface never
+	// reconstructs one row by scanning list pages — and the open
+	// conversation can poll its own participation state instead of riding
+	// the list's slower refresh. Authorization is declarative on the
+	// channel, exactly getTimeline's shape (DD-003 D-a: conversations
+	// carry no per-conversation FGA tuples — the channel is the trust
+	// boundary). NOT_FOUND deliberately covers the timeline-without-row
+	// case (a proactive cold-send the customer never answered): getTimeline
+	// may serve items while this read refuses, the same "the customer
+	// wrote first" asymmetry reply's existing-conversation precondition
+	// enforces (T03 Sitting 2's A8) — consoles render that as "controls
+	// unlock when the customer writes", not as an error. OSS answers
+	// NOT_FOUND unconditionally: this edition never materializes
+	// conversations (cloud-only runtime), and a single-row get cannot
+	// answer "empty" the way the sibling discovery reads do.
+	GetConversation(ctx context.Context, in *GetChannelConversationInput, opts ...grpc.CallOption) (*ChannelConversation, error)
 	// Get one conversation's timeline, newest first, cursor-paged.
 	//
 	// The timeline contains customer-visible items only: inbound customer
@@ -84,6 +110,16 @@ func (c *channelConversationQueryControllerClient) ListConversations(ctx context
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ChannelConversationList)
 	err := c.cc.Invoke(ctx, ChannelConversationQueryController_ListConversations_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *channelConversationQueryControllerClient) GetConversation(ctx context.Context, in *GetChannelConversationInput, opts ...grpc.CallOption) (*ChannelConversation, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChannelConversation)
+	err := c.cc.Invoke(ctx, ChannelConversationQueryController_GetConversation_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -131,6 +167,31 @@ type ChannelConversationQueryControllerServer interface {
 	// caller who can view no channel receives an empty list, never an
 	// error. OSS answers empty (cloud-only runtime).
 	ListConversations(context.Context, *ListChannelConversationsInput) (*ChannelConversationList, error)
+	// Get one conversation's identity and participation state.
+	//
+	// The single-row read behind a conversation detail view: who holds
+	// control, whether the conversation needs attention and why, the
+	// customer's display name, and the activity clocks. Answers NOT_FOUND
+	// until the customer's first message creates the conversation.
+	//
+	// @internal
+	// channel-conversations T04: the get sibling of listConversations, so
+	// a deep-linked console view or an embedded conversation surface never
+	// reconstructs one row by scanning list pages — and the open
+	// conversation can poll its own participation state instead of riding
+	// the list's slower refresh. Authorization is declarative on the
+	// channel, exactly getTimeline's shape (DD-003 D-a: conversations
+	// carry no per-conversation FGA tuples — the channel is the trust
+	// boundary). NOT_FOUND deliberately covers the timeline-without-row
+	// case (a proactive cold-send the customer never answered): getTimeline
+	// may serve items while this read refuses, the same "the customer
+	// wrote first" asymmetry reply's existing-conversation precondition
+	// enforces (T03 Sitting 2's A8) — consoles render that as "controls
+	// unlock when the customer writes", not as an error. OSS answers
+	// NOT_FOUND unconditionally: this edition never materializes
+	// conversations (cloud-only runtime), and a single-row get cannot
+	// answer "empty" the way the sibling discovery reads do.
+	GetConversation(context.Context, *GetChannelConversationInput) (*ChannelConversation, error)
 	// Get one conversation's timeline, newest first, cursor-paged.
 	//
 	// The timeline contains customer-visible items only: inbound customer
@@ -158,6 +219,9 @@ type UnimplementedChannelConversationQueryControllerServer struct{}
 
 func (UnimplementedChannelConversationQueryControllerServer) ListConversations(context.Context, *ListChannelConversationsInput) (*ChannelConversationList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListConversations not implemented")
+}
+func (UnimplementedChannelConversationQueryControllerServer) GetConversation(context.Context, *GetChannelConversationInput) (*ChannelConversation, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetConversation not implemented")
 }
 func (UnimplementedChannelConversationQueryControllerServer) GetTimeline(context.Context, *GetConversationTimelineInput) (*ConversationTimeline, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTimeline not implemented")
@@ -200,6 +264,24 @@ func _ChannelConversationQueryController_ListConversations_Handler(srv interface
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChannelConversationQueryController_GetConversation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetChannelConversationInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChannelConversationQueryControllerServer).GetConversation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChannelConversationQueryController_GetConversation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChannelConversationQueryControllerServer).GetConversation(ctx, req.(*GetChannelConversationInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ChannelConversationQueryController_GetTimeline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetConversationTimelineInput)
 	if err := dec(in); err != nil {
@@ -228,6 +310,10 @@ var ChannelConversationQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "listConversations",
 			Handler:    _ChannelConversationQueryController_ListConversations_Handler,
+		},
+		{
+			MethodName: "getConversation",
+			Handler:    _ChannelConversationQueryController_GetConversation_Handler,
 		},
 		{
 			MethodName: "getTimeline",

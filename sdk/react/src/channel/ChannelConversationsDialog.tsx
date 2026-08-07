@@ -37,11 +37,19 @@ export interface ChannelConversationsDialogProps {
 }
 
 /**
- * Lists the conversations a channel created — the Slack/WhatsApp sessions
- * the channel runtime owns, visible to exactly the channel's viewers (the
- * connector and org admins; design decision 012).
+ * Lists the SESSIONS a channel created — the session-level forensics view
+ * (which execution containers served the channel's traffic), visible to
+ * exactly the channel's viewers (the connector and org admins; design
+ * decision 012).
  *
- * Each row shows the conversation subject, the external platform user it
+ * Deliberately titled "Sessions", not "Conversations": the customer-facing
+ * Conversations surface is the top-level `ConversationsWorkbench` over the
+ * conversation timeline API, which supersedes this read for that purpose
+ * (channel-conversations DD-004 D-g). This dialog remains what it actually
+ * is — the observability view underneath a conversation. The component
+ * name keeps its historical export for API stability.
+ *
+ * Each row shows the session subject, the external platform user it
  * belongs to (an opaque provider id in v1), and the last activity time.
  * Rows link to the host's session route, where `SessionViewer` renders the
  * transcript read-only (the observer audience — channel viewers hold
@@ -126,10 +134,10 @@ function ChannelConversationsDialogBody({
             id="channel-conversations-title"
             className="text-sm font-semibold text-popover-foreground"
           >
-            Conversations
+            Sessions
           </h2>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            What people asked {channelName} — read-only, visible to the
+            The sessions {channelName} created — read-only, visible to the
             channel&apos;s owner and org admins.
           </p>
         </div>
@@ -137,7 +145,7 @@ function ChannelConversationsDialogBody({
           variant="ghost"
           size="xs"
           onClick={onClose}
-          aria-label="Close conversations"
+          aria-label="Close sessions"
         >
           <X className="size-4" />
         </Button>
@@ -154,8 +162,8 @@ function ChannelConversationsDialogBody({
           <EmptyState
             variant="first-use"
             icon={<MessageSquare className="size-8" />}
-            title="No conversations yet"
-            description="When someone messages this channel, their conversation appears here."
+            title="No sessions yet"
+            description="When someone messages this channel, the sessions serving them appear here."
           />
         ) : (
           <ul className="space-y-1">

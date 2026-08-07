@@ -47,6 +47,11 @@ public final class ConversationIoProto extends com.google.protobuf.GeneratedFile
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentchannel_v1_ChannelConversationList_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentchannel_v1_GetChannelConversationInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentchannel_v1_GetChannelConversationInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_agentchannel_v1_GetConversationTimelineInput_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -129,40 +134,44 @@ public final class ConversationIoProto extends com.google.protobuf.GeneratedFile
       "o\"\211\001\n\027ChannelConversationList\022\037\n\013total_c" +
       "ount\030\001 \001(\005R\ntotalCount\022M\n\005items\030\002 \003(\01327." +
       "ai.stigmer.agentic.agentchannel.v1.Chann" +
-      "elConversationR\005items\"\307\001\n\034GetConversatio" +
-      "nTimelineInput\0224\n\020agent_channel_id\030\001 \001(\t" +
-      "B\n\272H\007r\005\020\001\030\200\001R\016agentChannelId\0225\n\020conversa" +
-      "tion_key\030\002 \001(\tB\n\272H\007r\005\020\001\030\200\001R\017conversation" +
-      "Key\022\033\n\tpage_size\030\003 \001(\005R\010pageSize\022\035\n\npage" +
-      "_token\030\004 \001(\tR\tpageToken\"\222\001\n\024Conversation" +
-      "Timeline\022R\n\005items\030\001 \003(\0132<.ai.stigmer.age" +
-      "ntic.agentchannel.v1.ConversationTimelin" +
-      "eItemR\005items\022&\n\017next_page_token\030\002 \001(\tR\rn" +
-      "extPageToken\"\207\001\n\030ConversationControlInpu" +
-      "t\0224\n\020agent_channel_id\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\001R" +
-      "\016agentChannelId\0225\n\020conversation_key\030\002 \001(" +
-      "\tB\n\272H\007r\005\020\001\030\200\001R\017conversationKey\"\345\001\n\030Reply" +
-      "ToConversationInput\0224\n\020agent_channel_id\030" +
-      "\001 \001(\tB\n\272H\007r\005\020\001\030\200\001R\016agentChannelId\0225\n\020con" +
-      "versation_key\030\002 \001(\tB\n\272H\007r\005\020\001\030\200\001R\017convers" +
-      "ationKey\022\\\n\007payload\030\003 \001(\0132:.ai.stigmer.a" +
-      "gentic.agentchannel.v1.ChannelOutboundPa" +
-      "yloadB\006\272H\003\310\001\001R\007payload\"?\n\031EscalateConver" +
-      "sationInput\022\"\n\006reason\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\010R" +
-      "\006reason*a\n\023ConversationControl\022$\n conver" +
-      "sation_control_unspecified\020\000\022\021\n\rcontrol_" +
-      "agent\020\001\022\021\n\rcontrol_human\020\002*Y\n\020Conversati" +
-      "onLane\022!\n\035conversation_lane_unspecified\020" +
-      "\000\022\017\n\013lane_public\020\001\022\021\n\rlane_internal\020\002*\223\001" +
-      "\n\026ConversationItemAuthor\022(\n$conversation" +
-      "_item_author_unspecified\020\000\022\023\n\017author_cus" +
-      "tomer\020\001\022\020\n\014author_agent\020\002\022\023\n\017author_team" +
-      "mate\020\003\022\023\n\017author_platform\020\004B\302\001B\023Conversa" +
-      "tionIoProtoP\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agenti" +
-      "c.Agentchannel.V1\312\002\"Ai\\Stigmer\\Agentic\\A" +
-      "gentchannel\\V1\342\002.Ai\\Stigmer\\Agentic\\Agen" +
-      "tchannel\\V1\\GPBMetadata\352\002&Ai::Stigmer::A" +
-      "gentic::Agentchannel::V1b\006proto3"
+      "elConversationR\005items\"\212\001\n\033GetChannelConv" +
+      "ersationInput\0224\n\020agent_channel_id\030\001 \001(\tB" +
+      "\n\272H\007r\005\020\001\030\200\001R\016agentChannelId\0225\n\020conversat" +
+      "ion_key\030\002 \001(\tB\n\272H\007r\005\020\001\030\200\001R\017conversationK" +
+      "ey\"\307\001\n\034GetConversationTimelineInput\0224\n\020a" +
+      "gent_channel_id\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\001R\016agent" +
+      "ChannelId\0225\n\020conversation_key\030\002 \001(\tB\n\272H\007" +
+      "r\005\020\001\030\200\001R\017conversationKey\022\033\n\tpage_size\030\003 " +
+      "\001(\005R\010pageSize\022\035\n\npage_token\030\004 \001(\tR\tpageT" +
+      "oken\"\222\001\n\024ConversationTimeline\022R\n\005items\030\001" +
+      " \003(\0132<.ai.stigmer.agentic.agentchannel.v" +
+      "1.ConversationTimelineItemR\005items\022&\n\017nex" +
+      "t_page_token\030\002 \001(\tR\rnextPageToken\"\207\001\n\030Co" +
+      "nversationControlInput\0224\n\020agent_channel_" +
+      "id\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\001R\016agentChannelId\0225\n\020" +
+      "conversation_key\030\002 \001(\tB\n\272H\007r\005\020\001\030\200\001R\017conv" +
+      "ersationKey\"\345\001\n\030ReplyToConversationInput" +
+      "\0224\n\020agent_channel_id\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\001R\016" +
+      "agentChannelId\0225\n\020conversation_key\030\002 \001(\t" +
+      "B\n\272H\007r\005\020\001\030\200\001R\017conversationKey\022\\\n\007payload" +
+      "\030\003 \001(\0132:.ai.stigmer.agentic.agentchannel" +
+      ".v1.ChannelOutboundPayloadB\006\272H\003\310\001\001R\007payl" +
+      "oad\"?\n\031EscalateConversationInput\022\"\n\006reas" +
+      "on\030\001 \001(\tB\n\272H\007r\005\020\001\030\200\010R\006reason*a\n\023Conversa" +
+      "tionControl\022$\n conversation_control_unsp" +
+      "ecified\020\000\022\021\n\rcontrol_agent\020\001\022\021\n\rcontrol_" +
+      "human\020\002*Y\n\020ConversationLane\022!\n\035conversat" +
+      "ion_lane_unspecified\020\000\022\017\n\013lane_public\020\001\022" +
+      "\021\n\rlane_internal\020\002*\223\001\n\026ConversationItemA" +
+      "uthor\022(\n$conversation_item_author_unspec" +
+      "ified\020\000\022\023\n\017author_customer\020\001\022\020\n\014author_a" +
+      "gent\020\002\022\023\n\017author_teammate\020\003\022\023\n\017author_pl" +
+      "atform\020\004B\302\001B\023ConversationIoProtoP\001\242\002\004ASA" +
+      "A\252\002\"Ai.Stigmer.Agentic.Agentchannel.V1\312\002" +
+      "\"Ai\\Stigmer\\Agentic\\Agentchannel\\V1\342\002.Ai" +
+      "\\Stigmer\\Agentic\\Agentchannel\\V1\\GPBMeta" +
+      "data\352\002&Ai::Stigmer::Agentic::Agentchanne" +
+      "l::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -198,32 +207,38 @@ public final class ConversationIoProto extends com.google.protobuf.GeneratedFile
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_ChannelConversationList_descriptor,
         new java.lang.String[] { "TotalCount", "Items", });
-    internal_static_ai_stigmer_agentic_agentchannel_v1_GetConversationTimelineInput_descriptor =
+    internal_static_ai_stigmer_agentic_agentchannel_v1_GetChannelConversationInput_descriptor =
       getDescriptor().getMessageType(4);
+    internal_static_ai_stigmer_agentic_agentchannel_v1_GetChannelConversationInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentchannel_v1_GetChannelConversationInput_descriptor,
+        new java.lang.String[] { "AgentChannelId", "ConversationKey", });
+    internal_static_ai_stigmer_agentic_agentchannel_v1_GetConversationTimelineInput_descriptor =
+      getDescriptor().getMessageType(5);
     internal_static_ai_stigmer_agentic_agentchannel_v1_GetConversationTimelineInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_GetConversationTimelineInput_descriptor,
         new java.lang.String[] { "AgentChannelId", "ConversationKey", "PageSize", "PageToken", });
     internal_static_ai_stigmer_agentic_agentchannel_v1_ConversationTimeline_descriptor =
-      getDescriptor().getMessageType(5);
+      getDescriptor().getMessageType(6);
     internal_static_ai_stigmer_agentic_agentchannel_v1_ConversationTimeline_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_ConversationTimeline_descriptor,
         new java.lang.String[] { "Items", "NextPageToken", });
     internal_static_ai_stigmer_agentic_agentchannel_v1_ConversationControlInput_descriptor =
-      getDescriptor().getMessageType(6);
+      getDescriptor().getMessageType(7);
     internal_static_ai_stigmer_agentic_agentchannel_v1_ConversationControlInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_ConversationControlInput_descriptor,
         new java.lang.String[] { "AgentChannelId", "ConversationKey", });
     internal_static_ai_stigmer_agentic_agentchannel_v1_ReplyToConversationInput_descriptor =
-      getDescriptor().getMessageType(7);
+      getDescriptor().getMessageType(8);
     internal_static_ai_stigmer_agentic_agentchannel_v1_ReplyToConversationInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_ReplyToConversationInput_descriptor,
         new java.lang.String[] { "AgentChannelId", "ConversationKey", "Payload", });
     internal_static_ai_stigmer_agentic_agentchannel_v1_EscalateConversationInput_descriptor =
-      getDescriptor().getMessageType(8);
+      getDescriptor().getMessageType(9);
     internal_static_ai_stigmer_agentic_agentchannel_v1_EscalateConversationInput_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentchannel_v1_EscalateConversationInput_descriptor,

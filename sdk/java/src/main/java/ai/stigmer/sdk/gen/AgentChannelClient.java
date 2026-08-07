@@ -19,6 +19,7 @@ import ai.stigmer.agentic.agentchannel.v1.ConversationControlInput;
 import ai.stigmer.agentic.agentchannel.v1.ConversationTimeline;
 import ai.stigmer.agentic.agentchannel.v1.EscalateConversationInput;
 import ai.stigmer.agentic.agentchannel.v1.GetAgentChannelsByAgentRequest;
+import ai.stigmer.agentic.agentchannel.v1.GetChannelConversationInput;
 import ai.stigmer.agentic.agentchannel.v1.GetConversationTimelineInput;
 import ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallInput;
 import ai.stigmer.agentic.agentchannel.v1.InitiateChannelInstallOutput;
@@ -121,6 +122,12 @@ public final class AgentChannelClient {
     public ChannelConversationList listConversations(ListChannelConversationsInput input) {
         try {
             return channelConversationQuery.listConversations(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public ChannelConversation getConversation(GetChannelConversationInput input) {
+        try {
+            return channelConversationQuery.getConversation(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

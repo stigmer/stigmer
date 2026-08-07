@@ -93,6 +93,11 @@ func (a *AgentChannelClient) ListConversations(ctx context.Context, input *agent
 	return resp, wrapErr(err)
 }
 
+func (a *AgentChannelClient) GetConversation(ctx context.Context, input *agentchannelv1.GetChannelConversationInput) (*agentchannelv1.ChannelConversation, error) {
+	resp, err := a.channelConversationQuery.GetConversation(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (a *AgentChannelClient) GetTimeline(ctx context.Context, input *agentchannelv1.GetConversationTimelineInput) (*agentchannelv1.ConversationTimeline, error) {
 	resp, err := a.channelConversationQuery.GetTimeline(ctx, input)
 	return resp, wrapErr(err)

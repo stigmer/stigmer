@@ -1203,10 +1203,11 @@ func TestChannelMessageController_CloudOnlyPosture(t *testing.T) {
 // conversation surface's OSS contract (channel-conversations DD-003
 // D-f): queries answer EMPTY (the listMessagingChannels discovery
 // posture — the cloud channel runtime that materializes conversations
-// does not run here, so "none" is the honest answer) and every command
-// refuses with FAILED_PRECONDITION and the documented copy. Input
-// validation runs first so the INVALID_ARGUMENT contract matches the
-// cloud edition's.
+// does not run here, so "none" is the honest answer), the single-row
+// getConversation answers NOT_FOUND (the one read that cannot answer
+// "empty"), and every command refuses with FAILED_PRECONDITION and the
+// documented copy. Input validation runs first so the INVALID_ARGUMENT
+// contract matches the cloud edition's.
 func TestChannelConversationController_CloudOnlyPosture(t *testing.T) {
 	cc := NewChannelConversationController()
 
@@ -1242,6 +1243,18 @@ func TestChannelConversationController_CloudOnlyPosture(t *testing.T) {
 		if res.GetNextPageToken() != "" {
 			t.Errorf("an empty timeline must not offer a next page, got %q",
 				res.GetNextPageToken())
+		}
+	})
+
+	t.Run("getConversation answers NOT_FOUND, never a refusal", func(t *testing.T) {
+		_, err := cc.GetConversation(channelCtx(),
+			&agentchannelv1.GetChannelConversationInput{
+				AgentChannelId:  "ach-123",
+				ConversationKey: "15551234567",
+			})
+		if status.Code(err) != codes.NotFound {
+			t.Fatalf("a single-row get cannot answer empty; expected NOT_FOUND, got %s (%v)",
+				status.Code(err), err)
 		}
 	})
 
@@ -1307,6 +1320,11 @@ func TestChannelConversationController_CloudOnlyPosture(t *testing.T) {
 			{"getTimeline without conversation key", func() error {
 				_, err := cc.GetTimeline(channelCtx(),
 					&agentchannelv1.GetConversationTimelineInput{AgentChannelId: "ach-123"})
+				return err
+			}},
+			{"getConversation without conversation key", func() error {
+				_, err := cc.GetConversation(channelCtx(),
+					&agentchannelv1.GetChannelConversationInput{AgentChannelId: "ach-123"})
 				return err
 			}},
 			{"takeOver without channel id", func() error {

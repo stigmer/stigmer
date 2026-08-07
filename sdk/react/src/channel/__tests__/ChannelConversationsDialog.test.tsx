@@ -96,7 +96,7 @@ describe("ChannelConversationsDialog", () => {
     renderDialog(vi.fn().mockResolvedValue({ entries: [] }));
 
     await waitFor(() =>
-      expect(screen.getByText("No conversations yet")).toBeDefined(),
+      expect(screen.getByText("No sessions yet")).toBeDefined(),
     );
   });
 

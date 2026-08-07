@@ -93,6 +93,7 @@ AgentChannel agentChannel = client.agentChannels().get("ach_01j5q3k7m8r2s4tnz2hf
 | [`get`](#get) | Get a single agent channel by ID. |
 | [`getByAgent`](#getbyagent) | Get all channels of a specific agent. |
 | [`getByReference`](#getbyreference) | Get an agent channel by its organization-scoped reference (org/slug). |
+| [`getConversation`](#getconversation) | Get one conversation's identity and participation state. |
 | [`getTimeline`](#gettimeline) | Get one conversation's timeline, newest first, cursor-paged. |
 | [`list`](#list) | List agent channels with optional label filtering. |
 | [`listConversations`](#listconversations) | List an organization's channel conversations, newest activity first. |
@@ -245,6 +246,51 @@ AgentChannel agentChannel = client.agentChannels().getByReference(ApiResourceRef
 **Parameters**: [`ResourceRef`](#resourceref)
 
 **Returns**: [`AgentChannel`](#agentchannel)
+
+### getConversation
+
+Get one conversation's identity and participation state.
+
+The single-row read behind a conversation detail view: who holds control, whether the conversation needs attention and why, the customer's display name, and the activity clocks. Answers NOT_FOUND until the customer's first message creates the conversation.
+
+<SDKTabs>
+<Tab value="TypeScript">
+```typescript
+const channelConversation = await stigmer.agentChannel.getConversation({
+  agentChannelId: "...",
+  conversationKey: "...",
+});
+```
+</Tab>
+<Tab value="Go">
+```go
+channelConversation, err := client.AgentChannel.GetConversation(ctx, &stigmer.GetChannelConversationInput{
+  AgentChannelId:  "...",
+  ConversationKey: "...",
+})
+```
+</Tab>
+<Tab value="Python">
+```python
+channel_conversation = client.agent_channels.get_conversation(GetChannelConversationInput(
+    agent_channel_id="...",
+    conversation_key="...",
+))
+```
+</Tab>
+<Tab value="Java">
+```java
+ChannelConversation channelConversation = client.agentChannels().getConversation(GetChannelConversationInput.builder()
+    .agentChannelId("...")
+    .conversationKey("...")
+    .build());
+```
+</Tab>
+</SDKTabs>
+
+**Parameters**: [`GetChannelConversationInput`](#getchannelconversationinput)
+
+**Returns**: [`ChannelConversation`](#channelconversation)
 
 ### getTimeline
 
@@ -1329,6 +1375,17 @@ ChannelConversationList contains a page of channel conversations, newest activit
   type={{
     totalCount: { type: "number", description: "Total number of conversations matching the filter." },
     items: { type: "ChannelConversationInput[]", description: "Conversations in the current page." },
+  }}
+/>
+
+### GetChannelConversationInput
+
+Input for reading one conversation's identity and participation state.
+
+<TypeTable
+  type={{
+    agentChannelId: { type: "string", description: "AgentChannel the conversation belongs to." },
+    conversationKey: { type: "string", description: "Conversation key within the channel (WhatsApp: the customer's wa_id)." },
   }}
 />
 

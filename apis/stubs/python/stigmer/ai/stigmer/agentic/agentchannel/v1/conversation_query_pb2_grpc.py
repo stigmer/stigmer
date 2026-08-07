@@ -32,6 +32,11 @@ class ChannelConversationQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ListChannelConversationsInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ChannelConversationList.FromString,
                 _registered_method=True)
+        self.getConversation = channel.unary_unary(
+                '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getConversation',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.GetChannelConversationInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ChannelConversation.FromString,
+                _registered_method=True)
         self.getTimeline = channel.unary_unary(
                 '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getTimeline',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.GetConversationTimelineInput.SerializeToString,
@@ -73,6 +78,36 @@ class ChannelConversationQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getConversation(self, request, context):
+        """Get one conversation's identity and participation state.
+
+        The single-row read behind a conversation detail view: who holds
+        control, whether the conversation needs attention and why, the
+        customer's display name, and the activity clocks. Answers NOT_FOUND
+        until the customer's first message creates the conversation.
+
+        @internal
+        channel-conversations T04: the get sibling of listConversations, so
+        a deep-linked console view or an embedded conversation surface never
+        reconstructs one row by scanning list pages — and the open
+        conversation can poll its own participation state instead of riding
+        the list's slower refresh. Authorization is declarative on the
+        channel, exactly getTimeline's shape (DD-003 D-a: conversations
+        carry no per-conversation FGA tuples — the channel is the trust
+        boundary). NOT_FOUND deliberately covers the timeline-without-row
+        case (a proactive cold-send the customer never answered): getTimeline
+        may serve items while this read refuses, the same "the customer
+        wrote first" asymmetry reply's existing-conversation precondition
+        enforces (T03 Sitting 2's A8) — consoles render that as "controls
+        unlock when the customer writes", not as an error. OSS answers
+        NOT_FOUND unconditionally: this edition never materializes
+        conversations (cloud-only runtime), and a single-row get cannot
+        answer "empty" the way the sibling discovery reads do.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def getTimeline(self, request, context):
         """Get one conversation's timeline, newest first, cursor-paged.
 
@@ -101,6 +136,11 @@ def add_ChannelConversationQueryControllerServicer_to_server(servicer, server):
                     servicer.listConversations,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ListChannelConversationsInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ChannelConversationList.SerializeToString,
+            ),
+            'getConversation': grpc.unary_unary_rpc_method_handler(
+                    servicer.getConversation,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.GetChannelConversationInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ChannelConversation.SerializeToString,
             ),
             'getTimeline': grpc.unary_unary_rpc_method_handler(
                     servicer.getTimeline,
@@ -148,6 +188,33 @@ class ChannelConversationQueryController(object):
             '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/listConversations',
             ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ListChannelConversationsInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ChannelConversationList.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getConversation(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentchannel.v1.ChannelConversationQueryController/getConversation',
+            ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.GetChannelConversationInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentchannel_dot_v1_dot_conversation__io__pb2.ChannelConversation.FromString,
             options,
             channel_credentials,
             insecure,

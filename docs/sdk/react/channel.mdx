@@ -507,11 +507,19 @@ This is an SDK component (DD-001) — embeddable by platform builders.
 
 ### ChannelConversationsDialog
 
-Lists the conversations a channel created — the Slack/WhatsApp sessions
-the channel runtime owns, visible to exactly the channel's viewers (the
-connector and org admins; design decision 012).
+Lists the SESSIONS a channel created — the session-level forensics view
+(which execution containers served the channel's traffic), visible to
+exactly the channel's viewers (the connector and org admins; design
+decision 012).
 
-Each row shows the conversation subject, the external platform user it
+Deliberately titled "Sessions", not "Conversations": the customer-facing
+Conversations surface is the top-level `ConversationsWorkbench` over the
+conversation timeline API, which supersedes this read for that purpose
+(channel-conversations DD-004 D-g). This dialog remains what it actually
+is — the observability view underneath a conversation. The component
+name keeps its historical export for API stability.
+
+Each row shows the session subject, the external platform user it
 belongs to (an opaque provider id in v1), and the last activity time.
 Rows link to the host's session route, where `SessionViewer` renders the
 transcript read-only (the observer audience — channel viewers hold

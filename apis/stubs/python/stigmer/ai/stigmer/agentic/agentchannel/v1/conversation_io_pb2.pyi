@@ -116,6 +116,14 @@ class ChannelConversationList(_message.Message):
     items: _containers.RepeatedCompositeFieldContainer[ChannelConversation]
     def __init__(self, total_count: _Optional[int] = ..., items: _Optional[_Iterable[_Union[ChannelConversation, _Mapping]]] = ...) -> None: ...
 
+class GetChannelConversationInput(_message.Message):
+    __slots__ = ("agent_channel_id", "conversation_key")
+    AGENT_CHANNEL_ID_FIELD_NUMBER: _ClassVar[int]
+    CONVERSATION_KEY_FIELD_NUMBER: _ClassVar[int]
+    agent_channel_id: str
+    conversation_key: str
+    def __init__(self, agent_channel_id: _Optional[str] = ..., conversation_key: _Optional[str] = ...) -> None: ...
+
 class GetConversationTimelineInput(_message.Message):
     __slots__ = ("agent_channel_id", "conversation_key", "page_size", "page_token")
     AGENT_CHANNEL_ID_FIELD_NUMBER: _ClassVar[int]

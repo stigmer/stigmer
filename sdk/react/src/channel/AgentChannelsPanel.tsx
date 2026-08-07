@@ -538,9 +538,14 @@ function ChannelCard({
               <ActionMenu.Item
                 icon={<MessageSquare />}
                 onSelect={onViewConversations}
+                /* "Sessions", deliberately not "Conversations": this
+                   dialog is the session-level forensics view (which
+                   sessions served a conversation). The word
+                   Conversations belongs to the top-level customer
+                   surface (channel-conversations DD-004 D-g). */
                 data-cursor-target="channel-conversations"
               >
-                Conversations
+                Sessions
               </ActionMenu.Item>
               {/* Gated on the bar the server enforces for listTemplates
                   (ChannelMessagingReach: can_edit), and on the provider

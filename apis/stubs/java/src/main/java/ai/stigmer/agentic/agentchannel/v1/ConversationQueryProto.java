@@ -41,23 +41,28 @@ public final class ConversationQueryProto extends com.google.protobuf.GeneratedF
       "entchannel/v1/conversation_io.proto\0328ai/" +
       "stigmer/commons/apiresource/rpc_service_" +
       "options.proto\032+ai/stigmer/commons/rpc/me" +
-      "thod_options.proto2\242\003\n\"ChannelConversati" +
+      "thod_options.proto2\200\005\n\"ChannelConversati" +
       "onQueryController\022\231\001\n\021listConversations\022" +
       "A.ai.stigmer.agentic.agentchannel.v1.Lis" +
       "tChannelConversationsInput\032;.ai.stigmer." +
       "agentic.agentchannel.v1.ChannelConversat" +
-      "ionList\"\004\320\270\030\001\022\331\001\n\013getTimeline\022@.ai.stigm" +
-      "er.agentic.agentchannel.v1.GetConversati" +
-      "onTimelineInput\0328.ai.stigmer.agentic.age" +
-      "ntchannel.v1.ConversationTimeline\"N\302\270\030J\010" +
-      "\001\020/\"\020agent_channel_id*2unauthorized to v" +
-      "iew conversations on this channel\032\004\240\377+/B" +
-      "\305\001B\026ConversationQueryProtoP\001\242\002\004ASAA\252\002\"Ai" +
-      ".Stigmer.Agentic.Agentchannel.V1\312\002\"Ai\\St" +
-      "igmer\\Agentic\\Agentchannel\\V1\342\002.Ai\\Stigm" +
-      "er\\Agentic\\Agentchannel\\V1\\GPBMetadata\352\002" +
-      "&Ai::Stigmer::Agentic::Agentchannel::V1b" +
-      "\006proto3"
+      "ionList\"\004\320\270\030\001\022\333\001\n\017getConversation\022?.ai.s" +
+      "tigmer.agentic.agentchannel.v1.GetChanne" +
+      "lConversationInput\0327.ai.stigmer.agentic." +
+      "agentchannel.v1.ChannelConversation\"N\302\270\030" +
+      "J\010\001\020/\"\020agent_channel_id*2unauthorized to" +
+      " view conversations on this channel\022\331\001\n\013" +
+      "getTimeline\022@.ai.stigmer.agentic.agentch" +
+      "annel.v1.GetConversationTimelineInput\0328." +
+      "ai.stigmer.agentic.agentchannel.v1.Conve" +
+      "rsationTimeline\"N\302\270\030J\010\001\020/\"\020agent_channel" +
+      "_id*2unauthorized to view conversations " +
+      "on this channel\032\004\240\377+/B\305\001B\026ConversationQu" +
+      "eryProtoP\001\242\002\004ASAA\252\002\"Ai.Stigmer.Agentic.A" +
+      "gentchannel.V1\312\002\"Ai\\Stigmer\\Agentic\\Agen" +
+      "tchannel\\V1\342\002.Ai\\Stigmer\\Agentic\\Agentch" +
+      "annel\\V1\\GPBMetadata\352\002&Ai::Stigmer::Agen" +
+      "tic::Agentchannel::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

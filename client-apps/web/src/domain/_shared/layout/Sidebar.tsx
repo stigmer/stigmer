@@ -37,13 +37,17 @@ export function Sidebar() {
 
   const isDashboardActive =
     !isSessionZone && !isExecutionZone && pathname.startsWith("/dashboard");
+  const isConversationsActive =
+    !isSessionZone && !isExecutionZone && pathname.startsWith("/conversations");
   const isLibraryActive =
     !isSessionZone && !isExecutionZone && pathname.startsWith("/library");
   const activeNav: WorkspaceNavId | null = isDashboardActive
     ? "dashboard"
-    : isLibraryActive
-      ? "library"
-      : null;
+    : isConversationsActive
+      ? "conversations"
+      : isLibraryActive
+        ? "library"
+        : null;
 
   // Org switch is a full context change: whatever page is open belongs to
   // the previous org's view (detail pages are keyed on the URL org, not the
